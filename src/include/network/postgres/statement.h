@@ -83,6 +83,13 @@ class Statement {
   QueryType GetQueryType() const { return type_; }
 
   /**
+   * @return the original query text. This is a const & instead of a std::string_view because we require that it be
+   * null-terminated to pass the underlying C-string to libpgquery methods. std::string_view does not guarantee
+   * null-termination. We could add a std::string_view accessor for performance if we can justify it.
+   */
+  const std::string &GetQueryText() const { return query_text_; }
+
+  /**
    * @return the optimized physical plan for this query
    */
   common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const {

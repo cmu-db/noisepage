@@ -10,27 +10,6 @@
 
 namespace terrier::binder {
 
-BinderSherpa::BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
-                           const common::ManagedPointer<std::vector<type::TransientValue>> parameters)
-    : parse_result_(parse_result), parameters_(parameters) {
-  TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
-}
-
-common::ManagedPointer<parser::ParseResult> BinderSherpa::GetParseResult() const { return parse_result_; }
-
-common::ManagedPointer<std::vector<type::TransientValue>> BinderSherpa::GetParameters() const { return parameters_; }
-
-type::TypeId BinderSherpa::GetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
-  const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
-  if (it != desired_expr_types_.end()) return it->second;
-  return expr->GetReturnValueType();
-}
-
-void BinderSherpa::SetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr,
-                                  const type::TypeId type) {
-  desired_expr_types_[reinterpret_cast<uintptr_t>(expr.Get())] = type;
-}
-
 void BinderSherpa::SetDesiredTypePair(const common::ManagedPointer<parser::AbstractExpression> left,
                                       const common::ManagedPointer<parser::AbstractExpression> right) {
   type::TypeId left_type = type::TypeId::INVALID;
@@ -174,7 +153,5 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<type::Tra
     }
   }
 }
-
-void BinderSherpa::ReportFailure(const std::string &message) const { throw BINDER_EXCEPTION(message.c_str()); }
 
 }  // namespace terrier::binder

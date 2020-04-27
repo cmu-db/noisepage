@@ -5,10 +5,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/managed_pointer.h"
-#include "type/transient_value.h"
+#include "parser/expression/abstract_expression.h"
 #include "type/transient_value_factory.h"
-#include "type/transient_value_peeker.h"
+#include "util/time_util.h"
 
 namespace terrier {
 
@@ -32,32 +31,41 @@ class BinderSherpa {
    * @param parse_result The parse result to be tracked
    * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
    */
-  explicit BinderSherpa(common::ManagedPointer<parser::ParseResult> parse_result,
-                        common::ManagedPointer<std::vector<type::TransientValue>> parameters);
+  explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
+                        const common::ManagedPointer<std::vector<type::TransientValue>> parameters)
+      : parse_result_(parse_result), parameters_(parameters) {
+    TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
+  }
 
   /**
    * @return The parse result that we're tracking.
    */
-  common::ManagedPointer<parser::ParseResult> GetParseResult() const;
+  common::ManagedPointer<parser::ParseResult> GetParseResult() const { return parse_result_; }
 
   /**
    * @return parameters for the query being bound
    * @warning can be nullptr if there are no parameters
    */
-  common::ManagedPointer<std::vector<type::TransientValue>> GetParameters() const;
+  common::ManagedPointer<std::vector<type::TransientValue>> GetParameters() const { return parameters_; }
 
   /**
    * @param expr The expression whose type constraints we want to look up.
    * @return The previously recorded type constraints, or the expression's current return value type if none exist.
    */
-  type::TypeId GetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const;
+  type::TypeId GetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
+    const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
+    if (it != desired_expr_types_.end()) return it->second;
+    return expr->GetReturnValueType();
+  }
 
   /**
    * Set the desired type of expr. The sherpa does not do anything except take note of the request.
    * @param expr The expression whose type we want to constrain.
    * @param type The desired type.
    */
-  void SetDesiredType(common::ManagedPointer<parser::AbstractExpression> expr, type::TypeId type);
+  void SetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr, const type::TypeId type) {
+    desired_expr_types_[reinterpret_cast<uintptr_t>(expr.Get())] = type;
+  }
 
   /**
    * Convenience function. Common case of wanting the left and right children to have compatible types, where one child
@@ -90,7 +98,7 @@ class BinderSherpa {
    * Convenience function. Used by the visitor sheep to report that an error has occurred, causing BINDER_EXCEPTION.
    * @param message The error message.
    */
-  void ReportFailure(const std::string &message) const;
+  void ReportFailure(const std::string &message) const { throw BINDER_EXCEPTION(message.c_str()); }
 
  private:
   /**
