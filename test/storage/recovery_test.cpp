@@ -707,6 +707,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   recovery_db_main_.reset();
 
   log_manager_->PersistAndStop();
+
   //-----------------------------------------
   // Now recover based off the last recovery
   //-----------------------------------------
@@ -803,7 +804,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   // Create directory
   std::filesystem::create_directory(ckpt_path);
 
-  Checkpoint ckpt(catalog_, txn_manager_, deferred_action_manager_, gc_);
+  Checkpoint ckpt(catalog_, txn_manager_, deferred_action_manager_, gc_, log_manager_);
 
   // get db_oid
   catalog::db_oid_t db;
@@ -811,7 +812,12 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
     db = database.first;
   }
 
-  ckpt.TakeCheckpoint(ckpt_path, db);
+  ckpt.TakeCheckpoint(ckpt_path, db, LOG_FILE_NAME);
+
+  //TODO(xuanxuan): check if the file is deleted, uncomment later
+//  std::ifstream ifile(LOG_FILE_NAME);
+//  EXPECT_FALSE(ifile);
+
   ShutdownAndRestartSystem();
 
   // Override the recovery DBMain to now log out

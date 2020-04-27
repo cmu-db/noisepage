@@ -4,6 +4,8 @@
 #include <common/managed_pointer.h>
 #include <mutex>
 #include <string>
+#include <stdio.h>
+
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_constraint.h"
@@ -19,8 +21,11 @@ class Checkpoint {
   Checkpoint(const common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
-             common::ManagedPointer<storage::GarbageCollector> gc)
-      : catalog_(catalog), txn_manager_(txn_manager), deferred_action_manager_(deferred_action_manager), gc_(gc) {
+             common::ManagedPointer<storage::GarbageCollector> gc,
+             common::ManagedPointer<storage::LogManager> log_manager
+             )
+      : catalog_(catalog), txn_manager_(txn_manager), deferred_action_manager_(deferred_action_manager),
+      gc_(gc), log_manager_(log_manager) {
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -38,7 +43,7 @@ class Checkpoint {
    * @param db the database to take the checkpoint of
    * @return True if succuessully take the checkpoint, False otherwise
    */
-  bool TakeCheckpoint(const std::string &path, catalog::db_oid_t db);
+  bool TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file);
 
   /**
    * Generate a file name for a table
@@ -80,8 +85,9 @@ class Checkpoint {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
   common::ManagedPointer<storage::GarbageCollector> gc_;
+  common::ManagedPointer<storage::LogManager> log_manager_;
   std::unordered_map<catalog::table_oid_t, catalog::Schema> catalog_table_schemas_;
-  std::vector<catalog::table_oid_t> queue;  // for multithreading
+  std::vector<std::pair<catalog::table_oid_t, storage::DataTable *>> queue;  // for multithreading
   std::mutex queue_latch;
 
   /**

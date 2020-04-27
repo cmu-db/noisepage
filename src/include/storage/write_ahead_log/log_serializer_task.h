@@ -67,6 +67,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
 
  private:
   friend class LogManager;
+  friend class Checkpoint;
   // Flag to signal task to run or stop
   bool run_task_;
   // Interval for serialization

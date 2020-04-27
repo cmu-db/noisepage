@@ -6,15 +6,33 @@
 #include <fstream>
 namespace terrier::storage {
 
-bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
+bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char* cur_log_file) {
   // get db catalog accessor
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(static_cast<common::ManagedPointer<transaction::TransactionContext>>(txn), db);
   std::unordered_set<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
 
+  // lock the log_serializer buffer to prevent further logging
+  common::ManagedPointer<LogSerializerTask> log_serializer_task = log_manager_->log_serializer_task_;
+  log_serializer_task->flush_queue_latch_.Lock();
+
+  // copy all data tables to serialize later
   for (const auto &oid : table_oids) {
-    queue.push_back(oid);
+    // copy data table
+    common::ManagedPointer<storage::SqlTable> curr_sql_table = accessor->GetTable(oid);
+    storage::DataTable *curr_data_table = curr_sql_table->table_.data_table_;
+    std::list<RawBlock *> new_blocks(curr_data_table->blocks_);
+    storage::DataTable *new_table = new storage::DataTable(curr_data_table->block_store_, curr_data_table->GetBlockLayout(),
+                                                           curr_data_table->layout_version_, new_blocks);
+    queue.emplace_back(oid, new_table);
   }
+  //TODO(xuanxuan): delete previous log file (uncomment after separate catalog log from other logs)
+//  if (remove(cur_log_file) != 0)
+//    perror( "Error deleting file" );
+//  else
+//    puts( "File successfully deleted" );
+
+  log_serializer_task->flush_queue_latch_.Unlock();
 
   // initalize threads
   auto num_threads = 1u;
@@ -33,7 +51,6 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
     // the table oid that failed to be backup
     return false;
   }
-
   return true;
 }
 
@@ -45,25 +62,19 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       queue_latch.unlock();
       return;
     }
-    catalog::table_oid_t curr_table_oid = queue[0];
+    catalog::table_oid_t curr_table_oid = queue[0].first;
+    storage::DataTable *data_table = queue[0].second;
     queue.erase(queue.begin());
     queue_latch.unlock();
-    common::ManagedPointer<storage::SqlTable> curr_table = accessor->GetTable(curr_table_oid);
 
     // get daga table
-    storage::DataTable *curr_data_table = curr_table->table_.data_table_;
     std::string out_file = path + GenFileName(db_oid, curr_table_oid);
 
-    // copy data table
-    std::list<RawBlock *> new_blocks(curr_data_table->blocks_);
-    storage::DataTable *new_table = new storage::DataTable(curr_data_table->block_store_, curr_data_table->GetBlockLayout(),
-                                 curr_data_table->layout_version_, new_blocks);
-
-    const BlockLayout &layout = new_table->GetBlockLayout();
+    const BlockLayout &layout = data_table->GetBlockLayout();
     std::vector<type::TypeId> column_types;
     column_types.resize(layout.NumColumns());
-    for (RawBlock *block : new_table->blocks_) {
-      auto &arrow_metadata = new_table->accessor_.GetArrowBlockMetadata(block);
+    for (RawBlock *block : data_table->blocks_) {
+      auto &arrow_metadata = data_table->accessor_.GetArrowBlockMetadata(block);
       for (storage::col_id_t col_id : layout.AllColumns()) {
         if (layout.IsVarlen(col_id)) {
           arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
@@ -75,14 +86,14 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       }
     }
 
-    // for check if metadata updated
-    //    auto &md = curr_data_table->accessor_.GetArrowBlockMetadata(curr_data_table->blocks_.front());
-    //    col_id_t id = layout.AllColumns()[0];
-    //    md.GetColumnInfo(layout, id);
+//     for check if metadata gets updated
+//        auto &md = data_table->accessor_.GetArrowBlockMetadata(data_table->blocks_.front());
+//        col_id_t id = layout.AllColumns()[0];
+//        md.GetColumnInfo(layout, id);
 
     // compact blocks into arrow format
     storage::BlockCompactor compactor;
-    for (RawBlock *block : new_table->blocks_) {
+    for (RawBlock *block : data_table->blocks_) {
       compactor.PutInQueue(block);
       compactor.ProcessCompactionQueue(deferred_action_manager_.Get(), txn_manager_.Get());  // compaction pass
       gc_->PerformGarbageCollection();
@@ -91,7 +102,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     }
 
     // write to disk
-    storage::ArrowSerializer arrow_serializer(*new_table);
+    storage::ArrowSerializer arrow_serializer(*data_table);
     arrow_serializer.ExportTable(out_file, &column_types);
   }
 }
