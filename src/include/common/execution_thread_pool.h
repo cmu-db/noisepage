@@ -106,7 +106,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    */
   void SubmitTask(std::promise<void> *promise, const std::function<void()> &task,
                   common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
-    SubmitTask(promise, [&] (PoolContext *ctx) {
+    SubmitTask(promise, [=] (PoolContext *ctx) {
       task();
     }, numa_hint);
   }
