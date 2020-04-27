@@ -503,7 +503,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
                             node->GetTableName());
 
   auto tb_oid = catalog_accessor_->GetTableOid(node->GetTableName());
-
+  uint32_t cmd_idx = 0;
   for (const auto &cmd : node->GetAlterTableCmds()) {
     auto alter_type = cmd.GetAlterType();
     switch (alter_type) {
@@ -531,12 +531,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
           if (cmd.IsIfExists()) continue;
           throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " does not exist in table").c_str());
         }
+        node->SetColumnOid(cmd_idx, catalog_accessor_->GetSchema(tb_oid).GetColumn(cmd.GetColumnName()).Oid());
         break;
       case parser::AlterTableStatement::AlterType::ColumnDefault: {
         // check if the column name already exists
         if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), cmd.GetColumnName())) {
           throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " does not exist in table").c_str());
         }
+        node->SetColumnOid(cmd_idx, catalog_accessor_->GetSchema(tb_oid).GetColumn(cmd.GetColumnName()).Oid());
 
         auto binder_table_data = context_->GetTableMapping(node->GetTableName());
         const auto &table_schema = std::get<2>(*binder_table_data);
@@ -550,8 +552,15 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
         break;
       }
       case parser::AlterTableStatement::AlterType::AlterColumnType:
+        // check if the column name already exists
+        if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), cmd.GetColumnName())) {
+          if (cmd.IsIfExists()) continue;
+          throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " does not exist in table").c_str());
+        }
+        node->SetColumnOid(cmd_idx, catalog_accessor_->GetSchema(tb_oid).GetColumn(cmd.GetColumnName()).Oid());
         break;
     }
+    cmd_idx++;
   }
 }
 

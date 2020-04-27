@@ -99,11 +99,11 @@ class AlterTableStatement : public TableRefStatement {
     bool IsDropCascade() const { return drop_cascade_; }
 
    private:
-    friend class binder::BindNodeVisitor;
-
     AlterType type_;
 
     const std::string col_name_;
+
+    const catalog::col_oid_t col_oid_ = catalog::INVALID_COLUMN_OID;
 
     // For Add Column
     std::unique_ptr<ColumnDefinition> col_ = nullptr;
@@ -126,7 +126,10 @@ class AlterTableStatement : public TableRefStatement {
    * @param if_exist IF EXISTS (for the table)
    */
   AlterTableStatement(std::unique_ptr<TableInfo> table, std::vector<AlterTableCmd> cmds, bool if_exist)
-      : TableRefStatement(StatementType::ALTER, std::move(table)), cmds_(std::move(cmds)), if_exists_(if_exist) {}
+      : TableRefStatement(StatementType::ALTER, std::move(table)),
+        cmds_(std::move(cmds)),
+        col_oids_(cmds_.size(), catalog::INVALID_COLUMN_OID),
+        if_exists_(if_exist) {}
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
@@ -138,13 +141,28 @@ class AlterTableStatement : public TableRefStatement {
   const std::vector<AlterTableCmd> &GetAlterTableCmds() const { return cmds_; }
 
   /**
+   * @return Oids of columns each action of the statement apply on
+   */
+  const std::vector<catalog::col_oid_t> &GetColOids() const { return col_oids_; }
+
+  /**
    * @return  have IF EXISTS or not in the SQL
    */
   bool IsIfExists() const { return if_exists_; }
 
  private:
+  friend class binder::BindNodeVisitor;
+
+  void SetColumnOid(uint32_t cmd_idx, catalog::col_oid_t col_oid) {
+    TERRIER_ASSERT(cmd_idx < col_oids_.size(), "Column oid does not match existing command.");
+    col_oids_[cmd_idx] = col_oid;
+  }
+
   // Column Commands
   const std::vector<AlterTableCmd> cmds_;
+
+  // Oids of column
+  std::vector<catalog::col_oid_t> col_oids_;
 
   // ALTER TABLE IF EXISTS
   const bool if_exists_ = false;
