@@ -14,6 +14,7 @@
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_sequence.h"
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"

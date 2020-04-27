@@ -12,6 +12,7 @@
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
+#include "catalog/postgres/pg_sequence.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -491,6 +492,14 @@ class DatabaseCatalog {
   storage::ProjectionMap get_columns_prm_;
   storage::ProjectedRowInitializer delete_columns_pri_;
   storage::ProjectionMap delete_columns_prm_;
+
+  storage::SqlTable *sequences_;
+  storage::index::Index *sequences_oid_index_;
+  //storage::index::Index *sequences_name_index_;
+  storage::ProjectedRowInitializer pg_sequence_all_cols_pri_;
+  storage::ProjectionMap pg_sequence_all_cols_prm_;
+  storage::ProjectedRowInitializer delete_sequence_pri_;
+  storage::ProjectionMap delete_sequence_prm_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;
