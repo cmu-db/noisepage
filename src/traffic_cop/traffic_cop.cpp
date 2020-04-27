@@ -178,8 +178,7 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
     case network::QueryType::QUERY_CREATE_SEQUENCE: {
       if (execution::sql::DDLExecutors::CreateSequenceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateSequencePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
@@ -236,8 +235,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
     case network::QueryType::QUERY_DROP_SEQUENCE: {
       if (execution::sql::DDLExecutors::DropSequenceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropSequencePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }

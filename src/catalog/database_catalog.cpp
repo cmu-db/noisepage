@@ -1550,7 +1550,7 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   TERRIER_ASSERT(sequence == *(reinterpret_cast<const sequence_oid_t *const>(
-          table_pr->AccessForceNotNull(delete_sequence_prm_[postgres::SEQOID_COL_OID]))),
+          table_pr->AccessForceNotNull(delete_sequence_prm_[postgres::SEQRELID_COL_OID]))),
                    "sequence oid from pg_sequence did not match what was found by the index scan from the argument.");
 
   // Delete from pg_sequence table
