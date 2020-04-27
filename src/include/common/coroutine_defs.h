@@ -23,7 +23,7 @@ namespace terrier::common {
 
     bool YieldToFunc() {
       TERRIER_ASSERT(func_ != nullptr, "must have called SetFunction before yielding to function");
-//      TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to function");
+      TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to function");
       TERRIER_ASSERT(in_, "in_ should always have yielded");
       in_();
       TERRIER_ASSERT(in_, "in_ should always have yielded");
@@ -42,6 +42,7 @@ namespace terrier::common {
 
    private:
     std::function<void(PoolContext *)> func_ = nullptr;
+    push_type *sink_ = nullptr;
     pull_type in_ = pull_type([&] (push_type &s) {
       this->sink_ = &s;
       while (true) {
@@ -53,10 +54,8 @@ namespace terrier::common {
         this->func_ = nullptr;
       }
     });
-    push_type *sink_ = nullptr;
     bool func_finished_ = false;
   };
-
 
   using PoolContextPool = ObjectPool<common::PoolContext, common::PoolContext::Allocator>;
 
