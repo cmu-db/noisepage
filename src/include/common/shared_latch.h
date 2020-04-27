@@ -66,7 +66,7 @@ class SharedLatch {
      * Acquire write lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
      */
-    explicit ScopedSharedLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch) { rw_latch_->LockShared(); }
+    explicit ScopedSharedLatch(SharedLatch *const rw_latch, common::PoolContext *ctx = nullptr) : rw_latch_(rw_latch) { rw_latch_->LockShared(ctx); }
     /**
      * Release write lock (if acquired).
      */
@@ -86,7 +86,7 @@ class SharedLatch {
      * Acquire read lock on ReaderWriterLatch.
      * @param rw_latch pointer to ReaderWriterLatch to acquire
      */
-    explicit ScopedExclusiveLatch(SharedLatch *const rw_latch) : rw_latch_(rw_latch) { rw_latch_->LockExclusive(); }
+    explicit ScopedExclusiveLatch(SharedLatch *const rw_latch, common::PoolContext *ctx = nullptr) : rw_latch_(rw_latch) { rw_latch_->LockExclusive(ctx); }
     /**
      * Release read lock (if acquired).
      */

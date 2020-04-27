@@ -146,6 +146,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
     void RunNextTask() {
       while (true) {
+        bool tasks_left = false;
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
           auto index = (static_cast<int16_t>(numa_region_) + i) % pool_->num_regions_;
           Task task;
@@ -166,10 +167,14 @@ class ExecutionThreadPool : DedicatedThreadOwner {
           bool is_empty = pool_->task_queue_[index].empty();
           pool_->task_queue_[index].push(task);
 
+          tasks_left = true;
           if (is_empty) {
             continue;
           }
           return;
+        }
+        if (tasks_left) {
+          continue;
         }
 
         pool_->busy_workers_--;

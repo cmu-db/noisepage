@@ -1,6 +1,8 @@
 #include <common/dedicated_thread_registry.h>
 #include <common/execution_thread_pool.h>
 #include <common/managed_pointer.h>
+#include <common/shared_latch.h>
+#include <common/spin_latch.h>
 
 #include <atomic>
 #include <thread>  // NOLINT
@@ -224,4 +226,149 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
     }
   }
 }
+
+// NOLINTNEXTLINE
+TEST(ExecutionThreadPoolTests, ContestSwitchingTestSpinLatch) {
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids;
+  cpu_ids.emplace_back(0);
+  uint32_t iteration = 10, num_threads = 1;
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+  for (uint32_t it = 0; it < iteration; it++) {
+    std::atomic<uint32_t> flag1 = 0, flag2 = 0, flag3 = 0;
+    auto stall_on_flag = [&] {
+      flag1++;
+      while (flag1 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    };
+
+    std::promise<void> stall_promise;
+    thread_pool.SubmitTask(&stall_promise, stall_on_flag);
+
+    while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    common::SpinLatch l;
+    auto get_stuck_on_latch = [&] (common::PoolContext *ctx) {
+      flag2++;
+      common::SpinLatch::ScopedSpinLatch guard(&l, ctx);
+      flag3++;
+    };
+
+    auto should_run_strait_through = [&] {
+      EXPECT_EQ(flag2, 1);
+      EXPECT_EQ(flag3, 0);
+    };
+
+    l.Lock();
+
+    std::promise<void> stuck_promise, run_strait_promise;
+    thread_pool.SubmitTask(&stuck_promise, get_stuck_on_latch);
+    thread_pool.SubmitTask(&run_strait_promise, should_run_strait_through);
+
+    flag1 = 0;
+    stall_promise.get_future().get();
+    run_strait_promise.get_future().get();
+
+    EXPECT_EQ(flag3, 0);
+    l.Unlock();
+    stuck_promise.get_future().get();
+    EXPECT_EQ(flag3, 1);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST(ExecutionThreadPoolTests, ContestSwitchingTestSharedLatchShared) {
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids;
+  cpu_ids.emplace_back(0);
+  uint32_t iteration = 10, num_threads = 1;
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+  for (uint32_t it = 0; it < iteration; it++) {
+    std::atomic<uint32_t> flag1 = 0, flag2 = 0, flag3 = 0;
+    auto stall_on_flag = [&] {
+      flag1++;
+      while (flag1 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    };
+
+    std::promise<void> stall_promise;
+    thread_pool.SubmitTask(&stall_promise, stall_on_flag);
+
+    while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    common::SharedLatch l;
+    auto get_stuck_on_latch = [&] (common::PoolContext *ctx) {
+      flag2++;
+      common::SharedLatch::ScopedSharedLatch guard(&l, ctx);
+      flag3++;
+    };
+
+    auto should_run_strait_through = [&] {
+      EXPECT_EQ(flag2, 1);
+      EXPECT_EQ(flag3, 0);
+    };
+
+    l.LockExclusive();
+
+    std::promise<void> stuck_promise, run_strait_promise;
+    thread_pool.SubmitTask(&stuck_promise, get_stuck_on_latch);
+    thread_pool.SubmitTask(&run_strait_promise, should_run_strait_through);
+
+    flag1 = 0;
+    stall_promise.get_future().get();
+    run_strait_promise.get_future().get();
+
+    EXPECT_EQ(flag3, 0);
+    l.Unlock();
+    stuck_promise.get_future().get();
+    EXPECT_EQ(flag3, 1);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST(ExecutionThreadPoolTests, ContestSwitchingTestSharedLatchExclusive) {
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids;
+  cpu_ids.emplace_back(0);
+  uint32_t iteration = 10, num_threads = 1;
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+  for (uint32_t it = 0; it < iteration; it++) {
+    std::atomic<uint32_t> flag1 = 0, flag2 = 0, flag3 = 0;
+    auto stall_on_flag = [&] {
+      flag1++;
+      while (flag1 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    };
+
+    std::promise<void> stall_promise;
+    thread_pool.SubmitTask(&stall_promise, stall_on_flag);
+
+    while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    common::SharedLatch l;
+    auto get_stuck_on_latch = [&] (common::PoolContext *ctx) {
+      flag2++;
+      common::SharedLatch::ScopedExclusiveLatch guard(&l, ctx);
+      flag3++;
+    };
+
+    auto should_run_strait_through = [&] {
+      EXPECT_EQ(flag2, 1);
+      EXPECT_EQ(flag3, 0);
+    };
+
+    l.LockExclusive();
+
+    std::promise<void> stuck_promise, run_strait_promise;
+    thread_pool.SubmitTask(&stuck_promise, get_stuck_on_latch);
+    thread_pool.SubmitTask(&run_strait_promise, should_run_strait_through);
+
+    flag1 = 0;
+    stall_promise.get_future().get();
+    run_strait_promise.get_future().get();
+
+    EXPECT_EQ(flag3, 0);
+    l.Unlock();
+    stuck_promise.get_future().get();
+    EXPECT_EQ(flag3, 1);
+  }
+}
+
 }  // namespace terrier
