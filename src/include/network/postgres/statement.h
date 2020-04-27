@@ -29,13 +29,15 @@ class Statement {
  public:
   /**
    * Constructor that doesn't have parameter types, i.e. Simple Query protocol
-   * @param parse_result unbound output from postgresparser
+   * @param query_text original query text from the wire
+   * @param parse_result output from postgresparser
    */
   Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result);
 
   /**
    * Constructor that does have parameter types, i.e. Extended Query protocol
-   * @param parse_result unbound output from postgresparser
+   * @param query_text original query text from the wire
+   * @param parse_result output from postgresparser
    * @param param_types types of the values to be bound
    */
   Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
