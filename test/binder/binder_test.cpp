@@ -60,10 +60,11 @@ class BinderCorrectnessTest : public TerrierTest {
     // create table A
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
-    // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
+    // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar, a3 BIGINT)
     std::vector<catalog::Schema::Column> cols_a;
     cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
     cols_a.emplace_back("a2", type::TypeId::VARCHAR, 20, true, varchar_default);
+    cols_a.emplace_back("a3", type::TypeId::BIGINT, false, int_default);
     auto schema_a = catalog::Schema(cols_a);
 
     table_a_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "a", schema_a);
@@ -1048,7 +1049,8 @@ TEST_F(BinderCorrectnessTest, SimpleChangeDefaultTest) {
   const auto &cmd = alter_stmt->GetAlterTableCmds()[0];
   EXPECT_EQ(cmd.GetAlterType(), parser::AlterTableStatement::AlterType::ColumnDefault);
   EXPECT_EQ(cmd.GetColumnName(), "a3");
-  auto default_val = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetInteger(15721));
+  // correctly update type
+  auto default_val = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBigInt(15721));
   EXPECT_EQ(*(cmd.GetDefaultExpression()), *default_val);
 
   delete binder_;
@@ -1057,13 +1059,35 @@ TEST_F(BinderCorrectnessTest, SimpleChangeDefaultTest) {
   // success to drop column default
   query = "ALTER TABLE a ALTER COLUMN a2 DROP DEFAULT;";
   parse_tree = parser::PostgresParser::BuildParseTree(query);
-  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr), BinderException);
-
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr));
+  statement = parse_tree->GetStatements()[0];
+  alter_stmt = statement.CastManagedPointerTo<parser::AlterTableStatement>();
   const auto &cmd_2 = alter_stmt->GetAlterTableCmds()[0];
   EXPECT_EQ(cmd_2.GetAlterType(), parser::AlterTableStatement::AlterType::ColumnDefault);
-  EXPECT_EQ(cmd_2.GetColumnName(), "a3");
-  default_val = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
+  EXPECT_EQ(cmd_2.GetColumnName(), "a2");
+  // correctly update type
+  default_val =
+      std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
   EXPECT_EQ(*(cmd_2.GetDefaultExpression()), *default_val);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SimpleChangeTypeTest) {
+  // did not mess up with anything
+  std::string query = "ALTER TABLE a ALTER COLUMN a1 TYPE DOUBLE;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(query);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+
+  EXPECT_EQ(statement->GetType(), parser::StatementType::ALTER);
+  auto alter_stmt = statement.CastManagedPointerTo<parser::AlterTableStatement>();
+  EXPECT_EQ(alter_stmt->GetTableName(), "a");
+  EXPECT_EQ(alter_stmt->GetAlterTableCmds().size(), 1);
+
+  const auto &cmd = alter_stmt->GetAlterTableCmds()[0];
+  EXPECT_EQ(cmd.GetAlterType(), parser::AlterTableStatement::AlterType::AlterColumnType);
+  EXPECT_EQ(cmd.GetColumnName(), "a1");
 }
 
 }  // namespace terrier
