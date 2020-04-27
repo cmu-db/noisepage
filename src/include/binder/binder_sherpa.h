@@ -262,6 +262,7 @@ class BinderSherpa {
    */
   template <typename Input>
   static type::TransientValue TryCastNumericAll(Input int_val, type::TypeId desired_type) {
+    // TODO(Ling): should be able to cast to varchar
     switch (desired_type) {
       case type::TypeId::TINYINT:
         return TryCastNumeric<int8_t>(int_val, &type::TransientValueFactory::GetTinyInt);

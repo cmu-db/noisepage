@@ -541,14 +541,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
         auto binder_table_data = context_->GetTableMapping(node->GetTableName());
         const auto &table_schema = std::get<2>(*binder_table_data);
         const auto &existing_col = table_schema.GetColumn(cmd.GetColumnName());
-        // Get the default value expression
+        // Get the default value expression and update to correct type
+        // It is allowed to set a NOT NULL column's default value to NULL or drop default value
+        // as long as no tuple violates the constraint.
         auto default_val = cmd.GetDefaultExpression();
-        if (default_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT &&
-            default_val.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue().Null() &&
-            !existing_col.Nullable()) {
-          throw BINDER_EXCEPTION(
-              ("Column " + cmd.GetColumnName() + " is not nullable; fail to set column default to NULL.").c_str());
-        }
         sherpa_->SetDesiredType(default_val.CastManagedPointerTo<parser::AbstractExpression>(), existing_col.Type());
         default_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
         break;
