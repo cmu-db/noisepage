@@ -1017,9 +1017,19 @@ void PlanGenerator::Visit(const CteScan *op) {
       idx++;
     }
 
+    std::vector<planner::OutputSchema::Column> columns;
+    for (auto &output_expr : output_cols_) {
+      auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+
+      // output schema of a plan node is literally the columns of the table.
+      // there is no such thing as an intermediate column here!
+      columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType(), tve->Copy());
+    }
+
     auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
     output_plan_ = planner::CteScanPlanNode::Builder()
-        .SetOutputSchema(std::move(cte_scan_out))
+        .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
+        .SetTableOutputSchema(std::move(cte_scan_out))
         .AddChild(std::move(output_plan_))
         .Build();
   } else {

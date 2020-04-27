@@ -49,14 +49,15 @@ class CteScanTranslator : public OperatorTranslator {
     // Either a constant value expression or a derived value expression
     // Leader is given preference - As that node is the LEADER..!!
 
-  auto type = op_->GetOutputSchema()->GetColumn(attr_idx).GetType();
-  auto nullable = false;
-  // ToDo(Rohan) : Think if this can be simplified
-  uint16_t projection_map_index =
-      projection_map_[static_cast<catalog::col_oid_t>(
-          col_name_to_oid[
-              op_->GetOutputSchema()->GetColumn(attr_idx).GetName()])];
-  return codegen_->PCIGet(read_pci_, type, nullable, projection_map_index);
+    auto type = op_->GetOutputSchema()->GetColumn(attr_idx).GetType();
+    auto name = op_->GetOutputSchema()->GetColumn(attr_idx).GetName();
+
+    auto nullable = false;
+    // ToDo(Rohan) : Think if this can be simplified
+    uint16_t projection_map_index =
+        projection_map_[static_cast<catalog::col_oid_t>(
+            col_name_to_oid[name])];
+    return codegen_->PCIGet(read_pci_, type, nullable, projection_map_index);
   }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
