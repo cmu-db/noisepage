@@ -946,6 +946,7 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SimpleAddColumnTest) {
+  // success to add new column
   std::string query = "ALTER TABLE a ADD a_new INT DEFAULT 15721;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(query);
@@ -955,13 +956,13 @@ TEST_F(BinderCorrectnessTest, SimpleAddColumnTest) {
   EXPECT_EQ(statement->GetType(), parser::StatementType::ALTER);
   auto alter_stmt = statement.CastManagedPointerTo<parser::AlterTableStatement>();
   EXPECT_EQ(alter_stmt->GetTableName(), "a");
-  //  EXPECT_EQ(alter_stmt->GetDatabaseName(), default_database_name_);
   EXPECT_EQ(alter_stmt->GetAlterTableCmds().size(), 1);
   EXPECT_FALSE(alter_stmt->IsIfExists());
 
   const auto &cmd = alter_stmt->GetAlterTableCmds()[0];
   EXPECT_EQ(cmd.GetAlterType(), parser::AlterTableStatement::AlterType::AddColumn);
   EXPECT_EQ(cmd.GetColumnName(), "a_new");
+  // default value should not be stored here; it should be in the column definition
   EXPECT_EQ(cmd.GetDefaultExpression(), nullptr);
 
   auto &column = cmd.GetColumn();
@@ -969,6 +970,65 @@ TEST_F(BinderCorrectnessTest, SimpleAddColumnTest) {
   auto default_val = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetInteger(15721));
   EXPECT_EQ(*(column.GetDefaultExpression()), *default_val);
   EXPECT_EQ(column.GetValueType(), type::TypeId::INTEGER);
+
+  delete binder_;
+
+  binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
+  // fail to add column with duplicate name
+  query = "ALTER TABLE a ADD a1 INT DEFAULT 15721;";
+  parse_tree = parser::PostgresParser::BuildParseTree(query);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SimpleDropColumnTest) {
+  // success to add new column
+  std::string query = "ALTER TABLE IF EXISTS a DROP IF EXISTS a1 CASCADE;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(query);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+
+  EXPECT_EQ(statement->GetType(), parser::StatementType::ALTER);
+  auto alter_stmt = statement.CastManagedPointerTo<parser::AlterTableStatement>();
+  EXPECT_EQ(alter_stmt->GetTableName(), "a");
+  EXPECT_EQ(alter_stmt->GetAlterTableCmds().size(), 1);
+  EXPECT_TRUE(alter_stmt->IsIfExists());
+
+  const auto &cmd = alter_stmt->GetAlterTableCmds()[0];
+  EXPECT_EQ(cmd.GetAlterType(), parser::AlterTableStatement::AlterType::DropColumn);
+  EXPECT_EQ(cmd.GetColumnName(), "a1");
+  // This statement should not have default value
+  EXPECT_EQ(cmd.GetDefaultExpression(), nullptr);
+  EXPECT_TRUE(cmd.IsDropCascade());
+
+  delete binder_;
+  binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
+  // fail to drop column that does not exist
+  query = "ALTER TABLE a DROP b1 CASCADE;";
+  parse_tree = parser::PostgresParser::BuildParseTree(query);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr), BinderException);
+
+  delete binder_;
+  binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
+  // Success to drop a column that does not exist by using if exist
+  query = "ALTER TABLE a DROP IF EXISTS b1 CASCADE;";
+  parse_tree = parser::PostgresParser::BuildParseTree(query);
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr));
+
+  delete binder_;
+  binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
+  // Fail to drop from a table that does not exist
+  query = "ALTER TABLE d DROP b1 CASCADE;";
+  parse_tree = parser::PostgresParser::BuildParseTree(query);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr), BinderException);
+
+  delete binder_;
+  binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
+  // Fail to drop from a table that does not exist by using if exist
+  query = "ALTER TABLE IF EXISTS d DROP b1 CASCADE;";
+  parse_tree = parser::PostgresParser::BuildParseTree(query);
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr));
 }
 
 }  // namespace terrier

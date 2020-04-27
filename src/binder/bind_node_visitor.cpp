@@ -510,7 +510,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
       case parser::AlterTableStatement::AlterType::AddColumn: {
         // check if the column name already exists
         if (BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), cmd.GetColumnName())) {
-          throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " already exists in table").c_str());
+          throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " already exists in table.").c_str());
         }
 
         auto &col = cmd.GetColumn();
