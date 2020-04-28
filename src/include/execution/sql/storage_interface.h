@@ -55,9 +55,11 @@ class EXPORT StorageInterface {
 
   /**
    * Insert tuple into the table in the tuple slot specified
+   * Should only be used by the compaction process (block compactor)
+   * because it assumes that the tuple slot can be reallocated
    * @param table_tuple_slot where the tuple will be inserted
    */
-  void TableInsertInto(storage::TupleSlot table_tuple_slot);
+  void TableCompactionInsertInto(storage::TupleSlot table_tuple_slot);
 
   /**
    * @param index_oid OID of the index to access.

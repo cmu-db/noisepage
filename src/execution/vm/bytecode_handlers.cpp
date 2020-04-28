@@ -214,9 +214,9 @@ void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
   *tuple_slot = storage_interface->TableInsert();
 }
 
-void OpStorageInterfaceTableInsertInto(terrier::execution::sql::StorageInterface *storage_interface,
+void OpStorageInterfaceTableCompactionInsertInto(terrier::execution::sql::StorageInterface *storage_interface,
                                              terrier::storage::TupleSlot *tuple_slot) {
-  storage_interface->TableInsertInto(*tuple_slot);
+  storage_interface->TableCompactionInsertInto(*tuple_slot);
 }
 
 void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,

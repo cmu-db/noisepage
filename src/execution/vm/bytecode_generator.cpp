@@ -1944,9 +1944,9 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       Emitter()->Emit(Bytecode::StorageInterfaceTableInsert, tuple_slot, storage_interface);
       break;
     }
-    case ast::Builtin::TableInsertInto: {
+    case ast::Builtin::TableCompactionInsertInto: {
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::StorageInterfaceTableInsertInto, storage_interface, tuple_slot);
+      Emitter()->Emit(Bytecode::StorageInterfaceTableCompactionInsertInto, storage_interface, tuple_slot);
       break;
     }
     case ast::Builtin::TableDelete: {

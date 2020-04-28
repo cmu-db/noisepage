@@ -62,6 +62,10 @@ class BlockCompactor {
     //      return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
     // @todo: do we need to consider that insertIndex could fail? Do so now.
     auto tpl_code = R"(
+    // execution context
+    // table name
+    // col_oids
+    // projected row
     fun moveTuple(slot_from: TupleSlot*, slot_to: TupleSlot*) -> bool {
       // Initialize and bind the storage_interface
       // @todo: FIX! should the variables here be passed in as arguments to the function. Are they all needed?

@@ -52,8 +52,8 @@ storage::TupleSlot StorageInterface::TableInsert() {
   return table_->Insert(exec_ctx_->GetTxn(), table_redo_);
 }
 
-void StorageInterface::TableInsertInto(storage::TupleSlot table_tuple_slot) {
-  return table_->InsertInto(exec_ctx_->GetTxn(), table_redo_, table_tuple_slot);
+void StorageInterface::TableCompactionInsertInto(storage::TupleSlot table_tuple_slot) {
+  return table_->CompactionInsertInto(exec_ctx_->GetTxn(), table_redo_, table_tuple_slot);
 }
 
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {

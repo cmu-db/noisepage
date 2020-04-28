@@ -202,12 +202,13 @@ class DataTable {
 
   /**
    * Inserts a tuple, as given in the redo, into the slot specified by dest
+   * Should only be used by the compaction process (block compactor) because it assumes that the slot can be reallocated
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple
    * @param dest the tuple slot that the tuple should be inserted into
    */
-  void InsertInto(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
-                  TupleSlot dest);
+  void CompactionInsertInto(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
+                            TupleSlot dest);
 
   /**
    * Creates a new block for compaction. When the block is created, the BlockStatus is set to FREEZING to prevent
@@ -293,6 +294,15 @@ class DataTable {
   template <class RowType>
   bool SelectIntoBuffer(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
                         RowType *out_buffer) const;
+
+  /**
+   * Inserts a tuple, as given in the redo, into the slot specified by dest
+   * @param txn the calling transaction
+   * @param redo after-image of the inserted tuple
+   * @param dest the tuple slot that the tuple should be inserted into
+   */
+  void InsertInto(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
+                  TupleSlot dest);
 
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;

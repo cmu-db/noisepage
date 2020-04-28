@@ -135,9 +135,9 @@ class SqlTable {
    * @param redo after-image of the inserted tuple.
    * @param TupleSlot that the tuple was inserted into.
    */
-  void InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
+  void CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
                  const TupleSlot dest) const {
-    table_.data_table_->InsertInto(txn, *(redo->Delta()), dest);
+    table_.data_table_->CompactionInsertInto(txn, *(redo->Delta()), dest);
     redo->SetTupleSlot(dest);
   }
 

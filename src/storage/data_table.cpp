@@ -217,6 +217,13 @@ RawBlock *DataTable::CreateCompactedBlock() {
   return block;
 }
 
+
+void DataTable::CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn,
+                            const ProjectedRow &redo, TupleSlot dest) {
+  accessor_.Reallocate(dest);
+  InsertInto(txn, redo, dest);
+}
+
 bool DataTable::InsertIntoFreezingBlock(common::ManagedPointer<transaction::TransactionContext> txn,
                                         const ProjectedRow &redo, RawBlock *block) {
   // This function should be called only from the compactor, while the block is FREEZING.

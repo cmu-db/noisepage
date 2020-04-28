@@ -2596,7 +2596,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::StorageInterfaceInitBind:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
-    case ast::Builtin::TableInsertInto:
+    case ast::Builtin::TableCompactionInsertInto:
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
     case ast::Builtin::GetIndexPR:
