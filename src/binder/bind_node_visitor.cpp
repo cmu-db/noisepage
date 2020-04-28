@@ -504,7 +504,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
 
   auto tb_oid = catalog_accessor_->GetTableOid(node->GetTableName());
 
-  for (const auto &cmd : node->GetAlterTableCmds()) {
+  for (auto &cmd : node->GetAlterTableCmds()) {
     auto alter_type = cmd.GetAlterType();
     switch (alter_type) {
       case parser::AlterTableStatement::AlterType::AddColumn: {

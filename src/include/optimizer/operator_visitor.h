@@ -443,7 +443,6 @@ class OperatorVisitor {
    */
   virtual void Visit(const LogicalAnalyze *logical_analyze) {}
 
-
   /**
    * Visit a LogicalAlter operator
    * @param logical_alter  logcial_alter operator

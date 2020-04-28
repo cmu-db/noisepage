@@ -98,19 +98,19 @@ class AlterTableStatement : public TableRefStatement {
      */
     bool IsDropCascade() const { return drop_cascade_; }
 
-
     /**
      * Equiality check
      * @param rhs  other
      * @return true if the two commands are same
      */
     bool operator==(const AlterTableCmd &rhs) const {
-      if(type_ != rhs.type_)  return false;
-      if(col_name_ != rhs.col_name_) return false;
-      if(col_ != rhs.col_) return false;
-      if(if_exists_ != rhs.if_exists_) return false;
-      if(drop_cascade_ != rhs.drop_cascade_) return false;
-      if(default_value_ != rhs.default_value_) return false;
+      if (type_ != rhs.type_) return false;
+      if (col_name_ != rhs.col_name_) return false;
+      if (if_exists_ != rhs.if_exists_) return false;
+      if (drop_cascade_ != rhs.drop_cascade_) return false;
+      if ((!col_ && rhs.col_) || (col_ && rhs.col_ != col_)) return false;
+      if ((!default_value_ && rhs.default_value_) || (default_value_ && default_value_ != rhs.default_value_))
+        return false;
       return true;
     }
 
@@ -118,12 +118,13 @@ class AlterTableStatement : public TableRefStatement {
      * Hash
      * @return hash of the cmd
      */
-    common::hash_t Hash() const {
-      common::hash_t  hash = common::HashUtil::Hash(type_);
+    const common::hash_t Hash() const {
+      common::hash_t hash = common::HashUtil::Hash(type_);
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_name_));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(drop_cascade_));
+      // TODO(XC): is there any case when the underlying values should be hashed rather than pointers?
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(default_value_));
 
       return hash;
@@ -175,11 +176,10 @@ class AlterTableStatement : public TableRefStatement {
 
  private:
   // Column Commands
-  const std::vector<AlterTableCmd> cmds_;
+  std::vector<AlterTableCmd> cmds_;
 
   // ALTER TABLE IF EXISTS
   const bool if_exists_ = false;
 };
-
 
 }  // namespace terrier::parser

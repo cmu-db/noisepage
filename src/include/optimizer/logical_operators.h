@@ -2012,13 +2012,12 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
 class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
  public:
   /**
-   * @param database_oid OID of the database
    * @param table_oid OID of the table
    * @param columns OIDs of Analyze columns
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                       std::vector<parser::AlterTableStatement::AlterTableCmd> &&cmds);
+  static Operator Make(catalog::table_oid_t table_oid,
+                       std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds);
 
   /**
    * Copy
@@ -2030,11 +2029,6 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
   common::hash_t Hash() const override;
 
   /**
-   * @return OID of the database
-   */
-  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
-
-  /**
    * @return OID of the table
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
@@ -2042,14 +2036,9 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
   /**
    * @return commands
    */
-  std::vector<parser::AlterTableStatement::AlterTableCmd> GetCommands() const { return cmds_; }
+  std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &GetCommands() { return cmds_; }
 
  private:
-  /**
-   * OID of the database
-   */
-  catalog::db_oid_t database_oid_;
-
   /**
    * OID of the target table
    */
@@ -2058,6 +2047,6 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
   /**
    * Vector of commands
    */
-  std::vector<parser::AlterTableStatement::AlterTableCmd> cmds_;
+  std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> cmds_;
 };
 }  // namespace terrier::optimizer
