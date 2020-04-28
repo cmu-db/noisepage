@@ -25,11 +25,18 @@
 #ifndef MADOKA_SKETCH_H
 #define MADOKA_SKETCH_H
 
+#include <stddef.h>
+
 #include "approx.h"
 #include "file.h"
 #include "hash.h"
 #include "header.h"
 #include "random.h"
+#include "madoka/util.h"
+
+namespace madoka {
+class Random;
+}  // namespace madoka
 
 #ifdef __cplusplus
 extern "C" {

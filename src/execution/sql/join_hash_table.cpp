@@ -1,12 +1,14 @@
 #include "execution/sql/join_hash_table.h"
 
-#include <tbb/tbb.h>
-
+#include <string.h>
+#include <tbb/parallel_for_each.h>
+#include <tbb/task_scheduler_init.h>
 #include <algorithm>
 #include <limits>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
+#include "common/constants.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/cpu_info.h"
@@ -519,10 +521,7 @@ void JoinHashTable::VerifyMainEntryOrder() {
 #endif
 }
 
-void JoinHashTable::VerifyOverflowEntryOrder() noexcept {
-#ifndef NDEBUG
-#endif
-}
+void JoinHashTable::VerifyOverflowEntryOrder() noexcept {}
 
 template <bool PrefetchCHT, bool PrefetchEntries>
 void JoinHashTable::BuildConciseHashTableInternal() {

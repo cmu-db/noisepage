@@ -1,10 +1,13 @@
 #pragma once
 
+#include <stdint.h>
 #include <vector>
 
 #include "common/macros.h"
+#include "common/strong_typedef.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::sql {
 

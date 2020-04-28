@@ -1,6 +1,14 @@
 #pragma once
 #include <memory>
+
+#include "common/managed_pointer.h"
 #include "network/itp/itp_network_commands.h"
+
+namespace terrier {
+namespace network {
+struct InputPacket;
+}  // namespace network
+}  // namespace terrier
 
 #define MAKE_ITP_COMMAND(type) \
   std::unique_ptr<ITPNetworkCommand>(reinterpret_cast<ITPNetworkCommand *>(new type(packet)))

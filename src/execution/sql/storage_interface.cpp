@@ -3,8 +3,15 @@
 #include <algorithm>
 #include <vector>
 
+#include "catalog/catalog_accessor.h"
+#include "common/macros.h"
 #include "execution/exec/execution_context.h"
-#include "execution/util/execution_common.h"
+#include "execution/sql/memory_pool.h"
+#include "storage/index/index.h"
+#include "storage/projected_row.h"
+#include "storage/sql_table.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::execution::sql {
 

@@ -1,38 +1,59 @@
 #include "traffic_cop/traffic_cop.h"
 
+#include <cstdint>
+#include <functional>
 #include <future>  // NOLINT
 #include <memory>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
-#include "common/exception.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/executable_query.h"
 #include "execution/sql/ddl_executors.h"
+#include "execution/util/execution_common.h"
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
+#include "network/network_io_utils.h"
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
-#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
-#include "optimizer/abstract_optimizer.h"
+#include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
-#include "optimizer/operator_node.h"
-#include "optimizer/optimizer.h"
-#include "optimizer/properties.h"
-#include "optimizer/property_set.h"
-#include "optimizer/query_to_operator_transformer.h"
-#include "optimizer/statistics/stats_storage.h"
+#include "parser/drop_statement.h"
+#include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
+#include "parser/sql_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
+#include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/transaction_util.h"
+#include "type/transient_value.h"
+
+namespace terrier {
+namespace planner {
+class CreateDatabasePlanNode;
+class CreateIndexPlanNode;
+class CreateNamespacePlanNode;
+class CreateTablePlanNode;
+class DropDatabasePlanNode;
+class DropIndexPlanNode;
+class DropNamespacePlanNode;
+class DropTablePlanNode;
+}  // namespace planner
+}  // namespace terrier
 
 namespace terrier::trafficcop {
 
@@ -149,28 +170,28 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       if (execution::sql::DDLExecutors::CreateTableExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_DB: {
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
       }
       break;
     }
@@ -197,7 +218,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
     case network::QueryType::QUERY_DROP_TABLE: {
       if (execution::sql::DDLExecutors::DropTableExecutor(
               physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
       }
       break;
     }
@@ -205,21 +226,21 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_INDEX: {
       if (execution::sql::DDLExecutors::DropIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
       }
       break;
     }
@@ -262,7 +283,7 @@ TrafficCopResult TrafficCop::BindQuery(
     }
     return {ResultType::ERROR, "ERROR:  binding failed"};
   }
-  return {ResultType::COMPLETE, 0};
+  return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
 }
 
 TrafficCopResult TrafficCop::CodegenPhysicalPlan(
@@ -279,7 +300,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
-    return {ResultType::COMPLETE, 0};
+    return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
   }
 
   // TODO(Matt): We should get rid of the need of an OutputWriter to ExecutionContext since we just throw this one away
@@ -297,7 +318,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
-  return {ResultType::COMPLETE, 0};
+  return {ResultType::COMPLETE, static_cast<uint32_t>(0)};
 }
 
 TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -327,11 +348,11 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     if (query_type == network::QueryType::QUERY_SELECT) {
       // For selects we rely on the OutputWriter to store the number of rows affected because sequential scan
       // iteration can happen in multiple pipelines
-      return {ResultType::COMPLETE, writer.NumRows()};
+      return {ResultType::COMPLETE, static_cast<uint32_t>(writer.NumRows())};
     }
     // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
     // might not have any output otherwise
-    return {ResultType::COMPLETE, exec_ctx->RowsAffected()};
+    return {ResultType::COMPLETE, static_cast<uint32_t>(exec_ctx->RowsAffected())};
   }
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,

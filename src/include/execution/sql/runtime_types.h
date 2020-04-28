@@ -1,8 +1,13 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
 #include <algorithm>
+#include <iosfwd>
 #include <string>
 
+#include "common/strong_typedef.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
 
 namespace terrier::execution::sql {

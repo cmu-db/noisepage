@@ -1,9 +1,11 @@
 #include "planner/plannodes/drop_view_plan_node.h"
 
+#include <iterator>
 #include <memory>
-#include <string>
-#include <utility>
 #include <vector>
+
+#include "common/strong_typedef.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::planner {
 common::hash_t DropViewPlanNode::Hash() const {

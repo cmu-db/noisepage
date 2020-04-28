@@ -1,15 +1,28 @@
 #pragma once
 
+#include <__threading_support>
+#include <array>
+#include <bitset>
+#include <cstdint>
 #include <memory>
 #include <thread>  // NOLINT
 #include <unordered_map>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/thread_context.h"
 #include "metrics/abstract_raw_data.h"
+#include "metrics/metrics_defs.h"
 #include "metrics/metrics_store.h"
+
+namespace terrier {
+namespace metrics {
+class AbstractRawData;
+class MetricsStore;
+}  // namespace metrics
+}  // namespace terrier
 
 namespace terrier::settings {
 class Callbacks;

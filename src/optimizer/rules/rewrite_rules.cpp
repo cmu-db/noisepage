@@ -1,22 +1,32 @@
+#include <iosfwd>
 #include <memory>
-#include <string>
-#include <unordered_map>
+#include <type_traits>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
-#include "catalog/catalog_accessor.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/group_expression.h"
-#include "optimizer/index_util.h"
+#include "optimizer/group.h"
+#include "optimizer/logical_operators.h"
+#include "optimizer/memo.h"
+#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
+#include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_defs.h"
-#include "optimizer/physical_operators.h"
-#include "optimizer/properties.h"
+#include "optimizer/pattern.h"
+#include "optimizer/rule.h"
 #include "optimizer/rules/rewrite_rules.h"
 #include "optimizer/util.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/expression_util.h"
-#include "type/transient_value_factory.h"
+
+namespace terrier {
+namespace optimizer {
+class GroupExpression;
+}  // namespace optimizer
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

@@ -1,13 +1,35 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
-#include <utility>
+#include <memory>
+
+#include "brain/brain_defs.h"
+#include "catalog/catalog_accessor.h"
+#include "common/managed_pointer.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/codegen.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/function_builder.h"
-#include "execution/compiler/pipeline.h"
 #include "execution/compiler/translator_factory.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression_defs.h"
+#include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "storage/sql_table.h"
+#include "type/transient_value.h"
+#include "type/transient_value_peeker.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+class Stmt;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

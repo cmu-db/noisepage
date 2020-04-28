@@ -1,11 +1,13 @@
 
 #include "binder/binder_sherpa.h"
 
+#include <stdint.h>
 #include <string>
+#include <string_view>
 #include <unordered_map>
-#include <vector>
 
 #include "parser/expression/abstract_expression.h"
+#include "type/transient_value_peeker.h"
 #include "util/time_util.h"
 
 namespace terrier::binder {

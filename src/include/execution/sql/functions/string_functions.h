@@ -1,8 +1,10 @@
 #pragma once
 
+#include <stdint.h>
 #include <limits>
 
 #include "execution/sql/value.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::exec {
 class ExecutionContext;

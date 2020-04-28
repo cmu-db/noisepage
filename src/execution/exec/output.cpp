@@ -1,8 +1,13 @@
 #include "execution/exec/output.h"
 
+#include <iostream>
+
+#include "execution/sql/runtime_types.h"
 #include "execution/sql/value.h"
 #include "loggers/execution_logger.h"
 #include "network/postgres/postgres_packet_writer.h"
+#include "planner/plannodes/output_schema.h"
+#include "type/type_id.h"
 
 namespace terrier::execution::exec {
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <vector>
@@ -8,9 +10,29 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
+#include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
+#include "storage/projected_row.h"
+#include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+
+namespace terrier {
+namespace catalog {
+class DatabaseCatalog;
+}  // namespace catalog
+namespace storage {
+class RecoveryManager;
+class SqlTable;
+namespace index {
+class Index;
+}  // namespace index
+}  // namespace storage
+namespace transaction {
+class TransactionContext;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::transaction {
 class TransactionManager;

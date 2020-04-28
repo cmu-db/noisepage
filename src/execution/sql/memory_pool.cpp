@@ -1,10 +1,12 @@
 #include "execution/sql/memory_pool.h"
-#include "execution/sql/memory_tracker.h"
 
+#include <string.h>
+#include <cstdint>
 #include <cstdlib>
-#include <memory>
 
 #include "common/constants.h"
+#include "common/managed_pointer.h"
+#include "execution/sql/memory_tracker.h"
 #include "execution/util/memory.h"
 
 namespace terrier::execution::sql {

@@ -1,15 +1,17 @@
 #include "network/itp/itp_network_commands.h"
 
 #include <memory>
-#include <string>
-#include <utility>
-#include <vector>
+#include <type_traits>
 
-#include "network/itp/itp_protocol_interpreter.h"
-#include "network/terrier_server.h"
 #include "traffic_cop/traffic_cop.h"
-#include "type/transient_value_factory.h"
-#include "type/type_id.h"
+
+namespace terrier {
+namespace network {
+class ConnectionContext;
+class ITPPacketWriter;
+class ProtocolInterpreter;
+}  // namespace network
+}  // namespace terrier
 
 namespace terrier::network {
 

@@ -4,19 +4,25 @@
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 #include <event2/listener.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <deque>
 #include <memory>
 #include <utility>
 
 #include "common/exception.h"
+#include "common/managed_pointer.h"
 #include "common/notifiable_task.h"
+#include "common/spin_latch.h"
 #include "network/network_defs.h"
 #include "network/protocol_interpreter.h"
+
+struct event;
 
 namespace terrier::network {
 
 class ConnectionHandleFactory;
+
 /**
  * A ConnectionHandlerTask is responsible for interacting with a client
  * connection.

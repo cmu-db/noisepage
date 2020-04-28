@@ -1,6 +1,14 @@
 #pragma once
 #include <memory>
+
+#include "common/managed_pointer.h"
 #include "network/postgres/postgres_network_commands.h"
+
+namespace terrier {
+namespace network {
+struct InputPacket;
+}  // namespace network
+}  // namespace terrier
 
 #define MAKE_POSTGRES_COMMAND(type) \
   std::unique_ptr<PostgresNetworkCommand>(reinterpret_cast<PostgresNetworkCommand *>(new type(packet)))

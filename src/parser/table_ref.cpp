@@ -1,9 +1,12 @@
 #include "parser/table_ref.h"
+
+#include <stddef.h>
+#include <iterator>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
+#include "parser/expression/abstract_expression.h"
 #include "parser/select_statement.h"
 
 namespace terrier::parser {

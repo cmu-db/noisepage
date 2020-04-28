@@ -1,15 +1,35 @@
 #pragma once
 
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <unordered_set>
 
+#include "common/macros.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/identifier.h"
 #include "execution/parsing/scanner.h"
+#include "execution/parsing/token.h"
+#include "execution/sema/error_message.h"
 #include "execution/sema/error_reporter.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class AstNode;
+class AstNodeFactory;
+class Decl;
+class Expr;
+class Stmt;
+}  // namespace ast
+namespace util {
+class Region;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::parsing {
 

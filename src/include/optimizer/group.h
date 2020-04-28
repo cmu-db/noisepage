@@ -1,13 +1,17 @@
 #pragma once
 
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"

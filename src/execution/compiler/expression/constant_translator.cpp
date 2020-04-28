@@ -1,8 +1,18 @@
 #include "execution/compiler/expression/constant_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "execution/sql/value.h"
+
+#include "execution/compiler/codegen.h"
 #include "parser/expression/constant_value_expression.h"
-#include "type/transient_value_peeker.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+}  // namespace ast
+}  // namespace execution
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 ConstantTranslator::ConstantTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)

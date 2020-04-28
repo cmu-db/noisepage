@@ -1,11 +1,12 @@
 #include "planner/plannodes/create_trigger_plan_node.h"
+
+#include <stddef.h>
+#include <iterator>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression/constant_value_expression.h"
-#include "parser/parser_defs.h"
 
 namespace terrier::planner {
 

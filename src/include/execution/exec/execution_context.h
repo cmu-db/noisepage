@@ -1,20 +1,39 @@
 #pragma once
+#include <stddef.h>
+#include <stdint.h>
+#include <tbb/enumerable_thread_specific.h>
+#include <iosfwd>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
 #include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/memory_tracker.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value.h"
+
+namespace terrier {
+namespace brain {
+class PipelineOperatingUnits;
+}  // namespace brain
+namespace catalog {
+class CatalogAccessor;
+}  // namespace catalog
+namespace transaction {
+class TransactionContext;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::execution::exec {
 /**

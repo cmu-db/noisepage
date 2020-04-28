@@ -1,13 +1,24 @@
 #pragma once
 
+#include <stdint.h>
 #include <functional>
+#include <iosfwd>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 #include "execution/vm/bytecode_module.h"
+
+namespace terrier {
+namespace execution {
+namespace vm {
+class Module;
+}  // namespace vm
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::bandit {
 

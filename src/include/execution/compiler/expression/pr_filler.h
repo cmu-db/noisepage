@@ -1,10 +1,36 @@
 #pragma once
+#include <stdint.h>
+#include <iosfwd>
 #include <string>
 #include <unordered_map>
 #include <utility>
+
+#include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
+#include "execution/ast/identifier.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/util/execution_common.h"
+#include "storage/storage_defs.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace catalog {
+class IndexSchema;
+}  // namespace catalog
+namespace execution {
+namespace ast {
+class Expr;
+class File;
+}  // namespace ast
+namespace compiler {
+class FunctionBuilder;
+}  // namespace compiler
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 /**

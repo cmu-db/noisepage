@@ -1,15 +1,21 @@
 #pragma once
 
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
+#include "common/managed_pointer.h"
 #include "expression/abstract_expression.h"
+#include "nlohmann/json.hpp"
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
+#include "parser/sql_statement.h"
 
 namespace terrier {
 namespace binder {
@@ -18,6 +24,7 @@ class BindNodeVisitor;
 namespace parser {
 class SelectStatement;
 class TableRef;
+class AbstractExpression;
 
 /**
  * Represents a join table.

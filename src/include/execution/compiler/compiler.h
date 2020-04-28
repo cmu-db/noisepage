@@ -2,13 +2,37 @@
 
 #include <memory>
 #include <vector>
+
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/operator/output_translator.h"
 #include "execution/compiler/pipeline.h"
+#include "execution/exec_defs.h"
 #include "execution/util/region.h"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class FieldDecl;
+class File;
+class Identifier;
+class Stmt;
+}  // namespace ast
+namespace compiler {
+class CodeGen;
+}  // namespace compiler
+namespace util {
+template <typename T>
+class RegionVector;
+}  // namespace util
+}  // namespace execution
+namespace planner {
+class AbstractPlanNode;
+}  // namespace planner
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

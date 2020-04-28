@@ -1,6 +1,12 @@
 #include "execution/exec/execution_context.h"
+
+#include <type_traits>
+
 #include "brain/operating_unit.h"
+#include "common/resource_tracker.h"
+#include "common/thread_context.h"
 #include "execution/sql/value.h"
+#include "metrics/metrics_store.h"
 
 namespace terrier::execution::exec {
 

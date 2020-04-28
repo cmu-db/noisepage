@@ -1,6 +1,23 @@
 #pragma once
+#include <stddef.h>
+
+#include "common/managed_pointer.h"
 #include "network/itp/itp_packet_writer.h"
 #include "network/network_command.h"
+#include "network/network_io_utils.h"
+#include "network/network_types.h"
+
+namespace terrier {
+namespace network {
+class ConnectionContext;
+class ITPNetworkCommand;
+class ITPPacketWriter;
+class ProtocolInterpreter;
+}  // namespace network
+namespace trafficcop {
+class TrafficCop;
+}  // namespace trafficcop
+}  // namespace terrier
 
 #define DEFINE_ITP_COMMAND(name, flush)                                                                                \
   class name : public ITPNetworkCommand {                                                                              \

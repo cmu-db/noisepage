@@ -24,6 +24,8 @@
 
 #include "file.h"
 
+#include <sys/fcntl.h>
+
 #ifdef _WIN32
  #include <sys/types.h>
  #include <sys/stat.h>
@@ -32,9 +34,7 @@
   #undef max
  #endif  // max
 #else  // _WIN32
- #include <fcntl.h>
  #include <sys/mman.h>
- #include <sys/types.h>
  #include <sys/stat.h>
  #include <unistd.h>
  #ifndef MAP_ANONYMOUS
@@ -45,6 +45,9 @@
 #include <cstring>
 #include <limits>
 #include <new>
+
+#include "madoka/exception.h"
+#include "madoka/util.h"
 
 namespace madoka {
 

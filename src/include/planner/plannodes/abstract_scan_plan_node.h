@@ -1,11 +1,24 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
+#include "common/hash_util.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "nlohmann/json.hpp"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/output_schema.h"
+
+namespace terrier {
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::planner {
 

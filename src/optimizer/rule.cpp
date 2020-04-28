@@ -1,4 +1,8 @@
+#include "optimizer/rule.h"
 #include "optimizer/group_expression.h"
+#include "optimizer/operator_node_contents.h"
+#include "optimizer/optimizer_defs.h"
+#include "optimizer/pattern.h"
 #include "optimizer/rules/implementation_rules.h"
 #include "optimizer/rules/rewrite_rules.h"
 #include "optimizer/rules/transformation_rules.h"

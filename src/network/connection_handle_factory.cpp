@@ -1,9 +1,15 @@
 #include "network/connection_handle_factory.h"
+
 #include <memory>
+#include <type_traits>
 #include <utility>
+
 #include "common/macros.h"
+#include "network/connection_context.h"
 #include "network/connection_handle.h"
-#include "network/connection_handler_task.h"
+#include "network/network_defs.h"
+#include "network/network_io_wrapper.h"
+#include "network/protocol_interpreter.h"
 
 namespace terrier::network {
 ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,

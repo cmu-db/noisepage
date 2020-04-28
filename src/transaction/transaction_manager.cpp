@@ -1,11 +1,31 @@
 #include "transaction/transaction_manager.h"
 
+#include <__hash_table>
+#include <atomic>
+#include <forward_list>
+#include <functional>
+#include <stdexcept>
+#include <type_traits>
 #include <unordered_set>
-#include <utility>
+#include <vector>
 
-#include "common/scoped_timer.h"
+#include "common/allocator.h"
+#include "common/resource_tracker.h"
+#include "common/spin_latch.h"
+#include "common/strong_typedef.h"
 #include "common/thread_context.h"
+#include "metrics/metrics_defs.h"
 #include "metrics/metrics_store.h"
+#include "storage/block_layout.h"
+#include "storage/data_table.h"
+#include "storage/projected_row.h"
+#include "storage/storage_defs.h"
+#include "storage/storage_util.h"
+#include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/timestamp_manager.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {

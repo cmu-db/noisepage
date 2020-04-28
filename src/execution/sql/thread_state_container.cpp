@@ -1,11 +1,12 @@
 #include "execution/sql/thread_state_container.h"
 
-#include <tbb/tbb.h>
-
+#include <tbb/enumerable_thread_specific.h>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 #include "common/constants.h"
+#include "execution/sql/memory_pool.h"
 
 namespace terrier::execution::sql {
 

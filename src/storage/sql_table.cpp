@@ -1,10 +1,13 @@
 #include "storage/sql_table.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <map>
-#include <set>
-#include <string>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
+#include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/storage_util.h"
 

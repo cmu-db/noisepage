@@ -1,9 +1,11 @@
 #pragma once
 
 #include <common/managed_pointer.h>
-
+#include <stddef.h>
+#include <stdint.h>
 #include <algorithm>
 #include <atomic>
+#include <initializer_list>
 #include <memory>
 #include <vector>
 

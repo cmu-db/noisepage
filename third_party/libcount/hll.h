@@ -17,6 +17,7 @@
 #define INCLUDE_COUNT_HLL_H_
 
 #include <stdint.h>
+
 #include "hll_limits.h"
 
 namespace libcount {

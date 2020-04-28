@@ -1,15 +1,33 @@
+#include <stddef.h>
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "common/hash_util.h"
 #include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "optimizer/logical_operators.h"
-#include "optimizer/operator_visitor.h"
+#include "optimizer/operator_node_contents.h"
+#include "optimizer/optimizer_defs.h"
+#include "parser/create_function_statement.h"
+#include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/parser_defs.h"
+#include "parser/select_statement.h"
+#include "parser/update_statement.h"
+
+namespace terrier {
+namespace optimizer {
+class OperatorVisitor;
+}  // namespace optimizer
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

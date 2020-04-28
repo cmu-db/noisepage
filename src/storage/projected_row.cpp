@@ -1,11 +1,15 @@
 #include "storage/projected_row.h"
+
+#include <__functional_base>
 #include <algorithm>
 #include <cstring>
 #include <functional>
-#include <numeric>
 #include <set>
-#include <utility>
+#include <type_traits>
 #include <vector>
+
+#include "common/strong_typedef.h"
+#include "storage/block_layout.h"
 
 namespace terrier::storage {
 ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRow &other) {

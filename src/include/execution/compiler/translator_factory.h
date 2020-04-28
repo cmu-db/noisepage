@@ -1,12 +1,29 @@
 #pragma once
 
 #include <memory>
+
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/util/region.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
+
+namespace terrier {
+namespace execution {
+namespace compiler {
+class CodeGen;
+class ExpressionTranslator;
+}  // namespace compiler
+}  // namespace execution
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+namespace planner {
+class AbstractPlanNode;
+}  // namespace planner
+}  // namespace terrier
+
 namespace terrier::execution::compiler {
 
 class Pipeline;

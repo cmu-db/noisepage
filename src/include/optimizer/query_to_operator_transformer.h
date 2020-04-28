@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -9,6 +10,8 @@
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "optimizer/operator_node.h"
+#include "optimizer/optimizer_defs.h"
 #include "type/transient_value.h"
 
 namespace terrier {
@@ -17,6 +20,27 @@ namespace parser {
 class ParseResult;
 class SQLStatement;
 class AbstractExpression;
+class AnalyzeStatement;
+class ComparisonExpression;
+class CopyStatement;
+class CreateFunctionStatement;
+class CreateStatement;
+class DeleteStatement;
+class DropStatement;
+class ExecuteStatement;
+class ExplainStatement;
+class GroupByDescription;
+class InsertStatement;
+class JoinDefinition;
+class LimitDescription;
+class OperatorExpression;
+class OrderByDescription;
+class PrepareStatement;
+class SelectStatement;
+class TableRef;
+class TransactionStatement;
+class UpdateStatement;
+class VariableSetStatement;
 }  // namespace parser
 
 namespace catalog {

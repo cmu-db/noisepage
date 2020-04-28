@@ -1,11 +1,23 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
 #include <functional>
 #include <memory>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "execution/sql/memory_pool.h"
+#include "execution/util/execution_common.h"
+
+namespace terrier {
+namespace execution {
+namespace sql {
+class MemoryPool;
+}  // namespace sql
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::sql {
 
@@ -188,6 +200,7 @@ class EXPORT ThreadStateContainer {
 
   // PIMPL
   struct Impl;
+
   std::unique_ptr<Impl> impl_;
 };
 

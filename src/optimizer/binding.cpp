@@ -1,12 +1,25 @@
+#include <cstddef>
+#include <iosfwd>
 #include <memory>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
-#include "optimizer/binding.h"
-
+#include "common/macros.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/operator_visitor.h"
-#include "optimizer/optimizer.h"
+#include "optimizer/binding.h"
+#include "optimizer/group.h"
+#include "optimizer/group_expression.h"
+#include "optimizer/logical_operators.h"
+#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
+#include "optimizer/optimizer_defs.h"
+#include "optimizer/pattern.h"
+
+namespace terrier {
+namespace optimizer {
+class Memo;
+}  // namespace optimizer
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

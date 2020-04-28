@@ -1,33 +1,34 @@
 #include "execution/ast/context.h"
 
+#include <llvm/ADT/DenseMapInfo.h>
+#include <llvm/ADT/Hashing.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/ADT/iterator.h>
+#include <stddef.h>
 #include <algorithm>
+#include <cstdint>
 #include <memory>
-#include <string>
-#include <tuple>
-#include <unordered_set>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/StringMap.h"
-
-#include "brain/operating_unit.h"
 #include "common/math_util.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/type.h"
-#include "execution/sql/aggregation_hash_table.h"
-#include "execution/sql/aggregators.h"
-#include "execution/sql/filter_manager.h"
-#include "execution/sql/index_iterator.h"
-#include "execution/sql/join_hash_table.h"
-#include "execution/sql/join_hash_table_vector_probe.h"
-#include "execution/sql/sorter.h"
-#include "execution/sql/table_vector_iterator.h"
-#include "execution/sql/thread_state_container.h"
-#include "execution/sql/value.h"
-#include "execution/util/execution_common.h"
+#include "execution/util/region_allocator.h"
+#include "execution/util/region_containers.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/StringMap.h"
+
+namespace terrier {
+namespace execution {
+namespace util {
+class Region;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::ast {
 

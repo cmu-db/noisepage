@@ -1,7 +1,20 @@
 #include "execution/compiler/expression/derived_value_translator.h"
-#include "execution/compiler/operator/seq_scan_translator.h"
-#include "execution/compiler/translator_factory.h"
+
 #include "parser/expression/derived_value_expression.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+}  // namespace ast
+namespace compiler {
+class CodeGen;
+}  // namespace compiler
+}  // namespace execution
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 DerivedValueTranslator::DerivedValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)

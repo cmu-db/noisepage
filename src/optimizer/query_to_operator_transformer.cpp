@@ -1,28 +1,58 @@
 #include "optimizer/query_to_operator_transformer.h"
 
+#include <_ctype.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <__hash_table>
 #include <algorithm>
-#include <cmath>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/schema.h"
+#include "common/exception.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "loggers/optimizer_logger.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/operator_node.h"
+#include "parser/analyze_statement.h"
+#include "parser/copy_statement.h"
+#include "parser/create_function_statement.h"
+#include "parser/create_statement.h"
+#include "parser/delete_statement.h"
+#include "parser/drop_statement.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression_defs.h"
 #include "parser/expression_util.h"
+#include "parser/insert_statement.h"
+#include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
-#include "parser/statements.h"
-#include "planner/plannodes/plan_node_defs.h"
+#include "parser/select_statement.h"
+#include "parser/sql_statement.h"
+#include "parser/table_ref.h"
+#include "parser/update_statement.h"
+
+namespace terrier {
+namespace parser {
+class AggregateExpression;
+class ExecuteStatement;
+class ExplainStatement;
+class PrepareStatement;
+class TransactionStatement;
+class VariableSetStatement;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

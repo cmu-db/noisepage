@@ -1,9 +1,39 @@
 #pragma once
+#include <stdint.h>
 #include <unordered_map>
 #include <vector>
+
+#include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
+#include "execution/ast/identifier.h"
+#include "execution/compiler/codegen.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/index_join_plan_node.h"
+#include "storage/storage_defs.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace catalog {
+class IndexSchema;
+class Schema;
+}  // namespace catalog
+namespace execution {
+namespace ast {
+class Decl;
+class Expr;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+namespace compiler {
+class FunctionBuilder;
+}  // namespace compiler
+namespace util {
+template <typename T>
+class RegionVector;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

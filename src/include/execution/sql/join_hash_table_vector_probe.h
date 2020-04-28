@@ -1,5 +1,10 @@
 #pragma once
 
+#include <stdint.h>
+
+#include "common/constants.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
 #include "execution/sql/hash_table_entry.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/util/execution_common.h"

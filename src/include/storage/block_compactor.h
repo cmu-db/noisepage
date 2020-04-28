@@ -1,12 +1,35 @@
 #pragma once
+#include <cstdint>
 #include <queue>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include "common/allocator.h"
+#include "common/macros.h"
 #include "storage/arrow_block_metadata.h"
+#include "storage/block_layout.h"
 #include "storage/data_table.h"
+#include "storage/projected_row.h"
 #include "storage/storage_defs.h"
+#include "storage/tuple_access_strategy.h"
 #include "transaction/transaction_manager.h"
+
+namespace terrier {
+namespace common {
+class RawConcurrentBitmap;
+}  // namespace common
+namespace storage {
+class ArrowBlockMetadata;
+class ArrowColumnInfo;
+}  // namespace storage
+namespace transaction {
+class DeferredActionManager;
+class TransactionContext;
+class TransactionManager;
+}  // namespace transaction
+}  // namespace terrier
+
 namespace terrier::storage {
 
 /**

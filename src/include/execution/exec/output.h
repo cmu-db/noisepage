@@ -1,9 +1,12 @@
 #pragma once
 
 #pragma once
+#include <stdint.h>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -11,11 +14,19 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
+#include "common/allocator.h"
+#include "common/managed_pointer.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
 #include "network/network_defs.h"
 #include "parser/parser_defs.h"
 #include "planner/plannodes/output_schema.h"
+
+namespace terrier {
+namespace planner {
+class OutputSchema;
+}  // namespace planner
+}  // namespace terrier
 
 namespace terrier::network {
 class PostgresPacketWriter;

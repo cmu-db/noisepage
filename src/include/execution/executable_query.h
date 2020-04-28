@@ -1,4 +1,8 @@
 #pragma once
+#include <stddef.h>
+#include <stdint.h>
+#include <functional>
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <utility>
@@ -8,6 +12,7 @@
 #include "common/strong_typedef.h"
 #include "execution/ast/context.h"
 #include "execution/exec_defs.h"
+#include "execution/util/region.h"
 #include "execution/vm/module.h"
 
 namespace terrier::planner {

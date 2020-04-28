@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -9,13 +10,19 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
 #include "parser/create_statement.h"
+#include "type/type_id.h"
 
 namespace terrier {
 
 namespace parser {
 class TableRef;
-}
+class AbstractExpression;
+class ColumnValueExpression;
+class ParseResult;
+struct ColumnDefinition;
+}  // namespace parser
 
 namespace transaction {
 class TransactionContext;
@@ -23,7 +30,8 @@ class TransactionContext;
 
 namespace catalog {
 class Schema;
-}
+class CatalogAccessor;
+}  // namespace catalog
 
 namespace binder {
 

@@ -1,9 +1,11 @@
 #include "planner/plannodes/limit_plan_node.h"
 
+#include <iterator>
 #include <memory>
 #include <vector>
 
 #include "common/hash_util.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::planner {
 

@@ -1,5 +1,11 @@
 #include "execution/sql/index_iterator.h"
-#include "execution/sql/value.h"
+
+#include "catalog/catalog_accessor.h"
+#include "common/macros.h"
+#include "execution/exec/execution_context.h"
+#include "execution/sql/memory_pool.h"
+#include "storage/projected_row.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::sql {
 

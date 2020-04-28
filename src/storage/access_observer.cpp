@@ -1,5 +1,11 @@
 #include "storage/access_observer.h"
+
+#include <utility>
+
 #include "storage/block_compactor.h"
+#include "storage/block_layout.h"
+#include "storage/data_table.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::storage {
 void AccessObserver::ObserveGCInvocation() {

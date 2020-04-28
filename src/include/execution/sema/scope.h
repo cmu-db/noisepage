@@ -1,9 +1,8 @@
 #pragma once
 
-#include "llvm/ADT/DenseMap.h"
-
 #include "execution/ast/identifier.h"
 #include "execution/util/execution_common.h"
+#include "llvm/ADT/DenseMap.h"
 
 namespace terrier::execution {
 

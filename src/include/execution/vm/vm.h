@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdint.h>
+
+#include "common/macros.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/region_containers.h"
 #include "execution/vm/bytecode_function_info.h"

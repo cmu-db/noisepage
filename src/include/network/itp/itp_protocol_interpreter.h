@@ -1,17 +1,32 @@
 #pragma once
 
+#include <stddef.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 
+#include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
 #include "network/itp/itp_command_factory.h"
 #include "network/itp/itp_network_commands.h"
 #include "network/itp/itp_packet_writer.h"
+#include "network/network_types.h"
 #include "network/protocol_interpreter.h"
+
+namespace terrier {
+namespace network {
+class ConnectionContext;
+class ITPCommandFactory;
+class ReadBuffer;
+class WriteQueue;
+}  // namespace network
+namespace trafficcop {
+class TrafficCop;
+}  // namespace trafficcop
+}  // namespace terrier
 
 namespace terrier::network {
 

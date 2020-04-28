@@ -1,17 +1,28 @@
 #include "parser/postgresparser.h"
 
+#include <_ctype.h>
+#include <string.h>
+#include <__hash_table>
 #include <algorithm>
 #include <cstdio>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "common/exception.h"
+#include "common/macros.h"
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
 #include "loggers/parser_logger.h"
+#include "parser/analyze_statement.h"
+#include "parser/copy_statement.h"
+#include "parser/create_function_statement.h"
+#include "parser/delete_statement.h"
+#include "parser/drop_statement.h"
+#include "parser/execute_statement.h"
+#include "parser/explain_statement.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -25,8 +36,16 @@
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
+#include "parser/insert_statement.h"
 #include "parser/pg_trigger.h"
+#include "parser/prepare_statement.h"
+#include "parser/select_statement.h"
+#include "parser/table_ref.h"
+#include "parser/transaction_statement.h"
+#include "parser/update_statement.h"
+#include "parser/variable_set_statement.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
 
 /**
  * Log information about the error, then throw an exception

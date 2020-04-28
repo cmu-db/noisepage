@@ -1,15 +1,26 @@
 #pragma once
 
+#include <stdint.h>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "common/macros.h"
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/optimizer_defs.h"
 #include "optimizer/property_set.h"
 
 namespace terrier {
+namespace common {
+template <class Underlying>
+class ManagedPointer;
+}  // namespace common
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
 
 namespace planner {
 class AbstractPlanNode;
@@ -26,6 +37,10 @@ class TransactionContext;
 namespace optimizer {
 
 class OperatorNode;
+class OptimizationContext;
+class OptimizerTaskStack;
+class PropertySet;
+class StatsStorage;
 
 /**
  * Optimizer class that implements the AbstractOptimizer abstract class

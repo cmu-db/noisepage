@@ -1,12 +1,20 @@
 #pragma once
 
+#include <cstdint>
+#include <iosfwd>
 #include <limits>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
+#include "common/exception.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
+#include "type/transient_value.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
 #include "util/time_util.h"
 
 namespace terrier {

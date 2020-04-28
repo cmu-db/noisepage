@@ -1,10 +1,11 @@
 #include "planner/plannodes/create_function_plan_node.h"
 
+#include <iterator>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "storage/data_table.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::planner {
 

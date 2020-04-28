@@ -1,14 +1,33 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
 #include "common/strong_typedef.h"
+#include "execution/ast/context.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/exec_defs.h"
 #include "execution/util/region.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+namespace util {
+template <typename T>
+class RegionVector;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

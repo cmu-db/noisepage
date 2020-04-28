@@ -1,5 +1,6 @@
 #include "execution/sql/filter_manager.h"
 
+#include <cstdint>
 #include <memory>
 #include <numeric>
 #include <utility>
@@ -8,7 +9,6 @@
 #include "execution/bandit/agent.h"
 #include "execution/bandit/multi_armed_bandit.h"
 #include "execution/bandit/policy.h"
-#include "execution/sql/projected_columns_iterator.h"
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 

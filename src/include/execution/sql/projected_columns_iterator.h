@@ -1,12 +1,17 @@
 #pragma once
 
+#include <stdint.h>
 #include <limits>
+#include <stdexcept>
 #include <type_traits>
-#include "storage/projected_columns.h"
 
+#include "common/constants.h"
+#include "common/container/bitmap.h"
 #include "common/macros.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/execution_common.h"
+#include "storage/projected_columns.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {

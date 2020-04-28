@@ -1,19 +1,30 @@
 #pragma once
 
 #include <gflags/gflags.h>
-
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
 #include "common/action_context.h"
 #include "common/exception.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "common/shared_latch.h"
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
+
+namespace terrier {
+class DBMain;
+namespace type {
+class TransientValue;
+}  // namespace type
+}  // namespace terrier
 
 namespace terrier::settings {
 using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext> action_context);

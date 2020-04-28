@@ -1,6 +1,9 @@
 #pragma once
 
+#include <stdint.h>
+#include <iosfwd>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -9,6 +12,14 @@
 #include "execution/sema/error_message.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/region_containers.h"
+
+namespace terrier {
+namespace execution {
+namespace util {
+class Region;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution {
 

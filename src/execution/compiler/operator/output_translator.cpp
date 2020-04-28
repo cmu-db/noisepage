@@ -1,6 +1,24 @@
 #include "execution/compiler/operator/output_translator.h"
-#include <utility>
-#include <vector>
+
+#include <string>
+#include <type_traits>
+
+#include "brain/brain_defs.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/context.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/function_builder.h"
+#include "execution/util/region_containers.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class Expr;
+class FieldDecl;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen)

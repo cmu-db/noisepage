@@ -1,27 +1,32 @@
+#include <stddef.h>
+#include <__hash_table>
+#include <iterator>
+#include <memory>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
+#include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
 #include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit_util.h"
-#include "parser/expression_defs.h"
+#include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
+#include "catalog/index_schema.h"
+#include "catalog/schema.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
+#include "execution/compiler/operator/operator_translator.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/aggregate_expression.h"
+#include "planner/plannodes/abstract_join_plan_node.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
-#include "planner/plannodes/analyze_plan_node.h"
-#include "planner/plannodes/create_database_plan_node.h"
-#include "planner/plannodes/create_function_plan_node.h"
-#include "planner/plannodes/create_index_plan_node.h"
-#include "planner/plannodes/create_namespace_plan_node.h"
-#include "planner/plannodes/create_table_plan_node.h"
-#include "planner/plannodes/create_trigger_plan_node.h"
-#include "planner/plannodes/create_view_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
-#include "planner/plannodes/drop_database_plan_node.h"
-#include "planner/plannodes/drop_index_plan_node.h"
-#include "planner/plannodes/drop_namespace_plan_node.h"
-#include "planner/plannodes/drop_table_plan_node.h"
-#include "planner/plannodes/drop_trigger_plan_node.h"
-#include "planner/plannodes/drop_view_plan_node.h"
-#include "planner/plannodes/export_external_file_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
@@ -29,11 +34,19 @@
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
-#include "planner/plannodes/plan_visitor.h"
+#include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "storage/block_layout.h"
 #include "type/type_id.h"
+#include "type/type_util.h"
+
+namespace terrier {
+namespace planner {
+class PlanVisitor;
+}  // namespace planner
+}  // namespace terrier
 
 namespace terrier::brain {
 

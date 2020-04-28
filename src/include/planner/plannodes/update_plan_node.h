@@ -2,13 +2,28 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "catalog/catalog_defs.h"
+#include "common/hash_util.h"
+#include "common/json.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "nlohmann/json.hpp"
 #include "parser/parameter.h"
 #include "parser/update_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
+
+namespace terrier {
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::planner {
 

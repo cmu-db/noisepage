@@ -1,7 +1,11 @@
 #include "execution/sql/functions/string_functions.h"
 
+#include <_ctype.h>
+#include <math.h>
+#include <string.h>
 #include <algorithm>
 
+#include "common/macros.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/bit_util.h"
 

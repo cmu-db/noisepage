@@ -1,15 +1,20 @@
 #include "execution/ast/ast_dump.h"
 
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/StringRef.h>
+#include <functional>
 #include <string>
-#include <utility>
-
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/raw_os_ostream.h"
-#include "llvm/Support/raw_ostream.h"
+#include <type_traits>
 
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
+#include "execution/ast/identifier.h"
 #include "execution/ast/type.h"
+#include "execution/parsing/token.h"
+#include "execution/util/execution_common.h"
+#include "execution/util/region_containers.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace terrier::execution::ast {
 

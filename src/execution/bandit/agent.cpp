@@ -1,6 +1,9 @@
 #include "execution/bandit/agent.h"
 
 #include <algorithm>
+#include <iterator>
+
+#include "execution/bandit/policy.h"
 
 namespace terrier::execution::bandit {
 

@@ -1,14 +1,34 @@
 #pragma once
 
 #include <cstdint>
+#include <iosfwd>
 #include <string>
+#include <vector>
 
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
+#include "execution/exec/execution_context.h"
+#include "execution/sql/aggregation_hash_table.h"
+#include "execution/sql/aggregators.h"
+#include "execution/sql/bloom_filter.h"
+#include "execution/sql/filter_manager.h"
+#include "execution/sql/hash_table_entry.h"
+#include "execution/sql/index_iterator.h"
+#include "execution/sql/join_hash_table.h"
+#include "execution/sql/join_hash_table_vector_probe.h"
+#include "execution/sql/memory_pool.h"
+#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/sorter.h"
 #include "execution/sql/storage_interface.h"
+#include "execution/sql/table_vector_iterator.h"
+#include "execution/sql/thread_state_container.h"
+#include "execution/sql/value.h"
 #include "execution/util/region.h"
+#include "execution/util/region_allocator.h"
 #include "execution/util/region_containers.h"
 #include "llvm/Support/Casting.h"
+#include "storage/projected_row.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::execution::ast {
 
@@ -113,6 +133,7 @@ class Context;
 // Forward declare everything first
 #define F(TypeClass) class TypeClass;
 TYPE_LIST(F)
+
 #undef F
 
 /**

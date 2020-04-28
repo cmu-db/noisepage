@@ -1,12 +1,15 @@
 #include "execution/vm/module.h"
 
+#include <llvm/Support/Memory.h>
+#include <stddef.h>
 #include <tbb/task.h>
-
 #include <memory>
-#include <string>
-#include <utility>
+#include <system_error>
+#include <vector>
 
 #include "common/constants.h"
+#include "common/math_util.h"
+#include "loggers/execution_logger.h"
 
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak.h"

@@ -1,10 +1,19 @@
+#include <__hash_table>
+#include <iosfwd>
 #include <string>
+#include <type_traits>
 #include <unordered_set>
-#include <utility>
+#include <vector>
 
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
+#include "optimizer/group.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
+#include "optimizer/operator_node_contents.h"
+#include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
 

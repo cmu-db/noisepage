@@ -1,10 +1,14 @@
 #include "planner/plannodes/update_plan_node.h"
 
+#include <stddef.h>
+#include <iterator>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
-#include "planner/plannodes/abstract_scan_plan_node.h"
+#include "common/strong_typedef.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::planner {
 

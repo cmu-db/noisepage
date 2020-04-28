@@ -1,16 +1,30 @@
 #include "traffic_cop/traffic_cop_util.h"
 
-#include "catalog/catalog_accessor.h"
+#include <stddef.h>
+#include <type_traits>
+#include <vector>
+
 #include "optimizer/abstract_optimizer.h"
-#include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/optimizer.h"
+#include "optimizer/optimizer_defs.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/query_to_operator_transformer.h"
-#include "optimizer/statistics/stats_storage.h"
+#include "parser/create_statement.h"
+#include "parser/drop_statement.h"
 #include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
+#include "parser/select_statement.h"
+#include "parser/sql_statement.h"
+#include "parser/transaction_statement.h"
+
+namespace terrier {
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::trafficcop {
 

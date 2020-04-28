@@ -1,16 +1,23 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "optimizer/operator_node_contents.h"
+#include "optimizer/optimizer_defs.h"
+#include "parser/create_function_statement.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
@@ -25,6 +32,8 @@ namespace terrier {
 namespace parser {
 class AbstractExpression;
 class UpdateClause;
+class SelectStatement;
+struct ColumnDefinition;
 }  // namespace parser
 
 namespace optimizer {

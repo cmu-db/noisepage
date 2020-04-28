@@ -1,10 +1,23 @@
 #include "execution/executable_query.h"
 
+#include <llvm/ADT/StringRef.h>
+#include <llvm/Support/ErrorOr.h>
+#include <llvm/Support/MemoryBuffer.h>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <system_error>
+#include <type_traits>
+
+#include "common/macros.h"
+#include "execution/ast/ast.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler.h"
+#include "execution/exec/execution_context.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
+#include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
 #include "execution/util/region.h"
 #include "execution/vm/bytecode_generator.h"

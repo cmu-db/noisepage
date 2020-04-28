@@ -1,10 +1,36 @@
 #include "execution/compiler/operator/hash_join_translator.h"
+
 #include <memory>
+#include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "brain/brain_defs.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/context.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/util/region_containers.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/plan_node_defs.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class Expr;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op,

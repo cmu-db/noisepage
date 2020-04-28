@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+#include <iosfwd>
 #include <string>
 
 #include "common/macros.h"

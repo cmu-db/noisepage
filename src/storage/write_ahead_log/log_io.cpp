@@ -1,5 +1,8 @@
 #include "storage/write_ahead_log/log_io.h"
+
+#include <sys/types.h>
 #include <algorithm>
+
 namespace terrier::storage {
 void PosixIoWrappers::Close(int fd) {
   while (true) {

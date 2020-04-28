@@ -1,15 +1,35 @@
 #pragma once
 
+#include <stdint.h>
 #include <queue>
 #include <unordered_set>
 #include <utility>
 
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "common/shared_latch.h"
 #include "storage/access_observer.h"
 #include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
+
+namespace terrier {
+namespace storage {
+class AccessObserver;
+class DataTable;
+class TupleSlot;
+class UndoRecord;
+namespace index {
+class Index;
+}  // namespace index
+}  // namespace storage
+namespace transaction {
+class DeferredActionManager;
+class TimestampManager;
+class TransactionContext;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::storage {
 

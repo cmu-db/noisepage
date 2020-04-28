@@ -1,10 +1,20 @@
 #pragma once
 
+#include <stdint.h>
 #include <vector>
 
 #include "execution/bandit/agent.h"
 #include "execution/bandit/multi_armed_bandit.h"
 #include "execution/util/execution_common.h"
+
+namespace terrier {
+namespace execution {
+namespace bandit {
+class Agent;
+class MultiArmedBandit;
+}  // namespace bandit
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::bandit {
 

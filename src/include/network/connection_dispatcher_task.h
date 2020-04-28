@@ -1,7 +1,10 @@
 #pragma once
 
+#include <stdint.h>
+#include <atomic>
 #include <memory>
 #include <vector>
+
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "common/notifiable_task.h"
@@ -9,6 +12,18 @@
 #include "network/connection_handle_factory.h"
 #include "network/connection_handler_task.h"
 #include "network/network_types.h"
+#include "network/protocol_interpreter.h"
+
+namespace terrier {
+namespace common {
+class DedicatedThreadOwner;
+class DedicatedThreadRegistry;
+}  // namespace common
+namespace network {
+class ConnectionHandleFactory;
+class ConnectionHandlerTask;
+}  // namespace network
+}  // namespace terrier
 
 namespace terrier::network {
 

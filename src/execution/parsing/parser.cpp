@@ -1,12 +1,20 @@
 #include "execution/parsing/parser.h"
 
-#include <memory>
-#include <string>
+#include <stdlib.h>
 #include <tuple>
+#include <type_traits>
 #include <unordered_set>
-#include <utility>
 
+#include "execution/ast/ast.h"
+#include "execution/ast/ast_node_factory.h"
 #include "execution/sema/error_reporter.h"
+#include "execution/util/region_containers.h"
+
+namespace terrier {
+namespace execution {
+struct SourcePosition;
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::parsing {
 

@@ -1,9 +1,16 @@
 #include "planner/plannodes/index_join_plan_node.h"
 
+#include <iterator>
 #include <memory>
 #include <vector>
 
 #include "common/hash_util.h"
+
+namespace terrier {
+namespace planner {
+class AbstractPlanNode;
+}  // namespace planner
+}  // namespace terrier
 
 namespace terrier::planner {
 

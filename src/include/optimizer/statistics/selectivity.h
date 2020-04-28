@@ -6,9 +6,17 @@
 #include <memory>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
+
+namespace terrier {
+namespace optimizer {
+class TableStats;
+class ValueCondition;
+}  // namespace optimizer
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

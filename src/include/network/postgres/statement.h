@@ -1,17 +1,27 @@
 #pragma once
 
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "execution/executable_query.h"
+#include "network/network_defs.h"
 #include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/type_id.h"
+
+namespace terrier {
+namespace parser {
+class SQLStatement;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::network {
 

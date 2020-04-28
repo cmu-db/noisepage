@@ -1,13 +1,50 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
+#include "libpg_query/nodes.h"
+#include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
+#include "parser/create_statement.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression_defs.h"
+#include "parser/nodes.h"
 #include "parser/parsenodes.h"
+#include "parser/parser_defs.h"
+#include "parser/sql_statement.h"
 #include "parser/statements.h"
+
+namespace terrier {
+namespace parser {
+class AnalyzeStatement;
+class CopyStatement;
+class DeleteStatement;
+class DropStatement;
+class ExecuteStatement;
+class ExplainStatement;
+class GroupByDescription;
+class InsertStatement;
+class JoinDefinition;
+class OrderByDescription;
+class PrepareStatement;
+class SelectStatement;
+class TableRef;
+class TransactionStatement;
+class UpdateClause;
+class UpdateStatement;
+class VariableSetStatement;
+struct FuncParameter;
+struct ReturnType;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::parser {
 

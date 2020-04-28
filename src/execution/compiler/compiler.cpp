@@ -1,13 +1,26 @@
 #include "execution/compiler/compiler.h"
 
 #include <memory>
-#include <utility>
+#include <type_traits>
 
+#include "brain/operating_unit.h"
 #include "brain/operating_unit_recorder.h"
-#include "execution/ast/ast_dump.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "execution/ast/ast.h"
+#include "execution/ast/context.h"
+#include "execution/ast/identifier.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/function_builder.h"
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/operator/output_translator.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/sema/sema.h"
+#include "execution/util/region_containers.h"
 #include "loggers/execution_logger.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_node_defs.h"
 
 namespace terrier::execution::compiler {
 

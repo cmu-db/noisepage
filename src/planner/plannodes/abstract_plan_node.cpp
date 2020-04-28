@@ -1,7 +1,8 @@
 #include "planner/plannodes/abstract_plan_node.h"
 
+#include <iterator>
 #include <memory>
-#include <utility>
+#include <stdexcept>
 #include <vector>
 
 #include "planner/plannodes/aggregate_plan_node.h"
@@ -28,7 +29,6 @@
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
-#include "planner/plannodes/plan_visitor.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/result_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"

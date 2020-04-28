@@ -1,8 +1,13 @@
 #pragma once
 
+#include <cstddef>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <typeinfo>
+#include <utility>
 #include <vector>
+
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/optimizer_defs.h"

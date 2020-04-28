@@ -7,7 +7,10 @@
 
 namespace terrier {
 class DBMain;
-}
+namespace common {
+class ActionContext;
+}  // namespace common
+}  // namespace terrier
 
 namespace terrier::settings {
 

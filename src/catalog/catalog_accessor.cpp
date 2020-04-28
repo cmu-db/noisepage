@@ -1,11 +1,32 @@
 #include "catalog/catalog_accessor.h"
 
-#include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_proc.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
+
+namespace terrier {
+namespace catalog {
+class IndexSchema;
+class Schema;
+}  // namespace catalog
+namespace execution {
+namespace udf {
+class UDFContext;
+}  // namespace udf
+}  // namespace execution
+namespace storage {
+class SqlTable;
+namespace index {
+class Index;
+}  // namespace index
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(std::string name) const {

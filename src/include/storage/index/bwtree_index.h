@@ -1,16 +1,36 @@
 #pragma once
 
+#include <stdint.h>
+#include <exception>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "bwtree/bwtree.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "spdlog/details/logger_impl.h"
+#include "storage/data_table.h"
+#include "storage/index/compact_ints_key.h"
+#include "storage/index/generic_key.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
+#include "storage/index/index_metadata.h"
+#include "storage/storage_defs.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+
+namespace terrier {
+namespace storage {
+class ProjectedRow;
+}  // namespace storage
+namespace transaction {
+class DeferredActionManager;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::storage::index {
 template <uint8_t KeySize>

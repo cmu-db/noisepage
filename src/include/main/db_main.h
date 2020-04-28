@@ -1,24 +1,44 @@
 #pragma once
 
+#include <stdint.h>
+#include <chrono>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_defs.h"
 #include "common/action_context.h"
+#include "common/dedicated_thread_registry.h"
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
 #include "execution/execution_util.h"
+#include "metrics/metrics_manager.h"
 #include "metrics/metrics_thread.h"
+#include "network/connection_handle_factory.h"
+#include "network/postgres/postgres_command_factory.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
+#include "network/protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "settings/settings_defs.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
+#include "storage/garbage_collector.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/record_buffer.h"
+#include "storage/storage_defs.h"
+#include "storage/write_ahead_log/log_manager.h"
+#include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
+#include "transaction/timestamp_manager.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier {
 

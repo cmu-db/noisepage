@@ -1,12 +1,23 @@
 #pragma once
+#include <stdint.h>
+#include <string.h>
+#include <iosfwd>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include "common/allocator.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
+
+namespace terrier {
+namespace storage {
+class BlockLayout;
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::storage {
 class ProjectedRow;

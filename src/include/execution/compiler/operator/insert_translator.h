@@ -1,8 +1,36 @@
 #pragma once
+#include <stdint.h>
 #include <vector>
+
+#include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "execution/util/execution_common.h"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
+#include "storage/storage_defs.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class Expr;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+namespace compiler {
+class CodeGen;
+class FunctionBuilder;
+}  // namespace compiler
+namespace util {
+template <typename T>
+class RegionVector;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

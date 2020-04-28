@@ -3,6 +3,14 @@
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_label.h"
 
+namespace terrier {
+namespace execution {
+namespace vm {
+class BytecodeGenerator;
+}  // namespace vm
+}  // namespace execution
+}  // namespace terrier
+
 namespace terrier::execution::vm {
 
 /**

@@ -1,14 +1,22 @@
 #include "optimizer/physical_operators.h"
-#include <algorithm>
+
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
+
 #include "common/macros.h"
-#include "optimizer/operator_visitor.h"
+#include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/select_statement.h"
+
+namespace terrier {
+namespace optimizer {
+class OperatorVisitor;
+}  // namespace optimizer
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

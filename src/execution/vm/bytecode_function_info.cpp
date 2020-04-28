@@ -1,6 +1,7 @@
 #include "execution/vm/bytecode_function_info.h"
 
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 

@@ -1,10 +1,32 @@
 #include "storage/garbage_collector.h"
+
+#include <atomic>
+#include <cstdint>
+#include <stdexcept>
+#include <type_traits>
 #include <unordered_set>
 #include <utility>
+#include <vector>
+
+#include "common/allocator.h"
 #include "common/macros.h"
+#include "common/resource_tracker.h"
+#include "common/strong_typedef.h"
+#include "common/thread_context.h"
 #include "loggers/storage_logger.h"
+#include "metrics/metrics_defs.h"
+#include "metrics/metrics_store.h"
+#include "storage/access_observer.h"
+#include "storage/block_layout.h"
 #include "storage/data_table.h"
+#include "storage/index/index.h"
+#include "storage/projected_row.h"
+#include "storage/record_buffer.h"
+#include "storage/storage_defs.h"
+#include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
 #include "transaction/deferred_action_manager.h"
+#include "transaction/timestamp_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"

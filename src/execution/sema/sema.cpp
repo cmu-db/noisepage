@@ -1,10 +1,8 @@
 #include "execution/sema/sema.h"
 
-#include <utility>
-
-#include "catalog/schema.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
+#include "execution/sema/error_reporter.h"
 
 namespace terrier::execution::sema {
 

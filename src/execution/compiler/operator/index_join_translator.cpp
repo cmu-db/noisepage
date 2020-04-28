@@ -1,9 +1,35 @@
 #include "execution/compiler/operator/index_join_translator.h"
+
 #include <memory>
+#include <utility>
+
+#include "brain/brain_defs.h"
+#include "catalog/catalog_accessor.h"
+#include "catalog/index_schema.h"
+#include "catalog/schema.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/util/execution_common.h"
 #include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/plan_node_defs.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+class Stmt;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

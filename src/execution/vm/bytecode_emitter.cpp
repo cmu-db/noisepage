@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "execution/vm/bytecode_label.h"
+#include "execution/vm/bytecode_operands.h"
 
 namespace terrier::execution::vm {
 

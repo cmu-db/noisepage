@@ -1,13 +1,31 @@
 #pragma once
 
+#include <stdint.h>
 #include <memory>
 
 #include "catalog/schema.h"
+#include "common/macros.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/builtins.h"
+#include "execution/parsing/token.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/scope.h"
+
+namespace terrier {
+namespace catalog {
+class Schema;
+}  // namespace catalog
+namespace execution {
+namespace ast {
+class Type;
+}  // namespace ast
+namespace sema {
+class ErrorReporter;
+}  // namespace sema
+struct SourcePosition;
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution {
 

@@ -1,12 +1,12 @@
 #include "execution/sql/ddl_executors.h"
 
-#include <memory>
-#include <string>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/index_schema.h"
+#include "catalog/schema.h"
 #include "common/macros.h"
-#include "execution/exec/execution_context.h"
+#include "common/strong_typedef.h"
 #include "parser/expression/column_value_expression.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
@@ -17,7 +17,9 @@
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "storage/index/index_builder.h"
+#include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
+#include "type/type_id.h"
 
 namespace terrier::execution::sql {
 

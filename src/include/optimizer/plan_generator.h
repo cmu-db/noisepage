@@ -5,11 +5,22 @@
 #include <unordered_set>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
+#include "common/managed_pointer.h"
 #include "optimizer/operator_visitor.h"
+#include "optimizer/optimizer_defs.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier {
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+namespace transaction {
+class TransactionContext;
+}  // namespace transaction
 
 namespace planner {
 class AbstractPlanNode;
@@ -33,6 +44,43 @@ namespace optimizer {
 
 class PropertySet;
 class OperatorNode;
+class Aggregate;
+class Analyze;
+class CreateDatabase;
+class CreateFunction;
+class CreateIndex;
+class CreateNamespace;
+class CreateTable;
+class CreateTrigger;
+class CreateView;
+class Delete;
+class DropDatabase;
+class DropIndex;
+class DropNamespace;
+class DropTable;
+class DropTrigger;
+class DropView;
+class ExportExternalFile;
+class ExternalFileScan;
+class HashGroupBy;
+class IndexScan;
+class InnerHashJoin;
+class InnerNLJoin;
+class Insert;
+class InsertSelect;
+class LeftHashJoin;
+class LeftNLJoin;
+class Limit;
+class OrderBy;
+class OuterHashJoin;
+class OuterNLJoin;
+class QueryDerivedScan;
+class RightHashJoin;
+class RightNLJoin;
+class SeqScan;
+class SortGroupBy;
+class TableFreeScan;
+class Update;
 
 /**
  * Plan Generator for generating plans from Operators

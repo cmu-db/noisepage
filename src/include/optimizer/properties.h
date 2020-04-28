@@ -1,12 +1,24 @@
 #pragma once
 
+#include <stddef.h>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
+#include "optimizer/optimizer_defs.h"
 #include "optimizer/property.h"
 #include "planner/plannodes/plan_node_defs.h"
+
+namespace terrier {
+namespace optimizer {
+class PropertyVisitor;
+}  // namespace optimizer
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

@@ -1,11 +1,11 @@
+#include <llvm/ADT/StringRef.h>
+#include <iosfwd>
+
 #include "execution/ast/type.h"
-
-#include <string>
-
+#include "execution/ast/type_visitor.h"
+#include "execution/util/region_containers.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/raw_ostream.h"
-
-#include "execution/ast/type_visitor.h"
 
 namespace terrier::execution::ast {
 

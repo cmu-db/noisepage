@@ -1,6 +1,10 @@
 #pragma once
+#include <stdint.h>
 #include <vector>
+
+#include "common/allocator.h"
 #include "common/constants.h"
+#include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
 #include "storage/undo_record.h"

@@ -1,10 +1,27 @@
+#include <stdint.h>
+#include <atomic>
 #include <list>
+#include <stdexcept>
+#include <vector>
 
 #include "common/allocator.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "common/object_pool.h"
+#include "common/spin_latch.h"
+#include "common/strong_typedef.h"
+#include "storage/arrow_block_metadata.h"
 #include "storage/block_access_controller.h"
+#include "storage/block_layout.h"
 #include "storage/data_table.h"
+#include "storage/projected_columns.h"
+#include "storage/projected_row.h"
+#include "storage/storage_defs.h"
 #include "storage/storage_util.h"
+#include "storage/tuple_access_strategy.h"
+#include "storage/undo_record.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_defs.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {

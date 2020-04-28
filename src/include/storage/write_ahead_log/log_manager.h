@@ -1,24 +1,44 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+#include <tbb/cache_aligned_allocator.h>
+#include <tbb/concurrent_queue.h>
+#include <chrono>
+#include <iosfwd>
 #include <memory>
 #include <queue>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "common/container/concurrent_blocking_queue.h"
+#include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
+#include "storage/storage_defs.h"
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "storage/write_ahead_log/log_serializer_task.h"
 #include "transaction/transaction_defs.h"
+
+namespace terrier {
+namespace common {
+class DedicatedThreadRegistry;
+class DedicatedThreadTask;
+}  // namespace common
+namespace storage {
+class DiskLogConsumerTask;
+class LogSerializerTask;
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::storage {
 

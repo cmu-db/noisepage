@@ -1,8 +1,19 @@
 #include "execution/compiler/expression/pr_filler.h"
 
-#include <string>
+#include <memory>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
+
+#include "catalog/index_schema.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
+#include "execution/ast/ast.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/function_builder.h"
+#include "execution/compiler/translator_factory.h"
+#include "execution/util/region_containers.h"
 
 namespace terrier::execution::compiler {
 void PRFiller::GenFiller(const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm,

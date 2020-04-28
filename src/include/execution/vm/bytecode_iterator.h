@@ -1,8 +1,11 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
 #include <vector>
 
 #include "execution/util/execution_common.h"
+#include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
 
 namespace terrier::execution::vm {

@@ -1,9 +1,18 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include "execution/bandit/policy.h"
 #include "execution/util/execution_common.h"
+
+namespace terrier {
+namespace execution {
+namespace bandit {
+class Policy;
+}  // namespace bandit
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::bandit {
 

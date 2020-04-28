@@ -1,7 +1,18 @@
-#include <unordered_map>
+#include <stdint.h>
+#include <atomic>
 
+#include "common/macros.h"
 #include "common/math_util.h"
 #include "execution/sql/generic_hash_table.h"
+#include "execution/util/memory.h"
+
+namespace terrier {
+namespace execution {
+namespace sql {
+struct HashTableEntry;
+}  // namespace sql
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::sql {
 

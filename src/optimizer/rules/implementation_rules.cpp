@@ -1,24 +1,48 @@
 #include "optimizer/rules/implementation_rules.h"
 
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
-#include "loggers/optimizer_logger.h"
-#include "optimizer/group_expression.h"
+#include "catalog/catalog_defs.h"
+#include "catalog/index_schema.h"
+#include "catalog/schema.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
+#include "optimizer/group.h"
 #include "optimizer/index_util.h"
+#include "optimizer/logical_operators.h"
+#include "optimizer/memo.h"
+#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
+#include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_defs.h"
+#include "optimizer/pattern.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
+#include "optimizer/property.h"
+#include "optimizer/property_set.h"
 #include "optimizer/util.h"
-#include "parser/expression_util.h"
-#include "storage/storage_defs.h"
-#include "type/transient_value_factory.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
+#include "parser/expression_defs.h"
+#include "parser/parser_defs.h"
+#include "planner/plannodes/plan_node_defs.h"
+#include "storage/index/index_defs.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace parser {
+class UpdateClause;
+struct ColumnDefinition;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

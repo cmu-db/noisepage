@@ -1,6 +1,8 @@
 #pragma once
 
+#include <stddef.h>
 #include <cstdint>
+#include <iosfwd>
 #include <limits>
 #include <string>
 #include <type_traits>

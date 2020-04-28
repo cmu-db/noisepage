@@ -1,10 +1,13 @@
-#include <memory>
-
-#include "execution/sema/sema.h"
-
+#include "common/macros.h"
+#include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
+#include "execution/sema/error_message.h"
+#include "execution/sema/error_reporter.h"
+#include "execution/sema/scope.h"
+#include "execution/sema/sema.h"
+#include "execution/util/region_containers.h"
 
 namespace terrier::execution::sema {
 

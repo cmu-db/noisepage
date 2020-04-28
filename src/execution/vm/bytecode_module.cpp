@@ -1,13 +1,15 @@
 #include "execution/vm/bytecode_module.h"
 
+#include <stdint.h>
 #include <algorithm>
 #include <iomanip>
-#include <numeric>
+#include <ostream>
 #include <string>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
 #include "execution/ast/type.h"
+#include "execution/vm/bytecodes.h"
 
 namespace terrier::execution::vm {
 

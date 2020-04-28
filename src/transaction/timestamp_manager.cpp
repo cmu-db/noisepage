@@ -1,4 +1,7 @@
 #include "transaction/timestamp_manager.h"
+
+#include <stddef.h>
+#include <__hash_table>
 #include <algorithm>
 #include <vector>
 

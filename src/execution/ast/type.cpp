@@ -1,22 +1,7 @@
 #include "execution/ast/type.h"
 
+#include <type_traits>
 #include <unordered_map>
-#include <utility>
-
-#include "brain/operating_unit.h"
-#include "execution/exec/execution_context.h"
-#include "execution/sql/aggregation_hash_table.h"
-#include "execution/sql/aggregators.h"
-#include "execution/sql/filter_manager.h"
-#include "execution/sql/hash_table_entry.h"
-#include "execution/sql/index_iterator.h"
-#include "execution/sql/join_hash_table.h"
-#include "execution/sql/join_hash_table_vector_probe.h"
-#include "execution/sql/projected_columns_iterator.h"
-#include "execution/sql/sorter.h"
-#include "execution/sql/table_vector_iterator.h"
-#include "execution/sql/thread_state_container.h"
-#include "execution/sql/value.h"
 
 namespace terrier::execution::ast {
 

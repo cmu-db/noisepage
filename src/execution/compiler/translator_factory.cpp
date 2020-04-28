@@ -1,14 +1,15 @@
 #include "execution/compiler/translator_factory.h"
 
 #include <memory>
+#include <vector>
 
-#include "common/macros.h"
 #include "execution/compiler/expression/arithmetic_translator.h"
 #include "execution/compiler/expression/column_value_translator.h"
 #include "execution/compiler/expression/comparison_translator.h"
 #include "execution/compiler/expression/conjunction_translator.h"
 #include "execution/compiler/expression/constant_translator.h"
 #include "execution/compiler/expression/derived_value_translator.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/expression/function_translator.h"
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/param_value_translator.h"
@@ -22,12 +23,36 @@
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/limit_translator.h"
 #include "execution/compiler/operator/nested_loop_translator.h"
+#include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/operator/projection_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/compiler/operator/static_aggregate_translator.h"
 #include "execution/compiler/operator/update_translator.h"
-#include "execution/compiler/pipeline.h"
+#include "execution/util/execution_common.h"
+#include "parser/expression/abstract_expression.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/delete_plan_node.h"
+#include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/index_scan_plan_node.h"
+#include "planner/plannodes/insert_plan_node.h"
+#include "planner/plannodes/limit_plan_node.h"
+#include "planner/plannodes/nested_loop_join_plan_node.h"
+#include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/plan_node_defs.h"
+#include "planner/plannodes/projection_plan_node.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
+#include "planner/plannodes/update_plan_node.h"
+
+namespace terrier {
+namespace execution {
+namespace compiler {
+class CodeGen;
+}  // namespace compiler
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

@@ -1,9 +1,14 @@
 #include "storage/projected_columns.h"
+
+#include <__functional_base>
 #include <algorithm>
-#include <functional>
 #include <set>
-#include <utility>
+#include <type_traits>
 #include <vector>
+
+#include "common/strong_typedef.h"
+#include "storage/block_layout.h"
+
 namespace terrier::storage {
 uint32_t ProjectedColumns::AttrSizeForColumn(const uint16_t projection_col_index) {
   TERRIER_ASSERT(projection_col_index < num_cols_, "Cannot get size for out-of-bounds column");

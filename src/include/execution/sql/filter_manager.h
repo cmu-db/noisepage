@@ -1,10 +1,12 @@
 #pragma once
 
+#include <stdint.h>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "common/macros.h"
+#include "execution/bandit/agent.h"
 #include "execution/bandit/policy.h"
 #include "execution/util/execution_common.h"
 

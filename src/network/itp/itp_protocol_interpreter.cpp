@@ -1,13 +1,24 @@
 #include "network/itp/itp_protocol_interpreter.h"
 
-#include <algorithm>
+#include <stdint.h>
+#include <exception>
 #include <memory>
-#include <string>
-#include <utility>
 
+#include "loggers/network_logger.h"
+#include "network/itp/itp_command_factory.h"
 #include "network/itp/itp_network_commands.h"
+#include "network/itp/itp_packet_writer.h"
 #include "network/network_defs.h"
-#include "network/terrier_server.h"
+#include "network/network_io_utils.h"
+
+namespace terrier {
+namespace network {
+class ConnectionContext;
+}  // namespace network
+namespace trafficcop {
+class TrafficCop;
+}  // namespace trafficcop
+}  // namespace terrier
 
 namespace terrier::network {
 Transition ITPProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,

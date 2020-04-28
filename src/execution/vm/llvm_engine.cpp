@@ -1,12 +1,55 @@
 #include "execution/vm/llvm_engine.h"
 
+#include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/Optional.h>
+#include <llvm/ADT/SmallString.h>
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/ExecutionEngine/JITSymbol.h>
+#include <llvm/IR/Argument.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
+#include <llvm/MC/MCTargetOptions.h>
+#include <llvm/MC/SubtargetFeature.h>
+#include <llvm/Object/ObjectFile.h>
+#include <llvm/Pass.h>
+#include <llvm/Support/Casting.h>
+#include <llvm/Support/CodeGen.h>
+#include <llvm/Support/Error.h>
+#include <llvm/Support/ErrorOr.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Host.h>
+#include <llvm/Support/ManagedStatic.h>
+#include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Target/TargetOptions.h>
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <system_error>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "execution/ast/type.h"
+#include "execution/util/execution_common.h"
+#include "execution/util/region_containers.h"
+#include "execution/vm/bytecode_function_info.h"
+#include "execution/vm/bytecode_iterator.h"
+#include "execution/vm/bytecode_module.h"
+#include "execution/vm/bytecode_operands.h"
+#include "execution/vm/bytecodes.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
@@ -17,7 +60,6 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/MC/MCContext.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/SmallVectorMemoryBuffer.h"
@@ -28,11 +70,13 @@
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Scalar.h"
-
-#include "execution/ast/type.h"
-#include "execution/vm/bytecode_module.h"
-#include "execution/vm/bytecode_traits.h"
 #include "loggers/execution_logger.h"
+#include "spdlog/fmt/bundled/core.h"
+
+namespace llvm {
+class ConstantFolder;
+class MCContext;
+}  // namespace llvm
 
 extern void *__dso_handle __attribute__((__visibility__("hidden")));  // NOLINT
 

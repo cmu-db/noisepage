@@ -1,8 +1,15 @@
 #include "execution/compiler/pipeline.h"
 
+#include <stdint.h>
 #include <memory>
-#include <utility>
 #include <vector>
+
+#include "execution/ast/ast.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/function_builder.h"
+#include "execution/util/region_containers.h"
+#include "metrics/metrics_defs.h"
 
 namespace terrier::execution::compiler {
 void Pipeline::Initialize(util::RegionVector<ast::Decl *> *decls, util::RegionVector<ast::FieldDecl *> *state_fields,

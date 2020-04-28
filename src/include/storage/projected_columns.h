@@ -1,9 +1,19 @@
 #pragma once
+#include <cstdint>
 #include <vector>
+
+#include "common/allocator.h"
 #include "common/container/bitmap.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "storage/storage_defs.h"
 #include "storage/storage_util.h"
+
+namespace terrier {
+namespace storage {
+class BlockLayout;
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::storage {
 /**

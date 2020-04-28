@@ -14,14 +14,17 @@
 // contributors.
 
 #include "hll.h"
+
 #include <assert.h>
-#include <errno.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/errno.h>
 #include <algorithm>
+
 #include "empirical_data.h"
 #include "utility.h"
+#include "libcount/hll_limits.h"
 
 namespace {
 

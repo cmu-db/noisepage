@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/mman.h>
+#include <stdlib.h>
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -13,6 +14,11 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <__functional_base>
+#include <__mutex_base>
+#include <cstdint>
+#include <iterator>
+#include <new>
 
 #include "bwtree/atomic_stack.h"
 #include "bwtree/bloom_filter.h"
@@ -534,7 +540,6 @@ class BwTree : public BwTreeBase {
   class EpochManager;
   class BaseNode;
   class NodeSnapshot;
-
   class KeyNodeIDPairComparator;
   class KeyNodeIDPairHashFunc;
   class KeyNodeIDPairEqualityChecker;

@@ -1,8 +1,12 @@
 #include "planner/plannodes/aggregate_plan_node.h"
 
+#include <stddef.h>
+#include <iterator>
 #include <memory>
-#include <utility>
 #include <vector>
+
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/aggregate_expression.h"
 
 namespace terrier::planner {
 

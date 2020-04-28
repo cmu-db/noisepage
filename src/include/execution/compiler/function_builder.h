@@ -2,10 +2,21 @@
 
 #include <list>
 #include <string>
+
+#include "common/macros.h"
 #include "execution/ast/ast.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler_defs.h"
 #include "execution/util/region_containers.h"
+
+namespace terrier {
+namespace execution {
+namespace compiler {
+class CodeGen;
+}  // namespace compiler
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

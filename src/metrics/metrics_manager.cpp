@@ -1,10 +1,24 @@
 #include "metrics/metrics_manager.h"
+
+#include <stddef.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <fstream>
 #include <memory>
-#include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "common/managed_pointer.h"
+#include "common/resource_tracker.h"
+#include "common/thread_context.h"
+#include "metrics/abstract_raw_data.h"
+#include "metrics/execution_metric.h"
+#include "metrics/garbage_collection_metric.h"
+#include "metrics/logging_metric.h"
+#include "metrics/metrics_store.h"
+#include "metrics/pipeline_metric.h"
+#include "metrics/transaction_metric.h"
 
 namespace terrier::metrics {
 

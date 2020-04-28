@@ -1,14 +1,18 @@
 #include <gflags/gflags.h>
-
+#include <stdint.h>
+#include <sys/errno.h>
+#include <sys/signal.h>
 #include <csignal>
 #include <memory>
+#include <type_traits>
 #include <unordered_map>
-#include <utility>
 
 #include "common/managed_pointer.h"
+#include "common/stat_registry.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
+#include "settings/settings_param.h"
 
 /**
  * Need a global pointer to access from SignalHandler, unfortunately. Do not remove from this anonymous namespace since

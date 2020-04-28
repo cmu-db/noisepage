@@ -1,10 +1,32 @@
 #include "execution/compiler/operator/insert_translator.h"
 
-#include <utility>
+#include <stddef.h>
+#include <memory>
+#include <type_traits>
 #include <vector>
 
+#include "brain/brain_defs.h"
+#include "catalog/catalog_accessor.h"
+#include "catalog/index_schema.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/parsing/token.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 InsertTranslator::InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen)

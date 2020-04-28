@@ -6,29 +6,42 @@
 #include <event2/event.h>
 #include <event2/listener.h>
 #include <netinet/tcp.h>
+#include <stdint.h>
 #include <sys/file.h>
-
+#include <sys/time.h>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "common/event_util.h"
 #include "common/exception.h"
+#include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/notifiable_task.h"
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handler_task.h"
+#include "network/network_defs.h"
 #include "network/network_io_wrapper.h"
 #include "network/network_types.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
 #include "traffic_cop/traffic_cop.h"
+
+namespace terrier {
+namespace trafficcop {
+class TrafficCop;
+}  // namespace trafficcop
+}  // namespace terrier
+
 namespace terrier::network {
 
 /**

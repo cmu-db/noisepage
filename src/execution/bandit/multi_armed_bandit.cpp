@@ -1,7 +1,12 @@
 #include "execution/bandit/multi_armed_bandit.h"
 
+#include <cstdint>
+#include <functional>
+#include <ratio>
+
 #include "execution/util/timer.h"
 #include "execution/vm/module.h"
+#include "loggers/execution_logger.h"
 
 namespace terrier::execution::bandit {
 

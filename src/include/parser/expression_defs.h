@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iosfwd>
 #include <string>
+
 #include "common/exception.h"
 #include "common/macros.h"
 

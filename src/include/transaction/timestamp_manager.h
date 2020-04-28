@@ -1,8 +1,10 @@
 #pragma once
 #include <algorithm>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
@@ -14,6 +16,7 @@ class LogSerializerTask;
 
 namespace terrier::transaction {
 class TransactionManager;
+
 /**
  * Generates timestamps, and keeps track of the lifetime of transactions (whether they have entered or left the system)
  */

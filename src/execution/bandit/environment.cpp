@@ -1,7 +1,8 @@
 #include "execution/bandit/environment.h"
 
 #include <algorithm>
-#include <cstdlib>
+#include <cstdint>
+#include <random>
 #include <vector>
 
 #include "execution/bandit/agent.h"

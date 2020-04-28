@@ -1,18 +1,31 @@
 #include "binder/bind_node_visitor.h"
 
+#include <_ctype.h>
+#include <stddef.h>
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "binder/binder_context.h"
 #include "binder/binder_sherpa.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
 #include "common/exception.h"
+#include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "execution/udf/udf_context.h"
 #include "loggers/binder_logger.h"
+#include "parser/analyze_statement.h"
+#include "parser/copy_statement.h"
+#include "parser/create_statement.h"
+#include "parser/delete_statement.h"
+#include "parser/drop_statement.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -22,11 +35,31 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
-#include "parser/expression/star_expression.h"
+#include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/type_cast_expression.h"
+#include "parser/expression_defs.h"
+#include "parser/insert_statement.h"
+#include "parser/postgresparser.h"
+#include "parser/select_statement.h"
 #include "parser/sql_statement.h"
+#include "parser/update_statement.h"
+#include "type/transient_value.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace parser {
+class CreateFunctionStatement;
+class DefaultValueExpression;
+class DerivedValueExpression;
+class ExecuteStatement;
+class ExplainStatement;
+class PrepareStatement;
+class TransactionStatement;
+class TypeCastExpression;
+class VariableSetStatement;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::binder {
 

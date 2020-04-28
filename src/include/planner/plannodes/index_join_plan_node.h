@@ -1,15 +1,34 @@
 #pragma once
 
+#include <__hash_table>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include "catalog/catalog_defs.h"
+#include "common/hash_util.h"
+#include "common/json.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
+#include "nlohmann/json.hpp"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression_defs.h"
 #include "planner/plannodes/abstract_join_plan_node.h"
+#include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
+
+namespace terrier {
+namespace planner {
+class AbstractPlanNode;
+}  // namespace planner
+}  // namespace terrier
 
 namespace terrier::planner {
 

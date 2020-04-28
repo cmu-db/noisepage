@@ -1,11 +1,17 @@
 #pragma once
 
+#include <math.h>
+#include <string.h>
 #include <cstdint>
+#include <new>
+#include <string_view>
 
+#include "common/allocator.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec_defs.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/filter_manager.h"
@@ -13,6 +19,7 @@
 #include "execution/sql/functions/comparison_functions.h"
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/functions/string_functions.h"
+#include "execution/sql/hash_table_entry.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/projected_columns_iterator.h"
@@ -21,10 +28,25 @@
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
+#include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
 #include "metrics/metrics_defs.h"
+#include "storage/index/index.h"
+#include "storage/projected_row.h"
+#include "storage/storage_defs.h"
+#include "type/transient_value.h"
+#include "type/transient_value_peeker.h"
 #include "util/time_util.h"
+
+namespace terrier {
+namespace execution {
+namespace sql {
+class MemoryPool;
+class StorageInterface;
+}  // namespace sql
+}  // namespace execution
+}  // namespace terrier
 
 // All VM terrier::bytecode op handlers must use this macro
 #define VM_OP EXPORT

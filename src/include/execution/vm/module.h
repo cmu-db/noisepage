@@ -1,15 +1,23 @@
 #pragma once
 
+#include <stdint.h>
+#include <string.h>
 #include <atomic>
+#include <functional>
+#include <iosfwd>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <type_traits>
 #include <utility>
 
-#include "llvm/Support/Memory.h"
-
+#include "common/macros.h"
 #include "execution/ast/type.h"
+#include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
+#include "execution/vm/vm.h"
+#include "llvm/Support/Memory.h"
 
 namespace terrier::execution::vm::test {
 class BytecodeTrampolineTest;

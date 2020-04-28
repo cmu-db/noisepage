@@ -1,10 +1,27 @@
 #include "execution/compiler/operator/sort_translator.h"
+
+#include <initializer_list>
 #include <memory>
+#include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "brain/brain_defs.h"
+#include "common/managed_pointer.h"
+#include "execution/ast/ast.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/context.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/parsing/token.h"
+#include "execution/util/region_containers.h"
+#include "optimizer/optimizer_defs.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace terrier::execution::compiler {
 SortBottomTranslator::SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen)

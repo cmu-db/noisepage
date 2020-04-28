@@ -15,10 +15,10 @@
 // contributors.
 
 #include "empirical_data.h"
+
 #include <assert.h>
-#include <stdio.h>
-#include <algorithm>
-#include <vector>
+#include <stdlib.h>
+
 #include "hll_data.h"
 #include "hll_limits.h"
 #include "utility.h"

@@ -2,13 +2,21 @@
 
 #include <memory>
 
-#include "llvm/ADT/StringRef.h"
-
+#include "common/macros.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"
 #include "execution/ast/type.h"
 #include "execution/util/region.h"
+#include "llvm/ADT/StringRef.h"
 #include "type/type_id.h"
+
+namespace terrier {
+namespace execution {
+namespace util {
+class Region;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution {
 
@@ -83,6 +91,7 @@ class Context {
   // -------------------------------------------------------
 
   struct Implementation;
+
   /**
    * @return the implementation
    */

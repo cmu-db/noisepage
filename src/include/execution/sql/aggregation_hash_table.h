@@ -1,11 +1,26 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
 #include <functional>
 
+#include "common/allocator.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
 #include "execution/sql/generic_hash_table.h"
+#include "execution/sql/hash_table_entry.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/util/chunked_vector.h"
+#include "execution/util/execution_common.h"
+
+namespace terrier {
+namespace execution {
+namespace sql {
+class ProjectedColumnsIterator;
+}  // namespace sql
+}  // namespace execution
+}  // namespace terrier
 
 namespace libcount {
 class HLL;

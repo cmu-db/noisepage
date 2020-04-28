@@ -1,11 +1,19 @@
+#include <__hash_table>
+#include <iosfwd>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/util.h"
-#include "parser/expression_util.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
+#include "parser/expression_defs.h"
 
 namespace terrier::optimizer {
 

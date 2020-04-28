@@ -1,10 +1,11 @@
 #include "execution/bandit/policy.h"
 
 #include <algorithm>
-#include <cfloat>
 #include <chrono>  // NOLINT
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <numeric>
 #include <vector>
 
 #include "execution/bandit/agent.h"

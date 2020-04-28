@@ -1,16 +1,34 @@
+#include <stddef.h>
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog.h"
+#include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
 #include "common/macros.h"
+#include "common/strong_typedef.h"
+#include "execution/ast/ast.h"
+#include "execution/ast/ast_visitor.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/context.h"
+#include "execution/ast/identifier.h"
 #include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
+#include "execution/parsing/token.h"
+#include "execution/util/execution_common.h"
+#include "execution/util/region_containers.h"
+#include "execution/vm/bytecode_emitter.h"
+#include "execution/vm/bytecode_function_info.h"
+#include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
+#include "execution/vm/bytecodes.h"
 #include "execution/vm/control_flow_builders.h"
 #include "loggers/execution_logger.h"
 

@@ -1,9 +1,16 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <functional>
+#include <utility>
 #include <vector>
+
+#include "catalog/index_schema.h"
+#include "common/allocator.h"
+#include "common/macros.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"

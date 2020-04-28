@@ -1,7 +1,31 @@
 #pragma once
+#include <stdint.h>
 #include <utility>
+
+#include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class Expr;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+namespace compiler {
+class CodeGen;
+class FunctionBuilder;
+}  // namespace compiler
+namespace util {
+template <typename T>
+class RegionVector;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

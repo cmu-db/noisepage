@@ -1,21 +1,41 @@
 #include "optimizer/plan_generator.h"
 
+#include <stddef.h>
+#include <stdint.h>
+#include <__hash_table>
+#include <functional>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/index_schema.h"
+#include "catalog/schema.h"
 #include "common/exception.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
+#include "optimizer/property.h"
 #include "optimizer/property_set.h"
-#include "optimizer/util.h"
+#include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/aggregate_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
+#include "parser/expression_defs.h"
 #include "parser/expression_util.h"
+#include "parser/parser_defs.h"
+#include "parser/select_statement.h"
+#include "parser/update_statement.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -40,12 +60,18 @@
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "settings/settings_manager.h"
-#include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace transaction {
+class TransactionContext;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

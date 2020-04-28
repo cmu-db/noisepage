@@ -1,6 +1,7 @@
 #include "execution/sema/scope.h"
 
-#include "execution/ast/ast.h"
+#include <llvm/ADT/DenseMap.h>
+#include <type_traits>
 
 namespace terrier::execution::sema {
 

@@ -1,8 +1,11 @@
 #include "planner/plannodes/create_view_plan_node.h"
+
+#include <iterator>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
+
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::planner {
 

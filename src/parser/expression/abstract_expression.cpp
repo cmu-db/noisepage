@@ -1,8 +1,12 @@
+#include <iosfwd>
+#include <iterator>
 #include <memory>
+#include <stdexcept>
 #include <string>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
+#include "nlohmann/json.hpp"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -18,6 +22,8 @@
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
+#include "parser/expression_defs.h"
+#include "type/type_id.h"
 
 namespace terrier::parser {
 

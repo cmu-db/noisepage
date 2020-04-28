@@ -1,6 +1,21 @@
 #pragma once
 #include <memory>
+
 #include "execution/compiler/expression/expression_translator.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+}  // namespace ast
+namespace compiler {
+class CodeGen;
+}  // namespace compiler
+}  // namespace execution
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

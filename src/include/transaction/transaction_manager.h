@@ -1,9 +1,12 @@
 #pragma once
+#include <stdint.h>
 #include <queue>
 #include <unordered_set>
 #include <utility>
 
 #include "common/gate.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
@@ -13,6 +16,19 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+
+namespace terrier {
+namespace storage {
+class LogManager;
+class TupleAccessStrategy;
+class UndoRecord;
+}  // namespace storage
+namespace transaction {
+class DeferredActionManager;
+class TimestampManager;
+class TransactionContext;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::transaction {
 /**

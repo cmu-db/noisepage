@@ -1,8 +1,13 @@
 #include "execution/vm/bytecode_iterator.h"
 
+#include <cstdint>
+#include <type_traits>
 #include <vector>
 
+#include "common/macros.h"
+#include "execution/util/execution_common.h"
 #include "execution/vm/bytecode_function_info.h"
+#include "execution/vm/bytecode_operands.h"
 #include "execution/vm/bytecode_traits.h"
 
 namespace terrier::execution::vm {

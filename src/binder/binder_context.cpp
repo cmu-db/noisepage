@@ -1,16 +1,27 @@
 #include "binder/binder_context.h"
 
+#include <_ctype.h>
+#include <stdint.h>
+#include <__tuple>
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/schema.h"
 #include "common/exception.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
+#include "parser/create_statement.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression_defs.h"
 #include "parser/postgresparser.h"
 #include "parser/table_ref.h"
 

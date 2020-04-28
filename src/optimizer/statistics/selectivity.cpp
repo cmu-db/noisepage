@@ -1,7 +1,18 @@
 #include "optimizer/statistics/selectivity.h"
+
+#include <stddef.h>
+#include <cmath>
+#include <iosfwd>
+#include <vector>
+
 #include "loggers/optimizer_logger.h"
+#include "optimizer/statistics/column_stats.h"
+#include "optimizer/statistics/table_stats.h"
+#include "optimizer/statistics/value_condition.h"
 #include "parser/expression_defs.h"
+#include "type/transient_value.h"
 #include "type/transient_value_util.h"
+#include "type/type_id.h"
 
 namespace terrier::optimizer {
 

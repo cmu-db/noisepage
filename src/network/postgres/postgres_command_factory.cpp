@@ -1,5 +1,11 @@
 #include "network/postgres/postgres_command_factory.h"
+
 #include <memory>
+
+#include "common/exception.h"
+#include "network/network_defs.h"
+#include "network/network_io_utils.h"
+
 namespace terrier::network {
 
 std::unique_ptr<PostgresNetworkCommand> PostgresCommandFactory::PacketToCommand(

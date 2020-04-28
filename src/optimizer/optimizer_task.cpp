@@ -1,14 +1,30 @@
+#include <stddef.h>
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
+#include "common/macros.h"
 #include "loggers/optimizer_logger.h"
 #include "optimizer/binding.h"
 #include "optimizer/child_property_deriver.h"
+#include "optimizer/cost_model/abstract_cost_model.h"
+#include "optimizer/group.h"
+#include "optimizer/group_expression.h"
+#include "optimizer/memo.h"
+#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
+#include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/optimizer_defs.h"
 #include "optimizer/optimizer_task.h"
+#include "optimizer/pattern.h"
+#include "optimizer/property.h"
 #include "optimizer/property_enforcer.h"
+#include "optimizer/property_set.h"
+#include "optimizer/rule.h"
 #include "optimizer/statistics/child_stats_deriver.h"
 #include "optimizer/statistics/stats_calculator.h"
 

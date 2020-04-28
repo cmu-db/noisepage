@@ -1,9 +1,12 @@
 #include "main/db_main.h"
 
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include <__mutex_base>
+
+#define __SETTING_GFLAGS_DEFINE__  // NOLINT
+#include "common/exception.h"
 #include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
+
+#undef __SETTING_GFLAGS_DEFINE__  // NOLINT
 
 namespace terrier {
 

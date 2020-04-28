@@ -1,10 +1,13 @@
 #pragma once
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "parser/create_statement.h"
@@ -12,6 +15,27 @@
 #include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
+
+namespace terrier {
+namespace catalog {
+class Catalog;
+}  // namespace catalog
+namespace network {
+class ReadBuffer;
+}  // namespace network
+namespace parser {
+class ParseResult;
+}  // namespace parser
+namespace storage {
+class ReplicationLogProvider;
+}  // namespace storage
+namespace transaction {
+class TransactionManager;
+}  // namespace transaction
+namespace type {
+class TransientValue;
+}  // namespace type
+}  // namespace terrier
 
 namespace terrier::network {
 class ConnectionContext;

@@ -1,9 +1,12 @@
 #pragma once
 
+#include <stddef.h>
+#include <cstdint>
 #include <iosfwd>
 #include <string>
 #include <vector>
 
+#include "common/macros.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_iterator.h"
 #include "execution/vm/vm.h"

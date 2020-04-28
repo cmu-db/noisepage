@@ -1,8 +1,21 @@
 #include "execution/compiler/expression/param_value_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "execution/sql/value.h"
+
+#include "execution/ast/builtins.h"
+#include "execution/compiler/codegen.h"
+#include "execution/util/execution_common.h"
 #include "parser/expression/parameter_value_expression.h"
-#include "type/transient_value_peeker.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+}  // namespace ast
+}  // namespace execution
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 ParamValueTranslator::ParamValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)

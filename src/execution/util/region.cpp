@@ -1,10 +1,10 @@
 #include "execution/util/region.h"
 
 #include <algorithm>
-#include <string>
-#include <utility>
+#include <cstdlib>
+#include <type_traits>
 
-#include "execution/util/memory.h"
+#include "common/math_util.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::util {

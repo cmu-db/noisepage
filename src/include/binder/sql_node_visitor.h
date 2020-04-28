@@ -6,7 +6,6 @@ namespace terrier {
 
 namespace parser {
 class ParseResult;
-
 class SelectStatement;
 class CreateStatement;
 class CreateFunctionStatement;
@@ -23,11 +22,9 @@ class AnalyzeStatement;
 class VariableSetStatement;
 class JoinDefinition;
 class TableRef;
-
 class GroupByDescription;
 class OrderByDescription;
 class LimitDescription;
-
 class AggregateExpression;
 class CaseExpression;
 class ColumnValueExpression;

@@ -1,7 +1,8 @@
 #include "planner/plannodes/create_table_plan_node.h"
+
+#include <iterator>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace terrier::planner {

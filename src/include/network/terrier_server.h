@@ -7,19 +7,35 @@
 #include <event2/listener.h>
 #include <netinet/tcp.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <sys/file.h>
+#include <__mutex_base>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
+
 #include "common/dedicated_thread_owner.h"
 #include "common/exception.h"
+#include "common/managed_pointer.h"
 #include "common/notifiable_task.h"
 #include "network/connection_dispatcher_task.h"
 #include "network/connection_handle_factory.h"
 #include "network/network_types.h"
+#include "network/protocol_interpreter.h"
+
+namespace terrier {
+namespace common {
+class DedicatedThreadRegistry;
+class DedicatedThreadTask;
+}  // namespace common
+namespace network {
+class ConnectionDispatcherTask;
+class ConnectionHandleFactory;
+}  // namespace network
+}  // namespace terrier
 
 namespace terrier::network {
 

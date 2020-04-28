@@ -1,11 +1,21 @@
 #pragma once
 
+#include <stdint.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
+#include "common/allocator.h"
+#include "common/macros.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_record.h"
+
+namespace terrier {
+namespace storage {
+class LogRecord;
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::storage {
 

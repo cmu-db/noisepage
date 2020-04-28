@@ -4,6 +4,10 @@
 
 #include "loggers/loggers_util.h"
 
+namespace spdlog {
+class logger;
+}  // namespace spdlog
+
 namespace terrier::catalog {
 extern std::shared_ptr<spdlog::logger> catalog_logger;  // NOLINT
 

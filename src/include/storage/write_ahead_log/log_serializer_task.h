@@ -1,14 +1,33 @@
 #pragma once
 
+#include <stdint.h>
+#include <__mutex_base>
+#include <chrono>
 #include <queue>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_task.h"
+#include "common/macros.h"
+#include "common/spin_latch.h"
 #include "storage/record_buffer.h"
+#include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_record.h"
+#include "transaction/transaction_defs.h"
+
+namespace terrier {
+namespace storage {
+class BufferedLogWriter;
+class LogRecord;
+}  // namespace storage
+namespace transaction {
+class TimestampManager;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::storage {
 

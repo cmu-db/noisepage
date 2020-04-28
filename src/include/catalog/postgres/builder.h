@@ -2,13 +2,28 @@
 
 #include <utility>
 
+#include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
+
+namespace terrier {
+namespace catalog {
+class DatabaseCatalog;
+}  // namespace catalog
+namespace storage {
+class GarbageCollector;
+namespace index {
+class Index;
+}  // namespace index
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::catalog::postgres {
 /**

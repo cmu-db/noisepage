@@ -1,8 +1,17 @@
 #include "execution/compiler/expression/star_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "execution/sql/value.h"
-#include "parser/expression/star_expression.h"
-#include "type/transient_value_peeker.h"
+
+#include "execution/compiler/codegen.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+}  // namespace ast
+}  // namespace execution
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 StarTranslator::StarTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)

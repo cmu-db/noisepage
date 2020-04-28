@@ -1,8 +1,11 @@
 #pragma once
 
+#include <stdint.h>
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
 
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 

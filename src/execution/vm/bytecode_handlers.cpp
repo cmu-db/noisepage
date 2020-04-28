@@ -1,8 +1,22 @@
 #include "execution/vm/bytecode_handlers.h"
 
+#include <__functional_base>
+#include <functional>
+
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/output.h"
 #include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/storage_interface.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace execution {
+namespace sql {
+class MemoryPool;
+}  // namespace sql
+}  // namespace execution
+}  // namespace terrier
 
 extern "C" {
 

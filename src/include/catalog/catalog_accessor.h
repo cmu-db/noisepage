@@ -1,6 +1,8 @@
 #pragma once
 
+#include <_ctype.h>
 #include <algorithm>
+#include <iosfwd>
 #include <string>
 #include <utility>
 #include <vector>
@@ -9,11 +11,35 @@
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
+
+namespace terrier {
+namespace catalog {
+class DatabaseCatalog;
+class IndexSchema;
+class Schema;
+}  // namespace catalog
+namespace execution {
+namespace udf {
+class UDFContext;
+}  // namespace udf
+}  // namespace execution
+namespace storage {
+class SqlTable;
+namespace index {
+class Index;
+}  // namespace index
+}  // namespace storage
+namespace transaction {
+class TransactionContext;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::catalog {
 class Catalog;

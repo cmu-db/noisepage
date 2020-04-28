@@ -1,7 +1,17 @@
+#include "common/macros.h"
+#include "execution/ast/ast.h"
+#include "execution/sema/error_message.h"
+#include "execution/sema/error_reporter.h"
+#include "execution/sema/scope.h"
 #include "execution/sema/sema.h"
 
-#include "execution/ast/context.h"
-#include "execution/ast/type.h"
+namespace terrier {
+namespace execution {
+namespace ast {
+class Type;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::sema {
 

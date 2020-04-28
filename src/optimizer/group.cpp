@@ -1,5 +1,10 @@
 #include "optimizer/group.h"
+
+#include <utility>
+
 #include "loggers/optimizer_logger.h"
+#include "optimizer/group_expression.h"
+#include "optimizer/operator_node_contents.h"
 
 namespace terrier::optimizer {
 

@@ -1,7 +1,10 @@
 #include "optimizer/properties.h"
+
 #include "common/hash_util.h"
+#include "common/macros.h"
 #include "optimizer/property.h"
 #include "optimizer/property_visitor.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::optimizer {
 

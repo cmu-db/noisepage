@@ -1,5 +1,6 @@
 #include "loggers/loggers_util.h"
 
+#include <chrono>
 #include <iostream>
 #include <memory>
 
@@ -14,6 +15,8 @@
 #include "loggers/settings_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
+#include "spdlog/common.h"
+#include "spdlog/spdlog.h"
 
 std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink = nullptr;  // NOLINT
 

@@ -1,10 +1,34 @@
-#include <cstring>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <list>
+#include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
+#include "common/constants.h"
+#include "common/macros.h"
+#include "common/spin_latch.h"
+#include "common/strong_typedef.h"
+#include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/generated/Message_generated.h"
+#include "flatbuffers/generated/Schema_generated.h"
+#include "storage/arrow_block_metadata.h"
 #include "storage/arrow_serializer.h"
+#include "storage/block_access_controller.h"
+#include "storage/block_layout.h"
+#include "storage/data_table.h"
+#include "storage/storage_defs.h"
+#include "storage/storage_util.h"
+#include "storage/tuple_access_strategy.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace common {
+class RawConcurrentBitmap;
+}  // namespace common
+}  // namespace terrier
 
 namespace terrier::storage {
 

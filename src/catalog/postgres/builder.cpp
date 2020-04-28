@@ -1,6 +1,7 @@
 #include "catalog/postgres/builder.h"
 
-#include <utility>
+#include <stdint.h>
+#include <atomic>
 #include <vector>
 
 #include "catalog/database_catalog.h"
@@ -15,10 +16,18 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
-#include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "storage/index/index_defs.h"
+#include "storage/sql_table.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace storage {
+class GarbageCollector;
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::catalog::postgres {
 

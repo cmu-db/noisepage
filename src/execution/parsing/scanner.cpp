@@ -1,7 +1,5 @@
 #include "execution/parsing/scanner.h"
 
-#include <cassert>
-#include <stdexcept>
 #include <string>
 
 namespace terrier::execution::parsing {

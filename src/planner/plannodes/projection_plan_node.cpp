@@ -1,7 +1,10 @@
 #include "planner/plannodes/projection_plan_node.h"
 
+#include <iterator>
 #include <memory>
 #include <vector>
+
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::planner {
 

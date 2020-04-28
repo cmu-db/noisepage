@@ -1,14 +1,37 @@
 #include "network/postgres/postgres_network_commands.h"
 
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <variant>
+#include <vector>
 
+#include "common/macros.h"
+#include "libpg_query/pg_query.h"
+#include "loggers/network_logger.h"
+#include "network/connection_context.h"
+#include "network/network_defs.h"
+#include "network/network_io_utils.h"
+#include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_util.h"
+#include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
+#include "parser/postgresparser.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 #include "traffic_cop/traffic_cop.h"
-#include "traffic_cop/traffic_cop_util.h"
+#include "traffic_cop/traffic_cop_defs.h"
+#include "transaction/transaction_context.h"
+#include "type/transient_value.h"
+
+namespace terrier {
+namespace network {
+class ProtocolInterpreter;
+}  // namespace network
+}  // namespace terrier
 
 namespace terrier::network {
 

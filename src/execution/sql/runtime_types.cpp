@@ -1,9 +1,10 @@
 #include "execution/sql/runtime_types.h"
-#include <date/date.h>
 
-#include <string>
+#include <date/date.h>
+#include <utility>
 
 #include "common/exception.h"
+#include "type/type_id.h"
 #include "util/time_util.h"
 
 namespace terrier::execution::sql {

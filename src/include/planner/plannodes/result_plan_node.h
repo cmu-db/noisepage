@@ -2,12 +2,26 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "common/hash_util.h"
+#include "common/json.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "nlohmann/json.hpp"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "storage/storage_defs.h"
+
+namespace terrier {
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 // TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
 // collection of TransientValues

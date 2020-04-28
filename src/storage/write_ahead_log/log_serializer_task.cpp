@@ -1,13 +1,28 @@
 #include "storage/write_ahead_log/log_serializer_task.h"
+
+#include <string.h>
 #include <algorithm>
+#include <cstdint>
 #include <queue>
+#include <type_traits>
 #include <utility>
 #include <vector>
-#include "common/scoped_timer.h"
+
+#include "catalog/catalog_defs.h"
+#include "common/allocator.h"
+#include "common/container/bitmap.h"
+#include "common/managed_pointer.h"
+#include "common/resource_tracker.h"
 #include "common/thread_context.h"
+#include "metrics/metrics_defs.h"
 #include "metrics/metrics_store.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_manager.h"
+#include "storage/block_layout.h"
+#include "storage/data_table.h"
+#include "storage/projected_row.h"
+#include "storage/storage_util.h"
+#include "storage/write_ahead_log/log_io.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/timestamp_manager.h"
 
 namespace terrier::storage {
 

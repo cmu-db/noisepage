@@ -1,8 +1,19 @@
+#include <iterator>
 #include <memory>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
+#include "nlohmann/json.hpp"
+#include "parser/expression/abstract_expression.h"
+#include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
+
+namespace terrier {
+namespace planner {
+class AbstractPlanNode;
+}  // namespace planner
+}  // namespace terrier
 
 namespace terrier::planner {
 

@@ -1,9 +1,32 @@
 #include "execution/compiler/operator/aggregate_translator.h"
-#include <utility>
+
+#include <memory>
+#include <type_traits>
 #include <vector>
+
+#include "common/managed_pointer.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/function_builder.h"
-#include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/translator_factory.h"
+#include "planner/plannodes/output_schema.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class Expr;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+namespace util {
+template <typename T>
+class RegionVector;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen)

@@ -1,8 +1,6 @@
 #include "network/postgres/statement.h"
 
 #include <memory>
-#include <string>
-#include <utility>
 #include <vector>
 
 #include "parser/postgresparser.h"

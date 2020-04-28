@@ -1,20 +1,40 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+#include <__hash_table>
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <unordered_set>
 #include <utility>
 #include <variant>  // NOLINT (Matt): lint thinks this C++17 header is a C header because it only knows C++11
 #include <vector>
 
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "libcuckoo/cuckoohash_map.hh"
+#include "storage/data_table.h"
+#include "storage/index/generic_key.h"
+#include "storage/index/hash_key.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
+#include "storage/index/index_metadata.h"
+#include "storage/storage_defs.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "xxHash/xxh3.h"
+
+namespace terrier {
+namespace storage {
+class ProjectedRow;
+}  // namespace storage
+namespace transaction {
+class DeferredActionManager;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::storage::index {
 

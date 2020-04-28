@@ -1,9 +1,11 @@
 #pragma once
 
+#include <iosfwd>
 #include <string>
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+
 namespace terrier::planner {
 class CreateDatabasePlanNode;
 class CreateNamespacePlanNode;

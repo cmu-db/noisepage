@@ -1,11 +1,37 @@
 #pragma once
 
+#include <stdint.h>
 #include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include "common/macros.h"
+#include "execution/ast/identifier.h"
+#include "execution/compiler/codegen.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+namespace compiler {
+class FunctionBuilder;
+class OperatorTranslator;
+}  // namespace compiler
+namespace util {
+template <typename T>
+class RegionVector;
+}  // namespace util
+}  // namespace execution
+namespace planner {
+class AggregatePlanNode;
+}  // namespace planner
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

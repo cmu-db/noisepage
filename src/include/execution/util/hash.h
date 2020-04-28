@@ -1,9 +1,11 @@
 #pragma once
 
+#include <smmintrin.h>
 #include <x86intrin.h>
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 #include "common/macros.h"

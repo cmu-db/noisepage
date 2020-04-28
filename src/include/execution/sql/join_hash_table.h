@@ -1,15 +1,19 @@
 #pragma once
 
+#include <stdint.h>
 #include <memory>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "execution/sql/bloom_filter.h"
 #include "execution/sql/concise_hash_table.h"
 #include "execution/sql/generic_hash_table.h"
+#include "execution/sql/hash_table_entry.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
+#include "execution/util/execution_common.h"
 
 namespace libcount {
 class HLL;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <memory>
 #include <string>
 #include <utility>
@@ -8,11 +9,20 @@
 #include "binder/binder_context.h"
 #include "binder/binder_sherpa.h"
 #include "binder/sql_node_visitor.h"
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "common/exception.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "parser/postgresparser.h"
+#include "parser/sql_statement.h"
 #include "parser/statements.h"
+#include "parser/table_ref.h"
 
 namespace terrier {
+namespace type {
+class TransientValue;
+}  // namespace type
 
 namespace parser {
 class SQLStatement;
@@ -23,6 +33,31 @@ class ColumnValueExpression;
 class OperatorExpression;
 class SubqueryExpression;
 class StarExpression;
+class AnalyzeStatement;
+class ComparisonExpression;
+class ConjunctionExpression;
+class CopyStatement;
+class CreateFunctionStatement;
+class CreateStatement;
+class DefaultValueExpression;
+class DeleteStatement;
+class DerivedValueExpression;
+class DropStatement;
+class ExecuteStatement;
+class ExplainStatement;
+class FunctionExpression;
+class GroupByDescription;
+class InsertStatement;
+class LimitDescription;
+class OrderByDescription;
+class ParameterValueExpression;
+class ParseResult;
+class PrepareStatement;
+class SelectStatement;
+class TransactionStatement;
+class TypeCastExpression;
+class UpdateStatement;
+class VariableSetStatement;
 }  // namespace parser
 
 namespace catalog {
@@ -32,6 +67,7 @@ class CatalogAccessor;
 namespace binder {
 
 class BinderSherpa;
+class BinderContext;
 
 /**
  * Interface to be notified of the composition of a bind node.

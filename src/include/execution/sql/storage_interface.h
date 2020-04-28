@@ -1,9 +1,29 @@
 #pragma once
 
+#include <stdint.h>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
+#include "storage/storage_defs.h"
+
+namespace terrier {
+namespace execution {
+namespace exec {
+class ExecutionContext;
+}  // namespace exec
+}  // namespace execution
+namespace storage {
+class ProjectedRow;
+class RedoRecord;
+class SqlTable;
+namespace index {
+class Index;
+}  // namespace index
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::execution::sql {
 

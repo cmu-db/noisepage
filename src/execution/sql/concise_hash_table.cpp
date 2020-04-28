@@ -1,7 +1,10 @@
+#include <stdint.h>
 #include <algorithm>
 
+#include "common/math_util.h"
 #include "execution/sql/concise_hash_table.h"
 #include "execution/util/bit_util.h"
+#include "execution/util/memory.h"
 
 namespace terrier::execution::sql {
 

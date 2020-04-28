@@ -1,8 +1,13 @@
+#include <stddef.h>
 #include <memory>
+#include <type_traits>
+#include <unordered_map>
 #include <utility>
 
+#include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "loggers/optimizer_logger.h"
-
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
 

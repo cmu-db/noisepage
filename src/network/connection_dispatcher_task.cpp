@@ -1,7 +1,24 @@
 #include "network/connection_dispatcher_task.h"
-#include <csignal>
-#include <memory>
+
+#include <event2/event.h>
+#include <sys/signal.h>
+#include <sys/socket.h>
+#include <cstdint>
+
 #include "common/dedicated_thread_registry.h"
+#include "common/macros.h"
+#include "loggers/network_logger.h"
+#include "network/connection_handler_task.h"
+
+namespace terrier {
+namespace common {
+class DedicatedThreadOwner;
+class DedicatedThreadTask;
+}  // namespace common
+namespace network {
+class ConnectionHandleFactory;
+}  // namespace network
+}  // namespace terrier
 
 #define MASTER_THREAD_ID (-1)
 

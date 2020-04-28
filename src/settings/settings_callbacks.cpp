@@ -1,8 +1,13 @@
 #include "settings/settings_callbacks.h"
 
-#include <memory>
+#include <stdint.h>
 
+#include "common/action_context.h"
+#include "common/object_pool.h"
 #include "main/db_main.h"
+#include "metrics/metrics_defs.h"
+#include "metrics/metrics_manager.h"
+#include "storage/write_ahead_log/log_manager.h"
 
 namespace terrier::settings {
 

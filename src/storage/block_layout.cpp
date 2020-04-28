@@ -1,9 +1,16 @@
 #include "storage/block_layout.h"
+
+#include <mach/i386/vm_param.h>
 #include <algorithm>
 #include <functional>
-#include <utility>
+#include <type_traits>
 #include <vector>
+
+#include "common/constants.h"
+#include "common/container/bitmap.h"
+#include "common/macros.h"
 #include "storage/arrow_block_metadata.h"
+#include "storage/block_access_controller.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {

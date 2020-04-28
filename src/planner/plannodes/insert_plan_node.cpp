@@ -1,13 +1,11 @@
 #include "planner/plannodes/insert_plan_node.h"
-#include <map>
+
+#include <iterator>
 #include <memory>
-#include <string>
-#include <unordered_map>
-#include <utility>
 #include <vector>
-#include "parser/expression/constant_value_expression.h"
-#include "storage/sql_table.h"
-#include "type/transient_value_factory.h"
+
+#include "common/strong_typedef.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::planner {
 

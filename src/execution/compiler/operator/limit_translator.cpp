@@ -1,6 +1,7 @@
 #include "execution/compiler/operator/limit_translator.h"
+
 #include "execution/compiler/function_builder.h"
-#include "execution/compiler/translator_factory.h"
+#include "execution/parsing/token.h"
 
 namespace terrier::execution::compiler {
 void LimitTranslator::Produce(FunctionBuilder *builder) {

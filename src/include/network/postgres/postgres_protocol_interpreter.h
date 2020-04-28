@@ -1,19 +1,38 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
+#include "network/network_types.h"
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_network_commands.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
 #include "network/protocol_interpreter.h"
+
+namespace terrier {
+namespace network {
+class ConnectionContext;
+class PostgresCommandFactory;
+class ReadBuffer;
+class WriteQueue;
+}  // namespace network
+namespace trafficcop {
+class TrafficCop;
+}  // namespace trafficcop
+}  // namespace terrier
 
 namespace terrier::network {
 

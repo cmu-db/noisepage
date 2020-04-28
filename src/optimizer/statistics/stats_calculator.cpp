@@ -1,23 +1,43 @@
+#include <stddef.h>
 #include <algorithm>
-#include <cmath>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "optimizer/group.h"
+#include "optimizer/group_expression.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
+#include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/optimizer_defs.h"
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/selectivity.h"
 #include "optimizer/statistics/stats_calculator.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/constant_value_expression.h"
+#include "parser/expression/parameter_value_expression.h"
+#include "parser/expression_defs.h"
 #include "parser/expression_util.h"
+#include "type/transient_value.h"
 #include "type/transient_value_factory.h"
+
+namespace terrier {
+namespace optimizer {
+class OperatorVisitor;
+}  // namespace optimizer
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

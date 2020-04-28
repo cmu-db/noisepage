@@ -1,10 +1,16 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <utility>
 #include <vector>
+
+#include "common/allocator.h"
+#include "common/container/bitmap.h"
 #include "common/container/concurrent_bitmap.h"
 #include "common/macros.h"
 #include "storage/arrow_block_metadata.h"
+#include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 

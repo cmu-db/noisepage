@@ -1,6 +1,9 @@
 #include "execution/vm/control_flow_builders.h"
 
+#include "common/macros.h"
 #include "execution/vm/bytecode_emitter.h"
+#include "execution/vm/bytecode_generator.h"
+#include "execution/vm/bytecodes.h"
 
 namespace terrier::execution::vm {
 

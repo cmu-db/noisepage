@@ -1,11 +1,14 @@
 #include "execution/compiler/codegen.h"
 
+#include <string.h>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "brain/operating_unit.h"
-#include "execution/sql/value.h"
+#include "date/date.h"
+#include "execution/util/execution_common.h"
+#include "storage/index/index.h"
+#include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
 #include "util/time_util.h"
 

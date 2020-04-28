@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+
 #include "hll_limits.h"
 
 /* Exported types */

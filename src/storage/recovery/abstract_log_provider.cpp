@@ -1,7 +1,22 @@
 #include "storage/recovery/abstract_log_provider.h"
+
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "catalog/catalog_defs.h"
+#include "common/constants.h"
+#include "common/container/bitmap.h"
+#include "common/strong_typedef.h"
+#include "storage/block_layout.h"
 #include "storage/projected_row.h"
+#include "storage/storage_defs.h"
+#include "storage/storage_util.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
 

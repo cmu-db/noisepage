@@ -1,9 +1,16 @@
 #pragma once
 
+#include <__functional_base>
+#include <cstdint>
 #include <cstring>
 #include <functional>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
+#include "catalog/index_schema.h"
+#include "common/allocator.h"
+#include "common/macros.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"

@@ -25,6 +25,8 @@
 #ifndef MADOKA_FILE_H
 #define MADOKA_FILE_H
 
+#include <stddef.h>
+
 #include "util.h"
 
 #ifdef __cplusplus

@@ -1,6 +1,9 @@
 #include "network/postgres/postgres_protocol_util.h"
 
-#include "loggers/network_logger.h"
+#include <ostream>
+#include <string>
+
+#include "common/exception.h"
 
 namespace terrier::network {
 

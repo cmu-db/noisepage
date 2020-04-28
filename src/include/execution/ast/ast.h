@@ -1,16 +1,18 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
-#include "llvm/Support/Casting.h"
-
+#include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/parsing/token.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
+#include "llvm/Support/Casting.h"
 
 namespace terrier::execution {
 
@@ -95,6 +97,7 @@ class Type;
  */
 #define FORWARD_DECLARE(name) class name;
 AST_NODES(FORWARD_DECLARE)
+
 #undef FORWARD_DECLARE
 
 // ---------------------------------------------------------

@@ -1,21 +1,38 @@
 #include "optimizer/optimizer.h"
 
+#include <stddef.h>
+#include <chrono>
+#include <iosfwd>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "common/exception.h"
+#include "common/managed_pointer.h"
 #include "common/scoped_timer.h"
-#include "optimizer/binding.h"
+#include "loggers/optimizer_logger.h"
+#include "optimizer/group.h"
+#include "optimizer/group_expression.h"
 #include "optimizer/input_column_deriver.h"
-#include "optimizer/operator_visitor.h"
+#include "optimizer/memo.h"
+#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 #include "optimizer/optimization_context.h"
+#include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/plan_generator.h"
-#include "optimizer/properties.h"
-#include "optimizer/property_enforcer.h"
+#include "optimizer/property_set.h"
 #include "optimizer/rule.h"
 #include "planner/plannodes/abstract_plan_node.h"
+
+namespace terrier {
+namespace optimizer {
+class StatsStorage;
+}  // namespace optimizer
+namespace parser {
+class AbstractExpression;
+}  // namespace parser
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

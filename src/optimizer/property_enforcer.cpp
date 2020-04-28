@@ -1,10 +1,17 @@
-#include <utility>
+#include <type_traits>
 #include <vector>
 
+#include "optimizer/group_expression.h"
+#include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
-#include "optimizer/properties.h"
 #include "optimizer/property.h"
 #include "optimizer/property_enforcer.h"
+
+namespace terrier {
+namespace optimizer {
+class PropertySort;
+}  // namespace optimizer
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

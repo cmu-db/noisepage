@@ -1,4 +1,5 @@
 #pragma once
+#include <iosfwd>
 #include <string>
 
 namespace terrier::execution::ast {

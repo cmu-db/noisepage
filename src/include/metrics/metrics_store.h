@@ -1,12 +1,19 @@
 #pragma once
 
+#include <array>
 #include <bitset>
+#include <cstdint>
 #include <memory>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include "brain/operating_unit.h"
 #include "catalog/catalog_defs.h"
+#include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/resource_tracker.h"
 #include "execution/exec_defs.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
@@ -16,6 +23,12 @@
 #include "metrics/metrics_defs.h"
 #include "metrics/pipeline_metric.h"
 #include "metrics/transaction_metric.h"
+
+namespace terrier {
+namespace metrics {
+class AbstractRawData;
+}  // namespace metrics
+}  // namespace terrier
 
 namespace terrier::metrics {
 

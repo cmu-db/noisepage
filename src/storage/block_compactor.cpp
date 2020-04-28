@@ -1,15 +1,31 @@
 #include "storage/block_compactor.h"
 
+#include <string.h>
 #include <algorithm>
+#include <atomic>
+#include <functional>
 #include <queue>
+#include <stdexcept>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "storage/index/bwtree_index.h"
-#include "storage/index/index_defs.h"
-#include "storage/sql_table.h"
+#include "catalog/catalog_defs.h"
+#include "common/container/concurrent_bitmap.h"
+#include "storage/arrow_block_metadata.h"
+#include "storage/block_access_controller.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
+
+namespace terrier {
+namespace storage {
+class UndoRecord;
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::storage {
 void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *deferred_action_manager,

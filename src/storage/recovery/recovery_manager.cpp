@@ -1,12 +1,17 @@
 #include "storage/recovery/recovery_manager.h"
 
+#include <string.h>
+#include <__tree>
 #include <algorithm>
-#include <string>
+#include <functional>
+#include <iosfwd>
+#include <string_view>
+#include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include "catalog/index_schema.h"
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
@@ -16,8 +21,18 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
+#include "storage/block_layout.h"
+#include "storage/index/index.h"
 #include "storage/index/index_builder.h"
-#include "storage/write_ahead_log/log_io.h"
+#include "storage/index/index_defs.h"
+#include "storage/index/index_metadata.h"
+#include "storage/projected_row.h"
+#include "storage/recovery/abstract_log_provider.h"
+#include "storage/sql_table.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::storage {
 

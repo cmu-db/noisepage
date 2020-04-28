@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <type_traits>
 
 #include "common/macros.h"
 #include "execution/util/execution_common.h"

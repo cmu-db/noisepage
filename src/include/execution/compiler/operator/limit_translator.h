@@ -1,10 +1,41 @@
 #pragma once
 
+#include <stdint.h>
+#include <memory>
 #include <utility>
 #include <vector>
+
+#include "brain/brain_defs.h"
+#include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
+#include "execution/ast/identifier.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/util/execution_common.h"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
+#include "planner/plannodes/output_schema.h"
+#include "type/type_id.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class Expr;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+namespace compiler {
+class FunctionBuilder;
+}  // namespace compiler
+namespace util {
+template <typename T>
+class RegionVector;
+}  // namespace util
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

@@ -1,5 +1,20 @@
 #include "execution/compiler/expression/unary_translator.h"
+
+#include "common/managed_pointer.h"
+#include "execution/compiler/codegen.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/parsing/token.h"
+#include "execution/util/execution_common.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression_defs.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

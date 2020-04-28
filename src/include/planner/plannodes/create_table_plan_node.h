@@ -1,19 +1,34 @@
 #pragma once
 
+#include <stddef.h>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "catalog/postgres/name_builder.h"
 #include "catalog/schema.h"
+#include "common/hash_util.h"
+#include "common/json.h"
+#include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "nlohmann/json.hpp"
 #include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression_defs.h"
+#include "parser/parser_defs.h"
 #include "parser/select_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
+#include "storage/storage_defs.h"
+#include "type/transient_value.h"
+#include "type/type_id.h"
 
 namespace terrier::planner {
 

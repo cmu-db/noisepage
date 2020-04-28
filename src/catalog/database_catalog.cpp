@@ -1,5 +1,15 @@
+#include <sys/types.h>
+#include <array>
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <iosfwd>
 #include <memory>
-#include <string>
+#include <stdexcept>
+#include <string_view>
+#include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -16,11 +26,29 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "common/allocator.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
+#include "execution/ast/builtins.h"
+#include "execution/udf/udf_context.h"
+#include "execution/util/execution_common.h"
+#include "nlohmann/json.hpp"
+#include "parser/expression/abstract_expression.h"
+#include "storage/data_table.h"
+#include "storage/garbage_collector.h"
 #include "storage/index/index.h"
+#include "storage/index/index_defs.h"
+#include "storage/projected_columns.h"
+#include "storage/projected_row.h"
 #include "storage/sql_table.h"
+#include "storage/storage_defs.h"
+#include "storage/storage_util.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/transaction_manager.h"
+#include "transaction/transaction_util.h"
 #include "type/type_id.h"
 
 namespace terrier::catalog {

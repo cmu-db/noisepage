@@ -2,11 +2,24 @@
 
 #include <memory>
 #include <unordered_map>
+
 #include "common/dedicated_thread_registry.h"
+#include "common/managed_pointer.h"
+#include "common/spin_latch.h"
 #include "network/connection_handle.h"
 #include "network/connection_handler_task.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "traffic_cop/traffic_cop.h"
+
+namespace terrier {
+namespace network {
+class ConnectionHandle;
+class ProtocolInterpreter;
+}  // namespace network
+namespace trafficcop {
+class TrafficCop;
+}  // namespace trafficcop
+}  // namespace terrier
 
 namespace terrier::network {
 

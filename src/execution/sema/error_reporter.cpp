@@ -1,12 +1,11 @@
 #include "execution/sema/error_reporter.h"
 
+#include <_ctype.h>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "execution/ast/type.h"
-#include "execution/ast/type_visitor.h"
-
-#include "loggers/execution_logger.h"
 
 namespace terrier::execution::sema {
 

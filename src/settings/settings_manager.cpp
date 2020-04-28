@@ -1,21 +1,24 @@
 #include "settings/settings_manager.h"
 
-#include <gflags/gflags.h>
-
-#include <memory>
-#include <string>
+#include <type_traits>
 #include <utility>
-#include <vector>
 
+#include "common/exception.h"
 #include "common/macros.h"
-#include "main/db_main.h"
-#include "settings/settings_callbacks.h"
+#include "loggers/settings_logger.h"
+#include "type/transient_value.h"
 #include "type/transient_value_factory.h"
+#include "type/transient_value_peeker.h"
+#include "type/type_id.h"
 
 #define __SETTING_GFLAGS_DECLARE__     // NOLINT
 #include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DECLARE__      // NOLINT
+
+namespace terrier {
+class DBMain;
+}  // namespace terrier
+
+#undef __SETTING_GFLAGS_DECLARE__  // NOLINT
 
 namespace terrier::settings {
 
@@ -39,8 +42,8 @@ void SettingsManager::ValidateParams() {
 
 #define __SETTING_VALIDATE__           // NOLINT
 #include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_VALIDATE__            // NOLINT
+
+#undef __SETTING_VALIDATE__  // NOLINT
 }
 
 void SettingsManager::ValidateSetting(Param param, const type::TransientValue &min_value,
@@ -292,8 +295,8 @@ void SettingsManager::ConstructParamMap(                                        
 
 #define __SETTING_POPULATE__           // NOLINT
 #include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_POPULATE__            // NOLINT
+
+#undef __SETTING_POPULATE__  // NOLINT
 }
 
 }  // namespace terrier::settings

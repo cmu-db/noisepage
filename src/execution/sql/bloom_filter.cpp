@@ -1,8 +1,8 @@
 #include "execution/sql/bloom_filter.h"
 
 #include <limits>
-#include <vector>
 
+#include "common/math_util.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/simd.h"
 

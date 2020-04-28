@@ -1,8 +1,32 @@
 #include "execution/compiler/operator/aggregate_util.h"
+
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "common/managed_pointer.h"
+#include "execution/ast/builtins.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/function_builder.h"
+#include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
+#include "execution/parsing/token.h"
+#include "execution/util/region_containers.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/aggregate_expression.h"
+#include "planner/plannodes/aggregate_plan_node.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Decl;
+class Expr;
+class FieldDecl;
+class Stmt;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 

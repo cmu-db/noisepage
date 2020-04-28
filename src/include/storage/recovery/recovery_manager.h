@@ -1,6 +1,8 @@
 #pragma once
 
+#include <stdint.h>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -8,20 +10,47 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
+#include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_type.h"
+#include "catalog/schema.h"
+#include "common/allocator.h"
 #include "common/dedicated_thread_owner.h"
+#include "common/dedicated_thread_registry.h"
+#include "common/dedicated_thread_task.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
+#include "storage/storage_defs.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
 class RecoveryBenchmark;
-}
+namespace storage {
+class AbstractLogProvider;
+class ProjectedRow;
+class SqlTable;
+namespace index {
+class Index;
+}  // namespace index
+}  // namespace storage
+namespace transaction {
+class DeferredActionManager;
+class TransactionContext;
+class TransactionManager;
+}  // namespace transaction
+}  // namespace terrier
 
 namespace terrier::storage {
 

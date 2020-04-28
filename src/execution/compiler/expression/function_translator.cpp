@@ -1,10 +1,23 @@
 #include "execution/compiler/expression/function_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "execution/sql/value.h"
-#include "execution/udf/udf_context.h"
 
+#include <type_traits>
+
+#include "catalog/catalog_accessor.h"
+#include "common/managed_pointer.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/translator_factory.h"
+#include "execution/udf/udf_context.h"
+#include "execution/util/execution_common.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/expression/function_expression.h"
-#include "type/transient_value_peeker.h"
+
+namespace terrier {
+namespace execution {
+namespace ast {
+class Expr;
+}  // namespace ast
+}  // namespace execution
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 FunctionTranslator::FunctionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)

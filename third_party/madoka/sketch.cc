@@ -28,6 +28,13 @@
 #include <limits>
 #include <new>
 
+#include "madoka/approx.h"
+#include "madoka/exception.h"
+#include "madoka/file.h"
+#include "madoka/hash.h"
+#include "madoka/header.h"
+#include "madoka/random.h"
+
 extern "C" {
 
 struct madoka_sketch_ {

@@ -1,17 +1,69 @@
 #include "execution/vm/vm.h"
 
-#include <numeric>
-#include <string>
+#include <alloca.h>
+#include <string.h>
+#include <cstdlib>
+#include <iosfwd>
+#include <stdexcept>
+#include <type_traits>
 #include <vector>
 
-#include "execution/sql/projected_columns_iterator.h"
-#include "execution/sql/value.h"
+#include "common/allocator.h"
+#include "common/math_util.h"
+#include "common/strong_typedef.h"
+#include "execution/exec_defs.h"
+#include "execution/sql/aggregation_hash_table.h"
+#include "execution/sql/filter_manager.h"
+#include "execution/sql/join_hash_table.h"
+#include "execution/sql/sorter.h"
+#include "execution/sql/table_vector_iterator.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/memory.h"
-#include "execution/util/timer.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_handlers.h"
+#include "execution/vm/bytecode_module.h"
+#include "execution/vm/bytecodes.h"
 #include "execution/vm/module.h"
+#include "loggers/execution_logger.h"
+#include "metrics/metrics_defs.h"
+#include "spdlog/fmt/bundled/core.h"
+#include "storage/index/index.h"
+
+namespace terrier {
+namespace execution {
+namespace exec {
+class ExecutionContext;
+}  // namespace exec
+namespace sql {
+class AvgAggregate;
+class CountAggregate;
+class CountStarAggregate;
+class IndexIterator;
+class IntegerMaxAggregate;
+class IntegerMinAggregate;
+class IntegerSumAggregate;
+class MemoryPool;
+class ProjectedColumnsIterator;
+class RealMaxAggregate;
+class RealMinAggregate;
+class RealSumAggregate;
+class StorageInterface;
+struct BoolVal;
+struct DateVal;
+struct Decimal;
+struct Integer;
+struct Real;
+struct StringVal;
+struct TimestampVal;
+struct Val;
+}  // namespace sql
+}  // namespace execution
+namespace storage {
+class ProjectedRow;
+class TupleSlot;
+}  // namespace storage
+}  // namespace terrier
 
 namespace terrier::execution::vm {
 

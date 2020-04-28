@@ -3,7 +3,15 @@
 #include <memory>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "optimizer/rule.h"
+
+namespace terrier {
+namespace optimizer {
+class OperatorNode;
+class OptimizationContext;
+}  // namespace optimizer
+}  // namespace terrier
 
 namespace terrier::optimizer {
 

@@ -1,10 +1,20 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+#include <iterator>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
+#include "common/managed_pointer.h"
+#include "nlohmann/json.hpp"
+#include "parser/expression/abstract_expression.h"
+#include "parser/parser_defs.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
@@ -15,6 +25,7 @@ class BindNodeVisitor;
 }  // namespace binder
 
 namespace parser {
+class TableRef;
 
 enum OrderType { kOrderAsc, kOrderDesc };
 using terrier::parser::OrderType;

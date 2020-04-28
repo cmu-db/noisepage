@@ -1,5 +1,20 @@
 #pragma once
+#include "common/managed_pointer.h"
 #include "network/network_command.h"
+#include "network/network_types.h"
+
+namespace terrier {
+namespace network {
+class ConnectionContext;
+class PostgresNetworkCommand;
+class PostgresPacketWriter;
+class ProtocolInterpreter;
+struct InputPacket;
+}  // namespace network
+namespace trafficcop {
+class TrafficCop;
+}  // namespace trafficcop
+}  // namespace terrier
 
 #define DEFINE_POSTGRES_COMMAND(name, flush)                                                           \
   class name : public PostgresNetworkCommand {                                                         \

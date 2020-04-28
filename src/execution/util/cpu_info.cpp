@@ -1,23 +1,22 @@
 #include "execution/util/cpu_info.h"
 
-#include <algorithm>
+#include <string.h>
+#include <sys/errno.h>
+#include <cstdint>
 #include <memory>
-#include <regex>  // NOLINT
 #include <string>
 
+#include "common/macros.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 
 #if __APPLE__
 #include <cpuid.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
 #endif
 
-#include <unistd.h>
 #include <fstream>
 #include <iomanip>
-#include <sstream>
 
 #include "loggers/execution_logger.h"
 
