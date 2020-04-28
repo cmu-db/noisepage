@@ -105,7 +105,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   }
   auto result = main_(exec_ctx.Get());
   EXECUTION_LOG_DEBUG("main() returned: {}", result);
-  exec_ctx->SetPipelineOperatingUnits(nullptr);
+  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
 }
 
 }  // namespace terrier::execution
