@@ -174,19 +174,23 @@ class DatabaseCatalog {
    * @return the visible schema object for the identified table
    */
   const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
-
-  constraint_oid_t CreateConstraints(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
-                          const std::string &name, table_oid_t table, const IndexSchema &schema);
-  bool CreateConstraintsEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
-                        table_oid_t table_oid, constraint_oid_t constraint_oid, const std::string &name,
-                        const IndexSchema &schema);
+  //constraint_oid_t CreateConstraints(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+  //                        const std::string &name, table_oid_t table, const IndexSchema &schema);
+  //bool CreateConstraintsEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
+  //                      table_oid_t table_oid, constraint_oid_t constraint_oid, const std::string &name,
+  //                      const IndexSchema &schema);
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
-                           table_oid_t table,const std::string &name, std::vector<col_oid_t> &pk_cols);
+                                      table_oid_t table, const std::string &name, index_oid_t index,
+                                      std::vector<col_oid_t> &pk_cols);
   constraint_oid_t CreateFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
-                          table_oid_t src_table, table_oid_t sink_table, const std::string &name, std::vector<col_oid_t> &src_cols, std::vector<col_oid_t> &sink_cols);
-  constraint_oid_t CreateUNIQUEConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
-                          table_oid_t table, const std::string &name, std::vector<col_oid_t> &unique_cols);
-  /**
+                                      table_oid_t src_table, table_oid_t sink_table, const std::string &name,
+                                      index_oid_t index, std::vector<col_oid_t> &src_cols,
+                                      std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
+                                      postgres::FKActionType delete_action);
+  constraint_oid_t CreateUNIQUEConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
+                                          namespace_oid_t ns, table_oid_t table, const std::string &name,
+                                          index_oid_t index, std::vector<col_oid_t> &unique_cols);
+   /**
    * A list of all constraints on this table
    * @param txn for the operation
    * @param table being queried

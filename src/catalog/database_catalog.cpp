@@ -988,16 +988,12 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<tran
   // Write the namespace_oid into the PR
   const auto con_namespace_oid_offset = pg_constraints_all_cols_prm_[postgres::CONNAMESPACE_COL_OID];
   auto *const con_namespace_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_namespace_oid_offset);
-  *(reinterpret_cast<namespace_oid_t *>(con_namespace_oid_ptr)) = ns_oid;
+  *(reinterpret_cast<namespace_oid_t *>(con_namespace_oid_ptr)) = ns;
 
   // Write constraint_type
   const auto con_type_oid_offset = pg_constraints_all_cols_prm_[postgres::CONTYPE_COL_OID];
   auto *const con_type_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_type_oid_offset);
-  if (schema.is_unique_) {
-    *(reinterpret_cast<char *>(con_type_oid_ptr)) = 'u';
-  } else {
-    *(reinterpret_cast<char *>(con_type_oid_ptr)) = 'p';
-  }
+  *(reinterpret_cast<postgres::ConstraintType *>(con_type_oid_ptr)) = postgres::ConstraintType::FOREIGN_KEY;
 
   *(reinterpret_cast<bool *>(constraints_insert_pr->AccessForceNotNull(
       pg_constraints_all_cols_prm_[postgres::CONDEFERRABLE_COL_OID]))) = false;
@@ -1049,7 +1045,7 @@ constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<
   const constraint_oid_t constraint_oid_t = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
 }
 bool DatabaseCatalog::DeleteConstraints(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                    const table_oid_t table) {
+                                        const table_oid_t table) {
   if (!TryLock(txn)) return false;
   // Get the constraints
   const auto con_oids = GetConstraints(txn, table);
@@ -1066,15 +1062,14 @@ bool DatabaseCatalog::DeleteConstraints(const common::ManagedPointer<transaction
 
 std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
     const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
-    // Initialize PR for constraint scan
+  // Initialize PR for constraint scan
   auto con_pri = constraints_table_index_->GetProjectedRowInitializer();
 
   auto *const buffer = common::AllocationUtil::AllocateAligned(con_pri.ProjectedRowSize());
 
   // Find all entries for the given table using the index
   auto *key_pr = con_pri.InitializeRow(buffer);
-  const auto con_table_oid_offset = pg_constraints_all_cols_prm_[postgres::CONRELID_COL_OID];
-  auto *const con_table_oid_ptr = key_pr->AccessForceNotNull(con_table_oid_offset);
+  auto *const con_table_oid_ptr = key_pr->AccessForceNotNull(0);
   *(reinterpret_cast<table_oid_t *>(con_table_oid_ptr)) = table;
   std::vector<storage::TupleSlot> index_scan_results;
   constraints_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
@@ -1265,7 +1260,7 @@ bool DatabaseCatalog::DeleteFKConstraint(const common::ManagedPointer<transactio
 
 bool DatabaseCatalog::DeleteCheckConstraint(const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                            constraint_oid_t constraint, constraint_oid_t check_constraint) {
-
+  
   const auto con_oid_pr = check_constraints_oid_index_->GetProjectedRowInitializer();
   TERRIER_ASSERT((pg_check_constraints_all_cols_pri_.ProjectedRowSize() >= con_oid_pr.ProjectedRowSize()),
                  "Buffer must be allocated for largest ProjectedRow size");
@@ -1306,9 +1301,9 @@ bool DatabaseCatalog::DeleteCheckConstraint(const common::ManagedPointer<transac
   return true;
 }
 
-bool DatabaseCatalog::DeleteExclusionConstraint(const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
-                               constraint_oid_t constraint, constraint_oid_t exclusion_constraint) {
-
+bool DatabaseCatalog::DeleteExclusionConstraint(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                                table_oid_t table, constraint_oid_t constraint,
+                                                constraint_oid_t exclusion_constraint) {
   const auto con_oid_pr = exclusion_constraints_oid_index_->GetProjectedRowInitializer();
   TERRIER_ASSERT((pg_exclusion_constraints_all_cols_pri_.ProjectedRowSize() >= con_oid_pr.ProjectedRowSize()),
                  "Buffer must be allocated for largest ProjectedRow size");

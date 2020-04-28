@@ -192,6 +192,19 @@ class Builder {
    * @return schema object for the oid index on pg_constraint
    */
   static IndexSchema GetFKConstraintConstraintOidIndexSchema(db_oid_t db);
+  
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_constraint
+   */
+  static IndexSchema GetFKConstraintSrcTableOidIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_constraint
+   */
+  static IndexSchema GetFKConstraintRefTableOidIndexSchema(db_oid_t db);
+  
   /**
    * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_constraint
