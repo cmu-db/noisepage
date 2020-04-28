@@ -1,6 +1,6 @@
 #include "optimizer/optimizer.h"
 
-#include <chrono>
+#include <chrono>  // NOLINT
 #include <cstddef>
 #include <iosfwd>
 #include <memory>

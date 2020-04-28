@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
-#include <system_error>
+#include <system_error>  // NOLINT
 #include <type_traits>
 
 #include "common/macros.h"

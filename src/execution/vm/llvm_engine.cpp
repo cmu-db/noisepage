@@ -36,7 +36,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <system_error>
+#include <system_error>  // NOLINT
 #include <type_traits>
 #include <unordered_map>
 #include <utility>

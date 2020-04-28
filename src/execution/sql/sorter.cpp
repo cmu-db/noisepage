@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <numeric>
 #include <queue>
-#include <ratio>
+#include <ratio>  // NOLINT
 #include <type_traits>
 #include <utility>
 #include <vector>

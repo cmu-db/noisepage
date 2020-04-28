@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <functional>
-#include <ratio>
+#include <ratio>  // NOLINT
 
 #include "execution/util/timer.h"
 #include "execution/vm/module.h"

@@ -6,7 +6,7 @@
 #include <functional>
 #include <iosfwd>
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT
 #include <string>
 #include <type_traits>
 #include <utility>

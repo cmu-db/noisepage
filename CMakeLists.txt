@@ -316,6 +316,8 @@ if (${CLANG_TIDY_FOUND})
     add_custom_target(check-clang-tidy
             ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
             -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
+            -fix
+            -clang-apply-replacements-binary /usr/local/opt/llvm@8/bin/clang-apply-replacements
             -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
             )
     if (TERRIER_BUILD_BENCHMARKS)

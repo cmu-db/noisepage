@@ -1,7 +1,7 @@
 #pragma once
 
 #include <__mutex_base>
-#include <chrono>
+#include <chrono>  // NOLINT
 #include <cstdint>
 #include <utility>
 #include <vector>

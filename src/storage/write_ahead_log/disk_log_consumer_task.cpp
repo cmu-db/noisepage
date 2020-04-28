@@ -1,6 +1,6 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 
-#include <thread>
+#include <thread>  // NOLINT
 #include <type_traits>
 #include <utility>
 

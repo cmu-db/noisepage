@@ -1,6 +1,6 @@
 #include "network/postgres/postgres_protocol_interpreter.h"
 
-#include <chrono>
+#include <chrono>  // NOLINT
 #include <exception>
 #include <memory>
 #include <string>
