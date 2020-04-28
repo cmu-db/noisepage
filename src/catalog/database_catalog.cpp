@@ -373,8 +373,8 @@ void DatabaseCatalog::BootstrapPRIs() {
 
   // Used to select rows to delete in DeleteColumnStatistics
   const std::vector<col_oid_t> delete_statistics_oids{postgres::STAATTNUM_COL_OID};
-  delete_statistics_pri_ = columns_->InitializerForProjectedRow(delete_columns_oids);
-  delete_statistics_prm_ = columns_->ProjectionMapForOids(delete_columns_oids);
+  delete_statistics_pri_ = columns_->InitializerForProjectedRow(delete_statistics_oids);
+  delete_statistics_prm_ = columns_->ProjectionMapForOids(delete_statistics_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -826,7 +826,7 @@ bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transa
     *(reinterpret_cast<ClassOid *>(pr_hi->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = next_oid;
     *(reinterpret_cast<uint32_t *>(pr_hi->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
 
-    columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
+    statistics_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
   }
 
   TERRIER_ASSERT(!index_results.empty(),
@@ -847,12 +847,12 @@ bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transa
     auto UNUSED_ATTRIBUTE result = statistics_->Select(txn, slot, pr);
     TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
     const auto *const col_oid = reinterpret_cast<const uint32_t *const>(
-        pr->AccessWithNullCheck(delete_statistics_prm_[postgres::ATTNUM_COL_OID]));
+        pr->AccessWithNullCheck(delete_statistics_prm_[postgres::STAATTNUM_COL_OID]));
     TERRIER_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
     // 2. Delete from the table
-    txn->StageDelete(db_oid_, postgres::COLUMN_TABLE_OID, slot);
-    result = columns_->Delete(txn, slot);
+    txn->StageDelete(db_oid_, postgres::STATISTIC_TABLE_OID, slot);
+    result = statistics_->Delete(txn, slot);
     if (!result) {
       // Failed to delete one of the columns, return false to indicate failure
       return false;
@@ -897,8 +897,12 @@ bool DatabaseCatalog::DeleteIndexes(const common::ManagedPointer<transaction::Tr
 bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table) {
   if (!TryLock(txn)) return false;
+  bool result;
+  // Delete associated entries in pg_statistic
+  result = DeleteColumnStatistics<Schema::Column, table_oid_t>(txn, table);
+  if (!result) return false;
   // We should respect foreign key relations and attempt to delete the table's columns first
-  auto result = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
+  result = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
   if (!result) return false;
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
