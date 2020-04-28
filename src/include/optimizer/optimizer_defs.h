@@ -122,7 +122,8 @@ enum class OpType {
   DROPFUNCTION,
   DROPTRIGGER,
   DROPVIEW,
-  ANALYZE
+  ANALYZE,
+  ALTERTABLE,
 };
 
 /**

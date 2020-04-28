@@ -240,6 +240,12 @@ class OperatorVisitor {
   virtual void Visit(const Analyze *analyze) {}
 
   /**
+   * Visit a AlterTable physical operator
+   * @param alter table operator
+   */
+  virtual void Visit(const AlterTable *alter) {}
+
+  /**
    * Visit a LogicalGet operator
    * @param logical_get operator
    */

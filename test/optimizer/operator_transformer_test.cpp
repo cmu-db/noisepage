@@ -1934,4 +1934,52 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
 }
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, AlterTest) {
+  // Add column
+  std::string sql_str = "ALTER TABLE A ADD new_column INT DEFAULT 15721;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(sql_str);
+  auto stmt = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(stmt, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
+
+  std::string ref = R"({"Op":"LogicalAlter",})";
+  EXPECT_EQ(ref, info);
+
+  // Test logical alter
+  auto logical_alter = operator_tree_->GetOp().As<optimizer::LogicalAlter>();
+  EXPECT_EQ(logical_alter->GetCommands().size(), 1);
+  EXPECT_EQ(logical_alter->GetCommands().at(0)->GetColumnName(), "new_column");
+  EXPECT_EQ(logical_alter->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(operator_tree_->GetChildren().size(), 0);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
+
+  optimizer::LogicalAlterToPhysicalAlter rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::ALTERTABLE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "AlterTable");
+  auto physical_op = op.As<optimizer::AlterTable>();
+  EXPECT_EQ(physical_op->GetCommands().size(), 1);
+  EXPECT_EQ(physical_op->GetCommands().at(0)->GetColumnName(), "new_column");
+  EXPECT_EQ(physical_op->GetCommands().at(0)->GetAlterType(), parser::AlterTableStatement::AlterType::AddColumn);
+  EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
+
+  // TODO(XC): plan generator
+
+  // TODO(SC): other alter table type
+}
+
 }  // namespace terrier
