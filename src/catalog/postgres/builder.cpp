@@ -243,8 +243,8 @@ Schema Builder::GetConstraintTableSchema() {
   columns.emplace_back("confrelid", type::TypeId::VARBINARY, true, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(CONFRELID_COL_OID);
 
-  columns.emplace_back("conuniquecol", type::TypeId::VARBINARY, true, MakeNull(type::TypeId::VARBINARY));
-  columns.back().SetOid(CONUNIQUE_COL_COL_OID);
+  columns.emplace_back("concol", type::TypeId::VARBINARY, true, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(CONCOL_COL_OID);
 
   columns.emplace_back("concheck", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(CONCHECK_COL_OID);
@@ -270,14 +270,14 @@ Schema Builder::GetFKConstraintTableSchema() {
   columns.emplace_back("fkreftable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(FKREFTABLE_COL_OID);
 
-  columns.emplace_back("fkchildtable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(FKCHILDTABLE_COL_OID);
+  columns.emplace_back("fksrctable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(FKSRCTABLE_COL_OID);
 
   columns.emplace_back("fkrefcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(FKREFCOL_COL_OID);
 
-  columns.emplace_back("fkchildcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(FKCHILDCOL_COL_OID);
+  columns.emplace_back("fksrccol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(FKSRCCOL_COL_OID);
 
   columns.emplace_back("fkupdateaction", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
   columns.back().SetOid(FKUPDATEACTION_COL_OID);
@@ -641,8 +641,34 @@ IndexSchema Builder::GetFKConstraintOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetFKConstraintConstraintOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("fkid", type::TypeId::INTEGER, false,
+  columns.emplace_back("fkconid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, FK_TABLE_OID, FKCONID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // not unique
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetFKConstraintSrcTableOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("fksrctable", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, FK_TABLE_OID, FKSRCTABLE_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // not unique
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetFKConstraintRefTableOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("fkreftable", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, FK_TABLE_OID, FKREFTABLE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // not unique

@@ -8,6 +8,7 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
+#include "catalog/postgres/fk_constraint.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
@@ -191,12 +192,13 @@ class CatalogAccessor {
    */
   // constraint_oid_t CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema
   // &schema) const;
-  constraint_oid_t CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,
+  constraint_oid_t CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
                                       std::vector<col_oid_t> &pk_cols) const;
   constraint_oid_t CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
-                                       std::string name, std::vector<col_oid_t> &src_cols,
-                                       std::vector<col_oid_t> &sink_cols) const;
-  constraint_oid_t CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
+                                       std::string name, index_oid_t index, std::vector<col_oid_t> &src_cols,
+                                       std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
+                                       postgres::FKActionType delete_action) const;
+  constraint_oid_t CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
                                            std::vector<col_oid_t> &unique_cols) const;
 
   /**
