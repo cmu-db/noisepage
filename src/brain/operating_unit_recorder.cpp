@@ -56,7 +56,6 @@ size_t OperatingUnitRecorder::ComputeKeySizeOutputSchema(const planner::Abstract
     key_size += type::TypeUtil::GetTypeSize(col.GetType());
   }
 
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
