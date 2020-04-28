@@ -222,7 +222,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
 
   TupleSlot result;
 
-  UpdateInsertionHead(result);
+  UpdateInsertionHead(&result);
 
   InsertInto(txn, redo, result);
 
@@ -230,15 +230,18 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   return result;
 }
 
-void DataTable::UpdateInsertionHead(TupleSlot &result) {
+void DataTable::UpdateInsertionHead(TupleSlot *result) {
   auto block = insertion_head_;
+  if (!result) block = blocks_.begin();
   while (true) {
     // No free block left
     if (block == blocks_.end()) {
       RawBlock *new_block = NewBlock();
       TERRIER_ASSERT(accessor_.SetBlockBusyStatus(new_block), "Status of new block should not be busy");
       // No need to flip the busy status bit
-      accessor_.Allocate(new_block, &result);
+      if (result) {
+        accessor_.Allocate(new_block, result);
+      }
       // take latch
       common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
       // insert block
@@ -249,9 +252,14 @@ void DataTable::UpdateInsertionHead(TupleSlot &result) {
 
     if (accessor_.SetBlockBusyStatus(*block)) {
       // No one is inserting into this block
-      if (accessor_.Allocate(*block, &result)) {
+      if (result && accessor_.Allocate(*block, result)) {
         // The block is not full, succeed
         break;
+      } else if (!result) {
+        const uint32_t start = (*block)->GetInsertHead();
+        if (start != accessor_.GetBlockLayout().NumSlots()) {
+          break;
+        }
       }
       // Fail to insert into the block, flip back the status bit
       accessor_.ClearBlockBusyStatus(*block);

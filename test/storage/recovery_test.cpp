@@ -805,7 +805,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
                                               .SetInitialTableSize(1)
                                               .SetTxnLength(1)
                                               .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
-                                              .SetVarlenAllowed(true)
+                                              .SetVarlenAllowed(false)
                                               .Build();
   auto *tested =
       new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
@@ -913,8 +913,10 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       storage::ProjectedRow *row_two = initializer.InitializeRow(buffer_two);
 
       auto it = recovered_sql_table->begin();
-      for (auto original_it = original_sql_table->begin(); original_it != original_sql_table->end(); original_it++) {
-        if (it == recovered_sql_table->end()) {
+      auto original_end = original_sql_table->end();
+      auto recovered_end = recovered_sql_table->end();
+      for (auto original_it = original_sql_table->begin(); original_it != original_end; original_it++) {
+        if (it == recovered_end) {
           EXPECT_TRUE(false);
           break;
         }
@@ -924,6 +926,12 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
         it ++;
       }
       EXPECT_TRUE(it == recovered_sql_table->end());
+
+      auto count = 0;
+      for (; it != recovered_sql_table->end(); it ++) {
+        count ++;
+      }
+
       delete[] buffer_one;
       delete[] buffer_two;
       txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);

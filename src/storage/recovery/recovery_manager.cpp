@@ -116,7 +116,6 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     // Convert RecordBatch
     std::list<RawBlock *> blocks;
     int32_t place_holder;
-    TupleSlot place_holder_tuple_slot;
     // Create DataTable
     while (f.read(reinterpret_cast<char *>(&place_holder), sizeof(place_holder)) && place_holder == -1) {
       RawBlock *block = new RawBlock();
@@ -131,9 +130,13 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       auto *record_buffers = record_batch->buffers();
       auto *field_nodes = record_batch->nodes();
       auto insert_head = (*field_nodes)[0]->length();
+
+      // update insert_head and allocation bitmap
+      TupleSlot place_holder_tuple_slot;
       for (size_t j = 0; j < insert_head; j ++) {
         data_table->accessor_.Allocate(block, &place_holder_tuple_slot);
       }
+
       size_t cur_buffer_index = 0;
       for (size_t i = 0; i < column_id_size; ++i) {
         auto col_id = column_ids[i];
@@ -174,7 +177,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       }
       data_table->blocks_.push_back(block);
     }
-    data_table->UpdateInsertionHead(place_holder_tuple_slot);
+    data_table->UpdateInsertionHead(nullptr);
     f.close();
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);

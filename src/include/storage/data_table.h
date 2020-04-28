@@ -297,8 +297,9 @@ class DataTable {
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,
                                 UndoRecord *desired);
+
   // Update position of insertion head
-  void UpdateInsertionHead(TupleSlot &result);
+  void UpdateInsertionHead(TupleSlot *result);
 
   // Allocates a new block to be used as insertion head.
   RawBlock *NewBlock();
