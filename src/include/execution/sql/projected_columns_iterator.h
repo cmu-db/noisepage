@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>

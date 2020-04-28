@@ -22,14 +22,10 @@
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Expr;
 class Stmt;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 

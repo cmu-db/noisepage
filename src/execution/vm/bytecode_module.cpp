@@ -1,7 +1,7 @@
 #include "execution/vm/bytecode_module.h"
 
-#include <stdint.h>
 #include <algorithm>
+#include <cstdint>
 #include <iomanip>
 #include <ostream>
 #include <string>

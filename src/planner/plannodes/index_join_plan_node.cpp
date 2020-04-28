@@ -6,11 +6,9 @@
 
 #include "common/hash_util.h"
 
-namespace terrier {
-namespace planner {
+namespace terrier::planner {
 class AbstractPlanNode;
-}  // namespace planner
-}  // namespace terrier
+}  // namespace terrier::planner
 
 namespace terrier::planner {
 

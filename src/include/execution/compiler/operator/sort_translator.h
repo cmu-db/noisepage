@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include <utility>
 
 #include "execution/ast/identifier.h"

@@ -5,13 +5,11 @@
 
 #include "traffic_cop/traffic_cop.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 class ConnectionContext;
 class ITPPacketWriter;
 class ProtocolInterpreter;
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network
 
 namespace terrier::network {
 

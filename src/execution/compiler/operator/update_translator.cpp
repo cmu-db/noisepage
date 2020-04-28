@@ -22,13 +22,9 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Expr;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen)

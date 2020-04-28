@@ -1,6 +1,6 @@
 #include "planner/plannodes/aggregate_plan_node.h"
 
-#include <stddef.h>
+#include <cstddef>
 #include <iterator>
 #include <memory>
 #include <vector>

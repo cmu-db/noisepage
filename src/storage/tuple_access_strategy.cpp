@@ -1,6 +1,6 @@
 #include "storage/tuple_access_strategy.h"
 
-#include <string.h>
+#include <cstring>
 #include <type_traits>
 
 #include "common/constants.h"

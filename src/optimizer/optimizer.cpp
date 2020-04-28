@@ -1,7 +1,7 @@
 #include "optimizer/optimizer.h"
 
-#include <stddef.h>
 #include <chrono>
+#include <cstddef>
 #include <iosfwd>
 #include <memory>
 #include <utility>

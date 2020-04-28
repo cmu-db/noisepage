@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <string>

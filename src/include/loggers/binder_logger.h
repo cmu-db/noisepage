@@ -5,7 +5,7 @@
 #include "loggers/loggers_util.h"
 
 namespace spdlog {
-class logger;
+class Logger;
 }  // namespace spdlog
 
 namespace terrier::binder {

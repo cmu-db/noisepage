@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdint.h>
 #include <chrono>  //NOLINT
+#include <cstdint>
 #include <thread>  //NOLINT
 
 #include "common/macros.h"

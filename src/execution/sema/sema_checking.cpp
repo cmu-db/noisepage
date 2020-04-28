@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 
 #include "execution/ast/ast.h"
@@ -11,11 +11,9 @@
 #include "execution/sema/sema.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier {
-namespace execution {
+namespace terrier::execution {
 struct SourcePosition;
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution
 
 namespace terrier::execution::sema {
 

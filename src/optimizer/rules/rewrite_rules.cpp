@@ -22,11 +22,9 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_util.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 class GroupExpression;
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer
 
 namespace terrier::optimizer {
 

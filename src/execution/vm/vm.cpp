@@ -1,8 +1,8 @@
 #include "execution/vm/vm.h"
 
 #include <alloca.h>
-#include <string.h>
 #include <cstdlib>
+#include <cstring>
 #include <iosfwd>
 #include <stdexcept>
 #include <type_traits>

@@ -24,11 +24,9 @@
 #include "storage/tuple_access_strategy.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace common {
+namespace terrier::common {
 class RawConcurrentBitmap;
-}  // namespace common
-}  // namespace terrier
+}  // namespace terrier::common
 
 namespace terrier::storage {
 

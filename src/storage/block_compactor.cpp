@@ -1,8 +1,8 @@
 #include "storage/block_compactor.h"
 
-#include <string.h>
 #include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <functional>
 #include <queue>
 #include <stdexcept>
@@ -21,11 +21,9 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
-namespace storage {
+namespace terrier::storage {
 class UndoRecord;
-}  // namespace storage
-}  // namespace terrier
+}  // namespace terrier::storage
 
 namespace terrier::storage {
 void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *deferred_action_manager,

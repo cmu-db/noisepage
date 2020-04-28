@@ -1,8 +1,8 @@
 #include <gflags/gflags.h>
-#include <stdint.h>
 #include <sys/errno.h>
 #include <sys/signal.h>
 #include <csignal>
+#include <cstdint>
 #include <memory>
 #include <type_traits>
 #include <unordered_map>

@@ -1,6 +1,5 @@
 #pragma once
 #include <fcntl.h>
-#include <stdint.h>
 #include <sys/_types/_s_ifmt.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
@@ -9,6 +8,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <cerrno>
+#include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <string>

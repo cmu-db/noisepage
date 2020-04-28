@@ -1,5 +1,5 @@
 #pragma once
-#include <stddef.h>
+#include <cstddef>
 
 #include "common/managed_pointer.h"
 #include "network/itp/itp_packet_writer.h"

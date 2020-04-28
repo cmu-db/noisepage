@@ -3,11 +3,9 @@
 #include "execution/compiler/codegen.h"
 
 namespace terrier {
-namespace execution {
-namespace ast {
+namespace execution::ast {
 class Expr;
-}  // namespace ast
-}  // namespace execution
+}  // namespace execution::ast
 namespace parser {
 class AbstractExpression;
 }  // namespace parser

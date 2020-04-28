@@ -1,6 +1,6 @@
 #include "network/itp/itp_protocol_interpreter.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <exception>
 #include <memory>
 

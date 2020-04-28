@@ -1,9 +1,9 @@
 #include "execution/sql/join_hash_table.h"
 
-#include <string.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/task_scheduler_init.h>
 #include <algorithm>
+#include <cstring>
 #include <limits>
 #include <type_traits>
 #include <vector>

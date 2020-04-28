@@ -1,5 +1,5 @@
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -23,11 +23,9 @@
 #include "parser/select_statement.h"
 #include "parser/update_statement.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 class OperatorVisitor;
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer
 
 namespace terrier::optimizer {
 

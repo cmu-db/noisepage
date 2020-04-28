@@ -1,8 +1,8 @@
 #include "storage/write_ahead_log/log_serializer_task.h"
 
-#include <string.h>
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <queue>
 #include <type_traits>
 #include <utility>

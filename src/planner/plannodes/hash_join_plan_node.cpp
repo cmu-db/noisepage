@@ -1,17 +1,15 @@
 #include "planner/plannodes/hash_join_plan_node.h"
 
-#include <stddef.h>
+#include <cstddef>
 #include <iterator>
 #include <memory>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier {
-namespace planner {
+namespace terrier::planner {
 class AbstractPlanNode;
-}  // namespace planner
-}  // namespace terrier
+}  // namespace terrier::planner
 
 namespace terrier::planner {
 

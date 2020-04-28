@@ -1,7 +1,7 @@
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
 #include <tbb/enumerable_thread_specific.h>
+#include <cstddef>
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <utility>

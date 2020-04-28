@@ -1,9 +1,9 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
 #include <__hash_table>
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <type_traits>

@@ -1,6 +1,6 @@
 #include "execution/compiler/pipeline.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <memory>
 #include <vector>
 

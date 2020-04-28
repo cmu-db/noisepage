@@ -12,16 +12,12 @@
 #include "parser/expression/aggregate_expression.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Decl;
 class Expr;
 class FieldDecl;
 class Stmt;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 StaticAggregateBottomTranslator::StaticAggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op,

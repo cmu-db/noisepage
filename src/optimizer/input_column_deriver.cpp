@@ -1,5 +1,5 @@
-#include <stddef.h>
 #include <__hash_table>
+#include <cstddef>
 #include <functional>
 #include <iosfwd>
 #include <type_traits>
@@ -28,11 +28,9 @@
 #include "parser/expression_util.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 class OperatorVisitor;
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer
 
 namespace terrier::optimizer {
 

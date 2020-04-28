@@ -1,6 +1,6 @@
 #include "traffic_cop/traffic_cop_util.h"
 
-#include <stddef.h>
+#include <cstddef>
 #include <type_traits>
 #include <vector>
 
@@ -20,11 +20,9 @@
 #include "parser/sql_statement.h"
 #include "parser/transaction_statement.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 class AbstractExpression;
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser
 
 namespace terrier::trafficcop {
 

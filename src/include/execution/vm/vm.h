@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "common/macros.h"
 #include "execution/util/execution_common.h"

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
 #include <tbb/cache_aligned_allocator.h>
 #include <tbb/concurrent_queue.h>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <queue>

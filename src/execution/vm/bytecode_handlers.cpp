@@ -10,13 +10,9 @@
 #include "execution/sql/storage_interface.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace execution {
-namespace sql {
+namespace terrier::execution::sql {
 class MemoryPool;
-}  // namespace sql
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::sql
 
 extern "C" {
 

@@ -46,13 +46,9 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 
-namespace terrier {
-namespace execution {
-namespace compiler {
+namespace terrier::execution::compiler {
 class CodeGen;
-}  // namespace compiler
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::compiler
 
 namespace terrier::execution::compiler {
 

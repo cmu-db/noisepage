@@ -1,6 +1,6 @@
 #include "network/postgres/postgres_network_commands.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -27,11 +27,9 @@
 #include "transaction/transaction_context.h"
 #include "type/transient_value.h"
 
-namespace terrier {
-namespace network {
+namespace terrier::network {
 class ProtocolInterpreter;
-}  // namespace network
-}  // namespace terrier
+}  // namespace terrier::network
 
 namespace terrier::network {
 

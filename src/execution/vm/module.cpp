@@ -1,8 +1,8 @@
 #include "execution/vm/module.h"
 
 #include <llvm/Support/Memory.h>
-#include <stddef.h>
 #include <tbb/task.h>
+#include <cstddef>
 #include <memory>
 #include <system_error>
 #include <vector>

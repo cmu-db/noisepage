@@ -22,14 +22,10 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Expr;
 class Stmt;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 

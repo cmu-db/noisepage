@@ -7,13 +7,9 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Expr;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)

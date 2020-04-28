@@ -1,8 +1,8 @@
 #include "optimizer/plan_generator.h"
 
-#include <stddef.h>
-#include <stdint.h>
 #include <__hash_table>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <iosfwd>
 #include <memory>
@@ -67,11 +67,9 @@
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace transaction {
+namespace terrier::transaction {
 class TransactionContext;
-}  // namespace transaction
-}  // namespace terrier
+}  // namespace terrier::transaction
 
 namespace terrier::optimizer {
 

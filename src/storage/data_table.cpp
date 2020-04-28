@@ -1,5 +1,5 @@
-#include <stdint.h>
 #include <atomic>
+#include <cstdint>
 #include <list>
 #include <stdexcept>
 #include <vector>

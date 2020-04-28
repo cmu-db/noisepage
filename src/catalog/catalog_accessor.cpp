@@ -15,11 +15,9 @@ namespace catalog {
 class IndexSchema;
 class Schema;
 }  // namespace catalog
-namespace execution {
-namespace udf {
+namespace execution::udf {
 class UDFContext;
-}  // namespace udf
-}  // namespace execution
+}  // namespace execution::udf
 namespace storage {
 class SqlTable;
 namespace index {

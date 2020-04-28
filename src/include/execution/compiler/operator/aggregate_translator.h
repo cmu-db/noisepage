@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <utility>
 
 #include "brain/brain_defs.h"

@@ -21,16 +21,12 @@
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Decl;
 class Expr;
 class FieldDecl;
 class Stmt;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op,

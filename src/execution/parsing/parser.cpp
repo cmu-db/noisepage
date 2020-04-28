@@ -1,6 +1,6 @@
 #include "execution/parsing/parser.h"
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <tuple>
 #include <type_traits>
 #include <unordered_set>
@@ -10,11 +10,9 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier {
-namespace execution {
+namespace terrier::execution {
 struct SourcePosition;
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution
 
 namespace terrier::execution::parsing {
 

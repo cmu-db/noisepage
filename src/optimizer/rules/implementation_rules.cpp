@@ -1,6 +1,6 @@
 #include "optimizer/rules/implementation_rules.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -37,12 +37,10 @@
 #include "storage/index/index_defs.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 class UpdateClause;
 struct ColumnDefinition;
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser
 
 namespace terrier::optimizer {
 

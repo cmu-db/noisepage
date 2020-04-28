@@ -1,5 +1,5 @@
-#include <stddef.h>
 #include <algorithm>
+#include <cstddef>
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -33,11 +33,9 @@
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 class OperatorVisitor;
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer
 
 namespace terrier::optimizer {
 

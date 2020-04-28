@@ -1,6 +1,6 @@
 #include "settings/settings_callbacks.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "common/action_context.h"
 #include "common/object_pool.h"

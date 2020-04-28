@@ -4,8 +4,8 @@
 #include <llvm/ADT/Hashing.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/iterator.h>
-#include <stddef.h>
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -22,13 +22,9 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringMap.h"
 
-namespace terrier {
-namespace execution {
-namespace util {
+namespace terrier::execution::util {
 class Region;
-}  // namespace util
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::util
 
 namespace terrier::execution::ast {
 

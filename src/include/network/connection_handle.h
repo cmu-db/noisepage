@@ -6,10 +6,10 @@
 #include <event2/event.h>
 #include <event2/listener.h>
 #include <netinet/tcp.h>
-#include <stdint.h>
 #include <sys/file.h>
 #include <sys/time.h>
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

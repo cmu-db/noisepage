@@ -1,5 +1,5 @@
-#include <stddef.h>
 #include <__hash_table>
+#include <cstddef>
 #include <iterator>
 #include <memory>
 #include <unordered_map>
@@ -42,11 +42,9 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier {
-namespace planner {
+namespace terrier::planner {
 class PlanVisitor;
-}  // namespace planner
-}  // namespace terrier
+}  // namespace terrier::planner
 
 namespace terrier::brain {
 

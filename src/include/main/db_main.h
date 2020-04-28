@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdint.h>
 #include <chrono>
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <string>

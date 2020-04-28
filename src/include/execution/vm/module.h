@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stdint.h>
-#include <string.h>
 #include <atomic>
+#include <cstdint>
+#include <cstring>
 #include <functional>
 #include <iosfwd>
 #include <memory>

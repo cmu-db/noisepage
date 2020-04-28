@@ -1,4 +1,4 @@
-#include <stddef.h>
+#include <cstddef>
 #include <iosfwd>
 #include <string>
 #include <type_traits>
@@ -19,11 +19,9 @@
 #include "parser/expression_defs.h"
 #include "parser/expression_util.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 class OperatorVisitor;
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer
 
 namespace terrier::optimizer {
 

@@ -5,13 +5,9 @@
 #include "execution/sema/scope.h"
 #include "execution/sema/sema.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Type;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::sema {
 

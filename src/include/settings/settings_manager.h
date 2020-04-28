@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gflags/gflags.h>
-#include <stdint.h>
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <string>

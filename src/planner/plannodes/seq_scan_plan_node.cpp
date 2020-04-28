@@ -9,11 +9,9 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
-namespace terrier {
-namespace planner {
+namespace terrier::planner {
 class AbstractPlanNode;
-}  // namespace planner
-}  // namespace terrier
+}  // namespace terrier::planner
 
 namespace terrier::planner {
 

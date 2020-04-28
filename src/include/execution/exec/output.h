@@ -1,7 +1,7 @@
 #pragma once
 
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <memory>

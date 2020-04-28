@@ -1,6 +1,6 @@
 #include "execution/compiler/operator/insert_translator.h"
 
-#include <stddef.h>
+#include <cstddef>
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -20,13 +20,9 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Expr;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 InsertTranslator::InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen)

@@ -19,13 +19,9 @@
 #include "execution/parsing/token.h"
 #include "storage/index/index.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Expr;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 DeleteTranslator::DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen)

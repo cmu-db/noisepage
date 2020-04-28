@@ -1,8 +1,8 @@
 #include "binder/bind_node_visitor.h"
 
 #include <_ctype.h>
-#include <stddef.h>
 #include <algorithm>
+#include <cstddef>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -47,8 +47,7 @@
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 class CreateFunctionStatement;
 class DefaultValueExpression;
 class DerivedValueExpression;
@@ -58,8 +57,7 @@ class PrepareStatement;
 class TransactionStatement;
 class TypeCastExpression;
 class VariableSetStatement;
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser
 
 namespace terrier::binder {
 

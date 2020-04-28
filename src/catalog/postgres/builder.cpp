@@ -1,7 +1,7 @@
 #include "catalog/postgres/builder.h"
 
-#include <stdint.h>
 #include <atomic>
+#include <cstdint>
 #include <vector>
 
 #include "catalog/database_catalog.h"
@@ -23,11 +23,9 @@
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace storage {
+namespace terrier::storage {
 class GarbageCollector;
-}  // namespace storage
-}  // namespace terrier
+}  // namespace terrier::storage
 
 namespace terrier::catalog::postgres {
 

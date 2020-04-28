@@ -15,11 +15,9 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/pattern.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 class Memo;
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer
 
 namespace terrier::optimizer {
 

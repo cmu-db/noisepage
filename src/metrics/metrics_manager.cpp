@@ -1,8 +1,8 @@
 #include "metrics/metrics_manager.h"
 
-#include <stddef.h>
-#include <stdint.h>
 #include <sys/stat.h>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <memory>
 #include <type_traits>

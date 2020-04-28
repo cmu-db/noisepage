@@ -1,8 +1,8 @@
 #include "storage/recovery/recovery_manager.h"
 
-#include <string.h>
 #include <__tree>
 #include <algorithm>
+#include <cstring>
 #include <functional>
 #include <iosfwd>
 #include <string_view>

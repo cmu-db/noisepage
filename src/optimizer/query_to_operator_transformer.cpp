@@ -1,10 +1,10 @@
 #include "optimizer/query_to_operator_transformer.h"
 
 #include <_ctype.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <__hash_table>
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -43,16 +43,14 @@
 #include "parser/table_ref.h"
 #include "parser/update_statement.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 class AggregateExpression;
 class ExecuteStatement;
 class ExplainStatement;
 class PrepareStatement;
 class TransactionStatement;
 class VariableSetStatement;
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser
 
 namespace terrier::optimizer {
 

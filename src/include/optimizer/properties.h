@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stddef.h>
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 #include <vector>

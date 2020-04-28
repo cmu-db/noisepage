@@ -1,8 +1,8 @@
 #include "execution/sql/memory_pool.h"
 
-#include <string.h>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 
 #include "common/constants.h"
 #include "common/managed_pointer.h"

@@ -7,11 +7,9 @@
 #include "optimizer/property.h"
 #include "optimizer/property_enforcer.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 class PropertySort;
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer
 
 namespace terrier::optimizer {
 

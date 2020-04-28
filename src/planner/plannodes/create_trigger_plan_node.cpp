@@ -1,6 +1,6 @@
 #include "planner/plannodes/create_trigger_plan_node.h"
 
-#include <stddef.h>
+#include <cstddef>
 #include <iterator>
 #include <memory>
 #include <string>

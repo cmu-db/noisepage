@@ -7,10 +7,10 @@
 #include <event2/listener.h>
 #include <netinet/tcp.h>
 #include <pthread.h>
-#include <stdint.h>
 #include <sys/file.h>
 #include <__mutex_base>
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

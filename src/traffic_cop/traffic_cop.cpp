@@ -42,8 +42,7 @@
 #include "transaction/transaction_util.h"
 #include "type/transient_value.h"
 
-namespace terrier {
-namespace planner {
+namespace terrier::planner {
 class CreateDatabasePlanNode;
 class CreateIndexPlanNode;
 class CreateNamespacePlanNode;
@@ -52,8 +51,7 @@ class DropDatabasePlanNode;
 class DropIndexPlanNode;
 class DropNamespacePlanNode;
 class DropTablePlanNode;
-}  // namespace planner
-}  // namespace terrier
+}  // namespace terrier::planner
 
 namespace terrier::trafficcop {
 

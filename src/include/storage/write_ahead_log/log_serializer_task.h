@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stdint.h>
 #include <__mutex_base>
 #include <chrono>
+#include <cstdint>
 #include <queue>
 #include <thread>
 #include <unordered_map>

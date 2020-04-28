@@ -1,6 +1,6 @@
 #include "parser/table_ref.h"
 
-#include <stddef.h>
+#include <cstddef>
 #include <iterator>
 #include <memory>
 #include <string>

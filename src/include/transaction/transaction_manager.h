@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include <queue>
 #include <unordered_set>
 #include <utility>

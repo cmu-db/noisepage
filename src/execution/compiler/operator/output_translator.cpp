@@ -10,15 +10,11 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier {
-namespace execution {
-namespace ast {
+namespace terrier::execution::ast {
 class Decl;
 class Expr;
 class FieldDecl;
-}  // namespace ast
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution::ast
 
 namespace terrier::execution::compiler {
 OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen)

@@ -1,7 +1,7 @@
 #include "metrics/metrics_store.h"
 
-#include <stdint.h>
 #include <bitset>
+#include <cstdint>
 #include <memory>
 
 #include "metrics/abstract_raw_data.h"

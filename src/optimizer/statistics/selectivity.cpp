@@ -1,7 +1,7 @@
 #include "optimizer/statistics/selectivity.h"
 
-#include <stddef.h>
 #include <cmath>
+#include <cstddef>
 #include <iosfwd>
 #include <vector>
 

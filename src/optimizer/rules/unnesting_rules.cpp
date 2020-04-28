@@ -13,12 +13,10 @@
 #include "optimizer/rule.h"
 #include "optimizer/rules/unnesting_rules.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 class GroupExpression;
 class OptimizationContext;
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer
 
 namespace terrier::optimizer {
 

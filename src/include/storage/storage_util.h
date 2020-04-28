@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 #include <iosfwd>
 #include <string>
 #include <unordered_map>

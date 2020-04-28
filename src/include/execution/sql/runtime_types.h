@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <iosfwd>
 #include <string>
 

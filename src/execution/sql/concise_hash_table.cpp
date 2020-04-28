@@ -1,5 +1,5 @@
-#include <stdint.h>
 #include <algorithm>
+#include <cstdint>
 
 #include "common/math_util.h"
 #include "execution/sql/concise_hash_table.h"

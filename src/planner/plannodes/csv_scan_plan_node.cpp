@@ -11,11 +11,9 @@
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "type/type_id.h"
 
-namespace terrier {
-namespace planner {
+namespace terrier::planner {
 class AbstractPlanNode;
-}  // namespace planner
-}  // namespace terrier
+}  // namespace terrier::planner
 
 namespace terrier::planner {
 

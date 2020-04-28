@@ -1,10 +1,10 @@
 #include "parser/postgresparser.h"
 
 #include <_ctype.h>
-#include <string.h>
 #include <__hash_table>
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 #include <iterator>
 #include <memory>
 #include <string>

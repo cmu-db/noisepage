@@ -13,8 +13,7 @@
 #include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier {
-namespace execution {
+namespace terrier::execution {
 namespace ast {
 class Decl;
 class Expr;
@@ -25,8 +24,7 @@ namespace util {
 template <typename T>
 class RegionVector;
 }  // namespace util
-}  // namespace execution
-}  // namespace terrier
+}  // namespace terrier::execution
 
 namespace terrier::execution::compiler {
 AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen)

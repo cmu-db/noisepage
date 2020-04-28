@@ -1,8 +1,8 @@
 #include "execution/util/cpu_info.h"
 
-#include <string.h>
 #include <sys/errno.h>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 

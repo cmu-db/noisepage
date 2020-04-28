@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "execution/ast/identifier.h"
 #include "execution/compiler/expression/expression_translator.h"

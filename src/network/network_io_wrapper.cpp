@@ -1,9 +1,9 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <string.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
+#include <cstring>
 #include <memory>
 
 #include "common/exception.h"
