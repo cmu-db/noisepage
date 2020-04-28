@@ -140,7 +140,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
         common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
         byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
         auto s = (*record_buffers)[cur_buffer_index ++]->length();
-        //TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap), "bitmap length should match");
+        TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap), "bitmap length should match");
         ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap), s);
 
         if (layout.IsVarlen(col_id)) {
@@ -151,12 +151,19 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
           byte *values_array = new byte[values_length];
           ReadDataBlock(f, reinterpret_cast<char *>(values_array), values_length);
 
+          TERRIER_ASSERT(offsets_length - 1 == insert_head, "offsets length should be num_records+1");
           for (auto j = 0u; j < offsets_length - 1; j++) {
             // TODO: need to replace with the proper memory allocation
             uint64_t size = offsets_array[j + 1] - offsets_array[j];
             byte *varlen = common::AllocationUtil::AllocateAligned(size);
-            memcpy(varlen, values_array + offsets_array[j], offsets_array[j + 1] - offsets_array[j]);
-            *(reinterpret_cast<byte **>(column_start + j * sizeof(void *))) = varlen;
+            uint32_t length = offsets_array[j + 1] - offsets_array[j];
+            memcpy(varlen, values_array + offsets_array[j], length);
+            // TODO: need to make sure the reclaim option works out
+            if (length > VarlenEntry::InlineThreshold()) {
+              *(reinterpret_cast<VarlenEntry *>(column_start) + j) = VarlenEntry::Create(varlen, length, true);
+            } else {
+              *(reinterpret_cast<VarlenEntry *>(column_start) + j) = VarlenEntry::CreateInline(varlen, length);
+            }
           }
           delete[] offsets_array;
           delete[] values_array;

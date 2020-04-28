@@ -801,11 +801,11 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
                                               .SetNumDatabases(1)
                                               .SetNumTables(1)
-                                              .SetMaxColumns(5)g
+                                              .SetMaxColumns(5)
                                               .SetInitialTableSize(1)
                                               .SetTxnLength(1)
                                               .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
-                                              .SetVarlenAllowed(false)
+                                              .SetVarlenAllowed(true)
                                               .Build();
   auto *tested =
       new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
@@ -923,6 +923,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
         EXPECT_TRUE( StorageTestUtil::ProjectionListEqualDeep(GetBlockLayout(original_sql_table), row_one, row_two));
         it ++;
       }
+      EXPECT_TRUE(it == recovered_sql_table->end());
       delete[] buffer_one;
       delete[] buffer_two;
       txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
