@@ -483,6 +483,126 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
   state.SetItemsProcessed(state.iterations() * num_reads_);
 }
 
+// Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterationNoContextSwitching)(benchmark::State &state) {
+  uint32_t num_tables = 3;
+  uint32_t num_iterators_per_table = 10 * std::thread::hardware_concurrency();
+  uint32_t tuples_per_table = num_reads_ / num_tables;
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    std::vector<storage::DataTable *> read_tables(num_tables);
+    for (uint32_t i = 0; i < num_tables; i++) {
+      read_tables[i] = new storage::DataTable(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
+                                              storage::layout_version_t(0));
+    }
+
+    for (auto read_table : read_tables) {
+      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                          common::ManagedPointer(&buffer_pool_), DISABLED);
+      for (uint32_t i = 0; i < tuples_per_table; i++) {
+        read_table->Insert(common::ManagedPointer(&txn), *redo_);
+      }
+    }
+
+    std::vector<std::function<void()>> lambdas;
+    for (uint32_t i = 0; i < num_tables * num_iterators_per_table; i++) {
+      lambdas.emplace_back([&, i] {
+        uint64_t count = 0;
+        auto table = read_tables[i % num_tables];
+        for (auto it UNUSED_ATTRIBUTE = table->begin(); it != table->end(); it++) count++;
+      });
+    }
+
+    common::DedicatedThreadRegistry registry(DISABLED);
+    std::vector<int> cpu_ids;
+    for (uint32_t i = 0; i < std::thread::hardware_concurrency(); i++) cpu_ids.emplace_back(i);
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
+
+    std::promise<void> promises[lambdas.size()];
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      // Single threaded iteration
+      for (uint32_t i = 0; i < lambdas.size(); i++) {
+        thread_pool.SubmitTask(&promises[i], lambdas[i]);
+      }
+
+      for (uint32_t i = 0; i < lambdas.size(); i++) {
+        promises[i].get_future().get();
+      }
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+
+    for (auto read_table : read_tables) {
+      delete read_table;
+    }
+  }
+  state.SetItemsProcessed(state.iterations() * num_reads_);
+}
+
+// Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterationWithContextSwitching)(benchmark::State &state) {
+  uint32_t num_tables = std::thread::hardware_concurrency();
+  uint32_t num_iterators_per_table = 10 * std::thread::hardware_concurrency();
+  uint32_t tuples_per_table = num_reads_ / num_tables;
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    std::vector<storage::DataTable *> read_tables(num_tables);
+    for (uint32_t i = 0; i < num_tables; i++) {
+      read_tables[i] = new storage::DataTable(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
+                                              storage::layout_version_t(0));
+    }
+
+    for (auto read_table : read_tables) {
+      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                          common::ManagedPointer(&buffer_pool_), DISABLED);
+      for (uint32_t i = 0; i < tuples_per_table; i++) {
+        read_table->Insert(common::ManagedPointer(&txn), *redo_);
+      }
+    }
+
+    std::vector<std::function<void(common::PoolContext *)>> lambdas;
+    for (uint32_t i = 0; i < num_tables * num_iterators_per_table; i++) {
+      lambdas.emplace_back([&, i](common::PoolContext *ctx) {
+        uint64_t count = 0;
+        auto table = read_tables[i % num_tables];
+        for (auto it UNUSED_ATTRIBUTE = table->begin(ctx); it != table->end(ctx); it++) count++;
+      });
+    }
+
+    common::DedicatedThreadRegistry registry(DISABLED);
+    std::vector<int> cpu_ids;
+    for (uint32_t i = 0; i < std::thread::hardware_concurrency(); i++) cpu_ids.emplace_back(i);
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
+
+    std::promise<void> promises[lambdas.size()];
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      // Single threaded iteration
+      for (uint32_t i = 0; i < lambdas.size(); i++) {
+        thread_pool.SubmitTask(&promises[i], lambdas[i]);
+      }
+
+      for (uint32_t i = 0; i < lambdas.size(); i++) {
+        promises[i].get_future().get();
+      }
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+
+    for (auto read_table : read_tables) {
+      delete read_table;
+    }
+  }
+  state.SetItemsProcessed(state.iterations() * num_reads_);
+}
+
 // ----------------------------------------------------------------------------
 // Benchmark Registration
 // ----------------------------------------------------------------------------
@@ -519,6 +639,14 @@ BENCHMARK_REGISTER_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)
 ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
     ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentIterationNoContextSwitching)
+->Unit(benchmark::kMillisecond)
+->UseRealTime()
+->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentIterationWithContextSwitching)
+->Unit(benchmark::kMillisecond)
+->UseRealTime()
+->UseManualTime();
 // clang-format on
 
 }  // namespace terrier

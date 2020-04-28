@@ -1,5 +1,7 @@
 #pragma once
+#include <common/spin_latch.h>
 #include <tbb/concurrent_unordered_set.h>
+
 #include <list>
 #include <map>
 #include <unordered_map>
@@ -103,8 +105,9 @@ class DataTable {
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
-        : table_(table), block_(block) {
+    SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block,
+                 common::PoolContext *ctx = nullptr)
+        : table_(table), block_(block), ctx_(ctx) {
       current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
     }
 
@@ -113,6 +116,7 @@ class DataTable {
     const DataTable *table_;
     std::list<RawBlock *>::const_iterator block_;
     TupleSlot current_slot_;
+    common::PoolContext *ctx_ = nullptr;
   };
   /**
    * Iterator for all the slots, claimed or otherwise, operating per NUMA region in the data table.
@@ -255,9 +259,9 @@ class DataTable {
   /**
    * @return the first tuple slot contained in the data table
    */
-  SlotIterator begin() const {  // NOLINT for STL name compability
-    tbb::spin_mutex::scoped_lock l(blocks_latch_);
-    return {this, blocks_.begin(), 0};
+  SlotIterator begin(common::PoolContext *ctx = nullptr) const {  // NOLINT for STL name compability
+    common::SpinLatch::ScopedSpinLatch l(&blocks_latch_, ctx);
+    return {this, blocks_.begin(), 0, ctx};
   }
 
   /**
@@ -267,7 +271,7 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const;  // NOLINT for STL name compability
+  SlotIterator end(common::PoolContext *ctx = nullptr) const;  // NOLINT for STL name compability
 
   /**
    * Update the vector of numa regions passed in to match those in the map
@@ -318,7 +322,8 @@ class DataTable {
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
    * such.
    */
-  TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo);
+  TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
+                   common::PoolContext *ctx = nullptr);
 
   /**
    * Deletes the given TupleSlot, this will call StageDelete on the provided txn to generate the RedoRecord for delete.
@@ -371,15 +376,15 @@ class DataTable {
   // might be on it
   std::list<RawBlock *> blocks_;
   // latch used to protect block list
-  mutable tbb::spin_mutex blocks_latch_;
+  mutable common::SpinLatch blocks_latch_;
   // latch used to protect insertion_head_
-  mutable tbb::spin_mutex header_latch_;
+  mutable common::SpinLatch header_latch_;
   // Set of all blocks in DataTable organized by NUMA region
   std::vector<tbb::concurrent_unordered_set<RawBlock *>> regions_;
   std::list<RawBlock *>::iterator insertion_head_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
-  void CheckMoveHead(std::list<RawBlock *>::iterator block);
+  void CheckMoveHead(std::list<RawBlock *>::iterator block, common::PoolContext *ctx = nullptr);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.

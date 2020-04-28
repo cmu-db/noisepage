@@ -1,11 +1,11 @@
 #pragma once
 
+#include <tbb/spin_mutex.h>
+
 #include <memory>
 #include <thread>  // NOLINT
 #include <unordered_map>
 #include <vector>
-
-#include <tbb/spin_mutex.h>
 
 #include "common/managed_pointer.h"
 #include "common/thread_context.h"

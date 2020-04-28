@@ -1,7 +1,7 @@
 #pragma once
 
-#include <utility>
 #include <boost/coroutine2/all.hpp>
+#include <utility>
 #include "common/object_pool.h"
 
 namespace terrier::common {
@@ -43,7 +43,7 @@ class PoolContext {
  private:
   std::function<void(PoolContext *)> func_ = nullptr;
   push_type *sink_ = nullptr;
-  pull_type in_ = pull_type([&](push_type &s) {
+  pull_type in_ = pull_type([&](push_type &s) {  // NOLINT
     this->sink_ = &s;
     while (true) {
       this->YieldToPool();

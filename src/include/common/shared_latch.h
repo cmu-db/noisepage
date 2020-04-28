@@ -3,8 +3,8 @@
 #include <tbb/reader_writer_lock.h>
 
 #include "common/coroutine_defs.h"
+#include "common/execution_thread_pool.h"
 #include "common/macros.h"
-#include "execution_thread_pool.h"
 
 namespace terrier::common {
 

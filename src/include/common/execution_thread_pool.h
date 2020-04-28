@@ -2,6 +2,8 @@
 
 #include <sched.h>
 
+#include <tbb/reader_writer_lock.h>
+
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <functional>
@@ -14,7 +16,6 @@
 #include <utility>
 #include <vector>
 
-#include <tbb/reader_writer_lock.h>
 #include "common/coroutine_defs.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/dedicated_thread_registry.h"

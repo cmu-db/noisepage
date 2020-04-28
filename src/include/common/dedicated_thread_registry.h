@@ -1,15 +1,16 @@
 #pragma once
 
+#include <tbb/spin_mutex.h>
+
 #include <memory>
 #include <thread>  // NOLINT
 #include <unordered_map>
 #include <unordered_set>
+
 #include "common/dedicated_thread_owner.h"
 #include "common/dedicated_thread_task.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-
-#include <tbb/spin_mutex.h>
 #include "metrics/metrics_manager.h"
 
 namespace terrier::common {

@@ -27,7 +27,7 @@ DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const Block
 }
 
 DataTable::~DataTable() {
-  tbb::spin_mutex::scoped_lock l(blocks_latch_);
+  common::SpinLatch::ScopedSpinLatch l(&blocks_latch_);
   for (RawBlock *block : blocks_) {
     StorageUtil::DeallocateVarlens(block, accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
@@ -91,7 +91,6 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
     };
 
     lambda();
-    continue;
   }
 
   uint32_t result_index = 0;
@@ -107,7 +106,7 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
-  tbb::spin_mutex::scoped_lock l(table_->blocks_latch_);
+  common::SpinLatch::ScopedSpinLatch l(&table_->blocks_latch_, ctx_);
   // Jump to the next block if already the last slot in the block.
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
     ++block_;
@@ -119,22 +118,22 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   return *this;
 }
 
-DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
+DataTable::SlotIterator DataTable::end(common::PoolContext *ctx) const {  // NOLINT for STL name compability
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
-  tbb::spin_mutex::scoped_lock l(blocks_latch_);
+  common::SpinLatch::ScopedSpinLatch l(&blocks_latch_, ctx);
   // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
 
   // The end iterator could either point to an unfilled slot in a block, or point to nothing if every block in the
   // table is full. In the case that it points to nothing, we will use the end-iterator of the blocks list and
   // 0 to denote that this is the case. This solution makes increment logic simple and natural.
-  if (blocks_.empty()) return {this, blocks_.end(), 0};
+  if (blocks_.empty()) return {this, blocks_.end(), 0, ctx};
   auto last_block = --blocks_.end();
   uint32_t insert_head = (*last_block)->GetInsertHead();
   // Last block is full, return the default end iterator that doesn't point to anything
-  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), 0};
+  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), 0, ctx};
   // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
-  return {this, last_block, insert_head};
+  return {this, last_block, insert_head, ctx};
 }
 
 void DataTable::GetNUMARegions(std::vector<common::numa_region_t> *regions) {
@@ -204,9 +203,9 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
   return true;
 }
 
-void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
+void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block, common::PoolContext *ctx) {
   // Assume block is full
-  tbb::spin_mutex::scoped_lock l(header_latch_);
+  common::SpinLatch::ScopedSpinLatch l(&header_latch_, ctx);
   if (block == insertion_head_) {
     // If the header block is full, move the header to point to the next block
     insertion_head_++;
@@ -216,7 +215,7 @@ void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
   if (insertion_head_ == blocks_.end()) {
     RawBlock *new_block = NewBlock();
     // take latch
-    tbb::spin_mutex::scoped_lock guard_l(blocks_latch_);
+    common::SpinLatch::ScopedSpinLatch guard_l(&blocks_latch_, ctx);
     // insert block
     blocks_.push_back(new_block);
     // set insertion header to --end()
@@ -224,8 +223,8 @@ void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
   }
 }
 
-TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
-                            const ProjectedRow &redo) {
+TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
+                            common::PoolContext *ctx) {
   TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");
@@ -248,7 +247,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
       // No need to flip the busy status bit
       accessor_.Allocate(new_block, &result);
       // take latch
-      tbb::spin_mutex::scoped_lock l(blocks_latch_);
+      common::SpinLatch::ScopedSpinLatch l(&blocks_latch_, ctx);
       // insert block
       blocks_.push_back(new_block);
       block = --blocks_.end();
@@ -265,7 +264,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
       accessor_.ClearBlockBusyStatus(*block);
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
-      CheckMoveHead(block);
+      CheckMoveHead(block, ctx);
     }
     // The block is full or the block is being inserted by other txn, try next block
     ++block;

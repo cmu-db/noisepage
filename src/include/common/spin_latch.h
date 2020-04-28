@@ -7,8 +7,8 @@
 //  and wastes lots of time, so as a temporary hack...
 #undef TRUE
 #undef FALSE
+#include "common/execution_thread_pool.h"
 #include "common/macros.h"
-#include "execution_thread_pool.h"
 
 namespace terrier::common {
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "strong_typedef.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::common {
 STRONG_TYPEDEF(numa_region_t, int16_t);

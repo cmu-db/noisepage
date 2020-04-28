@@ -1,9 +1,10 @@
 #pragma once
 
+#include <tbb/spin_mutex.h>
+
 #include <atomic>
 #include <memory>
 
-#include <tbb/spin_mutex.h>
 #include "metrics/abstract_raw_data.h"
 
 namespace terrier::metrics {
