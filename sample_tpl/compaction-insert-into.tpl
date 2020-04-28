@@ -3,7 +3,7 @@
 // INSERT INTO empty_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 AND 505 (should result in 100495 to 100505)
 // Returns true if the first value of the updated empty_table has had 100,000 added to it (was properly updated)
 // Returns false if the first values was not properly updated
-fun main(execCtx: *ExecutionContext) -> Integer {
+fun main(execCtx: *ExecutionContext) -> bool {
   // Init inserter
   var col_oids: [1]uint32
   col_oids[0] = 1 // colA
@@ -36,7 +36,7 @@ fun main(execCtx: *ExecutionContext) -> Integer {
     if (!@tableDelete(&inserter, &insert_slot)) {
       @indexIteratorFree(&index)
       @storageInterfaceFree(&inserter)
-      return -505
+      return false
     }
 
     // Update the value that was just inserted/deleted and reinsert it
@@ -50,7 +50,7 @@ fun main(execCtx: *ExecutionContext) -> Integer {
     if (!@indexInsert(&inserter)) {
       @indexIteratorFree(&index)
       @storageInterfaceFree(&inserter)
-      return @intToSql(37)
+      return false
     }
   }
   @indexIteratorFree(&index)
@@ -63,6 +63,5 @@ fun main(execCtx: *ExecutionContext) -> Integer {
   @indexIteratorScanAscending(&verification_index, 0, 0)
   var verification_table_pr = @indexIteratorGetTablePR(&verification_index)
   var colA = @prGetInt(verification_table_pr, 0)
-  // return @sqlToBool(@intToSql(100495) == colA)
-  return colA
+  return @sqlToBool(@intToSql(100495) == colA)
 }

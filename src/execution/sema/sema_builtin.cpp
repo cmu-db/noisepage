@@ -2073,7 +2073,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(tuple_slot_type));
       break;
     }
-    case ast::Builtin::TableInsertInto: {
+    case ast::Builtin::TableCompactionInsertInto: {
       // The Built-in has two arguments:
       // 1) pointer to the storage interface
       // 2) pointer to the tuple slot where the tuple will be inserted

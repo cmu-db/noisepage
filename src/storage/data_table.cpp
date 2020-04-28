@@ -220,6 +220,7 @@ RawBlock *DataTable::CreateCompactedBlock() {
 
 void DataTable::CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn,
                             const ProjectedRow &redo, TupleSlot dest) {
+  accessor_.Deallocate(dest);
   accessor_.Reallocate(dest);
   InsertInto(txn, redo, dest);
 }

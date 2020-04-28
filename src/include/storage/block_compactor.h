@@ -66,7 +66,7 @@ class BlockCompactor {
     // table name
     // col_oids
     // projected row
-    fun moveTuple(slot_from: TupleSlot*, slot_to: TupleSlot*) -> bool {
+    fun moveTuple(execCtx: *ExecutionContext, slot_from: TupleSlot*, slot_to: TupleSlot*) -> bool {
       // Initialize and bind the storage_interface
       // @todo: FIX! should the variables here be passed in as arguments to the function. Are they all needed?
       // Do we need to define another storageInterfaceInitBind-like method? That seems not helpful.
