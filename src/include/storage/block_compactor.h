@@ -9,6 +9,8 @@
 #include "transaction/transaction_manager.h"
 #include "execution/vm/module.h"
 #include "execution/vm/module_compiler.h"
+#include "execution/exec/execution_context.h"
+
 
 namespace terrier::storage {
 
@@ -36,7 +38,9 @@ class BlockCompactor {
           all_cols_initializer_(ProjectedRowInitializer::Create(table_->accessor_.GetBlockLayout(),
                                                                 table_->accessor_.GetBlockLayout().AllColumns())),
           read_buffer_(all_cols_initializer_.InitializeRow(
-              common::AllocationUtil::AllocateAligned(all_cols_initializer_.ProjectedRowSize()))) {}
+              common::AllocationUtil::AllocateAligned(all_cols_initializer_.ProjectedRowSize())))
+          {
+    }
 
     ~CompactionGroup() {
       // Deleting nullptr is just a noop
@@ -52,7 +56,11 @@ class BlockCompactor {
   };
 
  public:
-  BlockCompactor() {
+  BlockCompactor(execution::exec::ExecutionContext *exec, col_id_t *col_oids, char *table_name) {
+  	// Init data members for movetuple builtin
+  	exec_ = exec;
+  	col_oids_ = col_oids;
+  	table_name_ = table_name;
     // tpl code for use in moveTuple. It deletes the tuple from the table and from the index and then inserts the tuple
     // to the table (a specific block) and to the index. It returns true if the delete succeeds (because delete returns
     // false if a concurrent transaction is updating the tuple that is trying to be moved, the only condition where
@@ -66,14 +74,12 @@ class BlockCompactor {
     // table name
     // col_oids
     // projected row
-    fun moveTuple(execCtx: *ExecutionContext, slot_from: TupleSlot*, slot_to: TupleSlot*) -> bool {
+    fun moveTuple(execCtx: *ExecutionContext, slot_from: TupleSlot*, slot_to: TupleSlot*, col_oids: uint16*, table_name: char*) -> bool {
       // Initialize and bind the storage_interface
       // @todo: FIX! should the variables here be passed in as arguments to the function. Are they all needed?
       // Do we need to define another storageInterfaceInitBind-like method? That seems not helpful.
-      var col_oids: [1]uint32
-      col_oids[0] = 1 // colA
       var storage_interface: StorageInterface
-      @storageInterfaceInitBind(&storage_interface, execCtx, "empty_table", col_oids, true)
+      @storageInterfaceInitBind(&storage_interface, execCtx, table_name, col_oids, true)
 
       // Delete on Table
       // If the table delete fails, unbind the storage interface and return false
@@ -162,6 +168,11 @@ class BlockCompactor {
   std::queue<RawBlock *> compaction_queue_;
 
   // stores compiled bytecode that can be called with different arguments (look in the blockcompactor constructor for details)
-  std::function<bool(TupleSlot*, TupleSlot*)> move_tuple_;
+  std::function<bool(execution::exec::ExecutionContext *, TupleSlot*, TupleSlot*, col_id_t*, char *)> move_tuple_;
+
+  // Variables required for calling the MoveTuple builtin
+  execution::exec::ExecutionContext *exec_;
+  col_id_t *col_oids_;
+  char *table_name_;
 };
 }  // namespace terrier::storage
