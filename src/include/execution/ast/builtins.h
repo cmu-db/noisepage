@@ -250,7 +250,10 @@ namespace terrier::execution::ast {
   F(GetParamDouble, getParamDouble)                                     \
   F(GetParamDate, getParamDate)                                         \
   F(GetParamTimestamp, getParamTimestamp)                               \
-  F(GetParamString, getParamString)
+  F(GetParamString, getParamString)                                     \
+                                                                        \
+  /* String functions */                                                \
+  F(Lower, lower)
 
 /**
  * Enum of builtins

@@ -1,8 +1,5 @@
 #include "traffic_cop/traffic_cop_util.h"
 
-#include <string>
-#include <vector>
-
 #include "catalog/catalog_accessor.h"
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -27,6 +24,7 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
   optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
   auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
 
+  // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::move(cost_model), optimizer_timeout);
   optimizer::PropertySet property_set;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output;
@@ -40,7 +38,7 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
 
     // Output
     output = sel_stmt->GetSelectColumns();  // TODO(Matt): this is making a local copy. Revisit the life cycle and
-                                            // immutability of all of these Optimizer inputs to reduce copies.
+    // immutability of all of these Optimizer inputs to reduce copies.
 
     // PropertySort
     if (sel_stmt->GetSelectOrderBy()) {
