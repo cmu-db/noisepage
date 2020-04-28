@@ -647,15 +647,15 @@ LogicalSemiJoinToPhysicalSemiLeftHashJoin::LogicalSemiJoinToPhysicalSemiLeftHash
 }
 
 bool LogicalSemiJoinToPhysicalSemiLeftHashJoin::Check(common::ManagedPointer<OperatorNode> plan,
-                                                    OptimizationContext *context) const {
+                                                      OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
 void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(common::ManagedPointer<OperatorNode> input,
-                                                        std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                                        UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                                          std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                          UNUSED_ATTRIBUTE OptimizationContext *context) const {
   // first build an expression representing hash join
   const auto semi_join = input->GetOp().As<LogicalSemiJoin>();
 

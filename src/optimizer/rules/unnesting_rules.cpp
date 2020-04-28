@@ -126,7 +126,8 @@ RulePromise DependentSingleJoinToInnerJoin::Promise(GroupExpression *group_expr)
   return RulePromise::LOGICAL_PROMISE;
 }
 
-bool DependentSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
+bool DependentSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan,
+                                           OptimizationContext *context) const {
   (void)context;
   (void)plan;
 
@@ -136,8 +137,8 @@ bool DependentSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> 
 }
 
 void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> input,
-                                         std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                               std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
   UNUSED_ATTRIBUTE auto single_join = input->GetOp().As<LogicalSingleJoin>();
   TERRIER_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
   // From LOGICALSINGLEJOIN -> LOGICALFILTER -> LOGICALAGGREGATEANDGROUPBY
@@ -187,8 +188,8 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNo
   if (!down_predicates.empty()) {
     std::vector<std::unique_ptr<OperatorNode>> cf;
     cf.emplace_back(std::move(new_aggr));
-    auto filter1 =  std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(down_predicates)), std::move(cf));
-    ci.emplace_back(std::move(filter1));
+    auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(down_predicates)), std::move(cf));
+    ci.emplace_back(std::move(filter));
   } else {
     ci.emplace_back(std::move(new_aggr));
   }
