@@ -183,6 +183,7 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -194,13 +195,8 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
     }
   }
 
-  std::vector<std::vector<int64_t>> args;
-  GENERATE_MIXED_ARGUMENTS(args);
-  for (auto arg : args) {
-    if (arg[4] == arg[5]) {
-      b->Args({arg[0], arg[1], arg[4]});
-    }
-  }
+  // Generate special Output feature [1 0 0 1 1]
+  b->Args({0, 0, 1});
 }
 
 /**
@@ -339,19 +335,19 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
         std::vector<int64_t> cars;
         while (car < row) {
           if (row * row / car <= 10000000) {
-            cars.push_back(car);
+            if (type == type::TypeId::INTEGER)
+              b->Args({col, 0, 15, 0, row, car});
+            else if (type == type::TypeId::BIGINT)
+              b->Args({0, col, 0, 15, row, car});
           }
 
           car *= 2;
         }
-        cars.push_back(row);
 
-        for (auto it = cars.begin(); it != cars.end(); it++) {
-          if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, *it});
-          else if (type == type::TypeId::BIGINT)
-            b->Args({0, col, 0, 15, row, *it});
-        }
+        if (type == type::TypeId::INTEGER)
+          b->Args({col, 0, 15, 0, row, row});
+        else if (type == type::TypeId::BIGINT)
+          b->Args({0, col, 0, 15, row, row});
       }
     }
   }
@@ -370,7 +366,6 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
  * 8 - Matched cardinality
  */
 static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
-  std::vector<std::vector<int64_t>> args;
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
@@ -386,18 +381,12 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
 
           auto matched_car = row_nums[i];
           if (type == type::TypeId::INTEGER)
-            args.emplace_back(
-                std::vector<int64_t>({col, 0, 15, 0, build_rows, build_car, probe_rows, probe_car, matched_car}));
+            b->Args({col, 0, 15, 0, build_rows, build_car, probe_rows, probe_car, matched_car});
           else if (type == type::TypeId::BIGINT)
-            args.emplace_back(
-                std::vector<int64_t>({0, col, 0, 15, build_rows, build_car, probe_rows, probe_car, matched_car}));
+            b->Args({0, col, 0, 15, build_rows, build_car, probe_rows, probe_car, matched_car});
         }
       }
     }
-  }
-
-  for (auto arg : args) {
-    b->Args(arg);
   }
 }
 
@@ -847,20 +836,22 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
     // pipeline
     output << "fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {\n";
-    output << "\tvar out: *Output\n";
-    output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
-    output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
-    output << "\t}\n";
-    output << "\t@outputFinalize(execCtx)\n";
+    output << "\t@execCtxStartResourceTracker(execCtx, 4)\n";
+    if (num_col > 0) {
+      output << "\tvar out: *Output\n";
+      output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
+      output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
+      output << "\t}\n";
+      output << "\t@outputFinalize(execCtx)\n";
+    }
+    output << "\t@execCtxEndPipelineTracker(execCtx, 0, 0)\n";
     output << "}\n";
 
     // main
     output << "fun main (execCtx: *ExecutionContext) -> int64 {\n";
     output << "\tvar state: State\n";
     output << "\tsetUpState(execCtx, &state)\n";
-    output << "\t@execCtxStartResourceTracker(execCtx, 4)\n";
     output << "\tpipeline1(execCtx, &state)\n";
-    output << "\t@execCtxEndPipelineTracker(execCtx, 0, 0)\n";
     output << "\tteardownState(execCtx, &state)\n";
     output << "\treturn 0\n";
     output << "}\n";
