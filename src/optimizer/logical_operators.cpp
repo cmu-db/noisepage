@@ -1265,11 +1265,14 @@ Operator LogicalCteScan::Make(std::string table_alias, std::vector<common::Manag
 
 bool LogicalCteScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::LOGICALCTESCAN) return false;
+  const LogicalCteScan &node = *dynamic_cast<const LogicalCteScan *>(&r);
+  if (table_alias_ != node.table_alias_) return false;
   return (true);
 }
 
 common::hash_t LogicalCteScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   return hash;
 }
 
