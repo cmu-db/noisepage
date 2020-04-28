@@ -723,7 +723,6 @@ class LeftSemiHashJoin : public OperatorNodeContents<LeftSemiHashJoin> {
   std::vector<AnnotatedExpression> join_predicates_;
 };
 
-
 /**
  * Physical operator for left outer hash join
  */

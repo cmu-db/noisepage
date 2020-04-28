@@ -207,11 +207,11 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
   // Convert Inner Join to Semi Join
   bool semi_join = false;
   std::vector<AnnotatedExpression> semi_join_predicates;
-  for (auto &join_predicate: join_predicates) {
+  for (auto &join_predicate : join_predicates) {
     if (join_predicate.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
       semi_join = true;
-    join_predicate.GetExpr()->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
-    semi_join_predicates.push_back(join_predicate);
+      join_predicate.GetExpr()->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
+      semi_join_predicates.push_back(join_predicate);
     } else {
       semi_join_predicates.push_back(join_predicate);
     }

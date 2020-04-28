@@ -269,6 +269,7 @@ class AbstractExpression {
    * @param expression_type Set the expression type of the current expression
    */
   void SetExpressionType(ExpressionType expression_type) { expression_type_ = expression_type; }
+
  protected:
   // We make abstract expression friend with both binder and query to operator transformer
   // as they each traverse the ast independently and add in necessary information to the ast
