@@ -457,7 +457,8 @@ RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   data_table_counter_.IncrementNumNewBlock(1);
-  regions_[new_block->numa_region_ == common::UNSUPPORTED_NUMA_REGION ? 0 : static_cast<int16_t>(new_block->numa_region_)]
+  regions_[new_block->numa_region_ == common::UNSUPPORTED_NUMA_REGION ? 0
+                                                                      : static_cast<int16_t>(new_block->numa_region_)]
       .insert(new_block);
   return new_block;
 }

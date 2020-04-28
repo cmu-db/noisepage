@@ -14,13 +14,13 @@
 #include <utility>
 #include <vector>
 
-#include "common/macros.h"
+#include <tbb/reader_writer_lock.h>
+#include "common/coroutine_defs.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/dedicated_thread_registry.h"
-#include "tbb/concurrent_queue.h"
-#include "common/coroutine_defs.h"
+#include "common/macros.h"
 #include "storage/storage_defs.h"
-#include <tbb/reader_writer_lock.h>
+#include "tbb/concurrent_queue.h"
 
 namespace terrier::common {
 
@@ -36,12 +36,11 @@ namespace terrier::common {
  */
 class ExecutionThreadPool : DedicatedThreadOwner {
  public:
-
   /**
-  * A task queue is a FIFO list of functions that we will execute.
-  * This queue by itself is not threadsafe so the WorkerPool class has to protect
-  * it on its own with latches.
-  */
+   * A task queue is a FIFO list of functions that we will execute.
+   * This queue by itself is not threadsafe so the WorkerPool class has to protect
+   * it on its own with latches.
+   */
   // TODO(Deepayan): change from void later
   using Task = std::pair<PoolContext *, std::promise<void> *>;
   using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
@@ -81,14 +80,15 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     for (std::vector<TerrierThread *> vector : workers_) {  // NOLINT
       for (TerrierThread *t : vector) {
         auto dedicated_thread_task = static_cast<DedicatedThreadTask *>(t);
-        bool result UNUSED_ATTRIBUTE = thread_registry_.operator->()->StopTask(
-            this, common::ManagedPointer(dedicated_thread_task));
+        bool result UNUSED_ATTRIBUTE =
+            thread_registry_.operator->()->StopTask(this, common::ManagedPointer(dedicated_thread_task));
         TERRIER_ASSERT(result, "StopTask should succeed");
       }
     }
   }
 
-  void SubmitTask(std::promise<void> *promise, const std::function<void(PoolContext *)> &task, common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
+  void SubmitTask(std::promise<void> *promise, const std::function<void(PoolContext *)> &task,
+                  common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
     if (numa_hint == UNSUPPORTED_NUMA_REGION) {
       numa_hint = static_cast<common::numa_region_t>(0);
     }
@@ -106,9 +106,8 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    */
   void SubmitTask(std::promise<void> *promise, const std::function<void()> &task,
                   common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
-    SubmitTask(promise, [=] (PoolContext *ctx) {
-      task();
-    }, numa_hint);
+    SubmitTask(
+        promise, [=](PoolContext *ctx) { task(); }, numa_hint);
   }
 
   /**
@@ -223,7 +222,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   };
 
  private:
-
   static const uint32_t MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS = 10000;
 
   common::ManagedPointer<DedicatedThreadRegistry> thread_registry_;
@@ -265,9 +263,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
   }
 
-  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) override {
-    return true;
-  }
+  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) override { return true; }
 
   void WaitForTask() {
     std::unique_lock<std::mutex> l(task_lock_);

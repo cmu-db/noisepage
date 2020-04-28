@@ -27,7 +27,7 @@ class SpinLatch {
    */
   void Lock(common::PoolContext *ctx = nullptr) {
     if (ctx != nullptr) {
-      while(!TryLock()) ctx->YieldToPool();
+      while (!TryLock()) ctx->YieldToPool();
       return;
     }
     latch_.lock();
@@ -54,7 +54,9 @@ class SpinLatch {
      * Acquire lock on SpinLatch.
      * @param latch pointer to SpinLatch to acquire
      */
-    explicit ScopedSpinLatch(SpinLatch *const latch, common::PoolContext *ctx = nullptr) : spin_latch_(latch) { spin_latch_->Lock(ctx); }
+    explicit ScopedSpinLatch(SpinLatch *const latch, common::PoolContext *ctx = nullptr) : spin_latch_(latch) {
+      spin_latch_->Lock(ctx);
+    }
 
     /**
      * Release lock (if acquired).

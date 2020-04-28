@@ -1,9 +1,9 @@
 #pragma once
+#include <tbb/spin_mutex.h>
 #include <memory>
 #include <thread>  // NOLINT
 #include "common/dedicated_thread_task.h"
 #include "common/managed_pointer.h"
-#include <tbb/spin_mutex.h>
 
 namespace terrier::common {
 

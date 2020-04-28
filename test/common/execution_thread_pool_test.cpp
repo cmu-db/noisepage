@@ -247,7 +247,7 @@ TEST(ExecutionThreadPoolTests, ContestSwitchingTestSpinLatch) {
     while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     common::SpinLatch l;
-    auto get_stuck_on_latch = [&] (common::PoolContext *ctx) {
+    auto get_stuck_on_latch = [&](common::PoolContext *ctx) {
       flag2++;
       common::SpinLatch::ScopedSpinLatch guard(&l, ctx);
       flag3++;
@@ -295,7 +295,7 @@ TEST(ExecutionThreadPoolTests, ContestSwitchingTestSharedLatchShared) {
     while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     common::SharedLatch l;
-    auto get_stuck_on_latch = [&] (common::PoolContext *ctx) {
+    auto get_stuck_on_latch = [&](common::PoolContext *ctx) {
       flag2++;
       common::SharedLatch::ScopedSharedLatch guard(&l, ctx);
       flag3++;
@@ -343,7 +343,7 @@ TEST(ExecutionThreadPoolTests, ContestSwitchingTestSharedLatchExclusive) {
     while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     common::SharedLatch l;
-    auto get_stuck_on_latch = [&] (common::PoolContext *ctx) {
+    auto get_stuck_on_latch = [&](common::PoolContext *ctx) {
       flag2++;
       common::SharedLatch::ScopedExclusiveLatch guard(&l, ctx);
       flag3++;

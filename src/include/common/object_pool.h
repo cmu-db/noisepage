@@ -1,11 +1,11 @@
 #pragma once
 
+#include <tbb/spin_mutex.h>
 #include <queue>
 #include <string>
 #include <utility>
 #include "common/allocator.h"
 #include "common/strong_typedef.h"
-#include <tbb/spin_mutex.h>
 
 namespace terrier::common {
 // TODO(Yangjun): this class should be moved somewhere else.

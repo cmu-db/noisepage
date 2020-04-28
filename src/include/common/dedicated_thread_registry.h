@@ -9,8 +9,8 @@
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 
-#include "metrics/metrics_manager.h"
 #include <tbb/spin_mutex.h>
+#include "metrics/metrics_manager.h"
 
 namespace terrier::common {
 
@@ -73,7 +73,7 @@ class DedicatedThreadRegistry {
    * yet
    */
   template <class T, class... Targs>
-    common::ManagedPointer<T> RegisterDedicatedThread(DedicatedThreadOwner *requester, Targs... args) {
+  common::ManagedPointer<T> RegisterDedicatedThread(DedicatedThreadOwner *requester, Targs... args) {
     tbb::spin_mutex::scoped_lock l(table_latch_);
     auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);

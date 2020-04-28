@@ -73,8 +73,11 @@ class DataTableBenchmark : public benchmark::Fixture {
 
   static std::vector<int> GetNCPUsInFewRegions(int n) {
     std::vector<int> result;
-    for (int region = 0; region < static_cast<int>(storage::RawBlock::GetNumNumaRegions()) &&  static_cast<int>(result.size()) < n; region++) {
-      for (int cpu = 0; cpu < static_cast<int>(std::thread::hardware_concurrency()) &&  static_cast<int>(result.size()) < n; cpu++) {
+    for (int region = 0;
+         region < static_cast<int>(storage::RawBlock::GetNumNumaRegions()) && static_cast<int>(result.size()) < n;
+         region++) {
+      for (int cpu = 0;
+           cpu < static_cast<int>(std::thread::hardware_concurrency()) && static_cast<int>(result.size()) < n; cpu++) {
 #ifdef __APPLE__
         result.emplace_back(cpu);  // NOLINT
 #else
@@ -484,22 +487,22 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
 // Benchmark Registration
 // ----------------------------------------------------------------------------
 // clang-format off
-//BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
 BENCHMARK_REGISTER_F(DataTableBenchmark, SingleThreadedIteration)
 ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
