@@ -799,18 +799,18 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   std::string ckpt_path = "ckpt_test/";
   unlink(secondary_log_file.c_str());
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-                                              .SetNumDatabases(1)
-                                              .SetNumTables(1)
-                                              .SetMaxColumns(5)
-                                              .SetInitialTableSize(1)
-                                              .SetTxnLength(1)
-                                              .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
-                                              .SetVarlenAllowed(false)
-                                              .Build();
+            .SetNumDatabases(1)
+            .SetNumTables(5)
+            .SetMaxColumns(5)
+            .SetInitialTableSize(1000)
+            .SetTxnLength(5)
+            .SetInsertUpdateSelectDeleteRatio({0.5, 0.3, 0.2, 0})
+            .SetVarlenAllowed(true)
+            .Build();
   auto *tested =
-      new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
+            new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
 
-  // Run workload
+    // Run workload
   tested->SimulateOltp(1, 1);
 
   // Create directory
@@ -882,28 +882,6 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       auto recovered_sql_table = recovered_db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
 
-      /*
-      auto block1 = GetBlocks(original_sql_table).front();
-      auto block2 = GetBlocks(recovered_sql_table).front();
-      const auto &layout = GetLayout(original_sql_table);
-      const auto &column_ids = layout.AllColumns();
-
-      byte *column_start1 = GetAccessor(original_sql_table).ColumnStart(block1, column_ids[0]);
-      byte *column_start2 = GetAccessor(recovered_sql_table).ColumnStart(block2, column_ids[0]);
-
-      common::RawConcurrentBitmap *column_bitmap1 = GetAccessor(original_sql_table).ColumnNullBitmap(block1, column_ids[0]);
-      common::RawConcurrentBitmap *column_bitmap2 = GetAccessor(recovered_sql_table).ColumnNullBitmap(block2, column_ids[0]);
-
-
-
-      EXPECT_TRUE(!memcmp(column_start1, column_start2, 100));
-      for (auto k = 0; k < 100; k ++) {
-        printf("%d %hhx %hhx\n", k, *(column_start1 + k), *(column_start2 + k));
-      }
-      EXPECT_TRUE(!memcmp((char*)column_bitmap1, (char*)column_bitmap2, 1));
-      */
-
-
       // checking
       auto initializer = storage::ProjectedRowInitializer::Create(GetBlockLayout(original_sql_table),
                       StorageTestUtil::ProjectionListAllColumns(GetBlockLayout(original_sql_table)));
@@ -926,11 +904,6 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
         it ++;
       }
       EXPECT_TRUE(it == recovered_sql_table->end());
-
-      auto count = 0;
-      for (; it != recovered_sql_table->end(); it ++) {
-        count ++;
-      }
 
       delete[] buffer_one;
       delete[] buffer_two;

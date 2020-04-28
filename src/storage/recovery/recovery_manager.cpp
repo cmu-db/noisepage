@@ -98,8 +98,8 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     Checkpoint::GenOidFromFileName(in_file.substr(path.length(), in_file.length()), db_oid, table_oid);
     common::ManagedPointer<storage::SqlTable> table = accessor->GetTable(table_oid);
     auto &data_table = table->table_.data_table_;
-    const auto &layout = data_table->GetBlockLayout();
-    const auto &column_ids = layout.AllColumns();
+    const auto layout = data_table->GetBlockLayout();
+    const auto column_ids = layout.AllColumns();
     auto column_id_size = column_ids.size();
     data_table->blocks_.clear();
 
@@ -149,8 +149,8 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
         if (layout.IsVarlen(col_id)) {
           uint64_t offsets_length = (*record_buffers)[cur_buffer_index ++]->length() / sizeof(uint64_t);
           uint64_t values_length = (*record_buffers)[cur_buffer_index ++]->length();
-          uint64_t *offsets_array = new uint64_t[offsets_length / sizeof(uint64_t)];
-          ReadDataBlock(f, reinterpret_cast<char *>(offsets_array), offsets_length* sizeof(uint64_t));
+          uint64_t *offsets_array = new uint64_t[offsets_length];
+          ReadDataBlock(f, reinterpret_cast<char *>(offsets_array), offsets_length * sizeof(uint64_t));
           byte *values_array = new byte[values_length];
           ReadDataBlock(f, reinterpret_cast<char *>(values_array), values_length);
 
