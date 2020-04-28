@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+
 #include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 

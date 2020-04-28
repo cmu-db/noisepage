@@ -1,3 +1,5 @@
+#include "planner/plannodes/nested_loop_join_plan_node.h"
+
 #include <iterator>
 #include <memory>
 #include <vector>
@@ -6,7 +8,6 @@
 #include "nlohmann/json.hpp"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_join_plan_node.h"
-#include "planner/plannodes/nested_loop_join_plan_node.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;

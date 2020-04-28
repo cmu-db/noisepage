@@ -1,3 +1,5 @@
+#include "optimizer/statistics/stats_storage.h"
+
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
@@ -6,7 +8,6 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/statistics/stats_storage.h"
 #include "optimizer/statistics/table_stats.h"
 
 namespace terrier::optimizer {

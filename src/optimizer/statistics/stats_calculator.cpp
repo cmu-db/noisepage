@@ -1,3 +1,5 @@
+#include "optimizer/statistics/stats_calculator.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <iosfwd>
@@ -20,7 +22,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/selectivity.h"
-#include "optimizer/statistics/stats_calculator.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"

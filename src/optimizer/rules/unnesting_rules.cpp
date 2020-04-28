@@ -1,3 +1,5 @@
+#include "optimizer/rules/unnesting_rules.h"
+
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -11,7 +13,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/pattern.h"
 #include "optimizer/rule.h"
-#include "optimizer/rules/unnesting_rules.h"
 
 namespace terrier::optimizer {
 class GroupExpression;

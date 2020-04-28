@@ -1,6 +1,7 @@
 #include "execution/sql/thread_state_container.h"
 
 #include <tbb/enumerable_thread_specific.h>
+
 #include <memory>
 #include <type_traits>
 #include <vector>

@@ -1,3 +1,5 @@
+#include "optimizer/rules/rewrite_rules.h"
+
 #include <iosfwd>
 #include <memory>
 #include <type_traits>
@@ -17,7 +19,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/pattern.h"
 #include "optimizer/rule.h"
-#include "optimizer/rules/rewrite_rules.h"
 #include "optimizer/util.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_util.h"

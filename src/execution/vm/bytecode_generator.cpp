@@ -1,3 +1,5 @@
+#include "execution/vm/bytecode_generator.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
@@ -25,7 +27,6 @@
 #include "execution/util/region_containers.h"
 #include "execution/vm/bytecode_emitter.h"
 #include "execution/vm/bytecode_function_info.h"
-#include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/bytecodes.h"

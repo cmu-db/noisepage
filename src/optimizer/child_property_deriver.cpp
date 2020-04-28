@@ -1,3 +1,5 @@
+#include "optimizer/child_property_deriver.h"
+
 #include <cstddef>
 #include <iosfwd>
 #include <string>
@@ -10,7 +12,6 @@
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "optimizer/child_property_deriver.h"
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/index_util.h"

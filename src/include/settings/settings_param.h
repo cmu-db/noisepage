@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+
 #include "common/managed_pointer.h"
 #include "type/transient_value.h"
 

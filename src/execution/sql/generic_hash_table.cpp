@@ -1,9 +1,10 @@
+#include "execution/sql/generic_hash_table.h"
+
 #include <atomic>
 #include <cstdint>
 
 #include "common/macros.h"
 #include "common/math_util.h"
-#include "execution/sql/generic_hash_table.h"
 #include "execution/util/memory.h"
 
 namespace terrier::execution::sql {

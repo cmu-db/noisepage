@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"

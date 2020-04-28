@@ -1,3 +1,5 @@
+#include "optimizer/optimizer_task.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <functional>
@@ -19,7 +21,6 @@
 #include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_defs.h"
-#include "optimizer/optimizer_task.h"
 #include "optimizer/pattern.h"
 #include "optimizer/property.h"
 #include "optimizer/property_enforcer.h"

@@ -1,3 +1,5 @@
+#include "planner/plannodes/csv_scan_plan_node.h"
+
 #include <iosfwd>
 #include <iterator>
 #include <memory>
@@ -8,7 +10,6 @@
 #include "nlohmann/json.hpp"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
-#include "planner/plannodes/csv_scan_plan_node.h"
 #include "type/type_id.h"
 
 namespace terrier::planner {

@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <string>
+
 #include "common/json.h"
 
 namespace terrier::common {

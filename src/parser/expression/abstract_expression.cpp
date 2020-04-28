@@ -1,3 +1,5 @@
+#include "parser/expression/abstract_expression.h"
+
 #include <iosfwd>
 #include <iterator>
 #include <memory>
@@ -7,7 +9,6 @@
 #include <vector>
 
 #include "nlohmann/json.hpp"
-#include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"

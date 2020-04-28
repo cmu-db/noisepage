@@ -1,3 +1,5 @@
+#include "optimizer/group_expression.h"
+
 #include <cstddef>
 #include <tuple>
 #include <unordered_map>
@@ -5,7 +7,6 @@
 #include <vector>
 
 #include "common/hash_util.h"
-#include "optimizer/group_expression.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property_set.h"

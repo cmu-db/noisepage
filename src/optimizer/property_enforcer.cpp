@@ -1,3 +1,5 @@
+#include "optimizer/property_enforcer.h"
+
 #include <type_traits>
 #include <vector>
 
@@ -5,7 +7,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/property.h"
-#include "optimizer/property_enforcer.h"
 
 namespace terrier::optimizer {
 class PropertySort;

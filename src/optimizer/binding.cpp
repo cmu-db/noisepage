@@ -1,3 +1,5 @@
+#include "optimizer/binding.h"
+
 #include <cstddef>
 #include <iosfwd>
 #include <memory>
@@ -6,7 +8,6 @@
 
 #include "common/macros.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/binding.h"
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/logical_operators.h"

@@ -1,3 +1,5 @@
+#include "optimizer/statistics/table_stats.h"
+
 #include <cstddef>
 #include <memory>
 #include <type_traits>
@@ -9,7 +11,6 @@
 #include "common/strong_typedef.h"
 #include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/column_stats.h"
-#include "optimizer/statistics/table_stats.h"
 
 namespace terrier::optimizer {
 

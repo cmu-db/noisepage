@@ -2,6 +2,7 @@
 
 #include <tbb/cache_aligned_allocator.h>
 #include <tbb/concurrent_queue.h>
+
 #include <chrono>  // NOLINT
 #include <cstddef>
 #include <cstdint>

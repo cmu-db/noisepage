@@ -1,8 +1,11 @@
+#include "network/network_io_wrapper.h"
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
+
 #include <cstring>
 #include <memory>
 
@@ -10,7 +13,6 @@
 #include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
 #include "network/network_io_utils.h"
-#include "network/network_io_wrapper.h"
 #include "network/network_types.h"
 
 namespace terrier::network {

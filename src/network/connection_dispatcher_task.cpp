@@ -3,6 +3,7 @@
 #include <event2/event.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
+
 #include <cstdint>
 
 #include "common/dedicated_thread_registry.h"

@@ -1,3 +1,5 @@
+#include "storage/arrow_serializer.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
@@ -15,7 +17,6 @@
 #include "flatbuffers/generated/Message_generated.h"
 #include "flatbuffers/generated/Schema_generated.h"
 #include "storage/arrow_block_metadata.h"
-#include "storage/arrow_serializer.h"
 #include "storage/block_access_controller.h"
 #include "storage/block_layout.h"
 #include "storage/data_table.h"

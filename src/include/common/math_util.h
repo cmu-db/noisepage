@@ -3,10 +3,9 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include "llvm/Support/MathExtras.h"
-
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
+#include "llvm/Support/MathExtras.h"
 
 namespace terrier::common {
 

@@ -1,3 +1,5 @@
+#include "optimizer/statistics/child_stats_deriver.h"
+
 #include <cstddef>
 #include <iosfwd>
 #include <string>
@@ -13,7 +15,6 @@
 #include "optimizer/memo.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"
-#include "optimizer/statistics/child_stats_deriver.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_defs.h"

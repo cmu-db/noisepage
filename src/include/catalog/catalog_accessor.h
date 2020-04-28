@@ -1,6 +1,7 @@
 #pragma once
 
 #include <_ctype.h>
+
 #include <algorithm>
 #include <iosfwd>
 #include <string>

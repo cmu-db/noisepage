@@ -1,3 +1,5 @@
+#include "optimizer/logical_operators.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
@@ -13,7 +15,6 @@
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/strong_typedef.h"
-#include "optimizer/logical_operators.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"
 #include "parser/create_function_statement.h"

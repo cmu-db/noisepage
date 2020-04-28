@@ -2,9 +2,8 @@
 
 #include <functional>
 
-#include "llvm/ADT/DenseMapInfo.h"
-
 #include "common/macros.h"
+#include "llvm/ADT/DenseMapInfo.h"
 
 namespace terrier::execution::ast {
 

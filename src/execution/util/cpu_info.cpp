@@ -1,6 +1,7 @@
 #include "execution/util/cpu_info.h"
 
 #include <sys/errno.h>
+
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -11,8 +12,10 @@
 #include "llvm/ADT/StringRef.h"
 
 #if __APPLE__
+
 #include <cpuid.h>
 #include <sys/sysctl.h>
+
 #endif
 
 #include <fstream>
@@ -158,14 +161,17 @@ std::string CpuInfo::PrettyPrintInfo() const {
   std::stringstream ss;
 
   // clang-format off
-  ss << "CPU Info: " << std::endl;
-  ss << "  Model:  " << model_name_ << std::endl;
-  ss << "  Cores:  " << num_cores_ << std::endl;
-  ss << "  Mhz:    " << std::fixed << std::setprecision(2) << cpu_mhz_ << std::endl;
-  ss << "  Caches: " << std::endl;
-  ss << "    L1: " << (cache_sizes_[L1_CACHE] / 1024.0) << " common::Constants::KB (" << cache_line_sizes_[L1_CACHE] << " byte line)" << std::endl;  // NOLINT
-  ss << "    L2: " << (cache_sizes_[L2_CACHE] / 1024.0) << " common::Constants::KB (" << cache_line_sizes_[L2_CACHE] << " byte line)" << std::endl;  // NOLINT
-  ss << "    L3: " << (cache_sizes_[L3_CACHE] / 1024.0) << " common::Constants::KB (" << cache_line_sizes_[L3_CACHE] << " byte line)" << std::endl;  // NOLINT
+        ss << "CPU Info: " << std::endl;
+        ss << "  Model:  " << model_name_ << std::endl;
+        ss << "  Cores:  " << num_cores_ << std::endl;
+        ss << "  Mhz:    " << std::fixed << std::setprecision(2) << cpu_mhz_ << std::endl;
+        ss << "  Caches: " << std::endl;
+        ss << "    L1: " << (cache_sizes_[L1_CACHE] / 1024.0) << " common::Constants::KB ("
+           << cache_line_sizes_[L1_CACHE] << " byte line)" << std::endl;  // NOLINT
+        ss << "    L2: " << (cache_sizes_[L2_CACHE] / 1024.0) << " common::Constants::KB ("
+           << cache_line_sizes_[L2_CACHE] << " byte line)" << std::endl;  // NOLINT
+        ss << "    L3: " << (cache_sizes_[L3_CACHE] / 1024.0) << " common::Constants::KB ("
+           << cache_line_sizes_[L3_CACHE] << " byte line)" << std::endl;  // NOLINT
   // clang-format on
 
   ss << "Features: ";

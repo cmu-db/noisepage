@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "loggers/optimizer_logger.h"
-
 #include "optimizer/group.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_node.h"

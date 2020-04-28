@@ -1,3 +1,5 @@
+#include "optimizer/input_column_deriver.h"
+
 #include <__hash_table>
 #include <cstddef>
 #include <functional>
@@ -13,7 +15,6 @@
 #include "common/managed_pointer.h"
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
-#include "optimizer/input_column_deriver.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"

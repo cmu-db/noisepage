@@ -1,8 +1,7 @@
 #pragma once
 
-#include "llvm/Support/Allocator.h"
-
 #include "execution/util/region.h"
+#include "llvm/Support/Allocator.h"
 
 namespace terrier::execution::util {
 

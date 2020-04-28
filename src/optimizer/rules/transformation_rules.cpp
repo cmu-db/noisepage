@@ -1,3 +1,5 @@
+#include "optimizer/rules/transformation_rules.h"
+
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -18,7 +20,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/pattern.h"
 #include "optimizer/rule.h"
-#include "optimizer/rules/transformation_rules.h"
 #include "optimizer/util.h"
 
 namespace terrier::optimizer {

@@ -1,3 +1,5 @@
+#include "optimizer/memo.h"
+
 #include <__hash_table>
 #include <iosfwd>
 #include <string>
@@ -11,7 +13,6 @@
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/logical_operators.h"
-#include "optimizer/memo.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"
 

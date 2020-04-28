@@ -1,3 +1,5 @@
+#include "brain/operating_unit_recorder.h"
+
 #include <__hash_table>
 #include <cstddef>
 #include <iterator>
@@ -9,7 +11,6 @@
 
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
-#include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"

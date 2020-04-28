@@ -1,7 +1,7 @@
 #include "execution/sql/join_hash_table_vector_probe.h"
-#include "execution/sql/projected_columns_iterator.h"
 
 #include "execution/sql/join_hash_table.h"
+#include "execution/sql/projected_columns_iterator.h"
 
 namespace terrier::execution::sql {
 

@@ -1,6 +1,7 @@
 #include "catalog/catalog.h"
 
 #include <sys/types.h>
+
 #include <array>
 #include <memory>
 #include <type_traits>

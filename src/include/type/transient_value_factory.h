@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+
 #include "common/exception.h"
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"

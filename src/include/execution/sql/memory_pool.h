@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common/managed_pointer.h>
+
 #include <algorithm>
 #include <atomic>
 #include <cstddef>

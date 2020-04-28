@@ -5,15 +5,12 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-
-#include "parser/expression/abstract_expression.h"
-#include "parser/parser_defs.h"
-
-#include "settings/settings_manager.h"
-
 #include "optimizer/operator_node.h"
 #include "optimizer/property_set.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/parser_defs.h"
+#include "settings/settings_manager.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;

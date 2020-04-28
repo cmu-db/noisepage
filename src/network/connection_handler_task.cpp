@@ -1,6 +1,7 @@
 #include "network/connection_handler_task.h"
 
 #include <event2/event.h>
+
 #include <memory>
 #include <type_traits>
 #include <utility>

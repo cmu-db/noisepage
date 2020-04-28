@@ -1,3 +1,5 @@
+#include "storage/data_table.h"
+
 #include <atomic>
 #include <cstdint>
 #include <list>
@@ -13,7 +15,6 @@
 #include "storage/arrow_block_metadata.h"
 #include "storage/block_access_controller.h"
 #include "storage/block_layout.h"
-#include "storage/data_table.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"

@@ -1,5 +1,6 @@
 #pragma once
 #include <tbb/enumerable_thread_specific.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>

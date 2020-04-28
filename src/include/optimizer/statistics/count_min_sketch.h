@@ -1,6 +1,7 @@
 #pragma once
 
 #include <madoka/madoka.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>

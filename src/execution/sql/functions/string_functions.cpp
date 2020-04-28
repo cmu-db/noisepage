@@ -1,6 +1,7 @@
 #include "execution/sql/functions/string_functions.h"
 
 #include <_ctype.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>

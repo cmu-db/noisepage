@@ -1,6 +1,7 @@
 #include "optimizer/query_to_operator_transformer.h"
 
 #include <_ctype.h>
+
 #include <__hash_table>
 #include <algorithm>
 #include <cstddef>

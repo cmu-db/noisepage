@@ -1,4 +1,5 @@
 #include "optimizer/rule.h"
+
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"

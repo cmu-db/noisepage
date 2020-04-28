@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <string>
+
 #include "common/strong_typedef.h"
 namespace terrier::common {
 
