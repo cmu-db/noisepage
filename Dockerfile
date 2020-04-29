@@ -4,6 +4,9 @@ CMD bash
 # Install Ubuntu packages.
 # Please add packages in alphabetical order.
 ARG DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /usr/include/
+
 RUN apt-get -y update && \
     apt-get -y install \
       build-essential \
@@ -14,6 +17,7 @@ RUN apt-get -y update && \
       doxygen \
       git \
       g++-7 \
+      libboost-dev \
       libevent-dev \
       libjemalloc-dev \
       libpq-dev \
@@ -35,4 +39,10 @@ RUN apt-get -y update && \
       dpkg -i libpqxx-6.2_6.2.5-1_amd64.deb && \
       dpkg -i libpqxx-dev_6.2.5-1_amd64.deb && \
       rm libpqxx-6.2_6.2.5-1_amd64.deb && \
-      rm libpqxx-dev_6.2.5-1_amd64.deb \
+      rm libpqxx-dev_6.2.5-1_amd64.deb # && \
+#      wget https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz && \
+#      mkdir -p /usr/include/boost && \
+#      tar zxf boost_1_72_0.tar.gz -C /usr/include/boost --strip-components=1 && \
+#      rm boost_1_72_0.tar.gz \
+#
+#ENV BOOST_ROOT=/usr/include/boost
