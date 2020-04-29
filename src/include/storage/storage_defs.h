@@ -34,7 +34,10 @@ namespace terrier::storage {
 constexpr uint8_t NUM_ATTR_BOUNDARIES = 4;
 
 STRONG_TYPEDEF(col_id_t, uint16_t);
-STRONG_TYPEDEF(layout_version_t, uint16_t);
+using layout_version_t = uint16_t;
+
+// TODO(Schema-Change): only allow a maximum of 8 versions per schema; extend it to arbitrary version later
+constexpr uint8_t MAX_NUM_OF_VERSIONS = 8;
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).

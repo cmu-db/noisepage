@@ -14,11 +14,11 @@
 namespace terrier::storage {
 
 SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema)
-    : block_store_(store) {
+    : block_store_(store), tables_(MAX_NUM_OF_VERSIONS, DataTableVersion()) {
   // Initialize a DataTable
-  tables_.clear();
-  tables_.insert(std::make_pair(layout_version_t(0), CreateTable(common::ManagedPointer<const catalog::Schema>(&schema),
-                                                                 store, layout_version_t(0))));
+  auto success UNUSED_ATTRIBUTE = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema),
+                                              layout_version_t(0));
+  TERRIER_ASSERT(success, "Creating first data table should not fail.");
 }
 
 bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
@@ -321,10 +321,13 @@ template std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeade
     ProjectedColumns::RowView *const out_buffer, const DataTableVersion &tuple_version,
     const DataTableVersion &desired_version, col_id_t *cached_orig_header) const;
 
-SqlTable::DataTableVersion SqlTable::CreateTable(
-    const terrier::common::ManagedPointer<const terrier::catalog::Schema> schema,
-    const terrier::common::ManagedPointer<terrier::storage::BlockStore> store,
-    terrier::storage::layout_version_t version) {
+bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema, layout_version_t version) {
+  auto curr_num = ++num_of_versions_;
+  if (curr_num > MAX_NUM_OF_VERSIONS) {
+    num_of_versions_.store(MAX_NUM_OF_VERSIONS);
+    return false;
+  }
+
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint16_t> attr_sizes;
   attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema->GetColumns().size());
@@ -342,46 +345,44 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, NUM_RESERVED_COLUMNS);
 
-  ColumnOidToIdMap col_oid_to_id;
-  ColumnIdToOidMap col_id_to_oid;
-  DefaultValueMap default_value_map;
   // Build the map from Schema columns to underlying columns
   for (const auto &column : schema->GetColumns()) {
     auto default_value = column.StoredExpression();
     switch (column.AttrSize()) {
       case VARLEN_COLUMN:
-        if (default_value != nullptr) default_value_map[column.Oid()] = default_value;
-        col_id_to_oid[col_id_t(offsets[0])] = column.Oid();
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[0]++);
+        if (default_value != nullptr) tables_[curr_num - 1].default_value_map_[column.Oid()] = default_value;
+        tables_[curr_num - 1].column_id_to_oid_map_[col_id_t(offsets[0])] = column.Oid();
+        tables_[curr_num - 1].column_oid_to_id_map_[column.Oid()] = col_id_t(offsets[0]++);
         break;
       case 8:
-        if (default_value != nullptr) default_value_map[column.Oid()] = default_value;
-        col_id_to_oid[col_id_t(offsets[1])] = column.Oid();
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[1]++);
+        if (default_value != nullptr) tables_[curr_num - 1].default_value_map_[column.Oid()] = default_value;
+        tables_[curr_num - 1].column_id_to_oid_map_[col_id_t(offsets[1])] = column.Oid();
+        tables_[curr_num - 1].column_oid_to_id_map_[column.Oid()] = col_id_t(offsets[1]++);
         break;
       case 4:
-        if (default_value != nullptr) default_value_map[column.Oid()] = default_value;
-        col_id_to_oid[col_id_t(offsets[2])] = column.Oid();
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[2]++);
+        if (default_value != nullptr) tables_[curr_num - 1].default_value_map_[column.Oid()] = default_value;
+        tables_[curr_num - 1].column_id_to_oid_map_[col_id_t(offsets[2])] = column.Oid();
+        tables_[curr_num - 1].column_oid_to_id_map_[column.Oid()] = col_id_t(offsets[2]++);
         break;
       case 2:
-        if (default_value != nullptr) default_value_map[column.Oid()] = default_value;
-        col_id_to_oid[col_id_t(offsets[3])] = column.Oid();
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[3]++);
+        if (default_value != nullptr) tables_[curr_num - 1].default_value_map_[column.Oid()] = default_value;
+        tables_[curr_num - 1].column_id_to_oid_map_[col_id_t(offsets[3])] = column.Oid();
+        tables_[curr_num - 1].column_oid_to_id_map_[column.Oid()] = col_id_t(offsets[3]++);
         break;
       case 1:
-        if (default_value != nullptr) default_value_map[column.Oid()] = default_value;
-        col_id_to_oid[col_id_t(offsets[4])] = column.Oid();
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[4]++);
+        if (default_value != nullptr) tables_[curr_num - 1].default_value_map_[column.Oid()] = default_value;
+        tables_[curr_num - 1].column_id_to_oid_map_[col_id_t(offsets[4])] = column.Oid();
+        tables_[curr_num - 1].column_oid_to_id_map_[column.Oid()] = col_id_t(offsets[4]++);
         break;
       default:
         throw std::runtime_error("unexpected switch case value");
     }
   }
 
-  auto layout = storage::BlockLayout(attr_sizes);
-  return {
-      new DataTable(block_store_, layout, version), layout, col_oid_to_id, col_id_to_oid, schema, default_value_map};
+  tables_[curr_num - 1].layout_ = storage::BlockLayout(attr_sizes);
+  tables_[curr_num - 1].schema_ = schema;
+  tables_[curr_num - 1].data_table_ = new DataTable(block_store_, tables_[curr_num - 1].layout_, version);
+  return true;
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,

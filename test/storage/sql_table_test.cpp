@@ -258,9 +258,11 @@ class RandomSqlTableTestObject {
     return table_->Delete(common::ManagedPointer(txn), slot);
   }
 
-  void UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn,
+  bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn,
                     std::unique_ptr<catalog::Schema> schema, const storage::layout_version_t layout_version) {
-    if (txn != nullptr) table_->UpdateSchema(txn, *schema, layout_version);
+    if (txn != nullptr) {
+      if (!table_->UpdateSchema(txn, *schema, layout_version)) return false;
+    }
 
     auto columns = schema->GetColumns();
     std::vector<catalog::col_oid_t> oids;
@@ -272,6 +274,7 @@ class RandomSqlTableTestObject {
     schemas_.insert(std::make_pair(layout_version, std::unique_ptr<catalog::Schema>(std::move(schema))));
     pris_.insert(std::make_pair(layout_version, pri));
     buffers_.insert(std::make_pair(layout_version, common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize())));
+    return true;
   }
 
   common::ManagedPointer<transaction::TransactionContext> NewTransaction(
