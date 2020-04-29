@@ -2728,4 +2728,11 @@ template Schema::Column DatabaseCatalog::MakeColumn<Schema::Column, col_oid_t>(s
 template IndexSchema::Column DatabaseCatalog::MakeColumn<IndexSchema::Column, indexkeycol_oid_t>(
     storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map);
 
+template void DatabaseCatalog::CreateColumnStatistic(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                                     const table_oid_t class_oid, const col_oid_t col_oid,
+                                                     const Schema::Column &col);
+
+template bool DatabaseCatalog::DeleteColumnStatistics<Schema::Column, table_oid_t>(
+    const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t class_oid);
+
 }  // namespace terrier::catalog
