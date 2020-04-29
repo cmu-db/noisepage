@@ -102,7 +102,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                         cleanup {
@@ -131,7 +131,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                         cleanup {
@@ -173,7 +173,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                         cleanup {
@@ -206,7 +206,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                         cleanup {
@@ -232,7 +232,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                         cleanup {
@@ -260,7 +260,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                         cleanup {
@@ -292,7 +292,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
                             xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
                         }
                         cleanup {
