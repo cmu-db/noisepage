@@ -101,6 +101,10 @@ pipeline {
                         sh 'cd build && gtimeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
+                        always {
+                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -126,6 +130,10 @@ pipeline {
                         sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
+                        always {
+                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -164,6 +172,10 @@ pipeline {
                         sh 'cd build && /bin/bash ./codecov.sh -X gcov'
                     }
                     post {
+                        always {
+                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -193,6 +205,10 @@ pipeline {
                         sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
+                        always {
+                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -215,6 +231,10 @@ pipeline {
                         sh 'cd build && gtimeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
+                        always {
+                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -239,6 +259,10 @@ pipeline {
                         sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
+                        always {
+                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -267,6 +291,10 @@ pipeline {
                         sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
+                        always {
+                            archiveArtifacts('build/Testing/**/*.xml', fingerprint: true)
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
                         cleanup {
                             deleteDir()
                         }
