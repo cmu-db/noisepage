@@ -117,6 +117,7 @@ install_linux() {
       doxygen \
       git \
       g++-7 \
+      libboost-all-dev \
       libevent-dev \
       libjemalloc-dev \
       libpq-dev \

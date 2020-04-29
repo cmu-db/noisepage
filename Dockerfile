@@ -17,7 +17,7 @@ RUN apt-get -y update && \
       doxygen \
       git \
       g++-7 \
-      libboost-dev \
+      libboost-all-dev \
       libevent-dev \
       libjemalloc-dev \
       libpq-dev \
