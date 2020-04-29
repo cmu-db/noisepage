@@ -415,25 +415,6 @@ class DatabaseCatalog {
                     const Column &col);
 
   /**
-   * Add entry to pg_statistic
-   *
-   * Currently, this is called inside CreateTableEntry so that each row in pg_attribute (corresponding to a column
-   * of a table) has a corresponding row in pg_statistic.
-   *
-   * TODO(khg, moreshko): Should this apply to index columns as well?
-   *
-   * @tparam Column type of column (IndexSchema::Column or Schema::Column)
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @param col column to insert
-   * @param default_val default value
-   * @return whether insertion is successful
-   */
-  template <typename Column, typename ClassOid, typename ColOid>
-  void CreateColumnStatistic(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid,
-                             ColOid col_oid, const Column &col);
-
-  /**
    * Get entries from pg_attribute
    * @tparam Column type of columns
    * @param txn txn to use
@@ -461,15 +442,6 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ClassOid>
   bool DeleteColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
-
-  /**
-   * Delete entries from pg_statistic
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @return whether deletion was successful
-   */
-  template <typename Column, typename ClassOid>
-  bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
@@ -746,5 +718,31 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
+
+  /**
+   * Add entry to pg_statistic
+   *
+   * Currently, this is called inside CreateTableEntry so that each row in pg_attribute (corresponding to a column
+   * of a table) has a corresponding row in pg_statistic.
+   *
+   * @tparam Column type of column (IndexSchema::Column or Schema::Column)
+   * @param txn txn to use
+   * @param class_oid oid of table or index
+   * @param col column to insert
+   * @param default_val default value
+   * @return whether insertion is successful
+   */
+  template <typename Column, typename ClassOid, typename ColOid>
+  void CreateColumnStatistic(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid,
+                             ColOid col_oid, const Column &col);
+
+  /**
+   * Delete entries from pg_statistic
+   * @param txn txn to use
+   * @param class_oid oid of table or index
+   * @return whether deletion was successful
+   */
+  template <typename Column, typename ClassOid>
+  bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 };
 }  // namespace terrier::catalog
