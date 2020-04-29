@@ -973,6 +973,7 @@ bool LogicalAlterToPhysicalAlter::Check(common::ManagedPointer<OperatorNode> pla
 
   if (logical_op->GetCommands().size() == 0) return false;
   if (logical_op->GetTableOid() == catalog::INVALID_TABLE_OID) return false;
+  if (logical_op->GetCommands().size() != logical_op->GetColOids().size()) return false;
   (void)context;
 
   return true;
@@ -985,7 +986,8 @@ void LogicalAlterToPhysicalAlter::Transform(common::ManagedPointer<OperatorNode>
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAlter should have 0 children");
 
   auto op =
-      std::make_unique<OperatorNode>(AlterTable::Make(logical_op->GetTableOid(), std::move(logical_op->GetCommands())),
+      std::make_unique<OperatorNode>(AlterTable::Make(logical_op->GetTableOid(), std::move(logical_op->GetCommands()),
+                                                      std::move(logical_op->GetColOids())),
                                      std::vector<std::unique_ptr<OperatorNode>>());
 
   transformed->emplace_back(std::move(op));

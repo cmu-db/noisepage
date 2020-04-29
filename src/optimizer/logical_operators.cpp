@@ -1230,10 +1230,12 @@ BaseOperatorNodeContents *LogicalAlter::Copy() const { return new LogicalAlter(*
 
 Operator LogicalAlter::Make(
     catalog::table_oid_t table_oid,
-    std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds) {
+    std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds,
+    std::vector<catalog::col_oid_t> col_oids) {
   auto op = std::make_unique<LogicalAlter>();
   op->table_oid_ = table_oid;
   op->cmds_ = std::move(cmds);
+  op->col_oids_ = std::move(col_oids);
   return Operator(std::move(op));
 }
 
@@ -1241,6 +1243,7 @@ common::hash_t LogicalAlter::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, cmds_.begin(), cmds_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, col_oids_.begin(), col_oids_.end());
   return hash;
 }
 
@@ -1249,6 +1252,7 @@ bool LogicalAlter::operator==(const BaseOperatorNodeContents &r) {
   const LogicalAlter &node = *dynamic_cast<const LogicalAlter *>(&r);
   if (table_oid_ != node.table_oid_) return false;
   if (cmds_ != node.cmds_) return false;
+  if (col_oids_ != node.col_oids_) return false;
   return true;
 }
 

@@ -522,6 +522,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
         }
         if (col.GetCheckExpression() != nullptr)
           col.GetCheckExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+
         // TODO(Ling): add foreign key constraints to column?
         break;
       }

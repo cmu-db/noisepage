@@ -2017,7 +2017,8 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
    * @return
    */
   static Operator Make(catalog::table_oid_t table_oid,
-                       std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds);
+                       std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds,
+                       std::vector<catalog::col_oid_t> col_oids);
 
   /**
    * Copy
@@ -2038,6 +2039,11 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
    */
   std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &GetCommands() { return cmds_; }
 
+  /**
+   * @return col_oids
+   */
+  std::vector<catalog::col_oid_t> &GetColOids() { return col_oids_; }
+
  private:
   /**
    * OID of the target table
@@ -2048,5 +2054,10 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
    * Vector of commands
    */
   std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> cmds_;
+
+  /**
+   * Vector of column oids for each altercmd to act on
+   */
+  std::vector<catalog::col_oid_t> col_oids_;
 };
 }  // namespace terrier::optimizer

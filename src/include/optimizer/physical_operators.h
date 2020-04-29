@@ -2093,7 +2093,8 @@ class AlterTable : public OperatorNodeContents<AlterTable> {
    * @return
    */
   static Operator Make(catalog::table_oid_t table_oid,
-                       std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds);
+                       std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds,
+                       std::vector<catalog::col_oid_t> &&col_oids);
 
   /**
    * Copy
@@ -2112,7 +2113,14 @@ class AlterTable : public OperatorNodeContents<AlterTable> {
   /**
    * @return commands
    */
-  std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &GetCommands() { return cmds_; }
+  std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> GetCommands() const {
+    return cmds_;
+  }
+
+  /**
+   * @return col_oids
+   */
+  std::vector<catalog::col_oid_t> GetColOids() const { return col_oids_; }
 
  private:
   /**
@@ -2124,6 +2132,11 @@ class AlterTable : public OperatorNodeContents<AlterTable> {
    * Vector of commands
    */
   std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> cmds_;
+
+  /**
+   * Vector of col oids
+   */
+  std::vector<catalog::col_oid_t> col_oids_;
 };
 }  // namespace optimizer
 }  // namespace terrier

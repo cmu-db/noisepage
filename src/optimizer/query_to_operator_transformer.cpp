@@ -521,7 +521,7 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<p
   for (auto const &cmd : cmds) cmd_refs.emplace_back(&cmd);
 
   alter_expr = std::make_unique<OperatorNode>(
-      LogicalAlter::Make(accessor_->GetTableOid(op->GetTableName()), std::move(cmd_refs)),
+      LogicalAlter::Make(accessor_->GetTableOid(op->GetTableName()), std::move(cmd_refs), op->GetColOids()),
       std::vector<std::unique_ptr<OperatorNode>>{});  // TODO(SC): FKs ?
 
   output_expr_ = std::move(alter_expr);

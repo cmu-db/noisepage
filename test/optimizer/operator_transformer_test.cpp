@@ -28,6 +28,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/postgresparser.h"
+#include "planner/plannodes/alter_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_function_plan_node.h"
@@ -1977,9 +1978,28 @@ TEST_F(OperatorTransformerTest, AlterTest) {
   EXPECT_EQ(physical_op->GetCommands().at(0)->GetAlterType(), parser::AlterTableStatement::AlterType::AddColumn);
   EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
 
-  // TODO(XC): plan generator
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
 
-  // TODO(SC): other alter table type
+  auto plan_node =
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
+
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ALTER);
+  auto alter_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AlterPlanNode>();
+  EXPECT_EQ(alter_plan->GetColumnOids().size(), 1);
+  EXPECT_EQ(alter_plan->GetColumnOids().at(0), catalog::INVALID_COLUMN_OID);
+  EXPECT_EQ(alter_plan->GetCommands().size(), 1);
+  auto cmd = alter_plan->GetCommands().at(0);
+  EXPECT_EQ(cmd->GetType(), parser::AlterTableStatement::AlterType::AddColumn);
+  auto add_col_cmd = cmd.CastManagedPointerTo<planner::AlterPlanNode::AddColumnCmd>();
+  EXPECT_EQ(add_col_cmd->GetColumn().Name(), "new_column");
+
+  EXPECT_EQ(alter_plan->GetTableOid(), table_a_oid_);
 }
 
 }  // namespace terrier
