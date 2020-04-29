@@ -80,8 +80,8 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
   return dbc_->GetTable(txn_, table);
 }
 
-bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const {
-  return dbc_->UpdateSchema(txn_, table, new_schema);
+bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version) const {
+  return dbc_->UpdateSchema(txn_, table, new_schema, layout_version);
 }
 
 const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }

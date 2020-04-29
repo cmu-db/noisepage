@@ -7,7 +7,9 @@
 #include "catalog/catalog_accessor.h"
 #include "common/macros.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/alter_executors.h"
 #include "parser/expression/column_value_expression.h"
+#include "planner/plannodes/alter_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
@@ -32,6 +34,7 @@ bool DDLExecutors::CreateNamespaceExecutor(const common::ManagedPointer<planner:
   // Request permission from the Catalog to see if this a valid namespace name
   return accessor->CreateNamespace(node->GetNamespaceName()) != catalog::INVALID_NAMESPACE_OID;
 }
+
 
 bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::CreateTablePlanNode> node,
                                        const common::ManagedPointer<catalog::CatalogAccessor> accessor,
@@ -154,6 +157,60 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   auto *const index = index_builder.Build();
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+  return true;
+}
+
+
+// TODO(SC): in case any of the command fails to execute, the entire ALTER TABLE sql should be rolled back
+//  This means updates made by the previous commands (which are already materizlied on the catalog tables) need to be reverted
+//  The command :
+bool DDLExecutors::AlterTableExecutor(
+    const common::ManagedPointer<planner::AlterPlanNode> node,
+    const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+
+  const auto &cmds = node->GetCommands();
+
+  // Get the table
+  const auto table_oid = node->GetTableOid();
+  const auto sql_table = accessor->GetTable(table_oid);
+
+  // Not a regular table
+  if(sql_table == nullptr) return false;
+
+  // Schema to accumulate the changes from various actions
+  std::unique_ptr<catalog::Schema> update_schema(nullptr);
+  for(const auto &cmd : cmds) {
+    switch(cmd->GetType()) {
+      case parser::AlterTableStatement::AlterType::AddColumn: {
+        // Get the current schema
+        if(update_schema == nullptr) {
+          const auto &schema = accessor->GetSchema(table_oid);
+          auto cols = schema.GetColumns();
+          update_schema.reset(new catalog::Schema(cols));
+        }
+
+        // Add the column to the schema
+        AlterTableCmdExecutor::AddColumn(cmd, update_schema, accessor);
+      }
+        break;
+      default:
+        TERRIER_ASSERT(false, "not implemented");
+    }
+  }
+
+  // All the commands execute OK
+
+  // Some commands modify the schema, so update the schema
+  if(update_schema != nullptr) {
+    // The catalog will own the Schema
+    auto new_schema = update_schema.release();
+    storage::layout_version_t new_version;
+    if(accessor->UpdateSchema(table_oid, new_schema, &new_version)) {
+      // WARNING: Update the underlying sql_table, the update is not transactional
+      sql_table->UpdateSchema(accessor->GetTransactionContext(), accessor->GetSchema(table_oid), new_version);
+
+    }
+  }
   return true;
 }
 }  // namespace terrier::execution::sql

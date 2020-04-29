@@ -167,11 +167,12 @@ class CatalogAccessor {
    * modified columns will be stable across a schema change.
    * @param table OID of the modified table
    * @param new_schema object describing the table after modification
+   * @param layout_version layout version to set for the new schema
    * @return true if the operation succeeded, false otherwise
    * @warning If the caller needs to reference the schema object after this call, they should use the GetSchema function
    * to obtain the authoritative schema for this table.
    */
-  bool UpdateSchema(table_oid_t table, Schema *new_schema) const;
+  bool UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version) const;
 
   /**
    * Get the visible schema describing the table.
@@ -359,6 +360,11 @@ class CatalogAccessor {
    * @return BlockStore to be used for CREATE operations
    */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
+
+  /**
+   * @return Transactional context for this accessor
+   */
+    const common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() {return txn_;}
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

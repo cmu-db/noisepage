@@ -941,7 +941,7 @@ bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::Tran
 }
 
 bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const table_oid_t table, Schema *const new_schema) {
+                                   const table_oid_t table, Schema *const new_schema, storage::layout_version_t *layout_version) {
   if (!TryLock(txn)) return false;
   // TODO(John): Implement
   TERRIER_ASSERT(false, "Not implemented");
