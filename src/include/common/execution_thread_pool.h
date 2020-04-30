@@ -38,12 +38,14 @@ namespace terrier::common {
 class ExecutionThreadPool : DedicatedThreadOwner {
  public:
   /**
-   * A task queue is a FIFO list of functions that we will execute.
-   * This queue by itself is not threadsafe so the WorkerPool class has to protect
-   * it on its own with latches.
+   * A task contains both an execution pool context as well as the promise it will set upon completion
    */
-  // TODO(Deepayan): change from void later
   using Task = std::pair<PoolContext *, std::promise<void> *>;
+  /**
+ * A task queue is a FIFO list of functions that we will execute.
+ * This queue by itself is not threadsafe so the WorkerPool class has to protect
+ * it on its own with latches.
+ */
   using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
 
   /**
@@ -89,7 +91,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   }
 
   /**
- * SubmitTask allows for a user to submit a task to the given NUMA region
+ * SubmitTask allows for a user to submit a task to the given NUMA region with an associated execution context
  * @param promise a void promise pointer that will be set when the task has been executed
  * @param task a void to void function that is the task to be executed
  * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
@@ -106,7 +108,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   }
 
   /**
-   * SubmitTask allows for a user to submit a task to the given NUMA region
+   * SubmitTask allows for a user to submit a void task to the given NUMA region
    * @param promise a void promise pointer that will be set when the task has been executed
    * @param task a void to void function that is the task to be executed
    * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
