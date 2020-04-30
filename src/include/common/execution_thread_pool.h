@@ -156,45 +156,39 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     ~TerrierThread() override = default;
 
     void RunNextTask() {
-      while (true) {
-        bool tasks_left = false;
-        for (int16_t i = 0; i < pool_->num_regions_; i++) {
-          auto index = (static_cast<int16_t>(numa_region_) + i) % pool_->num_regions_;
-          Task task;
-          if (!pool_->task_queue_[index].try_pop(task)) {
-            continue;
-          }
-
-          status_ = ThreadStatus::BUSY;
-          bool finished = task.first->YieldToFunc();
-          status_ = ThreadStatus::SWITCHING;
-
-          if (finished) {
-            pool_->context_pool_.Release(task.first);
-            task.second->set_value();
-            return;
-          }
-
-          bool is_empty = pool_->task_queue_[index].empty();
-          pool_->task_queue_[index].push(task);
-
-          tasks_left = true;
-          if (is_empty) {
-            continue;
-          }
-          return;
-        }
-        if (tasks_left) {
+      bool tasks_left = false;
+      for (int16_t i = 0; i < pool_->num_regions_; i++) {
+        auto index = (static_cast<int16_t>(numa_region_) + i) % pool_->num_regions_;
+        Task task;
+        if (!pool_->task_queue_[index].try_pop(task)) {
           continue;
         }
 
+        status_ = ThreadStatus::BUSY;
+        bool finished = task.first->YieldToFunc();
+        status_ = ThreadStatus::SWITCHING;
+
+        if (finished) {
+          pool_->context_pool_.Release(task.first);
+          task.second->set_value();
+          return;
+        }
+
+        bool is_empty = pool_->task_queue_[index].empty();
+        pool_->task_queue_[index].push(task);
+
+        tasks_left = true;
+        if (is_empty) {
+          continue;
+        }
+        return;
+      }
+
+      if (pool_->busy_workers_ > 1 && !tasks_left) {
+        std::unique_lock<std::mutex> l(pool_->task_lock_);
         pool_->busy_workers_--;
         status_ = ThreadStatus::PARKED;
-        {
-          std::unique_lock<std::mutex> l(pool_->task_lock_);
-          pool_->task_cv_.wait(l);
-          if (UNLIKELY(exit_task_loop_)) return;
-        }
+        pool_->task_cv_.wait(l);
         status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
       }

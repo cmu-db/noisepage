@@ -370,7 +370,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
     auto workload = [&](uint32_t id) {
       uint32_t count = 0;
       for (auto numa_region : numa_regions) {
-        for (auto it = read_table.begin(numa_region); it != read_table.end(numa_region); ++it) {
+        for (auto it = read_table.begin(numa_region); it != read_table.end(numa_region); it++) {
           count++;
         }
       }
@@ -414,7 +414,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
       uint32_t count = 0;
-      for (auto it = read_table.begin(numa_regions[id]); it != read_table.end(numa_regions[id]); ++it) {
+      for (auto it = read_table.begin(numa_regions[id]); it != read_table.end(numa_regions[id]); it++) {
         count++;
       }
     };
@@ -457,7 +457,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
       uint32_t count = 0;
-      for (auto it = read_table.begin(numa_regions[id]); it != read_table.end(numa_regions[id]); ++it) {
+      for (auto it = read_table.begin(numa_regions[id]); it != read_table.end(numa_regions[id]); it++) {
         count++;
       }
     };
