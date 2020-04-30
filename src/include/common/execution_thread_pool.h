@@ -91,11 +91,11 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   }
 
   /**
- * SubmitTask allows for a user to submit a task to the given NUMA region with an associated execution context
- * @param promise a void promise pointer that will be set when the task has been executed
- * @param task a void to void function that is the task to be executed
- * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
- */
+   * SubmitTask allows for a user to submit a task to the given NUMA region with an associated execution context
+   * @param promise a void promise pointer that will be set when the task has been executed
+   * @param task a void to void function that is the task to be executed
+   * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
+   */
   void SubmitTask(std::promise<void> *promise, const std::function<void(PoolContext *)> &task,
                   common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
     if (numa_hint == UNSUPPORTED_NUMA_REGION) {
