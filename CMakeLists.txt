@@ -187,6 +187,8 @@ if (NOT APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -lnuma -ldl")
 endif ()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
+
 # For any C code, use the same flags.
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
 # Remove --std=c++17 to avoid errors from C compilers
