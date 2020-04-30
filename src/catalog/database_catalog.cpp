@@ -2,7 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+#include <stdio.h>
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
@@ -1226,11 +1226,11 @@ constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<
   // Get PR initializers and allocate a buffer from the largest one
   const auto con_oid_index_pr = constraints_oid_index_->GetProjectedRowInitializer();
   const auto con_name_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_namespace_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_table_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_index_index_pr = constraints_name_index_->GetProjectedRowInitializer();
+  const auto con_namespace_index_pr = constraints_namespace_index_->GetProjectedRowInitializer();
+  const auto con_table_index_pr = constraints_table_index_->GetProjectedRowInitializer();
+  const auto con_index_index_pr = constraints_index_index_->GetProjectedRowInitializer();
   auto *index_buffer = common::AllocationUtil::AllocateAligned(con_name_index_pr.ProjectedRowSize());
-  // Insert into indexes_oid_index
+  // // Insert into indexes_oid_index
   auto *index_pr = con_oid_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<constraint_oid_t *>(index_pr->AccessForceNotNull(0))) = constraint_oid;
   if (!constraints_oid_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
@@ -1253,7 +1253,7 @@ constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
-
+  std::cerr << "pass namespace\n";
   index_pr = con_table_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<table_oid_t *>(index_pr->AccessForceNotNull(0))) = table;
   if (!constraints_table_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
@@ -1307,7 +1307,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 
   std::vector<constraint_oid_t> con_oids;
   con_oids.reserve(index_scan_results.size());
-  auto *select_pr = con_pri.InitializeRow(buffer);
+  auto *select_pr = pg_constraints_get_from_table_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");

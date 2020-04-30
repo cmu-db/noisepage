@@ -237,8 +237,9 @@ TEST_F(ConstraintTests, DDLCreateTableProcedureTest) {
   auto *const index = index_builder.Build();
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
 
-  accessor->CreatePKConstraint(accessor->GetDefaultNamespace(), table_oid, "test_pk", index_oid, pk_cols);
-  EXPECT_NE(accessor->GetConstraints(table_oid)[0], catalog::INVALID_CONSTRAINT_OID);
+  auto con_oid = accessor->CreatePKConstraint(accessor->GetDefaultNamespace(), table_oid, "test_pk", index_oid, pk_cols);
+  auto constraints = accessor->GetConstraints(table_oid);
+  EXPECT_NE(constraints[0], con_oid);
   std::cerr << "pre commit\n";
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   std::cerr << "post commit\n";
