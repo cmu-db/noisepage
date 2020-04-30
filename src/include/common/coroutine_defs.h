@@ -11,18 +11,35 @@ namespace terrier::common {
 using pull_type = boost::coroutines2::coroutine<void>::pull_type;
 using push_type = boost::coroutines2::coroutine<void>::push_type;
 
+/**
+ * A reusable stack frame context which contains a workload function to be set.
+ *
+ * This context controls task switching with the execution pool, and may yield out of a running task on a call to
+ * YieldToPool() and temporarily stop on a task on a call to YieldToFunc() or complete the workload.
+ */
 class PoolContext {
  public:
+  /**
+   * Sets the function associated with the current execution context
+   * @param f input function that will serve as workload for the pool context
+   */
   void SetFunction(const std::function<void(PoolContext *)> &f) {
     TERRIER_ASSERT(func_ == nullptr, "function should be null");
     this->func_ = f;
   }
 
+  /**
+   * Call will pause the workload and yield back to the execution pool.
+   */
   void YieldToPool() {
     TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to it");
     (*sink_)();
   }
 
+  /**
+   * Call will initialize or continue the resumeable workload from the last yield
+   * @return func_finished_ will signify whether the current function has finished its execution path
+   */
   bool YieldToFunc() {
     TERRIER_ASSERT(func_ != nullptr, "must have called SetFunction before yielding to function");
     TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to function");
@@ -35,6 +52,9 @@ class PoolContext {
   ~PoolContext() = default;
   PoolContext() = default;
 
+  /**
+   * Internal allocator class that will allocate region for a pool context
+   */
   class Allocator {
    public:
     PoolContext *New() { return new PoolContext(); }
@@ -45,6 +65,7 @@ class PoolContext {
  private:
   std::function<void(PoolContext *)> func_ = nullptr;
   push_type *sink_ = nullptr;
+  // Initialization of in_ will yield back to execution pool to allow setting of function before running workload
   pull_type in_ = pull_type([&](push_type &s) {  // NOLINT
     this->sink_ = &s;
     while (true) {
