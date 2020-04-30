@@ -1,7 +1,9 @@
 #pragma once
 
-#include <boost/coroutine2/all.hpp>
 #include <utility>
+
+#include <boost/coroutine2/all.hpp>
+
 #include "common/object_pool.h"
 
 namespace terrier::common {
