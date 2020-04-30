@@ -63,8 +63,8 @@ usermod -a -G docker jenkins
 
 # setup nat
 route delete default
-route add default gw 10.92.0.4
-route add -net 128.2.0.0/16 gw 10.92.0.1
+route add default gw 10.111.0.4
+route add -net 128.2.0.0/16 gw 10.111.0.1
 
 # now that everything is in place, start the jenkins service
 systemctl start jenkins
