@@ -251,12 +251,12 @@ class DataTable {
    * @param out_buffers output buffers. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    * @param result_buffer final buffer into which the results are placed.
-   * @param thread_pool thread pool to be used for the scan.
    */
   void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
                 std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer);  // NOLINT
 
   /**
+   * @param ctx optional pool context to enable context switches
    * @return the first tuple slot contained in the data table
    */
   SlotIterator begin(common::PoolContext *ctx = nullptr) const {  // NOLINT for STL name compability
@@ -269,6 +269,7 @@ class DataTable {
    * concurrent accesses are happening, as inserts maybe in flight. However, the number given is always transactionally
    * correct, as any inserts that might have happened is not going to be visible to the calling transaction.
    *
+   * @param ctx optional pool context to enable context switches
    * @return one past the last tuple slot contained in the data table.
    */
   SlotIterator end(common::PoolContext *ctx = nullptr) const;  // NOLINT for STL name compability
@@ -319,6 +320,7 @@ class DataTable {
    *
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple. Should not reference col_id 0
+   * @param ctx optional pool context to enable context switches
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
    * such.
    */

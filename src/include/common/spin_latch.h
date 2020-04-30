@@ -24,6 +24,7 @@ class SpinLatch {
    *
    * If another thread has already locked the spin latch, a call to lock will
    * block execution until the lock is acquired.
+   * @param ctx optional pool context to enable context switches
    */
   void Lock(common::PoolContext *ctx = nullptr) {
     if (ctx != nullptr) {
@@ -53,6 +54,7 @@ class SpinLatch {
     /**
      * Acquire lock on SpinLatch.
      * @param latch pointer to SpinLatch to acquire
+     * @param ctx optional pool context to enable context switches
      */
     explicit ScopedSpinLatch(SpinLatch *const latch, common::PoolContext *ctx = nullptr) : spin_latch_(latch) {
       spin_latch_->Lock(ctx);
