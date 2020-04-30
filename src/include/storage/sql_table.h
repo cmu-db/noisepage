@@ -265,7 +265,8 @@ class SqlTable {
    * @return the column id to oid map of a layout_version
    */
   const ColumnIdToOidMap &GetColumnIdToOidMap(layout_version_t layout_version) const {
-    TERRIER_ASSERT(layout_version < 8 && tables_[layout_version].data_table_ != nullptr, "Version does not exist.");
+    TERRIER_ASSERT(layout_version < MAX_NUM_OF_VERSIONS && tables_[layout_version].data_table_ != nullptr,
+                   "Version does not exist.");
     return tables_.at(layout_version).column_id_to_oid_map_;
   }
 
@@ -276,7 +277,8 @@ class SqlTable {
    * @return
    */
   const BlockLayout &GetBlockLayout(layout_version_t layout_version = layout_version_t{0}) {
-    TERRIER_ASSERT(layout_version < 8 && tables_[layout_version].data_table_ != nullptr, "Version does not exist.");
+    TERRIER_ASSERT(layout_version < MAX_NUM_OF_VERSIONS && tables_[layout_version].data_table_ != nullptr,
+                   "Version does not exist.");
     return tables_.at(layout_version).layout_;
   }
 
@@ -293,7 +295,7 @@ class SqlTable {
   //  when layout version is not monotonically increasing from 0;
   //  for example, when we implement garbage collecting empty old datatable, or when we collapse versions
   //  We could potentially used ordered map for traversing data table that are less or equal to curr version
-  // Vector of tables with fixed size of 8
+  // Vector of tables with fixed size of MAX_NUM_OF_VERSIONS
   //  We could later see if a unbounded concurrent vector greatly a affect the performance
   std::vector<DataTableVersion> tables_;
 

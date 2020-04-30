@@ -16,8 +16,8 @@ namespace terrier::storage {
 SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema)
     : block_store_(store), tables_(MAX_NUM_OF_VERSIONS, DataTableVersion()) {
   // Initialize a DataTable
-  auto success UNUSED_ATTRIBUTE = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema),
-                                              layout_version_t(0));
+  auto success UNUSED_ATTRIBUTE =
+      CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version_t(0));
   TERRIER_ASSERT(success, "Creating first data table should not fail.");
 }
 
@@ -333,7 +333,7 @@ bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema,
   attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema->GetColumns().size());
 
   for (uint8_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
-    attr_sizes.emplace_back(8);
+    attr_sizes.emplace_back(MAX_NUM_OF_VERSIONS);
   }
 
   TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,

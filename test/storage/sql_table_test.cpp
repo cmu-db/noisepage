@@ -59,7 +59,9 @@ static std::unique_ptr<catalog::Schema> AddColumns(const catalog::Schema &schema
   }
 
   struct {
-    bool operator()(const catalog::Schema::Column &a, const catalog::Schema::Column &b) const { return a.Oid() < b.Oid(); }
+    bool operator()(const catalog::Schema::Column &a, const catalog::Schema::Column &b) const {
+      return a.Oid() < b.Oid();
+    }
   } column_less;
   std::sort(columns.begin(), columns.end(), column_less);
 
