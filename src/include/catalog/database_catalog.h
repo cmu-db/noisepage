@@ -502,6 +502,7 @@ class DatabaseCatalog {
   storage::index::Index *constraints_index_index_;
   // storage::index::Index *constraints_foreigntable_index_;
   storage::ProjectedRowInitializer pg_constraints_all_cols_pri_;
+  storage::ProjectedRowInitializer pg_constraints_get_from_table_pri_;
   storage::ProjectionMap pg_constraints_all_cols_prm_;
   storage::SqlTable *fk_constraints_;
   storage::index::Index *fk_constraints_oid_index_;

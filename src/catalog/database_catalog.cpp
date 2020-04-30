@@ -417,6 +417,9 @@ void DatabaseCatalog::BootstrapPRIs() {
       exclusion_constraints_->InitializerForProjectedRow(pg_exclusion_constraints_all_oids);
   pg_exclusion_constraints_all_cols_prm_ =
       exclusion_constraints_->ProjectionMapForOids(pg_exclusion_constraints_all_oids);
+  const std::vector<col_oid_t> pg_constraints_table_oid{postgres::CONOID_COL_OID};
+  pg_constraints_get_from_table_pri_ = constraints_->InitializerForProjectedRow(pg_constraints_table_oid);
+  
   // pg_type
   const std::vector<col_oid_t> pg_type_all_oids{postgres::PG_TYPE_ALL_COL_OIDS.cbegin(),
                                                 postgres::PG_TYPE_ALL_COL_OIDS.cend()};
@@ -1585,7 +1588,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 
   std::vector<constraint_oid_t> con_oids;
   con_oids.reserve(index_scan_results.size());
-  auto *select_pr = con_pri.InitializeRow(buffer);
+  auto *select_pr = pg_constraints_get_from_table_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
