@@ -142,7 +142,6 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
                                const catalog::table_oid_t table, const catalog::IndexSchema &input_schema) {
   // Request permission from the Catalog to see if this a valid namespace and table name
   const auto index_oid = accessor->CreateIndex(ns, table, name, input_schema);
-  std::cout << "Created index: " << !index_oid << "\n";
   if (index_oid == catalog::INVALID_INDEX_OID) {
     // Catalog wasn't able to proceed, txn must now abort
     return false;

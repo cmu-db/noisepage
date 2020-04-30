@@ -26,8 +26,6 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode *op, C
       slot_(codegen->NewIdentifier("slot")) {}
 
 void IndexScanTranslator::Produce(FunctionBuilder *builder) {
-  std::cout << "IndexScanTranslator " << op_->GetIndexOid() << "\n";
-
   // Create the col_oid array
   SetOids(builder);
   // Declare an index iterator
