@@ -42,10 +42,10 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    */
   using Task = std::pair<PoolContext *, std::promise<void> *>;
   /**
- * A task queue is a FIFO list of functions that we will execute.
- * This queue by itself is not threadsafe so the WorkerPool class has to protect
- * it on its own with latches.
- */
+   * A task queue is a FIFO list of functions that we will execute.
+   * This queue by itself is not threadsafe so the WorkerPool class has to protect
+   * it on its own with latches.
+   */
   using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
 
   /**
