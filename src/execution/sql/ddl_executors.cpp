@@ -177,7 +177,7 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
   std::unique_ptr<catalog::Schema> update_schema(nullptr);
 
   // Map to indicate the changes to columns
-  std::unordered_map<std::string, std::vector<AlterTableCmdExecutor::ChangeType>> change_map;
+  std::unordered_map<std::string, std::vector<ChangeType>> change_map;
   for (const auto &cmd : cmds) {
     switch (cmd->GetType()) {
       case parser::AlterTableStatement::AlterType::AddColumn: {

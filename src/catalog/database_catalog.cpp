@@ -308,6 +308,11 @@ void DatabaseCatalog::BootstrapPRIs() {
   const std::vector<col_oid_t> set_class_next_col_oid_oids{postgres::REL_NEXTCOLOID_COL_OID};
   set_class_next_col_oid_pri_ = classes_->InitializerForProjectedRow(set_class_next_col_oid_oids);
 
+  const std::vector<col_oid_t> set_class_schema_and_version_oids{postgres::REL_SCHEMA_COL_OID,
+                                                                 postgres::REL_VERS_COL_OID};
+  set_class_schema_and_version_pri_ = classes_->InitializerForProjectedRow(set_class_schema_and_version_oids);
+  set_class_schema_and_version_prm_ = classes_->ProjectionMapForOids(set_class_schema_and_version_oids);
+
   const std::vector<col_oid_t> get_class_pointer_kind_oids{postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID};
   get_class_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_pointer_kind_oids);
 
@@ -945,8 +950,7 @@ bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::Tran
 
 bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                    const table_oid_t table, Schema *const new_schema,
-                                   storage::layout_version_t *layout_version,
-                                   const execution::sql::AlterTableCmdExecutor::ChangeMap &change_map) {
+                                   storage::layout_version_t *layout_version, const execution::ChangeMap &change_map) {
   if (!TryLock(txn)) return false;
 
   // Iterate through the column being modified
@@ -956,27 +960,15 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
     // For all the change on this column
     for (auto change : itr->second) {
       switch (change) {
-        case execution::sql::AlterTableCmdExecutor::ChangeType::Add: {
-          // Get the next col_oid from index
-          auto pri = classes_oid_index_->GetProjectedRowInitializer();
-          byte *const idx_buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
-          auto pr = pri.InitializeRow(idx_buffer);
-          *(reinterpret_cast<table_oid_t *>(pr->AccessForceNotNull(0))) = table;
-
-          std::vector<storage::TupleSlot> results;
-          classes_oid_index_->ScanKey(*txn, *pr, &results);
-          delete[] idx_buffer;
-
-          TERRIER_ASSERT(results.size() == 1, "Unique index on table_oid should not return 0 for Add Column");
-          auto tuple_slot = results[0];
-
-          byte *const entry_buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
-          auto all_cols_pr = pg_class_all_cols_pri_.InitializeRow(entry_buffer);
-          classes_->Select(txn, tuple_slot, all_cols_pr);
-          delete[] entry_buffer;
+        case execution::ChangeType::Add: {
+          // Get the next col_oid with the table_oid
+          byte *buffer_ptr = nullptr;
+          storage::TupleSlot tuple_slot;
+          auto all_cols_pr = GetTableEntry(txn, table, &buffer_ptr, &tuple_slot);
 
           auto next_oid = *(reinterpret_cast<col_oid_t *>(
               all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID])));
+          delete[] buffer_ptr;
 
           // Create the column with the next_oid
           auto success = CreateColumn(txn, table, next_oid, new_schema->GetColumn(col_name));
@@ -988,22 +980,43 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
 
           update_redo->SetTupleSlot(tuple_slot);
 
-          *reinterpret_cast<col_oid_t *>(
-              update_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID])) = next_oid + 1;
-          auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
+          *reinterpret_cast<col_oid_t *>(update_pr->AccessForceNotNull(0)) = next_oid + 1;
+          storage::TupleSlot new_slot;
+          auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo, storage::layout_version_t(0), &new_slot);
           TERRIER_ASSERT(res, "Updating the next_col_oid should not fail");
+          TERRIER_ASSERT(update_redo->GetTupleSlot() == new_slot, "Updating should not move the tuple slot");
         } break;
         default:
           TERRIER_ASSERT(false, "Not implemented");
       }
     }
   }
-  // TODO(XC): Update the schema here
 
-  delete new_schema;
+  // Delete the pointer in case of abort
+  txn->RegisterAbortAction([=]() { delete new_schema; });
 
-  // update the schema pointer and up the layout version
-  return false;
+  // Get the current layout_version
+  byte *buffer_ptr = nullptr;
+  storage::TupleSlot tuple_slot;
+  auto all_cols_pr = GetTableEntry(txn, table, &buffer_ptr, &tuple_slot);
+
+  auto cur_layout_version = *(reinterpret_cast<storage::layout_version_t *>(
+      all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
+  delete[] buffer_ptr;
+
+  auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_schema_and_version_pri_);
+  auto *const update_pr = update_redo->Delta();
+
+  update_redo->SetTupleSlot(tuple_slot);
+  *(reinterpret_cast<Schema **>(
+      update_pr->AccessForceNotNull(set_class_schema_and_version_prm_[postgres::REL_SCHEMA_COL_OID]))) = new_schema;
+  *(reinterpret_cast<storage::layout_version_t *>(update_pr->AccessForceNotNull(
+      set_class_schema_and_version_prm_[postgres::REL_VERS_COL_OID]))) = cur_layout_version + 1;
+  storage::TupleSlot new_slot;
+  auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo, storage::layout_version_t(0), &new_slot);
+  TERRIER_ASSERT(update_redo->GetTupleSlot() == new_slot, "Updating should not move the tuple slot");
+
+  return true;
 }
 
 const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -2621,6 +2634,31 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
 
   delete[] buffer;
   return ret;
+}
+
+storage::ProjectedRow *DatabaseCatalog::GetTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                                      const catalog::table_oid_t table, byte **buffer_ptr,
+                                                      storage::TupleSlot *slot) {
+  auto pri = classes_oid_index_->GetProjectedRowInitializer();
+  byte *const idx_buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
+  auto pr = pri.InitializeRow(idx_buffer);
+  *(reinterpret_cast<table_oid_t *>(pr->AccessForceNotNull(0))) = table;
+
+  std::vector<storage::TupleSlot> results;
+  classes_oid_index_->ScanKey(*txn, *pr, &results);
+  delete[] idx_buffer;
+
+  TERRIER_ASSERT(results.size() == 1, "Unique index on table_oid should not return 0 for Add Column");
+
+  *slot = results[0];
+
+  byte *const entry_buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
+  auto all_cols_pr = pg_class_all_cols_pri_.InitializeRow(entry_buffer);
+  classes_->Select(txn, *slot, all_cols_pr);
+
+  *buffer_ptr = entry_buffer;
+
+  return all_cols_pr;
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(

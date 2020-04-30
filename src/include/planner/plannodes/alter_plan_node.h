@@ -65,10 +65,10 @@ class AlterPlanNode : public AbstractPlanNode {
    public:
     AddColumnCmd() = default;
 
-    AddColumnCmd(catalog::Schema::Column col, std::unique_ptr<ForeignKeyInfo> foreign_key,
+    AddColumnCmd(catalog::Schema::Column &&col, std::unique_ptr<ForeignKeyInfo> foreign_key,
                  std::unique_ptr<UniqueInfo> con_unique, std::unique_ptr<CheckInfo> con_check)
         : AlterCmdBase(col.Oid()),
-          col_(col),
+          col_(std::move(col)),
           foreign_key_(std::move(foreign_key)),
           con_unique_(std::move(con_unique)),
           con_check_(std::move(con_check)) {}

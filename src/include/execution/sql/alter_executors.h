@@ -1,18 +1,17 @@
 #pragma once
 
+#include <unordered_map>
+#include <vector>
+
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "execution/exec_defs.h"
 #include "planner/plannodes/alter_plan_node.h"
 
-namespace terrier::planner {
-class AlterPlanNode;
-}  // namespace terrier::planner
-
-namespace terrier::catalog {
-class CatlaogAccessor;
-}  // namespace terrier::catalog
-
 namespace terrier::execution::sql {
+
 /**
  * static utility class to execute ONE ALTER table command
  */
@@ -23,8 +22,6 @@ class AlterTableCmdExecutor {
   /**
    * Record the changes to a specific column
    */
-  enum class ChangeType { Add, Drop, ChangeDefault };
-  using ChangeMap = std::unordered_map<std::string, std::vector<ChangeType>>;
 
   /**
    *
@@ -34,8 +31,7 @@ class AlterTableCmdExecutor {
    */
   static bool AddColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
                         std::unique_ptr<catalog::Schema> &schema,
-                        const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                        std::unordered_map<std::string, std::vector<ChangeType>> &change_map);
+                        const common::ManagedPointer<catalog::CatalogAccessor> accessor, ChangeMap &change_map);
 };
 
 }  // namespace terrier::execution::sql

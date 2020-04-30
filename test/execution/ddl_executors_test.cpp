@@ -339,6 +339,7 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNodeAddColumn) {
 
   // Create table
   planner::CreateTablePlanNode::Builder builder;
+  catalog::Schema original_schema(table_schema_->GetColumns());
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
@@ -351,6 +352,7 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNodeAddColumn) {
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   auto table_ptr = accessor_->GetTable(table_oid);
   EXPECT_NE(table_ptr, nullptr);
+  EXPECT_EQ(accessor_->GetColumns(table_oid).size(), original_schema.GetColumns().size());
   txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Add a column
@@ -361,7 +363,7 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNodeAddColumn) {
   auto default_val = parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(15712));
   catalog::Schema::Column col("new_column", type::TypeId::INTEGER, false, default_val);
   std::vector<std::unique_ptr<planner::AlterCmdBase>> cmds;
-  auto add_cmd = std::make_unique<planner::AlterPlanNode::AddColumnCmd>(col, nullptr, nullptr, nullptr);
+  auto add_cmd = std::make_unique<planner::AlterPlanNode::AddColumnCmd>(std::move(col), nullptr, nullptr, nullptr);
   cmds.push_back(std::move(add_cmd));
   auto alter_table_node = alter_builder.SetTableOid(table_oid)
                               .SetCommands(std::move(cmds))
@@ -371,18 +373,25 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNodeAddColumn) {
       execution::sql::DDLExecutors::AlterTableExecutor(common::ManagedPointer<planner::AlterPlanNode>(alter_table_node),
                                                        common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
 
-  // auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
-  // EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-  // auto table_ptr = accessor_->GetTable(table_oid);
-  // EXPECT_NE(table_ptr, nullptr);
-
-  // planner::DropTablePlanNode::Builder drop_builder;
-  // auto drop_table_node = drop_builder.SetTableOid(table_oid).Build();
-  // EXPECT_TRUE(execution::sql::DDLExecutors::DropTableExecutor(
-  //     common::ManagedPointer<planner::DropTablePlanNode>(drop_table_node),
-  //     common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
-
+  EXPECT_EQ(accessor_->GetColumns(table_oid).size(), original_schema.GetColumns().size() + 1);
+  auto &cur_schema = accessor_->GetSchema(table_oid);
+  EXPECT_EQ(cur_schema.GetColumns().size(), original_schema.GetColumns().size() + 1);
+  EXPECT_NO_THROW(cur_schema.GetColumn("new_column"));
+  auto &new_col = cur_schema.GetColumn("new_column");
+  EXPECT_FALSE(new_col.Nullable());
+  auto stored_default_val = new_col.StoredExpression();
+  EXPECT_EQ(stored_default_val->GetReturnValueType(), type::TypeId::INTEGER);
+  auto val = stored_default_val.CastManagedPointerTo<const parser::ConstantValueExpression>()->GetValue();
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(val), 15712);
   txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // SQL table related (Should we test it here?)
+  // EXPECT_NO_THROW(table_ptr->GetBlockLayout(storage::layout_version_t(1)));
+  // auto block_layout = table_ptr->GetBlockLayout(storage::layout_version_t(1));
+  // EXPECT_EQ(block_layout.NumColumns(), cur_schema.GetColumns().size());
+  // EXPECT_NO_THROW(table_ptr->GetColumnOidToIdMap(storage::layout_version_t(1)));
+  // auto col_oid_id_map = table_ptr->GetColumnOidToIdMap(storage::layout_version_t(1));
+  // EXPECT_EQ(block_layout.AttrSize(col_oid_id_map[col.Oid()]), type::TypeUtil::GetTypeSize(type::TypeId::INTEGER));
 }
 
 }  // namespace terrier::execution::sql::test

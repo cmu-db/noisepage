@@ -5,13 +5,14 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
-#include "execution/sql/alter_executors.h"
+#include "execution/exec_defs.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "type/type_id.h"
@@ -174,7 +175,7 @@ class CatalogAccessor {
    * to obtain the authoritative schema for this table.
    */
   bool UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version,
-                    const execution::sql::AlterTableCmdExecutor::ChangeMap &change_map) const;
+                    const execution::ChangeMap &change_map) const;
 
   // TODO(XC)
 
@@ -364,6 +365,13 @@ class CatalogAccessor {
    * @return BlockStore to be used for CREATE operations
    */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
+
+  /**
+   * Get the table columns given a table oid
+   * @param table table_oid
+   * @return vector of columns of the table
+   */
+  std::vector<Schema::Column> GetColumns(table_oid_t table);
 
   /**
    * @return Transactional context for this accessor

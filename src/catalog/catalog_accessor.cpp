@@ -4,7 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog.h"
 #include "catalog/postgres/pg_proc.h"
 
 namespace terrier::catalog {
@@ -81,7 +80,7 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
 }
 
 bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version,
-                                   const execution::sql::AlterTableCmdExecutor::ChangeMap &change_map) const {
+                                   const execution::ChangeMap &change_map) const {
   return dbc_->UpdateSchema(txn_, table, new_schema, layout_version, change_map);
 }
 
@@ -98,6 +97,10 @@ std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const 
 std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> CatalogAccessor::GetIndexes(
     table_oid_t table) {
   return dbc_->GetIndexes(txn_, table);
+}
+
+std::vector<Schema::Column> CatalogAccessor::GetColumns(table_oid_t table) {
+  return dbc_->GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn_, table);
 }
 
 index_oid_t CatalogAccessor::GetIndexOid(std::string name) const {
