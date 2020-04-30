@@ -244,10 +244,10 @@ Schema Builder::GetConstraintTableSchema() {
   columns.emplace_back("conindid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(CONINDID_COL_OID);
 
-  columns.emplace_back("confrelid", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("confrelid", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(CONFRELID_COL_OID);
 
-  columns.emplace_back("concol", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("concol", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(CONCOL_COL_OID);
 
   columns.emplace_back("concheck", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));

@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+#include <string>
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/pg_class.h"
@@ -201,6 +201,11 @@ class DatabaseCatalog {
                              constraint_oid_t constraint, constraint_oid_t check_constraint);
   bool DeleteExclusionConstraint(const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                                  constraint_oid_t constraint, constraint_oid_t exclusion_constraint);
+  template <typename OidType>
+  std::string OidVectorToSpaceSeparatedString(const std::vector<OidType> &vec);
+
+  template <typename OidType>
+  std::vector<OidType> SpaceSeparatedOidToVector (std::string s);
   /**
    * A list of all indexes on the given table
    * @param txn for the operation

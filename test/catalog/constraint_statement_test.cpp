@@ -82,9 +82,9 @@ TEST_F(ConstraintStatementTest, BasicTableCreationTest) {
 
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
     std::cerr << "pass insert test\n";
-//    pqxx::result r2 = txn1.exec("SELECT * FROM pg_constraint;");
-//    EXPECT_EQ(r2.size(), 1);
-//    std::cerr << "pass select test 1\n";
+   pqxx::result r2 = txn1.exec("SELECT * FROM pg_constraint;");
+   EXPECT_EQ(r2.size(), 1);
+   std::cerr << "pass select test 1\n";
     pqxx::result r = txn1.exec("SELECT * FROM TableA;");
     EXPECT_EQ(r.size(), 1);
     std::cerr << "pass select test\n";
@@ -141,8 +141,8 @@ TEST_F(ConstraintStatementTest, CreateSinglePKTest) {
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
     pqxx::result r = txn1.exec("SELECT * FROM TableA");
     EXPECT_EQ(r.size(), 1);
-    r = txn1.exec("SELECT * FROM pg_constraint");
-    EXPECT_EQ(r.size(), 1);
+   r = txn1.exec("SELECT * FROM pg_constraint");
+   EXPECT_EQ(r.size(), 1);
     txn1.commit();
     connection.disconnect();
   } catch (const std::exception &e) {
