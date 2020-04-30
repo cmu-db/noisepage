@@ -1149,11 +1149,12 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer
   const auto con_namespace_oid_offset = pg_constraints_all_cols_prm_[postgres::CONNAMESPACE_COL_OID];
   auto *const con_namespace_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_namespace_oid_offset);
   *(reinterpret_cast<namespace_oid_t *>(con_namespace_oid_ptr)) = ns;
-
+//
   // Write constraint_type
   const auto con_type_oid_offset = pg_constraints_all_cols_prm_[postgres::CONTYPE_COL_OID];
   auto *const con_type_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_type_oid_offset);
-  *(reinterpret_cast<postgres::ConstraintType *>(con_type_oid_ptr)) = postgres::ConstraintType::PRIMARY_KEY;
+   *(reinterpret_cast<postgres::ConstraintType *>(con_type_oid_ptr)) = postgres::ConstraintType::PRIMARY_KEY;
+//  *(reinterpret_cast<char *>(con_type_oid_ptr)) = 'p';
 
   *(reinterpret_cast<bool *>(constraints_insert_pr->AccessForceNotNull(
       pg_constraints_all_cols_prm_[postgres::CONDEFERRABLE_COL_OID]))) = false;
@@ -1173,10 +1174,11 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer
   const auto con_fk_table_offset = pg_constraints_all_cols_prm_[postgres::CONFRELID_COL_OID];
   constraints_insert_pr->SetNull(con_fk_table_offset);
 
-  const auto all_col_varlen = storage::StorageUtil::CreateVarlen(pk_cols);
+//  const auto all_col_varlen = storage::StorageUtil::CreateVarlen(pk_cols);
   const auto con_col_oid_offset = pg_constraints_all_cols_prm_[postgres::CONCOL_COL_OID];
-  auto *const con_col_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_col_oid_offset);
-  *(reinterpret_cast<storage::VarlenEntry *>(con_col_oid_ptr)) = all_col_varlen;
+//  auto *const con_col_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_col_oid_offset);
+//  *(reinterpret_cast<storage::VarlenEntry *>(con_col_oid_ptr)) = all_col_varlen;
+  constraints_insert_pr->SetNull(con_col_oid_offset);
 
   const auto con_check_offset = pg_constraints_all_cols_prm_[postgres::CONCHECK_COL_OID];
   constraints_insert_pr->SetNull(con_check_offset);
@@ -2259,20 +2261,20 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   }
 
   // pg_constraint (expressions)
-  const std::vector<col_oid_t> pg_constraint_oids{postgres::CONBIN_COL_OID};
-  pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, 100);
-  pc = pci.Initialize(buffer);
+  // const std::vector<col_oid_t> pg_constraint_oids{postgres::CONBIN_COL_OID};
+  // pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, 100);
+  // pc = pci.Initialize(buffer);
 
-  auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
+  // auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
 
-  table_iter = constraints_->begin();
-  while (table_iter != constraints_->end()) {
-    constraints_->Scan(txn, &table_iter, pc);
+  // table_iter = constraints_->begin();
+  // while (table_iter != constraints_->end()) {
+  //   constraints_->Scan(txn, &table_iter, pc);
 
-    for (uint i = 0; i < pc->NumTuples(); i++) {
-      expressions.emplace_back(exprs[i]);
-    }
-  }
+  //   for (uint i = 0; i < pc->NumTuples(); i++) {
+  //     expressions.emplace_back(exprs[i]);
+  //   }
+  // }
 
   auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
                    table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
