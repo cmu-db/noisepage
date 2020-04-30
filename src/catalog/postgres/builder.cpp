@@ -134,13 +134,17 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   // dbc->constraints_foreigntable_index_ =
   //     Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
   dbc->fk_constraints_oid_index_ = 
-      Builder::BuildLookupIndex(Builder::GetFKConstraintOidIndexSchema(oid), FK_OID_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetFKConstraintOidIndexSchema(oid), FK_OID_INDEX_OID);
   dbc->fk_constraints_constraint_oid_index_ = 
       Builder::BuildLookupIndex(Builder::GetFKConstraintConstraintOidIndexSchema(oid), FK_CON_OID_INDEX_OID);
+  dbc->fk_constraints_src_table_oid_index_ = 
+      Builder::BuildLookupIndex(Builder::GetFKConstraintSrcTableOidIndexSchema(oid), FK_SRC_TABLE_OID_INDEX_OID);
+  dbc->fk_constraints_ref_table_oid_index_ = 
+      Builder::BuildLookupIndex(Builder::GetFKConstraintRefTableOidIndexSchema(oid), FK_REF_TABLE_OID_INDEX_OID);
   dbc->check_constraints_oid_index_ = 
-      Builder::BuildLookupIndex(Builder::GetCheckConstraintOidIndexSchema(oid), CHECK_OID_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetCheckConstraintOidIndexSchema(oid), CHECK_OID_INDEX_OID);
   dbc->exclusion_constraints_oid_index_ = 
-      Builder::BuildLookupIndex(Builder::GetExclusionConstraintOidIndexSchema(oid), EXCLUSION_OID_INDEX_OID);
+      Builder::BuildUniqueIndex(Builder::GetExclusionConstraintOidIndexSchema(oid), EXCLUSION_OID_INDEX_OID);
   // Indexes on pg_language
   dbc->languages_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), LANGUAGE_OID_INDEX_OID);
@@ -240,10 +244,10 @@ Schema Builder::GetConstraintTableSchema() {
   columns.emplace_back("conindid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(CONINDID_COL_OID);
 
-  columns.emplace_back("confrelid", type::TypeId::VARBINARY, true, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("confrelid", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(CONFRELID_COL_OID);
 
-  columns.emplace_back("concol", type::TypeId::VARBINARY, true, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("concol", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(CONCOL_COL_OID);
 
   columns.emplace_back("concheck", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
@@ -252,7 +256,7 @@ Schema Builder::GetConstraintTableSchema() {
   columns.emplace_back("conexclusion", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(CONEXCLUSION_COL_OID);
 
-  columns.emplace_back("conbin", type::TypeId::VARCHAR, true, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("conbin", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
   columns.back().SetOid(CONBIN_COL_OID);
 
   return Schema(columns);
