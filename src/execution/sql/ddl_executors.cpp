@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-
+#include <stdio.h>
 #include "catalog/catalog_accessor.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "common/macros.h"
@@ -200,6 +200,7 @@ bool DDLExecutors::CreatePKConstraintsAndIndices(const common::ManagedPointer<ca
   catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
   if (plan_node->HasPrimaryKey()) {
+    std::cerr << "Enter create PK and Index\n";
     // Create the IndexSchema Columns by referencing the Columns in the canonical table Schema from the Catalog
     std::vector<catalog::IndexSchema::Column> key_cols;
     const auto &primary_key_info = plan_node->GetPrimaryKey();
@@ -216,11 +217,14 @@ bool DDLExecutors::CreatePKConstraintsAndIndices(const common::ManagedPointer<ca
       }
     }
     catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+    
 
     // Create the index, and use its return value as overall success result
     catalog::index_oid_t index_oid = CreateIndexForConstraints(accessor, plan_node->GetNamespaceOid(),
                                                                primary_key_info.constraint_name_, table, index_schema);
+    std::cerr << "created index\n";
     if (index_oid == catalog::INVALID_INDEX_OID) {
+      std::cerr << "created index for constraint failed\n";
       return false;
     }
     const planner::PrimaryKeyInfo &pk_info = plan_node->GetPrimaryKey();
@@ -231,7 +235,7 @@ bool DDLExecutors::CreatePKConstraintsAndIndices(const common::ManagedPointer<ca
     }
     constraint_oid = accessor->CreatePKConstraint(ns, table, pk_info.constraint_name_, index_oid, pk_cols);
     if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
-      // Catalog wasn't able to proceed, txn must now abort
+       std::cerr << "Catalog wasn't able to proceed, txn must now abort\n";
       return false;
     }
   }
@@ -355,7 +359,7 @@ bool DDLExecutors::CreateCheckConstraintsAndIndices(
     const catalog::db_oid_t connection_db) {
   catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
-  return !!ns;
+  return (ns != catalog::INVALID_NAMESPACE_OID);
 }
 bool DDLExecutors::CreateExclusionConstraintsAndIndices(
     const common::ManagedPointer<catalog::CatalogAccessor> accessor, const terrier::catalog::Schema &schema,
@@ -363,7 +367,7 @@ bool DDLExecutors::CreateExclusionConstraintsAndIndices(
     const catalog::db_oid_t connection_db) {
   catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
-  return !!ns;
+  return (ns != catalog::INVALID_NAMESPACE_OID);
 }
 bool DDLExecutors::CreateNotNullConstraints(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                             const terrier::catalog::Schema &schema, const catalog::table_oid_t table,
@@ -371,7 +375,7 @@ bool DDLExecutors::CreateNotNullConstraints(const common::ManagedPointer<catalog
                                             const catalog::db_oid_t connection_db) {
   catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
-  return !!ns;
+  return (ns != catalog::INVALID_NAMESPACE_OID);
 }
 bool DDLExecutors::CreateTriggerConstraints(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                             const terrier::catalog::Schema &schema, const catalog::table_oid_t table,
@@ -379,7 +383,7 @@ bool DDLExecutors::CreateTriggerConstraints(const common::ManagedPointer<catalog
                                             const catalog::db_oid_t connection_db) {
   catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
-  return !!ns;
+  return (ns != catalog::INVALID_NAMESPACE_OID);
 }
 
 }  // namespace terrier::execution::sql

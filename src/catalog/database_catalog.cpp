@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+#include <stdio.h>
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/builder.h"
@@ -1040,19 +1040,11 @@ const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transactio
   return *reinterpret_cast<Schema *>(ptr_pair.first);
 }
 
-// constraint_oid_t DatabaseCatalog::CreateConstraints(const common::ManagedPointer<transaction::TransactionContext>
-// txn,
-//                                                     table_oid_t table, const planner::CreateTablePlanNode &plan_node)
-//                                                     {
-//   if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
-//   const constraint_oid_t constraint_oid_t = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
-//   return CreateConstraintsEntry(txn, table, constraint_oid_t, plan_node) ? constraint_oid_t : INVALID_CONSTRAINT_OID;
-// }
-
-// bool DatabaseCatalog::CreateConstraintsEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
-//                                              const namespace_oid_t ns_oid, const table_oid_t table_oid,
-//                                              const constraint_oid_t constraint_oid, const std::string &name,
-//                                              const planner::CreateTablePlanNode &node) {
+// constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
+//                                                      namespace_oid_t ns_oid, table_oid_t table_oid, const std::string &name,
+//                                                      index_oid_t index, std::vector<col_oid_t> &pk_cols) {
+//   // if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
+//   const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
 //   // Insert metadata into pg_constraint
 //   auto *const constraints_insert_redo =
 //       txn->StageWrite(db_oid_, postgres::CONSTRAINT_TABLE_OID, pg_constraints_all_cols_pri_);
@@ -1077,11 +1069,7 @@ const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transactio
 //   // Write constraint_type
 //   const auto con_type_oid_offset = pg_constraints_all_cols_prm_[postgres::CONTYPE_COL_OID];
 //   auto *const con_type_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_type_oid_offset);
-//   if (schema.is_unique_) {
-//     *(reinterpret_cast<char *>(con_type_oid_ptr)) = 'u';
-//   } else {
-//     *(reinterpret_cast<char *>(con_type_oid_ptr)) = 'p';
-//   }
+//   *(reinterpret_cast<char *>(con_type_oid_ptr)) = 'p';
 
 //   *(reinterpret_cast<bool *>(constraints_insert_pr->AccessForceNotNull(
 //       pg_constraints_all_cols_prm_[postgres::CONDEFERRABLE_COL_OID]))) = false;
@@ -1120,16 +1108,24 @@ const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transactio
 //     // There was an oid conflict and we need to abort.  Free the buffer and
 //     // return INVALID_TABLE_OID to indicate the database was not created.
 //     delete[] index_buffer;
-//     return false;
+//     return catalog::INVALID_CONSTRAINT_OID;
 //   }
-//   return true;
+//   return constraint_oid;
 // }
-
 constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                     namespace_oid_t ns, table_oid_t table, const std::string &name,
-                                                     index_oid_t index, std::vector<col_oid_t> &pk_cols) {
+                                                    namespace_oid_t ns, table_oid_t table, const std::string &name,
+                                                    index_oid_t index, std::vector<col_oid_t> &pk_cols) {
   if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
   const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
+  return CreatePKConstraintEntry(txn, ns, table, constraint_oid, name, index, pk_cols) == constraint_oid ? constraint_oid : INVALID_CONSTRAINT_OID;
+}
+
+constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                     namespace_oid_t ns, table_oid_t table, constraint_oid_t constraint_oid, const std::string &name,
+                                                     index_oid_t index, std::vector<col_oid_t> &pk_cols) {
+//  if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
+  std::cerr << "start creating PK\n";
+//  const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
   // Insert metadata into pg_constraint
   auto *const constraints_insert_redo =
       txn->StageWrite(db_oid_, postgres::CONSTRAINT_TABLE_OID, pg_constraints_all_cols_pri_);
@@ -1171,23 +1167,36 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<tran
   auto *const con_indid_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_indid_oid_offset);
   *(reinterpret_cast<index_oid_t *>(con_indid_oid_ptr)) = index;
 
+  const auto con_fk_table_offset = pg_constraints_all_cols_prm_[postgres::CONFRELID_COL_OID];
+  constraints_insert_pr->SetNull(con_fk_table_offset);
+
   const auto all_col_varlen = storage::StorageUtil::CreateVarlen(pk_cols);
   const auto con_col_oid_offset = pg_constraints_all_cols_prm_[postgres::CONCOL_COL_OID];
   auto *const con_col_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_col_oid_offset);
   *(reinterpret_cast<storage::VarlenEntry *>(con_col_oid_ptr)) = all_col_varlen;
 
+  const auto con_check_offset = pg_constraints_all_cols_prm_[postgres::CONCHECK_COL_OID];
+  constraints_insert_pr->SetNull(con_check_offset);
+
+  const auto con_exclu_offset = pg_constraints_all_cols_prm_[postgres::CONEXCLUSION_COL_OID];
+  constraints_insert_pr->SetNull(con_exclu_offset);
+
+  const auto conbin_offset = pg_constraints_all_cols_prm_[postgres::CONBIN_COL_OID];
+  constraints_insert_pr->SetNull(conbin_offset);
+
   // Insert into pg_constraint table
   const auto constraint_tuple_slot = constraints_->Insert(txn, constraints_insert_redo);
+//  constraints_->Insert(txn, constraints_insert_redo);
 
   // Now insert into the indexes on pg_constraint
   // Get PR initializers and allocate a buffer from the largest one
   const auto con_oid_index_pr = constraints_oid_index_->GetProjectedRowInitializer();
   const auto con_name_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_namespace_index_pr = constraints_name_index_->GetProjectedRowInitializer();
+  const auto con_namespace_index_pr = constraints_namespace_index_->GetProjectedRowInitializer();
   const auto con_table_index_pr = constraints_table_index_->GetProjectedRowInitializer();
   const auto con_index_index_pr = constraints_index_index_->GetProjectedRowInitializer();
   auto *index_buffer = common::AllocationUtil::AllocateAligned(con_name_index_pr.ProjectedRowSize());
-  // Insert into indexes_oid_index
+  // // Insert into indexes_oid_index
   auto *index_pr = con_oid_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<constraint_oid_t *>(index_pr->AccessForceNotNull(0))) = constraint_oid;
   if (!constraints_oid_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
@@ -1199,7 +1208,8 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<tran
 
   index_pr = con_name_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
-  if (!constraints_name_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns;
+  if (!constraints_name_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
@@ -1210,13 +1220,14 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<tran
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
-
+  std::cerr << "pass namespace\n";
   index_pr = con_table_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<table_oid_t *>(index_pr->AccessForceNotNull(0))) = table;
   if (!constraints_table_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
+  std::cerr << "pass table\n";
 
   index_pr = con_index_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<index_oid_t *>(index_pr->AccessForceNotNull(0))) = index;
@@ -1224,8 +1235,10 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<tran
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
+  std::cerr << "pass index\n";
   return constraint_oid;
 }
+
 constraint_oid_t DatabaseCatalog::CreateFKConstraint(
     common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns, table_oid_t src_table,
     table_oid_t sink_table, const std::string &name, index_oid_t index, std::vector<col_oid_t> &src_cols,
@@ -1290,7 +1303,7 @@ constraint_oid_t DatabaseCatalog::CreateFKConstraint(
   // Get PR initializers and allocate a buffer from the largest one
   const auto con_oid_index_pr = constraints_oid_index_->GetProjectedRowInitializer();
   const auto con_name_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_namespace_index_pr = constraints_name_index_->GetProjectedRowInitializer();
+  const auto con_namespace_index_pr = constraints_namespace_index_->GetProjectedRowInitializer();
   const auto con_table_index_pr = constraints_name_index_->GetProjectedRowInitializer();
   const auto con_index_index_pr = constraints_name_index_->GetProjectedRowInitializer();
   auto *index_buffer = common::AllocationUtil::AllocateAligned(con_name_index_pr.ProjectedRowSize());
@@ -1306,7 +1319,8 @@ constraint_oid_t DatabaseCatalog::CreateFKConstraint(
 
   index_pr = con_name_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
-  if (!constraints_name_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns;
+  if (!constraints_name_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
@@ -1486,11 +1500,11 @@ constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<
   // Get PR initializers and allocate a buffer from the largest one
   const auto con_oid_index_pr = constraints_oid_index_->GetProjectedRowInitializer();
   const auto con_name_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_namespace_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_table_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_index_index_pr = constraints_name_index_->GetProjectedRowInitializer();
+  const auto con_namespace_index_pr = constraints_namespace_index_->GetProjectedRowInitializer();
+  const auto con_table_index_pr = constraints_table_index_->GetProjectedRowInitializer();
+  const auto con_index_index_pr = constraints_index_index_->GetProjectedRowInitializer();
   auto *index_buffer = common::AllocationUtil::AllocateAligned(con_name_index_pr.ProjectedRowSize());
-  // Insert into indexes_oid_index
+  // // Insert into indexes_oid_index
   auto *index_pr = con_oid_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<constraint_oid_t *>(index_pr->AccessForceNotNull(0))) = constraint_oid;
   if (!constraints_oid_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
@@ -1502,7 +1516,8 @@ constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<
 
   index_pr = con_name_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
-  if (!constraints_name_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns;
+  if (!constraints_name_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
@@ -1513,13 +1528,14 @@ constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
-
+  std::cerr << "pass namespace\n";
   index_pr = con_table_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<table_oid_t *>(index_pr->AccessForceNotNull(0))) = table;
   if (!constraints_table_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
+  std::cerr << "pass table\n";
 
   index_pr = con_index_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<index_oid_t *>(index_pr->AccessForceNotNull(0))) = index;
@@ -1527,6 +1543,8 @@ constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
+  std::cerr << "pass index\n";
+  std::cerr << "Exit unique creation\n";
   return constraint_oid;
 }
 bool DatabaseCatalog::DeleteConstraints(const common::ManagedPointer<transaction::TransactionContext> txn,
