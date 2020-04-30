@@ -941,10 +941,20 @@ bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::Tran
 }
 
 bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const table_oid_t table, Schema *const new_schema, storage::layout_version_t *layout_version) {
+                                   const table_oid_t table, Schema *const new_schema,
+                                   storage::layout_version_t *layout_version) {
   if (!TryLock(txn)) return false;
-  // TODO(John): Implement
-  TERRIER_ASSERT(false, "Not implemented");
+
+  // Iterate though each changed column:
+  //  - if it is an OLD column:
+  //    1. Update those tables associated with columns (inserted in the CreateColumn())
+  //    2. Update the indexes for those columns
+  //  - if it is a NEW column:
+  //    1. do CreateColumn()
+
+  delete new_schema;
+
+  // update the schema pointer and up the layout version
   return false;
 }
 
@@ -1939,6 +1949,8 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   const auto kind_offset = pg_class_all_cols_prm_[postgres::RELKIND_COL_OID];
   auto *const kind_ptr = insert_pr->AccessForceNotNull(kind_offset);
   *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::REGULAR_TABLE);
+
+  // TODO(XC): write the layout_version to the entry
 
   // Create the necessary varlen for storage operations
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);

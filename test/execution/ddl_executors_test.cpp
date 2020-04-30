@@ -8,6 +8,7 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "main/db_main.h"
+#include "planner/plannodes/alter_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
@@ -328,6 +329,58 @@ TEST_F(DDLExecutorsTests, DropTablePlanNode) {
   EXPECT_TRUE(execution::sql::DDLExecutors::DropTableExecutor(
       common::ManagedPointer<planner::DropTablePlanNode>(drop_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+// NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, AlterTablePlanNodeAddColumn) {
+  // TODO(SC): alter table command tests moving to another test file?
+
+  // Create table
+  planner::CreateTablePlanNode::Builder builder;
+  auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+                               .SetTableSchema(std::move(table_schema_))
+                               .SetTableName("foo")
+                               .SetBlockStore(block_store_)
+                               .Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
+      common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
+  auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+  auto table_ptr = accessor_->GetTable(table_oid);
+  EXPECT_NE(table_ptr, nullptr);
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Add a column
+  txn_ = txn_manager_->BeginTransaction();
+  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
+
+  planner::AlterPlanNode::Builder alter_builder;
+  auto default_val = parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(15712));
+  catalog::Schema::Column col("new_column", type::TypeId::INTEGER, false, default_val);
+  std::vector<std::unique_ptr<planner::AlterCmdBase>> cmds;
+  auto add_cmd = std::make_unique<planner::AlterPlanNode::AddColumnCmd>(col, nullptr, nullptr, nullptr);
+  cmds.push_back(std::move(add_cmd));
+  auto alter_table_node = alter_builder.SetTableOid(table_oid)
+                              .SetCommands(std::move(cmds))
+                              .SetColumnOIDs({catalog::INVALID_COLUMN_OID})
+                              .Build();
+  EXPECT_TRUE(
+      execution::sql::DDLExecutors::AlterTableExecutor(common::ManagedPointer<planner::AlterPlanNode>(alter_table_node),
+                                                       common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+
+  // auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  // EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+  // auto table_ptr = accessor_->GetTable(table_oid);
+  // EXPECT_NE(table_ptr, nullptr);
+
+  // planner::DropTablePlanNode::Builder drop_builder;
+  // auto drop_table_node = drop_builder.SetTableOid(table_oid).Build();
+  // EXPECT_TRUE(execution::sql::DDLExecutors::DropTableExecutor(
+  //     common::ManagedPointer<planner::DropTablePlanNode>(drop_table_node),
+  //     common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
 
   txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }

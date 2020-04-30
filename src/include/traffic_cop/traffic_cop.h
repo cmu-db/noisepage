@@ -141,8 +141,7 @@ class TrafficCop {
    * @return result of the operation
    */
   TrafficCopResult ExecuteAlterStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                          common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
-
+                                         common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
 
   /**
    * Contains the logic to reason about CREATE execution.

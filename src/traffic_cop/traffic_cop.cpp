@@ -136,12 +136,11 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
 TrafficCopResult TrafficCop::ExecuteAlterStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const {
-
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
 
-  if (execution::sql::DDLExecutors::AlterTableExecutor(
-      physical_plan.CastManagedPointerTo<planner::AlterPlanNode>(), connection_ctx->Accessor())) {
+  if (execution::sql::DDLExecutors::AlterTableExecutor(physical_plan.CastManagedPointerTo<planner::AlterPlanNode>(),
+                                                       connection_ctx->Accessor())) {
     return {ResultType::COMPLETE, 0};
   }
   connection_ctx->Transaction()->SetMustAbort();

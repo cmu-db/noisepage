@@ -35,7 +35,6 @@ bool DDLExecutors::CreateNamespaceExecutor(const common::ManagedPointer<planner:
   return accessor->CreateNamespace(node->GetNamespaceName()) != catalog::INVALID_NAMESPACE_OID;
 }
 
-
 bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::CreateTablePlanNode> node,
                                        const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                        const catalog::db_oid_t connection_db) {
@@ -160,14 +159,11 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   return true;
 }
 
-
 // TODO(SC): in case any of the command fails to execute, the entire ALTER TABLE sql should be rolled back
-//  This means updates made by the previous commands (which are already materizlied on the catalog tables) need to be reverted
-//  The command :
-bool DDLExecutors::AlterTableExecutor(
-    const common::ManagedPointer<planner::AlterPlanNode> node,
-    const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
-
+//  This means updates made by the previous commands (which are already materizlied on the catalog tables) need to be
+//  reverted The command :
+bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::AlterPlanNode> node,
+                                      const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   const auto &cmds = node->GetCommands();
 
   // Get the table
@@ -175,24 +171,23 @@ bool DDLExecutors::AlterTableExecutor(
   const auto sql_table = accessor->GetTable(table_oid);
 
   // Not a regular table
-  if(sql_table == nullptr) return false;
+  if (sql_table == nullptr) return false;
 
   // Schema to accumulate the changes from various actions
   std::unique_ptr<catalog::Schema> update_schema(nullptr);
-  for(const auto &cmd : cmds) {
-    switch(cmd->GetType()) {
+  for (const auto &cmd : cmds) {
+    switch (cmd->GetType()) {
       case parser::AlterTableStatement::AlterType::AddColumn: {
         // Get the current schema
-        if(update_schema == nullptr) {
+        if (update_schema == nullptr) {
           const auto &schema = accessor->GetSchema(table_oid);
           auto cols = schema.GetColumns();
           update_schema.reset(new catalog::Schema(cols));
         }
 
         // Add the column to the schema
-        AlterTableCmdExecutor::AddColumn(cmd, update_schema, accessor);
-      }
-        break;
+        if (!AlterTableCmdExecutor::AddColumn(cmd, update_schema, accessor)) return false;
+      } break;
       default:
         TERRIER_ASSERT(false, "not implemented");
     }
@@ -201,14 +196,13 @@ bool DDLExecutors::AlterTableExecutor(
   // All the commands execute OK
 
   // Some commands modify the schema, so update the schema
-  if(update_schema != nullptr) {
+  if (update_schema != nullptr) {
     // The catalog will own the Schema
     auto new_schema = update_schema.release();
     storage::layout_version_t new_version;
-    if(accessor->UpdateSchema(table_oid, new_schema, &new_version)) {
+    if (accessor->UpdateSchema(table_oid, new_schema, &new_version)) {
       // WARNING: Update the underlying sql_table, the update is not transactional
       sql_table->UpdateSchema(accessor->GetTransactionContext(), accessor->GetSchema(table_oid), new_version);
-
     }
   }
   return true;

@@ -1,18 +1,16 @@
 #pragma once
 
-
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "planner/plannodes/alter_plan_node.h"
 
 namespace terrier::planner {
 class AlterPlanNode;
-} // namespace terrier::planner
+}  // namespace terrier::planner
 
 namespace terrier::catalog {
 class CatlaogAccessor;
-} // namespace terrier::catalog
-
+}  // namespace terrier::catalog
 
 namespace terrier::execution::sql {
 /**
@@ -30,8 +28,7 @@ class AlterTableCmdExecutor {
    */
   static bool AddColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
                         std::unique_ptr<catalog::Schema> &schema,
-                        const common::ManagedPointer<catalog::CatalogAccessor> accessor
-  );
+                        const common::ManagedPointer<catalog::CatalogAccessor> accessor);
 };
 
-} // namesapce terrier::execution::sql
+}  // namespace terrier::execution::sql

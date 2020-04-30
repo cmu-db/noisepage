@@ -174,6 +174,8 @@ class CatalogAccessor {
    */
   bool UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version) const;
 
+  // TODO(XC)
+
   /**
    * Get the visible schema describing the table.
    * @param table corresponding to the requested schema, this must be a valid oid from GetTableOid. Invalid input will
@@ -364,7 +366,7 @@ class CatalogAccessor {
   /**
    * @return Transactional context for this accessor
    */
-    const common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() {return txn_;}
+  const common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() { return txn_; }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.
