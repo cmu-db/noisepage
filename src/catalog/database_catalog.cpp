@@ -1046,7 +1046,8 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer
 
   index_pr = con_name_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
-  if (!constraints_name_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns;
+  if (!constraints_name_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
@@ -1242,7 +1243,8 @@ constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<
 
   index_pr = con_name_index_pr.InitializeRow(index_buffer);
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
-  if (!constraints_name_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns;
+  if (!constraints_name_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
