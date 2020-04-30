@@ -26,12 +26,13 @@ constexpr col_oid_t RELKIND_COL_OID = col_oid_t(4);         // CHAR
 constexpr col_oid_t REL_SCHEMA_COL_OID = col_oid_t(5);      // BIGINT (assumes 64-bit pointers)
 constexpr col_oid_t REL_PTR_COL_OID = col_oid_t(6);         // BIGINT (assumes 64-bit pointers)
 constexpr col_oid_t REL_NEXTCOLOID_COL_OID = col_oid_t(7);  // INTEGER
+constexpr col_oid_t REL_VERS_COL_OID = col_oid_t(8);        // SMALLINT
 
-constexpr uint8_t NUM_PG_CLASS_COLS = 7;
+constexpr uint8_t NUM_PG_CLASS_COLS = 8;
 
 constexpr std::array<col_oid_t, NUM_PG_CLASS_COLS> PG_CLASS_ALL_COL_OIDS = {
-    RELOID_COL_OID,     RELNAME_COL_OID, RELNAMESPACE_COL_OID,  RELKIND_COL_OID,
-    REL_SCHEMA_COL_OID, REL_PTR_COL_OID, REL_NEXTCOLOID_COL_OID};
+    RELOID_COL_OID,     RELNAME_COL_OID, RELNAMESPACE_COL_OID,   RELKIND_COL_OID,
+    REL_SCHEMA_COL_OID, REL_PTR_COL_OID, REL_NEXTCOLOID_COL_OID, REL_VERS_COL_OID};
 
 enum class ClassKind : char {
   REGULAR_TABLE = 'r',

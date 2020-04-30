@@ -13,6 +13,7 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "execution/sql/alter_executors.h"
 #include "execution/udf/udf_context.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -151,7 +152,8 @@ class DatabaseCatalog {
    * obtain the authoritative schema for this table.
    */
   bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, Schema *new_schema,
-                    storage::layout_version_t *layout_version);
+                    storage::layout_version_t *layout_version,
+                    const execution::sql::AlterTableCmdExecutor::ChangeMap &change_map);
 
   /**
    * Get the visible schema describing the table.
@@ -461,6 +463,7 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer get_class_oid_kind_pri_;
   storage::ProjectedRowInitializer set_class_pointer_pri_;
   storage::ProjectedRowInitializer set_class_schema_pri_;
+  storage::ProjectedRowInitializer set_class_next_col_oid_pri_;
   storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
   storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
   storage::ProjectedRowInitializer get_class_object_and_schema_pri_;
@@ -513,7 +516,7 @@ class DatabaseCatalog {
   storage::ProjectionMap pg_proc_all_cols_prm_;
   storage::ProjectedRowInitializer pg_proc_ptr_pri_;
 
-  std::atomic<uint32_t> next_oid_;
+  std::atomic<uint32_t> next_oid_;  // for index
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;

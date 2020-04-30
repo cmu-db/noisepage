@@ -21,6 +21,12 @@ class AlterTableCmdExecutor {
   AlterTableCmdExecutor() = delete;
 
   /**
+   * Record the changes to a specific column
+   */
+  enum class ChangeType { Add, Drop, ChangeDefault };
+  using ChangeMap = std::unordered_map<std::string, std::vector<ChangeType>>;
+
+  /**
    *
    * @param cmd  AddColumn Command
    * @param accessor accessor to use for this execution
@@ -28,7 +34,8 @@ class AlterTableCmdExecutor {
    */
   static bool AddColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
                         std::unique_ptr<catalog::Schema> &schema,
-                        const common::ManagedPointer<catalog::CatalogAccessor> accessor);
+                        const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                        std::unordered_map<std::string, std::vector<ChangeType>> &change_map);
 };
 
 }  // namespace terrier::execution::sql

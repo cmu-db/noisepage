@@ -11,6 +11,7 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "execution/sql/alter_executors.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "type/type_id.h"
@@ -172,7 +173,8 @@ class CatalogAccessor {
    * @warning If the caller needs to reference the schema object after this call, they should use the GetSchema function
    * to obtain the authoritative schema for this table.
    */
-  bool UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version) const;
+  bool UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version,
+                    const execution::sql::AlterTableCmdExecutor::ChangeMap &change_map) const;
 
   // TODO(XC)
 

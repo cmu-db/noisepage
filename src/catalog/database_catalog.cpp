@@ -305,6 +305,9 @@ void DatabaseCatalog::BootstrapPRIs() {
   const std::vector<col_oid_t> set_class_schema_oids{postgres::REL_SCHEMA_COL_OID};
   set_class_schema_pri_ = classes_->InitializerForProjectedRow(set_class_schema_oids);
 
+  const std::vector<col_oid_t> set_class_next_col_oid_oids{postgres::REL_NEXTCOLOID_COL_OID};
+  set_class_next_col_oid_pri_ = classes_->InitializerForProjectedRow(set_class_next_col_oid_oids);
+
   const std::vector<col_oid_t> get_class_pointer_kind_oids{postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID};
   get_class_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_pointer_kind_oids);
 
@@ -942,15 +945,60 @@ bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::Tran
 
 bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                    const table_oid_t table, Schema *const new_schema,
-                                   storage::layout_version_t *layout_version) {
+                                   storage::layout_version_t *layout_version,
+                                   const execution::sql::AlterTableCmdExecutor::ChangeMap &change_map) {
   if (!TryLock(txn)) return false;
 
-  // Iterate though each changed column:
-  //  - if it is an OLD column:
-  //    1. Update those tables associated with columns (inserted in the CreateColumn())
-  //    2. Update the indexes for those columns
-  //  - if it is a NEW column:
-  //    1. do CreateColumn()
+  // Iterate through the column being modified
+  for (auto itr = change_map.begin(); itr != change_map.end(); ++itr) {
+    auto col_name = itr->first;
+
+    // For all the change on this column
+    for (auto change : itr->second) {
+      switch (change) {
+        case execution::sql::AlterTableCmdExecutor::ChangeType::Add: {
+          // Get the next col_oid from index
+          auto pri = classes_oid_index_->GetProjectedRowInitializer();
+          byte *const idx_buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
+          auto pr = pri.InitializeRow(idx_buffer);
+          *(reinterpret_cast<table_oid_t *>(pr->AccessForceNotNull(0))) = table;
+
+          std::vector<storage::TupleSlot> results;
+          classes_oid_index_->ScanKey(*txn, *pr, &results);
+          delete[] idx_buffer;
+
+          TERRIER_ASSERT(results.size() == 1, "Unique index on table_oid should not return 0 for Add Column");
+          auto tuple_slot = results[0];
+
+          byte *const entry_buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
+          auto all_cols_pr = pg_class_all_cols_pri_.InitializeRow(entry_buffer);
+          classes_->Select(txn, tuple_slot, all_cols_pr);
+          delete[] entry_buffer;
+
+          auto next_oid = *(reinterpret_cast<col_oid_t *>(
+              all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID])));
+
+          // Create the column with the next_oid
+          auto success = CreateColumn(txn, table, next_oid, new_schema->GetColumn(col_name));
+          if (!success) return false;
+
+          // Update the next_col_oid
+          auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_next_col_oid_pri_);
+          auto *const update_pr = update_redo->Delta();
+
+          update_redo->SetTupleSlot(tuple_slot);
+
+          *reinterpret_cast<col_oid_t *>(
+              update_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID])) = next_oid + 1;
+          auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
+          TERRIER_ASSERT(res, "Updating the next_col_oid should not fail");
+        } break;
+        default:
+          TERRIER_ASSERT(false, "Not implemented");
+      }
+    }
+  }
+  // TODO(XC): Update the schema here
 
   delete new_schema;
 
@@ -1619,8 +1667,8 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   *reinterpret_cast<IndexSchema **>(update_pr->AccessForceNotNull(0)) = new_schema;
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
   TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
-  // TODO(Schema-Change): deal with the case in which tupleslot is migrated
-
+  // NOTE: Schema-Change.
+  // We are assuming catalog table only has 1 schema version. So this update never caused migration.
   return true;
 }
 
@@ -1950,7 +1998,10 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   auto *const kind_ptr = insert_pr->AccessForceNotNull(kind_offset);
   *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::REGULAR_TABLE);
 
-  // TODO(XC): write the layout_version to the entry
+  // Write the layout version into the PR
+  const auto layout_version_offset = pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID];
+  auto *const layout_version_ptr = insert_pr->AccessForceNotNull(layout_version_offset);
+  *(reinterpret_cast<storage::layout_version_t *>(layout_version_ptr)) = storage::layout_version_t(0);
 
   // Create the necessary varlen for storage operations
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
