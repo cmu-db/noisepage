@@ -57,8 +57,18 @@ class PoolContext {
    */
   class Allocator {
    public:
+    /**
+     * @return Allocates a new pool context for use
+     */
     PoolContext *New() { return new PoolContext(); }
+    /**
+     * Defined to implement object pool interface
+     */
     void Reuse(PoolContext *const reuse) {}
+    /**
+     * Deletes an existing pool context
+     * @param ptr pointer to existing pool context to be deleted
+     */
     void Delete(PoolContext *const ptr) { delete ptr; }
   };
 
