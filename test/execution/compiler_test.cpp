@@ -1986,10 +1986,15 @@ TEST_F(CompilerTest, CTEBasicTest) {
     auto col1 = seq_scan_out.GetOutput("col1");
     cte_scan_out.AddOutput("col1", col1);
     auto schema = cte_scan_out.MakeSchema();
+    auto table_output_schema = schema->Copy();
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan =
-        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
+        builder.SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .AddChild(std::move(seq_scan))
+        .SetLeader(true)
+        .Build();
   }
   // Dummy checkers
   RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {
@@ -2053,10 +2058,14 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
+    auto table_output_schema = schema->Copy();
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan =
-        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
+        builder.SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .AddChild(std::move(seq_scan))
+        .SetLeader(true).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> cte_scan2;
@@ -2069,10 +2078,15 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
     cte_scan_out2.AddOutput("col1", col1);
     cte_scan_out2.AddOutput("col2", col2);
     auto schema = cte_scan_out2.MakeSchema();
+    auto table_output_schema = schema->Copy();
+
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan2 =
-        builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
+        builder.SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .SetLeader(false)
+        .Build();
   }
 
   // Make nested loop join
@@ -2171,10 +2185,16 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
+    auto table_output_schema = schema->Copy();
+
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan =
-        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
+        builder
+        .SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .AddChild(std::move(seq_scan))
+        .SetLeader(true).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> cte_scan2;
@@ -2187,10 +2207,16 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
     cte_scan_out2.AddOutput("col1", col1);
     cte_scan_out2.AddOutput("col2", col2);
     auto schema = cte_scan_out2.MakeSchema();
+    auto table_output_schema = schema->Copy();
+
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan2 =
-        builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
+        builder
+        .SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .SetLeader(false)
+        .Build();
   }
 
 
@@ -2289,10 +2315,17 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
+    auto table_output_schema = schema->Copy();
+
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan =
-        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
+        builder
+        .SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .AddChild(std::move(seq_scan))
+        .SetLeader(true)
+        .Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> cte_scan2;
@@ -2305,10 +2338,16 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
     cte_scan_out2.AddOutput("col1", col1);
     cte_scan_out2.AddOutput("col2", col2);
     auto schema = cte_scan_out2.MakeSchema();
+    auto table_output_schema = schema->Copy();
+
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan2 =
-        builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
+        builder
+        .SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .SetLeader(false)
+        .Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> cte_scan3;
@@ -2321,10 +2360,16 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
     cte_scan_out3.AddOutput("col1", col1);
     cte_scan_out3.AddOutput("col2", col2);
     auto schema = cte_scan_out3.MakeSchema();
+    auto table_output_schema = schema->Copy();
+
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan3 =
-        builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
+        builder
+        .SetOutputSchema(std::move(schema))
+        .SetLeader(false)
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .Build();
   }
 
   // Make hash join
@@ -2482,10 +2527,17 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
+    auto table_output_schema = schema->Copy();
+
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan =
-        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(agg)).SetLeader(true).Build();
+        builder
+        .SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .AddChild(std::move(agg))
+        .SetLeader(true)
+        .Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> seq_scan_2;
@@ -2632,10 +2684,17 @@ TEST_F(CompilerTest, ComplexAggregateWithCteQueryTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
+    auto table_output_schema = schema->Copy();
+
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan =
-        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(agg)).SetLeader(true).Build();
+        builder
+        .SetOutputSchema(std::move(schema))
+        .SetTableOutputSchema(std::move(table_output_schema))
+        .AddChild(std::move(agg))
+        .SetLeader(true)
+        .Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> seq_scan_2;
