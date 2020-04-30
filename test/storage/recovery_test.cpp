@@ -811,7 +811,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
             new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
 
     // Run workload
-  tested->SimulateOltp(1, 1);
+  tested->SimulateOltp(2, 2);
 
   // Create directory
   std::filesystem::create_directory(ckpt_path);

@@ -147,14 +147,14 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
         ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap), s);
 
         if (layout.IsVarlen(col_id)) {
-          uint64_t offsets_length = (*record_buffers)[cur_buffer_index ++]->length() / sizeof(uint64_t);
-          uint64_t values_length = (*record_buffers)[cur_buffer_index ++]->length();
+          int64_t offsets_length = (*record_buffers)[cur_buffer_index ++]->length() / sizeof(uint64_t);
+          int64_t values_length = (*record_buffers)[cur_buffer_index ++]->length();
           uint64_t *offsets_array = new uint64_t[offsets_length];
           ReadDataBlock(f, reinterpret_cast<char *>(offsets_array), offsets_length * sizeof(uint64_t));
           byte *values_array = new byte[values_length];
           ReadDataBlock(f, reinterpret_cast<char *>(values_array), values_length);
 
-          TERRIER_ASSERT(offsets_length - 1 == insert_head, "offsets length should be num_records+1");
+          TERRIER_ASSERT(offsets_length - 1 == insert_head || offsets_length == 0, "offsets length should be num_records+1");
           for (auto j = 0u; j < offsets_length - 1; j++) {
             // TODO: need to replace with the proper memory allocation
             uint64_t size = offsets_array[j + 1] - offsets_array[j];

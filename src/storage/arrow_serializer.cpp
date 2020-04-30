@@ -155,7 +155,7 @@ void ArrowSerializer::WriteDictionaryMessage(std::ofstream &outfile, int64_t dic
   outfile.flush();
 }
 
-void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type::TypeId> *col_types) {
+void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type::TypeId> *col_types, bool lock) {
   flatbuffers::FlatBufferBuilder flatbuf_builder;
   std::ofstream outfile(file_name, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
   std::unordered_map<col_id_t, int64_t> dictionary_ids;
@@ -163,17 +163,20 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
 
   const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
-  data_table_.blocks_latch_.Lock();
+  if (lock) data_table_.blocks_latch_.Lock();
   std::list<RawBlock *> tmp_blocks = data_table_.blocks_;
-  data_table_.blocks_latch_.Unlock();
+  if (lock) data_table_.blocks_latch_.Unlock();
 
   for (RawBlock *block : tmp_blocks) {
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
 
     // Make sure varlen columns have correct data when reading
-    while (!block->controller_.TryAcquireInPlaceRead()) {
+    if (lock) {
+      while (!block->controller_.TryAcquireInPlaceRead()) {
+      }
     }
+
     ArrowBlockMetadata &metadata = data_table_.accessor_.GetArrowBlockMetadata(block);
     uint32_t num_slots = metadata.NumRecords();
 
@@ -277,7 +280,7 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
       }
     }
     outfile.flush();
-    block->controller_.ReleaseInPlaceRead();
+    if (lock) block->controller_.ReleaseInPlaceRead();
   }
   outfile.close();
 }

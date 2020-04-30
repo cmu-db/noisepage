@@ -103,7 +103,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
 
     // write to disk
     storage::ArrowSerializer arrow_serializer(*data_table);
-    arrow_serializer.ExportTable(out_file, &column_types);
+    arrow_serializer.ExportTable(out_file, &column_types, false);
   }
 }
 
