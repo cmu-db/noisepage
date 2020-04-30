@@ -48,30 +48,30 @@ namespace terrier {
 
 struct ConstraintTests : public TerrierTest {
   void SetUp() override {
-    // db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
-    // txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
-    // catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
-    // auto *txn = txn_manager_->BeginTransaction();
-    // db_ = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
-    // txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    auto *txn = txn_manager_->BeginTransaction();
+    db_ = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
   void VerifyCatalogTables(const catalog::CatalogAccessor &accessor) {
-    // auto ns_oid = accessor.GetNamespaceOid("pg_catalog");
-    // EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
-    // EXPECT_EQ(ns_oid, catalog::postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
+    auto ns_oid = accessor.GetNamespaceOid("pg_catalog");
+    EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+    EXPECT_EQ(ns_oid, catalog::postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
 
-    // VerifyTablePresent(accessor, ns_oid, "pg_attribute");
-    // VerifyTablePresent(accessor, ns_oid, "pg_class");
-    // VerifyTablePresent(accessor, ns_oid, "pg_constraint");
-    // VerifyTablePresent(accessor, ns_oid, "fk_constraint");
-    // VerifyTablePresent(accessor, ns_oid, "check_constraint");
-    // VerifyTablePresent(accessor, ns_oid, "exclusion_constraint");
-    // VerifyTablePresent(accessor, ns_oid, "pg_index");
-    // VerifyTablePresent(accessor, ns_oid, "pg_namespace");
-    // VerifyTablePresent(accessor, ns_oid, "pg_type");
-    // VerifyTablePresent(accessor, ns_oid, "pg_language");
-    // VerifyTablePresent(accessor, ns_oid, "pg_proc");
+    VerifyTablePresent(accessor, ns_oid, "pg_attribute");
+    VerifyTablePresent(accessor, ns_oid, "pg_class");
+    VerifyTablePresent(accessor, ns_oid, "pg_constraint");
+    VerifyTablePresent(accessor, ns_oid, "fk_constraint");
+    VerifyTablePresent(accessor, ns_oid, "check_constraint");
+    VerifyTablePresent(accessor, ns_oid, "exclusion_constraint");
+    VerifyTablePresent(accessor, ns_oid, "pg_index");
+    VerifyTablePresent(accessor, ns_oid, "pg_namespace");
+    VerifyTablePresent(accessor, ns_oid, "pg_type");
+    VerifyTablePresent(accessor, ns_oid, "pg_language");
+    VerifyTablePresent(accessor, ns_oid, "pg_proc");
   }
 
   void VerifyTablePresent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
@@ -191,7 +191,69 @@ TEST_F(ConstraintTests, ConstraintTableAndIndexPresentTest) {
  * This include constraint info, table and related indicies
  */
 TEST_F(ConstraintTests, DDLCreateTableProcedureTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
+  // Create the column definition (no OIDs)
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto tmp_schema = catalog::Schema(cols);
+
+  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
+  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+  VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
+  // Check lookup via search path
+  EXPECT_EQ(table_oid, accessor->GetTableOid("test_table"));
+  EXPECT_EQ(accessor->GetTable(table_oid), nullptr);  // Check that allocation has not happened
+  auto schema = accessor->GetSchema(table_oid);
+
+  // Verify our columns exist
+  EXPECT_NE(schema.GetColumn("id").Oid(), catalog::INVALID_COLUMN_OID);
+  EXPECT_NE(schema.GetColumn("user_col_1").Oid(), catalog::INVALID_COLUMN_OID);
+
+  // Verify we can instantiate a storage object with the generated schema
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
+
+  EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
+  EXPECT_EQ(common::ManagedPointer(table), accessor->GetTable(table_oid));
+
+  std::vector<catalog::col_oid_t> pk_cols;
+  pk_cols.push_back(schema.GetColumn("id").Oid());
+
+  std::vector<catalog::IndexSchema::Column> key_cols;
+  key_cols.emplace_back("id", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+  const auto index_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "pk", index_schema);
+  EXPECT_NE (index_oid, catalog::INVALID_INDEX_OID);
+  // Get the canonical IndexSchema from the Catalog now that column oids have been assigned
+  const auto &schemaa = accessor->GetIndexSchema(index_oid);
+  // Instantiate an Index and update the pointer in the Catalog
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(schemaa);
+  auto *const index = index_builder.Build();
+  bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
+
+  accessor->CreatePKConstraint(accessor->GetDefaultNamespace(), table_oid, "test_pk", index_oid, pk_cols);
+  std::cerr << "pre commit\n";
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  std::cerr << "post commit\n";
+  // Get an accessor into the database and validate the catalog tables exist
+  // then delete it and verify an invalid OID is now returned for the lookup
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  EXPECT_NE(accessor, nullptr);
+  std::cerr << "pre check table\n";
+  VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
+  std::cerr << "post check table\n";
+  EXPECT_TRUE(accessor->DropTable(table_oid));
+  std::cerr << "post drop table\n";
+  VerifyTableAbsent(*accessor, accessor->GetDefaultNamespace(), "test_table");
+  std::cerr << "post cerify drop table\n";
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // NOLINTNEXTLINE

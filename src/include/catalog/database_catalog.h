@@ -182,6 +182,9 @@ class DatabaseCatalog {
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t table, const std::string &name, index_oid_t index,
                                       std::vector<col_oid_t> &pk_cols);
+  constraint_oid_t CreatePKConstraintEntry(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                            namespace_oid_t ns, table_oid_t table, constraint_oid_t constraint_oid, const std::string &name,
+                                                            index_oid_t index, std::vector<col_oid_t> &pk_cols);
   constraint_oid_t CreateFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t src_table, table_oid_t sink_table, const std::string &name,
                                       index_oid_t index, std::vector<col_oid_t> &src_cols,
