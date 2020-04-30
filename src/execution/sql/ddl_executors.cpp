@@ -50,6 +50,52 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
   bool result = accessor->SetTablePointer(table_oid, table);
   TERRIER_ASSERT(result, "CreateTable succeeded, SetTablePointer must also succeed.");
 
+  // if (node->HasPrimaryKey()) {
+  //   // Create the IndexSchema Columns by referencing the Columns in the canonical table Schema from the Catalog
+  //   std::vector<catalog::IndexSchema::Column> key_cols;
+  //   const auto &primary_key_info = node->GetPrimaryKey();
+  //   key_cols.reserve(primary_key_info.primary_key_cols_.size());
+  //   for (const auto &parser_col : primary_key_info.primary_key_cols_) {
+  //     const auto &table_col = schema.GetColumn(parser_col);
+  //     if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+  //       key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.MaxVarlenSize(), table_col.Nullable(),
+  //                             parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
+
+  //     } else {
+  //       key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.Nullable(),
+  //                             parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
+  //     }
+  //   }
+  //   catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+
+  //   // Create the index, and use its return value as overall success result
+  //   result = result &&
+  //            CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema);
+  // }
+
+  // for (const auto &unique_constraint : node->GetUniqueConstraints()) {
+  //   // TODO(Matt): we should add support in Catalog to update pg_constraint in this case
+  //   // Create the IndexSchema Columns by referencing the Columns in the canonical table Schema from the Catalog
+  //   std::vector<catalog::IndexSchema::Column> key_cols;
+  //   for (const auto &unique_col : unique_constraint.unique_cols_) {
+  //     const auto &table_col = schema.GetColumn(unique_col);
+  //     if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+  //       key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.MaxVarlenSize(), table_col.Nullable(),
+  //                             parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
+
+  //     } else {
+  //       key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.Nullable(),
+  //                             parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
+  //     }
+  //   }
+  //   catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, false, false, true);
+
+  //   // Create the index, and use its return value as overall success result
+  //   result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
+  //                                  index_schema);
+  // }
+
+
   // create primary key indicies and its constraints
   result = result && DDLExecutors::CreatePKConstraintsAndIndices(accessor, schema, table_oid, node, connection_db);
   // create indicies and its constraints

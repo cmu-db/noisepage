@@ -12,7 +12,7 @@ constexpr index_oid_t CONSTRAINT_NAME_INDEX_OID = index_oid_t(63);
 constexpr index_oid_t CONSTRAINT_NAMESPACE_INDEX_OID = index_oid_t(64);
 constexpr index_oid_t CONSTRAINT_TABLE_INDEX_OID = index_oid_t(65);
 constexpr index_oid_t CONSTRAINT_INDEX_INDEX_OID = index_oid_t(66);
-constexpr index_oid_t CONSTRAINT_FOREIGNTABLE_INDEX_OID = index_oid_t(67);
+// constexpr index_oid_t CONSTRAINT_FOREIGNTABLE_INDEX_OID = index_oid_t(67);
 
 /*
  * Column names of the form "CON[name]_COL_OID" are present in the PostgreSQL
@@ -32,7 +32,7 @@ constexpr col_oid_t CONFRELID_COL_OID = col_oid_t(10);     // VARBINARY - An arr
 constexpr col_oid_t CONCOL_COL_OID = col_oid_t(11);        // VARBINARY - An array of [column_oid_t] column id that unique, pk applies to. empty string for other type 
 constexpr col_oid_t CONCHECK_COL_OID = col_oid_t(12);      // INTEGER (fkey) - row id for the check_constraint_id for the check constraint tof this table, 0 if other type of constraints  
 constexpr col_oid_t CONEXCLUSION_COL_OID = col_oid_t(13);  // INTEGER (fkey) - row id for the exclusion_constraint_id for the exclusion constraint tof this table, 0 if other type of constraints  
-constexpr col_oid_t CONBIN_COL_OID = col_oid_t(14);        // VARCHAR - the expression embedded
+constexpr col_oid_t CONBIN_COL_OID = col_oid_t(14);        // BIGINT - the expression embedded
 
 constexpr uint8_t NUM_PG_CONSTRAINT_COLS = 14;
 
