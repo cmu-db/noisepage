@@ -163,12 +163,11 @@ class ExecutionThreadPool : DedicatedThreadOwner {
         if (!pool_->task_queue_[index].try_pop(task)) {
           continue;
         }
-
         status_ = ThreadStatus::BUSY;
         bool finished = task.first->YieldToFunc();
         status_ = ThreadStatus::SWITCHING;
 
-        if (finished) {
+        if (task.second == nullptr && finished) {
           pool_->context_pool_.Release(task.first);
           task.second->set_value();
           return;
