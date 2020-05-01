@@ -61,48 +61,6 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
-// TODO(Deepayan): Can be removed once parallel scan support is added. Currently for testing framework only
-void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                         std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer) {
-  std::vector<common::numa_region_t> numa_regions;
-  GetNUMARegions(&numa_regions);
-
-  // TODO(emmanuel) add additional buffers to the array so that the assert below is unnecessary
-
-  TERRIER_ASSERT(out_buffers->size() >= numa_regions.size(),
-                 "should have at least as many outbuffers as numa regions currently occupied");
-  for (uint32_t i = 0; i < numa_regions.size(); i++) {
-    // Lambda function to pass into thread pool
-    ProjectedColumns *out_buffer = (*out_buffers)[i];
-    common::numa_region_t region = numa_regions[i];
-    auto lambda = [&, out_buffer, region] {
-      uint32_t filled = 0;
-
-      for (auto it = begin(region); it != end(region) && filled < out_buffer->MaxTuples(); it++) {
-        ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
-        const TupleSlot slot = *it;
-        // Only fill the buffer with valid, visible tuples
-        if (SelectIntoBuffer(txn, slot, &row)) {
-          out_buffer->TupleSlots()[filled] = slot;
-          filled++;
-        }
-      }
-      out_buffer->SetNumTuples(filled);
-    };
-
-    lambda();
-  }
-
-  uint32_t result_index = 0;
-  for (auto cur_buffer : *out_buffers) {
-    for (uint32_t j = 0; j < cur_buffer->NumTuples(); j++) {
-      result_buffer->TupleSlots()[result_index] = cur_buffer->TupleSlots()[j];
-      result_index++;
-    }
-  }
-  result_buffer->SetNumTuples(result_index);
-}
-
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution

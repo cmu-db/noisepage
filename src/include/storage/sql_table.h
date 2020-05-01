@@ -152,24 +152,6 @@ class SqlTable {
   }
 
   /**
-   * Parallelly scans the table starting from the given iterator(inclusive) by NUMA region and materializes as many
-   * tuples as would fit into the given buffer, as visible to the transaction given, according to the format described
-   * by the given output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes
-   * best effort to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot
-   * past the last slot scanned in the invocation.
-   *
-   * @param txn the calling transaction
-   * @param start_pos iterator to the starting location for the NUMA-parallel scan
-   * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
-   *                   always cleared of old values.
-   */
-  void NUMAScan(const common::ManagedPointer<transaction::TransactionContext> txn,
-                DataTable::NUMAIterator *const start_pos, ProjectedColumns *const out_buffer) const {
-    std::vector<ProjectedColumns *> v;
-    return table_.data_table_->NUMAScan(txn, &v, out_buffer);
-  }
-
-  /**
    * @return the first tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability

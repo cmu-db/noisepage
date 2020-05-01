@@ -6,8 +6,6 @@
 
 #include "common/object_pool.h"
 
-extern UNUSED_ATTRIBUTE const int result;
-
 namespace terrier::common {
 
 using pull_type = boost::coroutines2::coroutine<void>::pull_type;
