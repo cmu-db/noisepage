@@ -103,7 +103,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit([CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)])
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
                             deleteDir()
@@ -132,7 +132,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit([CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)])
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
                             deleteDir()
@@ -174,7 +174,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit([CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)])
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
                             deleteDir()
@@ -207,7 +207,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit([CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)])
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
                             deleteDir()
@@ -233,7 +233,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit([CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)])
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
                             deleteDir()
@@ -261,7 +261,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit([CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)])
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
                             deleteDir()
@@ -293,7 +293,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
-                            xunit([CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)])
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
                             deleteDir()
