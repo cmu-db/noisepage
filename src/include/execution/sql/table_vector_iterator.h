@@ -101,6 +101,8 @@ class EXPORT TableVectorIterator {
   storage::ProjectedColumns *projected_columns_ = nullptr;
   // Iterator of the slots in the PC
   std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
+  // Layout version for this iteraotr
+  storage::layout_version_t layout_version_ = storage::layout_version_t(0);
 
   bool initialized_ = false;
 };

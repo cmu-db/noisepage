@@ -948,9 +948,21 @@ bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::Tran
   return false;
 }
 
+storage::layout_version_t DatabaseCatalog::GetLayoutVersion(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                            table_oid_t table_oid) {
+  byte *buffer = nullptr;
+  storage::TupleSlot tuple_slot;
+  auto all_cols_pr = GetTableEntry(txn, table_oid, &buffer, &tuple_slot);
+  auto layout_version = *(reinterpret_cast<storage::layout_version_t *>(
+      all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
+  delete[] buffer;
+  return layout_version;
+}
+
 bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const table_oid_t table, Schema *const new_schema,
-                                   storage::layout_version_t *layout_version_ptr, const execution::ChangeMap &change_map) {
+                                   const table_oid_t table, Schema *new_schema,
+                                   storage::layout_version_t *layout_version_ptr,
+                                   const execution::ChangeMap &change_map) {
   if (!TryLock(txn)) return false;
 
   // Iterate through the column being modified
@@ -993,6 +1005,11 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
   }
 
   // Delete the pointer in case of abort
+  std::vector<Schema::Column> cols_with_valid_oid = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table);
+  // Free the schema with oids not valid
+  delete new_schema;
+  // Create schema from cols with valid oids
+  new_schema = new Schema(cols_with_valid_oid);
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
   // Get the current layout_version
@@ -1016,7 +1033,7 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo, storage::layout_version_t(0), &new_slot);
   TERRIER_ASSERT(update_redo->GetTupleSlot() == new_slot, "Updating should not move the tuple slot");
 
-  *layout_version_ptr = cur_layout_version+1;
+  *layout_version_ptr = cur_layout_version + 1;
   return true;
 }
 

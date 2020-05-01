@@ -259,7 +259,6 @@ class ChildPropertyDeriver : public OperatorVisitor {
    */
   void Visit(const DropView *drop_view) override;
 
-
   /**
    * Visit a AlterTable operator
    */

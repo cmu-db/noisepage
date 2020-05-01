@@ -374,6 +374,13 @@ class CatalogAccessor {
   std::vector<Schema::Column> GetColumns(table_oid_t table);
 
   /**
+   * Get the layout version of the table
+   * @param table table_oid
+   * @return the most recent layout version of the table visible to the caller
+   */
+  storage::layout_version_t GetLayoutVersion(table_oid_t table) const;
+
+  /**
    * @return Transactional context for this accessor
    */
   const common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() { return txn_; }
