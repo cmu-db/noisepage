@@ -143,7 +143,7 @@ class DatabaseCatalog {
    * @param txn for the operation
    * @param table OID of the modified table
    * @param new_schema object describing the table after modification
-   * @param layout_version layout version for the updated schema
+   * @param layout_version_ptr layout version for the updated schema
    * @return true if the operation succeeded, false otherwise
    * @warning The catalog accessor assumes it takes ownership of the schema object
    * that is passed.  As such, there is no guarantee that the pointer is still
@@ -152,7 +152,7 @@ class DatabaseCatalog {
    * obtain the authoritative schema for this table.
    */
   bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, Schema *new_schema,
-                    storage::layout_version_t *layout_version, const execution::ChangeMap &change_map);
+                    storage::layout_version_t *layout_version_ptr, const execution::ChangeMap &change_map);
 
   /**
    * Get the visible schema describing the table.

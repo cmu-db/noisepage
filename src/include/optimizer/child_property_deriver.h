@@ -259,6 +259,12 @@ class ChildPropertyDeriver : public OperatorVisitor {
    */
   void Visit(const DropView *drop_view) override;
 
+
+  /**
+   * Visit a AlterTable operator
+   */
+  void Visit(const AlterTable *alter) override;
+
  private:
   /**
    * Derives properties for a JOIN
