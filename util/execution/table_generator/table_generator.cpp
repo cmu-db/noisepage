@@ -244,11 +244,11 @@ void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
   FillIndex(index, index_schema, *index_meta, table, table_schema);
 }
 
-void TableGenerator::GenerateBenchmarkTables(bool is_mini_runner) {
+void TableGenerator::GenerateBenchmarkTables(bool is_mini_runner, uint32_t num_row) {
   std::vector<TableInsertMeta> insert_meta{
       // benchmark table with two columns
       {"benchmark_1",
-       10000000,
+       num_row,
        {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
         {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
         {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},

@@ -70,13 +70,13 @@ namespace {
 class ScanTask {
  public:
   ScanTask(exec::ExecutionContext *exec_ctx, uint16_t table_id, uint32_t *col_oids, uint32_t num_oids,
-          TableVectorIterator::ScanFn scanner)
+           TableVectorIterator::ScanFn scanner)
       : exec_ctx_(exec_ctx),
         table_id_(table_id),
         col_oids_(col_oids),
         num_oids_(num_oids),
-//        query_state_(query_state),
-//        thread_state_container_(thread_state_container),
+        //        query_state_(query_state),
+        //        thread_state_container_(thread_state_container),
         scanner_(scanner) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
@@ -89,7 +89,7 @@ class ScanTask {
     }
 
     // Pull out the thread-local state
-//    byte *thread_state = thread_state_container_->AccessThreadStateOfCurrentThread();
+    //    byte *thread_state = thread_state_container_->AccessThreadStateOfCurrentThread();
 
     // Call scanning function which should be passed at runtime
     scanner_(nullptr, exec_ctx_, &iter);
@@ -100,15 +100,14 @@ class ScanTask {
   uint16_t table_id_;
   uint32_t *col_oids_;
   uint32_t num_oids_;
-//  void *const query_state_;
-//  ThreadStateContainer *const thread_state_container_;
+  //  void *const query_state_;
+  //  ThreadStateContainer *const thread_state_container_;
   TableVectorIterator::ScanFn scanner_;
 };
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
-                                       const ScanFn scan_fn, exec::ExecutionContext *exec_ctx) {
-
+bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, const ScanFn scan_fn,
+                                       exec::ExecutionContext *exec_ctx) {
   // Lookup table
   common::ManagedPointer<storage::SqlTable> table =
       exec_ctx->GetAccessor()->GetTable(static_cast<catalog::table_oid_t>(table_oid));
