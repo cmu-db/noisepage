@@ -423,7 +423,7 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
 static void GenInsertArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto num_rows = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+  auto num_rows = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : num_rows) {
@@ -439,7 +439,7 @@ static void GenInsertMixedArguments(benchmark::internal::Benchmark *b) {
     {1, 14}, {3, 12}, {5, 10}, {7, 8}, {9, 6}, {11, 4}, {13, 2}
   };
 
-  auto num_rows = {1, 10}; //, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+  auto num_rows = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000};
   for (auto mixed : mixed_dist) {
     for (auto row : num_rows) {
       b->Args({mixed.first, mixed.second, mixed.first + mixed.second, row});
