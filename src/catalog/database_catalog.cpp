@@ -1016,6 +1016,7 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo, storage::layout_version_t(0), &new_slot);
   TERRIER_ASSERT(update_redo->GetTupleSlot() == new_slot, "Updating should not move the tuple slot");
 
+  *layout_version = cur_layout_version + 1;
   return true;
 }
 
