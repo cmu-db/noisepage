@@ -99,6 +99,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Execution Context */                                                                                             \
   F(ExecutionContextGetMemoryPool, OperandType::Local, OperandType::Local)                                            \
+  F(ExecutionContextGetTLS, OperandType::Local, OperandType::Local)                                                   \
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
   F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
@@ -118,8 +119,8 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorReset, OperandType::Local)                                                                     \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
   F(TableVectorIteratorGetPCI, OperandType::Local, OperandType::Local)                                                \
-  F(ParallelScanTable, OperandType::UImm4, OperandType::Local, OperandType::UImm4, OperandType::FunctionId,           \
-    OperandType::Local)                                                                                               \
+  F(ParallelScanTable, OperandType::UImm4, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
+    OperandType::FunctionId, OperandType::Local)                                                                      \
                                                                                                                       \
   /* ProjectedColumns Iterator (PCI) */                                                                               \
   F(PCIIsFiltered, OperandType::Local, OperandType::Local)                                                            \

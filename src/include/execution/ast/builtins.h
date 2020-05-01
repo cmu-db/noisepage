@@ -38,6 +38,7 @@ namespace terrier::execution::ast {
   F(ExecutionContextStartResourceTracker, execCtxStartResourceTracker)  \
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
+  F(ExecutionContextGetTLS, execCtxGetTLS)                              \
   F(ThreadStateContainerInit, tlsInit)                                  \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerIterate, tlsIterate)                            \

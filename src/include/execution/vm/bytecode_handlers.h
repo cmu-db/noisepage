@@ -214,6 +214,12 @@ VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::Ex
   exec_ctx->EndPipelineTracker(query_id, pipeline_id);
 }
 
+VM_OP_HOT void OpExecutionContextGetTLS(
+        terrier::execution::sql::ThreadStateContainer **const thread_state_container,
+        terrier::execution::exec::ExecutionContext *const exec_ctx) {
+  *thread_state_container = exec_ctx->GetThreadStateContainer();
+}
+
 void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                 terrier::execution::sql::MemoryPool *memory);
 
@@ -256,9 +262,11 @@ VM_OP_HOT void OpTableVectorIteratorGetPCI(terrier::execution::sql::ProjectedCol
 }
 
 VM_OP_HOT void OpParallelScanTable(const uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
+                                   terrier::execution::sql::ThreadStateContainer *thread_states,
                                    const terrier::execution::sql::TableVectorIterator::ScanFn scanner,
                                    terrier::execution::exec::ExecutionContext *exec_ctx) {
-  terrier::execution::sql::TableVectorIterator::ParallelScan(table_oid, col_oids, num_oids, scanner, exec_ctx);
+  terrier::execution::sql::TableVectorIterator::ParallelScan(table_oid, col_oids, num_oids, thread_states,
+                                                             scanner, exec_ctx);
 }
 
 // ---------------------------------------------------------

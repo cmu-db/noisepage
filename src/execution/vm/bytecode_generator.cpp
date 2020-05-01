@@ -646,18 +646,18 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   auto *arr_type = call->Arguments()[1]->GetType()->As<ast::ArrayType>();
   LocalVar arr = VisitExpressionForLValue(call->Arguments()[1]);
 
+  // Next is the thread state container
+  LocalVar thread_state_container = VisitExpressionForRValue(call->Arguments()[2]);
+
   // Then the scan function as an identifier
-  const auto scan_fn_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name().Data();
+  const auto scan_fn_name = call->Arguments()[3]->As<ast::IdentifierExpr>()->Name().Data();
   const FunctionId scan_fn_id = LookupFuncIdByName(scan_fn_name);
 
   // Execution context
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
-
-  //  // Next is the thread state container
-  //  LocalVar thread_state_container = VisitExpressionForRValue(call->Arguments()[2]);
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[4]);
 
   // Done
-  Emitter()->EmitParallelTableScan(table_oid, arr, static_cast<uint32_t>(arr_type->Length()),
+  Emitter()->EmitParallelTableScan(table_oid, arr, static_cast<uint32_t>(arr_type->Length()), thread_state_container,
                                    scan_fn_id, exec_ctx);
 }
 
@@ -1443,6 +1443,18 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED_AT
       Emitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id);
       break;
     }
+    case ast::Builtin::ExecutionContextGetTLS: {
+      // The tls pointer
+      LocalVar tls = ExecutionResult()->GetOrCreateDestination(
+              ast::BuiltinType::Get(ctx, ast::BuiltinType::ThreadStateContainer)->PointerTo());
+
+      // Emit bytecode
+      Emitter()->Emit(Bytecode::ExecutionContextGetTLS, tls, exec_ctx);
+
+      // Indicate where the result is
+      ExecutionResult()->SetDestination(tls.ValueOf());
+      break;
+    }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       // The memory pool pointer
       LocalVar mem_pool = ExecutionResult()->GetOrCreateDestination(
@@ -2101,6 +2113,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker:
+    case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       VisitExecutionContextCall(call, builtin);
       break;

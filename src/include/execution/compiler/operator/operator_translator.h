@@ -191,6 +191,12 @@ class OperatorTranslator : public ExpressionEvaluator {
   brain::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
 
  protected:
+
+  // Get the thread state container pointer from the execution context stored in the query state.
+  ast::Expr *GetThreadStateContainer() const {
+    return codegen_->ExecCtxGetTLS();
+  }
+
   /**
    * The code generator to use
    */

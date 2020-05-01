@@ -12,7 +12,8 @@ extern "C" {
 
 void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *const thread_state_container,
                                 terrier::execution::sql::MemoryPool *const memory) {
-  new (thread_state_container) terrier::execution::sql::ThreadStateContainer(memory);
+  new (thread_state_container) terrier::execution::sql::ThreadStateContainer(
+          terrier::common::ManagedPointer<terrier::execution::sql::MemoryPool>(memory));
 }
 
 void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *const thread_state_container) {

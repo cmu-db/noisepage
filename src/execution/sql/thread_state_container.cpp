@@ -50,7 +50,7 @@ struct ThreadStateContainer::Impl {
 // Thread State Container
 // ---------------------------------------------------------
 
-ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
+ThreadStateContainer::ThreadStateContainer(common::ManagedPointer<MemoryPool> memory)
     : memory_(memory),
       state_size_(0),
       init_fn_(nullptr),

@@ -42,7 +42,7 @@ class EXPORT ThreadStateContainer {
    * Construct a container for all thread state using the given allocator
    * @param memory The memory allocator to use to allocate thread states
    */
-  explicit ThreadStateContainer(MemoryPool *memory);
+  explicit ThreadStateContainer(common::ManagedPointer<MemoryPool> memory);
 
   /**
    * This class cannot be copied or moved.
@@ -176,7 +176,7 @@ class EXPORT ThreadStateContainer {
 
  private:
   // Memory allocator
-  MemoryPool *memory_;
+  common::ManagedPointer<MemoryPool> memory_;
   // Size of each thread's state
   std::size_t state_size_;
   // The function to initialize a thread's local state upon first use

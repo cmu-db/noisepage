@@ -100,7 +100,8 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() {
 void SeqScanTranslator::LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) {
   SetOids(builder);
   // Build and make the function call to IterateTableParallel()
-  ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), work_func, col_oids_);
+  ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), col_oids_,
+          GetThreadStateContainer(), work_func);
   // add the function call to the calling function (main()  )
   builder->Append(codegen_->MakeStmt(parallel_call));
 }

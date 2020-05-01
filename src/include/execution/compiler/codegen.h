@@ -467,7 +467,8 @@ class CodeGen {
    * @param worker_name The work function name.
    * @return The call.
    */
-  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Identifier col_oids, ast::Identifier worker_name);
+  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Identifier col_oids, ast::Expr *tls,
+          ast::Identifier worker_name);
 
   /**
    * Call pciGetTypeNullable(pci, idx)
@@ -496,6 +497,12 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *ExecCtxGetMem();
+
+  /**
+   * Call @execCtxGetTLS(). Return the thread state container within an execution context.
+   * @return The call.
+   */
+  ast::Expr *ExecCtxGetTLS();
 
   /**
    * Call sizeOf(type)

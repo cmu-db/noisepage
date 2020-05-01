@@ -9,6 +9,7 @@
 #include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/memory_tracker.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
@@ -83,6 +84,8 @@ class EXPORT ExecutionContext {
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
+        thread_state_container_(std::make_unique<sql::ThreadStateContainer>(
+                common::ManagedPointer<sql::MemoryPool>(mem_pool_))),
         string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
         accessor_(accessor) {}
 
@@ -100,6 +103,11 @@ class EXPORT ExecutionContext {
    * @return the memory pool
    */
   sql::MemoryPool *GetMemoryPool() { return mem_pool_.get(); }
+
+  /**
+   * @return The thread state container.
+   */
+  sql::ThreadStateContainer *GetThreadStateContainer() { return thread_state_container_.get(); }
 
   /**
    * @return the string allocator
@@ -187,6 +195,7 @@ class EXPORT ExecutionContext {
   std::unique_ptr<sql::MemoryTracker> mem_tracker_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
+  std::unique_ptr<sql::ThreadStateContainer> thread_state_container_;
   StringAllocator string_allocator_;
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;

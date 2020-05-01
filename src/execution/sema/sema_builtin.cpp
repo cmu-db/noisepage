@@ -860,6 +860,9 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
     case ast::Builtin::ExecutionContextGetMemoryPool:
       expected_arg_count = 1;
       break;
+    case ast::Builtin::ExecutionContextGetTLS:
+      expected_arg_count = 1;
+      break;
     default:
       UNREACHABLE("Impossible execution context call");
   }
@@ -913,6 +916,10 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       auto mem_pool_kind = ast::BuiltinType::MemoryPool;
       call->SetType(GetBuiltinType(mem_pool_kind)->PointerTo());
+      break;
+    }
+    case ast::Builtin::ExecutionContextGetTLS: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::ThreadStateContainer)->PointerTo());
       break;
     }
     default: {
@@ -1094,7 +1101,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 4)) {
+  if (!CheckArgCount(call, 5)) {
     return;
   }
 
@@ -1103,6 +1110,13 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   // First argument is table name as a string literal
   if (!call_args[0]->IsIntegerLiteral()) {
     ReportIncorrectCallArg(call, 0, ast::StringType::Get(GetContext()));
+    return;
+  }
+
+  // Third argument is the thread state container
+  const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
+  if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tls_kind)) {
+    ReportIncorrectCallArg(call, 2, GetBuiltinType(tls_kind)->PointerTo());
     return;
   }
 
@@ -1122,14 +1136,14 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   //  }
 
   // Third argument is scanner function
-  auto *scan_fn_type = call_args[2]->GetType()->SafeAs<ast::FunctionType>();
+  auto *scan_fn_type = call_args[3]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[2]->GetType());
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
     return;
   }
 
   auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), exec_ctx_kind)) {
+  if (!IsPointerToSpecificBuiltin(call_args[4]->GetType(), exec_ctx_kind)) {
     ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
     return;
   }
@@ -2283,6 +2297,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool:
+    case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
