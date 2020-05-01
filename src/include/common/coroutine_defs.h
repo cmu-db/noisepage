@@ -39,6 +39,8 @@ class PoolContext {
   }
 
   /**
+   * @warning ONLY CALL IF YOU KNOW WHAT YOU'RE DOING this executes the function inside the context until it yields back
+   *
    * Call will initialize or continue the resumeable workload from the last yield
    * @return func_finished_ will signify whether the current function has finished its execution path
    */
@@ -55,7 +57,7 @@ class PoolContext {
   PoolContext() = default;
 
   /**
-   * Internal allocator class that will allocate region for a pool context
+   * Internal allocator class that implements object pool interface
    */
   class Allocator {
    public:
@@ -75,18 +77,22 @@ class PoolContext {
   };
 
  private:
+  // current function that to be executed in the coroutine
   std::function<void(PoolContext *)> func_ = nullptr;
+  // pointer to push_type coroutine passed in by boost library this allows the
   push_type *sink_ = nullptr;
   // Initialization of in_ will yield back to execution pool to allow setting of function before running workload
   pull_type in_ = pull_type([&](push_type &s) {  // NOLINT
-    this->sink_ = &s;
+    this->sink_ = &s; // set sink so that function can yield back
     while (true) {
+      // yield to pool to allow the pool to assign function and start it
       this->YieldToPool();
       TERRIER_ASSERT(this->func_ != nullptr, "should have initialized function before yielding to function");
-      this->func_finished_ = false;
-      this->func_(this);
-      this->func_finished_ = true;
+      this->func_finished_ = false; // set function status for return value of YieldToFunc
+      this->func_(this); // run function
+      this->func_finished_ = true; // set function status for return value of YieldToFunc
       this->func_ = nullptr;
+      // loop so that the stack allocated in boost library for this coroutine is reused on the next function assigned
     }
   });
   bool func_finished_ = false;
