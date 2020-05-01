@@ -244,6 +244,30 @@ void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
   FillIndex(index, index_schema, *index_meta, table, table_schema);
 }
 
+void TableGenerator::GenerateBenchmarkTables(bool is_mini_runner) {
+  std::vector<TableInsertMeta> insert_meta{
+      // benchmark table with two columns
+      {"benchmark_1",
+       10000,
+       {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
+        {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
+        {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
+        {"colD", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999}}},
+
+  };
+
+  if (is_mini_runner) {
+    auto mini_runner_table_metas = GenerateMiniRunnerTableMetas();
+    insert_meta.insert(insert_meta.end(), mini_runner_table_metas.begin(), mini_runner_table_metas.end());
+  }
+
+  for (auto &table_meta : insert_meta) {
+    CreateTable(&table_meta);
+  }
+
+  InitBenchmarkIndexes();
+}
+
 void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   /**
    * This array configures each of the test tables. Each able is configured
@@ -472,6 +496,20 @@ void TableGenerator::InitTestIndexes() {
 
       // Index on a varchar
       {"varchar_index", "all_types_empty_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
+
+  for (auto &index_meta : index_metas) {
+    CreateIndex(&index_meta);
+  }
+}
+
+void TableGenerator::InitBenchmarkIndexes() {
+  /**
+   * This array configures indexes. To add an index, modify this array
+   */
+  std::vector<IndexInsertMeta> index_metas = {
+      // Table 1
+      {"index_1", "benchmark_1", {{"index_colA", type::TypeId::INTEGER, false, "colA"}}},
+  };
 
   for (auto &index_meta : index_metas) {
     CreateIndex(&index_meta);
