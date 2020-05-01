@@ -111,13 +111,13 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     if (busy_workers_ != total_workers_) task_cv_.notify_all();
   }
 
- /**
-  * SubmitTask allows for a user to submit a task to the given NUMA region with an associated execution context
-  * @param promise a void promise pointer that will be set when the task has been executed, if nullptr is input then
-  * the pool will not signal when the task has finished.
-  * @param task a void to void function that is the task to be executed
-  * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
-  */
+  /**
+   * SubmitTask allows for a user to submit a task to the given NUMA region with an associated execution context
+   * @param promise a void promise pointer that will be set when the task has been executed, if nullptr is input then
+   * the pool will not signal when the task has finished.
+   * @param task a void to void function that is the task to be executed
+   * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
+   */
   void SubmitTask(std::promise<void> *promise, const std::function<void()> &task,
                   common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
     SubmitTask(
@@ -162,7 +162,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
      * are available and other threads are active, then this function will park this TerrierThread.
      */
     void RunNextTask() {
-       // flag to represent if there are still tasks in the queues at the end of iterating through the NUMA regions
+      // flag to represent if there are still tasks in the queues at the end of iterating through the NUMA regions
       bool tasks_left = false;
       // iterate through NUMA regions starting at this threads region
       for (int16_t i = 0; i < pool_->num_regions_; i++) {
@@ -173,7 +173,8 @@ class ExecutionThreadPool : DedicatedThreadOwner {
         if (!pool_->task_queue_[index].try_pop(task)) {
           continue;
         }
-        // yield to coroutine wrapping this task, boolean value returned represents whether the function returned or yielded
+        // yield to coroutine wrapping this task, boolean value returned represents whether the function returned or
+        // yielded
         status_ = ThreadStatus::BUSY;
         bool finished = task.first->YieldToFunc();
         status_ = ThreadStatus::SWITCHING;

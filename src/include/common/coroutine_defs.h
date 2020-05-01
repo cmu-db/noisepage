@@ -81,14 +81,14 @@ class PoolContext {
   push_type *sink_ = nullptr;
   // Initialization of in_ will yield back to execution pool to allow setting of function before running workload
   pull_type in_ = pull_type([&](push_type &s) {  // NOLINT
-    this->sink_ = &s; // set sink so that function can yield back
+    this->sink_ = &s;                            // set sink so that function can yield back
     while (true) {
       // yield to pool to allow the pool to assign function and start it
       this->YieldToPool();
       TERRIER_ASSERT(this->func_ != nullptr, "should have initialized function before yielding to function");
-      this->func_finished_ = false; // set function status for return value of YieldToFunc
-      this->func_(this); // run function
-      this->func_finished_ = true; // set function status for return value of YieldToFunc
+      this->func_finished_ = false;  // set function status for return value of YieldToFunc
+      this->func_(this);             // run function
+      this->func_finished_ = true;   // set function status for return value of YieldToFunc
       this->func_ = nullptr;
       // loop so that the stack allocated in boost library for this coroutine is reused on the next function assigned
     }
