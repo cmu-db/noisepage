@@ -241,21 +241,6 @@ class DataTable {
             ProjectedColumns *out_buffer) const;
 
   /**
-   * Sequentially scans the table by NUMA region starting from the given iterator(inclusive) and materializes as many
-   * tuples as would fit into the given buffer, as visible to the transaction given, according to the format described
-   * by the given output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes
-   * best effort to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot
-   * passed the last slot scanned in the invocation.
-   *
-   * @param txn the calling transaction
-   * @param out_buffers output buffers. The object should already contain projection list information. This buffer is
-   *                   always cleared of old values.
-   * @param result_buffer final buffer into which the results are placed.
-   */
-  void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer);  // NOLINT
-
-  /**
    * @param ctx optional pool context to enable context switches
    * @return the first tuple slot contained in the data table
    */

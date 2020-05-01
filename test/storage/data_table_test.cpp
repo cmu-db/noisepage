@@ -150,25 +150,6 @@ class RandomDataTableTestObject {
     table_.Scan(common::ManagedPointer(txn), begin, buffer);
   }
 
-  void NUMAScan(const transaction::timestamp_t timestamp, storage::ProjectedColumns *result_colunm,
-                storage::ProjectedColumnsInitializer *initializer, storage::RecordBufferSegmentPool *buffer_pool) {
-    auto *txn =
-        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
-    loose_txns_.push_back(txn);
-    std::vector<common::numa_region_t> regions;
-    std::vector<storage::ProjectedColumns *> colunms;
-    table_.GetNUMARegions(&regions);
-    for (common::numa_region_t _ UNUSED_ATTRIBUTE : regions) {
-      auto *buffer = common::AllocationUtil::AllocateAligned(initializer->ProjectedColumnsSize());
-      storage::ProjectedColumns *column = initializer->Initialize(buffer);
-      colunms.emplace_back(column);
-    }
-    table_.NUMAScan(common::ManagedPointer(txn), &colunms, result_colunm);
-    for (auto *column : colunms) {
-      delete[] reinterpret_cast<byte *>(column);
-    }
-  }
-
   storage::DataTable &GetTable() { return table_; }
 
  private:
@@ -367,9 +348,6 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
-    storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
-    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
-    storage::ProjectedColumns *columns = initializer.Initialize(buffer);
 
     std::vector<common::numa_region_t> numa_regions;
     tested.GetTable().GetNUMARegions(&numa_regions);
@@ -384,7 +362,6 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 #endif
 
     for (common::numa_region_t numa_region : numa_regions) {
-      tested.NUMAScan(transaction::timestamp_t(1), columns, &initializer, &buffer_pool_);
       for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); ++it) {
         EXPECT_NE((*it).GetBlock(), nullptr);
         EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
@@ -401,9 +378,6 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 #endif
       }
     }
-    EXPECT_EQ(num_inserts, columns->NumTuples());
-
-    delete[] buffer;
   }
 }
 
@@ -461,18 +435,11 @@ TEST_F(DataTableTests, ConcurrentNumaTest) {
     for (uint32_t i = 0; i < numa_regions.size(); i++) {
       numa_threads[i] = std::thread([&, i] {
         common::numa_region_t numa_region = numa_regions[i];
-        storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, 10 * num_inserts * num_threads);
-        auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
-        storage::ProjectedColumns *columns = initializer.Initialize(buffer);
-        tested.NUMAScan(transaction::timestamp_t(1), columns, &initializer, &buffer_pool_);
-        EXPECT_EQ(columns->NumTuples(), num_inserts * num_threads);
         for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); it++) {
           counted_numa_iteration++;
           EXPECT_NE((*it).GetBlock(), nullptr);
           EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
         }
-
-        delete[] buffer;
       });
     }
 
@@ -546,18 +513,11 @@ TEST_F(DataTableTests, DISABLED_ConcurrentNumaAwareScanTest) {
       thread_pool.SubmitTask(
           &numa_threads[i],
           [&, numa_region] {
-            storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, 10 * num_inserts * num_threads);
-            auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
-            storage::ProjectedColumns *columns = initializer.Initialize(buffer);
-            tested.NUMAScan(transaction::timestamp_t(1), columns, &initializer, &buffer_pool_);
-            EXPECT_EQ(columns->NumTuples(), num_inserts * num_threads);
             for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); it++) {
               counted_numa_iteration++;
               EXPECT_NE((*it).GetBlock(), nullptr);
               EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
             }
-
-            delete[] buffer;
           },
           numa_region);
     }
