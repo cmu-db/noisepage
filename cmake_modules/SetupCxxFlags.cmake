@@ -22,7 +22,7 @@
 include(CheckCXXCompilerFlag)
 
 # compiler flags that are common across debug/release builds
-set(CXX_COMMON_FLAGS "-Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic")
+set(CXX_COMMON_FLAGS "-Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-variable")
 if (APPLE)
     set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -Wno-braced-scalar-init") # AppleClang needs this while upstream Clang and GCC are reasonable
 endif()
