@@ -423,7 +423,7 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
 static void GenInsertArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto num_rows = {1, 10}; // , 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+  auto num_rows = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : num_rows) {
@@ -994,10 +994,11 @@ void MiniRunners::ExecuteInsert(benchmark::State &state) {
     // Create temporary table schema
     std::vector<catalog::Schema::Column> cols;
     std::vector<std::pair<type::TypeId, int64_t>> info = {{type::TypeId::INTEGER, num_ints}, {type::TypeId::DECIMAL, num_decimals}};
+    int col_no = 1;
     for (auto &i : info) {
       for (auto j = 1; j <= i.second; j++) {
         std::stringstream col_name;
-        col_name << "col" << j;
+        col_name << "col" << col_no++;
         if (i.first == type::TypeId::INTEGER) {
           auto expr = parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
           cols.emplace_back(col_name.str(), i.first, false, expr);
@@ -1086,16 +1087,16 @@ void MiniRunners::ExecuteInsert(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ6_0_InsertRunners)(benchmark::State &state) { ExecuteInsert(state); }
-BENCHMARK_DEFINE_F(MiniRunners, SEQ6_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_InsertRunners)(benchmark::State &state) { ExecuteInsert(state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(state); }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ6_0_InsertRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_InsertRunners)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenInsertArguments);
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_InsertRunners)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Iterations(1)
@@ -1504,7 +1505,7 @@ void RunBenchmarkSequence(void) {
   // SEQ4: Aggregate
   // SEQ5: Insert, Update, Delete
   std::vector<std::vector<std::string>> filters = {
-      {"SEQ0"}, {"SEQ1_0", "SEQ1_1", "SEQ1_2"}, {"SEQ2"}, {"SEQ3"}, {"SEQ4"}, {"SEQ5_0", "SEQ5_1"}, {"SEQ6_0", "SEQ6_1"},
+      {"SEQ0"}, {"SEQ1_0", "SEQ1_1", "SEQ1_2"}, {"SEQ2"}, {"SEQ3"}, {"SEQ4"}, {"SEQ5_0", "SEQ5_1"}
   };
 
   char buffer[32];
@@ -1513,7 +1514,7 @@ void RunBenchmarkSequence(void) {
   argv[1] = buffer;
 
   auto vm_modes = {terrier::execution::vm::ExecutionMode::Interpret, terrier::execution::vm::ExecutionMode::Compiled};
-  for (size_t i = 6; i < 7; i++) {
+  for (size_t i = 0; i < 6; i++) {
     for (auto &filter : filters[i]) {
       for (auto mode : vm_modes) {
         terrier::runner::MiniRunners::mode = mode;
