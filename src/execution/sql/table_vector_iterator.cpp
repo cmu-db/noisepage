@@ -89,7 +89,8 @@ class ScanTask {
     }
 
     // Pull out the thread-local state
-    //    byte *thread_state = thread_state_container_->AccessThreadStateOfCurrentThread();
+//    ThreadStateContainer *thread_state_container = exec_ctx_->GetThreadStateContainer();
+//    byte *thread_state = thread_state_container->AccessThreadStateOfCurrentThread();
 
     // Call scanning function which should be passed at runtime
     scanner_(nullptr, exec_ctx_, &iter);
