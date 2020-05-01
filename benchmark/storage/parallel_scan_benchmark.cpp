@@ -14,6 +14,7 @@
 #include "transaction/timestamp_manager.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "loggers/loggers_util.h"
+#include "execution/util/timer.h"
 
 #include <functional>
 #include <limits>
@@ -168,9 +169,12 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
     while (tvi->Advance()) {
       for (auto *pci = tvi->GetProjectedColumnsIterator(); pci->HasNext(); pci->Advance()) {
         counter->c_++;
+//        void;
       }
     }
   };
+
+  uint32_t col_oids[] = {1, 2};
 
   // Setup thread states
   execution::sql::ThreadStateContainer thread_state_container(exe_ctx->GetMemoryPool());
@@ -183,14 +187,14 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
     uint64_t elapsed_ms;
     common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
     execution::sql::TableVectorIterator::ParallelScan(static_cast<uint32_t>(table_oid),  // ID of table to scan
-                                                      nullptr,                  // Query state to pass to scan threads
-                                                      &thread_state_container,  // Container for thread states
+                                                      col_oids,                  // Query state to pass to scan threads
+                                                      2,  // Container for thread states
                                                       scanner,                  // Scan function
                                                       exe_ctx.get());
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   // Count total aggregate tuple count seen by all threads
-  state.SetItemsProcessed(state.iterations() * 10000);
+  state.SetItemsProcessed(state.iterations() * 10000000);
   txn_manager->Commit(test_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
  }
 
@@ -233,30 +237,29 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) 
      seq_scan_out.AddOutput("col4", common::ManagedPointer(col4));
      auto schema = seq_scan_out.MakeSchema();
      // Make predicate
-     auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
-     auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
-     auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
+//     auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
+//     auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
+//     auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
      // Build
      planner::SeqScanPlanNode::Builder builder;
      seq_scan = builder.SetOutputSchema(std::move(schema))
                     .SetColumnOids({cola_oid, colb_oid})
-                    .SetScanPredicate(predicate)
+                    .SetScanPredicate(nullptr)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(test_ns_oid)
                     .SetTableOid(table_oid)
                     .Build();
    }
    // Make the output checkers
-   execution::compiler::SingleIntComparisonChecker col1_checker(std::less<>(), 0, 500);
-   execution::compiler::SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
-
+   execution::compiler::SingleIntComparisonChecker col1_checker(std::greater_equal<>(), 0, 0);
+//   execution::compiler::SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
+//
    execution::compiler::MultiChecker multi_checker{
-       std::vector<execution::compiler::OutputChecker *>{&col1_checker, &col2_checker}};
+       std::vector<execution::compiler::OutputChecker *>{&col1_checker}};
 
    // Create the execution context
    execution::compiler::OutputStore store{&multi_checker, seq_scan->GetOutputSchema().Get()};
-   execution::exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
-   execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+   execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store}};
    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(test_db_oid, common::ManagedPointer(test_txn),
                                                        std::move(callback),
                                                        seq_scan->GetOutputSchema().Get(),
@@ -266,16 +269,19 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) 
    auto executable = execution::ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
    for (auto _ : state) {
      uint64_t elapsed_ms;
+
+    execution::util::Timer<std::milli> util_timer;
+    util_timer.Start();
+
      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
      executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+
+    util_timer.Stop();
+    std::cout << "Total:" << util_timer.Elapsed() << std::endl;
+
      state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-
-     // Pipeline Units
-     auto pipeline = executable.GetPipelineOperatingUnits();
-
-     auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
    }
-   state.SetItemsProcessed(state.iterations() * 10000);
+   state.SetItemsProcessed(state.iterations() * 10000000);
    txn_manager->Commit(test_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
  }

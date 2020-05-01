@@ -120,7 +120,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   auto block_count = table->GetBlockListSize();
 
   // TODO(Ron): min_grain_size = num_blocks / num_threads
-  size_t min_grain_size = 3;
+  size_t min_grain_size = 30;
 
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;

@@ -248,7 +248,7 @@ void TableGenerator::GenerateBenchmarkTables(bool is_mini_runner) {
   std::vector<TableInsertMeta> insert_meta{
       // benchmark table with two columns
       {"benchmark_1",
-       10000,
+       10000000,
        {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
         {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
         {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
