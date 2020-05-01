@@ -26,14 +26,17 @@
 namespace terrier::common {
 
 /**
- * A worker pool that maintains a group of worker threads and a task queue.
+ * ExecutionThreadPool Thread pool for the execution of queries especially and other tasks.
+ * Implements the DedicatedThreadOwner interface that allows it to have control over threads which it registers with
+ * an associated registry.
  *
- * As soon as there is a task in the task queue, a worker thread will be
- * assigned to run that task. A task must be a function that takes no argument.
- * After a worker finishes a task, it will eagerly try to get a new task.
+ * Provides an API that allows users to submit tasks in lambdas and suggest a NUMA region on which the provided task
+ * should be ran on. Wraps every task in a coroutine that allows the pool to context switch a task when the task signals
+ * back to the pool. This can be completely abstracted away from the user. See SpinLatch and SharedLatch for an example
+ * on how to yield back to the thread pool.
  *
- * This pool is restartable, meaning it can be started again after it has been
- * shutdown. Calls to Startup() and Shutdown() are thread-safe.
+ * Every task currently in the pool is wrapped in a stackfull coroutine. This means that every task in the pool has its
+ * own local, heap-allocated stack. In order to prevent excessive allocation, stacks are reused once a task completes.
  */
 class ExecutionThreadPool : DedicatedThreadOwner {
  public:
