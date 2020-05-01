@@ -183,8 +183,10 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
                                nullptr,          // The thread state destruction function
                                nullptr);         // Context passed to init/destroy functions
   // NOLINTNEXTLINE
+  int iter = 0;
+  std::cout << "benchmark 1 begin iter " << iter << " state " << state.iterations() << std::endl;
   for (auto _ : state) {
-    uint64_t elapsed_ms;
+    uint64_t elapsed_ms = 0;
     common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
     execution::sql::TableVectorIterator::ParallelScan(static_cast<uint32_t>(table_oid),  // ID of table to scan
                                                       col_oids,                  // Query state to pass to scan threads
@@ -192,7 +194,12 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
                                                       scanner,                  // Scan function
                                                       exe_ctx.get());
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    iter++;
+ //    if(iter >= 20){
+	//   break;
+	// }
   }
+  std::cout << "benchmark 1 iter " << iter << " state " << state.iterations() << std::endl;
   // Count total aggregate tuple count seen by all threads
   state.SetItemsProcessed(state.iterations() * 10000000);
   txn_manager->Commit(test_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -266,22 +273,26 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) 
                                                        common::ManagedPointer(accessor));
 
    // Run & Check
+   int iter = 2;
    auto executable = execution::ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
    for (auto _ : state) {
-     uint64_t elapsed_ms;
+     uint64_t elapsed_ms = 0;
 
     execution::util::Timer<std::milli> util_timer;
     util_timer.Start();
 
-     common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-     executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-
+    common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+    executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     util_timer.Stop();
     std::cout << "Total:" << util_timer.Elapsed() << std::endl;
 
-     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    if(state.iterations() >= 20){
+	  break;
+	}
    }
    state.SetItemsProcessed(state.iterations() * 10000000);
+   std::cout << "benchmark 2 iter" << iter << std::endl;
    txn_manager->Commit(test_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
  }
@@ -289,9 +300,11 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) 
 BENCHMARK_REGISTER_F(ParalleScanBenchmark, TableVectorParallel)
      ->Unit(benchmark::kMillisecond)
      ->UseRealTime()
-     ->UseManualTime();
+     ->UseManualTime()
+     ->MinTime(2);
  BENCHMARK_REGISTER_F(ParalleScanBenchmark, ParallelScan)
      ->Unit(benchmark::kMillisecond)
      ->UseRealTime()
-     ->UseManualTime();
+     ->UseManualTime()
+     ->MinTime(2);
  }  // namespace terrier
