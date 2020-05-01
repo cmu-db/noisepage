@@ -78,6 +78,7 @@ class TableGenerator {
    * @param is_mini_runner is this generation used for the mini runner
    */
   void GenerateTestTables(bool is_mini_runner);
+  void GenerateBenchmarkTables(bool is_mini_runner);
 
   /**
    * Generate mini runners indexes
@@ -243,6 +244,7 @@ class TableGenerator {
   std::vector<TableInsertMeta> GenerateMiniRunnerTableMetas();
 
   void InitTestIndexes();
+  void InitBenchmarkIndexes();
 
   /**
    * Create integer data with the given distribution
