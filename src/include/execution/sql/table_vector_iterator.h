@@ -85,7 +85,7 @@ class EXPORT TableVectorIterator {
    *             at runtime (i.e., defined in generated code).
    */
   using ScanFn = void (*)(void *, void *, TableVectorIterator *iter);
-//  using ScanFn = void (*)(void *, void *);
+  //  using ScanFn = void (*)(void *, void *);
   /**
    * Perform a parallel scan over the table with ID @em table_oid using the
    * callback function @em scanner on each input vector projection from the

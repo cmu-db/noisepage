@@ -19,7 +19,7 @@ namespace terrier::execution::sql {
 /**
  * Size of the first table
  */
-constexpr uint32_t TEST1_SIZE = 10000;
+constexpr uint32_t TEST1_SIZE = 10000000;
 /**
  * Size of the second table
  */
@@ -78,7 +78,7 @@ class TableGenerator {
    * @param is_mini_runner is this generation used for the mini runner
    */
   void GenerateTestTables(bool is_mini_runner);
-  void GenerateBenchmarkTables(bool is_mini_runner);
+  void GenerateBenchmarkTables(bool is_mini_runner, uint32_t num_row);
 
   /**
    * Generate mini runners indexes
