@@ -31,7 +31,9 @@ namespace terrier::common {
  * an associated registry.
  *
  * Provides an API that allows users to submit tasks in lambdas and suggest a NUMA region on which the provided task
- * should be ran on. Wraps every task in a coroutine that allows the pool to context switch a task when the task signals
+ * should be ran on. This is done by maintaining separate task queues for each NUMA region.
+ *
+ * Wraps every task in a coroutine that allows the pool to context switch a task when the task signals
  * back to the pool. This can be completely abstracted away from the user. See SpinLatch and SharedLatch for an example
  * on how to yield back to the thread pool.
  *
@@ -71,8 +73,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       : DedicatedThreadOwner(thread_registry),
         thread_registry_(thread_registry),
         workers_(num_regions_),
-        task_queue_(num_regions_),
-        busy_workers_(0) {
+        task_queue_(num_regions_) {
     for (int cpu_id : *cpu_ids) {
       thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(this, cpu_id, this);
     }
@@ -82,7 +83,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    * Destructor. Wake up all workers and let them finish before it's destroyed.
    */
   ~ExecutionThreadPool() override {
-    shutting_down_ = true;
     for (std::vector<TerrierThread *> vector : workers_) {  // NOLINT
       for (TerrierThread *t : vector) {
         auto dedicated_thread_task = static_cast<DedicatedThreadTask *>(t);
@@ -95,7 +95,8 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
   /**
    * SubmitTask allows for a user to submit a task to the given NUMA region with an associated execution context
-   * @param promise a void promise pointer that will be set when the task has been executed
+   * @param promise a void promise pointer that will be set when the task has been executed, if nullptr is input then
+   * the pool will not signal when the task has finished.
    * @param task a void to void function that is the task to be executed
    * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
    */
@@ -107,15 +108,16 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     PoolContext *ctx = context_pool_.Get();
     ctx->SetFunction(task);
     task_queue_[static_cast<int16_t>(numa_hint)].push({ctx, promise});
-    task_cv_.notify_all();
+    if (busy_workers_ != total_workers_) task_cv_.notify_all();
   }
 
-  /**
-   * SubmitTask allows for a user to submit a void task to the given NUMA region
-   * @param promise a void promise pointer that will be set when the task has been executed
-   * @param task a void to void function that is the task to be executed
-   * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
-   */
+ /**
+  * SubmitTask allows for a user to submit a task to the given NUMA region with an associated execution context
+  * @param promise a void promise pointer that will be set when the task has been executed, if nullptr is input then
+  * the pool will not signal when the task has finished.
+  * @param task a void to void function that is the task to be executed
+  * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
+  */
   void SubmitTask(std::promise<void> *promise, const std::function<void()> &task,
                   common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
     SubmitTask(
@@ -155,41 +157,59 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
     ~TerrierThread() override = default;
 
+    /**
+     * RunNextTask this function takes the next task off the queue and executes it if one is available. If no tasks
+     * are available and other threads are active, then this function will park this TerrierThread.
+     */
     void RunNextTask() {
+       // flag to represent if there are still tasks in the queues at the end of iterating through the NUMA regions
       bool tasks_left = false;
+      // iterate through NUMA regions starting at this threads region
       for (int16_t i = 0; i < pool_->num_regions_; i++) {
         auto index = (static_cast<int16_t>(numa_region_) + i) % pool_->num_regions_;
+
+        // try to pop next task off the queue, if not able continue to next region that may have tasks
         Task task;
         if (!pool_->task_queue_[index].try_pop(task)) {
           continue;
         }
+        // yield to coroutine wrapping this task, boolean value returned represents whether the function returned or yielded
         status_ = ThreadStatus::BUSY;
         bool finished = task.first->YieldToFunc();
         status_ = ThreadStatus::SWITCHING;
 
-        if (task.second == nullptr && finished) {
+        if (finished) {
           pool_->context_pool_.Release(task.first);
-          task.second->set_value();
+          if (task.second != nullptr) task.second->set_value();
           return;
         }
 
+        // return yielded task to the queue
         bool is_empty = pool_->task_queue_[index].empty();
         pool_->task_queue_[index].push(task);
 
         tasks_left = true;
+
+        // if no other tasks left in this queue continue to next NUMA region
+        // this prevents the pool from spinning on a task that will repeatedly yield when there are tasks in other
+        // region's queues
         if (is_empty) {
           continue;
         }
         return;
       }
 
-      if (pool_->busy_workers_ > 1 && !tasks_left) {
+      // if no tasks were found in the queue and there are other workers available to work on tasks that may have
+      // been added to queues after we checked them, then we can park.
+      {
         std::unique_lock<std::mutex> l(pool_->task_lock_);
-        pool_->busy_workers_--;
-        status_ = ThreadStatus::PARKED;
-        pool_->task_cv_.wait(l);
-        status_ = ThreadStatus::SWITCHING;
-        pool_->busy_workers_++;
+        if (pool_->busy_workers_ > 1 && !tasks_left) {
+          pool_->busy_workers_--;
+          status_ = ThreadStatus::PARKED;
+          pool_->task_cv_.wait(l);
+          status_ = ThreadStatus::SWITCHING;
+          pool_->busy_workers_++;
+        }
       }
     }
 
@@ -199,10 +219,10 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     void RunTask() override {
       status_ = ThreadStatus::SWITCHING;
       pool_->busy_workers_++;
+      // loops on executing tasks until told to exit
       while (LIKELY(!exit_task_loop_)) {
         RunNextTask();
       }
-
       done_exiting_ = true;
     }
 
@@ -218,7 +238,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       pool_->total_workers_--;
     }
 
-    std::mutex cv_mutex_;
     ExecutionThreadPool *pool_;
     int cpu_id_;
     ThreadStatus status_ = ThreadStatus::FREE;
@@ -237,9 +256,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   std::vector<std::vector<TerrierThread *>> workers_;
   std::vector<ExecutionTaskQueue> task_queue_;
 
-  std::atomic<uint32_t> busy_workers_, total_workers_;
-  std::atomic_bool shutting_down_ = false;
-
+  std::atomic<uint32_t> busy_workers_ = 0, total_workers_ = 0;
   std::mutex task_lock_;
   std::condition_variable task_cv_;
   PoolContextPool context_pool_{MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS, MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS};
