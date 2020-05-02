@@ -232,7 +232,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
 
         # Memory Scaling. pred[-2] is the memory target
         mem_scaling_factor = data.mem_scaling_factor
-        pipeline_y_pred[info.TARGET_CSV_INDEX[type.Target.MEMORY_B]] *= mem_scaling_factor
+        pipeline_y_pred[data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= mem_scaling_factor
 
         # Record the predicted
         data.y_pred = pipeline_y_pred
