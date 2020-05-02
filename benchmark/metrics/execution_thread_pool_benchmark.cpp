@@ -68,7 +68,7 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
 
     TERRIER_ASSERT(tables.empty(), "tables should be empty");
-    for (uint32_t i = 0; i < storage::RawBlock::GetNumNumaRegions(); i++) {
+    for (uint32_t i = 0; i < static_cast<uint32_t>(storage::RawBlock::GetNumNumaRegions()); i++) {
       tables.emplace_back(std::vector<storage::DataTable *>(tables_per_region_));
     }
 
@@ -77,7 +77,7 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
 
     TERRIER_ASSERT(cpu_ids.size() == storage::RawBlock::GetNumNumaRegions(), "should actually get right number of regions");
 
-    for (uint32_t i = 0; i < storage::RawBlock::GetNumNumaRegions(); i++) {
+    for (uint32_t i = 0; i < static_cast<uint32_t>(storage::RawBlock::GetNumNumaRegions()); i++) {
       std::vector<int> single_id;
       single_id.emplace_back(cpu_ids[i]);
       common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &single_id);
@@ -201,7 +201,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWorkloa
     std::vector<std::pair<std::function<void()>, common::numa_region_t>> lambdas;
     common::SharedLatch latch;
 
-    for (int16_t region = 0; region < tables.size(); region++) {
+    for (int16_t region = 0; region < static_cast<int16_t>(tables.size()); region++) {
       for (storage::DataTable *table : tables[region]) {
         for (uint32_t UNUSED_ATTRIBUTE i = 0; i < iterators_per_table_; i++) {
           lambdas.emplace_back([&, table] {
@@ -247,7 +247,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWithYieldin
     std::vector<std::pair<std::function<void(common::PoolContext*)>, common::numa_region_t>> lambdas;
     common::SharedLatch latch;
 
-    for (int16_t region = 0; region < tables.size(); region++) {
+    for (int16_t region = 0; region < static_cast<int16_t>(tables.size()); region++) {
       for (storage::DataTable *table : tables[region]) {
         for (uint32_t UNUSED_ATTRIBUTE i = 0; i < iterators_per_table_; i++) {
           lambdas.emplace_back([&, table] (common::PoolContext *ctx) {
@@ -293,7 +293,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWithYie
     std::vector<std::pair<std::function<void(common::PoolContext*)>, common::numa_region_t>> lambdas;
     common::SharedLatch latch;
 
-    for (int16_t region = 0; region < tables.size(); region++) {
+    for (int16_t region = 0; region < static_cast<int16_t>(tables.size()); region++) {
       for (storage::DataTable *table : tables[region]) {
         for (uint32_t UNUSED_ATTRIBUTE i = 0; i < iterators_per_table_; i++) {
           lambdas.emplace_back([&, table] (common::PoolContext *ctx) {
