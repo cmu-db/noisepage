@@ -91,14 +91,12 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
 
   // Run the main function
-  std::function<int64_t(exec::ExecutionContext *)> main;
-  if (!tpl_module_->GetFunction("main", mode, &main)) {
+  if (!tpl_module_->GetFunction("main", mode, &main_)) {
     EXECUTION_LOG_ERROR(
         "Missing 'main' entry function with signature "
         "(*ExecutionContext)->int32");
-    return;
   }
-  auto result = main(exec_ctx.Get());
+  auto result = main_(exec_ctx.Get());
   EXECUTION_LOG_DEBUG("main() returned: {}", result);
   exec_ctx->SetPipelineOperatingUnits(nullptr);
 }
