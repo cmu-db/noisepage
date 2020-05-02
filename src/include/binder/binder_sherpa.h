@@ -74,59 +74,8 @@ class BinderSherpa {
    * @param left left child of an expression
    * @param right right child of an expression
    */
-  void SetDesiredTypePair(const common::ManagedPointer<parser::AbstractExpression> left,
-                          const common::ManagedPointer<parser::AbstractExpression> right) {
-    type::TypeId left_type = type::TypeId::INVALID;
-    type::TypeId right_type = type::TypeId::INVALID;
-    bool has_constraints = false;
-
-    // Check if the left type has been constrained.
-    auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(left.Get()));
-    if (it != desired_expr_types_.end()) {
-      left_type = it->second;
-      has_constraints = true;
-    }
-
-    // Check if the right type has been constrained.
-    it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(right.Get()));
-    if (it != desired_expr_types_.end()) {
-      right_type = it->second;
-      has_constraints = true;
-    }
-
-    // If neither the left nor the right type has been constrained, operate off the return value type.
-    if (!has_constraints) {
-      left_type = left->GetReturnValueType();
-      right_type = right->GetReturnValueType();
-    }
-
-    // If the types are mismatched, try to convert types accordingly.
-    if (left_type != right_type) {
-      /*
-       * The way we use libpg_query has the following quirks.
-       * - NULL comes in with type::TypeId::INVALID.
-       * - Dates and timestamps can potentially come in as VARCHAR.
-       * - All small-enough integers come in as INTEGER.
-       *   Too-big integers will come in as BIGINT.
-       */
-
-      auto is_left_maybe_null = left_type == type::TypeId::INVALID;
-      auto is_left_varchar = left_type == type::TypeId::VARCHAR;
-      auto is_left_integer = left_type == type::TypeId::INTEGER;
-
-      if (right_type != type::TypeId::INVALID && (is_left_maybe_null || is_left_varchar || is_left_integer)) {
-        SetDesiredType(left, right_type);
-      }
-
-      auto is_right_maybe_null = right_type == type::TypeId::INVALID;
-      auto is_right_varchar = right_type == type::TypeId::VARCHAR;
-      auto is_right_integer = right_type == type::TypeId::INTEGER;
-
-      if (left_type != type::TypeId::INVALID && (is_right_maybe_null || is_right_varchar || is_right_integer)) {
-        SetDesiredType(right, left_type);
-      }
-    }
-  }
+  void SetDesiredTypePair(common::ManagedPointer<parser::AbstractExpression> left,
+                          common::ManagedPointer<parser::AbstractExpression> right);
 
   /**
    * Convenience function. Check that the desired type of the child expression matches previously specified constraints.
@@ -134,15 +83,7 @@ class BinderSherpa {
    *
    * @param expr The expression to be checked. If no type constraint was imposed before, then the check will pass.
    */
-  void CheckDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
-    const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
-    if (it != desired_expr_types_.end() && it->second != expr->GetReturnValueType()) {
-      // There was a constraint and the expression did not satisfy it. Blow up.
-      const auto desired UNUSED_ATTRIBUTE = it->second;
-      const auto current UNUSED_ATTRIBUTE = expr->GetReturnValueType();
-      throw BINDER_EXCEPTION("BinderSherpa expected expr to have a different type.");
-    }
-  }
+  void CheckDesiredType(common::ManagedPointer<parser::AbstractExpression> expr) const;
 
   /**
    * Attempt to convert the transient value to the desired type.
@@ -151,85 +92,7 @@ class BinderSherpa {
    * @param value The transient value to be checked and potentially promoted.
    * @param desired_type The type to promote the transient value to.
    */
-  void CheckAndTryPromoteType(const common::ManagedPointer<type::TransientValue> value,
-                              const type::TypeId desired_type) const {
-    const auto curr_type = value->Type();
-
-    // Check if types are mismatched, and convert them if possible.
-    if (curr_type != desired_type) {
-      switch (curr_type) {
-        // NULL conversion.
-        case type::TypeId::INVALID: {
-          *value = type::TransientValueFactory::GetNull(desired_type);
-          break;
-        }
-
-        // INTEGER casting (upwards and downwards).
-        case type::TypeId::TINYINT: {
-          auto int_val = type::TransientValuePeeker::PeekTinyInt(*value);
-          *value = TryCastNumericAll(int_val, desired_type);
-          break;
-        }
-        case type::TypeId::SMALLINT: {
-          auto int_val = type::TransientValuePeeker::PeekSmallInt(*value);
-          *value = TryCastNumericAll(int_val, desired_type);
-          break;
-        }
-        case type::TypeId::INTEGER: {
-          auto int_val = type::TransientValuePeeker::PeekInteger(*value);
-          *value = TryCastNumericAll(int_val, desired_type);
-          break;
-        }
-        case type::TypeId::BIGINT: {
-          auto int_val = type::TransientValuePeeker::PeekBigInt(*value);
-          *value = TryCastNumericAll(int_val, desired_type);
-          break;
-        }
-
-        // DATE and TIMESTAMP conversion. String to numeric type conversion.
-        // TODO(WAN): float-type numerics are probably broken.
-        case type::TypeId::VARCHAR: {
-          const auto str_view = type::TransientValuePeeker::PeekVarChar(*value);
-
-          // TODO(WAN): A bit stupid to take the string view back into a string.
-          switch (desired_type) {
-            case type::TypeId::DATE: {
-              auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
-              if (!parsed_date.first) {
-                ReportFailure("Binder conversion from VARCHAR to DATE failed.");
-              }
-              *value = type::TransientValueFactory::GetDate(parsed_date.second);
-              break;
-            }
-            case type::TypeId::TIMESTAMP: {
-              auto parsed_timestamp = util::TimeConvertor::ParseTimestamp(std::string(str_view));
-              if (!parsed_timestamp.first) {
-                ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
-              }
-              *value = type::TransientValueFactory::GetTimestamp(parsed_timestamp.second);
-              break;
-            }
-            case type::TypeId::TINYINT:
-            case type::TypeId::SMALLINT:
-            case type::TypeId::INTEGER:
-            case type::TypeId::BIGINT: {
-              auto int_val = std::stol(std::string(str_view));
-              *value = TryCastNumericAll(int_val, desired_type);
-              break;
-            }
-            default:
-              throw BINDER_EXCEPTION("BinderSherpa VARCHAR cannot be cast to desired type.");
-          }
-
-          break;
-        }
-
-        default: {
-          ReportFailure("Binder conversion of expression type failed.");
-        }
-      }
-    }
-  }
+  void CheckAndTryPromoteType(common::ManagedPointer<type::TransientValue> value, type::TypeId desired_type) const;
 
   /**
    * Convenience function. Used by the visitor sheep to report that an error has occurred, causing BINDER_EXCEPTION.
@@ -242,7 +105,7 @@ class BinderSherpa {
    * @return True if the value of @p int_val fits in the Output type, false otherwise.
    */
   template <typename Output, typename Input>
-  static bool IsRepresentable(Input int_val) {
+  static bool IsRepresentable(const Input int_val) {
     return std::numeric_limits<Output>::lowest() <= int_val && int_val <= std::numeric_limits<Output>::max();
   }
 
@@ -250,7 +113,7 @@ class BinderSherpa {
    * @return The TransientValue obtained by peeking @p int_val with @p peeker if the value fits.
    */
   template <typename Output, typename Input>
-  static type::TransientValue TryCastNumeric(Input int_val, type::TransientValue peeker(Output)) {
+  static type::TransientValue TryCastNumeric(const Input int_val, type::TransientValue peeker(Output)) {
     if (!IsRepresentable<Output>(int_val)) {
       throw BINDER_EXCEPTION("BinderSherpa TryCastNumeric value out of bounds!");
     }

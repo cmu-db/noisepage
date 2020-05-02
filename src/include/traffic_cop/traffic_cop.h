@@ -44,16 +44,19 @@ class TrafficCop {
    * @param replication_log_provider if given, the tcop will forward replication logs to this provider
    * @param stats_storage for optimizer calls
    * @param optimizer_timeout for optimizer calls
+   * @param use_query_cache whether to cache physical plans and generated code for Extended Query protocol
    */
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
-             common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout)
+             common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
+             bool use_query_cache)
       : txn_manager_(txn_manager),
         catalog_(catalog),
         replication_log_provider_(replication_log_provider),
         stats_storage_(stats_storage),
-        optimizer_timeout_(optimizer_timeout) {}
+        optimizer_timeout_(optimizer_timeout),
+        use_query_cache_(use_query_cache) {}
 
   virtual ~TrafficCop() = default;
 
@@ -164,15 +167,31 @@ class TrafficCop {
    * @param portal to be executed, may contain parameters
    * @return result of the operation
    */
-  TrafficCopResult CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                             common::ManagedPointer<network::PostgresPacketWriter> out,
-                                             common::ManagedPointer<network::Portal> portal) const;
+  TrafficCopResult CodegenPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                       common::ManagedPointer<network::PostgresPacketWriter> out,
+                                       common::ManagedPointer<network::Portal> portal) const;
+  /**
+   * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
+   * (can't) stick it in TrafficCopResult.
+   * @param connection_ctx context to be used to access the internal txn
+   * @param out packet writer to return results
+   * @param portal to be executed, may contain parameters
+   * @return result of the operation
+   */
+  TrafficCopResult RunExecutableQuery(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                      common::ManagedPointer<network::PostgresPacketWriter> out,
+                                      common::ManagedPointer<network::Portal> portal) const;
 
   /**
    * Adjust the TrafficCop's optimizer timeout value (for use by SettingsManager)
    * @param optimizer_timeout time in ms to spend on a task @see optimizer::Optimizer constructor
    */
   void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
+
+  /**
+   * @return true if query caching enabled, false otherwise
+   */
+  bool UseQueryCache() const { return use_query_cache_; }
 
  private:
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
@@ -181,6 +200,7 @@ class TrafficCop {
   common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
+  bool use_query_cache_;
 };
 
 }  // namespace terrier::trafficcop
