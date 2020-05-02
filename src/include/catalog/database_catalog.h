@@ -180,8 +180,9 @@ class DatabaseCatalog {
   template <typename OidType>
   std::vector<OidType> SpaceSeparatedOidToVector (std::string s);
   std::string VarlentoString(const storage::VarlenEntry &entry);
-  bool VerifyFKConstraint(const PG_Constraint &con_obj);
+  bool VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, const PG_Constraint &con_obj, storage::ProjectedRow *pr);
   bool VerifyCheckConstraint(const PG_Constraint &con_obj);
+  std::unordered_map<col_oid_t, uint16_t> ColToOffsetMap(const Schema &schema);
   bool VerifyExclusionConstraint(const PG_Constraint &con_obj);
   bool VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, storage::ProjectedRow *pr);
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
