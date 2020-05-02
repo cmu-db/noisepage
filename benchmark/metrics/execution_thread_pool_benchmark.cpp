@@ -16,7 +16,7 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
   // Tuple layout
   const uint8_t column_size_ = 8;
   const storage::BlockLayout layout_{{column_size_, column_size_, column_size_}};
-  const uint32_t initial_table_size_ = 100000;
+  const uint32_t initial_table_size_ = 10000;
   const uint32_t tables_per_region_ = 2 * std::thread::hardware_concurrency();
   const uint32_t iterators_per_table_ = 20;
   storage::BlockStore block_store_{100000000, 100000000};
@@ -62,7 +62,7 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
     return result;
   }
 
-  void FillTables(std::vector<std::vector<storage::DataTable *>> &tables) {
+  void FillTables(std::vector<std::vector<storage::DataTable *>> &tables) {  // NOLINT
     redo_buffer_ = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
     redo_ = initializer_.InitializeRow(redo_buffer_);
     StorageTestUtil::PopulateRandomRow(redo_, layout_, 0, &generator_);
@@ -75,20 +75,22 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids = GetOneCPUPerRegion();
 
-    TERRIER_ASSERT(cpu_ids.size() == storage::RawBlock::GetNumNumaRegions(), "should actually get right number of regions");
+    TERRIER_ASSERT(cpu_ids.size() == storage::RawBlock::GetNumNumaRegions(),
+                   "should actually get right number of regions");
 
     for (uint32_t i = 0; i < static_cast<uint32_t>(storage::RawBlock::GetNumNumaRegions()); i++) {
       std::vector<int> single_id;
       single_id.emplace_back(cpu_ids[i]);
-      common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &single_id);
+      common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                              &single_id);
 
       std::promise<void> p;
       thread_pool.SubmitTask(&p, [&] {
         transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
                                             common::ManagedPointer(&buffer_pool_), DISABLED);
-        for (uint32_t j = 0; j < tables[i].size(); j++) {
+        for (uint32_t j = 0; j < tables[i].size(); j++) {  // NOLINT
           tables[i][j] = new storage::DataTable(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-                                        storage::layout_version_t(0));
+                                                storage::layout_version_t(0));
           for (uint32_t tuple_num = 0; tuple_num < initial_table_size_; tuple_num++) {
             tables[i][j]->Insert(common::ManagedPointer(&txn), *redo_);
           }
@@ -101,7 +103,7 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
     delete[] redo_buffer_;
   }
 
-  void Cleanup(std::vector<std::vector<storage::DataTable *>> &tables) {
+  void Cleanup(const std::vector<std::vector<storage::DataTable *>> &tables) {
     for (auto &v : tables) {
       for (auto &table : v) {
         delete table;
@@ -110,13 +112,12 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
   }
 };
 
-
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentWorkload)(benchmark::State &state) {
   std::vector<std::vector<storage::DataTable *>> tables;
   FillTables(tables);
 
-  for (auto _ : state) {
+  for (auto _ UNUSED_ATTRIBUTE : state) {  // NOLINT
     std::vector<std::function<void()>> lambdas;
     common::SharedLatch latch;
 
@@ -138,20 +139,21 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentWorkload)(benchmark::
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       std::thread *threads[lambdas.size()];
       latch.LockExclusive();
-      for (uint32_t i = 0; i < lambdas.size(); i++) {
+      for (uint32_t i = 0; i < lambdas.size(); i++) {  // NOLINT
         threads[i] = new std::thread(lambdas[i]);
       }
       latch.Unlock();
 
       for (uint32_t i = 0; i < lambdas.size(); i++) {
-        threads[i]->join();
+        threads[i]->join();  // NOLINT
         delete threads[i];
       }
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ *
+                          tables.size());
   Cleanup(tables);
 }
 
@@ -160,7 +162,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWorkload)(b
   std::vector<std::vector<storage::DataTable *>> tables;
   FillTables(tables);
 
-  for (auto _ : state) {
+  for (auto _ UNUSED_ATTRIBUTE : state) {  // NOLINT
     std::vector<std::function<void()>> lambdas;
     common::SharedLatch latch;
 
@@ -181,7 +183,8 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWorkload)(b
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids(std::thread::hardware_concurrency());
     for (uint32_t i = 0; i < cpu_ids.size(); i++) cpu_ids[i] = i;
-    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -198,7 +201,8 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWorkload)(b
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ *
+                          tables.size());
   Cleanup(tables);
 }
 
@@ -207,19 +211,21 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWorkloa
   std::vector<std::vector<storage::DataTable *>> tables;
   FillTables(tables);
 
-  for (auto _ : state) {
+  for (auto _ UNUSED_ATTRIBUTE : state) {  // NOLINT
     std::vector<std::pair<std::function<void()>, common::numa_region_t>> lambdas;
     common::SharedLatch latch;
 
     for (int16_t region = 0; region < static_cast<int16_t>(tables.size()); region++) {
       for (storage::DataTable *table : tables[region]) {
         for (uint32_t UNUSED_ATTRIBUTE i = 0; i < iterators_per_table_; i++) {
-          lambdas.emplace_back([&, table] {
-            common::SharedLatch::ScopedSharedLatch l(&latch);
-            uint32_t count = 0;
-            for (auto it = table->begin(); it != table->end(); it++) count++;
-            TERRIER_ASSERT(count == initial_table_size_, "should see the right number of tuples per table");
-          }, static_cast<common::numa_region_t>(region));
+          lambdas.emplace_back(
+              [&, table] {
+                common::SharedLatch::ScopedSharedLatch l(&latch);
+                uint32_t count = 0;
+                for (auto it = table->begin(); it != table->end(); it++) count++;
+                TERRIER_ASSERT(count == initial_table_size_, "should see the right number of tuples per table");
+              },
+              static_cast<common::numa_region_t>(region));
         }
       }
     }
@@ -228,7 +234,8 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWorkloa
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids(std::thread::hardware_concurrency());
     for (uint32_t i = 0; i < cpu_ids.size(); i++) cpu_ids[i] = i;
-    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -245,7 +252,8 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWorkloa
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ *
+                          tables.size());
   Cleanup(tables);
 }
 
@@ -254,19 +262,21 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWithYieldin
   std::vector<std::vector<storage::DataTable *>> tables;
   FillTables(tables);
 
-  for (auto _ : state) {
-    std::vector<std::pair<std::function<void(common::PoolContext*)>, common::numa_region_t>> lambdas;
+  for (auto _ UNUSED_ATTRIBUTE : state) {  // NOLINT
+    std::vector<std::pair<std::function<void(common::PoolContext *)>, common::numa_region_t>> lambdas;
     common::SharedLatch latch;
 
     for (int16_t region = 0; region < static_cast<int16_t>(tables.size()); region++) {
       for (storage::DataTable *table : tables[region]) {
         for (uint32_t UNUSED_ATTRIBUTE i = 0; i < iterators_per_table_; i++) {
-          lambdas.emplace_back([&, table] (common::PoolContext *ctx) {
-            common::SharedLatch::ScopedSharedLatch l(&latch, ctx);
-            uint32_t count = 0;
-            for (auto it = table->begin(ctx); it != table->end(ctx); it++) count++;
-            TERRIER_ASSERT(count == initial_table_size_, "should see the right number of tuples per table");
-          }, static_cast<common::numa_region_t>(region));
+          lambdas.emplace_back(
+              [&, table](common::PoolContext *ctx) {
+                common::SharedLatch::ScopedSharedLatch l(&latch, ctx);
+                uint32_t count = 0;
+                for (auto it = table->begin(ctx); it != table->end(ctx); it++) count++;
+                TERRIER_ASSERT(count == initial_table_size_, "should see the right number of tuples per table");
+              },
+              static_cast<common::numa_region_t>(region));
         }
       }
     }
@@ -275,7 +285,8 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWithYieldin
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids(std::thread::hardware_concurrency());
     for (uint32_t i = 0; i < cpu_ids.size(); i++) cpu_ids[i] = i;
-    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -292,28 +303,32 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWithYieldin
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ *
+                          tables.size());
   Cleanup(tables);
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWithYieldingWorkload)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWithYieldingWorkload)
+(benchmark::State &state) {  // NOLINT
   std::vector<std::vector<storage::DataTable *>> tables;
   FillTables(tables);
 
-  for (auto _ : state) {
-    std::vector<std::pair<std::function<void(common::PoolContext*)>, common::numa_region_t>> lambdas;
+  for (auto _ UNUSED_ATTRIBUTE : state) {  // NOLINT
+    std::vector<std::pair<std::function<void(common::PoolContext *)>, common::numa_region_t>> lambdas;
     common::SharedLatch latch;
 
     for (int16_t region = 0; region < static_cast<int16_t>(tables.size()); region++) {
       for (storage::DataTable *table : tables[region]) {
         for (uint32_t UNUSED_ATTRIBUTE i = 0; i < iterators_per_table_; i++) {
-          lambdas.emplace_back([&, table] (common::PoolContext *ctx) {
-            common::SharedLatch::ScopedSharedLatch l(&latch, ctx);
-            uint32_t count = 0;
-            for (auto it = table->begin(ctx); it != table->end(ctx); it++) count++;
-            TERRIER_ASSERT(count == initial_table_size_, "should see the right number of tuples per table");
-          }, static_cast<common::numa_region_t>(region));
+          lambdas.emplace_back(
+              [&, table](common::PoolContext *ctx) {
+                common::SharedLatch::ScopedSharedLatch l(&latch, ctx);
+                uint32_t count = 0;
+                for (auto it = table->begin(ctx); it != table->end(ctx); it++) count++;
+                TERRIER_ASSERT(count == initial_table_size_, "should see the right number of tuples per table");
+              },
+              static_cast<common::numa_region_t>(region));
         }
       }
     }
@@ -322,7 +337,8 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWithYie
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids(std::thread::hardware_concurrency());
     for (uint32_t i = 0; i < cpu_ids.size(); i++) cpu_ids[i] = i;
-    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -339,7 +355,8 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWithYie
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ *
+                          tables.size());
   Cleanup(tables);
 }
 
@@ -348,19 +365,19 @@ BENCHMARK_REGISTER_F(ExecutionThreadPoolBenchmark, ConcurrentWorkload)
     ->UseManualTime()
     ->MinTime(3);
 BENCHMARK_REGISTER_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWorkload)
-->Unit(benchmark::kMillisecond)
+    ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
 BENCHMARK_REGISTER_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWorkload)
-->Unit(benchmark::kMillisecond)
+    ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
 BENCHMARK_REGISTER_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWithYieldingWorkload)
-->Unit(benchmark::kMillisecond)
+    ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
 BENCHMARK_REGISTER_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWithYieldingWorkload)
-->Unit(benchmark::kMillisecond)
+    ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
 }  // namespace terrier

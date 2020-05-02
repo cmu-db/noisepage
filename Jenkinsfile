@@ -30,29 +30,6 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/format/lint/censored)') {
-                    agent {
-                        docker {
-                            image 'ubuntu:bionic'
-                        }
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 1h make check-format'
-                        sh 'cd build && timeout 1h make check-lint'
-                        sh 'cd build && timeout 1h make check-censored'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-
                 stage('ubuntu-18.04/clang-8.0.0 (Debug/format/lint/censored)') {
                     agent {
                         docker {
@@ -98,31 +75,6 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python ../script/testing/junit/run_junit.py'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/ASAN/unittest)') {
-                    agent {
-                        docker {
-                            image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
-                        }
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j$(nproc)'
-                        sh 'cd build && make check-clang-tidy'
-                        sh 'cd build && timeout 1h make unittest'
-                        sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
                     }
                     post {
