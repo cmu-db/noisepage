@@ -68,11 +68,7 @@ class ParameterValueExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["value_idx"] = value_idx_;
-    return j;
-  }
+  nlohmann::json ToJson() const override;
 
   /** @param j json to deserialize */
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
@@ -83,6 +79,6 @@ class ParameterValueExpression : public AbstractExpression {
   uint32_t value_idx_;
 };
 
-DEFINE_JSON_DECLARATIONS(ParameterValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ParameterValueExpression);
 
 }  // namespace terrier::parser

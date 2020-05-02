@@ -1,4 +1,5 @@
 #include "parser/expression/subquery_expression.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 
@@ -49,6 +50,12 @@ common::hash_t SubqueryExpression::Hash() const {
   return hash;
 }
 
+nlohmann::json SubqueryExpression::ToJson() const {
+  nlohmann::json j = AbstractExpression::ToJson();
+  j["subselect"] = subselect_->ToJson();
+  return j;
+}
+
 std::vector<std::unique_ptr<AbstractExpression>> SubqueryExpression::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<AbstractExpression>> exprs;
   auto e1 = AbstractExpression::FromJson(j);
@@ -58,5 +65,7 @@ std::vector<std::unique_ptr<AbstractExpression>> SubqueryExpression::FromJson(co
   exprs.insert(exprs.end(), std::make_move_iterator(e2.begin()), std::make_move_iterator(e2.end()));
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(SubqueryExpression);
 
 }  // namespace terrier::parser

@@ -1,4 +1,5 @@
 #include "planner/plannodes/export_external_file_plan_node.h"
+#include "common/json.h"
 
 #include <memory>
 #include <string>
@@ -69,4 +70,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ExportExternalFilePlanN
   format_ = j.at("format").get<parser::ExternalFileFormat>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ExportExternalFilePlanNode);
+
 }  // namespace terrier::planner

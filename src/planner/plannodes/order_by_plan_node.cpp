@@ -1,4 +1,5 @@
 #include "planner/plannodes/order_by_plan_node.h"
+#include "common/json.h"
 
 #include <memory>
 #include <utility>
@@ -92,5 +93,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJs
   offset_ = j.at("offset").get<size_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(OrderByPlanNode);
 
 }  // namespace terrier::planner

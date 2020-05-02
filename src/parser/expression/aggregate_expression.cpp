@@ -1,4 +1,5 @@
 #include "parser/expression/aggregate_expression.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 
@@ -40,6 +41,12 @@ void AggregateExpression::DeriveReturnValueType() {
   }
 }
 
+nlohmann::json AggregateExpression::ToJson() const {
+  nlohmann::json j = AbstractExpression::ToJson();
+  j["distinct"] = distinct_;
+  return j;
+}
+
 std::vector<std::unique_ptr<AbstractExpression>> AggregateExpression::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<AbstractExpression>> exprs;
   auto e1 = AbstractExpression::FromJson(j);
@@ -47,5 +54,7 @@ std::vector<std::unique_ptr<AbstractExpression>> AggregateExpression::FromJson(c
   distinct_ = j.at("distinct").get<bool>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(AggregateExpression);
 
 }  // namespace terrier::parser

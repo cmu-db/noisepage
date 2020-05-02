@@ -46,6 +46,6 @@ class ComparisonExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(ComparisonExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ComparisonExpression);
 
 }  // namespace terrier::parser

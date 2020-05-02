@@ -48,12 +48,7 @@ class CaseExpression : public AbstractExpression {
      * Derived expressions should call this base method
      * @return expression serialized to json
      */
-    nlohmann::json ToJson() const {
-      nlohmann::json j;
-      j["condition"] = condition_->ToJson();
-      j["then"] = then_->ToJson();
-      return j;
-    }
+    nlohmann::json ToJson() const;
 
     /**
      * Derived expressions should call this base method
@@ -149,7 +144,7 @@ class CaseExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> default_expr_;
 };
 
-DEFINE_JSON_DECLARATIONS(CaseExpression::WhenClause);
-DEFINE_JSON_DECLARATIONS(CaseExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(CaseExpression::WhenClause);
+DEFINE_JSON_HEADER_DECLARATIONS(CaseExpression);
 
 }  // namespace terrier::parser

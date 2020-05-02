@@ -1,4 +1,5 @@
 #include "planner/plannodes/create_view_plan_node.h"
+#include "common/json.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -70,5 +71,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateViewPlanNode::Fro
   }
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(CreateViewPlanNode);
 
 }  // namespace terrier::planner

@@ -71,11 +71,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @note TransientValue::ToJson() is private, ConstantValueExpression is a friend
    * @see TransientValue for why TransientValue::ToJson is private
    */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["value"] = value_;
-    return j;
-  }
+  nlohmann::json ToJson() const override;
 
   /**
    * @param j json to deserialize
@@ -90,6 +86,6 @@ class ConstantValueExpression : public AbstractExpression {
   type::TransientValue value_;
 };
 
-DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ConstantValueExpression);
 
 }  // namespace terrier::parser

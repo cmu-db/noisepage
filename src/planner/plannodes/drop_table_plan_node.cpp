@@ -38,4 +38,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropTablePlanNode::From
   return exprs;
 }
 
+DEFINE_JSON_BODY_DECLARATIONS(DropTablePlanNode);
+
 }  // namespace terrier::planner

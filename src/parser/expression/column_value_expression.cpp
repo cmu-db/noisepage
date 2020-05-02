@@ -1,4 +1,5 @@
 #include "parser/expression/column_value_expression.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 
@@ -64,5 +65,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ColumnValueExpression::FromJson
   column_oid_ = j.at("column_oid").get<catalog::col_oid_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ColumnValueExpression);
 
 }  // namespace terrier::parser

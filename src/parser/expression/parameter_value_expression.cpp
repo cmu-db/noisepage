@@ -8,6 +8,12 @@ std::unique_ptr<AbstractExpression> ParameterValueExpression::Copy() const {
   return expr;
 }
 
+nlohmann::json ParameterValueExpression::ToJson() const {
+  nlohmann::json j = AbstractExpression::ToJson();
+  j["value_idx"] = value_idx_;
+  return j;
+}
+
 std::vector<std::unique_ptr<AbstractExpression>> ParameterValueExpression::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<AbstractExpression>> exprs;
   auto e1 = AbstractExpression::FromJson(j);
@@ -15,5 +21,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ParameterValueExpression::FromJ
   value_idx_ = j.at("value_idx").get<uint32_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ParameterValueExpression);
 
 }  // namespace terrier::parser

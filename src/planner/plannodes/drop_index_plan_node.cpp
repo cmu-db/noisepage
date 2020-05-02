@@ -37,4 +37,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropIndexPlanNode::From
   return exprs;
 }
 
+DEFINE_JSON_BODY_DECLARATIONS(SeqScanPlanNode);
+
 }  // namespace terrier::planner

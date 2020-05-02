@@ -1,4 +1,5 @@
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "common/json.h"
 
 #include <memory>
 #include <utility>
@@ -114,5 +115,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AggregatePlanNode::From
   aggregate_strategy_ = j.at("aggregate_strategy").get<AggregateStrategyType>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(AggregatePlanNode);
 
 }  // namespace terrier::planner

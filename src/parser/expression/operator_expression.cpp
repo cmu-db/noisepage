@@ -1,4 +1,5 @@
 #include "parser/expression/operator_expression.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 
@@ -35,5 +36,7 @@ void OperatorExpression::DeriveReturnValueType() {
   TERRIER_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
   this->SetReturnValueType(type);
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(OperatorExpression);
 
 }  // namespace terrier::parser

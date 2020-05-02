@@ -44,6 +44,6 @@ class OperatorExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(OperatorExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(OperatorExpression);
 
 }  // namespace terrier::parser

@@ -8,6 +8,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "storage/sql_table.h"
 #include "type/transient_value_factory.h"
+#include "common/json.h"
 
 namespace terrier::planner {
 
@@ -119,5 +120,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> InsertPlanNode::FromJso
   parameter_info_ = j.at("parameter_info").get<std::vector<catalog::col_oid_t>>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(InsertPlanNode);
 
 }  // namespace terrier::planner

@@ -192,6 +192,6 @@ class ColumnValueExpression : public AbstractExpression {
   catalog::col_oid_t column_oid_ = catalog::INVALID_COLUMN_OID;
 };
 
-DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ColumnValueExpression);
 
 }  // namespace terrier::parser

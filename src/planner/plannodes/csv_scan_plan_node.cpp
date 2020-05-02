@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "planner/plannodes/csv_scan_plan_node.h"
+#include "common/json.h"
 
 namespace terrier::planner {
 
@@ -67,5 +68,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CSVScanPlanNode::FromJs
   value_types_ = j.at("value_types").get<std::vector<type::TypeId>>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(CSVScanPlanNode);
 
 }  // namespace terrier::planner

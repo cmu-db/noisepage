@@ -1,4 +1,5 @@
 #include "planner/plannodes/projection_plan_node.h"
+#include "common/json.h"
 
 #include <memory>
 #include <vector>
@@ -31,5 +32,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ProjectionPlanNode::Fro
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ProjectionPlanNode);
 
 }  // namespace terrier::planner

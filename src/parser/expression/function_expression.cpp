@@ -1,4 +1,5 @@
 #include "parser/expression/function_expression.h"
+3include "common/json.h"
 
 namespace terrier::parser {
 
@@ -33,6 +34,12 @@ void FunctionExpression::DeriveExpressionName() {
   this->SetExpressionName(name);
 }
 
+nlohmann::json FunctionExpression::ToJson() const {
+  nlohmann::json j = AbstractExpression::ToJson();
+  j["func_name"] = func_name_;
+  return j;
+}
+
 std::vector<std::unique_ptr<AbstractExpression>> FunctionExpression::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<AbstractExpression>> exprs;
   auto e1 = AbstractExpression::FromJson(j);
@@ -40,5 +47,7 @@ std::vector<std::unique_ptr<AbstractExpression>> FunctionExpression::FromJson(co
   func_name_ = j.at("func_name").get<std::string>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(FunctionExpression);
 
 }  // namespace terrier::parser

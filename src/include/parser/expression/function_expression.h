@@ -64,11 +64,7 @@ class FunctionExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["func_name"] = func_name_;
-    return j;
-  }
+  nlohmann::json ToJson() const override;
 
   /**
    * @param j json to deserialize
@@ -97,6 +93,6 @@ class FunctionExpression : public AbstractExpression {
   catalog::proc_oid_t proc_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(FunctionExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(FunctionExpression);
 
 }  // namespace terrier::parser

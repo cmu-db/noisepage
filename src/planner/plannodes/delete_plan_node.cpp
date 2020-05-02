@@ -1,4 +1,5 @@
 #include "planner/plannodes/delete_plan_node.h"
+#include "common/json.h"
 
 #include <memory>
 #include <utility>
@@ -57,5 +58,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DeletePlanNode::FromJso
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(DeletePlanNode);
 
 }  // namespace terrier::planner

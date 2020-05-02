@@ -1,4 +1,5 @@
 #include "parser/expression/derived_value_expression.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 
@@ -22,6 +23,13 @@ bool DerivedValueExpression::operator==(const AbstractExpression &rhs) const {
   return GetValueIdx() == other.GetValueIdx();
 }
 
+nlohmann::json DerivedValueExpression::ToJson() const {
+  nlohmann::json j = AbstractExpression::ToJson();
+  j["tuple_idx"] = tuple_idx_;
+  j["value_idx"] = value_idx_;
+  return j;
+}
+
 std::vector<std::unique_ptr<AbstractExpression>> DerivedValueExpression::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<AbstractExpression>> exprs;
   auto e1 = AbstractExpression::FromJson(j);
@@ -30,5 +38,7 @@ std::vector<std::unique_ptr<AbstractExpression>> DerivedValueExpression::FromJso
   value_idx_ = j.at("value_idx").get<int>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(AbstractExpression);
 
 }  // namespace terrier::parser

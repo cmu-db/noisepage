@@ -81,4 +81,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> HashJoinPlanNode::FromJ
   return exprs;
 }
 
+DEFINE_JSON_BODY_DECLARATIONS(HashJoinPlanNode);
+
 }  // namespace terrier::planner

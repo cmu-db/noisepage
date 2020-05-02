@@ -1,4 +1,5 @@
 #include "parser/expression/type_cast_expression.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 
@@ -16,5 +17,7 @@ std::unique_ptr<AbstractExpression> TypeCastExpression::CopyWithChildren(
   expr->SetMutableStateForCopy(*this);
   return expr;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(TypeCastExpression);
 
 }  // namespace terrier::parser

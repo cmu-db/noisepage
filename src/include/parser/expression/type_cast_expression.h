@@ -37,6 +37,6 @@ class TypeCastExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(TypeCastExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(TypeCastExpression);
 
 }  // namespace terrier::parser

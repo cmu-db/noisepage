@@ -1,4 +1,5 @@
 #include "parser/expression/conjunction_expression.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 
@@ -16,5 +17,7 @@ std::unique_ptr<AbstractExpression> ConjunctionExpression::CopyWithChildren(
   expr->SetMutableStateForCopy(*this);
   return expr;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ConjunctionExpression);
 
 }  // namespace terrier::parser

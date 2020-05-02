@@ -66,4 +66,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateIndexPlanNode::Fr
   return exprs;
 }
 
+DEFINE_JSON_BODY_DECLARATIONS(CreateIndexPlanNode);
+
 }  // namespace terrier::planner

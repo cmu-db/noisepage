@@ -8,7 +8,7 @@
 
 #include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
 #include "type/transient_value.h"
@@ -279,7 +279,7 @@ class AbstractExpression {
   std::vector<std::unique_ptr<AbstractExpression>> children_;
 };
 
-DEFINE_JSON_DECLARATIONS(AbstractExpression)
+DEFINE_JSON_HEADER_DECLARATIONS(AbstractExpression);
 
 /**
  * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions

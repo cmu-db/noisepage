@@ -38,6 +38,6 @@ class StarExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(StarExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(StarExpression);
 
 }  // namespace terrier::parser

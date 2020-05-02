@@ -42,6 +42,6 @@ class ConjunctionExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(ConjunctionExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ConjunctionExpression);
 
 }  // namespace terrier::parser

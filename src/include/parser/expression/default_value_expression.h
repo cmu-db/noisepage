@@ -35,6 +35,6 @@ class DefaultValueExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(DefaultValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(DefaultValueExpression);
 
 }  // namespace terrier::parser

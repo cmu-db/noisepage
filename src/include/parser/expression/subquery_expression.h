@@ -61,11 +61,7 @@ class SubqueryExpression : public AbstractExpression {
   }
 
   /** @return expression serialized to json */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["subselect"] = subselect_->ToJson();
-    return j;
-  }
+  nlohmann::json ToJson() const override;
 
   /** @param j json to deserialize */
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
@@ -75,6 +71,6 @@ class SubqueryExpression : public AbstractExpression {
   std::unique_ptr<SelectStatement> subselect_;
 };
 
-DEFINE_JSON_DECLARATIONS(SubqueryExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(SubqueryExpression);
 
 }  // namespace terrier::parser

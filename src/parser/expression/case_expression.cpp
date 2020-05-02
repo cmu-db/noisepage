@@ -1,6 +1,14 @@
 #include "parser/expression/case_expression.h"
+#include "common/json.h"
 
 namespace terrier::parser {
+
+nlohmann::json CaseExpression::WhenClause::ToJson() const {
+  nlohmann::json j;
+  j["condition"] = condition_->ToJson();
+  j["then"] = then_->ToJson();
+  return j;
+}
 
 std::vector<std::unique_ptr<AbstractExpression>> CaseExpression::WhenClause::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<AbstractExpression>> exprs;
@@ -74,5 +82,8 @@ std::vector<std::unique_ptr<AbstractExpression>> CaseExpression::FromJson(const 
                std::make_move_iterator(e2.non_owned_exprs_.end()));
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(CaseExpression::WhenClause);
+DEFINE_JSON_BODY_DECLARATIONS(CaseExpression);
 
 }  // namespace terrier::parser
