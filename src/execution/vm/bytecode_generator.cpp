@@ -1487,6 +1487,10 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       Emitter()->Emit(Bytecode::Asin, dest, src);
       break;
     }
+    case ast::Builtin::Sinh: {
+      Emitter()->Emit(Bytecode::Sinh, dest, src);
+      break;
+    }
     case ast::Builtin::ATan: {
       Emitter()->Emit(Bytecode::Atan, dest, src);
       break;
@@ -2045,9 +2049,17 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
   LocalVar ret = ExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
+    case ast::Builtin::Length: {
+        Emitter()->Emit(Bytecode::Length, exec_ctx, ret, input_string);
+        break;
+    }
     case ast::Builtin::Lower: {
       Emitter()->Emit(Bytecode::Lower, exec_ctx, ret, input_string);
       break;
+    }
+    case ast::Builtin::Nextval: {
+        Emitter()->Emit(Bytecode::Nextval, exec_ctx, ret, input_string);
+        break;
     }
     default:
       UNREACHABLE("Unimplemented string function!");
@@ -2229,6 +2241,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::ACos:
     case ast::Builtin::ASin:
+    case ast::Builtin::Sinh:
     case ast::Builtin::ATan:
     case ast::Builtin::ATan2:
     case ast::Builtin::Cos:
@@ -2337,6 +2350,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
 
+    case ast::Builtin::Nextval:
+    case ast::Builtin::Length:
     case ast::Builtin::Lower: {
       VisitBuiltinStringCall(call, builtin);
       break;

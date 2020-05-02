@@ -1398,7 +1398,9 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
 
   // Set sequence_ptr to NULL because it gets set by execution layer after instantiation
   const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
-  class_insert_pr->SetNull(index_ptr_offset);
+  auto *const sequence_ptr = class_insert_pr->AccessForceNotNull(index_ptr_offset);
+  SequenceMetadata *seq_obj = new SequenceMetadata();
+  *(reinterpret_cast<SequenceMetadata **>(sequence_ptr)) = seq_obj;
 
   // Insert into pg_class table
   const auto class_tuple_slot = classes_->Insert(txn, class_insert_redo);
@@ -1579,6 +1581,16 @@ sequence_oid_t DatabaseCatalog::GetSequenceOid(const common::ManagedPointer<tran
     return INVALID_SEQUENCE_OID;
   }
   return sequence_oid_t(oid_pair.first);
+}
+
+common::ManagedPointer<SequenceMetadata> DatabaseCatalog::GetSequence(
+        const common::ManagedPointer<transaction::TransactionContext> txn, sequence_oid_t sequence) {
+    const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(sequence));
+    if (ptr_pair.second != postgres::ClassKind::SEQUENCE) {
+        // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
+        return common::ManagedPointer<SequenceMetadata>(nullptr);
+    }
+    return common::ManagedPointer(reinterpret_cast<SequenceMetadata *>(ptr_pair.first));
 }
 
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
@@ -2027,6 +2039,9 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // sin
   BOOTSTRAP_TRIG_FN("sin", postgres::SIN_PRO_OID, execution::ast::Builtin::Sin)
 
+  // sinh
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID,execution::ast::Builtin::Sinh)
+
   // tan
   BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
 
@@ -2036,10 +2051,15 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 #undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
+  auto integer_type = GetTypeOidForType(type::TypeId::INTEGER);
 
   // lower
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  CreateProcedure(txn, postgres::LENGTH_PRO_OID, "length", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "", true);
+  CreateProcedure(txn, postgres::NEXTVAL_PRO_OID, "nextval", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "", true);
 
   // TODO(tanujnay112): no op codes for lower and upper yet
 
@@ -2072,6 +2092,9 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   // sin
   BOOTSTRAP_TRIG_FN("sin", postgres::SIN_PRO_OID, execution::ast::Builtin::Sin)
 
+  // sinh
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID, execution::ast::Builtin::Sinh)
+
   // tan
   BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
 
@@ -2082,6 +2105,16 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   udf_context = new execution::udf::UDFContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
                                                execution::ast::Builtin::Lower, true);
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, udf_context);
+  txn->RegisterAbortAction([=]() { delete udf_context; });
+
+  udf_context = new execution::udf::UDFContext("length", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
+                                                 execution::ast::Builtin::Length, true);
+  SetProcCtxPtr(txn, postgres::LENGTH_PRO_OID, udf_context);
+  txn->RegisterAbortAction([=]() { delete udf_context; });
+
+  udf_context = new execution::udf::UDFContext("nextval", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
+                                                 execution::ast::Builtin::Nextval, true);
+  SetProcCtxPtr(txn, postgres::NEXTVAL_PRO_OID, udf_context);
   txn->RegisterAbortAction([=]() { delete udf_context; });
 }
 

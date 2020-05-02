@@ -1330,6 +1330,7 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::Tan:
     case ast::Builtin::ACos:
     case ast::Builtin::ASin:
+    case ast::Builtin::Sinh:
     case ast::Builtin::ATan: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -2254,6 +2255,34 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::StringVal;
       break;
     }
+    case ast::Builtin::Nextval:
+    case ast::Builtin::Length: {
+          // check to make sure this function has two arguments
+          if (!CheckArgCount(call, 2)) {
+              return;
+          }
+
+          // checking to see if the first argument is an execution context
+          auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+          if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+              ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+              return;
+          }
+
+          // checking to see if the second argument is a string
+          auto *resolved_type = Resolve(call->Arguments()[1]);
+          if (resolved_type == nullptr) {
+              return;
+          }
+          if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+              ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+              return;
+          }
+
+          // this function returns a string
+          sql_type = ast::BuiltinType::Integer;
+          break;
+      }
     default:
       UNREACHABLE("Unimplemented string call!!");
   }
@@ -2521,6 +2550,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::ACos:
     case ast::Builtin::ASin:
+    case ast::Builtin::Sinh:
     case ast::Builtin::ATan:
     case ast::Builtin::ATan2:
     case ast::Builtin::Cos:
@@ -2601,10 +2631,13 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinParamCall(call, builtin);
       break;
     }
+    case ast::Builtin::Length:
+    case ast::Builtin::Nextval:
     case ast::Builtin::Lower: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
+
     default: {
       UNREACHABLE("Unhandled builtin!");
     }

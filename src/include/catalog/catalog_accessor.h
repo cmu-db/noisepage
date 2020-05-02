@@ -264,6 +264,8 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
+  common::ManagedPointer<SequenceMetadata> GetSequence(sequence_oid_t sequence) const;
+
   /**
    * Given a sequence name, resolve it to the corresponding OID
    * @param name of the sequence

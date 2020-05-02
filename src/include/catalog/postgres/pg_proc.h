@@ -80,4 +80,8 @@ constexpr proc_oid_t COT_PRO_OID = proc_oid_t(91);
 constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(92);
 constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(93);
 
+constexpr proc_oid_t SINH_PRO_OID = proc_oid_t(94);
+constexpr proc_oid_t LENGTH_PRO_OID = proc_oid_t(95);
+constexpr proc_oid_t NEXTVAL_PRO_OID = proc_oid_t(96);
+
 }  // namespace terrier::catalog::postgres

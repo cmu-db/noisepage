@@ -279,6 +279,9 @@ class DatabaseCatalog {
    */
   bool DeleteSequence(common::ManagedPointer<transaction::TransactionContext> txn, sequence_oid_t sequence);
 
+  common::ManagedPointer<SequenceMetadata> GetSequence(
+        const common::ManagedPointer<transaction::TransactionContext> txn, sequence_oid_t sequence);
+
   /**
    * Resolve an sequence name to its OID
    * @param txn for the operation

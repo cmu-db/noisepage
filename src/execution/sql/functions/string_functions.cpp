@@ -1,9 +1,12 @@
 #include "execution/sql/functions/string_functions.h"
 
 #include <algorithm>
-
+#include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
+#include "catalog/postgres/pg_sequence.h"
 #include "execution/util/bit_util.h"
+#include "catalog/catalog_defs.h"
+
 
 namespace terrier::execution::sql {
 
@@ -196,9 +199,21 @@ void StringFunctions::Rpad(exec::ExecutionContext *ctx, StringVal *result, const
   }
 }
 
-void StringFunctions::Length(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
+void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
+  auto accessor = ctx->GetAccessor();
+  std::string_view s_v = str.StringView();
+  std::string s(s_v.data(), s_v.size());
+
+  auto sequence_oid = accessor->GetSequenceOid(s);
+  common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
+  int64_t seq_val = seq->nextval();
   result->is_null_ = str.is_null_;
-  result->val_ = str.len_;
+  result->val_ = seq_val;
+}
+
+void StringFunctions::Length(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
+    result->is_null_ = str.is_null_;
+    result->val_ = str.len_;
 }
 
 void StringFunctions::Lower(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {

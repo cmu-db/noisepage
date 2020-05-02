@@ -1360,6 +1360,11 @@ VM_OP_WARM void OpLength(terrier::execution::exec::ExecutionContext *ctx, terrie
   terrier::execution::sql::StringFunctions::Length(ctx, result, *str);
 }
 
+VM_OP_WARM void OpNextval(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::Integer *result,
+                         const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::Nextval(ctx, result, *str);
+}
+
 VM_OP_WARM void OpLower(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
                         const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Lower(ctx, result, *str);

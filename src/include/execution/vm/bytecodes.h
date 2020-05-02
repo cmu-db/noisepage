@@ -463,6 +463,7 @@ namespace terrier::execution::vm {
   /* String functions */                                                                                              \
   F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
+  F(Nextval, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(Lower, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
   F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \

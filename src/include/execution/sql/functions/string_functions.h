@@ -33,6 +33,11 @@ class EXPORT StringFunctions {
   static void Left(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n);
 
   /**
+   *  Return nextval of a sequence
+   */
+   static void Nextval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
+
+  /**
    * Return the length of the string
    */
   static void Length(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);

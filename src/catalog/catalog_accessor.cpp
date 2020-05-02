@@ -6,6 +6,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_sequence.h"
 
 namespace terrier::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(std::string name) const {
@@ -145,6 +146,10 @@ sequence_oid_t CatalogAccessor::GetSequenceOid(std::string name) const {
     if (search_result != INVALID_SEQUENCE_OID) return search_result;
   }
   return INVALID_SEQUENCE_OID;
+}
+
+common::ManagedPointer<SequenceMetadata> CatalogAccessor::GetSequence(sequence_oid_t sequence) const {
+    return dbc_->GetSequence(txn_, sequence);
 }
 
 sequence_oid_t CatalogAccessor::GetSequenceOid(namespace_oid_t ns, std::string name) const {
