@@ -11,6 +11,7 @@ namespace terrier::execution::sql {
 StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
                                    uint32_t num_oids, bool need_indexes)
     : table_oid_{table_oid},
+      db_accessor_(exec_ctx->GetAccessor()),
       table_(exec_ctx->GetAccessor()->GetTable(table_oid)),
       exec_ctx_(exec_ctx),
       col_oids_(col_oids, col_oids + num_oids),
@@ -45,6 +46,11 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   curr_index_ = exec_ctx_->GetAccessor()->GetIndex(index_oid);
   index_pr_ = curr_index_->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
   return index_pr_;
+}
+
+bool StorageInterface::VerifyTableInsertConstraint() {
+  auto *pr = table_redo_->Delta();
+  return db_accessor_->VerifyTableInsertConstraint(table_oid_, pr);
 }
 
 storage::TupleSlot StorageInterface::TableInsert() {

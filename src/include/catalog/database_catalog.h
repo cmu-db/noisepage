@@ -16,6 +16,7 @@
 #include "catalog/postgres/exclusion_constraint.h"
 #include "catalog/postgres/fk_constraint.h"
 #include "catalog/postgres/pg_constraint.h"
+#include "catalog/constraint.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -162,28 +163,32 @@ class DatabaseCatalog {
    */
   const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  // constraint_oid_t CreateConstraints(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
-  //                                    const std::string &name, table_oid_t table, const IndexSchema &schema);
-  // bool CreateConstraintsEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
-  //                             table_oid_t table_oid, constraint_oid_t constraint_oid, const std::string &name,
-  //                             const IndexSchema &schema);
+  template <typename OidType>
+  std::string OidVectorToSpaceSeparatedString(const std::vector<OidType> &vec);
+  template <typename OidType>
+  std::vector<OidType> SpaceSeparatedOidToVector (std::string s);
+  std::string VarlentoString(const storage::VarlenEntry &entry);
+  bool VerifyFKConstraint(const PG_Constraint &con_obj);
+  bool VerifyCheckConstraint(const PG_Constraint &con_obj);
+  bool VerifyExclusionConstraint(const PG_Constraint &con_obj);
+  bool VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, storage::ProjectedRow *pr);
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t table, const std::string &name, index_oid_t index,
-                                      std::vector<col_oid_t> &pk_cols);
+                                      const std::vector<col_oid_t> &pk_cols);
   constraint_oid_t CreatePKConstraintEntry(common::ManagedPointer<transaction::TransactionContext> txn,
                                                             namespace_oid_t ns, table_oid_t table, constraint_oid_t constraint_oid, const std::string &name,
-                                                            index_oid_t index, std::vector<col_oid_t> &pk_cols);
+                                                            index_oid_t index, const std::vector<col_oid_t> &pk_cols);
   constraint_oid_t CreateFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t src_table, table_oid_t sink_table, const std::string &name,
-                                      index_oid_t index, std::vector<col_oid_t> &src_cols,
-                                      std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
+                                      index_oid_t index, const std::vector<col_oid_t> &src_cols,
+                                      const std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
                                       postgres::FKActionType delete_action);
   constraint_oid_t CreateUNIQUEConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                           namespace_oid_t ns, table_oid_t table, const std::string &name,
-                                          index_oid_t index, std::vector<col_oid_t> &unique_cols);
+                                          index_oid_t index, const std::vector<col_oid_t> &unique_cols);
   std::vector<constraint_oid_t> CreateFKConstraintInFKTable(common::ManagedPointer<transaction::TransactionContext> txn,
                                    constraint_oid_t constraint, table_oid_t src_table, table_oid_t sink_table,
-                                   std::vector<col_oid_t> &src_cols, std::vector<col_oid_t> &sink_cols,
+                                   const std::vector<col_oid_t> &src_cols, const std::vector<col_oid_t> &sink_cols,
                                    postgres::FKActionType update_action, postgres::FKActionType delete_action);
   /**
    * A list of all constraints on this table
@@ -193,19 +198,14 @@ class DatabaseCatalog {
    */
   std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
                                                table_oid_t table);
-  bool DeleteConstraints(const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table);
-  bool DeleteConstraint(const common::ManagedPointer<transaction::TransactionContext> txn, constraint_oid_t constraint);
-  bool DeleteFKConstraint(const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
+  bool DeleteConstraints(common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table);
+  bool DeleteConstraint(common::ManagedPointer<transaction::TransactionContext> txn, constraint_oid_t constraint);
+  bool DeleteFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                           constraint_oid_t constraint, storage::VarlenEntry fk_constraints);
-  bool DeleteCheckConstraint(const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
+  bool DeleteCheckConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                              constraint_oid_t constraint, constraint_oid_t check_constraint);
-  bool DeleteExclusionConstraint(const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
+  bool DeleteExclusionConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                                  constraint_oid_t constraint, constraint_oid_t exclusion_constraint);
-  template <typename OidType>
-  std::string OidVectorToSpaceSeparatedString(const std::vector<OidType> &vec);
-
-  template <typename OidType>
-  std::vector<OidType> SpaceSeparatedOidToVector (std::string s);
   /**
    * A list of all indexes on the given table
    * @param txn for the operation

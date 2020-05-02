@@ -47,6 +47,8 @@ class EXPORT StorageInterface {
    */
   bool TableUpdate(storage::TupleSlot table_tuple_slot);
 
+  bool VerifyTableInsertConstraint();
+
   /**
    * Reinsert tuple into table.
    * @return slot where the insertion occurred.
@@ -82,6 +84,11 @@ class EXPORT StorageInterface {
    * Oid of the table being accessed.
    */
   catalog::table_oid_t table_oid_;
+
+  /**
+   * database catalog accessor of the execution context
+   */
+  catalog::CatalogAccessor *db_accessor_;
   /**
    * Table being accessed.
    */

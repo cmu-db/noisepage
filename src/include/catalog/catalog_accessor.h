@@ -182,6 +182,8 @@ class CatalogAccessor {
    */
   const Schema &GetSchema(table_oid_t table) const;
 
+  bool VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr);
+
   /**
    * Given the constraint name and its specification, add it to the catalog
    * @param ns is the namespace in which the constraint will exist
