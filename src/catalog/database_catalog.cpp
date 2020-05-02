@@ -1,8 +1,6 @@
 #include "catalog/database_catalog.h"
-
-#include <catalog/constraint.h>
-#include <planner/plannodes/abstract_plan_node.h>
-#include <stdio.h>
+#include "planner/plannodes/abstract_plan_node.h"
+#include <cstdio>
 
 #include <memory>
 #include <string>
@@ -23,7 +21,6 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
-#include "catalog/constraint.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -1193,7 +1190,7 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
             con_obj.AddFKConstraintMetadata(fk_ref_table, fk_oid, fk_src_col, fk_ref_col, update_action, delete_action);
           }
         }
-        verify_res = VerifyFKConstraint(con_obj);
+        verify_res = VerifyFKConstraint(txn, con_obj, pr);
       }
       else if (con_obj.contype_ == postgres::ConstraintType::CHECK){
         // TODO: implement support for check constraint
@@ -1214,8 +1211,50 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
   delete[] buffer;
   return true;
 }
-bool DatabaseCatalog::VerifyFKConstraint(const PG_Constraint &con_obj) {
+bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
+                                         const PG_Constraint &con_obj, storage::ProjectedRow *pr) {
+  // get the index of the constraint
+  index_oid_t fk_index = con_obj.conindid_;
+  table_oid_t ref_table = con_obj.fkMetadata_.confrelid_;
+  const Schema &ref_table_schema = GetSchema(txn, ref_table);
+  common::ManagedPointer<storage::index::Index> ref_table_index = GetIndex(txn, fk_index);
+  // get the schema of the ref table
+  auto ref_index_pri = ref_table_index->GetProjectedRowInitializer();
+  auto *const buffer = common::AllocationUtil::AllocateAligned(ref_index_pri.ProjectedRowSize());
+  auto *key_pr = ref_index_pri.InitializeRow(buffer);
+  TERRIER_ASSERT(con_obj.fkMetadata_.fk_srcs_.size() == con_obj.fkMetadata_.fk_refs_.size(),
+                  "Src and Ref should have the same amound of column");
+  auto col_offset_map = ColToOffsetMap(ref_table_schema);
+  for (uint16_t col_index = 0; col_index < con_obj.fkMetadata_.fk_srcs_.size(); col_index ++) {
+    auto fk_pr_index = col_index; // idx of the pr for index retrieval
+    auto table_pr_index = col_offset_map[con_obj.fkMetadata_.fk_refs_[col_index]]; // index to get the data from pr
+    auto *const index_ptr = key_pr->AccessForceNotNull(fk_pr_index);
+    auto *const pr_ptr = pr->AccessForceNotNull(table_pr_index);
+    const auto &table_col = ref_table_schema.GetColumn(table_pr_index);
+    if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+      std::memcpy(index_ptr, pr_ptr, table_col.MaxVarlenSize());
+    } else {
+      std::memcpy(index_ptr, pr_ptr, type::TypeUtil::GetTypeSize(table_col.Type()));
+    }
+  }
+  std::vector<storage::TupleSlot> index_scan_results;
+  ref_table_index->ScanKey(*txn, *key_pr, &index_scan_results);
+  // set the index projected row from source projected row
+  if (index_scan_results.empty()) {
+    delete[] buffer;
+    return false;
+  }
+  delete[] buffer;
   return true;
+}
+
+std::unordered_map<col_oid_t, uint16_t> DatabaseCatalog::ColToOffsetMap(const Schema &schema) {
+  uint16_t i = 0;
+  std::unordered_map<col_oid_t, uint16_t> map;
+  for (const catalog::Schema::Column &col : schema.GetColumns()) {
+    map[col.Oid()] = i++;
+  }
+  return map;
 }
 
 bool DatabaseCatalog::VerifyCheckConstraint(const PG_Constraint &con_obj) {
