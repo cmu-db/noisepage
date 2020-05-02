@@ -265,9 +265,9 @@ void BytecodeEmitter::EmitAddCol(Bytecode bytecode, LocalVar iter, uint32_t col_
 }
 
 void BytecodeEmitter::EmitParallelTableScan(uint32_t table_oid, LocalVar col_oids, uint32_t num_oids,
-                                            LocalVar thread_states, FunctionId scan_fn, LocalVar exec_ctx) {
+                                            FunctionId scan_fn, LocalVar exec_ctx) {
   // TODO(Yuhong): might need to change function arguments
-  EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, thread_states, scan_fn, exec_ctx);
+  EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, scan_fn, exec_ctx);
 }
 
 void BytecodeEmitter::EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, uint16_t col_idx) {

@@ -1101,7 +1101,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 5)) {
+  if (!CheckArgCount(call, 4)) {
     return;
   }
 
@@ -1119,23 +1119,16 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
     return;
   }
 
-  // Third argument is the thread state container
-  const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-  if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tls_kind)) {
-    ReportIncorrectCallArg(call, 2, GetBuiltinType(tls_kind)->PointerTo());
-    return;
-  }
-
-  // Forth argument is scanner function
-  auto *scan_fn_type = call_args[3]->GetType()->SafeAs<ast::FunctionType>();
+  // Third argument is scanner function
+  auto *scan_fn_type = call_args[2]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[2]->GetType());
     return;
   }
 
   // Last one is execution context
   auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call_args[4]->GetType(), exec_ctx_kind)) {
+  if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), exec_ctx_kind)) {
     ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
     return;
   }

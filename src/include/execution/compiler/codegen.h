@@ -467,7 +467,7 @@ class CodeGen {
    * @param worker_name The work function name.
    * @return The call.
    */
-  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Identifier col_oids, ast::Expr *tls,
+  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Identifier col_oids,
           ast::Identifier worker_name);
 
   /**
