@@ -159,9 +159,9 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   return true;
 }
 
-// TODO(SC): in case any of the command fails to execute, the entire ALTER TABLE sql should be rolled back
-//  This means updates made by the previous commands (which are already materizlied on the catalog tables) need to be
-//  reverted The command :
+// TODO(SC): in case any of the commands fail to execute, the entire ALTER TABLE sql should be rolled back
+//  This means updates made by the previous commands (which are already materialized on the catalog tables) need to be
+//  reverted
 bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::AlterPlanNode> node,
                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   const auto &cmds = node->GetCommands();

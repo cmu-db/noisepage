@@ -908,11 +908,11 @@ void PlanGenerator::Visit(const AlterTable *alter) {
         std::unique_ptr<planner::ForeignKeyInfo> fk_info;
 
         if (col_def.IsUnique()) {
-          unique_info = builder.ProcessUniqueConstrain(col_def);
+          unique_info = builder.ProcessUniqueConstraint(col_def);
         }
 
         if (col_def.GetCheckExpression()) {
-          check_info = builder.ProcessCheckConstrain(col_def);
+          check_info = builder.ProcessCheckConstraint(col_def);
         }
 
         // Extract default value

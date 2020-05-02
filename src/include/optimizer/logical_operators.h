@@ -2013,7 +2013,7 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
  public:
   /**
    * @param table_oid OID of the table
-   * @param columns OIDs of Analyze columns
+   * @param columns OIDs of Alter columns
    * @return
    */
   static Operator Make(catalog::table_oid_t table_oid,

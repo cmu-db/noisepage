@@ -16,10 +16,20 @@ namespace terrier::planner {
  */
 class AlterCmdBase {
  public:
+  /**
+   * default constructor
+   */
   AlterCmdBase() = default;
 
+  /**
+   * constructor for AlterCmdBase
+   * @param oid The col oid that the command applies on
+   */
   AlterCmdBase(catalog::col_oid_t oid) : oid_(oid) {}
 
+  /**
+   * default destructor
+   */
   virtual ~AlterCmdBase() = default;
 
   /**
@@ -38,11 +48,15 @@ class AlterCmdBase {
   virtual nlohmann::json ToJson() const = 0;
 
   /**
-   * Deserialzies the command
-   * @param j serielzied json of the AlterCmdBase
+   * Deserializes the command
+   * @param j serialized json of the AlterCmdBase
    */
   virtual void FromJson(const nlohmann::json &j) = 0;
 
+  /**
+   * @param rhs other ALTER TABLE command base class
+   * @return whether two ALTER TABLE command base classes are equal
+   */
   virtual bool operator==(const AlterCmdBase &rhs) const {
     if (GetType() != rhs.GetType()) return false;
     if (oid_ != rhs.oid_) return false;
@@ -65,6 +79,13 @@ class AlterPlanNode : public AbstractPlanNode {
    public:
     AddColumnCmd() = default;
 
+    /**
+     * Constructor for AddColumnCmd
+     * @param col new column to be added
+     * @param foreign_key foreign key information
+     * @param con_unique unique constraint
+     * @param con_check check constraint
+     */
     AddColumnCmd(catalog::Schema::Column &&col, std::unique_ptr<ForeignKeyInfo> foreign_key,
                  std::unique_ptr<UniqueInfo> con_unique, std::unique_ptr<CheckInfo> con_check)
         : AlterCmdBase(col.Oid()),
@@ -75,26 +96,36 @@ class AlterPlanNode : public AbstractPlanNode {
 
     // TODO(SC)
     /**
-     * Serializes a AddColumnCmd
-     * @return
+     * @return  serialized AddColumnCmd
      */
     nlohmann::json ToJson() const override {
       nlohmann::json j;
       return j;
     }
 
+    /**
+     * @return type of this ALTER TABLE cmd
+     */
     parser::AlterTableStatement::AlterType GetType() const override {
       return parser::AlterTableStatement::AlterType::AddColumn;
     }
 
+    /**
+     * @return new column to be added
+     */
     const catalog::Schema::Column &GetColumn() const { return col_; }
 
     // TODO(SC)
-    /**
-     * Deserialzies an AddColumnCmd
-     */
+     /**
+      *  Deserializes an AddColumnCmd
+      * @param j serialized json of the AlterCmdBase
+      */
     void FromJson(const nlohmann::json &j) override { (void)j; }
 
+    /**
+     * @param rhs other AddColumnCmd
+     * @return whether the two AddColumnCmds are equal
+     */
     bool operator==(const AlterCmdBase &rhs) const override {
       if (!AlterCmdBase::operator==(rhs)) return false;
       auto &other = dynamic_cast<const AddColumnCmd &>(rhs);
@@ -117,12 +148,12 @@ class AlterPlanNode : public AbstractPlanNode {
     std::unique_ptr<ForeignKeyInfo> foreign_key_ = nullptr;
 
     /**
-     * Unique Constrain
+     * Unique Constraint
      */
     std::unique_ptr<UniqueInfo> con_unique_ = nullptr;
 
     /**
-     * Check constrain
+     * Check constraint
      */
     std::unique_ptr<CheckInfo> con_check_ = nullptr;
   };
@@ -157,13 +188,17 @@ class AlterPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+    /**
+     * @param cmds cmds within ALTER TABLE
+     * @return builder object
+     */
     Builder &SetCommands(std::vector<std::unique_ptr<AlterCmdBase>> &&cmds) {
       cmds_ = std::move(cmds);
       return *this;
     }
 
     /**
-     * Build the analyze plan node
+     * Build the alter plan node
      * @return plan node
      */
     std::unique_ptr<AlterPlanNode> Build() {
@@ -172,31 +207,31 @@ class AlterPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * Extract unique constrain
-     * @param col_def
-     * @return uniqueinfo
+     * Extract unique constraint
+     * @param col_def column definition
+     * @return unique info
      */
-    std::unique_ptr<UniqueInfo> ProcessUniqueConstrain(const parser::ColumnDefinition &col_def) {
+    std::unique_ptr<UniqueInfo> ProcessUniqueConstraint(const parser::ColumnDefinition &col_def) {
       // TODO(XC): after we are parsing this
       return nullptr;
     }
 
     /**
-     * Extrack Check constrain
-     * @param col_def
-     * @return
+     * Extract Check constraint
+     * @param col_def column definition
+     * @return check info
      */
-    std::unique_ptr<CheckInfo> ProcessCheckConstrain(const parser::ColumnDefinition &col_def) {
+    std::unique_ptr<CheckInfo> ProcessCheckConstraint(const parser::ColumnDefinition &col_def) {
       // TODO(XC): after we are parsing this
       return nullptr;
     }
 
     /**
      * Extract foreign key info
-     * @param col_def
-     * @return
+     * @param col_def column definition
+     * @return foreignkey info
      */
-    std::unique_ptr<ForeignKeyInfo> ProcessForeignKeyConstrain(const parser::ColumnDefinition &col_def) {
+    std::unique_ptr<ForeignKeyInfo> ProcessForeignKeyConstraint(const parser::ColumnDefinition &col_def) {
       // TODO(XC): after we are parsing this
       return nullptr;
     }
