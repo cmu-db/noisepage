@@ -103,6 +103,10 @@ std::vector<Schema::Column> CatalogAccessor::GetColumns(table_oid_t table) {
   return dbc_->GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn_, table);
 }
 
+storage::layout_version_t CatalogAccessor::GetLayoutVersion(table_oid_t table) const {
+  return dbc_->GetLayoutVersion(txn_, table);
+}
+
 index_oid_t CatalogAccessor::GetIndexOid(std::string name) const {
   NormalizeObjectName(&name);
   for (auto &path : search_path_) {

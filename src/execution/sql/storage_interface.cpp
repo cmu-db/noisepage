@@ -35,7 +35,8 @@ StorageInterface::~StorageInterface() {
 
 storage::ProjectedRow *StorageInterface::GetTablePR() {
   // We need all the columns
-  storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids_);
+  auto layout_version = exec_ctx_->GetAccessor()->GetLayoutVersion(table_oid_);
+  storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids_, layout_version);
   auto txn = exec_ctx_->GetTxn();
   table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
   return table_redo_->Delta();
@@ -49,7 +50,7 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
 
 storage::TupleSlot StorageInterface::TableInsert() {
   exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
-  return table_->Insert(exec_ctx_->GetTxn(), table_redo_);
+  return table_->Insert(exec_ctx_->GetTxn(), table_redo_, exec_ctx_->GetAccessor()->GetLayoutVersion(table_oid_));
 }
 
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
@@ -64,7 +65,8 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   table_redo_->SetTupleSlot(table_tuple_slot);
   storage::TupleSlot updated_slot;
 
-  bool res = table_->Update(exec_ctx_->GetTxn(), table_redo_, storage::layout_version_t{0}, &updated_slot);
+  bool res = table_->Update(exec_ctx_->GetTxn(), table_redo_, exec_ctx_->GetAccessor()->GetLayoutVersion(table_oid_),
+                            &updated_slot);
 
   // TODO(Schema-Change): if migration occurs, tupleslot changed, so delete old tupleslot from index and add new
   // tupleslot to index

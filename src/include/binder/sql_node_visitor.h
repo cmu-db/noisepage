@@ -145,7 +145,7 @@ class SqlNodeVisitor {
    * Visitor pattern for AlterTableStatement
    * @param node  node to be visited
    */
-  // TODO(SC)
+  // TODO(SC): do we need AlterTableExpression?
   virtual void Visit(common::ManagedPointer<parser::AlterTableStatement> node) {}
 
   /**

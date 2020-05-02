@@ -241,6 +241,7 @@ class PostgresPacketWriter : public PacketWriter {
         break;
       case QueryType::QUERY_ALTER:
         WriteCommandComplete("ALTER TABLE");
+        break;
       default:
         WriteCommandComplete("This QueryType needs a completion message!");
         break;

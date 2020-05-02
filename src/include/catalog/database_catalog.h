@@ -391,6 +391,15 @@ class DatabaseCatalog {
   template <typename Column, typename ClassOid, typename ColOid>
   std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 
+  /**
+   * Get the layout version of the table
+   * @param txn txn to use
+   * @param table_oid  oid of the table
+   * @return the layout version
+   */
+  storage::layout_version_t GetLayoutVersion(common::ManagedPointer<transaction::TransactionContext> txn,
+                                             table_oid_t table_oid);
+
  private:
   // TODO(tanujnay112) Add support for other parameters
 
