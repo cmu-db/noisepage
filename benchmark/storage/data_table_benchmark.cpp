@@ -540,7 +540,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterationNoContextSwitching)(be
       delete read_table;
     }
   }
-  state.SetItemsProcessed(state.iterations() * num_reads_);
+  state.SetItemsProcessed(state.iterations() * tuples_per_table * num_iterators_per_table * num_tables);
 }
 
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
@@ -600,7 +600,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterationWithContextSwitching)(
       delete read_table;
     }
   }
-  state.SetItemsProcessed(state.iterations() * num_reads_);
+  state.SetItemsProcessed(state.iterations() * tuples_per_table * num_iterators_per_table * num_tables);
 }
 
 // ----------------------------------------------------------------------------
