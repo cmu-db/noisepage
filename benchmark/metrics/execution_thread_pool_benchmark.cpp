@@ -100,6 +100,14 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
 
     delete[] redo_buffer_;
   }
+
+  void Cleanup(std::vector<std::vector<storage::DataTable *>> &tables) {
+    for (auto &v : tables) {
+      for (auto &table : v) {
+        delete table;
+      }
+    }
+  }
 };
 
 
@@ -144,6 +152,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentWorkload)(benchmark::
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  Cleanup(tables);
 }
 
 // NOLINTNEXTLINE
@@ -190,6 +199,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWorkload)(b
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  Cleanup(tables);
 }
 
 // NOLINTNEXTLINE
@@ -236,6 +246,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWorkloa
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  Cleanup(tables);
 }
 
 // NOLINTNEXTLINE
@@ -282,6 +293,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentThreadPoolWithYieldin
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  Cleanup(tables);
 }
 
 // NOLINTNEXTLINE
@@ -328,6 +340,7 @@ BENCHMARK_DEFINE_F(ExecutionThreadPoolBenchmark, ConcurrentNUMAThreadPoolWithYie
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * initial_table_size_ * iterators_per_table_ * tables_per_region_ * tables.size());
+  Cleanup(tables);
 }
 
 BENCHMARK_REGISTER_F(ExecutionThreadPoolBenchmark, ConcurrentWorkload)
