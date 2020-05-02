@@ -21,7 +21,8 @@ class DeferredActionManager {
  public:
   /**
    * Constructs a new DeferredActionManager
-   * @param timestamp_manager source of timestamps in the system
+   * @param timestamp_manager source of timestamps in the system. If the timestamp manager is nullptr, it means GC is
+   * off.
    */
   explicit DeferredActionManager(const common::ManagedPointer<TimestampManager> timestamp_manager)
       : timestamp_manager_(timestamp_manager) {}
@@ -37,16 +38,7 @@ class DeferredActionManager {
    * transaction) is more recent than the time this function was called.
    * @param a functional implementation of the action that is deferred. @see DeferredAction
    */
-  timestamp_t RegisterDeferredAction(DeferredAction &&a) {
-    timestamp_t result = timestamp_manager_->CurrentTime();
-    std::pair<timestamp_t, DeferredAction> elem = {result, a};
-
-    // Timestamp needs to be fetched inside the critical section such that actions in the
-    // deferred action queue is in order. This simplifies the interleavings we need to deal
-    // with in the face of DDL changes.
-    new_deferred_actions_.push(elem);
-    return result;
-  }
+  timestamp_t RegisterDeferredAction(DeferredAction &&a);
 
   /**
    * Adds the action to a buffered list of deferred actions.  This action will
@@ -64,30 +56,7 @@ class DeferredActionManager {
    * Clear the queue and apply as many actions as possible
    * @return numbers of deferred actions processed
    */
-  uint32_t Process() {
-    // TODO(John, Ling): this is now more conservative than it needs and can artificially delay garbage collection.
-    //  We should be able to query the cached oldest transaction (should be cheap) in between each event
-    //  and more aggressively clear the backlog abd the deferred event queue
-    //  the point of taking oldest txn affect gc test.
-    //  We could potentially more aggressively process the backlog and the deferred action queue
-    //  by taking timestamp after processing each event
-    timestamp_manager_->CheckOutTimestamp();
-    const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
-    // Check out a timestamp from the transaction manager to determine the progress of
-    // running transactions in the system.
-    const auto backlog_size = static_cast<uint32_t>(back_log_.size());
-    uint32_t processed = ClearBacklog(oldest_txn);
-    // There is no point in draining new actions if we haven't cleared the backlog.
-    // This leaves some mechanisms for the rest of the system to detect congestion
-    // at the deferred action manager and potentially backoff
-    if (backlog_size == processed) {
-      // ingest all the new actions
-      processed += ProcessNewActions(oldest_txn);
-    }
-    ProcessIndexes();
-    visited_slots_.clear();
-    return processed;
-  }
+  uint32_t Process();
 
   /**
    * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
@@ -142,39 +111,8 @@ class DeferredActionManager {
   //  added to the deferred action queue either in a fixed interval or after a threshold number of tombstones
   void ProcessIndexes();
 
-  uint32_t ClearBacklog(timestamp_t oldest_txn) {
-    uint32_t processed = 0;
-    // Execute as many deferred actions as we can at this time from the backlog.
-    // TODO(Tianyu): This will not work if somehow the timestamps we compare against has sign bit flipped.
-    //  (for uncommiitted transactions, or on overflow)
-    // Although that should never happen, we need to be aware that this might be a problem in the future.
-    while (!back_log_.empty() && transaction::TransactionUtil::NewerThan(oldest_txn, back_log_.front().first)) {
-      back_log_.front().second(oldest_txn);
-      processed++;
-      back_log_.pop();
-    }
-    return processed;
-  }
+  uint32_t ClearBacklog(timestamp_t oldest_txn);
 
-  uint32_t ProcessNewActions(timestamp_t oldest_txn) {
-    uint32_t processed = 0;
-    std::pair<timestamp_t, DeferredAction> curr_action = std::make_pair(timestamp_t(0), [=](timestamp_t /*unused*/) {});
-    // bool reinsert = false;
-    auto curr_size = new_deferred_actions_.unsafe_size();
-    while (processed != curr_size) {
-      // Try_pop would pop the front of the queue if there is at least element in queue,
-      // Since currently the deferred action queue only has one consumer, if the while loop condition is satifsfied
-      // try pop should always return true
-      bool has_item UNUSED_ATTRIBUTE = new_deferred_actions_.try_pop(curr_action);
-      TERRIER_ASSERT(has_item,
-                     "With single consumer of queue, we should be able to pop front when we have not processed every "
-                     "item in the queue.");
-      if (!transaction::TransactionUtil::NewerThan(oldest_txn, curr_action.first)) break;
-      curr_action.second(oldest_txn);
-      processed++;
-    }
-    if (processed != curr_size && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);
-    return processed;
-  }
+  uint32_t ProcessNewActions(timestamp_t oldest_txn);
 };
 }  // namespace terrier::transaction

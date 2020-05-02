@@ -760,8 +760,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
                                   const table_oid_t table) {
   if (!TryLock(txn)) return false;
   // We should respect foreign key relations and attempt to delete the table's columns first
-  auto result UNUSED_ATTRIBUTE = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
-  if (!result) return false;
+  if (!DeleteColumns<Schema::Column, table_oid_t>(txn, table)) return false;
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
@@ -782,7 +781,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *const table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
-  result = classes_->Select(txn, index_results[0], table_pr);
+  auto result = classes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
