@@ -84,44 +84,6 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/Coverage/unittest)') {
-                    agent {
-                        docker {
-                            image 'ubuntu:bionic'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
-                        }
-                    }
-                    environment {
-                        CODECOV_TOKEN=credentials('codecov-token')
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install curl lcov ccache'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_GENERATE_COVERAGE=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
-                        sh 'cd build && timeout 1h make unittest'
-                        sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && lcov --directory . --capture --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/third_party/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/test/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info'
-                        sh 'cd build && lcov --list coverage.info'
-                        sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
-                        sh 'cd build && chmod a+x ./codecov.sh'
-                        sh 'cd build && /bin/bash ./codecov.sh -X gcov'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-
                 stage('ubuntu-18.04/clang-8.0.0 (Debug/ASAN/unittest)') {
                     agent {
                         docker {
@@ -164,30 +126,6 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-
-                stage('ubuntu-18.04/gcc-7.3.0 (Release/unittest)') {
-                    agent {
-                        docker {
-                            image 'ubuntu:bionic'
-                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
-                        }
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
-                        sh 'cd build && timeout 1h make unittest'
-                        sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
@@ -243,29 +181,6 @@ pipeline {
                         sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
                         // TODO: Loading the smallbank database with multiple threads is broken on OSX
                         sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=1'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/e2etest/oltpbench)') {
-                    agent {
-                        docker {
-                            image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
-                        }
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=4'
                         sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
                         sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
                     }
