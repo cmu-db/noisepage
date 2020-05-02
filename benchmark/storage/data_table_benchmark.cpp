@@ -487,7 +487,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterationNoContextSwitching)(benchmark::State &state) {
   uint32_t num_tables = 3;
-  uint32_t num_iterators_per_table = 10 * std::thread::hardware_concurrency();
+  uint32_t num_iterators_per_table = 20;
   uint32_t tuples_per_table = num_reads_ / num_tables;
 
   // NOLINTNEXTLINE
@@ -547,7 +547,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterationNoContextSwitching)(be
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterationWithContextSwitching)(benchmark::State &state) {
   uint32_t num_tables = std::thread::hardware_concurrency();
-  uint32_t num_iterators_per_table = 10 * std::thread::hardware_concurrency();
+  uint32_t num_iterators_per_table = 20;
   uint32_t tuples_per_table = num_reads_ / num_tables;
 
   // NOLINTNEXTLINE
