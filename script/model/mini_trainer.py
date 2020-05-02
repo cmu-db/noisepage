@@ -56,6 +56,7 @@ class MiniTrainer:
         if modeling_transformer is not None:
             transformers.append(modeling_transformer)
 
+        error_bias = 5;
         min_percentage_error = 1
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
@@ -83,7 +84,7 @@ class MiniTrainer:
                     y_pred = regressor.predict(evaluate_x)
                     logging.debug("x shape: {}".format(evaluate_x.shape))
                     logging.debug("y shape: {}".format(y_pred.shape))
-                    percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1), axis=0)
+                    percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1 + error_bias), axis=0)
                     results += list(percentage_error) + [""]
 
                     logging.info('{} Percentage Error: {}'.format(train_test_label[i], percentage_error))
