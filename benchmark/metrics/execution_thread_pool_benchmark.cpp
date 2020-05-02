@@ -16,7 +16,7 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
   // Tuple layout
   const uint8_t column_size_ = 8;
   const storage::BlockLayout layout_{{column_size_, column_size_, column_size_}};
-  const uint32_t initial_table_size_ = 10000;
+  const uint32_t initial_table_size_ = 100000;
   const uint32_t tables_per_region_ = 2 * std::thread::hardware_concurrency();
   const uint32_t iterators_per_table_ = 20;
   storage::BlockStore block_store_{100000000, 100000000};
