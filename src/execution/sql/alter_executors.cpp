@@ -24,4 +24,32 @@ bool AlterTableCmdExecutor::AddColumn(const common::ManagedPointer<planner::Alte
 
   return true;
 }
+
+bool AlterTableCmdExecutor::DropColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
+                                       std::unique_ptr<catalog::Schema> &schema,
+                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                       ChangeMap &change_map) {
+  auto drop_col_cmd = cmd.CastManagedPointerTo<planner::AlterPlanNode::DropColumnCmd>();
+  auto drop_col_oid = drop_col_cmd->GetColOid();
+  if (drop_col_oid == catalog::INVALID_COLUMN_OID) {
+    return drop_col_cmd->IsIfExist();
+  }
+
+  auto cols = schema->GetColumns();
+  for (auto itr = cols.begin(); itr != cols.end(); ++itr) {
+    if (itr->Oid() == drop_col_oid) {
+      cols.erase(itr);
+      break;
+    }
+  }
+  // Generate new schema
+  std::unique_ptr<catalog::Schema> tmp_schema(new catalog::Schema(cols));
+  schema.swap(tmp_schema);
+
+  // Record the change
+  change_map[drop_col_cmd->GetName()].push_back(ChangeType::DropNoCascade);
+
+  // TODO(Schema-Change): where to handle cascade dropping?
+  return true;
+}
 }  // namespace terrier::execution::sql
