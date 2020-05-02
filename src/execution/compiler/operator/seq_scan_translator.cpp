@@ -101,7 +101,7 @@ void SeqScanTranslator::LaunchWork(FunctionBuilder *builder, ast::Identifier wor
   SetOids(builder);
   // Build and make the function call to IterateTableParallel()
   ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), col_oids_, work_func);
-  // add the function call to the calling function (main()  )
+  // add the function call to the calling function (main())
   builder->Append(codegen_->MakeStmt(parallel_call));
 }
 

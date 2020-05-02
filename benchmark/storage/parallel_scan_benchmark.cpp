@@ -32,7 +32,6 @@
 #include "execution/sql/value.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
-// #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
@@ -81,7 +80,8 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
   uint32_t col_oids[] = {1, 2};
 
   // Setup thread states
-  execution::sql::ThreadStateContainer thread_state_container(exe_ctx->GetMemoryPool());
+  execution::sql::ThreadStateContainer thread_state_container(
+          common::ManagedPointer<execution::sql::MemoryPool>(exe_ctx->GetMemoryPool()));
   thread_state_container.Reset(sizeof(Counter),  // The type of each thread state structure
                                init_count,       // The thread state initialization function
                                nullptr,          // The thread state destruction function
