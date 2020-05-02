@@ -1205,6 +1205,7 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
     if (!verify_res) {
       delete[] child_buffer;
       delete[] buffer;
+      return false;
     }
   }
   delete[] child_buffer;
