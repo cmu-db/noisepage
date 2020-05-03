@@ -116,10 +116,10 @@ class AlterPlanNode : public AbstractPlanNode {
     const catalog::Schema::Column &GetColumn() const { return col_; }
 
     // TODO(SC)
-     /**
-      *  Deserializes an AddColumnCmd
-      * @param j serialized json of the AlterCmdBase
-      */
+    /**
+     *  Deserializes an AddColumnCmd
+     * @param j serialized json of the AlterCmdBase
+     */
     void FromJson(const nlohmann::json &j) override { (void)j; }
 
     /**
@@ -156,6 +156,81 @@ class AlterPlanNode : public AbstractPlanNode {
      * Check constraint
      */
     std::unique_ptr<CheckInfo> con_check_ = nullptr;
+  };
+
+  /**
+   * Drop Column command
+   */
+  class DropColumnCmd : public AlterCmdBase {
+   public:
+    DropColumnCmd() = default;
+
+    /**
+     * Constructor
+     */
+    DropColumnCmd(const std::string &col_name, bool is_exist, bool drop_cascade, catalog::col_oid_t oid)
+        : AlterCmdBase(oid), col_name_(col_name), is_exist_(is_exist), drop_cascade_(drop_cascade) {}
+
+    /**
+     * @return name of the column to drop
+     */
+    const std::string &GetName() const { return col_name_; }
+
+    /**
+     * @return  IF EXIST option
+     */
+    bool IsIfExist() const { return is_exist_; }
+
+    /**
+     * @return CASCADE option
+     */
+    bool IsCascade() const { return drop_cascade_; }
+
+    /**
+     * @return  serialized the command
+     */
+    nlohmann::json ToJson() const override {
+      // TODO(XC)
+      nlohmann::json j;
+      return j;
+    }
+
+    /**
+     * @return type of this ALTER TABLE cmd
+     */
+    parser::AlterTableStatement::AlterType GetType() const override {
+      return parser::AlterTableStatement::AlterType::DropColumn;
+    }
+
+    // TODO(XC)
+    /**
+     *  Deserializes an AddColumnCmd
+     * @param j serialized json of the AlterCmdBase
+     */
+    void FromJson(const nlohmann::json &j) override { (void)j; }
+
+    /**
+     * @param rhs other cmd
+     * @return whether the two DropColumnCmds are equal
+     */
+    bool operator==(const AlterCmdBase &rhs) const override {
+      if (!AlterCmdBase::operator==(rhs)) return false;
+      auto &other = dynamic_cast<const DropColumnCmd &>(rhs);
+      if (col_name_ != other.col_name_) return false;
+      if (is_exist_ != other.is_exist_) return false;
+      if (drop_cascade_ != other.drop_cascade_) return false;
+      return true;
+    }
+
+   private:
+    // Col to drop
+    std::string col_name_;
+
+    // IF EXIST option
+    bool is_exist_;
+
+    // Drop cascade option
+    bool drop_cascade_;
   };
 
   /**

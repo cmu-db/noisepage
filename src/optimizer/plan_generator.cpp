@@ -894,11 +894,14 @@ void PlanGenerator::Visit(const Analyze *analyze) {
 
 void PlanGenerator::Visit(const AlterTable *alter) {
   const auto &cmd_refs = alter->GetCommands();
+  const auto &oids = alter->GetColOids();
+
   auto builder = planner::AlterPlanNode::Builder();
   std::vector<std::unique_ptr<planner::AlterCmdBase>> cmds;
 
   for (size_t idx = 0; idx < cmd_refs.size(); idx++) {
     const auto &cmd_ref = cmd_refs[idx];
+    auto col_oid = oids[idx];
 
     switch (cmd_ref->GetAlterType()) {
       case parser::AlterTableStatement::AlterType::AddColumn: {
@@ -935,16 +938,26 @@ void PlanGenerator::Visit(const AlterTable *alter) {
           cmds.push_back(std::move(add_col_cmd));
         }
       } break;
+      case parser::AlterTableStatement::AlterType::DropColumn: {
+        auto col_name = cmd_ref->GetColumnName();
+        auto if_exist = cmd_ref->IsIfExists();
+        auto drop_cascade = cmd_ref->IsDropCascade();
+
+        // Add to the cmd queues
+        auto drop_col_cmd =
+            std::make_unique<planner::AlterPlanNode::DropColumnCmd>(col_name, if_exist, drop_cascade, col_oid);
+        cmds.push_back(std::move(drop_col_cmd));
+      } break;
       default:
         TERRIER_ASSERT(false, "Not implemented");
     };
-
-    output_plan_ = planner::AlterPlanNode::Builder()
-                       .SetTableOid(alter->GetTableOid())
-                       .SetColumnOIDs(alter->GetColOids())
-                       .SetCommands(std::move(cmds))
-                       .Build();
   }
+
+  output_plan_ = planner::AlterPlanNode::Builder()
+                     .SetTableOid(alter->GetTableOid())
+                     .SetColumnOIDs(alter->GetColOids())
+                     .SetCommands(std::move(cmds))
+                     .Build();
 }
 
 }  // namespace terrier::optimizer

@@ -437,6 +437,20 @@ class DatabaseCatalog {
                     const Column &col);
 
   /**
+   * Drop a single column given the tupleslot of the column
+   * @tparam ClassOid table column or index column
+   * @param txn txn context to use
+   * @param slot tupleslot in columns_ table
+   * @param class_oid class oid
+   * @param pr_buffer buffer to hold the pr selected from the table
+   * @param key_buffer buffer to hold keys to query into index
+   * @return
+   */
+  template <typename ClassOid>
+  bool DropColumn(common::ManagedPointer<transaction::TransactionContext> txn, const storage::TupleSlot &slot,
+                  ClassOid class_oid, byte *pr_buffer, byte *key_buffer);
+
+  /**
    * A list of all oids and their postgres::ClassKind from pg_class on the given namespace. This is currently designed
    * as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
    * @param txn for the operation
@@ -490,8 +504,10 @@ class DatabaseCatalog {
   storage::ProjectionMap pg_index_all_cols_prm_;
 
   storage::SqlTable *columns_;
-  storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
+  storage::index::Index *columns_oid_index_;  // indexed on class OID and column OID
+  storage::ProjectedRowInitializer column_oid_index_pri_;
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
+  storage::ProjectedRowInitializer column_name_index_pri_;
   storage::ProjectedRowInitializer pg_attribute_all_cols_pri_;
   storage::ProjectionMap pg_attribute_all_cols_prm_;
   storage::ProjectedRowInitializer get_columns_pri_;

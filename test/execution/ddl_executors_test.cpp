@@ -334,7 +334,7 @@ TEST_F(DDLExecutorsTests, DropTablePlanNode) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(DDLExecutorsTests, AlterTablePlanNodeAddColumn) {
+TEST_F(DDLExecutorsTests, AlterTablePlanNode) {
   // TODO(SC): alter table command tests moving to another test file?
 
   // Create table
@@ -383,15 +383,33 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNodeAddColumn) {
   EXPECT_EQ(stored_default_val->GetReturnValueType(), type::TypeId::INTEGER);
   auto val = stored_default_val.CastManagedPointerTo<const parser::ConstantValueExpression>()->GetValue();
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(val), 15712);
+
   txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // SQL table related (Should we test it here?)
-  // EXPECT_NO_THROW(table_ptr->GetBlockLayout(storage::layout_version_t(1)));
-  // auto block_layout = table_ptr->GetBlockLayout(storage::layout_version_t(1));
-  // EXPECT_EQ(block_layout.NumColumns(), cur_schema.GetColumns().size());
-  // EXPECT_NO_THROW(table_ptr->GetColumnOidToIdMap(storage::layout_version_t(1)));
-  // auto col_oid_id_map = table_ptr->GetColumnOidToIdMap(storage::layout_version_t(1));
-  // EXPECT_EQ(block_layout.AttrSize(col_oid_id_map[col.Oid()]), type::TypeUtil::GetTypeSize(type::TypeId::INTEGER));
+  // Drop a column
+  txn_ = txn_manager_->BeginTransaction();
+  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
+
+  std::vector<std::unique_ptr<planner::AlterCmdBase>> cmds2;
+  auto col_id = new_col.Oid();
+  EXPECT_NE(col_id, catalog::INVALID_COLUMN_OID);
+  auto drop_cmd = std::make_unique<planner::AlterPlanNode::DropColumnCmd>("new_column", false, false, col_id);
+  cmds2.push_back(std::move(drop_cmd));
+  auto alter_table_node_2 =
+      alter_builder.SetTableOid(table_oid).SetCommands(std::move(cmds2)).SetColumnOIDs({col_id}).Build();
+
+  EXPECT_TRUE(execution::sql::DDLExecutors::AlterTableExecutor(
+      common::ManagedPointer<planner::AlterPlanNode>(alter_table_node_2),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+  EXPECT_EQ(accessor_->GetColumns(table_oid).size(), original_schema.GetColumns().size());
+  auto schema_after_drop = accessor_->GetSchema(table_oid);
+  EXPECT_EQ(schema_after_drop.GetColumns().size(), original_schema.GetColumns().size());
+  auto cols = schema_after_drop.GetColumns();
+  for (auto c : cols) {
+    EXPECT_NE(c.Oid(), col_id);
+    EXPECT_NE(c.Name(), "new_column");
+  }
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 }  // namespace terrier::execution::sql::test

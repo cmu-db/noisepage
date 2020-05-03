@@ -178,19 +178,21 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
 
   // Map to indicate the changes to columns
   std::unordered_map<std::string, std::vector<ChangeType>> change_map;
+  // Get the current schema
+  if (update_schema == nullptr) {
+    const auto &schema = accessor->GetSchema(table_oid);
+    auto cols = schema.GetColumns();
+    update_schema.reset(new catalog::Schema(cols));
+  }
+
   for (const auto &cmd : cmds) {
     switch (cmd->GetType()) {
       case parser::AlterTableStatement::AlterType::AddColumn: {
-        // Get the current schema
-        if (update_schema == nullptr) {
-          const auto &schema = accessor->GetSchema(table_oid);
-          auto cols = schema.GetColumns();
-          update_schema.reset(new catalog::Schema(cols));
-        }
-
         // Add the column to the schema
         if (!AlterTableCmdExecutor::AddColumn(cmd, update_schema, accessor, change_map)) return false;
-
+      } break;
+      case parser::AlterTableStatement::AlterType::DropColumn: {
+        if (!AlterTableCmdExecutor::DropColumn(cmd, update_schema, accessor, change_map)) return false;
       } break;
       default:
         TERRIER_ASSERT(false, "not implemented");

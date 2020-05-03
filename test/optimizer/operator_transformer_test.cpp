@@ -1939,7 +1939,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, AlterTest) {
   // Add column
-  std::string sql_str = "ALTER TABLE A ADD new_column INT DEFAULT 15721;";
+  std::string sql_str = "ALTER TABLE A ADD new_column INT DEFAULT 15721, DROP a2;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(sql_str);
   auto stmt = parse_tree->GetStatements()[0];
@@ -1955,8 +1955,9 @@ TEST_F(OperatorTransformerTest, AlterTest) {
 
   // Test logical alter
   auto logical_alter = operator_tree_->GetOp().As<optimizer::LogicalAlter>();
-  EXPECT_EQ(logical_alter->GetCommands().size(), 1);
+  EXPECT_EQ(logical_alter->GetCommands().size(), 2);
   EXPECT_EQ(logical_alter->GetCommands().at(0)->GetColumnName(), "new_column");
+  EXPECT_EQ(logical_alter->GetCommands().at(1)->GetColumnName(), "a2");
   EXPECT_EQ(logical_alter->GetTableOid(), table_a_oid_);
   EXPECT_EQ(operator_tree_->GetChildren().size(), 0);
 
@@ -1973,9 +1974,11 @@ TEST_F(OperatorTransformerTest, AlterTest) {
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "AlterTable");
   auto physical_op = op.As<optimizer::AlterTable>();
-  EXPECT_EQ(physical_op->GetCommands().size(), 1);
+  EXPECT_EQ(physical_op->GetCommands().size(), 2);
   EXPECT_EQ(physical_op->GetCommands().at(0)->GetColumnName(), "new_column");
+  EXPECT_EQ(physical_op->GetCommands().at(1)->GetColumnName(), "a2");
   EXPECT_EQ(physical_op->GetCommands().at(0)->GetAlterType(), parser::AlterTableStatement::AlterType::AddColumn);
+  EXPECT_EQ(physical_op->GetCommands().at(1)->GetAlterType(), parser::AlterTableStatement::AlterType::DropColumn);
   EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
 
   optimizer::PlanGenerator plan_generator{};
@@ -1991,13 +1994,22 @@ TEST_F(OperatorTransformerTest, AlterTest) {
 
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ALTER);
   auto alter_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AlterPlanNode>();
-  EXPECT_EQ(alter_plan->GetColumnOids().size(), 1);
+  EXPECT_EQ(alter_plan->GetColumnOids().size(), 2);
   EXPECT_EQ(alter_plan->GetColumnOids().at(0), catalog::INVALID_COLUMN_OID);
-  EXPECT_EQ(alter_plan->GetCommands().size(), 1);
-  auto cmd = alter_plan->GetCommands().at(0);
-  EXPECT_EQ(cmd->GetType(), parser::AlterTableStatement::AlterType::AddColumn);
-  auto add_col_cmd = cmd.CastManagedPointerTo<planner::AlterPlanNode::AddColumnCmd>();
+  auto col_a2 = accessor_->GetSchema(table_a_oid_).GetColumn("a2");
+  EXPECT_EQ(alter_plan->GetColumnOids().at(1), col_a2.Oid());
+  EXPECT_EQ(alter_plan->GetCommands().size(), 2);
+
+  EXPECT_EQ(alter_plan->GetCommands()[0]->GetType(), parser::AlterTableStatement::AlterType::AddColumn);
+  EXPECT_EQ(alter_plan->GetCommands()[1]->GetType(), parser::AlterTableStatement::AlterType::DropColumn);
+
+  auto add_col_cmd = alter_plan->GetCommands()[0].CastManagedPointerTo<planner::AlterPlanNode::AddColumnCmd>();
   EXPECT_EQ(add_col_cmd->GetColumn().Name(), "new_column");
+
+  auto drop_col_cmd = alter_plan->GetCommands()[1].CastManagedPointerTo<planner::AlterPlanNode::DropColumnCmd>();
+  EXPECT_EQ(drop_col_cmd->GetName(), "a2");
+  EXPECT_FALSE(drop_col_cmd->IsCascade());
+  EXPECT_FALSE(drop_col_cmd->IsIfExist());
 
   EXPECT_EQ(alter_plan->GetTableOid(), table_a_oid_);
 }

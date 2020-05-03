@@ -32,6 +32,18 @@ class AlterTableCmdExecutor {
   static bool AddColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
                         std::unique_ptr<catalog::Schema> &schema,
                         const common::ManagedPointer<catalog::CatalogAccessor> accessor, ChangeMap &change_map);
+
+  /**
+   * Drops a column
+   * @param cmd DropColumn command
+   * @param schema Schema to accumulate changes
+   * @param accessor catalog accessor
+   * @param change_map  to record the changes to schema
+   * @return
+   */
+  static bool DropColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
+                         std::unique_ptr<catalog::Schema> &schema,
+                         const common::ManagedPointer<catalog::CatalogAccessor> accessor, ChangeMap &change_map);
 };
 
 }  // namespace terrier::execution::sql
