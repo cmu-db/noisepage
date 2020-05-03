@@ -167,6 +167,8 @@ class RandomSqlTableTestObject {
 
     if (slot_location == -1) {
       txns_.emplace_back(txn);
+    } else {
+      txns_[slot_location] = std::unique_ptr<transaction::TransactionContext>(txn);
     }
 
     // generate a random ProjectedRow to Insert
@@ -182,6 +184,8 @@ class RandomSqlTableTestObject {
 
     if (slot_location == -1) {
       redos_.emplace_back(insert_redo);
+    } else {
+      redos_[slot_location] = common::ManagedPointer<storage::RedoRecord>(insert_redo);
     }
 
     storage::TupleSlot slot = table_->Insert(common::ManagedPointer(txn), insert_redo, layout_version);
@@ -316,7 +320,10 @@ class RandomSqlTableTestObject {
   const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
   const std::vector<storage::TupleSlot> &UpdatedTuples() const { return updated_slots_; }
 
-  void Resize_inserted_slots(int size) { inserted_slots_.resize(size); }
+  void ResizeInsertedSlots(int size) { inserted_slots_.resize(size); }
+  void ResizeRedos(int size) { redos_.resize(size); }
+  void ResizeTxns(int size) { txns_.resize(size); }
+
   void Populate_inserted_slots(storage::TupleSlot slot, int location) {
     inserted_slots_[location] = slot;
   }
@@ -406,14 +413,14 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
 
   RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
 
-  test_table.Resize_inserted_slots(num_threads);
+  test_table.ResizeInsertedSlots(num_threads);
+  test_table.ResizeTxns(num_threads);
+  test_table.ResizeRedos(num_threads);
 
   auto workload = [&](uint32_t thread_id) {
     // Insert into SqlTable
     //for (uint16_t i = 0; i < num_inserts; i++) {}
     std::cout << "thread id: " << thread_id << std::endl;
-    //storage::TupleSlot slot;
-    //test_table.Populate_inserted_slots(slot, thread_id);
     test_table.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_, version, thread_id);
   };
 
@@ -421,15 +428,15 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
   EXPECT_EQ(num_threads, test_table.InsertedTuples().size());
 
   // Compare each inserted
-//  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
-//    storage::ProjectedRow *stored =
-//        test_table.Select(inserted_tuple, transaction::timestamp_t(1), &buffer_pool_, version);
-//    auto ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
-//
-//    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
-//        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
-//        test_table.GetBlockLayout(version), stored, test_table.GetProjectionMapForOids(version), {}, {}));
-//  }
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    storage::ProjectedRow *stored =
+        test_table.Select(inserted_tuple, transaction::timestamp_t(1), &buffer_pool_, version);
+    auto ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
+
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+        test_table.GetBlockLayout(version), stored, test_table.GetProjectionMapForOids(version), {}, {}));
+  }
 }
 
 // NOLINTNEXTLINE
