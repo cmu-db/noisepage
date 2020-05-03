@@ -91,6 +91,11 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
   return dbc_->GetTable(txn_, table);
 }
 
+view_oid_t CatalogAccessor::CreateView(namespace_oid_t ns, std::string view_name, const Schema &schema) const {
+  NormalizeObjectName(&view_name);
+  return dbc_->CreateView(txn_, ns, view_name, schema);
+}
+
 bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const {
   return dbc_->UpdateSchema(txn_, table, new_schema);
 }

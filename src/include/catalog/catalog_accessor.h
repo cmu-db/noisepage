@@ -177,6 +177,20 @@ class EXPORT CatalogAccessor {
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
 
   /**
+   * Given a view name, create a new view entry in the catalog and assign it an OID.
+   * @param ns in which the new view will exist
+   * @param name of the new table
+   * @param schema object describing the new table
+   * @return OID for the view, INVALID_VIEW_OID if the table already exists
+   * @warning The catalog accessor assumes it takes ownership of the schema object
+   * that is passed.  As such, there is no guarantee that the pointer is still
+   * valid when this function returns.  If the caller needs to reference the
+   * schema object after this call, they should use the GetSchema function to
+   * obtain the authoritative schema for this view.
+   */
+   view_oid_t CreateView(namespace_oid_t ns, std::string view_name, const Schema &schema) const;
+
+  /**
    * Apply a new schema to the given table.  The changes should modify the latest
    * schema as provided by the catalog.  There is no guarantee that the OIDs for
    * modified columns will be stable across a schema change.
