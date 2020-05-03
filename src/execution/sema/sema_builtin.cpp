@@ -1101,7 +1101,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 4)) {
+  if (!CheckArgCount(call, 5)) {
     return;
   }
 
@@ -1119,17 +1119,24 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
     return;
   }
 
+  // Third argument is an opaque query state. For now, check it's a pointer.
+  const auto void_kind = ast::BuiltinType::Nil;
+  if (!call_args[2]->GetType()->IsPointerType()) {
+    ReportIncorrectCallArg(call, 2, GetBuiltinType(void_kind)->PointerTo());
+    return;
+  }
+
   // Third argument is scanner function
-  auto *scan_fn_type = call_args[2]->GetType()->SafeAs<ast::FunctionType>();
+  auto *scan_fn_type = call_args[3]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[2]->GetType());
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
     return;
   }
 
   // Last one is execution context
   auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), exec_ctx_kind)) {
-    ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
+  if (!IsPointerToSpecificBuiltin(call_args[4]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 4, GetBuiltinType(exec_ctx_kind)->PointerTo());
     return;
   }
 
@@ -1138,7 +1145,7 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
     const auto &params = scan_fn_type->Params();
     if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
         !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {
-      GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[1]->GetType());
+      GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
       return;
     }
 

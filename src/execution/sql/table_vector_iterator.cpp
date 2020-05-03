@@ -70,13 +70,12 @@ namespace {
 class ScanTask {
  public:
   ScanTask(exec::ExecutionContext *exec_ctx, uint16_t table_id, uint32_t *col_oids, uint32_t num_oids,
-          TableVectorIterator::ScanFn scanner)
+           void *const query_state, TableVectorIterator::ScanFn scanner)
       : exec_ctx_(exec_ctx),
         table_id_(table_id),
         col_oids_(col_oids),
         num_oids_(num_oids),
-//        query_state_(query_state),
-//        thread_state_container_(thread_state_container),
+        query_state_(query_state),
         scanner_(scanner) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
@@ -88,12 +87,8 @@ class ScanTask {
       return;
     }
 
-    // Pull out the thread-local state
-//    ThreadStateContainer *thread_state_container = exec_ctx_->GetThreadStateContainer();
-//    byte *thread_state = thread_state_container->AccessThreadStateOfCurrentThread();
-
     // Call scanning function which should be passed at runtime
-    scanner_(nullptr, exec_ctx_, &iter);
+    scanner_(query_state_, exec_ctx_, &iter);
   }
 
  private:
@@ -101,13 +96,13 @@ class ScanTask {
   uint16_t table_id_;
   uint32_t *col_oids_;
   uint32_t num_oids_;
-//  void *const query_state_;
-//  ThreadStateContainer *const thread_state_container_;
+  void *const query_state_;
   TableVectorIterator::ScanFn scanner_;
 };
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, const ScanFn scan_fn,
+bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
+                                       void *const query_state, const ScanFn scan_fn,
                                        exec::ExecutionContext *exec_ctx) {
   // Lookup table
   common::ManagedPointer<storage::SqlTable> table =
@@ -117,7 +112,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   }
 
   // Get number of cores
-  const auto processor_count = std::thread::hardware_concurrency();
+  auto processor_count = std::thread::hardware_concurrency();
   if (processor_count == 0) {
     // Single thread if fail to get the number of cores
     processor_count = 1;
@@ -135,7 +130,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   // partition the block list
   tbb::blocked_range<uint32_t> block_range(0, block_count, min_grain_size);
   // invoke parallel scan for multiple workers
-  tbb::parallel_for(block_range, ScanTask(exec_ctx, table_oid, col_oids, num_oids, scan_fn));
+  tbb::parallel_for(block_range, ScanTask(exec_ctx, table_oid, col_oids, num_oids, query_state, scan_fn));
 
   return true;
 }

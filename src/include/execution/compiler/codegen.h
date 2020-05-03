@@ -462,8 +462,8 @@ class CodeGen {
   /**
    * Call iterateTableParallel(). Performs a parallel scan over the table with the provided table id
    * and the provided scan function.
-   * TODO(Ron): Add the query state and thread-state container
    * @param table_oid The id of the table to scan.
+   * @param col_oids The coloumns to scan
    * @param worker_name The work function name.
    * @return The call.
    */

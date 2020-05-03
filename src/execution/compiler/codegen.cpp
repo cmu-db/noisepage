@@ -126,10 +126,10 @@ ast::Expr *CodeGen::IterateTableParallel(uint32_t table_oid, ast::Identifier col
   ast::Expr *fun = BuiltinFunction(ast::Builtin::TableIterParallel);
   ast::Expr *table_oid_expr = IntLiteral(static_cast<int64_t>(table_oid));
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
+  ast::Expr *query_state_expr = PointerTo(state_var_);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
 
-  // TODO(Ron): update arguments with query state and tls
-  util::RegionVector<ast::Expr *> args{{table_oid_expr, col_oids_expr,
+  util::RegionVector<ast::Expr *> args{{table_oid_expr, col_oids_expr, query_state_expr,
                                         MakeExpr(worker_name), exec_ctx_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }

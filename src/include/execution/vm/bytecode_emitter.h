@@ -321,9 +321,15 @@ class BytecodeEmitter {
 
   /**
    * Emit a parallel table scan
+   * @param table_oid The id of the table to scan
+   * @param col_oids The coloumns to scan
+   * @param num_oids Number of columns to scan
+   * @param query_state The query state pointer
+   * @param scan_fn Scan function ID
+   * @param exec_ctx Execution Context
    */
   void EmitParallelTableScan(uint32_t table_oid, LocalVar col_oids, uint32_t num_oids,
-                             FunctionId scan_fn, LocalVar exec_ctx);
+                             LocalVar query_state, FunctionId scan_fn, LocalVar exec_ctx);
 
   // Reading integer values from an iterator
   /**

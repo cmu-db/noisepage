@@ -637,7 +637,6 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 }
 
 void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
-  // TODO(Yuhong): might need to change function arguments
   // First argument is table oid
   const auto table_oid = static_cast<uint32_t>(call->Arguments()[0]->As<ast::LitExpr>()->Int64Val());
   TERRIER_ASSERT(table_oid != 0, "Table does not exist!");
@@ -646,15 +645,18 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   auto *arr_type = call->Arguments()[1]->GetType()->As<ast::ArrayType>();
   LocalVar arr = VisitExpressionForLValue(call->Arguments()[1]);
 
+  // Query State
+  LocalVar query_state = VisitExpressionForRValue(call->Arguments()[2]);
+
   // Then the scan function as an identifier
-  const auto scan_fn_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name().Data();
+  const auto scan_fn_name = call->Arguments()[3]->As<ast::IdentifierExpr>()->Name().Data();
   const FunctionId scan_fn_id = LookupFuncIdByName(scan_fn_name);
 
   // Execution context
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[4]);
 
   // Done
-  Emitter()->EmitParallelTableScan(table_oid, arr, static_cast<uint32_t>(arr_type->Length()), scan_fn_id, exec_ctx);
+  Emitter()->EmitParallelTableScan(table_oid, arr, static_cast<uint32_t>(arr_type->Length()), query_state, scan_fn_id, exec_ctx);
 }
 
 void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
