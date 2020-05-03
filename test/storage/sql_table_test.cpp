@@ -3,7 +3,11 @@
 #include <cstring>
 #include <vector>
 
+#include "common/container/concurrent_map.h"
+#include "tbb/concurrent_hash_map.h"
+
 #include "storage/storage_util.h"
+#include "test_util/multithread_test_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
@@ -155,11 +159,15 @@ class RandomSqlTableTestObject {
   template <class Random>
   storage::TupleSlot InsertRandomTuple(const transaction::timestamp_t timestamp, Random *generator,
                                        storage::RecordBufferSegmentPool *buffer_pool,
-                                       storage::layout_version_t layout_version) {
+                                       storage::layout_version_t layout_version,
+                                       int slot_location = -1) {
     // generate a txn with an UndoRecord to populate on Insert
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
-    txns_.emplace_back(txn);
+
+    if (slot_location == -1) {
+      txns_.emplace_back(txn);
+    }
 
     // generate a random ProjectedRow to Insert
     auto redo_initializer = pris_.at(layout_version);
@@ -172,10 +180,19 @@ class RandomSqlTableTestObject {
     FillNullValue(insert_tuple, GetSchema(layout_version), table_->GetColumnIdToOidMap(layout_version),
                   table_->GetBlockLayout(layout_version), generator);
 
-    redos_.emplace_back(insert_redo);
+    if (slot_location == -1) {
+      redos_.emplace_back(insert_redo);
+    }
+
     storage::TupleSlot slot = table_->Insert(common::ManagedPointer(txn), insert_redo, layout_version);
-    inserted_slots_.push_back(slot);
-    tuple_versions_[slot].push_back({timestamp, insert_tuple, layout_version});
+    if (slot_location == -1) {
+      inserted_slots_.push_back(slot);
+    } else {
+      inserted_slots_[slot_location] = slot;
+    }
+    tuple_versions_accessor_ accessor;
+    tuple_versions_.insert(accessor, slot);
+    accessor->second.push_back({timestamp, insert_tuple, layout_version});
 
     return slot;
   }
@@ -209,7 +226,10 @@ class RandomSqlTableTestObject {
       return TupleSlot();
     }
 
-    tuple_versions_[updated_slot].push_back({timestamp, update_tuple, layout_version});
+    tuple_versions_accessor_ accessor;
+    tuple_versions_.insert(accessor, slot);
+    accessor->second.push_back({timestamp, update_tuple, layout_version});
+
     updated_slots_.push_back(updated_slot);
 
     return updated_slot;
@@ -227,8 +247,14 @@ class RandomSqlTableTestObject {
   }
 
   TupleVersion GetReferenceVersionedTuple(const storage::TupleSlot slot, const transaction::timestamp_t timestamp) {
-    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
-    auto &versions = tuple_versions_[slot];
+    tuple_versions_accessor_ accessor;
+    const auto found = tuple_versions_.find(accessor, slot);
+    TERRIER_ASSERT(found, "slot should exist in tuple_versions_");
+    auto &versions = accessor->second;
+
+    // TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    // auto &versions = tuple_versions_[slot];
+
     // search backwards so the first entry with smaller timestamp can be returned
     for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--) {
       if (transaction::TransactionUtil::NewerThan(timestamp, versions[i].ts_) || timestamp == versions[i].ts_)
@@ -290,6 +316,11 @@ class RandomSqlTableTestObject {
   const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
   const std::vector<storage::TupleSlot> &UpdatedTuples() const { return updated_slots_; }
 
+  void Resize_inserted_slots(int size) { inserted_slots_.resize(size); }
+  void Populate_inserted_slots(storage::TupleSlot slot, int location) {
+    inserted_slots_[location] = slot;
+  }
+
   storage::BlockLayout GetBlockLayout(storage::layout_version_t version) const {
     return table_->GetBlockLayout(version);
   }
@@ -307,6 +338,17 @@ class RandomSqlTableTestObject {
     return table_->ProjectionMapForOids(oids, version);
   }
 
+  // Structure that defines hashing and comparison operations for user's type.
+  struct SlotHash {
+    static size_t hash( const storage::TupleSlot& slot ) {
+      return std::hash<storage::TupleSlot>{}(slot);
+    }
+    //! True if strings are equal
+    static bool equal( const storage::TupleSlot& slot1, const storage::TupleSlot& slot2 ) {
+      return slot1==slot2;
+    }
+  };
+
  private:
   std::unique_ptr<storage::SqlTable> table_;
   double null_bias_;
@@ -317,7 +359,10 @@ class RandomSqlTableTestObject {
   std::vector<storage::TupleSlot> inserted_slots_;
   std::vector<storage::TupleSlot> updated_slots_;
   // oldest to newest
-  std::unordered_map<storage::TupleSlot, std::vector<TupleVersion>> tuple_versions_;
+  //std::unordered_map<storage::TupleSlot, std::vector<TupleVersion>> tuple_versions_;
+  tbb::concurrent_hash_map<storage::TupleSlot, std::vector<TupleVersion>, SlotHash> tuple_versions_;
+  typedef tbb::concurrent_hash_map<storage::TupleSlot, std::vector<TupleVersion>, SlotHash>::accessor tuple_versions_accessor_;
+
   std::unordered_map<storage::layout_version_t, std::unique_ptr<catalog::Schema>> schemas_;
 };
 
@@ -346,6 +391,45 @@ TEST_F(SqlTableTests, SimpleInsertSelect) {
         test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
         test_table.GetBlockLayout(version), stored, test_table.GetProjectionMapForOids(version), {}, {}));
   }
+}
+
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, ConcurrentInsertSelect) {
+  const uint16_t max_columns = 20;
+  // const uint32_t num_inserts = 100;
+
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+  common::WorkerPool thread_pool(num_threads, {});
+  std::cout << "num threads: " << num_threads << std::endl;
+
+  storage::layout_version_t version(0);
+
+  RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
+
+  test_table.Resize_inserted_slots(num_threads);
+
+  auto workload = [&](uint32_t thread_id) {
+    // Insert into SqlTable
+    //for (uint16_t i = 0; i < num_inserts; i++) {}
+    std::cout << "thread id: " << thread_id << std::endl;
+    //storage::TupleSlot slot;
+    //test_table.Populate_inserted_slots(slot, thread_id);
+    test_table.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_, version, thread_id);
+  };
+
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+  EXPECT_EQ(num_threads, test_table.InsertedTuples().size());
+
+  // Compare each inserted
+//  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+//    storage::ProjectedRow *stored =
+//        test_table.Select(inserted_tuple, transaction::timestamp_t(1), &buffer_pool_, version);
+//    auto ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
+//
+//    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+//        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+//        test_table.GetBlockLayout(version), stored, test_table.GetProjectionMapForOids(version), {}, {}));
+//  }
 }
 
 // NOLINTNEXTLINE
