@@ -39,8 +39,8 @@ class TranslatorFactory {
   /**
    * Create a left expression translator
    */
-  static std::unique_ptr<OperatorTranslator> CreateLeftTranslator(const planner::AbstractPlanNode *op,
-                                                                  CodeGen *codegen, Pipeline *pipeline);
+  static std::unique_ptr<OperatorTranslator> CreateLeftTranslator(const planner::AbstractPlanNode *op, CodeGen *codegen,
+                                                                  Pipeline *pipeline);
 
   /**
    * Create a right expression translator

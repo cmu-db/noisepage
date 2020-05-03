@@ -48,13 +48,16 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
       return std::make_unique<UpdateTranslator>(static_cast<const planner::UpdatePlanNode *>(op), codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::INDEXNLJOIN: {
-      return std::make_unique<IndexJoinTranslator>(static_cast<const planner::IndexJoinPlanNode *>(op), codegen, pipeline);
+      return std::make_unique<IndexJoinTranslator>(static_cast<const planner::IndexJoinPlanNode *>(op), codegen,
+                                                   pipeline);
     }
     case terrier::planner::PlanNodeType::INDEXSCAN: {
-      return std::make_unique<IndexScanTranslator>(static_cast<const planner::IndexScanPlanNode *>(op), codegen, pipeline);
+      return std::make_unique<IndexScanTranslator>(static_cast<const planner::IndexScanPlanNode *>(op), codegen,
+                                                   pipeline);
     }
     case terrier::planner::PlanNodeType::PROJECTION: {
-      return std::make_unique<ProjectionTranslator>(static_cast<const planner::ProjectionPlanNode *>(op), codegen, pipeline);
+      return std::make_unique<ProjectionTranslator>(static_cast<const planner::ProjectionPlanNode *>(op), codegen,
+                                                    pipeline);
     }
     case terrier::planner::PlanNodeType::LIMIT: {
       return std::make_unique<LimitTranslator>(static_cast<const planner::LimitPlanNode *>(op), codegen, pipeline);
@@ -75,15 +78,16 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateBottomTranslator(
       return std::make_unique<AggregateBottomTranslator>(agg_op, codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::ORDERBY:
-      return std::make_unique<SortBottomTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen, pipeline);
+      return std::make_unique<SortBottomTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen,
+                                                    pipeline);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
 }
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTopTranslator(const terrier::planner::AbstractPlanNode *op,
-                                                                           OperatorTranslator *bottom,
-                                                                           CodeGen *codegen, Pipeline *pipeline) {
+                                                                           OperatorTranslator *bottom, CodeGen *codegen,
+                                                                           Pipeline *pipeline) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::AGGREGATE: {
       auto agg_op = static_cast<const planner::AggregatePlanNode *>(op);
@@ -93,7 +97,8 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTopTranslator(const
       return std::make_unique<AggregateTopTranslator>(agg_op, codegen, bottom, pipeline);
     }
     case terrier::planner::PlanNodeType::ORDERBY:
-      return std::make_unique<SortTopTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen, bottom, pipeline);
+      return std::make_unique<SortTopTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen, bottom,
+                                                 pipeline);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
@@ -103,7 +108,8 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateLeftTranslator(
     const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, Pipeline *pipeline) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::HASHJOIN:
-      return std::make_unique<HashJoinLeftTranslator>(static_cast<const planner::HashJoinPlanNode *>(op), codegen, pipeline);
+      return std::make_unique<HashJoinLeftTranslator>(static_cast<const planner::HashJoinPlanNode *>(op), codegen,
+                                                      pipeline);
     case terrier::planner::PlanNodeType::NESTLOOP:
       return std::make_unique<NestedLoopLeftTranslator>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
                                                         codegen, pipeline);

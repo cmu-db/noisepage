@@ -1,6 +1,7 @@
 #pragma once
 
 #pragma once
+#include <tbb/concurrent_unordered_map.h>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -8,7 +9,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <tbb/concurrent_unordered_map.h>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
@@ -53,13 +53,13 @@ class EXPORT OutputBuffer {
         callback_(std::move(callback)) {}
 
   void InsertIfAbsent(std::thread::id id) {
-      if (buffer_map_.find(id) == buffer_map_.end()) {
-        byte *tuples =
+    if (buffer_map_.find(id) == buffer_map_.end()) {
+      byte *tuples =
           reinterpret_cast<byte *>(memory_pool_->AllocateAligned(BATCH_SIZE * tuple_size_, alignof(uint64_t), true));
-        int index = id_++;
-        TERRIER_ASSERT(index <= MAX_THREAD_SIZE, "Thread id is larger than MAX_THREAD_SIZE");
-        buffer_map_.insert(std::make_pair(id, std::make_pair(index, tuples)));
-      }
+      int index = id_++;
+      TERRIER_ASSERT(index <= MAX_THREAD_SIZE, "Thread id is larger than MAX_THREAD_SIZE");
+      buffer_map_.insert(std::make_pair(id, std::make_pair(index, tuples)));
+    }
   }
 
   /**
@@ -96,7 +96,7 @@ class EXPORT OutputBuffer {
   uint32_t *num_tuples_;
   uint32_t tuple_size_;
   std::atomic<int> id_;
-  //byte *tuples_;
+  // byte *tuples_;
   OutputCallback callback_;
   tbb::concurrent_unordered_map<std::thread::id, std::pair<int, byte *>, std::hash<std::thread::id> > buffer_map_;
   common::SpinLatch latch_;

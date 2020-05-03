@@ -60,8 +60,7 @@ class Pipeline {
    * @return the identifier made from the unique pipeline function name
    */
   ast::Identifier GetWorkFunctionName() const {
-    return codegen_->MakeIdentifier(
-            ConstructPipelineFunctionName(IsParallel() ? "ParallelWork" : "SerialWork"));
+    return codegen_->MakeIdentifier(ConstructPipelineFunctionName(IsParallel() ? "ParallelWork" : "SerialWork"));
   }
 
   /**

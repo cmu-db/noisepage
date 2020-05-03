@@ -8,8 +8,7 @@
 
 namespace terrier::execution::compiler {
 HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op,
-                                               execution::compiler::CodeGen *codegen,
-                                               Pipeline *pipeline)
+                                               execution::compiler::CodeGen *codegen, Pipeline *pipeline)
     : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, pipeline),
       op_(op),
       hash_val_{codegen->NewIdentifier("hash_val")},
@@ -139,8 +138,7 @@ ast::Expr *HashJoinLeftTranslator::GetChildOutput(uint32_t child_idx, uint32_t a
 
 HashJoinRightTranslator::HashJoinRightTranslator(const terrier::planner::HashJoinPlanNode *op,
                                                  execution::compiler::CodeGen *codegen,
-                                                 execution::compiler::OperatorTranslator *left,
-                                                 Pipeline *pipeline)
+                                                 execution::compiler::OperatorTranslator *left, Pipeline *pipeline)
     : OperatorTranslator{codegen, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, pipeline},
       op_(op),
       left_(dynamic_cast<HashJoinLeftTranslator *>(left)),

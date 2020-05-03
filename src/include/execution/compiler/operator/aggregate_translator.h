@@ -114,8 +114,8 @@ class AggregateTopTranslator : public OperatorTranslator {
    * @param bottom The corresponding bottom translator
    * @param pipeline The pipeline this translator is a part of
    */
-  AggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen,
-                         OperatorTranslator *bottom, Pipeline *pipeline)
+  AggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, OperatorTranslator *bottom,
+                         Pipeline *pipeline)
       : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, pipeline),
         op_(op),
         bottom_(dynamic_cast<AggregateBottomTranslator *>(bottom)),

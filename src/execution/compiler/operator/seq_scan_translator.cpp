@@ -45,7 +45,7 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
 
   // Close iterator
   if (declare_local_tvi) {
-   GenTVIClose(builder);
+    GenTVIClose(builder);
   }
 }
 
@@ -128,7 +128,6 @@ void SeqScanTranslator::DeclareTVI(FunctionBuilder *builder) {
   //
   auto tvi_type = codegen_->PointerType(ast::BuiltinType::TableVectorIterator);
   builder->Append(codegen_->DeclareVariable(tvi_, tvi_type, codegen_->AddressOf(tvi_base)));
-
 
   // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
   ast::Expr *init_call = codegen_->TableIterInit(tvi_base, !op_->GetTableOid(), col_oids_);

@@ -1141,13 +1141,13 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   }
 
   // Check type
-    const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
-    const auto &params = scan_fn_type->Params();
-    if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
-        !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {
-      GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
-      return;
-    }
+  const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
+  const auto &params = scan_fn_type->Params();
+  if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
+      !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
+    return;
+  }
 
   // Nil
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));

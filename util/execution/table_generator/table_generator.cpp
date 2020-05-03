@@ -253,7 +253,6 @@ void TableGenerator::GenerateBenchmarkTables(bool is_mini_runner, uint32_t num_r
         {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
         {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
         {"colD", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999}}},
-
   };
 
   if (is_mini_runner) {

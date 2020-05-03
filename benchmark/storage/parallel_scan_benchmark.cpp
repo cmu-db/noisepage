@@ -81,7 +81,7 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
 
   // Setup thread states
   execution::sql::ThreadStateContainer thread_state_container(
-          common::ManagedPointer<execution::sql::MemoryPool>(exe_ctx->GetMemoryPool()));
+      common::ManagedPointer<execution::sql::MemoryPool>(exe_ctx->GetMemoryPool()));
   thread_state_container.Reset(sizeof(Counter),  // The type of each thread state structure
                                init_count,       // The thread state initialization function
                                nullptr,          // The thread state destruction function

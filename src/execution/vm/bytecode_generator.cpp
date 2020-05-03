@@ -656,7 +656,8 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[4]);
 
   // Done
-  Emitter()->EmitParallelTableScan(table_oid, arr, static_cast<uint32_t>(arr_type->Length()), query_state, scan_fn_id, exec_ctx);
+  Emitter()->EmitParallelTableScan(table_oid, arr, static_cast<uint32_t>(arr_type->Length()), query_state, scan_fn_id,
+                                   exec_ctx);
 }
 
 void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -1444,7 +1445,7 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED_AT
     case ast::Builtin::ExecutionContextGetTLS: {
       // The tls pointer
       LocalVar tls = ExecutionResult()->GetOrCreateDestination(
-              ast::BuiltinType::Get(ctx, ast::BuiltinType::ThreadStateContainer)->PointerTo());
+          ast::BuiltinType::Get(ctx, ast::BuiltinType::ThreadStateContainer)->PointerTo());
 
       // Emit bytecode
       Emitter()->Emit(Bytecode::ExecutionContextGetTLS, tls, exec_ctx);

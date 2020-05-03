@@ -84,8 +84,8 @@ class EXPORT ExecutionContext {
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
-        thread_state_container_(std::make_unique<sql::ThreadStateContainer>(
-                common::ManagedPointer<sql::MemoryPool>(mem_pool_))),
+        thread_state_container_(
+            std::make_unique<sql::ThreadStateContainer>(common::ManagedPointer<sql::MemoryPool>(mem_pool_))),
         string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
         accessor_(accessor) {}
 

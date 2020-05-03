@@ -51,9 +51,9 @@ class IndexScanTranslator : public OperatorTranslator {
     return {&table_pr_, &pr_type_};
   }
 
-    /**
-     * @return The pipeline work function parameters
-     */
+  /**
+   * @return The pipeline work function parameters
+   */
   util::RegionVector<ast::FieldDecl *> GetWorkerParams() override { UNREACHABLE("Not implemented yet"); }
 
   /**

@@ -86,7 +86,8 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
     case terrier::planner::PlanNodeType::ORDERBY: {
       // These nodes split in two parts: A "build" side (called bottom) and an "iterate" side (called top).
       auto bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, codegen_, curr_pipeline);
-      auto top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator.get(), codegen_, curr_pipeline);
+      auto top_translator =
+          TranslatorFactory::CreateTopTranslator(&op, bottom_translator.get(), codegen_, curr_pipeline);
       // The "build" side is a pipeline breaker. It belongs to a new pipeline.
       auto next_pipeline = std::make_unique<Pipeline>(codegen_);
       MakePipelines(*op.GetChild(0), next_pipeline.get());
@@ -99,7 +100,8 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
     case terrier::planner::PlanNodeType::HASHJOIN: {
       // The hash join splits also splits in a "build" side (called left) and an "iterate" side (called right).
       auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_, curr_pipeline);
-      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_, curr_pipeline);
+      auto right_translator =
+          TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_, curr_pipeline);
 
       // The "build" side is a pipeline breaker. It belongs to a new pipeline.
       auto next_pipeline = std::make_unique<Pipeline>(codegen_);
@@ -115,7 +117,8 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
       // The two sides of the nested loop join belong to the same pipeline. They are just concatenated together.
       // These two translator glue the two sides together and ensure that expression evaluation is correctly done.
       auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_, curr_pipeline);
-      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_, curr_pipeline);
+      auto right_translator =
+          TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_, curr_pipeline);
       // Outer loop
       MakePipelines(*op.GetChild(1), curr_pipeline);
       curr_pipeline->Add(std::move(left_translator));
@@ -185,7 +188,6 @@ ast::Decl *Compiler::GenMainFunction() {
   builder.Append(codegen_->ExecCall(codegen_->GetSetupFn()));
 
   // Step 2: For each pipeline, call its function
-  // TODO(Yuhong): Discuss when will have multiple pipelies and how to handle them
   for (const auto &pipeline : pipelines_) {
     if (pipeline->IsParallel()) {
       pipeline->Root()->LaunchWork(&builder, pipeline->GetWorkFunctionName());

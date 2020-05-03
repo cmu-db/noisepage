@@ -5,7 +5,7 @@
 #include <tbb/task_scheduler_init.h>
 #include <iostream>
 #include <memory>
-#include <thread>
+#include <thread> //NOLINT
 
 #include "execution/exec/execution_context.h"
 #include "execution/util/timer.h"
@@ -122,8 +122,8 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   auto block_count = table->GetBlockListSize();
 
   // Calculate number of blocks for each thread
-  size_t min_grain_size = (table->GetBlockListSize() / processor_count) +
-                          ((table->GetBlockListSize() % processor_count) > 0 ? 1 : 0);
+  size_t min_grain_size =
+      (table->GetBlockListSize() / processor_count) + ((table->GetBlockListSize() % processor_count) > 0 ? 1 : 0);
 
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;

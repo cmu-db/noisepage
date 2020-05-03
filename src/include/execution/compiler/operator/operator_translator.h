@@ -22,7 +22,7 @@ class OperatorTranslator : public ExpressionEvaluator {
    * Constructor
    * @param codegen The code generator to use
    * @param feature Feature Type
-   * @param pipeline The pipeline this translator is a part of
+   * @param pipeline The pipeline this translator within
    */
   explicit OperatorTranslator(CodeGen *codegen, brain::ExecutionOperatingUnitType feature, Pipeline *pipeline)
       : codegen_(codegen), feature_type_(feature), pipeline_(pipeline) {}
@@ -191,11 +191,8 @@ class OperatorTranslator : public ExpressionEvaluator {
   brain::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
 
  protected:
-
   // Get the thread state container pointer from the execution context stored in the query state.
-  ast::Expr *GetThreadStateContainer() const {
-    return codegen_->ExecCtxGetTLS();
-  }
+  ast::Expr *GetThreadStateContainer() const { return codegen_->ExecCtxGetTLS(); }
 
   /**
    * The code generator to use

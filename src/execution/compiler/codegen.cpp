@@ -129,8 +129,8 @@ ast::Expr *CodeGen::IterateTableParallel(uint32_t table_oid, ast::Identifier col
   ast::Expr *query_state_expr = PointerTo(state_var_);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
 
-  util::RegionVector<ast::Expr *> args{{table_oid_expr, col_oids_expr, query_state_expr,
-                                        MakeExpr(worker_name), exec_ctx_expr}, Region()};
+  util::RegionVector<ast::Expr *> args{
+      {table_oid_expr, col_oids_expr, query_state_expr, MakeExpr(worker_name), exec_ctx_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
@@ -227,9 +227,7 @@ ast::Expr *CodeGen::ExecCtxGetMem() {
   return OneArgCall(ast::Builtin::ExecutionContextGetMemoryPool, exec_ctx_var_, false);
 }
 
-ast::Expr *CodeGen::ExecCtxGetTLS() {
-  return OneArgCall(ast::Builtin::ExecutionContextGetTLS, exec_ctx_var_, false);
-}
+ast::Expr *CodeGen::ExecCtxGetTLS() { return OneArgCall(ast::Builtin::ExecutionContextGetTLS, exec_ctx_var_, false); }
 
 ast::Expr *CodeGen::SizeOf(ast::Identifier type_name) { return OneArgCall(ast::Builtin::SizeOf, type_name, false); }
 

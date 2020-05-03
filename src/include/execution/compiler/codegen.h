@@ -144,7 +144,9 @@ class CodeGen {
   /**
    * @return An expression that represents the address of the provided object.
    */
-  ast::Expr *AddressOf(ast::Identifier obj_name) { return UnaryOp(parsing::Token::Type::AMPERSAND, MakeExpr(obj_name));}
+  ast::Expr *AddressOf(ast::Identifier obj_name) {
+    return UnaryOp(parsing::Token::Type::AMPERSAND, MakeExpr(obj_name));
+  }
 
   /**
    * The main function has the signature: (execCtx: *ExecutionContext) -> int32
@@ -467,8 +469,7 @@ class CodeGen {
    * @param worker_name The work function name.
    * @return The call.
    */
-  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Identifier col_oids,
-          ast::Identifier worker_name);
+  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Identifier col_oids, ast::Identifier worker_name);
 
   /**
    * Call pciGetTypeNullable(pci, idx)
