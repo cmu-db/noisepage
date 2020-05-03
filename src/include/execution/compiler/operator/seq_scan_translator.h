@@ -16,6 +16,7 @@ class SeqScanTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline containing the operator
    */
   SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 

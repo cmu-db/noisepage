@@ -79,7 +79,7 @@ class EXPORT TableVectorIterator {
   /**
    * Scan function callback used to scan a partition of the table.
    * Convention: First argument is the opaque query state, second argument is
-   *             the thread state, and last argument is the table vector
+   *             the execution context, and last argument is the table vector
    *             iterator configured to iterate a sub-range of the table. The
    *             first two arguments are void because their types are only known
    *             at runtime (i.e., defined in generated code).
@@ -92,8 +92,9 @@ class EXPORT TableVectorIterator {
    * source table. This call is blocking, meaning that it only returns after
    * the whole table has been scanned. Iteration order is non-deterministic.
    * @param table_oid The ID of the table
+   * @param col_oids The columns to be retrieved
+   * @param num_oids Number of columns
    * @param query_state the query state
-   * @param thread_states the thread state container
    * @param scan_fn The callback function invoked for vectors of table input
    * @param exec_ctx Current execution context
    */

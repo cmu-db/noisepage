@@ -52,6 +52,10 @@ class EXPORT OutputBuffer {
         id_(0),
         callback_(std::move(callback)) {}
 
+  /**
+   * Insert the corresponding buffer of a thread to the map if not created yet
+   * @param id The thread ID
+   */
   void InsertIfAbsent(std::thread::id id) {
     if (buffer_map_.find(id) == buffer_map_.end()) {
       byte *tuples =

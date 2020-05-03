@@ -500,7 +500,7 @@ class CodeGen {
   ast::Expr *ExecCtxGetMem();
 
   /**
-   * Call @execCtxGetTLS(). Return the thread state container within an execution context.
+   * Return the thread state container within an execution context.
    * @return The call.
    */
   ast::Expr *ExecCtxGetTLS();

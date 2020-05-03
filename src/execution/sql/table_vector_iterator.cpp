@@ -5,7 +5,7 @@
 #include <tbb/task_scheduler_init.h>
 #include <iostream>
 #include <memory>
-#include <thread> //NOLINT
+#include <thread>  //NOLINT
 
 #include "execution/exec/execution_context.h"
 #include "execution/util/timer.h"
