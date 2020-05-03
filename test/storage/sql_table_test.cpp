@@ -415,8 +415,7 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
   const uint16_t max_columns = 20;
   const uint32_t num_inserts_per_thread = 1;
 
-//  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
-  const uint32_t num_threads = 2;
+  const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
   const uint32_t total_inserts = num_threads * num_inserts_per_thread;
 
@@ -427,9 +426,6 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
   test_table.ResizeInsertedSlots(total_inserts);
   test_table.ResizeTxns(total_inserts * 2);
   test_table.ResizeRedos(total_inserts);
-
-  std::vector<storage::ProjectedRow *> stored_vec(total_inserts);
-  std::vector<RandomSqlTableTestObject::TupleVersion> ref_vec(total_inserts);
 
   // Each thread inserts into SqlTable concurrently
   auto workload = [&](uint32_t thread_id) {
@@ -443,34 +439,108 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
   EXPECT_EQ(total_inserts, test_table.InsertedTuples().size());
 
   // Each thread selects into SqlTable concurrently, and compares the selected result with expected
-  auto workload2 = [&](uint32_t thread_id) {
-  //for (int thread_id = 0; thread_id < num_threads; thread_id++) {
+  //auto workload2 = [&](uint32_t thread_id) {
+  for (int thread_id = 0; thread_id < num_threads; thread_id++) {
     for (int i = 0; i < num_inserts_per_thread; i++) {
       int next_location = thread_id * num_inserts_per_thread + i;
-      std::cout << "next loc: " << next_location << std::endl;
       const auto &inserted_tuple = test_table.InsertedTuples()[next_location];
       storage::ProjectedRow *stored = test_table.Select(inserted_tuple, transaction::timestamp_t(1),
                                                         &buffer_pool_, version, total_inserts + next_location);
       auto ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
-//      ref_vec[next_location] = ref;
- //     stored_vec[next_location] = stored;
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
           test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
           test_table.GetBlockLayout(version), stored, test_table.GetProjectionMapForOids(version), {}, {}));
     }
   };
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload2);
+  //MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload2);
+}
 
-  // Compare each inserted
-//  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
-//    storage::ProjectedRow *stored =
-//        test_table.Select(inserted_tuple, transaction::timestamp_t(1), &buffer_pool_, version);
-//    auto ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
-//
-//    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
-//        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
-//        test_table.GetBlockLayout(version), stored, test_table.GetProjectionMapForOids(version), {}, {}));
-//  }
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, ConcurrentInsertWithSchemaChange) {
+  const uint16_t max_columns = 20;
+  uint64_t txn_ts = 0;
+
+  uint32_t num_inserts_per_thread = 10;
+  const uint32_t machine_threads = MultiThreadTestUtil::HardwareConcurrency();
+  const uint32_t num_threads = machine_threads % 2 == 0 ? machine_threads: machine_threads - 1;
+  common::WorkerPool thread_pool(num_threads, {});
+  const uint32_t num_inserts = num_threads * num_inserts_per_thread;
+
+  storage::layout_version_t version(0);
+
+  RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
+  test_table.ResizeInsertedSlots(num_inserts/2);
+  test_table.ResizeTxns(num_inserts/2);
+  test_table.ResizeRedos(num_inserts/2);
+
+  // Insert first half into SqlTable
+  auto workload = [&](uint32_t thread_id) {
+    for (int i = 0; i < num_inserts_per_thread; i++) {
+      int next_location = thread_id * num_inserts_per_thread + i;
+      test_table.InsertRandomTuple(transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, version, next_location);
+    }
+  };
+
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads / 2, workload);
+
+  EXPECT_EQ(num_inserts / 2, test_table.InsertedTuples().size());
+
+  // Schema Update: drop the first column, and add 2 new columns to the end
+  storage::layout_version_t new_version(1);
+  txn_ts++;
+  catalog::Schema::Column col1("new_col1", type::TypeId::INTEGER, false,
+                               parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)));
+  catalog::Schema::Column col2("new_col2", type::TypeId::INTEGER, false,
+                               parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(2)));
+  std::vector<catalog::Schema::Column *> cols{&col1, &col2};
+
+  catalog::Schema::Column col_to_drop = test_table.GetSchema(version).GetColumns()[0];
+  std::unordered_set<catalog::col_oid_t> drop_oids{col_to_drop.Oid()};
+  std::unique_ptr<catalog::Schema> temp_schema = DropColumns(test_table.GetSchema(version), drop_oids);
+  auto new_schema = AddColumnsToEnd(*temp_schema, cols);
+
+  int update_schema_ts = txn_ts;
+  txn_ts++;
+
+  test_table.ResizeInsertedSlots(num_inserts);
+  test_table.ResizeTxns(num_inserts);
+  test_table.ResizeRedos(num_inserts);
+
+  // Concurrently insert the second half with new version. Also concurrently update schema using smaller txn timestamp
+  auto workload2 = [&](uint32_t thread_id) {
+    if (thread_id == num_threads / 2) {
+      test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{update_schema_ts}, &buffer_pool_),
+                              std::move(new_schema), new_version);
+    } else {
+      for (int i = 0; i < num_inserts_per_thread; i++) {
+        int next_location = num_inserts / 2 + thread_id * num_inserts_per_thread + i;
+        test_table.InsertRandomTuple(transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, version, next_location);
+      }
+    }
+  };
+
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads / 2 + 1, workload2);
+
+  EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
+  // Compare each inserted by selecting as the new version
+  txn_ts++;
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    storage::ProjectedRow *stored =
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, new_version);
+    auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
+    std::unordered_set<catalog::col_oid_t> add_cols;
+    std::unordered_set<catalog::col_oid_t> drop_cols;
+    if (tuple_version.version_ != new_version) {
+      for (auto col : cols) {
+        add_cols.insert(col->Oid());
+      }
+      drop_cols.insert(col_to_drop.Oid());
+    }
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_,
+        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(new_version), stored,
+        test_table.GetProjectionMapForOids(new_version), add_cols, drop_cols));
+  }
 }
 
 // NOLINTNEXTLINE
