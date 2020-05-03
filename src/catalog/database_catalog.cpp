@@ -999,7 +999,7 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
           TERRIER_ASSERT(update_redo->GetTupleSlot() == new_slot, "Updating should not move the tuple slot");
         } break;
         default:
-          TERRIER_ASSERT(false, "Not implemented");
+          throw std::runtime_error("Unimplemented alter table type.");
       }
     }
   }
@@ -1449,14 +1449,32 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
       TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
-          table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
           tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
           break;
         case postgres::ClassKind::INDEX:
-          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
+//          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
         default:
+          throw std::runtime_error("Unimplemented destructor needed");
+      }
+    }
+  }
+
+  // Scan the table
+  table_iter = classes_->begin();
+  while (table_iter != classes_->end()) {
+    classes_->ForceScanAllVersions(txn, &table_iter, pc);
+    for (uint i = 0; i < pc->NumTuples(); i++) {
+      switch (classes[i]) {
+        case postgres::ClassKind::REGULAR_TABLE:
+          table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
+          break;
+        case postgres::ClassKind::INDEX:
+          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
+          break;
+        default:
+          break;
           throw std::runtime_error("Unimplemented destructor needed");
       }
     }

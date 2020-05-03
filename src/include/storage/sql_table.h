@@ -283,6 +283,7 @@ class SqlTable {
   }
 
  private:
+  friend class catalog::DatabaseCatalog;
   friend class RecoveryManager;  // Needs access to OID and ID mappings
   friend class terrier::RandomSqlTableTransaction;
   friend class terrier::LargeSqlTableTestObject;
@@ -295,6 +296,13 @@ class SqlTable {
   // TODO(Schema-Change): add concurrent access support. Implement single threaded version first
   // Used ordered map for traversing data table that are less or equal to curr version
   std::map<layout_version_t, DataTableVersion> tables_;
+
+  // Should only be used by database catalog accessing pg tables!
+  void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *start_pos,
+            ProjectedColumns *out_buffer) const {
+    return tables_.at(layout_version_t(0)).data_table_->ForceScanAllVersions(txn, start_pos, out_buffer);
+  }
+
 
   /**
    * Translates out_buffer from desired version col_ids to tuple version col_ids, by mapping each col_id in out_buffer
