@@ -162,8 +162,8 @@ class SqlTable {
     TERRIER_ASSERT(tables_.lower_bound(layout_version) == tables_.end(),
                    "input version should be strictly larger than all versions");
     auto table = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), block_store_, layout_version);
-    const auto UNUSED_ATTRIBUTE[it, success] = tables_.insert(std::make_pair(layout_version, table));
-    TERRIER_ASSERT(it != tables_.end() && success, "inserting new tableversion should not fail");
+    const auto UNUSED_ATTRIBUTE result = tables_.insert(std::make_pair(layout_version, table));
+    TERRIER_ASSERT(result.first != tables_.end() && result.second, "inserting new tableversion should not fail");
   }
 
   // TODO(Schema-Change): Do we retain the begin() and end(), or implement begin and end function with version number?
