@@ -403,7 +403,7 @@ TEST_F(SqlTableTests, SimpleInsertSelect) {
 // NOLINTNEXTLINE
 TEST_F(SqlTableTests, ConcurrentInsertSelect) {
   const uint16_t max_columns = 20;
-  // const uint32_t num_inserts = 100;
+  const uint32_t num_inserts_per_thread = 10;
 
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
@@ -413,19 +413,20 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
 
   RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
 
-  test_table.ResizeInsertedSlots(num_threads);
-  test_table.ResizeTxns(num_threads);
-  test_table.ResizeRedos(num_threads);
+  test_table.ResizeInsertedSlots(num_threads * num_inserts_per_thread);
+  test_table.ResizeTxns(num_threads * num_inserts_per_thread);
+  test_table.ResizeRedos(num_threads * num_inserts_per_thread);
 
   auto workload = [&](uint32_t thread_id) {
     // Insert into SqlTable
-    //for (uint16_t i = 0; i < num_inserts; i++) {}
-    std::cout << "thread id: " << thread_id << std::endl;
-    test_table.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_, version, thread_id);
+    for (int i = 0; i < num_inserts_per_thread; i++) {
+      int next_location = thread_id * num_inserts_per_thread + i;
+      test_table.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_, version, next_location);
+    }
   };
 
   MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-  EXPECT_EQ(num_threads, test_table.InsertedTuples().size());
+  EXPECT_EQ(num_threads * num_inserts_per_thread, test_table.InsertedTuples().size());
 
   // Compare each inserted
   for (const auto &inserted_tuple : test_table.InsertedTuples()) {
