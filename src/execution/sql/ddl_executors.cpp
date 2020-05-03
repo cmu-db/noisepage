@@ -69,7 +69,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result &&
-             CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema);
+             CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema, nullptr);
   }
 
   for (const auto &unique_constraint : node->GetUniqueConstraints()) {
@@ -91,7 +91,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
-                                   index_schema);
+                                   index_schema, nullptr);
   }
 
   // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
@@ -152,20 +152,25 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   const auto &schema = accessor->GetIndexSchema(index_oid);
   // Instantiate an Index and update the pointer in the Catalog
   storage::index::IndexBuilder index_builder;
-  index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), populate_txn);
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
-  index->SetNotLive();
+  if (populate_txn != nullptr) {
+    index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), populate_txn);
+    index->SetNotLive();
 
-  bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
-  TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+    bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
+    TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
 
-  // Now, populate the index
-  index_builder.BulkInsert(index);
+    // Now, populate the index
+    index_builder.BulkInsert(index);
 
-  // Make the index live, with the later transaction
-  index->SetLive();
-  accessor->SetTxn(populate_txn)->SetIndexLive(index_oid);
+    // Make the index live, with the later transaction
+    index->SetLive();
+    accessor->SetTxn(populate_txn).SetIndexLive(index_oid);
+  }else {
+    bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
+    TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+  }
   return true;
 }
 }  // namespace terrier::execution::sql
