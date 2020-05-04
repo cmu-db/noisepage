@@ -180,6 +180,26 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       data_table->blocks_.push_back(block);
     }
     data_table->UpdateInsertionHead(nullptr);
+
+    // update indexes
+    auto db_catalog_ptr = GetDatabaseCatalog(recovery_txn, db_oid);
+    const auto &schema = GetTableSchema(recovery_txn, db_catalog_ptr, table_oid);
+
+    // Fetch all the values so we can construct index keys after deleting from the sql table
+    std::vector<catalog::col_oid_t> all_table_oids;
+    for (const auto &col : schema.GetColumns()) {
+      all_table_oids.push_back(col.Oid());
+    }
+    auto initializer = table->InitializerForProjectedRow(all_table_oids);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto pr = initializer.InitializeRow(buffer);
+    for (auto it = data_table->begin(); it != data_table->end(); it ++) {
+      TupleSlot slot = *it;
+      table->Select(common::ManagedPointer(recovery_txn), slot, pr);
+      UpdateIndexesOnTable(recovery_txn, db_oid, table_oid, table,
+                           slot, pr, true);
+    }
+    delete[] buffer;
     f.close();
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
