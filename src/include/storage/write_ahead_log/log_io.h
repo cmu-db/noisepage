@@ -198,6 +198,8 @@ class BufferedLogReader {
   }
 
  private:
+  friend class Checkpoint;
+
   int in_;  // or -1 if closed
   uint32_t read_head_ = 0, filled_size_ = 0;
   char buffer_[common::Constants::LOG_BUFFER_SIZE];

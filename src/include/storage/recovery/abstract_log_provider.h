@@ -46,6 +46,8 @@ class AbstractLogProvider {
   virtual bool Read(void *dest, uint32_t size) = 0;
 
  private:
+  friend class Checkpoint;
+
   // TODO(Gus): Support a more fail-safe way than just throwing an exception
   /**
    * Read a value of the specified type from log provider. An exception is thrown if the reading failed
