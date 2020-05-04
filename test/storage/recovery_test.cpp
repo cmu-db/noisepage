@@ -958,7 +958,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
   uint32_t num_threads = 4u;
   common::WorkerPool thread_pool_{num_threads, {}};
 
-  auto loop = CheckpointBackgroundLoop(catalog_, tx_namager_, deferred_action_manager, gc_, log_manager_, &ckpt);
+  auto loop = CheckpointBackgroundLoop(ckpt_path, db, LOG_FILE_NAME, num_threads, &thread_pool_, &ckpt);
   loop.StartBackgroundLoop(5, 6);
 
   std::this_thread::sleep_for(std::chrono::seconds(10));
