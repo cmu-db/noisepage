@@ -184,6 +184,10 @@ class CatalogAccessor {
 
   bool VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr);
 
+  bool UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot);
+
+  bool DeleteCascade(table_oid_t table, storage::TupleSlot table_tuple_slot);
+
   /**
    * Given the constraint name and its specification, add it to the catalog
    * @param ns is the namespace in which the constraint will exist
@@ -197,7 +201,7 @@ class CatalogAccessor {
   constraint_oid_t CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
                                       std::vector<col_oid_t> &pk_cols) const;
   constraint_oid_t CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
-                                       std::string name, index_oid_t index, std::vector<col_oid_t> &src_cols,
+                                       std::string name, index_oid_t src_index, index_oid_t sink_index, std::vector<col_oid_t> &src_cols,
                                        std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
                                        postgres::FKActionType delete_action) const;
   constraint_oid_t CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
