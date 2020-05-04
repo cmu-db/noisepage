@@ -1974,7 +1974,32 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       Emitter()->Emit(Bytecode::StorageInterfaceIndexDelete, storage_interface, tuple_slot);
       break;
     }
-
+    case ast::Builtin::VerifyTableInsertConstraint: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      Emitter()->Emit(Bytecode::StorageInterfaceVerifyTableInsertConstraint, cond, storage_interface);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::DeleteCascade: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceDeleteCascade, cond, storage_interface, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::UpdateCascade: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceUpdateCascade, cond, storage_interface, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::UpdateVerify: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      Emitter()->Emit(Bytecode::StorageInterfaceUpdateVerify, cond, storage_interface);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
     case ast::Builtin::StorageInterfaceFree: {
       Emitter()->Emit(Bytecode::StorageInterfaceFree, storage_interface);
       break;
@@ -2029,7 +2054,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
 
   ast::Context *ctx = call->GetType()->GetContext();
   ctx->IsBuiltinFunction(call->GetFuncName(), &builtin);
-
+  std::cout<<call->GetFuncName().Data()<<std::endl;
   switch (builtin) {
     case ast::Builtin::IsSqlNull:
     case ast::Builtin::IsSqlNotNull:
@@ -2285,6 +2310,23 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
+    case ast::Builtin::VerifyTableInsertConstraint: {
+      std::cout<<"hit"<<std::endl;
+      VisitBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::DeleteCascade: {
+      VisitBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::UpdateCascade: {
+      VisitBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::UpdateVerify: {
+      VisitBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
     case ast::Builtin::StorageInterfaceFree: {
       VisitBuiltinStorageInterfaceCall(call, builtin);
       break;

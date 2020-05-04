@@ -43,6 +43,8 @@ void InsertTranslator::Produce(FunctionBuilder *builder) {
     for (auto &index_oid : indexes) {
       GenIndexInsert(builder, index_oid);
     }
+
+    GenConstraintVerify(builder);
   }
   GenInserterFree(builder);
 }
@@ -69,6 +71,7 @@ void InsertTranslator::Consume(FunctionBuilder *builder) {
   for (auto &index_oid : indexes) {
     GenIndexInsert(builder, index_oid);
   }
+  GenConstraintVerify(builder);
 }
 
 void InsertTranslator::DeclareInserter(terrier::execution::compiler::FunctionBuilder *builder) {
@@ -159,6 +162,14 @@ void InsertTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::i
   auto index_insert_call = codegen_->OneArgCall(
       index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert, inserter_, true);
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
+  builder->StartIfStmt(cond);
+  Abort(builder);
+  builder->FinishBlockStmt();
+}
+
+void InsertTranslator::GenConstraintVerify(FunctionBuilder *builder) {
+  auto verify_constraint_call = codegen_->OneArgCall(ast::Builtin::VerifyTableInsertConstraint, inserter_, true);
+  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, verify_constraint_call);
   builder->StartIfStmt(cond);
   Abort(builder);
   builder->FinishBlockStmt();

@@ -67,7 +67,10 @@ class UpdateTranslator : public OperatorTranslator {
   void GenTableDelete(FunctionBuilder *builder);
   // Delete from index.
   void GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
-
+  // Verify update
+  void GenUpdateVerify(FunctionBuilder *builder);
+  // Cascade Delete
+  void GenUpdateCascade(FunctionBuilder *builder);
   // Get all columns oids.
   static std::vector<catalog::col_oid_t> CollectOids(const planner::UpdatePlanNode *node) {
     std::vector<catalog::col_oid_t> oids;

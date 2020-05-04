@@ -55,6 +55,8 @@ class DeleteTranslator : public OperatorTranslator {
   void GenTableDelete(FunctionBuilder *builder);
   // Delete from index.
   void GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
+  // Delete Cascade
+  void GenDeleteCascade(FunctionBuilder *builder);
   // Get all columns oids.
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
     std::vector<catalog::col_oid_t> oids;
