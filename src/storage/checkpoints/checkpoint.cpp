@@ -1,12 +1,11 @@
-
-
 #include "storage/checkpoints/checkpoint.h"
 #include <common/worker_pool.h>
 #include <storage/block_compactor.h>
 #include <fstream>
 namespace terrier::storage {
 
-bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file) {
+bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file, uint32_t num_threads,
+                    common::WorkerPool *thread_pool_) {
   // get db catalog accessor
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(static_cast<common::ManagedPointer<transaction::TransactionContext>>(txn), db);
@@ -27,7 +26,7 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
     new_table->blocks_ = new_blocks;
     queue.emplace_back(oid, new_table);
   }
-  // TODO(xuanxuan): delete previous log file (uncomment after separate catalog log from other logs)
+  // delete previous log file (uncomment after separate catalog log from other logs)
   //  if (remove(cur_log_file) != 0)
   //    perror( "Error deleting file" );
   //  else
@@ -35,18 +34,15 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
 
   log_serializer_task->flush_queue_latch_.Unlock();
 
-  // initalize threads
-  auto num_threads = 1u;
-  common::WorkerPool thread_pool_{num_threads, {}};
-  thread_pool_.Startup();
+  thread_pool_->Startup();
   auto workload = [&](uint32_t worker_id) {
     // copy contents of table to disk
     WriteToDisk(path, accessor, db);
   };
   for (auto i = 0u; i < num_threads; i++) {
-    thread_pool_.SubmitTask([i, &workload] { workload(i); });
+    thread_pool_->SubmitTask([i, &workload] { workload(i); });
   }
-  thread_pool_.WaitUntilAllFinished();
+  thread_pool_->WaitUntilAllFinished();
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   if (queue.size() > 0) {
     // the table oid that failed to be backup
@@ -86,11 +82,6 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
         }
       }
     }
-
-    //     for check if metadata gets updated
-    //        auto &md = data_table->accessor_.GetArrowBlockMetadata(data_table->blocks_.front());
-    //        col_id_t id = layout.AllColumns()[0];
-    //        md.GetColumnInfo(layout, id);
 
     // compact blocks into arrow format
     storage::BlockCompactor compactor;
