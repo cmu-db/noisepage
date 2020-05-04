@@ -87,13 +87,17 @@ bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const 
 
 const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }
 
-// constraint_oid_t CatalogAccessor::CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
-//                                          const IndexSchema &schema) const {
-//   NormalizeObjectName(&name);
-//   return dbc_->CreateConstraints(txn_, ns, name, table, schema);
-// }
+
 bool CatalogAccessor::VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr) {
   return dbc_->VerifyTableInsertConstraint(txn_, table, pr);
+}
+
+bool CatalogAccessor::UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot) {
+    return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_UPDATE);
+}
+
+bool CatalogAccessor::DeleteCascade(table_oid_t table, storage::TupleSlot table_tuple_slot) {
+    return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_DELETE);
 }
 
 constraint_oid_t CatalogAccessor::CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,
@@ -102,13 +106,13 @@ constraint_oid_t CatalogAccessor::CreatePKConstraint(namespace_oid_t ns, table_o
   return dbc_->CreatePKConstraint(txn_, ns, table, name, index, pk_cols);
 }
 constraint_oid_t CatalogAccessor::CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
-                                                      std::string name, index_oid_t index,
+                                                      std::string name, index_oid_t src_index, index_oid_t sink_index,
                                                       std::vector<col_oid_t> &src_cols,
                                                       std::vector<col_oid_t> &sink_cols,
                                                       postgres::FKActionType update_action,
                                                       postgres::FKActionType delete_action) const {
   NormalizeObjectName(&name);
-  return dbc_->CreateFKConstraint(txn_, ns, src_table, sink_table, name, index, src_cols, sink_cols, update_action,
+  return dbc_->CreateFKConstraint(txn_, ns, src_table, sink_table, name, src_index, sink_index, src_cols, sink_cols, update_action,
                                   delete_action);
 }
 constraint_oid_t CatalogAccessor::CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name,

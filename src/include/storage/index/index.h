@@ -117,7 +117,7 @@ class Index {
    * @param txn txn context for the calling txn, used for visibility checks
    * @param scan_type Scan Type
    * @param num_attrs Number of attributes to compare
-   * @param low_key the key to start at
+   * @param low_key the key to start at;
    * @param high_key the key to end at
    * @param limit if any
    * @param[out] value_list the values associated with the keys

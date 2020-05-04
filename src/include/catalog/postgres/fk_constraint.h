@@ -44,4 +44,6 @@ enum class FKActionType : char {
   SETDEFAULT = 'd', // set default
   SETINVALID = 'i' // set invalid
 };
+const char FK_UPDATE = 'u';
+const char FK_DELETE = 'd';
 }  // namespace terrier::catalog::postgres

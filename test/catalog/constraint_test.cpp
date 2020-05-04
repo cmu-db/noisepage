@@ -239,7 +239,7 @@ TEST_F(ConstraintTests, DDLCreateTableProcedureTest) {
 
   auto con_oid = accessor->CreatePKConstraint(accessor->GetDefaultNamespace(), table_oid, "test_pk", index_oid, pk_cols);
   auto constraints = accessor->GetConstraints(table_oid);
-  EXPECT_NE(constraints[0], con_oid);
+  EXPECT_EQ(constraints[0], con_oid);
   std::cerr << "pre commit\n";
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   std::cerr << "post commit\n";
