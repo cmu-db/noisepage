@@ -246,4 +246,56 @@ EXPECT_TRUE(false);
 }
 }
 
+TEST_F(ConstraintStatementTest, DropUNIQUETest) {
+try {
+pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                        port_, catalog::DEFAULT_DATABASE));
+
+pqxx::work txn1(connection);
+txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT UNIQUE);");
+txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
+pqxx::result r = txn1.exec("SELECT * FROM TableA");
+EXPECT_EQ(r.size(), 1);
+r = txn1.exec("SELECT * FROM pg_constraint");
+EXPECT_EQ(r.size(), 2);
+r = txn1.exec("DROP TABLE TableA;");
+r = txn1.exec("SELECT * FROM pg_constraint");
+EXPECT_EQ(r.size(), 0);
+txn1.commit();
+connection.disconnect();
+} catch (const std::exception &e) {
+EXPECT_TRUE(false);
+}
+}
+
+TEST_F(ConstraintStatementTest, DeleteMultipleFKTest) {
+try {
+pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                        port_, catalog::DEFAULT_DATABASE));
+
+pqxx::work txn1(connection);
+txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
+txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT references TableA(id));");
+txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk2 INT references TableB(fk1));");
+txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
+pqxx::result r = txn1.exec("SELECT * FROM TableA");
+EXPECT_EQ(r.size(), 1);
+r = txn1.exec("SELECT * FROM pg_constraint");
+EXPECT_EQ(r.size(), 5);
+r = txn1.exec("SELECT * FROM fk_constraint");
+EXPECT_EQ(r.size(), 2);
+r = txn1.exec("DROP TABLE TableB");
+r = txn1.exec("SELECT * FROM fk_constraint");
+EXPECT_EQ(r.size(), 1);
+r = txn1.exec("DROP TABLE TableC");
+r = txn1.exec("SELECT * FROM fk_constraint");
+EXPECT_EQ(r.size(), 0);
+std::cerr << "till end\n";
+txn1.commit();
+connection.disconnect();
+} catch (const std::exception &e) {
+EXPECT_TRUE(false);
+}
+}
+
 }  // namespace terrier::trafficcop
