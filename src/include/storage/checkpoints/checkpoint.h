@@ -11,9 +11,9 @@
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
+#include "common/worker_pool.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
-#include "common/worker_pool.h"
 
 namespace terrier::storage {
 
@@ -49,7 +49,7 @@ class Checkpoint {
    * @return True if succuessully take the checkpoint, False otherwise
    */
   bool TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file, uint32_t num_threads,
-      common::WorkerPool *thread_pool_);
+                      common::WorkerPool *thread_pool_);
 
   /**
    * Generate a file name for a table
@@ -99,6 +99,7 @@ class Checkpoint {
 
  private:
   // Catalog to fetch table pointers
+  friend class CheckpointBackgroundLoop;
   const common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;

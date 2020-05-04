@@ -4,8 +4,8 @@
 #include <fstream>
 namespace terrier::storage {
 
-bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file, uint32_t num_threads,
-                    common::WorkerPool *thread_pool_) {
+bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file,
+                                uint32_t num_threads, common::WorkerPool *thread_pool_) {
   // get db catalog accessor
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(static_cast<common::ManagedPointer<transaction::TransactionContext>>(txn), db);
