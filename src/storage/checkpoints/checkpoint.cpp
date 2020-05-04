@@ -116,8 +116,12 @@ void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::s
     if (log_record == nullptr) break;
     record_size = log_record->Size();
     char buf[record_size];
+    uint32_t size;
+
     if (log_record->RecordType() == LogRecordType::ABORT || log_record->RecordType() == LogRecordType::COMMIT) {
       infile.read(reinterpret_cast<char *>(&buf), record_size);
+      size = *(uint32_t*)buf;
+      (void)size;
       outfile.write(reinterpret_cast<char *>(&buf), record_size);
       o << "A/C " << log_record->Size()<<std::endl;
     } else {
