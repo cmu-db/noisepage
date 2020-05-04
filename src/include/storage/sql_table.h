@@ -70,18 +70,6 @@ class SqlTable {
               ProjectedRow *const out_buffer) const {
     return table_.data_table_->Select(txn, slot, out_buffer);
   }
-  /**
-   * Materializes a single tuple from the given slot, ignoring visibility constraints.
-   *
-   * @param txn the calling transaction
-   * @param slot the tuple slot to read
-   * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
-   * @return true if  ProjectedRow has been populated, false otherwise
-   */
-  bool SelectMostRecent(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-                        ProjectedRow *const out_buffer) const {
-    return table_.data_table_->SelectMostRecent(txn, slot, out_buffer);
-  }
 
   /**
    * Update the tuple according to the redo buffer given. StageWrite must have been called as well in order for the

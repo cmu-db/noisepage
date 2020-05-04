@@ -107,7 +107,7 @@ public class CreateIndexTest extends TestUtility {
     public void testWriteBlocking() throws SQLException, InterruptedException {
         String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100);";
         Statement stmt = conn1.createStatement();
-        int num_rows = 1000;
+        int num_rows = 100000;
         for (int i = 0; i < num_rows; i++) {
             try {
                 stmt.execute(sql);

@@ -37,14 +37,7 @@ DataTable::~DataTable() {
 bool DataTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
                        ProjectedRow *out_buffer) const {
   data_table_counter_.IncrementNumSelect(1);
-  return SelectIntoBuffer(txn, slot, out_buffer, true);
-}
-
-
-bool DataTable::SelectMostRecent(const common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
-                       ProjectedRow *out_buffer) const {
-  data_table_counter_.IncrementNumSelect(1);
-  return SelectIntoBuffer(txn, slot, out_buffer, false);
+  return SelectIntoBuffer(txn, slot, out_buffer);
 }
 
 void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
@@ -57,7 +50,7 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
     ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
     const TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
-    if (SelectIntoBuffer(txn, slot, &row, true)) {
+    if (SelectIntoBuffer(txn, slot, &row)) {
       out_buffer->TupleSlots()[filled] = slot;
       filled++;
     }
@@ -178,7 +171,6 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   TupleSlot result;
   auto block = insertion_head_;
   while (true) {
-    TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
     // No free block left
     if (block == blocks_.end()) {
       RawBlock *new_block = NewBlock();
@@ -192,7 +184,6 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
       block = --blocks_.end();
       break;
     }
-    TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
 
     if (accessor_.SetBlockBusyStatus(*block)) {
       // No one is inserting into this block
@@ -209,7 +200,6 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
     // The block is full or the block is being inserted by other txn, try next block
     ++block;
   }
-  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
 
   // Do not need to wait unit finish inserting,
   // can flip back the status bit once the thread gets the allocated tuple slot
@@ -225,19 +215,15 @@ void DataTable::InsertInto(const common::ManagedPointer<transaction::Transaction
   TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
   TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
                  "The slot needs to be logically deleted to every running transaction");
-  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
   TERRIER_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
                  "Should only be able to insert into hot blocks");
-  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
   AtomicallyWriteVersionPtr(dest, accessor_, undo);
-  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
   // Set the logically deleted bit to present as the undo record is ready
   accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
   // Update in place with the new value.
-  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                    "Insert buffer should not change the version pointer column.");
@@ -272,7 +258,7 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                 const TupleSlot slot, RowType *const out_buffer, bool visibility_check) const {
+                                 const TupleSlot slot, RowType *const out_buffer) const {
   TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
@@ -323,10 +309,6 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
     // transaction, and let GC handle the unlinking.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
-  if(!visibility_check) {
-    return version_ptr != nullptr;
-  }
-
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
   if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->FinishTime()) {
@@ -358,10 +340,10 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
 
 template bool DataTable::SelectIntoBuffer<ProjectedRow>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-    ProjectedRow *const out_buffer, bool visibility_check) const;
+    ProjectedRow *const out_buffer) const;
 template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-    ProjectedColumns::RowView *const out_buffer, bool visibility_check) const;
+    ProjectedColumns::RowView *const out_buffer) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value
