@@ -289,7 +289,7 @@ class RandomSqlTableTestObject {
     }
 
     tuple_versions_accessor_ accessor;
-    tuple_versions_.insert(accessor, slot);
+    tuple_versions_.insert(accessor, updated_slot);
     accessor->second.push_back({timestamp, update_tuple, layout_version});
 
     updated_slots_.push_back(updated_slot);
@@ -310,8 +310,8 @@ class RandomSqlTableTestObject {
 
   TupleVersion GetReferenceVersionedTuple(const storage::TupleSlot slot, const transaction::timestamp_t timestamp) {
     tuple_versions_accessor_ accessor;
-    const auto found = tuple_versions_.find(accessor, slot);
-    TERRIER_ASSERT(found, "slot should exist in tuple_versions_");
+    int found = tuple_versions_.find(accessor, slot);
+    TERRIER_ASSERT(found, "slot must be within tuple_versions_");
     auto &versions = accessor->second;
 
     // search backwards so the first entry with smaller timestamp can be returned
@@ -543,11 +543,6 @@ TEST_F(SqlTableTests, ConcurrentInsertWithSchemaChange) {
   storage::layout_version_t version(0);
 
   RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
-  // concurrently insert first half of the tuples
-  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(0),
-                                          &generator_, &buffer_pool_, version, num_threads, num_inserts_per_thread/2);
-
-  EXPECT_EQ(num_inserts / 2, test_table.InsertedTuples().size());
 
   // Schema Update: drop the first column, and add 2 new columns to the end
   storage::layout_version_t new_version(1);
@@ -564,12 +559,19 @@ TEST_F(SqlTableTests, ConcurrentInsertWithSchemaChange) {
   auto new_schema = AddColumnsToEnd(*temp_schema, cols);
 
   auto update_schema_txn = test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_);
+
+  // concurrently insert first half of the tuples with old version, and concurrently update schema to new version
+  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(txn_ts - 1),
+                                          &generator_, &buffer_pool_, version, num_threads, num_inserts_per_thread/2,
+                                          update_schema_txn, std::move(new_schema), new_version);
+
+  EXPECT_EQ(num_inserts / 2, test_table.InsertedTuples().size());
+
   txn_ts++;
 
-  // concurrently insert tuples, and concurrently update schema
-  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(0),
-                                          &generator_, &buffer_pool_, version, num_threads,
-                                          num_inserts_per_thread/2, update_schema_txn, std::move(new_schema), new_version);
+  // concurrently insert second half of tuples, with new version
+  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(txn_ts),&generator_, &buffer_pool_,
+                                          new_version, num_threads,num_inserts_per_thread/2);
 
   EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
   // Compare each inserted by selecting as the new version
@@ -591,6 +593,73 @@ TEST_F(SqlTableTests, ConcurrentInsertWithSchemaChange) {
         test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(new_version), stored,
         test_table.GetProjectionMapForOids(new_version), add_cols, drop_cols));
   }
+
+  // This txn should not observe the updated schema
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
+    if (tuple_version.version_ != new_version) {
+      // Select the tuple with its tuple version
+      storage::ProjectedRow *stored =
+          test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, tuple_version.version_);
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(test_table.GetBlockLayout(tuple_version.version_), stored,
+                                                              tuple_version.pr_));
+    }
+  }
+
+  // Delete the first tuple. Note that this affects all transactions with higher timestamp, regardless of version
+  txn_ts++;
+  test_table.Delete(test_table.InsertedTuples()[0], transaction::timestamp_t(txn_ts), &buffer_pool_);
+
+  // Scan the table with version 0, seeing the first half of the tuples (except for the deleted one)
+  byte *buffer = nullptr;
+  auto columns = test_table.AllocateColumnBuffer(version, &buffer, num_inserts / 2 - 1);
+  auto it = test_table.GetTable().begin();
+  test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
+                             version);
+  EXPECT_EQ(num_inserts / 2 - 1, columns->NumTuples());
+  for (uint32_t i = 0; i < columns->NumTuples(); i++) {
+    storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
+    auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+        test_table.GetBlockLayout(version), &stored, test_table.GetProjectionMapForOids(version), {}, {}));
+  }
+  delete[] buffer;
+
+  // Scan the table with the newest version, seeing all the tuples except for the first tuple
+  buffer = nullptr;
+  columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts - 1);
+  it = test_table.GetTable().begin();
+  test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
+                             new_version);
+  EXPECT_EQ(num_inserts - 1, columns->NumTuples());
+  for (uint32_t i = 0; i < columns->NumTuples(); i++) {
+    storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
+    auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
+    std::unordered_set<catalog::col_oid_t> add_cols;
+    std::unordered_set<catalog::col_oid_t> drop_cols;
+    if (ref.version_ != new_version) {
+      for (auto col : cols) {
+        add_cols.insert(col->Oid());
+      }
+      drop_cols.insert(col_to_drop.Oid());
+    }
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+        test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
+        drop_cols));
+  }
+  delete[] buffer;
+
+  // update the first half of the tuples except for the first one, under new version, these will migrate
+  txn_ts++;
+  for (uint32_t i = 1; i < num_inserts / 2; i++) {
+    auto slot = test_table.InsertedTuples()[i];
+    auto updated_slot =
+        test_table.UpdateTuple(slot, transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, new_version);
+    EXPECT_TRUE(slot != updated_slot);
+  }
+  EXPECT_EQ(test_table.UpdatedTuples().size(), num_inserts / 2 - 1);
 }
 
 // NOLINTNEXTLINE
@@ -669,9 +738,9 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
   txn_ts++;
   test_table.Delete(test_table.InsertedTuples()[0], transaction::timestamp_t(txn_ts), &buffer_pool_);
 
-  // Scan the table with version 0, seeing the first half of the tuples
+  // Scan the table with version 0, seeing the first half of the tuples except for the first one
   byte *buffer = nullptr;
-  auto columns = test_table.AllocateColumnBuffer(version, &buffer, num_inserts / 2);
+  auto columns = test_table.AllocateColumnBuffer(version, &buffer, num_inserts / 2 - 1);
   auto it = test_table.GetTable().begin();
   test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
                              version);
@@ -693,7 +762,6 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
   test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
                              new_version);
   EXPECT_EQ(num_inserts - 1, columns->NumTuples());
-  EXPECT_EQ(it, test_table.GetTable().end(new_version));
   for (uint32_t i = 0; i < columns->NumTuples(); i++) {
     storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
     auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
@@ -712,7 +780,7 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
   }
   delete[] buffer;
 
-  // update the first half of the tuples, under new version, these will migrate
+  // update the first half of the tuples except for the first one, under new version, these will migrate
   txn_ts++;
   for (uint32_t i = 1; i < num_inserts / 2; i++) {
     auto slot = test_table.InsertedTuples()[i];
@@ -725,12 +793,12 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
   // Scan the table with the newest version, seeing all updated tuples correctly
   txn_ts++;
   buffer = nullptr;
-  columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts / 2 - 1);
+  columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts - 1);
   it = test_table.GetTable().begin();
   test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
                              new_version);
-  EXPECT_EQ(num_inserts / 2 - 1, columns->NumTuples());
-  for (uint32_t i = 0; i < columns->NumTuples(); i++) {
+  EXPECT_EQ(num_inserts - 1, columns->NumTuples());
+  for (uint32_t i = 0; i < columns->NumTuples() / 2; i++) {
     storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
     auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
     EXPECT_EQ(ref.version_, new_version);
