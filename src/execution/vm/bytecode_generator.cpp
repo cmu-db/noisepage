@@ -2398,6 +2398,7 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
 }
 
 void BytecodeGenerator::VisitCallExpr(ast::CallExpr *node) {
+  EXECUTION_LOG_TRACE("VisitCallExpr");
   ast::CallExpr::CallKind call_kind = node->GetCallKind();
 
   if (call_kind == ast::CallExpr::CallKind::Builtin) {

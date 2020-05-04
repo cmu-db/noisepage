@@ -37,6 +37,15 @@ void LoggersUtil::Initialize() {
     storage::InitStorageLogger();
     transaction::InitTransactionLogger();
 
+    // TODO: Adrian changed this to show more messages
+    binder::binder_logger->set_level(spdlog::level::trace);
+    settings::settings_logger->set_level(spdlog::level::trace);
+    parser::parser_logger->set_level(spdlog::level::trace);
+    catalog::catalog_logger->set_level(spdlog::level::trace);
+    execution::execution_logger->set_level(spdlog::level::trace);
+    network::network_logger->set_level(spdlog::level::trace);
+
+
     // Flush all *registered* loggers using a worker thread. Registered loggers must be thread safe for this to work
     // correctly
     spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));

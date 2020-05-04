@@ -21,8 +21,11 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   query_id_ = ExecutableQuery::query_identifier++;
 
   // Compile and check for errors
+  EXECUTION_LOG_TRACE("Before ExecutableQuery codegen");
   compiler::CodeGen codegen(exec_ctx.Get());
+  EXECUTION_LOG_TRACE("Before ExecutableQuery compiler");
   compiler::Compiler compiler(query_id_, &codegen, physical_plan.Get());
+  EXECUTION_LOG_TRACE("Before ExecutableQuery compile");
   auto root = compiler.Compile();
   if (codegen.Reporter()->HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
@@ -30,7 +33,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
     EXECUTION_LOG_ERROR(execution::ast::AstDump::Dump(root));
     return;
   }
-
+  EXECUTION_LOG_TRACE("Before ExecutableQuery convert bytecode");
   // Convert to bytecode
   auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
 

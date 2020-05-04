@@ -201,6 +201,7 @@ void StringFunctions::Rpad(exec::ExecutionContext *ctx, StringVal *result, const
 
 void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
   auto accessor = ctx->GetAccessor();
+  accessor->GetNamespaceOid();
   std::string_view s_v = str.StringView();
   std::string s(s_v.data(), s_v.size());
 

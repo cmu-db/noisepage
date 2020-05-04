@@ -208,10 +208,12 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
       break;
     }
     case T_ColumnRef: {
+      PARSER_LOG_TRACE("Is T_ColumnRef");
       expr = ColumnRefTransform(parse_result, reinterpret_cast<ColumnRef *>(node), alias);
       break;
     }
     case T_FuncCall: {
+      PARSER_LOG_TRACE("Is T_FuncCall");
       expr = FuncCallTransform(parse_result, reinterpret_cast<FuncCall *>(node));
       break;
     }
@@ -573,7 +575,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResul
     // normal functions (built-in functions or UDFs)
     func_name = (reinterpret_cast<value *>(root->funcname_->tail->data.ptr_value))->val_.str_;
     std::vector<std::unique_ptr<AbstractExpression>> children;
-
+    PARSER_LOG_TRACE("FuncCallTransform builtin function");
     if (root->args_ != nullptr) {
       for (auto cell = root->args_->head; cell != nullptr; cell = cell->next) {
         auto expr_node = reinterpret_cast<Node *>(cell->data.ptr_value);
@@ -1248,6 +1250,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
       }
       default: {
         // TODO(WAN): previous code just ignored it, is this right?
+        // TODO(Adrian): Changed
+        PARSER_LOG_TRACE("Not T_FunctionParameter");
         break;
       }
     }
@@ -1257,6 +1261,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
 
   // TODO(WAN): assumption from old code, can only pass one function name for now
   std::string func_name = (reinterpret_cast<value *>(root->funcname_->tail->data.ptr_value)->val_.str_);
+
+  // TODO(Adrian): Changed
+  PARSER_LOG_TRACE("Function name: " + func_name);
 
   std::vector<std::string> func_body;
   AsType as_type = AsType::INVALID;
