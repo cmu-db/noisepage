@@ -6,7 +6,7 @@
 #include <fstream>
 namespace terrier::storage {
 
-bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char* cur_log_file) {
+bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file) {
   // get db catalog accessor
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(static_cast<common::ManagedPointer<transaction::TransactionContext>>(txn), db);
@@ -22,15 +22,15 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
     common::ManagedPointer<storage::SqlTable> curr_sql_table = accessor->GetTable(oid);
     storage::DataTable *curr_data_table = curr_sql_table->table_.data_table_;
     std::list<RawBlock *> new_blocks(curr_data_table->blocks_);
-    storage::DataTable *new_table = new storage::DataTable(curr_data_table->block_store_, curr_data_table->GetBlockLayout(),
-                                                           curr_data_table->layout_version_, new_blocks);
+    storage::DataTable *new_table = new storage::DataTable(
+        curr_data_table->block_store_, curr_data_table->GetBlockLayout(), curr_data_table->layout_version_, new_blocks);
     queue.emplace_back(oid, new_table);
   }
-  //TODO(xuanxuan): delete previous log file (uncomment after separate catalog log from other logs)
-//  if (remove(cur_log_file) != 0)
-//    perror( "Error deleting file" );
-//  else
-//    puts( "File successfully deleted" );
+  // TODO(xuanxuan): delete previous log file (uncomment after separate catalog log from other logs)
+  //  if (remove(cur_log_file) != 0)
+  //    perror( "Error deleting file" );
+  //  else
+  //    puts( "File successfully deleted" );
 
   log_serializer_task->flush_queue_latch_.Unlock();
 
@@ -86,10 +86,10 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       }
     }
 
-//     for check if metadata gets updated
-//        auto &md = data_table->accessor_.GetArrowBlockMetadata(data_table->blocks_.front());
-//        col_id_t id = layout.AllColumns()[0];
-//        md.GetColumnInfo(layout, id);
+    //     for check if metadata gets updated
+    //        auto &md = data_table->accessor_.GetArrowBlockMetadata(data_table->blocks_.front());
+    //        col_id_t id = layout.AllColumns()[0];
+    //        md.GetColumnInfo(layout, id);
 
     // compact blocks into arrow format
     storage::BlockCompactor compactor;

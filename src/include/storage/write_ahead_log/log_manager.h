@@ -41,6 +41,7 @@ namespace terrier::storage {
  */
 class LogManager : public common::DedicatedThreadOwner {
   friend class Checkpoint;
+
  public:
   /**
    * Constructs a new LogManager, writing its logs out to the given file.

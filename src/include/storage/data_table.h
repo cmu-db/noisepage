@@ -121,7 +121,7 @@ class DataTable {
   DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout, layout_version_t layout_version);
 
   DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
-                       const layout_version_t layout_version, const std::list<RawBlock *> &blocks);
+            const layout_version_t layout_version, const std::list<RawBlock *> &blocks);
   /**
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
    */

@@ -2,9 +2,9 @@
 
 #include <catalog/catalog.h>
 #include <common/managed_pointer.h>
+#include <stdio.h>
 #include <mutex>
 #include <string>
-#include <stdio.h>
 
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
@@ -22,10 +22,12 @@ class Checkpoint {
              common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
              common::ManagedPointer<storage::GarbageCollector> gc,
-             common::ManagedPointer<storage::LogManager> log_manager
-             )
-      : catalog_(catalog), txn_manager_(txn_manager), deferred_action_manager_(deferred_action_manager),
-      gc_(gc), log_manager_(log_manager) {
+             common::ManagedPointer<storage::LogManager> log_manager)
+      : catalog_(catalog),
+        txn_manager_(txn_manager),
+        deferred_action_manager_(deferred_action_manager),
+        gc_(gc),
+        log_manager_(log_manager) {
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -61,21 +63,27 @@ class Checkpoint {
     tb_oid = (catalog::table_oid_t)std::stoi(file_name.substr(sep_ind + 1, file_name.length()));
   }
 
-  static const std::vector<std::string> StringSplit(const std::string &s, const char &c) {
+  /**
+   * Splits a string into a vector
+   * @param s to split
+   * @param delimiter that separates the string
+   * @return vector of strings
+   */
+  static const std::vector<std::string> StringSplit(const std::string &s, const char &delimiter) {
     std::string buff{""};
-    std::vector<std::string> v;
+    std::vector<std::string> str_vec;
 
-    for (auto n : s) {
-      if (n != c)
-        buff += n;
-      else if (n == c && buff != "") {
-        v.push_back(buff);
+    for (auto c : s) {
+      if (c != delimiter)
+        buff += c;
+      else if (c == delimiter && buff != "") {
+        str_vec.push_back(buff);
         buff = "";
       }
     }
-    if (buff != "") v.push_back(buff);
+    if (buff != "") str_vec.push_back(buff);
 
-    return v;
+    return str_vec;
   }
 
  private:

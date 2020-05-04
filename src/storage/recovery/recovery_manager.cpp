@@ -133,7 +133,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
 
       // update insert_head and allocation bitmap
       TupleSlot place_holder_tuple_slot;
-      for (size_t j = 0; j < insert_head; j ++) {
+      for (size_t j = 0; j < insert_head; j++) {
         data_table->accessor_.Allocate(block, &place_holder_tuple_slot);
       }
 
@@ -142,19 +142,21 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
         auto col_id = column_ids[i];
         common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
         byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
-        auto s = (*record_buffers)[cur_buffer_index ++]->length();
-        TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap), "bitmap length should match");
+        auto s = (*record_buffers)[cur_buffer_index++]->length();
+        TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap),
+                       "bitmap length should match");
         ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap), s);
 
         if (layout.IsVarlen(col_id)) {
-          int64_t offsets_length = (*record_buffers)[cur_buffer_index ++]->length() / sizeof(uint64_t);
-          int64_t values_length = (*record_buffers)[cur_buffer_index ++]->length();
+          int64_t offsets_length = (*record_buffers)[cur_buffer_index++]->length() / sizeof(uint64_t);
+          int64_t values_length = (*record_buffers)[cur_buffer_index++]->length();
           uint64_t *offsets_array = new uint64_t[offsets_length];
           ReadDataBlock(f, reinterpret_cast<char *>(offsets_array), offsets_length * sizeof(uint64_t));
           byte *values_array = new byte[values_length];
           ReadDataBlock(f, reinterpret_cast<char *>(values_array), values_length);
 
-          TERRIER_ASSERT(offsets_length - 1 == insert_head || offsets_length == 0, "offsets length should be num_records+1");
+          TERRIER_ASSERT(offsets_length - 1 == insert_head || offsets_length == 0,
+                         "offsets length should be num_records+1");
           for (auto j = 0u; j < offsets_length - 1; j++) {
             // TODO: need to replace with the proper memory allocation
             uint64_t size = offsets_array[j + 1] - offsets_array[j];
@@ -171,7 +173,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
           delete[] offsets_array;
           delete[] values_array;
         } else {
-          int32_t cur_buffer_len = (*record_buffers)[cur_buffer_index ++]->length();
+          int32_t cur_buffer_len = (*record_buffers)[cur_buffer_index++]->length();
           ReadDataBlock(f, reinterpret_cast<char *>(column_start), cur_buffer_len);
         }
       }

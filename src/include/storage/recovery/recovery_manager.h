@@ -110,7 +110,23 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     }
   }
 
+  /**
+   * Recover from the latest checkpoint. This reads in Arrow formatted data blocks that are stored in the checkpoint,
+   * deserialize them, and convert those into raw data blocks to be passed in to data tables.
+   * The current checkpoint recovery excludes catalog recovery; we assume that empty data tables already exist in the
+   * catalog.
+   * @param path of the checkpoint file
+   * @param db database oid
+   */
   void RecoverFromCheckpoint(const std::string &path, catalog::db_oid_t db);
+
+  /**
+   * Reads in padded data block from a file. This function ensures that the file descriptor jumps to the correct
+   * padded location and reads in unpadded data.
+   * @param infile file descriptor
+   * @param src buffer
+   * @param len of original data
+   */
   void ReadDataBlock(std::ifstream &infile, char *src, size_t len);
 
  private:
