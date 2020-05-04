@@ -358,6 +358,8 @@ class DatabaseCatalog {
    */
   type_oid_t GetTypeOidForType(type::TypeId type);
 
+  bool TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to);
+
  private:
   // TODO(tanujnay112) Add support for other parameters
 
@@ -448,6 +450,8 @@ class DatabaseCatalog {
   storage::index::Index *indexes_oid_index_;
   storage::index::Index *indexes_table_index_;
   storage::ProjectedRowInitializer get_indexes_pri_;
+  storage::ProjectedRowInitializer get_live_indexes_pri_;
+  storage::ProjectionMap get_live_indexes_prm_;
   storage::ProjectedRowInitializer delete_index_pri_;
   storage::ProjectionMap delete_index_prm_;
   storage::ProjectedRowInitializer pg_index_all_cols_pri_;

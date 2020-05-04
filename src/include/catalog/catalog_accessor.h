@@ -373,6 +373,11 @@ class CatalogAccessor {
         search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
         default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
 
+
+  bool TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to) {
+    return dbc_->TransferLock(from, to);
+  }
+
  private:
   const common::ManagedPointer<Catalog> catalog_;
   const common::ManagedPointer<DatabaseCatalog> dbc_;

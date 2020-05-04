@@ -332,7 +332,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
       }
       create_expr = std::make_unique<OperatorNode>(
           LogicalCreateIndex::Make(accessor_->GetDefaultNamespace(), accessor_->GetTableOid(op->GetTableName()),
-                                   op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries)),
+                                   op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries),
+                                   op->GetConcurrent()),
           std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     }

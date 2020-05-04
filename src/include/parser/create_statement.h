@@ -407,15 +407,17 @@ class CreateStatement : public TableRefStatement {
    * @param unique true if index should be unique, false otherwise
    * @param index_name index name
    * @param index_attrs index attributes
+   * @param concurrent whether this creation should be concurrent
    */
   CreateStatement(std::unique_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<IndexAttr> index_attrs)
+                  std::vector<IndexAttr> index_attrs, bool concurrent)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
         unique_index_(unique),
         index_name_(std::move(index_name)),
-        index_attrs_(std::move(index_attrs)) {}
+        index_attrs_(std::move(index_attrs)),
+        concurrent_(concurrent) {}
 
   /**
    * CREATE SCHEMA
@@ -503,6 +505,9 @@ class CreateStatement : public TableRefStatement {
   /** @return index attributes for [CREATE INDEX] */
   const std::vector<IndexAttr> &GetIndexAttributes() const { return index_attrs_; }
 
+  /** @return true if index should be built concurrent */
+  bool GetConcurrent() { return concurrent_; }
+
   /** @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise */
   bool IsIfNotExists() { return if_not_exists_; }
 
@@ -543,6 +548,7 @@ class CreateStatement : public TableRefStatement {
   const bool unique_index_ = false;
   const std::string index_name_;
   const std::vector<IndexAttr> index_attrs_;
+  const bool concurrent_ = false;
 
   // CREATE SCHEMA
   const bool if_not_exists_ = false;

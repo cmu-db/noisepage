@@ -101,10 +101,9 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 }
 
 bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::CreateIndexPlanNode> node,
-                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                       const common::ManagedPointer<terrier::transaction::TransactionContext> populate_txn) {
+                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
-                     *(node->GetSchema()), populate_txn);
+                     *(node->GetSchema()), node->GetConcurrent());
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
@@ -141,7 +140,7 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
 bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                const catalog::namespace_oid_t ns, const std::string &name,
                                const catalog::table_oid_t table, const catalog::IndexSchema &input_schema,
-                               const common::ManagedPointer<terrier::transaction::TransactionContext> populate_txn) {
+                               bool concurrent) {
   // Request permission from the Catalog to see if this a valid namespace and table name
   const auto index_oid = accessor->CreateIndex(ns, table, name, input_schema);
   if (index_oid == catalog::INVALID_INDEX_OID) {
@@ -154,8 +153,11 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
-  if (populate_txn != nullptr) {
-    index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), populate_txn);
+
+  if (concurrent) {
+    //TODO
+  } else {
+    index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), accessor->GetTransactionContext());
     index->SetNotLive();
 
     bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
@@ -163,13 +165,8 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
 
     // Now, populate the index
     index_builder.BulkInsert(index);
-
-    // Make the index live, with the later transaction
     index->SetLive();
-    accessor->SetTxn(populate_txn).SetIndexLive(index_oid);
-  }else {
-    bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
-    TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+    accessor->SetIndexLive(index_oid);
   }
   return true;
 }

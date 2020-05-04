@@ -326,6 +326,10 @@ void DatabaseCatalog::BootstrapPRIs() {
   const std::vector<col_oid_t> get_indexes_oids{postgres::INDOID_COL_OID};
   get_indexes_pri_ = indexes_->InitializerForProjectedRow(get_class_oid_kind_oids);
 
+  const std::vector<col_oid_t> get_live_indexes_oids{postgres::INDOID_COL_OID, postgres::INDISLIVE_COL_OID};
+  get_live_indexes_pri_ = indexes_->InitializerForProjectedRow(get_live_indexes_oids);
+  get_live_indexes_prm_ = indexes_->ProjectionMapForOids(get_live_indexes_oids);
+
   const std::vector<col_oid_t> delete_index_oids{postgres::INDOID_COL_OID, postgres::INDRELID_COL_OID};
   delete_index_pri_ = indexes_->InitializerForProjectedRow(delete_index_oids);
   delete_index_prm_ = indexes_->ProjectionMapForOids(delete_index_oids);
@@ -984,13 +988,13 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
 
   std::vector<index_oid_t> index_oids;
   index_oids.reserve(index_scan_results.size());
-  auto *select_pr = get_indexes_pri_.InitializeRow(buffer);
+  auto *select_pr = get_live_indexes_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     if (!only_live || *(reinterpret_cast<bool *>(select_pr->AccessForceNotNull(
-        pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID])))) {
-      index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
+        get_live_indexes_prm_[postgres::INDISLIVE_COL_OID])))) {
+      index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDOID_COL_OID]))));
     }
   }
 
@@ -1009,7 +1013,29 @@ index_oid_t DatabaseCatalog::CreateIndex(const common::ManagedPointer<transactio
 
 bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   index_oid_t index) {
-  //TODO
+  if (!TryLock(txn)) return false;
+  const auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
+
+  // Find the entry in pg_index using the oid index
+  std::vector<storage::TupleSlot> index_results;
+  auto *const buffer = common::AllocationUtil::AllocateAligned(index_oid_pr.ProjectedRowSize());
+  auto *key_pr = index_oid_pr.InitializeRow(buffer);
+  *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
+  indexes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  TERRIER_ASSERT(index_results.size() == 1,
+                 "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
+                 "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
+                 "pg_index. Something broke.");
+
+  delete[] buffer;
+
+  auto redo_record = txn->StageWrite(db_oid_, postgres::INDEX_TABLE_OID, get_live_indexes_pri_);
+  auto *table_pr = redo_record->Delta();
+  bool UNUSED_ATTRIBUTE result = indexes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(result, "Index should be visible for this transaction");
+  *(reinterpret_cast<bool *>(table_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDISLIVE_COL_OID]))) = true;
+
+  indexes_->Update(txn, redo_record);
   return true;
 }
 
@@ -2009,6 +2035,26 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   col.SetOid(ColOid(col_oid));
   return col;
 }
+
+bool DatabaseCatalog::TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to) {
+  bool locked = TryLock(from);
+  if(!locked) {
+    return false;
+  }
+  const transaction::timestamp_t txn_id = to->FinishTime();
+  auto current_val = write_lock_.load();
+
+  if (write_lock_.compare_exchange_strong(current_val, txn_id)) {
+    // acquired the lock
+    auto *const write_lock = &write_lock_;
+    to->RegisterCommitAction([=]() -> void { write_lock->store(to->FinishTime()); });
+    to->RegisterAbortAction([=]() -> void { write_lock->store(current_val); });
+    return true;
+  }
+
+  return false;
+}
+
 
 bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto current_val = write_lock_.load();

@@ -20,6 +20,7 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
@@ -146,6 +147,24 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
+      auto create_index_plan = physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>();
+      bool concurrent = create_index_plan->GetConcurrent();
+      if (concurrent) {
+        if (!single_statement_txn) {
+          out->WriteErrorResponse("ERROR:  CREATE INDEX CONCURRENTLY cannot run inside a transaction block");
+          connection_ctx->Transaction()->SetMustAbort();
+          return;
+        }
+        out->WriteErrorResponse("ERROR:  CREATE INDEX CONCURRENTLY not implemented");
+        connection_ctx->Transaction()->SetMustAbort();
+        return;
+        //TODO
+      } else {
+        out->WriteErrorResponse("ERROR:  CREATE INDEX not implemented");
+        connection_ctx->Transaction()->SetMustAbort();
+        return;
+        //TODO
+      }/*
       // Create a transaction for the index builder
       const auto populate_txn = txn_manager_->BeginTransaction();
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
@@ -165,7 +184,7 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
         future.wait();
         out->WriteCommandComplete(query_type, 0);
         return;
-      }
+      }*/
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {

@@ -105,6 +105,8 @@ class SqlTable {
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
+
+    //
     const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;

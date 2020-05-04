@@ -706,7 +706,7 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(common::ManagedPointer<O
                                                        false);  // is_immediate
 
   auto op = std::make_unique<OperatorNode>(
-      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema)),
+      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema), ci_op->GetConcurrent()),
       std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }

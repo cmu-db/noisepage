@@ -1363,7 +1363,7 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, std::string index_name,
-                       std::unique_ptr<catalog::IndexSchema> &&schema);
+                       std::unique_ptr<catalog::IndexSchema> &&schema, bool concurrent);
 
   /**
    * Copy
@@ -1394,6 +1394,11 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    */
   common::ManagedPointer<catalog::IndexSchema> GetSchema() const { return common::ManagedPointer(schema_); }
 
+  /**
+   * @return Whether the creation is concurrent
+   */
+  bool GetConcurrent() const { return concurrent_; }
+
  private:
   /**
    * OID of the namespace
@@ -1414,6 +1419,11 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    * Index Schema
    */
   std::unique_ptr<catalog::IndexSchema> schema_;
+
+  /**
+   * Concurrent create
+   */
+   bool concurrent_;
 };
 
 /**
