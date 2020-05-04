@@ -2131,6 +2131,48 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::VerifyTableInsertConstraint: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::DeleteCascade: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::UpdateCascade: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::UpdateVerify: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
     case ast::Builtin::StorageInterfaceFree: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -2520,6 +2562,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
+    case ast::Builtin::VerifyTableInsertConstraint:
+    case ast::Builtin::DeleteCascade:
+    case ast::Builtin::UpdateCascade:
+    case ast::Builtin::UpdateVerify:
     case ast::Builtin::StorageInterfaceFree: {
       CheckBuiltinStorageInterfaceCall(call, builtin);
       break;

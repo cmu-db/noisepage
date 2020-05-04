@@ -35,6 +35,7 @@ void DeleteTranslator::Consume(FunctionBuilder *builder) {
   for (auto &index_oid : indexes) {
     GenIndexDelete(builder, index_oid);
   }
+  GenDeleteCascade(builder);
 }
 
 void DeleteTranslator::DeclareDeleter(terrier::execution::compiler::FunctionBuilder *builder) {
@@ -97,6 +98,16 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::i
   std::vector<ast::Expr *> delete_args{codegen_->PointerTo(deleter_), child_translator_->GetSlot()};
   auto index_delete_call = codegen_->BuiltinCall(ast::Builtin::IndexDelete, std::move(delete_args));
   builder->Append(codegen_->MakeStmt(index_delete_call));
+}
+
+void DeleteTranslator::GenDeleteCascade(FunctionBuilder *builder) {
+  auto delete_slot = child_translator_->GetSlot();
+  std::vector<ast::Expr *> delete_args{codegen_->PointerTo(deleter_), delete_slot};
+  auto delete_call = codegen_->BuiltinCall(ast::Builtin::DeleteCascade, std::move(delete_args));
+  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, delete_call);
+  builder->StartIfStmt(cond);
+  Abort(builder);
+  builder->FinishBlockStmt();
 }
 
 void DeleteTranslator::SetOids(FunctionBuilder *builder) {

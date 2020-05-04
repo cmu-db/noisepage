@@ -93,7 +93,7 @@ const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_-
 //   return dbc_->CreateConstraints(txn_, ns, name, table, schema);
 // }
 bool CatalogAccessor::VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr) {
-  return dbc_->VerifyTableInsertConstraint(table, pr);
+  return dbc_->VerifyTableInsertConstraint(txn_, table, pr);
 }
 
 constraint_oid_t CatalogAccessor::CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,

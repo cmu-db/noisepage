@@ -49,6 +49,10 @@ class EXPORT StorageInterface {
 
   bool VerifyTableInsertConstraint();
 
+  bool DeleteCascade(storage::TupleSlot tuple_slot);
+  bool UpdateCascade(storage::TupleSlot tuple_slot);
+  bool UpdateVerify();
+
   /**
    * Reinsert tuple into table.
    * @return slot where the insertion occurred.

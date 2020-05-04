@@ -51,8 +51,11 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
     }
     return;
   }
+  GenUpdateCascade(builder);
   // Non indexed updates just update.
   GenTableUpdate(builder);
+
+  GenUpdateVerify(builder);
 }
 
 void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuilder *builder) {
@@ -205,6 +208,24 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::i
   std::vector<ast::Expr *> delete_args{codegen_->PointerTo(updater_), child_translator_->GetSlot()};
   auto index_delete_call = codegen_->BuiltinCall(ast::Builtin::IndexDelete, std::move(delete_args));
   builder->Append(codegen_->MakeStmt(index_delete_call));
+}
+
+void UpdateTranslator::GenUpdateVerify(FunctionBuilder *builder) {
+  auto verify_constraint_call = codegen_->OneArgCall(ast::Builtin::UpdateVerify, updater_, true);
+  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, verify_constraint_call);
+  builder->StartIfStmt(cond);
+  Abort(builder);
+  builder->FinishBlockStmt();
+}
+
+void UpdateTranslator::GenUpdateCascade(FunctionBuilder *builder) {
+  auto delete_slot = child_translator_->GetSlot();
+  std::vector<ast::Expr *> update_cascad_args{codegen_->PointerTo(updater_), delete_slot};
+  auto update_cascade_call = codegen_->BuiltinCall(ast::Builtin::UpdateCascade, std::move(update_cascad_args));
+  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, update_cascade_call);
+  builder->StartIfStmt(cond);
+  Abort(builder);
+  builder->FinishBlockStmt();
 }
 
 }  // namespace terrier::execution::compiler

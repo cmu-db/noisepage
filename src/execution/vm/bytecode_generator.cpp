@@ -1974,7 +1974,32 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       Emitter()->Emit(Bytecode::StorageInterfaceIndexDelete, storage_interface, tuple_slot);
       break;
     }
-
+    case ast::Builtin::VerifyTableInsertConstraint: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      Emitter()->Emit(Bytecode::StorageInterfaceVerifyTableInsertConstraint, cond, storage_interface);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::DeleteCascade: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceDeleteCascade, cond, storage_interface, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::UpdateCascade: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceUpdateCascade, cond, storage_interface, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::UpdateVerify: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      Emitter()->Emit(Bytecode::StorageInterfaceUpdateVerify, cond, storage_interface);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
     case ast::Builtin::StorageInterfaceFree: {
       Emitter()->Emit(Bytecode::StorageInterfaceFree, storage_interface);
       break;

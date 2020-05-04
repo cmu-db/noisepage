@@ -357,7 +357,7 @@ bool DDLExecutors::CreateCheckConstraintsAndIndices(
     const common::ManagedPointer<catalog::CatalogAccessor> accessor, const terrier::catalog::Schema &schema,
     const catalog::table_oid_t table, const common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
     const catalog::db_oid_t connection_db) {
-  catalog::constraint_oid_t constraint_oid;
+  // catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
   return (ns != catalog::INVALID_NAMESPACE_OID);
 }
@@ -365,7 +365,7 @@ bool DDLExecutors::CreateExclusionConstraintsAndIndices(
     const common::ManagedPointer<catalog::CatalogAccessor> accessor, const terrier::catalog::Schema &schema,
     const catalog::table_oid_t table, const common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
     const catalog::db_oid_t connection_db) {
-  catalog::constraint_oid_t constraint_oid;
+  // catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
   return (ns != catalog::INVALID_NAMESPACE_OID);
 }
@@ -373,7 +373,7 @@ bool DDLExecutors::CreateNotNullConstraints(const common::ManagedPointer<catalog
                                             const terrier::catalog::Schema &schema, const catalog::table_oid_t table,
                                             const common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
                                             const catalog::db_oid_t connection_db) {
-  catalog::constraint_oid_t constraint_oid;
+  // catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
   return (ns != catalog::INVALID_NAMESPACE_OID);
 }
@@ -381,7 +381,7 @@ bool DDLExecutors::CreateTriggerConstraints(const common::ManagedPointer<catalog
                                             const terrier::catalog::Schema &schema, const catalog::table_oid_t table,
                                             const common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
                                             const catalog::db_oid_t connection_db) {
-  catalog::constraint_oid_t constraint_oid;
+  // catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
   return (ns != catalog::INVALID_NAMESPACE_OID);
 }
