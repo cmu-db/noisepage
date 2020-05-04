@@ -12,7 +12,7 @@
 #include "storage/checkpoints/checkpoint.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/index_builder.h"
-#include "storage/recovery/checkpoints/checkpoint_thread.h"
+#include "storage/checkpoints/checkpoint_thread.h"
 #include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/sql_table.h"
