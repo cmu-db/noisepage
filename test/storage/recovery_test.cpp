@@ -11,6 +11,7 @@
 #include "storage/checkpoints/checkpoint.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/index_builder.h"
+#include "storage/recovery/checkpoint_thread.h"
 #include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/sql_table.h"
@@ -799,18 +800,18 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   std::string ckpt_path = "ckpt_test/";
   unlink(secondary_log_file.c_str());
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-            .SetNumDatabases(1)
-            .SetNumTables(5)
-            .SetMaxColumns(5)
-            .SetInitialTableSize(1000)
-            .SetTxnLength(5)
-            .SetInsertUpdateSelectDeleteRatio({0.5, 0.3, 0.2, 0})
-            .SetVarlenAllowed(true)
-            .Build();
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(5)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(1000)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({0.5, 0.3, 0.2, 0})
+                                              .SetVarlenAllowed(true)
+                                              .Build();
   auto *tested =
-            new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
+      new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
 
-    // Run workload
+  // Run workload
   tested->SimulateOltp(2, 1);
 
   // Create directory
@@ -826,9 +827,9 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
 
   ckpt.TakeCheckpoint(ckpt_path, db, LOG_FILE_NAME);
 
-  //TODO(xuanxuan): check if the file is deleted, uncomment later
-//  std::ifstream ifile(LOG_FILE_NAME);
-//  EXPECT_FALSE(ifile);
+  // TODO(xuanxuan): check if the file is deleted, uncomment later
+  //  std::ifstream ifile(LOG_FILE_NAME);
+  //  EXPECT_FALSE(ifile);
 
   ShutdownAndRestartSystem();
 
@@ -864,12 +865,10 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
 
   recovery_manager.RecoverFromCheckpoint(ckpt_path, db);
 
-
   // Check we recovered all the original tables
   for (auto &database : tested->GetTables()) {
     auto database_oid = database.first;
     for (auto &table_oid : database.second) {
-
       // Get original sql table
       auto original_txn = txn_manager_->BeginTransaction();
       auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
@@ -877,14 +876,16 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
 
       // Get Recovered table
       auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
-      auto recovered_db_catalog = recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(recovery_txn), database_oid);
+      auto recovered_db_catalog =
+          recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(recovery_txn), database_oid);
       EXPECT_TRUE(recovered_db_catalog != nullptr);
       auto recovered_sql_table = recovered_db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
 
       // checking
-      auto initializer = storage::ProjectedRowInitializer::Create(GetBlockLayout(original_sql_table),
-                      StorageTestUtil::ProjectionListAllColumns(GetBlockLayout(original_sql_table)));
+      auto initializer = storage::ProjectedRowInitializer::Create(
+          GetBlockLayout(original_sql_table),
+          StorageTestUtil::ProjectionListAllColumns(GetBlockLayout(original_sql_table)));
       auto *buffer_one = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       auto *buffer_two = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       storage::ProjectedRow *row_one = initializer.InitializeRow(buffer_one);
@@ -900,8 +901,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
         }
         original_sql_table->Select(common::ManagedPointer(original_txn), *original_it, row_one);
         recovered_sql_table->Select(common::ManagedPointer(recovery_txn), *it, row_two);
-        EXPECT_TRUE( StorageTestUtil::ProjectionListEqualDeep(GetBlockLayout(original_sql_table), row_one, row_two));
-        it ++;
+        EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(GetBlockLayout(original_sql_table), row_one, row_two));
+        it++;
       }
       EXPECT_TRUE(it == recovered_sql_table->end());
 
