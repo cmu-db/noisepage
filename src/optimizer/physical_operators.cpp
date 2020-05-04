@@ -1299,14 +1299,18 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *CteScan::Copy() const { return new CteScan(*this); }
 
-Operator CteScan::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions) {
+Operator CteScan::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
+    std::string table_alias) {
   auto cte_scan_op = std::make_unique<CteScan>();
   cte_scan_op->child_expressions_ = child_expressions;
+  cte_scan_op->table_alias_ = std::move(table_alias);
   return Operator(std::move(cte_scan_op));
 }
 
 bool CteScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CTESCAN) return false;
+  const CteScan &node = *dynamic_cast<const CteScan *>(&r);
+  if (table_alias_ != node.GetTableAlias()) return false;
   return (true);
 }
 
