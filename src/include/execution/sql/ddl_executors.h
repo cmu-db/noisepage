@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "transaction/transaction_manager.h"
 namespace terrier::planner {
 class CreateDatabasePlanNode;
 class CreateNamespacePlanNode;
@@ -104,6 +105,6 @@ class DDLExecutors {
  private:
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,
                           const std::string &name, catalog::table_oid_t table,
-                          const catalog::IndexSchema &input_schema);
+                          const catalog::IndexSchema &input_schema, bool concurrent);
 };
 }  // namespace terrier::execution::sql

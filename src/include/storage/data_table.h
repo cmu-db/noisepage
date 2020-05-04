@@ -138,6 +138,18 @@ class DataTable {
   bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
               ProjectedRow *out_buffer) const;
 
+  /**
+   * Materializes a single tuple from the given slot, ignoring visibility constraints.
+   *
+   * @param txn the calling transaction
+   * @param slot the tuple slot to read
+   * @param out_buffer output buffer. The object should already contain projection list information and should not
+   * reference col_id 0
+   * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
+   */
+  bool SelectMostRecent(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
+                        ProjectedRow *out_buffer) const;
+
   // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
   // save a point of scan and come back to it later?
   // Alternatively, we can provide an easy wrapper that takes in a const SlotIterator & and returns a SlotIterator,

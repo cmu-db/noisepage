@@ -9,6 +9,7 @@
 #include "network/postgres/statement.h"
 #include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/traffic_cop_util.h"
+#include "planner/plannodes/create_index_plan_node.h"
 
 namespace terrier::network {
 
@@ -38,6 +39,12 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_CREATE_DB) {
       out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
+      connection_ctx->Transaction()->SetMustAbort();
+      return;
+    }
+    if (explicit_txn_block && query_type == network::QueryType::QUERY_CREATE_INDEX
+        && physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>()->GetConcurrent()) {
+      out->WriteErrorResponse("ERROR:  CREATE INDEX CONCURRENTLY cannot run inside a transaction block");
       connection_ctx->Transaction()->SetMustAbort();
       return;
     }

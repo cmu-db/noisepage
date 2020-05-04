@@ -80,6 +80,10 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
   return dbc_->GetTable(txn_, table);
 }
 
+common::ManagedPointer<std::shared_mutex> CatalogAccessor::GetTableLock(table_oid_t table) const {
+  return dbc_->GetTableLock(txn_, table);
+}
+
 bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const {
   return dbc_->UpdateSchema(txn_, table, new_schema);
 }
@@ -90,8 +94,8 @@ std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table)
   return dbc_->GetConstraints(txn_, table);
 }
 
-std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {
-  return dbc_->GetIndexOids(txn_, table);
+std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table, bool only_live) const {
+  return dbc_->GetIndexOids(txn_, table, only_live);
 }
 
 std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> CatalogAccessor::GetIndexes(
@@ -117,6 +121,10 @@ index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, 
                                          const IndexSchema &schema) const {
   NormalizeObjectName(&name);
   return dbc_->CreateIndex(txn_, ns, name, table, schema);
+}
+
+bool CatalogAccessor::SetIndexLive(index_oid_t index) const {
+  return dbc_->SetIndexLive(txn_, index);
 }
 
 const IndexSchema &CatalogAccessor::GetIndexSchema(index_oid_t index) const {
@@ -186,5 +194,7 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   // BlockStore
   return catalog_->GetBlockStore();
 }
+
+common::ManagedPointer<transaction::TransactionContext> CatalogAccessor::GetTransactionContext() const { return txn_; }
 
 }  // namespace terrier::catalog

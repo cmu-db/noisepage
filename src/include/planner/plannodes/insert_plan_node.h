@@ -214,6 +214,10 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   const std::vector<catalog::index_oid_t> &GetIndexOids() const { return index_oids_; }
 
+  void GetModifiedTables(common::ManagedPointer<std::unordered_set<catalog::table_oid_t>> tables) const override {
+    tables->insert(table_oid_);
+  }
+
   /**
    * @return the hashed value of this plan node
    */

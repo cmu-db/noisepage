@@ -69,7 +69,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result &&
-             CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema);
+             CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema, false);
   }
 
   for (const auto &unique_constraint : node->GetUniqueConstraints()) {
@@ -91,7 +91,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
-                                   index_schema);
+                                   index_schema, false);
   }
 
   // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
@@ -103,7 +103,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::CreateIndexPlanNode> node,
                                        const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
-                     *(node->GetSchema()));
+                     *(node->GetSchema()), node->GetConcurrent());
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
@@ -139,7 +139,8 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
 
 bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                const catalog::namespace_oid_t ns, const std::string &name,
-                               const catalog::table_oid_t table, const catalog::IndexSchema &input_schema) {
+                               const catalog::table_oid_t table, const catalog::IndexSchema &input_schema,
+                               bool concurrent) {
   // Request permission from the Catalog to see if this a valid namespace and table name
   const auto index_oid = accessor->CreateIndex(ns, table, name, input_schema);
   if (index_oid == catalog::INVALID_INDEX_OID) {
@@ -152,8 +153,21 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
-  bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
-  TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+
+  if (concurrent) {
+    //TODO
+  } else {
+    index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), accessor->GetTransactionContext());
+    index->SetNotLive();
+
+    bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
+    TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+
+    // Now, populate the index
+    index_builder.BulkInsert(index);
+    index->SetLive();
+    accessor->SetIndexLive(index_oid);
+  }
   return true;
 }
 }  // namespace terrier::execution::sql

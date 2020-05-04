@@ -135,6 +135,9 @@ class DatabaseCatalog {
   common::ManagedPointer<storage::SqlTable> GetTable(common::ManagedPointer<transaction::TransactionContext> txn,
                                                      table_oid_t table);
 
+  common::ManagedPointer<std::shared_mutex> GetTableLock(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                         table_oid_t table);
+
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
    * schema as provided by the catalog.  There is no guarantee that the OIDs for
@@ -172,9 +175,11 @@ class DatabaseCatalog {
    * A list of all indexes on the given table
    * @param txn for the operation
    * @param table being queried
+   * @param only_live whether to only get the live indexes
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+  std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn,
+      table_oid_t table, bool only_live = false);
 
   /**
    * Create the catalog entries for a new index.
@@ -187,6 +192,14 @@ class DatabaseCatalog {
    */
   index_oid_t CreateIndex(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                           const std::string &name, table_oid_t table, const IndexSchema &schema);
+
+  /**
+   * Sets an index to be live, after it has been populated.
+   * @param txn for the operation
+   * @param index to be set to live
+   * @return true if the operation succeeded, otherwise false.
+   */
+  bool SetIndexLive(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
 
   /**
    * Delete an index.  Any constraints that utilize this index must be deleted
@@ -378,6 +391,8 @@ class DatabaseCatalog {
    */
   type_oid_t GetTypeOidForType(type::TypeId type);
 
+  bool TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to);
+
  private:
   // TODO(tanujnay112) Add support for other parameters
 
@@ -468,6 +483,8 @@ class DatabaseCatalog {
   storage::index::Index *indexes_oid_index_;
   storage::index::Index *indexes_table_index_;
   storage::ProjectedRowInitializer get_indexes_pri_;
+  storage::ProjectedRowInitializer get_live_indexes_pri_;
+  storage::ProjectionMap get_live_indexes_prm_;
   storage::ProjectedRowInitializer delete_index_pri_;
   storage::ProjectionMap delete_index_prm_;
   storage::ProjectedRowInitializer pg_index_all_cols_pri_;

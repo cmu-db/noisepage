@@ -326,6 +326,10 @@ void DatabaseCatalog::BootstrapPRIs() {
   const std::vector<col_oid_t> get_indexes_oids{postgres::INDOID_COL_OID};
   get_indexes_pri_ = indexes_->InitializerForProjectedRow(get_class_oid_kind_oids);
 
+  const std::vector<col_oid_t> get_live_indexes_oids{postgres::INDOID_COL_OID, postgres::INDISLIVE_COL_OID};
+  get_live_indexes_pri_ = indexes_->InitializerForProjectedRow(get_live_indexes_oids);
+  get_live_indexes_prm_ = indexes_->ProjectionMapForOids(get_live_indexes_oids);
+
   const std::vector<col_oid_t> delete_index_oids{postgres::INDOID_COL_OID, postgres::INDRELID_COL_OID};
   delete_index_pri_ = indexes_->InitializerForProjectedRow(delete_index_oids);
   delete_index_prm_ = indexes_->ProjectionMapForOids(delete_index_oids);
@@ -932,6 +936,11 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
   return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
 }
 
+common::ManagedPointer<std::shared_mutex> DatabaseCatalog::GetTableLock(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                       table_oid_t table) {
+  return common::ManagedPointer(&(GetTable(txn, table)->modify_mutex_));
+}
+
 bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table, const std::string &name) {
   if (!TryLock(txn)) return false;
@@ -964,7 +973,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 }
 
 std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
-    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
+    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, bool only_live) {
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
@@ -977,7 +986,8 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_scan_results;
-  indexes_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
+  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
+  indexes_table_index_->ScanKey(fake_txn, *key_pr, &index_scan_results);
 
   // If we found no indexes, return an empty list
   if (index_scan_results.empty()) {
@@ -987,11 +997,14 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
 
   std::vector<index_oid_t> index_oids;
   index_oids.reserve(index_scan_results.size());
-  auto *select_pr = get_indexes_pri_.InitializeRow(buffer);
+  auto *select_pr = get_live_indexes_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
-    const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
+    const auto result UNUSED_ATTRIBUTE = indexes_->Select(common::ManagedPointer(&fake_txn), slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
-    index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
+    if (!only_live || *(reinterpret_cast<bool *>(select_pr->AccessForceNotNull(
+        get_live_indexes_prm_[postgres::INDISLIVE_COL_OID])))) {
+      index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDOID_COL_OID]))));
+    }
   }
 
   // Finish
@@ -1005,6 +1018,34 @@ index_oid_t DatabaseCatalog::CreateIndex(const common::ManagedPointer<transactio
   if (!TryLock(txn)) return INVALID_INDEX_OID;
   const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
   return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
+}
+
+bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                  index_oid_t index) {
+  if (!TryLock(txn)) return false;
+  const auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
+
+  // Find the entry in pg_index using the oid index
+  std::vector<storage::TupleSlot> index_results;
+  auto *const buffer = common::AllocationUtil::AllocateAligned(index_oid_pr.ProjectedRowSize());
+  auto *key_pr = index_oid_pr.InitializeRow(buffer);
+  *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
+  indexes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  TERRIER_ASSERT(index_results.size() == 1,
+                 "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
+                 "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
+                 "pg_index. Something broke.");
+
+  delete[] buffer;
+
+  auto redo_record = txn->StageWrite(db_oid_, postgres::INDEX_TABLE_OID, get_live_indexes_pri_);
+  auto *table_pr = redo_record->Delta();
+  bool UNUSED_ATTRIBUTE result = indexes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(result, "Index should be visible for this transaction");
+  *(reinterpret_cast<bool *>(table_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDISLIVE_COL_OID]))) = true;
+  redo_record->SetTupleSlot(index_results[0]);
+  indexes_->Update(txn, redo_record);
+  return true;
 }
 
 bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1222,7 +1263,8 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
     const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
-  const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(index));
+  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
+  const auto ptr_pair = GetClassPtrKind(common::ManagedPointer(&fake_txn), static_cast<uint32_t>(index));
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);
@@ -1242,7 +1284,8 @@ index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transactio
 
 const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                    index_oid_t index) {
-  auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(index));
+  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
+  auto ptr_pair = GetClassSchemaPtrKind(common::ManagedPointer(&fake_txn), static_cast<uint32_t>(index));
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
@@ -1550,7 +1593,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   *(reinterpret_cast<bool *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISREADY_COL_OID]))) = true;
   *(reinterpret_cast<bool *>(
-      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = true;
+      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = false;
   *(reinterpret_cast<storage::index::IndexType *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::IND_TYPE_COL_OID]))) = schema.type_;
 
@@ -2140,6 +2183,26 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   col.SetOid(ColOid(col_oid));
   return col;
 }
+
+bool DatabaseCatalog::TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to) {
+  bool locked = TryLock(from);
+  if(!locked) {
+    return false;
+  }
+  const transaction::timestamp_t txn_id = to->FinishTime();
+  auto current_val = write_lock_.load();
+
+  if (write_lock_.compare_exchange_strong(current_val, txn_id)) {
+    // acquired the lock
+    auto *const write_lock = &write_lock_;
+    to->RegisterCommitAction([=]() -> void { write_lock->store(to->FinishTime()); });
+    to->RegisterAbortAction([=]() -> void { write_lock->store(current_val); });
+    return true;
+  }
+
+  return false;
+}
+
 
 bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto current_val = write_lock_.load();

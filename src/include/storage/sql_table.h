@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <shared_mutex>
 
 #include "catalog/schema.h"
 #include "storage/data_table.h"
@@ -40,6 +41,9 @@ class SqlTable {
   };
 
  public:
+
+  std::shared_mutex modify_mutex_;
+
   /**
    * Constructs a new SqlTable with the given Schema, using the given BlockStore as the source
    * of its storage blocks.
@@ -105,6 +109,8 @@ class SqlTable {
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
+
+    //
     const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;

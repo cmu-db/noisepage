@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <vector>
+#include <mutex>
+#include <condition_variable>
 
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
@@ -38,11 +40,14 @@ storage::ProjectedRow *StorageInterface::GetTablePR() {
   storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids_);
   auto txn = exec_ctx_->GetTxn();
   table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
+
   return table_redo_->Delta();
 }
 
 storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_oid) {
   curr_index_ = exec_ctx_->GetAccessor()->GetIndex(index_oid);
+  // Block if the index is not ready
+  curr_index_->WaitUntilLive();
   index_pr_ = curr_index_->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
   return index_pr_;
 }

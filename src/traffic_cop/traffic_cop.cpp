@@ -30,6 +30,7 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
@@ -161,9 +162,22 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
-      if (execution::sql::DDLExecutors::CreateIndexExecutor(
-              physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+      auto create_index_plan = physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>();
+      bool concurrent = create_index_plan->GetConcurrent();
+      if (concurrent) {
+        connection_ctx->Transaction()->SetMustAbort();
+        return {ResultType::ERROR, "ERROR:  CREATE INDEX CONCURRENTLY not implemented"};
+        //TODO
+      } else {
+        auto table_oid = create_index_plan->GetTableOid();
+        auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
+        table_lock->lock();
+        bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
+            physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor());
+        table_lock->unlock();
+        if (result) {
+          return {ResultType::COMPLETE, 0};
+        }
       }
       break;
     }
@@ -316,11 +330,21 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor());
 
-  exec_ctx->SetParams(portal->Parameters());
+  // Block potential inserts on creating indexes
+  std::unordered_set<catalog::table_oid_t> modified_table_oids;
+  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
+  for (const auto table_oid : modified_table_oids) {
+    connection_ctx->Accessor()->GetTableLock(table_oid)->lock_shared();
+  }
 
+  exec_ctx->SetParams(portal->Parameters());
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
   exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+
+  for (const auto table_oid : modified_table_oids) {
+    connection_ctx->Accessor()->GetTableLock(table_oid)->unlock_shared();
+  }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete

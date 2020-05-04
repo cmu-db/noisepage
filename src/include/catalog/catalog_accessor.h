@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <shared_mutex>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
@@ -161,6 +162,8 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
 
+  common::ManagedPointer<std::shared_mutex> GetTableLock(table_oid_t table) const;
+
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
    * schema as provided by the catalog.  There is no guarantee that the OIDs for
@@ -193,7 +196,7 @@ class CatalogAccessor {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
+  std::vector<index_oid_t> GetIndexOids(table_oid_t table, bool only_live = false) const;
 
   /**
    * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
@@ -229,6 +232,13 @@ class CatalogAccessor {
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
   index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema &schema) const;
+
+  /**
+   * Given the index name, set the index to be live in the catalog.
+   * @param index to be set to live
+   * @return whether the operation succeeded
+   */
+  bool SetIndexLive(index_oid_t index) const;
 
   /**
    * Gets the schema that was used to define the index
@@ -360,6 +370,20 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
+ /**
+  *
+  * @return TransactionContext to be used for creating and building an index
+  */
+  common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
+
+  /**
+   * Instantiates a new accessor into for the same catalog with the new txn
+   * @param new_txn the new transaction
+   */
+  CatalogAccessor SetTxn(const common::ManagedPointer<transaction::TransactionContext> new_txn) const {
+    return CatalogAccessor(catalog_, dbc_, new_txn);
+  }
+
   /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
@@ -374,6 +398,11 @@ class CatalogAccessor {
         txn_(txn),
         search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
         default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
+
+
+  bool TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to) {
+    return dbc_->TransferLock(from, to);
+  }
 
  private:
   const common::ManagedPointer<Catalog> catalog_;
