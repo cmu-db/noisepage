@@ -90,17 +90,49 @@ class IndexBuilder {
   * @return index with all the keys inserted
   */
   void BulkInsert(Index *index) const {
-    uint32_t pr_size = index->GetProjectedRowInitializer().ProjectedRowSize();
-    byte *index_pr_buffer = common::AllocationUtil::AllocateAligned(pr_size);
 
-    ProjectedRow *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer);
+    const auto index_pr_initializer = index->GetProjectedRowInitializer();
+
+    const uint32_t index_pr_size = index_pr_initializer.ProjectedRowSize();
+    byte *index_pr_buffer = common::AllocationUtil::AllocateAligned(index_pr_size);
+
+    ProjectedRow *index_pr = index_pr_initializer.InitializeRow(index_pr_buffer);
+
+    const auto &indexed_attributes = key_schema_.GetIndexedColOids();
+    const auto table_pr_initializer = sql_table_->InitializerForProjectedRow(indexed_attributes);
+
+    const uint32_t table_pr_size = table_pr_initializer.ProjectedRowSize();
+    byte *table_pr_buffer = common::AllocationUtil::AllocateAligned(table_pr_size);
+
+    ProjectedRow *table_pr = table_pr_initializer.InitializeRow(table_pr_buffer);
+
+    auto pr_map = sql_table_->ProjectionMapForOids(indexed_attributes);
 
     for (auto it = sql_table_->begin(); it != sql_table_->end(); ++it) {
       const TupleSlot slot = *it;
-      index->Insert(txn_, *index_pr, slot);
+      bool result = sql_table_->Select(txn_, slot, table_pr);
+      if (result) {
+        // Copy in each value from the table PR into the index PR
+        auto num_index_cols = key_schema_.GetColumns().size();
+        TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
+        for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
+          const auto &col = key_schema_.GetColumn(col_idx);
+          auto index_col_oid = col.Oid();
+          const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
+          if (table_pr->IsNull(pr_map[table_col_oid])) {
+            index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
+          } else {
+            auto size = AttrSizeBytes(col.AttrSize());
+            std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
+                        table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
+          }
+        }
+        index->Insert(txn_, *index_pr, slot);
+      }
     }
 
     delete[] index_pr_buffer;
+    delete[] table_pr_buffer;
   }
 
  private:

@@ -119,8 +119,10 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   auto index_build_txn = txn_manager_->BeginTransaction();
 
-  auto index = (IndexBuilder().SetKeySchema(index_schema_).SetSqlTableAndTransactionContext(common::ManagedPointer(sql_table_),
-      common::ManagedPointer(index_build_txn)).Build());
+  auto index_builder = IndexBuilder().SetKeySchema(index_schema_).SetSqlTableAndTransactionContext(common::ManagedPointer(sql_table_), common::ManagedPointer(index_build_txn));
+  auto index = index_builder.Build();
+  index_builder.BulkInsert(index);
+
 
   txn_manager_->Commit(index_build_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
