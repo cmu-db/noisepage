@@ -298,4 +298,64 @@ EXPECT_TRUE(false);
 }
 }
 
+TEST_F(ConstraintStatementTest, EnforceFKTest) {
+try {
+pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                        port_, catalog::DEFAULT_DATABASE));
+
+pqxx::work txn1(connection);
+txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
+txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT references TableA(id));");
+txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk2 INT references TableB(fk1));");
+txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
+pqxx::result r = txn1.exec("SELECT * FROM TableA");
+EXPECT_EQ(r.size(), 1);
+r = txn1.exec("SELECT * FROM pg_constraint");
+EXPECT_EQ(r.size(), 5);
+r = txn1.exec("SELECT * FROM TableA");
+EXPECT_EQ(r.size(), 1);
+r = txn1.exec("SELECT * FROM TableB");
+EXPECT_EQ(r.size(), 0);
+txn1.exec("INSERT INTO TableB VALUES (1, 'abc', 1);");
+r = txn1.exec("SELECT * FROM TableB");
+EXPECT_EQ(r.size(), 1);
+txn1.exec("INSERT INTO TableC VALUES (1, 'abc', 1);");
+r = txn1.exec("SELECT * FROM TableC");
+EXPECT_EQ(r.size(), 1);
+std::cerr << "till end\n";
+txn1.commit();
+connection.disconnect();
+} catch (const std::exception &e) {
+EXPECT_TRUE(false);
+std::cerr << e.what();
+}
+}
+
+TEST_F(ConstraintStatementTest, EnforcePKTest) {
+try {
+pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                        port_, catalog::DEFAULT_DATABASE));
+
+pqxx::work txn1(connection);
+txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
+txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
+pqxx::result r = txn1.exec("SELECT * FROM TableA");
+EXPECT_EQ(r.size(), 1);
+r = txn1.exec("SELECT * FROM pg_constraint");
+EXPECT_EQ(r.size(), 1);
+//txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
+r = txn1.exec("SELECT * FROM TableA");
+EXPECT_EQ(r.size(), 1);
+txn1.exec("INSERT INTO TableA VALUES (2, 'abc');");
+r = txn1.exec("SELECT * FROM TableA");
+EXPECT_EQ(r.size(), 2);
+std::cerr << "till end\n";
+txn1.commit();
+connection.disconnect();
+} catch (const std::exception &e) {
+EXPECT_TRUE(false);
+std::cerr << e.what();
+}
+}
+
 }  // namespace terrier::trafficcop
