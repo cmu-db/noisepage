@@ -205,12 +205,12 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
     } else {
       if (buffered_record->RecordType() == LogRecordType::REDO) {
         auto staged_record = txn->StageRecoveryWrite(buffered_record);
-        if (IsCatalogTable(staged_record->GetTableOid())) {
+        if ((uint32_t)(staged_record->GetTableOid()) < catalog::START_OID) {
           ReplayRedoRecord(txn, buffered_record);
         }
       } else {
         auto delete_record = buffered_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
-        if (IsCatalogTable(delete_record->GetTableOid())) {
+        if ((uint32_t)(delete_record->GetTableOid()) < catalog::START_OID) {
           ReplayDeleteRecord(txn, buffered_record);
         }
       }
@@ -223,14 +223,6 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
 
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-}
-
-bool RecoveryManager::IsCatalogTable(catalog::table_oid_t table_oid) {
-  return !table_oid == !catalog::postgres::DATABASE_TABLE_OID ||
-         !table_oid == !catalog::postgres::NAMESPACE_TABLE_OID || !table_oid == !catalog::postgres::CLASS_TABLE_OID ||
-         !table_oid == !catalog::postgres::COLUMN_TABLE_OID || !table_oid == !catalog::postgres::CONSTRAINT_TABLE_OID ||
-         !table_oid == !catalog::postgres::INDEX_TABLE_OID || !table_oid == !catalog::postgres::TYPE_TABLE_OID ||
-         !table_oid == !catalog::postgres::LANGUAGE_TABLE_OID || !table_oid == !catalog::postgres::PRO_TABLE_OID;
 }
 
 void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_id, bool delete_varlens) {

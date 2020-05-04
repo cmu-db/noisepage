@@ -181,12 +181,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   void ProcessCommittedTransaction(transaction::timestamp_t txn_id, bool catalog_only = false);
 
   /**
-   * @brief Return true only iff the table is a catalog table.
-   * @param table_oid the table oid to be examined.
-   */
-  bool IsCatalogTable(catalog::table_oid_t table_oid);
-
-  /**
    * Defers log records deletes with the transaction manager
    * @param txn_id txn_id for txn who's records to delete
    * @param delete_varlens true if we should delete varlens allocated for txn

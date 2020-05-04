@@ -62,8 +62,7 @@ table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns, std::string name) c
 
 table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, std::string name, const Schema &schema) const {
   NormalizeObjectName(&name);
-  auto oid = dbc_->CreateTable(txn_, ns, name, schema);
-  return oid;
+  return oid = dbc_->CreateTable(txn_, ns, name, schema);
 }
 
 bool CatalogAccessor::RenameTable(table_oid_t table, std::string new_table_name) const {
@@ -72,8 +71,7 @@ bool CatalogAccessor::RenameTable(table_oid_t table, std::string new_table_name)
 }
 
 bool CatalogAccessor::DropTable(table_oid_t table) const {
-  auto success = dbc_->DeleteTable(txn_, table);
-  return success;
+  return success = dbc_->DeleteTable(txn_, table);
 }
 
 bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *table_ptr) const {
