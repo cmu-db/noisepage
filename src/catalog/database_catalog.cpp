@@ -1079,7 +1079,11 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
         con_rel, con_index, con_col_str);
     bool verify_res = true;
     // fill metadata depending on the type of the constraint
-    if(con_obj.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
+    if (con_obj.contype_ == postgres::ConstraintType::UNIQUE ||
+        con_obj.contype_ == postgres::ConstraintType::PRIMARY_KEY) {
+      verify_res = VerifyUniquePKConstraint(txn, con_obj, pr);
+    }
+    else if(con_obj.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
         std::vector<constraint_oid_t> con_ids = SpaceSeparatedOidToVector<constraint_oid_t>(confrel_str);
         auto fk_index_pri = fk_constraints_oid_index_->GetProjectedRowInitializer();
         for (constraint_oid_t fk_id : con_ids) {
@@ -1137,6 +1141,7 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
         con_obj.AddExclusionConstraintMetadata(con_exclusion);
         verify_res = VerifyExclusionConstraint(con_obj);
       }
+
     if (!verify_res) {
       delete[] child_buffer;
       delete[] buffer;
@@ -1147,6 +1152,45 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
   delete[] buffer;
   return true;
 }
+
+void DatabaseCatalog::CopyColumnData(storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr,
+                                     std::vector<col_oid_t> col_vec, const Schema &schema) {
+  auto col_offset_map = ColToOffsetMap(schema);
+  for (uint16_t col_index = 0; col_index < col_vec.size(); col_index ++) {
+    auto index_pr_index = col_index; // idx of the pr for index retrieval
+    auto table_pr_index = col_offset_map[col_vec[col_index]]; // index to get the data from pr
+    auto *const index_ptr = index_pr->AccessForceNotNull(index_pr_index);
+    auto *const pr_ptr = table_pr->AccessForceNotNull(table_pr_index);
+    const auto &table_col = schema.GetColumn(table_pr_index);
+    if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+      std::memcpy(index_ptr, pr_ptr, table_col.MaxVarlenSize());
+    } else {
+      std::memcpy(index_ptr, pr_ptr, type::TypeUtil::GetTypeSize(table_col.Type()));
+    }
+  }
+}
+
+bool DatabaseCatalog::VerifyUniquePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
+    const PG_Constraint &con_obj,
+    storage::ProjectedRow *pr) {
+  const Schema &table_schema = GetSchema(txn, con_obj.conrelid_);
+  TERRIER_ASSERT(con_obj.concol_.size() > 0, "UNIQUE and PK constraint should always have affecting column");
+  common::ManagedPointer<storage::index::Index> index = GetIndex(txn, con_obj.conindid_);
+  const auto pri = index->GetProjectedRowInitializer();
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
+  auto *key_pr = pri.InitializeRow(buffer);
+  CopyColumnData(pr, key_pr, con_obj.concol_, table_schema);
+  std::vector<storage::TupleSlot> index_scan_results;
+  index->ScanKey(*txn, *key_pr, &index_scan_results);
+  // set the index projected row from source projected row
+  if (index_scan_results.empty()) {
+    delete[] buffer;
+    return false;
+  }
+  delete[] buffer;
+  return true;
+}
+
 bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                          const PG_Constraint &con_obj, storage::ProjectedRow *pr) {
   // get the index of the constraint
@@ -1160,19 +1204,7 @@ bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::Tra
   auto *key_pr = ref_index_pri.InitializeRow(buffer);
   TERRIER_ASSERT(con_obj.fkMetadata_.fk_srcs_.size() == con_obj.fkMetadata_.fk_refs_.size(),
                   "Src and Ref should have the same amound of column");
-  auto col_offset_map = ColToOffsetMap(ref_table_schema);
-  for (uint16_t col_index = 0; col_index < con_obj.fkMetadata_.fk_srcs_.size(); col_index ++) {
-    auto fk_pr_index = col_index; // idx of the pr for index retrieval
-    auto table_pr_index = col_offset_map[con_obj.fkMetadata_.fk_refs_[col_index]]; // index to get the data from pr
-    auto *const index_ptr = key_pr->AccessForceNotNull(fk_pr_index);
-    auto *const pr_ptr = pr->AccessForceNotNull(table_pr_index);
-    const auto &table_col = ref_table_schema.GetColumn(table_pr_index);
-    if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
-      std::memcpy(index_ptr, pr_ptr, table_col.MaxVarlenSize());
-    } else {
-      std::memcpy(index_ptr, pr_ptr, type::TypeUtil::GetTypeSize(table_col.Type()));
-    }
-  }
+  CopyColumnData(pr, key_pr, con_obj.fkMetadata_.fk_refs_, ref_table_schema);
   std::vector<storage::TupleSlot> index_scan_results;
   ref_table_index->ScanKey(*txn, *key_pr, &index_scan_results);
   // set the index projected row from source projected row
