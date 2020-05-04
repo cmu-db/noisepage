@@ -49,9 +49,6 @@ class SqlTable {
    */
   SqlTable(common::ManagedPointer<BlockStore> store, const catalog::Schema &schema);
 
-  SqlTable(common::ManagedPointer<BlockStore> store, const catalog::Schema &schema,
-           const std::list<RawBlock *> &blocks);
-
   /**
    * Destructs a SqlTable, frees all its members.
    */
