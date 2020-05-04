@@ -21,7 +21,7 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
-
+#include "common/worker_pool.h"
 // Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
 // executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive
 // you nuts...
@@ -823,8 +823,11 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   for (auto &database : tested->GetTables()) {
     db = database.first;
   }
+  // initalize threads for checkpoint
+  uint32_t num_threads = 4u;
+  common::WorkerPool thread_pool_{num_threads, {}};
 
-  ckpt.TakeCheckpoint(ckpt_path, db, LOG_FILE_NAME);
+  ckpt.TakeCheckpoint(ckpt_path, db, LOG_FILE_NAME, num_threads, &thread_pool_);
 
   //TODO(xuanxuan): check if the file is deleted, uncomment later
 //  std::ifstream ifile(LOG_FILE_NAME);

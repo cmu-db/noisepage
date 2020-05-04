@@ -13,6 +13,7 @@
 #include "catalog/postgres/pg_index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
+#include "common/worker_pool.h"
 
 namespace terrier::storage {
 
@@ -41,11 +42,14 @@ class Checkpoint {
 
   /**
    * Take checkpoint of a database
-   * @tparam path the path on disk to save the checkpoint
+   * @param path the path on disk to save the checkpoint
    * @param db the database to take the checkpoint of
+   * @param num_threads the number of threads used for thread_pool
+   * @param thread_pool_ the thread pool used for checkpoint taking
    * @return True if succuessully take the checkpoint, False otherwise
    */
-  bool TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file);
+  bool TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file, uint32_t num_threads,
+      common::WorkerPool *thread_pool_);
 
   /**
    * Generate a file name for a table
@@ -57,6 +61,13 @@ class Checkpoint {
     return std::to_string((uint32_t)db_oid) + "-" + std::to_string((uint32_t)tb_oid);
   }
 
+  /**
+   * Get the db_oid and tb_oit from the file name
+   * @param file_name the name of the checkpoint file
+   * @param db_oid the oid of the database the table belongs to
+   * @param tb_oid the oid of the table
+   * @return a file name in the format db_oid-tb_oid.txt
+   */
   static void GenOidFromFileName(std::string file_name, catalog::db_oid_t &db_oid, catalog::table_oid_t &tb_oid) {
     auto sep_ind = file_name.find("-");
     db_oid = (catalog::db_oid_t)std::stoi(file_name.substr(0, sep_ind));
@@ -89,7 +100,6 @@ class Checkpoint {
  private:
   // Catalog to fetch table pointers
   const common::ManagedPointer<catalog::Catalog> catalog_;
-  //  const common::ManagedPointer<BlockStore> block_store_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
   common::ManagedPointer<storage::GarbageCollector> gc_;
@@ -100,7 +110,7 @@ class Checkpoint {
 
   /**
    * Write the data of a database to disk in parallel, called by TakeCheckpoint()
-   * @tparam path the path on disk to save the checkpoint
+   * @param path the path on disk to save the checkpoint
    * @param accessor catalog accessor of the given database
    * @param db_oid the databse to be checkpointed
    * @return None
