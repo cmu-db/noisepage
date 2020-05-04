@@ -47,14 +47,14 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
   auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
 
   auto block_store = db_main->GetStorageLayer()->GetBlockStore();
-  auto catalog_ = db_main->GetCatalogLayer()->GetCatalog();
+  auto catalog = db_main->GetCatalogLayer()->GetCatalog();
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
 
   auto test_txn = txn_manager->BeginTransaction();
 
   // Create catalog and test namespace
-  auto test_db_oid = catalog_->CreateDatabase(common::ManagedPointer(test_txn), "test_db", true);
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(test_txn), test_db_oid);
+  auto test_db_oid = catalog->CreateDatabase(common::ManagedPointer(test_txn), "test_db", true);
+  auto accessor = catalog->GetAccessor(common::ManagedPointer(test_txn), test_db_oid);
   auto test_ns_oid = accessor->GetDefaultNamespace();
   auto exe_ctx = std::make_unique<execution::exec::ExecutionContext>(
       test_db_oid, common::ManagedPointer(test_txn), nullptr, nullptr, common::ManagedPointer(accessor));
@@ -94,6 +94,7 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
       execution::sql::TableVectorIterator::ParallelScan(static_cast<uint32_t>(table_oid),  // ID of table to scan
                                                         col_oids,  // Query state to pass to scan threads
                                                         2,         // Container for thread states
+                                                        nullptr,   // Query state
                                                         scanner,   // Scan function
                                                         exe_ctx.get());
     }
@@ -109,20 +110,20 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) 
   auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
 
   auto block_store = db_main->GetStorageLayer()->GetBlockStore();
-  auto catalog_ = db_main->GetCatalogLayer()->GetCatalog();
+  auto catalog = db_main->GetCatalogLayer()->GetCatalog();
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
 
   auto test_txn = txn_manager->BeginTransaction();
 
   // Create catalog and test namespace
-  auto test_db_oid = catalog_->CreateDatabase(common::ManagedPointer(test_txn), "test_db", true);
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(test_txn), test_db_oid);
+  auto test_db_oid = catalog->CreateDatabase(common::ManagedPointer(test_txn), "test_db", true);
+  auto accessor = catalog->GetAccessor(common::ManagedPointer(test_txn), test_db_oid);
   auto test_ns_oid = accessor->GetDefaultNamespace();
-  auto exe_ctx_ = std::make_unique<execution::exec::ExecutionContext>(
+  auto exe_ctx = std::make_unique<execution::exec::ExecutionContext>(
       test_db_oid, common::ManagedPointer(test_txn), nullptr, nullptr, common::ManagedPointer(accessor));
-  execution::sql::TableGenerator table_generator{exe_ctx_.get(), block_store, test_ns_oid};
+  execution::sql::TableGenerator table_generator{exe_ctx.get(), block_store, test_ns_oid};
   table_generator.GenerateBenchmarkTables(false, num_row);
-  auto table_oid = exe_ctx_->GetAccessor()->GetTableOid(test_ns_oid, "benchmark_1");
+  auto table_oid = exe_ctx->GetAccessor()->GetTableOid(test_ns_oid, "benchmark_1");
   auto table_schema = accessor->GetSchema(table_oid);
   execution::compiler::ExpressionMaker expr_maker;
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;

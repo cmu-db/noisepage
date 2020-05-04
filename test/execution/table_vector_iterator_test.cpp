@@ -142,7 +142,7 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
 
   // Scan function just counts all tuples it sees
   auto scanner = [](void *state, void *tls, TableVectorIterator *tvi) {
-    auto *counter = reinterpret_cast<Counter *>(tls);
+    auto *counter = reinterpret_cast<Counter *>(state);
     while (tvi->Advance()) {
       for (auto *pci = tvi->GetProjectedColumnsIterator(); pci->HasNext(); pci->Advance()) {
         counter->c_++;
@@ -150,16 +150,18 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
     }
   };
 
+  uint32_t col_oids[] = {1};
   // Setup thread states
-  ThreadStateContainer thread_state_container(exec_ctx_->GetMemoryPool());
+  ThreadStateContainer thread_state_container(common::ManagedPointer<MemoryPool>(exec_ctx_->GetMemoryPool()));
   thread_state_container.Reset(sizeof(Counter),  // The type of each thread state structure
                                init_count,       // The thread state initialization function
                                nullptr,          // The thread state destruction function
                                nullptr);         // Context passed to init/destroy functions
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   TableVectorIterator::ParallelScan(static_cast<uint32_t>(table_oid),  // ID of table to scan
-                                    nullptr,                           // Query state to pass to scan threads
-                                    &thread_state_container,           // Container for thread states
+                                    col_oids,
+                                    1,                                 // Query state to pass to scan threads
+                                    thread_state_container.AccessThreadStateOfCurrentThread(),  // Thread states
                                     scanner,                           // Scan function
                                     exec_ctx_.get());
 

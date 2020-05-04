@@ -8,8 +8,8 @@ namespace terrier::execution::exec {
 
 OutputBuffer::~OutputBuffer() {
   memory_pool_->Deallocate(num_tuples_, MAX_THREAD_SIZE * sizeof(uint32_t));
-  for (auto it = buffer_map_.begin(); it != buffer_map_.end(); it++) {
-    memory_pool_->Deallocate(it->second.second, BATCH_SIZE * tuple_size_);
+  for (auto &it : buffer_map_) {
+    memory_pool_->Deallocate(it.second.second, BATCH_SIZE * tuple_size_);
   }
   // memory_pool_->Deallocate(tuples_, BATCH_SIZE * tuple_size_); }
 }

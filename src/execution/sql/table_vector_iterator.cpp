@@ -102,7 +102,7 @@ class ScanTask {
 }  // namespace
 
 bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
-                                       void *const query_state, const ScanFn scan_fn,
+                                       void *query_state, const ScanFn scan_fn,
                                        exec::ExecutionContext *exec_ctx) {
   // Lookup table
   common::ManagedPointer<storage::SqlTable> table =
