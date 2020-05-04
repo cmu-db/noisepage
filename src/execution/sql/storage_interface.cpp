@@ -55,6 +55,14 @@ bool StorageInterface::VerifyTableInsertConstraint() {
   return db_accessor_->VerifyTableInsertConstraint(table_oid_, pr);
 }
 
+bool StorageInterface::UpdateCascade(storage::TupleSlot table_tuple_slot) {
+  return db_accessor_->UpdateCascade(table_oid_, table_tuple_slot);
+}
+
+bool StorageInterface::DeleteCascade(storage::TupleSlot table_tuple_slot) {
+  return db_accessor_->UpdateCascade(table_oid_, table_tuple_slot);
+}
+
 storage::TupleSlot StorageInterface::TableInsert() { return table_->Insert(exec_ctx_->GetTxn(), table_redo_); }
 
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {

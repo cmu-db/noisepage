@@ -54,4 +54,5 @@ enum class ConstraintType : char {
 // the delimiter for making oid array into varchar for storage
 const char VARCHAR_ARRAY_DELIMITER = ' ';
 const std::string VARCHAR_ARRAY_DELIMITER_STRING = " ";
+
 }  // namespace terrier::catalog::postgres

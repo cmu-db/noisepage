@@ -808,6 +808,10 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
     return false;
   }
 
+  if (!DeleteConstraints(txn, table)) {
+    delete[] buffer;
+    return false;
+  }
   DeleteIndexes(txn, table);
 
   // Get the attributes we need for indexes
@@ -997,6 +1001,11 @@ std::vector<OidType> DatabaseCatalog::SpaceSeparatedOidToVector (std::string s) 
 
 std::string DatabaseCatalog::VarlentoString(const storage::VarlenEntry &entry) {
   return std::string(reinterpret_cast<const char *const>(entry.Content()), entry.Size());
+}
+// recursively find child and make cascade update if satisfied
+bool DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table, storage::TupleSlot table_tuple_slot, const char cascade_type) {
+  // find all the constraints from fk_constraint that set current table as reference
+  return true;
 }
 
 bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, storage::ProjectedRow *pr) {
@@ -1201,7 +1210,7 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<tran
 
 constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer<transaction::TransactionContext> txn,
                                                      namespace_oid_t ns, table_oid_t table, constraint_oid_t constraint_oid, const std::string &name,
-                                                     index_oid_t index, std::vector<col_oid_t> &pk_cols) {
+                                                     index_oid_t index, const std::vector<col_oid_t> &pk_cols) {
 //  if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
   std::cerr << "start creating PK\n";
 //  const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
@@ -1244,7 +1253,7 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer
 
   const auto con_indid_oid_offset = pg_constraints_all_cols_prm_[postgres::CONINDID_COL_OID];
   auto *const con_indid_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_indid_oid_offset);
-  *(reinterpret_cast<index_oid_t *>(con_indid_oid_ptr)) = index;
+  *(reinterpret_cast<index_oid_t *>(con_indid_oid_ptr)) = sink_index;
 
   const auto con_fkrel_oid_offset = pg_constraints_all_cols_prm_[postgres::CONFRELID_COL_OID];
   auto *const con_fkrel_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_fkrel_oid_offset);
@@ -1255,8 +1264,10 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer
   auto *const con_col_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_col_oid_offset);
   *(reinterpret_cast<storage::VarlenEntry *>(con_col_oid_ptr)) = storage::StorageUtil::CreateVarlen(" ");
 
+  // store the self constraint index
   const auto con_check_offset = pg_constraints_all_cols_prm_[postgres::CONCHECK_COL_OID];
-  constraints_insert_pr->SetNull(con_check_offset);
+  auto *const con_check_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_check_offset);
+  *(reinterpret_cast<index_oid_t *>(con_check_oid_ptr)) = src_index;
 
   const auto con_exclu_offset = pg_constraints_all_cols_prm_[postgres::CONEXCLUSION_COL_OID];
   constraints_insert_pr->SetNull(con_exclu_offset);
@@ -1272,8 +1283,8 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer
   const auto con_oid_index_pr = constraints_oid_index_->GetProjectedRowInitializer();
   const auto con_name_index_pr = constraints_name_index_->GetProjectedRowInitializer();
   const auto con_namespace_index_pr = constraints_namespace_index_->GetProjectedRowInitializer();
-  const auto con_table_index_pr = constraints_name_index_->GetProjectedRowInitializer();
-  const auto con_index_index_pr = constraints_name_index_->GetProjectedRowInitializer();
+  const auto con_table_index_pr = constraints_table_index_->GetProjectedRowInitializer();
+  const auto con_index_index_pr = constraints_index_index_->GetProjectedRowInitializer();
   auto *index_buffer = common::AllocationUtil::AllocateAligned(con_name_index_pr.ProjectedRowSize());
   // Insert into indexes_oid_index
   auto *index_pr = con_oid_index_pr.InitializeRow(index_buffer);
@@ -1308,11 +1319,12 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraintEntry(common::ManagedPointer
   }
 
   index_pr = con_index_index_pr.InitializeRow(index_buffer);
-  *(reinterpret_cast<index_oid_t *>(index_pr->AccessForceNotNull(0))) = index;
+  *(reinterpret_cast<index_oid_t *>(index_pr->AccessForceNotNull(0))) = src_index;
   if (!constraints_index_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
     delete[] index_buffer;
     return INVALID_CONSTRAINT_OID;
   }
+  delete[] index_buffer;
   return constraint_oid;
 }
 std::vector<constraint_oid_t> DatabaseCatalog::CreateFKConstraintInFKTable(
@@ -1368,7 +1380,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::CreateFKConstraintInFKTable(
     *(reinterpret_cast<postgres::FKActionType *>(con_ptr)) = delete_action;
 
     // Insert into pg_constraint table
-    const auto constraint_tuple_slot = constraints_->Insert(txn, constraints_insert_redo);
+    const auto constraint_tuple_slot = fk_constraints_->Insert(txn, constraints_insert_redo);
 
     // Now insert into the indexes on pg_constraint
     // Get PR initializers and allocate a buffer from the largest one
@@ -1395,14 +1407,14 @@ std::vector<constraint_oid_t> DatabaseCatalog::CreateFKConstraintInFKTable(
     }
 
     index_pr = con_src_index_pr.InitializeRow(index_buffer);
-    *(reinterpret_cast<col_oid_t *>(index_pr->AccessForceNotNull(0))) = src;
+    *(reinterpret_cast<table_oid_t *>(index_pr->AccessForceNotNull(0))) = src_table;
     if (!fk_constraints_src_table_oid_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
       delete[] index_buffer;
       return res;
     }
 
     index_pr = con_ref_index_pr.InitializeRow(index_buffer);
-    *(reinterpret_cast<col_oid_t *>(index_pr->AccessForceNotNull(0))) = sink;
+    *(reinterpret_cast<table_oid_t *>(index_pr->AccessForceNotNull(0))) = sink_table;
     if (!fk_constraints_ref_table_oid_index_->Insert(txn, *index_pr, constraint_tuple_slot)) {
       delete[] index_buffer;
       return res;
@@ -1620,12 +1632,16 @@ bool DatabaseCatalog::DeleteConstraint(const common::ManagedPointer<transaction:
   // Delete from pg_index table
   txn->StageDelete(db_oid_, postgres::CONSTRAINT_TABLE_OID, con_results[0]);
   result = constraints_->Delete(txn, con_results[0]);
-  TERRIER_ASSERT(result, "Delete from pg_constraint should always succeed");
+  if (!result) {
+    // write-write conflict. Someone beat us to this operation.
+    delete[] buffer;
+    return false;
+  }
 
   // Get the needed attributes for deleting from index
   auto con_name = *(reinterpret_cast<const storage::VarlenEntry *const>(
       all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONNAME_COL_OID])));
-  auto con_namespace = *(reinterpret_cast<const storage::VarlenEntry *const>(
+  auto con_namespace = *(reinterpret_cast<const namespace_oid_t *const>(
       all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONNAMESPACE_COL_OID])));
   auto con_table = *(reinterpret_cast<const table_oid_t *const>(
       all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONRELID_COL_OID])));
@@ -1640,7 +1656,7 @@ bool DatabaseCatalog::DeleteConstraint(const common::ManagedPointer<transaction:
       all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONEXCLUSION_COL_OID])));
   auto con_type = *(reinterpret_cast<const postgres::ConstraintType *const>(
       all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONTYPE_COL_OID])));
-  // delete child table entries first
+   //delete child table entries first
   switch (con_type) {
     case (postgres::ConstraintType::CHECK):
       if (!DeleteCheckConstraint(txn, con_table, constraint, con_check)) {
@@ -1672,11 +1688,12 @@ bool DatabaseCatalog::DeleteConstraint(const common::ManagedPointer<transaction:
   // Delete from constraints_name_index_
   index_pr = con_name_pr.InitializeRow(buffer);
   *(reinterpret_cast<storage::VarlenEntry *const>(index_pr->AccessForceNotNull(0))) = con_name;
+  *(reinterpret_cast<namespace_oid_t *const>(index_pr->AccessForceNotNull(1))) = con_namespace;
   constraints_name_index_->Delete(txn, *index_pr, con_results[0]);
 
   // Delete from constraints_namespace_index_
   index_pr = con_namespace_pr.InitializeRow(buffer);
-  *(reinterpret_cast<storage::VarlenEntry *const>(index_pr->AccessForceNotNull(0))) = con_namespace;
+  *(reinterpret_cast<namespace_oid_t *const>(index_pr->AccessForceNotNull(0))) = con_namespace;
   constraints_namespace_index_->Delete(txn, *index_pr, con_results[0]);
 
   // Delete from constraints_table_index_
@@ -1727,16 +1744,32 @@ bool DatabaseCatalog::DeleteFKConstraint(const common::ManagedPointer<transactio
     // Get the needed attributes for deleting from index
     auto fk_con_id = *(reinterpret_cast<const constraint_oid_t *const>(
         all_col_pr->AccessForceNotNull(pg_fk_constraints_all_cols_prm_[postgres::FKID_COL_OID])));
+    auto src_table_oid = *(reinterpret_cast<const table_oid_t *const>(
+        all_col_pr->AccessForceNotNull(pg_fk_constraints_all_cols_prm_[postgres::FKSRCTABLE_COL_OID])));
+    auto ref_table_oid = *(reinterpret_cast<const table_oid_t *const>(
+        all_col_pr->AccessForceNotNull(pg_fk_constraints_all_cols_prm_[postgres::FKREFTABLE_COL_OID])));
 
     // Delete from fk_constraints_oid_index_
-    auto index_pr = con_oid_pr.InitializeRow(buffer);
+    const auto fk_id_pri = fk_constraints_oid_index_->GetProjectedRowInitializer();
+    auto index_pr = fk_id_pri.InitializeRow(buffer);
     *(reinterpret_cast<constraint_oid_t *const>(index_pr->AccessForceNotNull(0))) = fk_con_id;
     fk_constraints_oid_index_->Delete(txn, *index_pr, con_results[i]);
 
     // Delete from fk_constraints_constraint_oid_index_
-    index_pr = con_oid_pr.InitializeRow(buffer);
+    const auto fk_con_con_pri = fk_constraints_constraint_oid_index_->GetProjectedRowInitializer();
+    index_pr = fk_con_con_pri.InitializeRow(buffer);
     *(reinterpret_cast<constraint_oid_t *const>(index_pr->AccessForceNotNull(0))) = constraint;
     fk_constraints_constraint_oid_index_->Delete(txn, *index_pr, con_results[i]);
+
+    const auto fk_src_pri = fk_constraints_src_table_oid_index_->GetProjectedRowInitializer();
+    index_pr = fk_src_pri.InitializeRow(buffer);
+    *(reinterpret_cast<table_oid_t *const>(index_pr->AccessForceNotNull(0))) = src_table_oid;
+    fk_constraints_src_table_oid_index_->Delete(txn, *index_pr, con_results[i]);
+
+    const auto fk_ref_pri = fk_constraints_ref_table_oid_index_->GetProjectedRowInitializer();
+    index_pr = fk_ref_pri.InitializeRow(buffer);
+    *(reinterpret_cast<table_oid_t *const>(index_pr->AccessForceNotNull(0))) = ref_table_oid;
+    fk_constraints_ref_table_oid_index_->Delete(txn, *index_pr, con_results[i]);
   }
 
   delete[] buffer;

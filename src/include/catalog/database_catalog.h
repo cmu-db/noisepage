@@ -185,6 +185,7 @@ class DatabaseCatalog {
   std::unordered_map<col_oid_t, uint16_t> ColToOffsetMap(const Schema &schema);
   bool VerifyExclusionConstraint(const PG_Constraint &con_obj);
   bool VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, storage::ProjectedRow *pr);
+  bool FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table, storage::TupleSlot table_tuple_slot, const char cascade_type);
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t table, const std::string &name, index_oid_t index,
                                       const std::vector<col_oid_t> &pk_cols);
@@ -193,7 +194,7 @@ class DatabaseCatalog {
                                                             index_oid_t index, const std::vector<col_oid_t> &pk_cols);
   constraint_oid_t CreateFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t src_table, table_oid_t sink_table, const std::string &name,
-                                      index_oid_t index, const std::vector<col_oid_t> &src_cols,
+                                      index_oid_t src_index, index_oid_t sink_index, const std::vector<col_oid_t> &src_cols,
                                       const std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
                                       postgres::FKActionType delete_action);
   constraint_oid_t CreateUNIQUEConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
