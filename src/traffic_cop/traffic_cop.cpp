@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
@@ -15,8 +16,17 @@
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
+#include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
+#include "network/postgres/statement.h"
+#include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/operator_node.h"
+#include "optimizer/optimizer.h"
+#include "optimizer/properties.h"
+#include "optimizer/property_set.h"
+#include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -70,6 +80,7 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                             const bool explicit_txn_block,
                                              const terrier::network::QueryType query_type) const {
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_COMMIT || query_type == network::QueryType::QUERY_ROLLBACK ||
                      query_type == network::QueryType::QUERY_BEGIN,
@@ -78,15 +89,14 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
     case network::QueryType::QUERY_BEGIN: {
       TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::FAIL,
                      "We're in an aborted state. This should have been caught already before calling this function.");
-      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+      if (explicit_txn_block) {
         out->WriteNoticeResponse("WARNING:  there is already a transaction in progress");
         break;
       }
-      BeginTransaction(connection_ctx);
       break;
     }
     case network::QueryType::QUERY_COMMIT: {
-      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE) {
+      if (!explicit_txn_block) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
         break;
       }
@@ -99,7 +109,7 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       break;
     }
     case network::QueryType::QUERY_ROLLBACK: {
-      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE) {
+      if (!explicit_txn_block) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
         break;
       }
@@ -112,11 +122,23 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
   out->WriteCommandComplete(query_type, 0);
 }
 
-void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                        const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                        const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                        const terrier::network::QueryType query_type,
-                                        const bool single_statement_txn) const {
+std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<parser::ParseResult> query) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
+
+  return TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), query,
+                                  connection_ctx->GetDatabaseOid(), stats_storage_,
+                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
+}
+
+TrafficCopResult TrafficCop::ExecuteCreateStatement(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+    const terrier::network::QueryType query_type) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
@@ -127,21 +149,14 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
       if (execution::sql::DDLExecutors::CreateTableExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_DB: {
-      if (!single_statement_txn) {
-        out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
-        connection_ctx->Transaction()->SetMustAbort();
-        return;
-      }
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
@@ -152,10 +167,9 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
               common::ManagedPointer(populate_txn))) {
         if (populate_txn->MustAbort()) {
-          out->WriteErrorResponse("ERROR:  failed to execute CREATE INDEX");
           connection_ctx->Transaction()->SetMustAbort();
           txn_manager_->Abort(populate_txn);
-          return;
+          return {ResultType::ERROR, "ERROR:  failed to execute CREATE INDEX"};
         }
         // Set up a blocking callback to wait for the populate txn to finish
         std::promise<bool> promise;
@@ -163,33 +177,31 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
         TERRIER_ASSERT(future.valid(), "future must be valid for synchronization to work.");
         txn_manager_->Commit(populate_txn, CommitCallback, &promise);
         future.wait();
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     default: {
-      out->WriteErrorResponse("ERROR:  unsupported CREATE statement type");
-      return;
+      return {ResultType::ERROR, "ERROR:  unsupported CREATE statement type"};
     }
   }
-  out->WriteErrorResponse("ERROR:  failed to execute CREATE");
   connection_ctx->Transaction()->SetMustAbort();
+  return {ResultType::ERROR, "ERROR:  failed to execute CREATE"};
 }
 
-void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                      const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                      const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                      const terrier::network::QueryType query_type,
-                                      const bool single_statement_txn) const {
+TrafficCopResult TrafficCop::ExecuteDropStatement(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+    const terrier::network::QueryType query_type) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
@@ -199,53 +211,42 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
     case network::QueryType::QUERY_DROP_TABLE: {
       if (execution::sql::DDLExecutors::DropTableExecutor(
               physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_DB: {
-      if (!single_statement_txn) {
-        out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
-        connection_ctx->Transaction()->SetMustAbort();
-        return;
-      }
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_INDEX: {
       if (execution::sql::DDLExecutors::DropIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     default: {
-      out->WriteErrorResponse("ERROR:  unsupported DROP statement type");
-      break;
+      return {ResultType::ERROR, "ERROR:  unsupported DROP statement type"};
     }
   }
-  out->WriteErrorResponse("ERROR:  failed to execute DROP");
   connection_ctx->Transaction()->SetMustAbort();
+  return {ResultType::ERROR, "ERROR:  failed to execute DROP"};
 }
 
 std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
-    const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+    const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
   std::unique_ptr<parser::ParseResult> parse_result;
   try {
     parse_result = parser::PostgresParser::BuildParseTree(query);
@@ -256,124 +257,100 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
   return parse_result;
 }
 
-bool TrafficCop::BindStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                               const common::ManagedPointer<network::PostgresPacketWriter> out,
-                               const common::ManagedPointer<parser::ParseResult> parse_result,
-                               const terrier::network::QueryType query_type) const {
+TrafficCopResult TrafficCop::BindQuery(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<network::Statement> statement,
+    const common::ManagedPointer<std::vector<type::TransientValue>> parameters) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
   try {
-    // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
     binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
-    visitor.BindNameToNode(parse_result);
+    visitor.BindNameToNode(statement->ParseResult(), parameters);
   } catch (...) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
     // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
-    if ((parse_result->GetStatement(0)->GetType() == parser::StatementType::DROP &&
-         parse_result->GetStatement(0).CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-      out->WriteNoticeResponse("NOTICE:  binding failed with an IF EXISTS clause, skipping statement");
-      out->WriteCommandComplete(query_type, 0);
-    } else {
-      out->WriteErrorResponse("ERROR:  binding failed");
-      // failing to bind fails a transaction in postgres
-      connection_ctx->Transaction()->SetMustAbort();
+    if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
+         statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
+      return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
     }
-    return false;
+    return {ResultType::ERROR, "ERROR:  binding failed"};
   }
-  return true;
+  return {ResultType::COMPLETE, 0};
 }
 
-void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                  const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                  const common::ManagedPointer<parser::ParseResult> parse_result,
-                                  const terrier::network::QueryType query_type) const {
-  // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
-    ExecuteTransactionStatement(connection_ctx, out, query_type);
-    return;
-  }
-
-  if (query_type >= network::QueryType::QUERY_RENAME) {
-    // We don't yet support query types with values greater than this
-    // TODO(Matt): add a TRAFFIC_COP_LOG_INFO here
-    out->WriteCommandComplete(query_type, 0);
-    return;
-  }
-
-  const bool single_statement_txn = connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE;
-
-  // Begin a transaction if necessary
-  if (single_statement_txn) {
-    BeginTransaction(connection_ctx);
-  }
-
-  // Try to bind the parsed statement
-  if (BindStatement(connection_ctx, out, parse_result, query_type)) {
-    // Binding succeeded, optimize to generate a physical plan and then execute
-    auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
-    auto physical_plan = trafficcop::TrafficCopUtil::Optimize(
-        connection_ctx->Transaction(), connection_ctx->Accessor(), parse_result, connection_ctx->GetDatabaseOid(),
-        stats_storage_, std::move(cost_model), optimizer_timeout_);
-
-    // This logic relies on ordering of values in the enum's definition and is documented there as well.
-    if (query_type <= network::QueryType::QUERY_DELETE) {
-      // DML query to put through codegen
-      CodegenAndRunPhysicalPlan(connection_ctx, out, common::ManagedPointer(physical_plan), query_type);
-    } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
-      ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
-                             single_statement_txn);
-    } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
-      ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
-                           single_statement_txn);
-    }
-  }
-
-  if (single_statement_txn) {
-    // Single statement transaction should be ended before returning
-    // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
-    EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
-                                                                              : network::QueryType::QUERY_COMMIT);
-  }
-}
-
-void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                           const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                           const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                           const terrier::network::QueryType query_type) const {
+TrafficCopResult TrafficCop::CodegenPhysicalPlan(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<network::PostgresPacketWriter> out,
+    const common::ManagedPointer<network::Portal> portal) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
+  const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
+  const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
-  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out);
+
+  if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
+    // We've already codegen'd this, move on...
+    return {ResultType::COMPLETE, 0};
+  }
+
+  // TODO(Matt): We should get rid of the need of an OutputWriter to ExecutionContext since we just throw this one away
+  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
+
+  // TODO(Matt): We should get rid of the need of an ExecutionContext to perform codegen since we just throw this one
+  // away
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+      connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
+      connection_ctx->Accessor());
+
+  auto exec_query = std::make_unique<execution::ExecutableQuery>(common::ManagedPointer(physical_plan),
+                                                                 common::ManagedPointer(exec_ctx));
+
+  // TODO(Matt): handle code generation failing
+  portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
+
+  return {ResultType::COMPLETE, 0};
+}
+
+TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                                const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                                const common::ManagedPointer<network::Portal> portal) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
+  const auto query_type = portal->GetStatement()->GetQueryType();
+  const auto physical_plan = portal->PhysicalPlan();
+  TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
+                 "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor());
 
-  auto exec_query = execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
+  exec_ctx->SetParams(portal->Parameters());
 
-  if (query_type == network::QueryType::QUERY_SELECT)
-    out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
+  const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
-    // Execution didn't set us to FAIL state, go ahead and write command complete
-
+    // Execution didn't set us to FAIL state, go ahead and return command complete
     if (query_type == network::QueryType::QUERY_SELECT) {
-      // For selects we really on the OutputWriter to store the number of rows affected because sequential scan
+      // For selects we rely on the OutputWriter to store the number of rows affected because sequential scan
       // iteration can happen in multiple pipelines
-      out->WriteCommandComplete(query_type, writer.NumRows());
-
-    } else {
-      // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
-      // might not have any output otherwise
-      out->WriteCommandComplete(query_type, exec_ctx->RowsAffected());
+      return {ResultType::COMPLETE, writer.NumRows()};
     }
-
-  } else {
-    // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
-    // etc.) I suspect we would stash that in the ExecutionContext.
-    out->WriteErrorResponse("Query failed.");
+    // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
+    // might not have any output otherwise
+    return {ResultType::COMPLETE, exec_ctx->RowsAffected()};
   }
+
+  // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
+  // etc.) I suspect we would stash that in the ExecutionContext.
+  return {ResultType::ERROR, "Query failed."};
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
