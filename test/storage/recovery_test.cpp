@@ -857,7 +857,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   //--------------------------------
 
   // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(LOG_FILE_NAME);
+  DiskLogProvider log_provider("catalog.log");
   RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
                                    recovery_catalog_,
                                    recovery_txn_manager_,

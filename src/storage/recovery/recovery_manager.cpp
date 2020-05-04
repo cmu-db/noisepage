@@ -26,6 +26,7 @@ constexpr uint8_t ARROW_ALIGNMENT = 8;
 
 void RecoveryManager::RecoverFromLogs(bool catalog_only) {
   // Replay logs until the log provider no longer gives us logs
+  std::ofstream o("lookrec.txt", std::ios::out|std::ios::app);
   while (true) {
     auto pair = log_provider_->GetNextRecord();
     auto *log_record = pair.first;
@@ -39,13 +40,14 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
         DeferRecordDeletes(log_record->TxnBegin(), true);
         buffered_changes_map_.erase(log_record->TxnBegin());
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
+        o << "ABORT " << ' ' << log_record->Size()<<std::endl;
         break;
       }
 
       case (LogRecordType::COMMIT): {
         TERRIER_ASSERT(pair.second.empty(), "Commit records should not have any varlen pointers");
         auto *commit_record = log_record->GetUnderlyingRecordBodyAs<CommitRecord>();
-
+        o << "COMMIT " << ' ' << log_record->Size()<<std::endl;
         // We defer all transactions initially
         deferred_txns_.insert(log_record->TxnBegin());
 
@@ -61,6 +63,7 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
         TERRIER_ASSERT(
             log_record->RecordType() == LogRecordType::REDO || log_record->RecordType() == LogRecordType::DELETE,
             "We should only buffer changes for redo or delete records");
+        o << "REDO/DEL " << ' ' << log_record->Size()<<std::endl;
         buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
     }
   }

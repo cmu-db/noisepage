@@ -1,6 +1,7 @@
 #include "storage/checkpoints/checkpoint.h"
 #include <common/worker_pool.h>
 #include <storage/block_compactor.h>
+#include <storage/recovery/disk_log_provider.h>
 #include <fstream>
 namespace terrier::storage {
 
@@ -26,13 +27,16 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
     new_table->blocks_ = new_blocks;
     queue.emplace_back(oid, new_table);
   }
+
   // delete previous log file (uncomment after separate catalog log from other logs)
   //  if (remove(cur_log_file) != 0)
   //    perror( "Error deleting file" );
   //  else
   //    puts( "File successfully deleted" );
-
+  std::string catalog_file = "catalog.log";
   log_serializer_task->flush_queue_latch_.Unlock();
+
+  FilterCatalogLogs(cur_log_file, catalog_file);
 
   auto workload = [&](uint32_t worker_id) {
     // copy contents of table to disk
@@ -96,6 +100,48 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     storage::ArrowSerializer arrow_serializer(*data_table);
     arrow_serializer.ExportTable(out_file, &column_types, false);
   }
+}
+
+void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::string &new_log_path) {
+  DiskLogProvider log_provider(old_log_path);
+  std::ofstream outfile(new_log_path, std::ios::out | std::ios::binary);
+  std::ifstream infile(old_log_path, std::ios::in | std::ios::binary);
+  std::ofstream o("look.txt", std::ios::out|std::ios::app);
+  uint32_t record_size = 0;
+  while (true) {
+    auto pair = log_provider.GetNextRecord();
+    auto *log_record = pair.first;
+
+    // If we have exhausted all the logs, break from the loop
+    if (log_record == nullptr) break;
+    record_size = log_record->Size();
+    char buf[record_size];
+    if (log_record->RecordType() == LogRecordType::ABORT || log_record->RecordType() == LogRecordType::COMMIT) {
+      infile.read(reinterpret_cast<char *>(&buf), record_size);
+      outfile.write(reinterpret_cast<char *>(&buf), record_size);
+      o << "A/C " << log_record->Size()<<std::endl;
+    } else {
+      if (log_record->RecordType() == LogRecordType::REDO) {
+        auto *record_body = log_record->GetUnderlyingRecordBodyAs<RedoRecord>();
+        infile.read(reinterpret_cast<char *>(&buf), record_size);
+        if ((uint32_t)(record_body->GetTableOid()) < catalog::START_OID) {
+          outfile.write(reinterpret_cast<char *>(&buf), record_size);
+          o << "REDO " << record_body->GetDatabaseOid() << ' ' << log_record->Size()<<' '<<record_body->GetTableOid()<<std::endl;
+        }
+      } else if (log_record->RecordType() == LogRecordType::DELETE) {
+        auto *record_body = log_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
+        infile.read(reinterpret_cast<char *>(&buf), record_size);
+        if ((uint32_t)(record_body->GetTableOid()) < catalog::START_OID) {
+          outfile.write(reinterpret_cast<char *>(&buf), record_size);
+          o << "DELETE " << record_body->GetDatabaseOid() << ' ' << record_body->GetTableOid() <<' '<< log_record->Size()<<std::endl;
+        }
+      }
+    }
+  }
+  infile.close();
+  outfile.close();
+  o.close();
+
 }
 
 }  // namespace terrier::storage

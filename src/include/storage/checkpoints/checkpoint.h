@@ -118,7 +118,9 @@ class Checkpoint {
    */
   void WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                    catalog::db_oid_t db_oid);
+  void FilterCatalogLogs(const std::string &old_log_path, const std::string &new_log_path);
 
-};  // class checkpoint
+
+  };  // class checkpoint
 
 }  // namespace terrier::storage
