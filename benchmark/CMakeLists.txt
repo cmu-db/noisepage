@@ -4,7 +4,7 @@ file(GLOB_RECURSE BENCHMARK_UTIL_SRCS ${PROJECT_SOURCE_DIR}/benchmark/benchmark_
 # Benchmark library
 ###############################################
 if (TERRIER_BUILD_BENCHMARKS)
-    add_library(benchmark_util STATIC ${BENCHMARK_UTIL_SRCS})
+    add_library(benchmark_util STATIC ${BENCHMARK_UTIL_SRCS} storage/checkpoint_recovery_benchmark.cpp)
     target_link_libraries(benchmark_util test_util ${TERRIER_LINK_LIBS})
     add_dependencies(benchmark_util test_util benchmark)
 

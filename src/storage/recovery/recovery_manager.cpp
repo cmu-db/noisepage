@@ -193,11 +193,10 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     auto initializer = table->InitializerForProjectedRow(all_table_oids);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     auto pr = initializer.InitializeRow(buffer);
-    for (auto it = data_table->begin(); it != data_table->end(); it ++) {
+    for (auto it = data_table->begin(); it != data_table->end(); it++) {
       TupleSlot slot = *it;
       table->Select(common::ManagedPointer(recovery_txn), slot, pr);
-      UpdateIndexesOnTable(recovery_txn, db_oid, table_oid, table,
-                           slot, pr, true);
+      UpdateIndexesOnTable(recovery_txn, db_oid, table_oid, table, slot, pr, true);
     }
     delete[] buffer;
     f.close();
