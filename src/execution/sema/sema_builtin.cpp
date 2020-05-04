@@ -1101,15 +1101,17 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
+  // This checks the number of arguments for tableIterrateParallel call.
+  // It should match whatever args passed in - in codegen.cpp IterateTableParallel function.
   if (!CheckArgCount(call, 5)) {
     return;
   }
 
   const auto &call_args = call->Arguments();
 
-  // First argument is table name as a string literal
+  // First argument is table oid as an integer literal
   if (!call_args[0]->IsIntegerLiteral()) {
-    ReportIncorrectCallArg(call, 0, ast::StringType::Get(GetContext()));
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::Int32));
     return;
   }
 
@@ -1140,7 +1142,7 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
     return;
   }
 
-  // Check type
+  // Check type of the scan function
   const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
   const auto &params = scan_fn_type->Params();
   if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
