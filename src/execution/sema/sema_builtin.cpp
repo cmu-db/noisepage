@@ -2866,10 +2866,22 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
-    case ast::Builtin::VerifyTableInsertConstraint:
-    case ast::Builtin::DeleteCascade:
-    case ast::Builtin::UpdateCascade:
-    case ast::Builtin::UpdateVerify:
+    case ast::Builtin::VerifyTableInsertConstraint: {
+      CheckBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::DeleteCascade: {
+      CheckBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::UpdateCascade: {
+      CheckBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::UpdateVerify: {
+      CheckBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
     case ast::Builtin::StorageInterfaceFree: {
       CheckBuiltinStorageInterfaceCall(call, builtin);
       break;

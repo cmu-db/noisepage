@@ -39,8 +39,10 @@ StorageInterface::~StorageInterface() {
 }
 
 storage::ProjectedRow *StorageInterface::GetTablePR() {
+  // We need all the columns
+  storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids_);
   auto txn = exec_ctx_->GetTxn();
-  table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri_);
+  table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
   return table_redo_->Delta();
 }
 
