@@ -381,6 +381,31 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
   return {db_oid, ns_oid};
 }
 
+catalog::table_oid_t TrafficCop::CreateTempTable(
+    const catalog::db_oid_t db_oid,  const catalog::namespace_oid_t ns_oid, const network::connection_id_t connection_id) {
+  auto *const txn = txn_manager_->BeginTransaction();
+
+  std::vector<catalog::Schema::Column> columns;
+
+//  auto col = catalog::Schema::Column("col1", type::TypeId::INTEGER, false,
+//                                     parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+
+  auto seq_id_col = catalog::Schema::Column("sequence_oid",type::TypeId::INTEGER,false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+  auto last_nextval_col = catalog::Schema::Column("last_nextval",type::TypeId::INTEGER,false,
+                                            parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+  columns.emplace_back(seq_id_col);
+  columns.emplace_back(last_nextval_col);
+
+  const catalog::Schema tmp_schema{columns};
+  const auto temp_table_oid =
+      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable(ns_oid,
+          "temp_table" + std::to_string(static_cast<uint16_t>(connection_id)), tmp_schema);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  return temp_table_oid;
+}
+
 bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog::namespace_oid_t ns_oid) {
   TERRIER_ASSERT(db_oid != catalog::INVALID_DATABASE_OID, "Called DropTempNamespace() with an invalid database oid.");
   TERRIER_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID, "Called DropTempNamespace() with an invalid namespace oid.");

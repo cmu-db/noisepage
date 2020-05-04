@@ -17,7 +17,7 @@ std::atomic<query_id_t> ExecutableQuery::query_identifier{query_id_t{0}};
 
 ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
-  // Generate a query id using std::atomic<>.fetch_add()
+  // Generate a query id using std::atomic<>.fetch_auto col = catalog::Schema::Column("col1", type::TypeId::INTEGER, false,add()
   query_id_ = ExecutableQuery::query_identifier++;
 
   // Compile and check for errors

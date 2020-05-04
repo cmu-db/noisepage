@@ -206,8 +206,21 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 
   auto sequence_oid = accessor->GetSequenceOid(s);
   common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
-  auto tempNamespace = ctx->GetTempNamespace();
-  int64_t seq_val = seq->nextval(tempNamespace);
+
+  // Update temp table
+  auto tempTableOid = ctx->GetTempTable();
+  int64_t seq_val = seq->nextval();
+  auto tempTable = accessor->GetTable(tempTableOid);
+
+  auto *const class_insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
+  auto *const class_insert_pr = class_insert_redo->Delta();
+
+  // Write the sequence_oid into the PR
+  auto sequence_oid_offset = pg_class_all_cols_prm_[postgres::RELOID_COL_OID];
+  auto *sequence_oid_ptr = class_insert_pr->AccessForceNotNull(sequence_oid_offset);
+  *(reinterpret_cast<sequence_oid_t *>(sequence_oid_ptr)) = sequence_oid;
+
+
   result->is_null_ = str.is_null_;
   result->val_ = seq_val;
 }

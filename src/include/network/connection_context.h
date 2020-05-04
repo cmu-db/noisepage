@@ -77,6 +77,8 @@ class ConnectionContext {
    */
   void SetTempNamespaceOid(const catalog::namespace_oid_t ns_oid) { temp_namespace_oid_ = ns_oid; }
 
+  void SetTempTableOid(const catalog::table_oid_t table_oid) { temp_table_oid_ = table_oid; }
+
   /**
    * @param db_name database name. It should be in cmdline_args_ as well, this just makes it quicker to find
    * @warning only to be used by the protocol interpreter during startup
@@ -166,6 +168,7 @@ class ConnectionContext {
    */
   void *CallbackArg() const { return callback_arg_; }
 
+  catalog::table_oid_t GetTempTable() { return temp_table_oid_; }
  private:
   /**
    * This is a unique identifier (among currently open connections, not over the lifetime of the system) for this
@@ -213,6 +216,8 @@ class ConnectionContext {
    */
   network::NetworkCallback callback_;
   void *callback_arg_;
+
+  catalog::table_oid_t temp_table_oid_ = catalog::INVALID_TABLE_OID;
 };
 
 }  // namespace terrier::network

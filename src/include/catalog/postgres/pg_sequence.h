@@ -28,12 +28,10 @@ namespace terrier::catalog::postgres {
 class SequenceMetadata {
 private:
     int64_t curr_value = 0;
-    std::unordered_map<terrier::catalog::namespace_oid_t, int64_t> cache_;
 
  public:
-    int64_t nextval(terrier::catalog::namespace_oid_t session_namespace){
+    int64_t nextval(){
         curr_value ++;
-        cache_[session_namespace] = curr_value;
 
         return curr_value;
     }

@@ -72,12 +72,13 @@ class EXPORT ExecutionContext {
    * @param callback callback function for outputting
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
-   * @param temp_namespace only for udf nextval function to use, otherwise it's just a dummy namespace_oid
+   * @param temp_namespace only for udf nextval function to use, otherwise it's just INVALID_NAMESPACE_OID
    */
    ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                   catalog::namespace_oid_t temp_namespace = catalog::namespace_oid_t(1))
+                   catalog::namespace_oid_t temp_namespace = catalog::INVALID_NAMESPACE_OID,
+                   catalog::table_oid_t temp_table = catalog::INVALID_TABLE_OID)
       : db_oid_(db_oid),
         txn_(txn),
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
@@ -87,7 +88,8 @@ class EXPORT ExecutionContext {
                                                                    ComputeTupleSize(schema), callback)),
         string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
         accessor_(accessor),
-        temp_namespace_(temp_namespace){}
+        temp_namespace_(temp_namespace),
+        temp_table_(temp_table){}
   /**
    * @return the transaction used by this query
    */
@@ -188,6 +190,10 @@ class EXPORT ExecutionContext {
     return temp_namespace_;
   }
 
+  catalog::table_oid_t GetTempTable() {
+    return temp_table_;
+  }
+
  private:
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
@@ -203,5 +209,6 @@ class EXPORT ExecutionContext {
 
   //TODO(Adrian) : changed
   catalog::namespace_oid_t temp_namespace_;
+  catalog::table_oid_t temp_table_;
 };
 }  // namespace terrier::execution::exec
