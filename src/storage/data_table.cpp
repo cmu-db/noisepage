@@ -24,58 +24,6 @@ DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const Block
   insertion_head_ = blocks_.begin();
 }
 
-DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
-                       const layout_version_t layout_version, const std::list<RawBlock *> &blocks)
-          : block_store_(store), layout_version_(layout_version), accessor_(layout) {
-    TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
-                   "First column must have size 8 for the version chain.");
-    TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
-                   "First column is reserved for version info, second column is reserved for logical delete.");
-    // Copy all the blocks
-    for (auto &block : blocks) {
-      blocks_.push_back(block);
-    }
-    insertion_head_ = blocks_.begin();
-
-    // Run a fake iteration of insert to update insertion_head_
-    TupleSlot result;
-    auto block = insertion_head_;
-    while (true) {
-      // No free block left
-      if (block == blocks_.end()) {
-        RawBlock *new_block = NewBlock();
-        TERRIER_ASSERT(accessor_.SetBlockBusyStatus(new_block), "Status of new block should not be busy");
-        // No need to flip the busy status bit
-        accessor_.Allocate(new_block, &result);
-        // take latch
-        common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-        // insert block
-        blocks_.push_back(new_block);
-        block = --blocks_.end();
-        break;
-      }
-
-      if (accessor_.SetBlockBusyStatus(*block)) {
-        // No one is inserting into this block
-        if (accessor_.Allocate(*block, &result)) {
-          // The block is not full, succeed
-          break;
-        }
-        // Fail to insert into the block, flip back the status bit
-        accessor_.ClearBlockBusyStatus(*block);
-        // if the full block is the insertion_header, move the insertion_header
-        // Next insert txn will search from the new insertion_header
-        CheckMoveHead(block);
-      }
-      // The block is full or the block is being inserted by other txn, try next block
-      ++block;
-    }
-
-    // Do not need to wait unit finish inserting,
-    // can flip back the status bit once the thread gets the allocated tuple slot
-    accessor_.ClearBlockBusyStatus(*block);
-  }
-
 DataTable::~DataTable() {
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {
