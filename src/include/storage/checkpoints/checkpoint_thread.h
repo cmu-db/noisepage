@@ -11,7 +11,7 @@
 
 namespace terrier::storage {
 class CheckpointBackgroundLoop {
-
+public:
   explicit CheckpointBackgroundLoop(const std::string &path, catalog::db_oid_t db, const char *cur_log_file, uint32_t num_threads, common::WorkerPool *thread_pool, Checkpoint* checkpoint)
                            : path_(path),
                             db_(db),
