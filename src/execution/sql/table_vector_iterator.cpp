@@ -35,7 +35,7 @@ bool TableVectorIterator::Init() {
     table_->GetAllColOid(&col_oids_);
   }
   // Initialize the projected column
-  // TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
+  TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
   auto pc_init = table_->InitializerForProjectedColumns(col_oids_, common::Constants::K_DEFAULT_VECTOR_SIZE);
   buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_init.ProjectedColumnsSize(), alignof(uint64_t), false);
   projected_columns_ = pc_init.Initialize(buffer_);
