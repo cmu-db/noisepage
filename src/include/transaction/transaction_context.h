@@ -22,6 +22,7 @@ class SqlTable;
 class WriteAheadLoggingTests;
 class RecoveryManager;
 class RecoveryTests;
+class BlockCompactorTests;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -212,6 +213,8 @@ class TransactionContext {
   friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
   friend class storage::RecoveryManager;         // Needs access to StageRecoveryUpdate
   friend class storage::RecoveryTests;           // Needs access to redo buffer
+  friend class storage::BlockCompactorTests;    // Needs access to redo buffer
+
   const timestamp_t start_time_;
   std::atomic<timestamp_t> finish_time_;
   storage::UndoBuffer undo_buffer_;

@@ -248,6 +248,7 @@ class SqlTable {
   friend class terrier::RandomSqlTableTransaction;
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
+  friend class BlockCompactorTests; // For accessing layout in block compactor tests
 
   const common::ManagedPointer<BlockStore>
       block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.

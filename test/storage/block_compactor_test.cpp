@@ -1,390 +1,185 @@
 #include "storage/block_compactor.h"
 
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "catalog/catalog.h"
+#include "catalog/postgres/pg_namespace.h"
 #include "common/hash_util.h"
+#include "gtest/gtest.h"
+#include "main/db_main.h"
 #include "storage/block_access_controller.h"
 #include "storage/garbage_collector.h"
+#include "storage/garbage_collector_thread.h"
+#include "storage/index/index_builder.h"
+#include "storage/recovery/disk_log_provider.h"
+#include "storage/recovery/recovery_manager.h"
+#include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/write_ahead_log/log_manager.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/sql_table_test_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
-#define EXPORT_TABLE_NAME "test_table.arrow"
+#define LOG_FILE_NAME "./test.log"
 
-namespace terrier {
-
-class ProjectedRowDeepEqual {
- public:
-  explicit ProjectedRowDeepEqual(const storage::BlockLayout &layout) : layout_(layout) {}
-
-  bool operator()(storage::ProjectedRow *tuple1, storage::ProjectedRow *tuple2) const {
-    return StorageTestUtil::ProjectionListEqualDeep(layout_, tuple1, tuple2);
-  }
-
- private:
-  const storage::BlockLayout &layout_;
-};
-
-class ProjectedRowDeepEqualHash {
- public:
-  explicit ProjectedRowDeepEqualHash(const storage::BlockLayout &layout) : layout_(layout) {}
-
-  size_t operator()(storage::ProjectedRow *tuple) const {
-    size_t result = 0;
-    for (uint16_t i = 0; i < tuple->NumColumns(); i++) {
-      byte *field = tuple->AccessWithNullCheck(i);
-      storage::col_id_t id = tuple->ColumnIds()[i];
-      if (field == nullptr) continue;
-      size_t field_hash = layout_.IsVarlen(id)
-                              ? storage::VarlenContentHasher()(*reinterpret_cast<storage::VarlenEntry *>(field))
-                              : common::HashUtil::HashBytes(field, layout_.AttrSize(id));
-      result = common::HashUtil::CombineHashes(result, field_hash);
-    }
-    return result;
-  }
-
- private:
-  const storage::BlockLayout &layout_;
-};
-
-// Nothing says two randomly generated rows cannot be equal to each other. We thus have to account for this
-// using a frequency count instead of just a set.
-using TupleMultiSet =
-    std::unordered_map<storage::ProjectedRow *, uint32_t, ProjectedRowDeepEqualHash, ProjectedRowDeepEqual>;
-
-struct BlockCompactorTest : public ::terrier::TerrierTest {
-  storage::BlockStore block_store_{5000, 5000};
+namespace terrier::storage {
+class BlockCompactorTests : public TerrierTest {
+ protected:
   std::default_random_engine generator_;
-  storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
-  uint32_t num_blocks_ = 500;
-  double percent_empty_ = 0.01;
 
-  TupleMultiSet GetTupleSet(const storage::BlockLayout &layout,
-                            const std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> &tuples) {
-    // The fact that I will need to fill in a bucket size is retarded...
-    TupleMultiSet result(10, ProjectedRowDeepEqualHash(layout), ProjectedRowDeepEqual(layout));
-    for (auto &entry : tuples) result[entry.second]++;
-    return result;
+  // Original Components
+  std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<storage::LogManager> log_manager_;
+  common::ManagedPointer<storage::BlockStore> block_store_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
+
+  void SetUp() override {
+    // Unlink log file incase one exists from previous test iteration
+    unlink(LOG_FILE_NAME);
+
+    db_main_ = terrier::DBMain::Builder()
+                   .SetLogFilePath(LOG_FILE_NAME)
+                   .SetUseLogging(true)
+                   .SetUseGC(true)
+                   .SetUseGCThread(true)
+                   .SetUseCatalog(true)
+                   .Build();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    log_manager_ = db_main_->GetLogManager();
+    block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+  }
+
+  void TearDown() override {
+    // Delete log file
+    unlink(LOG_FILE_NAME);
+  }
+
+  catalog::IndexSchema DummyIndexSchema() {
+    std::vector<catalog::IndexSchema::Column> keycols;
+    keycols.emplace_back(
+        "", type::TypeId::INTEGER, false,
+        parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
+    StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
+    return catalog::IndexSchema(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
+  }
+
+  catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn,
+                                   common::ManagedPointer<catalog::Catalog> catalog, const std::string &database_name) {
+    auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), database_name, true /* bootstrap */);
+    EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
+    return db_oid;
+  }
+
+  void DropDatabase(transaction::TransactionContext *txn, common::ManagedPointer<catalog::Catalog> catalog,
+                    const catalog::db_oid_t db_oid) {
+    EXPECT_TRUE(catalog->DeleteDatabase(common::ManagedPointer(txn), db_oid));
+    EXPECT_FALSE(catalog->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
+  }
+
+  catalog::table_oid_t CreateTable(transaction::TransactionContext *txn,
+                                   common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                                   const catalog::namespace_oid_t ns_oid, const std::string &table_name) {
+    auto col = catalog::Schema::Column(
+        "attribute", type::TypeId::INTEGER, false,
+        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
+    auto table_oid = db_catalog->CreateTable(common::ManagedPointer(txn), ns_oid, table_name, table_schema);
+    EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
+    const auto catalog_schema = db_catalog->GetSchema(common::ManagedPointer(txn), table_oid);
+    auto *table_ptr = new storage::SqlTable(block_store_, catalog_schema);
+    EXPECT_TRUE(db_catalog->SetTablePointer(common::ManagedPointer(txn), table_oid, table_ptr));
+    return table_oid;
+  }
+
+  void DropTable(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                 const catalog::table_oid_t table_oid) {
+    EXPECT_TRUE(db_catalog->DeleteTable(common::ManagedPointer(txn), table_oid));
+  }
+
+  catalog::index_oid_t CreateIndex(transaction::TransactionContext *txn,
+                                   common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                                   const catalog::namespace_oid_t ns_oid, const catalog::table_oid_t table_oid,
+                                   const std::string &index_name) {
+    auto index_schema = DummyIndexSchema();
+    auto index_oid = db_catalog->CreateIndex(common::ManagedPointer(txn), ns_oid, index_name, table_oid, index_schema);
+    EXPECT_TRUE(index_oid != catalog::INVALID_INDEX_OID);
+    auto *index_ptr = storage::index::IndexBuilder().SetKeySchema(index_schema).Build();
+    EXPECT_TRUE(db_catalog->SetIndexPointer(common::ManagedPointer(txn), index_oid, index_ptr));
+    return index_oid;
+  }
+
+  void DropIndex(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                 const catalog::index_oid_t index_oid) {
+    EXPECT_TRUE(db_catalog->DeleteIndex(common::ManagedPointer(txn), index_oid));
+  }
+
+  catalog::namespace_oid_t CreateNamespace(transaction::TransactionContext *txn,
+                                           common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                                           const std::string &namespace_name) {
+    auto namespace_oid = db_catalog->CreateNamespace(common::ManagedPointer(txn), namespace_name);
+    EXPECT_TRUE(namespace_oid != catalog::INVALID_NAMESPACE_OID);
+    return namespace_oid;
+  }
+
+  void DropNamespace(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                     const catalog::namespace_oid_t ns_oid) {
+    EXPECT_TRUE(db_catalog->DeleteNamespace(common::ManagedPointer(txn), ns_oid));
+  }
+
+  storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
+
+  storage::BlockLayout &GetBlockLayout(common::ManagedPointer<storage::SqlTable> table) const {
+    return table->table_.layout_;
   }
 };
 
-// This tests generates random single blocks and compacts them. It then verifies that the tuples are reshuffled to be
-// compact and its contents unmodified.
-// NOLINTNEXTLINE
-TEST_F(BlockCompactorTest, CompactionTest) {
-  // TODO(Tianyu): This test currently still only tests one block at a time. We do this because the implementation
-  // only compacts block-at-a-time, although the logic handles more blocks. When we change that to have a more
-  // intelligent policy, we need to rewrite this test as well.
-  uint32_t repeat = 10;
-  for (uint32_t iteration = 0; iteration < repeat; iteration++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
-    storage::TupleAccessStrategy accessor(layout);
-    // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
-    storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
-                             storage::layout_version_t(0));
-    storage::RawBlock *block = block_store_.Get();
-    accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
+TEST_F(BlockCompactorTests, SimpleCompactionTest) {
+  std::string database_name = "testdb";
+  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  std::string table_name = "foo";
 
-    // Enable GC to cleanup transactions started by the block compactor
-    transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
-    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
-                                                common::ManagedPointer(&deferred_action_manager),
-                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
-    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
-                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
-                                 DISABLED};
+  // Begin T0, create database, create table foo, and commit
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn0, catalog_, database_name);
+  auto db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn0), db_oid);
+  auto table_oid = CreateTable(txn0, db_catalog, namespace_oid, table_name);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
-    auto num_tuples = tuples.size();
-    auto tuple_set = GetTupleSet(layout, tuples);
-    // Manually populate the block header's arrow metadata for test initialization
-    auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
-    for (storage::col_id_t col_id : layout.AllColumns()) {
-      if (layout.IsVarlen(col_id)) {
-        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
-      } else {
-        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      }
-    }
+  // Begin T1
+  auto txn1 = txn_manager_->BeginTransaction();
 
-    storage::BlockCompactor compactor;
-    compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&deferred_action_manager,
-                                     &txn_manager);  // should always succeed with no other threads
+  // With T1, insert into foo and commit. Even though T2 dropped foo, this operation should still succeed
+  // because T1 got a snapshot before T2
+  db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn1), db_oid);
+  auto table_ptr = db_catalog->GetTable(common::ManagedPointer(txn1), table_oid);
+  const auto &schema = db_catalog->GetSchema(common::ManagedPointer(txn1), table_oid);
+  EXPECT_EQ(1, schema.GetColumns().size());
+  EXPECT_EQ(type::TypeId::INTEGER, schema.GetColumn(0).Type());
 
-    // Read out the rows one-by-one. Check that the tuples are laid out contiguously, and that the
-    // logical contents of the table did not change
-    auto initializer =
-        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
-    byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    auto *read_row = initializer.InitializeRow(buffer);
-    // This transaction is guaranteed to start after the compacting one commits
-    transaction::TransactionContext *txn = txn_manager.BeginTransaction();
-
-    for (uint32_t i = 0; i < layout.NumSlots(); i++) {
-      storage::TupleSlot slot(block, i);
-      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
-      if (i >= num_tuples) {
-        EXPECT_FALSE(visible);  // Should be deleted after compaction
-      } else {
-        EXPECT_TRUE(visible);  // Should be filled after compaction
-        auto entry = tuple_set.find(read_row);
-        EXPECT_NE(entry, tuple_set.end());  // Should be present in the original
-        if (entry != tuple_set.end()) {
-          EXPECT_GT(entry->second, 0);
-          entry->second--;
-        }
-      }
-    }
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
-    delete[] buffer;
-
-    for (auto &entry : tuple_set) {
-      EXPECT_EQ(entry.second, 0);  // All tuples from the original block should have been accounted for.
-    }
-
-    for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
-
-    gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
-    // Deallocate all the leftover versions
-    storage::StorageUtil::DeallocateVarlens(block, accessor);
-    block_store_.Release(block);
+  for (int32_t i = 0; i < 5; i++) {
+    auto initializer = table_ptr->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
+    auto *redo_record = txn1->StageWrite(db_oid, table_oid, initializer);
+    *reinterpret_cast<int32_t *>(redo_record->Delta()->AccessForceNotNull(0)) = i;
+    table_ptr->Insert(common::ManagedPointer(txn1), redo_record);
   }
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  int num_records = 0;
+  for (auto it = table_ptr->begin(); it != table_ptr->end(); it++) {
+    num_records++;
+  }
+
+  EXPECT_EQ(num_records, 5);
 }
 
-// This tests generates random single blocks and compacts them. It then verifies that the logical content of the table
-// does not change and that the varlens are contiguous in Arrow storage. We only test single blocks because gathering
-// happens block at a time.
-// NOLINTNEXTLINE
-TEST_F(BlockCompactorTest, GatherTest) {
-  uint32_t repeat = 10;
-  for (uint32_t iteration = 0; iteration < repeat; iteration++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
-    storage::TupleAccessStrategy accessor(layout);
-    // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
-    storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
-                             storage::layout_version_t(0));
-    storage::RawBlock *block = block_store_.Get();
-    accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
-
-    // Enable GC to cleanup transactions started by the block compactor
-    transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
-    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
-                                                common::ManagedPointer(&deferred_action_manager),
-                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
-    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
-                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
-                                 DISABLED};
-
-    auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
-    auto num_tuples = tuples.size();
-    auto tuple_set = GetTupleSet(layout, tuples);
-
-    // Manually populate the block header's arrow metadata for test initialization
-    auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
-    for (storage::col_id_t col_id : layout.AllColumns()) {
-      if (layout.IsVarlen(col_id)) {
-        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
-      } else {
-        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      }
-    }
-
-    storage::BlockCompactor compactor;
-    compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
-
-    // Need to prune the version chain in order to make sure that the second pass succeeds
-    gc.PerformGarbageCollection();
-    compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
-
-    // Read out the rows one-by-one. Check that the varlens are laid out contiguously, and that the
-    // logical contents of the table did not change
-    auto initializer =
-        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
-    byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    auto *read_row = initializer.InitializeRow(buffer);
-    // This transaction is guaranteed to start after the compacting one commits
-    transaction::TransactionContext *txn = txn_manager.BeginTransaction();
-    for (uint32_t i = 0; i < num_tuples; i++) {
-      storage::TupleSlot slot(block, i);
-      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
-      EXPECT_TRUE(visible);  // Should be filled after compaction
-      auto entry = tuple_set.find(read_row);
-      EXPECT_NE(entry, tuple_set.end());  // Should be present in the original
-      if (entry != tuple_set.end()) {
-        EXPECT_GT(entry->second, 0);
-        entry->second--;
-      }
-
-      // Now, check that all the varlen values point to the correct arrow storage locations
-      for (uint16_t offset = 0; offset < read_row->NumColumns(); offset++) {
-        storage::col_id_t id = read_row->ColumnIds()[offset];
-        if (!layout.IsVarlen(id)) continue;
-        auto *varlen = reinterpret_cast<storage::VarlenEntry *>(read_row->AccessWithNullCheck(offset));
-        storage::ArrowVarlenColumn &arrow_column = arrow_metadata.GetColumnInfo(layout, id).VarlenColumn();
-        // No need to check the null case, because the arrow data structure shares the null bitmap with
-        // our table, and thus will always be equal
-        if (varlen == nullptr) continue;
-        auto size UNUSED_ATTRIBUTE = varlen->Size();
-        // Safe to do plus 1, because length array will always have one more element
-        EXPECT_EQ(arrow_column.Offsets()[i + 1] - arrow_column.Offsets()[i], varlen->Size());
-        if (!varlen->IsInlined()) {
-          EXPECT_EQ(arrow_column.Values() + arrow_column.Offsets()[i], varlen->Content());
-        } else {
-          EXPECT_EQ(std::memcmp(varlen->Content(), arrow_column.Values() + arrow_column.Offsets()[i], varlen->Size()),
-                    0);
-        }
-      }
-    }
-
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
-    delete[] buffer;
-
-    for (auto &entry : tuple_set) {
-      EXPECT_EQ(entry.second, 0);  // All tuples from the original block should have been accounted for.
-    }
-
-    for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
-
-    gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
-    // Deallocate all the leftover gathered varlens
-    // No need to gather the ones still in the block because they are presumably all gathered
-    for (storage::col_id_t col_id : layout.AllColumns())
-      if (layout.IsVarlen(col_id)) arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
-    block_store_.Release(block);
-  }
-}
-
-// This tests generates random single blocks and dictionary compresses them. It then verifies that the logical contents
-// of the table does not change, and the varlens are properly compressed. We only test single blocks because gathering
-// happens block at a time.
-// NOLINTNEXTLINE
-TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
-  uint32_t repeat = 10;
-  for (uint32_t iteration = 0; iteration < repeat; iteration++) {
-    storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
-    storage::TupleAccessStrategy accessor(layout);
-    // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
-    storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
-                             storage::layout_version_t(0));
-    storage::RawBlock *block = block_store_.Get();
-    accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
-
-    // Enable GC to cleanup transactions started by the block compactor
-    transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
-    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
-                                                common::ManagedPointer(&deferred_action_manager),
-                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
-    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
-                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
-                                 DISABLED};
-
-    auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
-    auto num_tuples = tuples.size();
-    auto tuple_set = GetTupleSet(layout, tuples);
-
-    // Manually populate the block header's arrow metadata for test initialization
-    auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
-    for (storage::col_id_t col_id : layout.AllColumns()) {
-      if (layout.IsVarlen(col_id)) {
-        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::DICTIONARY_COMPRESSED;
-      } else {
-        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      }
-    }
-
-    storage::BlockCompactor compactor;
-    compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
-
-    // Need to prune the version chain in order to make sure that the second pass succeeds
-    gc.PerformGarbageCollection();
-    compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
-
-    // Read out the rows one-by-one. Check that the varlens are laid out contiguously, and that the
-    // logical contents of the table did not change
-    auto initializer =
-        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
-    byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    auto *read_row = initializer.InitializeRow(buffer);
-
-    // Test that all entries are unique and sorted within the dictionary
-    for (storage::col_id_t varlen_col : layout.Varlens()) {
-      storage::ArrowVarlenColumn &arrow_column = arrow_metadata.GetColumnInfo(layout, varlen_col).VarlenColumn();
-      // It suffices to check that every dictionary entry is strictly larger than the previous one for this.
-      for (uint32_t code = 1; code < arrow_column.OffsetsLength() - 1; code++) {
-        std::string_view prev(reinterpret_cast<char *>(arrow_column.Values() + arrow_column.Offsets()[code - 1]),
-                              arrow_column.Offsets()[code] - arrow_column.Offsets()[code - 1]);
-        std::string_view curr(reinterpret_cast<char *>(arrow_column.Values() + arrow_column.Offsets()[code]),
-                              arrow_column.Offsets()[code + 1] - arrow_column.Offsets()[code]);
-        EXPECT_TRUE(prev < curr);
-      }
-    }
-
-    // This transaction is guaranteed to start after the compacting one commits
-    transaction::TransactionContext *txn = txn_manager.BeginTransaction();
-    for (uint32_t i = 0; i < num_tuples; i++) {
-      storage::TupleSlot slot(block, i);
-      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
-      EXPECT_TRUE(visible);  // Should be filled after compaction
-      auto entry = tuple_set.find(read_row);
-      EXPECT_NE(entry, tuple_set.end());  // Should be present in the original
-      if (entry != tuple_set.end()) {
-        EXPECT_GT(entry->second, 0);
-        entry->second--;
-      }
-
-      // Now, check that all the varlen values point to the correct arrow storage locations
-      for (uint16_t offset = 0; offset < read_row->NumColumns(); offset++) {
-        storage::col_id_t id = read_row->ColumnIds()[offset];
-        if (!layout.IsVarlen(id)) continue;
-        auto *varlen = reinterpret_cast<storage::VarlenEntry *>(read_row->AccessWithNullCheck(offset));
-        storage::ArrowVarlenColumn &arrow_column = arrow_metadata.GetColumnInfo(layout, id).VarlenColumn();
-        // No need to check the null case, because the arrow data structure shares the null bitmap with
-        // our table, and thus will always be equal
-        if (varlen == nullptr) continue;
-        auto size UNUSED_ATTRIBUTE = varlen->Size();
-        auto dict_code = arrow_metadata.GetColumnInfo(layout, id).Indices()[i];
-        // Safe to do plus 1, because length array will always have one more element
-        EXPECT_EQ(arrow_column.Offsets()[dict_code + 1] - arrow_column.Offsets()[dict_code], varlen->Size());
-        if (!varlen->IsInlined()) {
-          EXPECT_EQ(arrow_column.Values() + arrow_column.Offsets()[dict_code], varlen->Content());
-        } else {
-          EXPECT_EQ(
-              std::memcmp(varlen->Content(), arrow_column.Values() + arrow_column.Offsets()[dict_code], varlen->Size()),
-              0);
-        }
-      }
-    }
-
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
-    delete[] buffer;
-
-    for (auto &entry : tuple_set) {
-      EXPECT_EQ(entry.second, 0);  // All tuples from the original block should have been accounted for.
-    }
-
-    for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
-
-    gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
-    // Deallocate all the leftover gathered varlens
-    // No need to gather the ones still in the block because they are presumably all gathered
-    for (storage::col_id_t col_id : layout.AllColumns())
-      if (layout.IsVarlen(col_id)) arrow_metadata.GetColumnInfo(layout, col_id).Deallocate();
-    block_store_.Release(block);
-  }
-}
-
-}  // namespace terrier
+}  // namespace terrier::storage
