@@ -111,18 +111,23 @@ public class CreateIndexTest extends TestUtility {
     public void testWriteBlocking() throws SQLException, InterruptedException {
         String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100);";
         Statement stmt = conn.createStatement();
-        int num_rows = 1000;
+        int num_rows = 500;
         for (int i = 0; i < num_rows; i++) {
             stmt.execute(sql);
         }
         Thread[] threads = new Thread[NUM_EXTRA_THREADS];
         for (int i = 0; i < NUM_EXTRA_THREADS; i++) {
             final Connection conn2 = thread_conn[i];
+            final int i2  = i;
+            thread_conn[i].setAutoCommit(i % 2 == 0);
             threads[i] = new Thread(() -> {
                 try {
                     Statement stmt2 = conn2.createStatement();
                     for (int j = 0; j < num_rows; j++) {
                         stmt2.execute("INSERT INTO tbl VALUES (3, 4, 200);");
+                    }
+                    if(i2 % 2 == 1) {
+                        conn2.commit();
                     }
                 } catch(SQLException e) {
                     DumpSQLException(e);
@@ -131,6 +136,7 @@ public class CreateIndexTest extends TestUtility {
             });
             threads[i].start();
         }
+        Thread.sleep(100);
         stmt.execute("CREATE INDEX tbl_ind ON tbl (c2)");
         for (Thread t : threads) {
             t.join();

@@ -291,6 +291,13 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
+  // Block potential inserts on creating indexes
+  std::unordered_set<catalog::table_oid_t> modified_table_oids;
+  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
+  for (const auto table_oid : modified_table_oids) {
+    connection_ctx->Accessor()->GetTableLock(table_oid)->lock_shared();
+  }
+
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
     return {ResultType::COMPLETE, 0};
@@ -330,18 +337,14 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor());
 
-  // Block potential inserts on creating indexes
-  std::unordered_set<catalog::table_oid_t> modified_table_oids;
-  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
-  for (const auto table_oid : modified_table_oids) {
-    connection_ctx->Accessor()->GetTableLock(table_oid)->lock_shared();
-  }
-
   exec_ctx->SetParams(portal->Parameters());
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
   exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
+  // Unblock anything blocked
+  std::unordered_set<catalog::table_oid_t> modified_table_oids;
+  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
   for (const auto table_oid : modified_table_oids) {
     connection_ctx->Accessor()->GetTableLock(table_oid)->unlock_shared();
   }
