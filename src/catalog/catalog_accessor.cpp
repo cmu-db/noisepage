@@ -80,6 +80,10 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
   return dbc_->GetTable(txn_, table);
 }
 
+common::ManagedPointer<std::shared_mutex> CatalogAccessor::GetTableLock(table_oid_t table) const {
+  return dbc_->GetTableLock(txn_, table);
+}
+
 bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const {
   return dbc_->UpdateSchema(txn_, table, new_schema);
 }

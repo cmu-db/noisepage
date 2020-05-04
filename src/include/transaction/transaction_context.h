@@ -51,6 +51,28 @@ class TransactionContext {
         undo_buffer_(buffer_pool.Get()),
         redo_buffer_(log_manager.Get(), buffer_pool.Get()) {}
 
+
+  /**
+   * Constructs a new transaction context.
+   *
+   * @warning In the src/ folder this should only be called in TransactionManager::BeginTransaction to adhere to MVCC
+   * semantics. Tests are allowed to deterministically construct them in ways that violate the current MVCC semantics.
+   * @warning Beware that the buffer pool given must be the same one the log manager uses,
+   * if logging is enabled.
+   * @param start the start timestamp of the transaction. Should be unique within the system.
+   * @param finish in HyPer parlance this is txn id. Should be larger than all start times and commit times in current
+   * MVCC semantics
+   * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
+   * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
+   */
+  TransactionContext(const timestamp_t start, const timestamp_t finish,
+                     const storage::UndoBuffer undo_buffer,
+                     const storage::RedoBuffer redo_buffer)
+      : start_time_(start),
+        finish_time_(finish),
+        undo_buffer_(undo_buffer),
+        redo_buffer_(redo_buffer) {}
+
   /**
    * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests
    * are allowed to deterministically delete them in ways that violate the current MVCC semantics, but you should really
@@ -202,6 +224,9 @@ class TransactionContext {
    * TransactionManager.
    */
   void SetMustAbort() { must_abort_ = true; }
+
+  storage::UndoBuffer GetUndoBuffer() { return undo_buffer_; }
+  storage::RedoBuffer GetRedoBuffer() { return redo_buffer_; }
 
  private:
   friend class storage::GarbageCollector;

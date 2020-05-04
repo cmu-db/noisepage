@@ -933,6 +933,11 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
   return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
 }
 
+common::ManagedPointer<std::shared_mutex> DatabaseCatalog::GetTableLock(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                       table_oid_t table) {
+  return common::ManagedPointer(&(GetTable(txn, table)->modify_mutex_));
+}
+
 bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table, const std::string &name) {
   if (!TryLock(txn)) return false;
@@ -978,7 +983,9 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_scan_results;
-  indexes_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
+  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX},
+                                           txn->GetUndoBuffer(), txn->GetRedoBuffer());
+  indexes_table_index_->ScanKey(fake_txn, *key_pr, &index_scan_results);
 
   // If we found no indexes, return an empty list
   if (index_scan_results.empty()) {
@@ -990,7 +997,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   index_oids.reserve(index_scan_results.size());
   auto *select_pr = get_live_indexes_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
-    const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
+    const auto result UNUSED_ATTRIBUTE = indexes_->Select(common::ManagedPointer(&fake_txn), slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     if (!only_live || *(reinterpret_cast<bool *>(select_pr->AccessForceNotNull(
         get_live_indexes_prm_[postgres::INDISLIVE_COL_OID])))) {
@@ -1034,7 +1041,7 @@ bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::Tra
   bool UNUSED_ATTRIBUTE result = indexes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Index should be visible for this transaction");
   *(reinterpret_cast<bool *>(table_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDISLIVE_COL_OID]))) = true;
-
+  redo_record->SetTupleSlot(index_results[0]);
   indexes_->Update(txn, redo_record);
   return true;
 }

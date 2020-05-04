@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <shared_mutex>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
@@ -160,6 +161,8 @@ class CatalogAccessor {
    * @return the storage object corresponding to the passed OID
    */
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
+
+  common::ManagedPointer<std::shared_mutex> GetTableLock(table_oid_t table) const;
 
   /**
    * Apply a new schema to the given table.  The changes should modify the latest

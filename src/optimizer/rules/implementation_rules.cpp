@@ -122,7 +122,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorNod
     // Check if can satisfy sort property with an index
     auto sort_prop = sort->As<PropertySort>();
     if (IndexUtil::CheckSortProperty(sort_prop)) {
-      auto indexes = accessor->GetIndexOids(get->GetTableOid());
+      auto indexes = accessor->GetIndexOids(get->GetTableOid(), true);
       for (auto index : indexes) {
         if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
@@ -139,7 +139,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorNod
   // Check whether any index can fulfill predicate predicate evaluation
   if (!get->GetPredicates().empty()) {
     // Find match index for the predicates
-    auto indexes = accessor->GetIndexOids(get->GetTableOid());
+    auto indexes = accessor->GetIndexOids(get->GetTableOid(), true);
     for (auto &index : indexes) {
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;

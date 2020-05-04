@@ -134,6 +134,9 @@ class DatabaseCatalog {
   common::ManagedPointer<storage::SqlTable> GetTable(common::ManagedPointer<transaction::TransactionContext> txn,
                                                      table_oid_t table);
 
+  common::ManagedPointer<std::shared_mutex> GetTableLock(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                         table_oid_t table);
+
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
    * schema as provided by the catalog.  There is no guarantee that the OIDs for

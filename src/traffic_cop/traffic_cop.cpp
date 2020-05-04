@@ -160,31 +160,17 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
         return;
         //TODO
       } else {
-        out->WriteErrorResponse("ERROR:  CREATE INDEX not implemented");
-        connection_ctx->Transaction()->SetMustAbort();
-        return;
-        //TODO
-      }/*
-      // Create a transaction for the index builder
-      const auto populate_txn = txn_manager_->BeginTransaction();
-      if (execution::sql::DDLExecutors::CreateIndexExecutor(
-              physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
-              common::ManagedPointer(populate_txn))) {
-        if (populate_txn->MustAbort()) {
-          out->WriteErrorResponse("ERROR:  failed to execute CREATE INDEX");
-          connection_ctx->Transaction()->SetMustAbort();
-          txn_manager_->Abort(populate_txn);
+        auto table_oid = create_index_plan->GetTableOid();
+        auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
+        table_lock->lock();
+        bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
+            physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor());
+        table_lock->unlock();
+        if (result) {
+          out->WriteCommandComplete(query_type, 0);
           return;
         }
-        // Set up a blocking callback to wait for the populate txn to finish
-        std::promise<bool> promise;
-        auto future = promise.get_future();
-        TERRIER_ASSERT(future.valid(), "future must be valid for synchronization to work.");
-        txn_manager_->Commit(populate_txn, CommitCallback, &promise);
-        future.wait();
-        out->WriteCommandComplete(query_type, 0);
-        return;
-      }*/
+      }
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
@@ -367,12 +353,23 @@ void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network:
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor());
 
+  // Block potential inserts on creating indexes
+  std::unordered_set<catalog::table_oid_t> modified_table_oids;
+  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
+  for (const auto table_oid : modified_table_oids) {
+    connection_ctx->Accessor()->GetTableLock(table_oid)->lock_shared();
+  }
+
   auto exec_query = execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
 
   if (query_type == network::QueryType::QUERY_SELECT)
     out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
 
   exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+
+  for (const auto table_oid : modified_table_oids) {
+    connection_ctx->Accessor()->GetTableLock(table_oid)->unlock_shared();
+  }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and write command complete

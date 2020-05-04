@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -145,6 +146,12 @@ class AbstractPlanNode {
   //===--------------------------------------------------------------------===//
   // Utilities
   //===--------------------------------------------------------------------===//
+
+  virtual void GetModifiedTables(common::ManagedPointer<std::unordered_set<catalog::table_oid_t>> tables) const {
+    for (auto const &child : children_) {
+      child->GetModifiedTables(tables);
+    }
+  }
 
   /**
    * Derived plan nodes should call this method from their override of Hash() to hash data belonging to the base class
