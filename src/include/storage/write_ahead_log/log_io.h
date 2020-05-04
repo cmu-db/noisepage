@@ -137,6 +137,8 @@ class BufferedLogWriter {
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
  private:
+  friend class Checkpoint;
+
   int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
