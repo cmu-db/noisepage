@@ -448,4 +448,62 @@ public class CteTest extends TestUtility {
         assertNoMoreRows(rs);
     }
 
+    /*Three Table Join with all tables from CTE*/
+        @Test
+        public void ThreeTableJoinAllCTE() throws SQLException {
+            String cte_statement = "WITH EMPLOYEE AS (SELECT * FROM COMPANY) " +
+             "SELECT E1.NAME,E2.AGE,E3.SALARY " +
+              "FROM EMPLOYEE AS E1, " +
+               "EMPLOYEE AS E2, " +
+                "EMPLOYEE AS E3;\n";
+            Statement stmt = conn.createStatement();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(cte_statement);
+            ResultSetMetaData rsmd = rs.getMetaData();
+            int columnsNumber = rsmd.getColumnCount();
+            assertEquals(columnsNumber, 3);
+            double delta = 0.0001;
+
+            rs.next();
+            assertEquals("Paul", rs.getString("NAME"));
+            assertEquals(32, rs.getInt("AGE"));
+            assertEquals(20000.0000, rs.getDouble("SALARY"), delta);
+
+            rs.next();
+            assertEquals("George", rs.getString("NAME"));
+            assertEquals(32, rs.getInt("AGE"));
+            assertEquals(20000.0000, rs.getDouble("SALARY"), delta);
+
+            rs.next();
+            assertEquals("Paul", rs.getString("NAME"));
+            assertEquals(21, rs.getInt("AGE"));
+            assertEquals(20000.0000, rs.getDouble("SALARY"), delta);
+
+            rs.next();
+            assertEquals("George", rs.getString("NAME"));
+            assertEquals(21, rs.getInt("AGE"));
+            assertEquals(20000.0000, rs.getDouble("SALARY"), delta);
+
+            rs.next();
+            assertEquals("Paul", rs.getString("NAME"));
+            assertEquals(32, rs.getInt("AGE"));
+            assertEquals(10000.0000, rs.getDouble("SALARY"), delta);
+
+            rs.next();
+            assertEquals("George", rs.getString("NAME"));
+            assertEquals(32, rs.getInt("AGE"));
+            assertEquals(10000.0000, rs.getDouble("SALARY"), delta);
+
+            rs.next();
+            assertEquals("Paul", rs.getString("NAME"));
+            assertEquals(21, rs.getInt("AGE"));
+            assertEquals(10000.0000, rs.getDouble("SALARY"), delta);
+
+            rs.next();
+            assertEquals("George", rs.getString("NAME"));
+            assertEquals(21, rs.getInt("AGE"));
+            assertEquals(10000.0000, rs.getDouble("SALARY"), delta);
+            assertNoMoreRows(rs);
+        }
+
 }
