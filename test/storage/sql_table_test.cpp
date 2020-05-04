@@ -499,7 +499,6 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
   const uint32_t num_inserts_per_thread = 1;
 
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
-  common::WorkerPool thread_pool(num_threads, {});
   const uint32_t total_inserts = num_threads * num_inserts_per_thread;
 
   storage::layout_version_t version(0);
@@ -529,8 +528,9 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
 
 }
 
+// test concurrent insert, concurrent update schema, concurrent scan, concurrent update, and concurrently delete
 // NOLINTNEXTLINE
-TEST_F(SqlTableTests, ConcurrentInsertWithSchemaChange) {
+TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
   const uint16_t max_columns = 20;
   uint64_t txn_ts = 0;
 
@@ -626,33 +626,48 @@ TEST_F(SqlTableTests, ConcurrentInsertWithSchemaChange) {
   }
   delete[] buffer;
 
-  // Scan the table with the newest version, seeing all the tuples except for the first tuple
-  buffer = nullptr;
-  columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts - 1);
-  it = test_table.GetTable().begin();
-  test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
-                             new_version);
-  EXPECT_EQ(num_inserts - 1, columns->NumTuples());
-  for (uint32_t i = 0; i < columns->NumTuples(); i++) {
-    storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
-    auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
-    std::unordered_set<catalog::col_oid_t> add_cols;
-    std::unordered_set<catalog::col_oid_t> drop_cols;
-    if (ref.version_ != new_version) {
-      for (auto col : cols) {
-        add_cols.insert(col->Oid());
-      }
-      drop_cols.insert(col_to_drop.Oid());
-    }
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
-        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
-        test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
-        drop_cols));
+  int scan_threads = 2;
+  std::vector<byte *> buffer_vec(scan_threads);
+  std::vector<storage::ProjectedColumns *> columns_vec(scan_threads);
+  for (int thread_id = 0; thread_id < scan_threads; thread_id++) {
+    columns = test_table.AllocateColumnBuffer(new_version, &buffer_vec[thread_id], num_inserts - 1);
+    columns_vec[thread_id] = columns;
   }
-  delete[] buffer;
+
+  // Scan the table with the newest version, seeing all the tuples except for the first tuple
+  for (int thread_id = 0; thread_id < scan_threads; thread_id++) {
+  //auto workload = [&](uint32_t thread_id) {
+        it = test_table.GetTable().begin();
+        std::cout << "begin scanning" << std::endl;
+        test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts + thread_id), &buffer_pool_), &it,
+                                   columns_vec[thread_id], new_version);
+  }
+  //MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, scan_threads, workload);
+
+  for (int thread_id = 0; thread_id < scan_threads; thread_id++) {
+    columns = columns_vec[thread_id];
+    EXPECT_EQ(num_inserts - 1, columns->NumTuples());
+    for (uint32_t i = 0; i < columns->NumTuples(); i++) {
+      storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
+      auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
+      std::unordered_set<catalog::col_oid_t> add_cols;
+      std::unordered_set<catalog::col_oid_t> drop_cols;
+      if (ref.version_ != new_version) {
+        for (auto col : cols) {
+          add_cols.insert(col->Oid());
+        }
+        drop_cols.insert(col_to_drop.Oid());
+      }
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+          test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+          test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version),
+          add_cols, drop_cols));
+    }
+    delete buffer_vec[thread_id];
+  }
 
   // update the first half of the tuples except for the first one, under new version, these will migrate
-  txn_ts++;
+  txn_ts+=2;
   for (uint32_t i = 1; i < num_inserts / 2; i++) {
     auto slot = test_table.InsertedTuples()[i];
     auto updated_slot =
