@@ -1026,7 +1026,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
       auto *buffer_one = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       auto *buffer_two = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       storage::ProjectedRow *row_one = initializer.InitializeRow(buffer_one);
-      storage::ProjectedRow *it  = initializer.InitializeRow(buffer_two);
+      storage::ProjectedRow *row_two = initializer.InitializeRow(buffer_two);
 
       auto it = recovered_sql_table->begin();
       auto original_end = original_sql_table->end();
