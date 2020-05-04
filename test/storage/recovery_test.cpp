@@ -827,6 +827,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   // initalize threads for checkpoint
   uint32_t num_threads = 4u;
   common::WorkerPool thread_pool_{num_threads, {}};
+  thread_pool_.Startup();
 
   ckpt.TakeCheckpoint(ckpt_path, db, LOG_FILE_NAME, num_threads, &thread_pool_);
 
@@ -957,12 +958,12 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
   // initalize threads for checkpoint
   uint32_t num_threads = 4u;
   common::WorkerPool thread_pool_{num_threads, {}};
+  thread_pool_.Startup();
 
   auto loop = CheckpointBackgroundLoop(ckpt_path, db, LOG_FILE_NAME, num_threads, &thread_pool_, &ckpt);
-  loop.StartBackgroundLoop(5, 6);
-
-  std::this_thread::sleep_for(std::chrono::seconds(10));
-
+  loop.StartBackgroundLoop(2, 100);
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+  loop.EndBackgroundLoop();
   // TODO(xuanxuan): check if the file is deleted, uncomment later
   //  std::ifstream ifile(LOG_FILE_NAME);
   //  EXPECT_FALSE(ifile);
@@ -1025,7 +1026,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
       auto *buffer_one = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       auto *buffer_two = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       storage::ProjectedRow *row_one = initializer.InitializeRow(buffer_one);
-      storage::ProjectedRow *row_two = initializer.InitializeRow(buffer_two);
+      storage::ProjectedRow *it  = initializer.InitializeRow(buffer_two);
 
       auto it = recovered_sql_table->begin();
       auto original_end = original_sql_table->end();

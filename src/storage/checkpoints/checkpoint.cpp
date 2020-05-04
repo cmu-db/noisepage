@@ -34,7 +34,6 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
 
   log_serializer_task->flush_queue_latch_.Unlock();
 
-  thread_pool_->Startup();
   auto workload = [&](uint32_t worker_id) {
     // copy contents of table to disk
     WriteToDisk(path, accessor, db);

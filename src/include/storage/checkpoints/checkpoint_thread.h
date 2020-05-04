@@ -6,6 +6,7 @@
 #include <iostream>
 #include <mutex>
 #include <thread>
+#include <atomic>
 
 #include "storage/checkpoints/checkpoint.h"
 
@@ -21,32 +22,24 @@ class CheckpointBackgroundLoop {
         thread_pool_(thread_pool),
         checkpoint_(checkpoint) {}
 
-  void BackgroundLoop(const int64_t epoch) {
-    using delta = std::chrono::duration<std::int64_t, std::ratio<1, 60>>;
-    auto next = std::chrono::steady_clock::now() + delta{1};
-    std::unique_lock<std::mutex> lk(mut);
-    while (!stop) {
-      mut.unlock();
-      // Do stuff
-      STORAGE_LOG_INFO("Taking Checkpoint AT ", epoch);
-      checkpoint_->TakeCheckpoint(path_ + std::to_string(epoch).c_str(), db_, cur_log_file_, num_threads_,
+  void BackgroundLoop(const int64_t interval, const int64_t num_checkpoints) {
+    for (uint32_t i = 0; i < num_checkpoints; i++) {
+      if (stop) break;
+      STORAGE_LOG_INFO("Taking Checkpoint: ", i);
+      checkpoint_->TakeCheckpoint(path_, db_, cur_log_file_, num_threads_,
                                   thread_pool_);
-      // Wait for the next epoch/60 sec
-      mut.lock();
-      cv.wait_until(lk, next, [] { return false; });
-      next += delta{epoch};
+      STORAGE_LOG_INFO("Finish Checkpoint: ", i);
+      std::this_thread::sleep_for(std::chrono::seconds(interval));
     }
   }
 
   // Epoch is number of seconds to wait
-  void StartBackgroundLoop(const int64_t epoch, const int64_t duration) {
-    std::thread t(&CheckpointBackgroundLoop::BackgroundLoop, this, epoch);
-    // Duration
-    std::this_thread::sleep_for(std::chrono::seconds(duration));
-    {
-      std::lock_guard<std::mutex> lk(mut);
-      stop = true;
-    }
+  void StartBackgroundLoop(const int64_t interval, const int64_t num_checkpoints){
+    t = std::thread(&CheckpointBackgroundLoop::BackgroundLoop, this, interval, num_checkpoints);
+  }
+
+  void EndBackgroundLoop() {
+    stop = true;
     t.join();
   }
 
@@ -56,10 +49,9 @@ class CheckpointBackgroundLoop {
   const char *cur_log_file_;
   const uint32_t num_threads_;
   common::WorkerPool *thread_pool_;
-  std::condition_variable cv;
-  std::mutex mut;
-  bool stop = false;
   Checkpoint *checkpoint_;
+  std::atomic<bool> stop = false;
+  std::thread t;
 };
 
 }  // namespace terrier::storage
