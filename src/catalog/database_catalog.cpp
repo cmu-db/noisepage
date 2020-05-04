@@ -1866,7 +1866,7 @@ bool DatabaseCatalog::DeleteConstraint(const common::ManagedPointer<transaction:
       all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONEXCLUSION_COL_OID])));
   auto con_type = *(reinterpret_cast<const postgres::ConstraintType *const>(
       all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONTYPE_COL_OID])));
-   delete child table entries first
+//   delete child table entries first
   switch (con_type) {
     case (postgres::ConstraintType::CHECK):
       if (!DeleteCheckConstraint(txn, con_table, constraint, con_check)) {

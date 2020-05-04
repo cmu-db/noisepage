@@ -53,6 +53,10 @@ bool StorageInterface::VerifyTableInsertConstraint() {
   return db_accessor_->VerifyTableInsertConstraint(table_oid_, pr);
 }
 
+bool StorageInterface::UpdateVerify() {
+    return true;
+}
+
 bool StorageInterface::UpdateCascade(storage::TupleSlot table_tuple_slot) {
   return db_accessor_->UpdateCascade(table_oid_, table_tuple_slot);
 }
