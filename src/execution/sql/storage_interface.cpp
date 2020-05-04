@@ -53,17 +53,17 @@ bool StorageInterface::VerifyTableInsertConstraint() {
   return db_accessor_->VerifyTableInsertConstraint(table_oid_, pr);
 }
 
-//bool StorageInterface::UpdateCascade(storage::TupleSlot tuple_slot) {
-//  return true;
-//}
-//
-//bool StorageInterface::UpdateVerify() {
-//  return true;
-//}
-//
-//bool StorageInterface::DeleteCascade(storage::TupleSlot tuple_slot) {
-//  return true;
-//}
+bool StorageInterface::UpdateCascade(storage::TupleSlot tuple_slot) {
+  return true;
+}
+
+bool StorageInterface::UpdateVerify() {
+  return true;
+}
+
+bool StorageInterface::DeleteCascade(storage::TupleSlot tuple_slot) {
+  return true;
+}
 
 storage::TupleSlot StorageInterface::TableInsert() {
   exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
