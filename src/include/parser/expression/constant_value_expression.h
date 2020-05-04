@@ -74,18 +74,7 @@ class ConstantValueExpression : public AbstractExpression {
   /** @return the constant value stored in this expression */
   type::TransientValue GetValue() const { return value_; }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    const auto desired_type =
-        sherpa->GetDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
-
-    sherpa->CheckAndTryPromoteType(common::ManagedPointer(&value_), desired_type);
-
-    // TODO(WAN): DeriveBlah is stupid. Get rid of it some day.
-    DeriveReturnValueType();
-
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /**
    * @return expression serialized to json

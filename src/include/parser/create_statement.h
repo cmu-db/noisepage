@@ -465,10 +465,7 @@ class CreateStatement : public TableRefStatement {
 
   ~CreateStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return the type of create statement */
   CreateType GetCreateType() { return create_type_; }
