@@ -28,9 +28,14 @@ namespace terrier::catalog::postgres {
 class SequenceMetadata {
 private:
     int64_t curr_value = 0;
+
 public:
     int64_t nextval(){
         curr_value ++;
+        return curr_value;
+    }
+
+    int64_t currval(){
         return curr_value;
     }
 };

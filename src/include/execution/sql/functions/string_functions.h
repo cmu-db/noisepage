@@ -38,6 +38,11 @@ class EXPORT StringFunctions {
    static void Nextval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
 
   /**
+   *  Return currval of a sequence
+   */
+  static void Currval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
+
+  /**
    * Return the length of the string
    */
   static void Length(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);

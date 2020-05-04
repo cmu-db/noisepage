@@ -1864,6 +1864,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(Currval) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpCurrval(exec_ctx, result, input);
+    DISPATCH_NEXT();
+  }
+
   OP(Lower) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
