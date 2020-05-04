@@ -2256,8 +2256,8 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::Nextval:
+    case ast::Builtin::Currval:
     case ast::Builtin::Length: {
-          SETTINGS_LOG_TRACE("Nextval check");
           // check to make sure this function has two arguments
           if (!CheckArgCount(call, 2)) {
               return;
@@ -2634,6 +2634,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::Length:
     case ast::Builtin::Nextval:
+    case ast::Builtin::Currval:
     case ast::Builtin::Lower: {
       CheckBuiltinStringCall(call, builtin);
       break;

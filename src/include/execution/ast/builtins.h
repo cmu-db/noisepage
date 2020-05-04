@@ -247,7 +247,8 @@ namespace terrier::execution::ast {
   /* String functions */                                                \
   F(Lower, lower)                                                       \
   F(Length, length)                                                     \
-  F(Nextval, nextval)
+  F(Nextval, nextval)                                                   \
+  F(Currval, currval)
 
 /**
  * Enum of builtins

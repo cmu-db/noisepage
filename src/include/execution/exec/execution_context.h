@@ -72,10 +72,12 @@ class EXPORT ExecutionContext {
    * @param callback callback function for outputting
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
+   * @param temp_namespace only for udf nextval function to use, otherwise it's just a dummy namespace_oid
    */
-  ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
+   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
-                   const common::ManagedPointer<catalog::CatalogAccessor> accessor)
+                   const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                   catalog::namespace_oid_t temp_namespace = catalog::namespace_oid_t(1))
       : db_oid_(db_oid),
         txn_(txn),
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
@@ -84,8 +86,8 @@ class EXPORT ExecutionContext {
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
         string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
-        accessor_(accessor) {}
-
+        accessor_(accessor),
+        temp_namespace_(temp_namespace){}
   /**
    * @return the transaction used by this query
    */
@@ -181,6 +183,11 @@ class EXPORT ExecutionContext {
     pipeline_operating_units_ = op;
   }
 
+  //TODO(Adrian): changed
+  catalog::namespace_oid_t GetTempNamespace() {
+    return temp_namespace_;
+  }
+
  private:
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
@@ -193,5 +200,8 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<const std::vector<type::TransientValue>> params_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
+
+  //TODO(Adrian) : changed
+  catalog::namespace_oid_t temp_namespace_;
 };
 }  // namespace terrier::execution::exec

@@ -201,15 +201,29 @@ void StringFunctions::Rpad(exec::ExecutionContext *ctx, StringVal *result, const
 
 void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
   auto accessor = ctx->GetAccessor();
-  accessor->GetNamespaceOid();
   std::string_view s_v = str.StringView();
   std::string s(s_v.data(), s_v.size());
 
   auto sequence_oid = accessor->GetSequenceOid(s);
   common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
-  int64_t seq_val = seq->nextval();
+  auto tempNamespace = ctx->GetTempNamespace();
+  int64_t seq_val = seq->nextval(tempNamespace);
   result->is_null_ = str.is_null_;
   result->val_ = seq_val;
+}
+
+void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
+    auto accessor = ctx->GetAccessor();
+    std::string_view s_v = str.StringView();
+    std::string s(s_v.data(), s_v.size());
+
+    auto sequence_oid = accessor->GetSequenceOid(s);
+    common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
+    auto tempNamespace = ctx->GetTempNamespace();
+    int64_t seq_val = seq->currval(tempNamespace);
+
+    result->is_null_ = str.is_null_;
+    result->val_ = seq_val;
 }
 
 void StringFunctions::Length(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {

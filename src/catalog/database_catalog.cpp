@@ -2061,7 +2061,10 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::NEXTVAL_PRO_OID, "nextval", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "", true);
 
-  // TODO(tanujnay112): no op codes for lower and upper yet
+  CreateProcedure(txn, postgres::CURRVAL_PRO_OID, "currval", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "", true);
+
+    // TODO(tanujnay112): no op codes for lower and upper yet
 
   BootstrapProcContexts(txn);
 }
@@ -2115,6 +2118,11 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   udf_context = new execution::udf::UDFContext("nextval", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
                                                  execution::ast::Builtin::Nextval, true);
   SetProcCtxPtr(txn, postgres::NEXTVAL_PRO_OID, udf_context);
+  txn->RegisterAbortAction([=]() { delete udf_context; });
+
+  udf_context = new execution::udf::UDFContext("currval", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
+                                                 execution::ast::Builtin::Currval, true);
+  SetProcCtxPtr(txn, postgres::CURRVAL_PRO_OID, udf_context);
   txn->RegisterAbortAction([=]() { delete udf_context; });
 }
 
@@ -2806,6 +2814,7 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
+  //if (!TryLock(txn)) return INVALID_PROC_OID;
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 

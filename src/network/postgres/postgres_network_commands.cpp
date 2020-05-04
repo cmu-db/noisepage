@@ -29,14 +29,12 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (query_type <= network::QueryType::QUERY_DELETE) {
-    NETWORK_LOG_TRACE("Execute select");
     // DML query to put through codegen
     result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
 
     // TODO(Matt): do something with result here in case codegen fails
 
     result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
-    NETWORK_LOG_TRACE("Execute select done");
   } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_CREATE_DB) {
       out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
@@ -136,22 +134,15 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     // Try to bind the parsed statement
     const auto bind_result = t_cop->BindQuery(connection, common::ManagedPointer(statement), nullptr);
     if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
-      // TODO(Adrian) tracing builtin pipeline
-      NETWORK_LOG_TRACE("Bind success");
       // Binding succeeded, optimize to generate a physical plan and then execute
       auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
-      NETWORK_LOG_TRACE("Got physical_plan");
       statement->SetPhysicalPlan(std::move(physical_plan));
-      NETWORK_LOG_TRACE("Got statement");
       const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement));
-      NETWORK_LOG_TRACE("Got portal");
       if (query_type == network::QueryType::QUERY_SELECT) {
         out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
       }
-      NETWORK_LOG_TRACE("Write description");
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
                     postgres_interpreter->ExplicitTransactionBlock());
-      NETWORK_LOG_TRACE("Executed portal");
     } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
       TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
       out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));

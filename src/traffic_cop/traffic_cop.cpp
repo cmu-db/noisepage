@@ -285,7 +285,6 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<network::PostgresPacketWriter> out,
     const common::ManagedPointer<network::Portal> portal) const {
-  // TODO(Adrian) Tracing buitin pipeline
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
@@ -298,22 +297,17 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     // We've already codegen'd this, move on...
     return {ResultType::COMPLETE, 0};
   }
-  NETWORK_LOG_TRACE("Start writer");
   // TODO(Matt): We should get rid of the need of an OutputWriter to ExecutionContext since we just throw this one away
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
-  NETWORK_LOG_TRACE("End writer");
   // TODO(Matt): We should get rid of the need of an ExecutionContext to perform codegen since we just throw this one
   // away
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor());
-  NETWORK_LOG_TRACE("End exec_ctx");
   auto exec_query = std::make_unique<execution::ExecutableQuery>(common::ManagedPointer(physical_plan),
                                                                  common::ManagedPointer(exec_ctx));
-  NETWORK_LOG_TRACE("Start SetExecutableQuery");
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
-  NETWORK_LOG_TRACE("End SetExecutableQuery");
   return {ResultType::COMPLETE, 0};
 }
 
@@ -331,13 +325,19 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor());
+      connection_ctx->Accessor(), connection_ctx->GetTempNamespaceOid());
 
   exec_ctx->SetParams(portal->Parameters());
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  // UDF currval will throw exception.
+  try {
+    exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  }catch (...) {
+    return {ResultType::ERROR, "Query failed."};
+  }
+
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete

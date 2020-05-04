@@ -208,12 +208,10 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
       break;
     }
     case T_ColumnRef: {
-      PARSER_LOG_TRACE("Is T_ColumnRef");
       expr = ColumnRefTransform(parse_result, reinterpret_cast<ColumnRef *>(node), alias);
       break;
     }
     case T_FuncCall: {
-      PARSER_LOG_TRACE("Is T_FuncCall");
       expr = FuncCallTransform(parse_result, reinterpret_cast<FuncCall *>(node));
       break;
     }

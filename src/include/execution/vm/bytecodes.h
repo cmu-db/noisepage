@@ -464,6 +464,7 @@ namespace terrier::execution::vm {
   F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
   F(Nextval, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(Currval, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(Lower, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
   F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
