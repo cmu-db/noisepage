@@ -65,13 +65,11 @@ class TransactionContext {
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    */
-  TransactionContext(const timestamp_t start, const timestamp_t finish,
-                     const storage::UndoBuffer undo_buffer,
-                     const storage::RedoBuffer redo_buffer)
+  TransactionContext(const timestamp_t start, const timestamp_t finish)
       : start_time_(start),
         finish_time_(finish),
-        undo_buffer_(undo_buffer),
-        redo_buffer_(redo_buffer) {}
+        undo_buffer_(nullptr),
+        redo_buffer_(nullptr, nullptr) {}
 
   /**
    * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests

@@ -7,10 +7,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
+
 import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings("ALL")
@@ -23,7 +21,7 @@ public class CreateIndexTest extends TestUtility {
 
     private static final String SQL_CREATE_TABLE =
             "CREATE TABLE tbl (" +
-                    "c1 int NOT NULL PRIMARY KEY, " +
+                    "c1 int, " +
                     "c2 int," +
                     "c3 int);";
 
@@ -79,7 +77,7 @@ public class CreateIndexTest extends TestUtility {
     }
 
     /* --------------------------------------------
-     * Insert statement tests
+     * Create index tests
      * ---------------------------------------------
      */
 
@@ -92,13 +90,58 @@ public class CreateIndexTest extends TestUtility {
         Statement stmt = conn1.createStatement();
         stmt.execute(sql);
         stmt.execute("CREATE INDEX tbl_ind ON tbl (c2)");
-        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl ORDER BY c2 WHERE c2 > 0 DESC false");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC");
         rs.next();
         checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
         rs.next();
-        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 100});
-        rs.next();
         checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 4, 100});
+        rs.next();
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 100});
+        assertNoMoreRows(rs);
+    }
+
+    /**
+     * Does a simple create index on a populated table
+     */
+    @Test
+    public void testWriteBlocking() throws SQLException, InterruptedException {
+        String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100);";
+        Statement stmt = conn1.createStatement();
+        int num_rows = 1000;
+        for (int i = 0; i < num_rows; i++) {
+            try {
+                stmt.execute(sql);
+            } catch (SQLException e) {
+                throw e;
+            }
+        }
+        Thread t2 = new Thread(() -> {
+            try {
+                Statement stmt2 = conn2.createStatement();
+                for (int i = 0; i < num_rows; i++) {
+                    stmt2.execute("INSERT INTO tbl VALUES (3, 4, 200);");
+                }
+            } catch(SQLException e) {
+                DumpSQLException(e);
+                Assert.fail();
+            }
+        });
+        t2.start();
+        stmt.execute("CREATE INDEX tbl_ind ON tbl (c2)");
+        t2.join();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC");
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
+        }
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 4, 200});
+        }
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 100});
+        }
         assertNoMoreRows(rs);
     }
 

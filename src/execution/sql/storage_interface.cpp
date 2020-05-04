@@ -40,6 +40,8 @@ storage::ProjectedRow *StorageInterface::GetTablePR() {
   storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids_);
   auto txn = exec_ctx_->GetTxn();
   table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
+
+  TERRIER_ASSERT(table_redo_->Delta()->NumColumns() < 200, "beh");
   return table_redo_->Delta();
 }
 
@@ -53,6 +55,7 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
 
 storage::TupleSlot StorageInterface::TableInsert() {
   exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
+  TERRIER_ASSERT(table_redo_->Delta()->NumColumns() < 200, "beh");
   return table_->Insert(exec_ctx_->GetTxn(), table_redo_);
 }
 

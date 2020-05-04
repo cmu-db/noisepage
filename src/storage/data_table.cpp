@@ -178,6 +178,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   TupleSlot result;
   auto block = insertion_head_;
   while (true) {
+    TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
     // No free block left
     if (block == blocks_.end()) {
       RawBlock *new_block = NewBlock();
@@ -191,6 +192,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
       block = --blocks_.end();
       break;
     }
+    TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
 
     if (accessor_.SetBlockBusyStatus(*block)) {
       // No one is inserting into this block
@@ -207,6 +209,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
     // The block is full or the block is being inserted by other txn, try next block
     ++block;
   }
+  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
 
   // Do not need to wait unit finish inserting,
   // can flip back the status bit once the thread gets the allocated tuple slot
@@ -222,15 +225,19 @@ void DataTable::InsertInto(const common::ManagedPointer<transaction::Transaction
   TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
   TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
                  "The slot needs to be logically deleted to every running transaction");
+  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
   TERRIER_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
                  "Should only be able to insert into hot blocks");
+  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
   AtomicallyWriteVersionPtr(dest, accessor_, undo);
+  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
   // Set the logically deleted bit to present as the undo record is ready
   accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
   // Update in place with the new value.
+  TERRIER_ASSERT(redo.NumColumns() < 200, "beh");
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
     TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                    "Insert buffer should not change the version pointer column.");

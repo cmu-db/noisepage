@@ -986,8 +986,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_scan_results;
-  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX},
-                                           txn->GetUndoBuffer(), txn->GetRedoBuffer());
+  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
   indexes_table_index_->ScanKey(fake_txn, *key_pr, &index_scan_results);
 
   // If we found no indexes, return an empty list
@@ -1264,7 +1263,8 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
     const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
-  const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(index));
+  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
+  const auto ptr_pair = GetClassPtrKind(common::ManagedPointer(&fake_txn), static_cast<uint32_t>(index));
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);
@@ -1284,7 +1284,8 @@ index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transactio
 
 const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                    index_oid_t index) {
-  auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(index));
+  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
+  auto ptr_pair = GetClassSchemaPtrKind(common::ManagedPointer(&fake_txn), static_cast<uint32_t>(index));
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
