@@ -101,9 +101,8 @@ class ScanTask {
 };
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
-                                       void *query_state, const ScanFn scan_fn,
-                                       exec::ExecutionContext *exec_ctx) {
+bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
+                                       const ScanFn scan_fn, exec::ExecutionContext *exec_ctx) {
   // Lookup table
   common::ManagedPointer<storage::SqlTable> table =
       exec_ctx->GetAccessor()->GetTable(static_cast<catalog::table_oid_t>(table_oid));

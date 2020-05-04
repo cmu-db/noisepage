@@ -20,7 +20,6 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_context.h"
 
-#include "catalog/catalog_defs.h"
 #include "execution/compiler/compiler.h"
 #include "execution/compiler/expression_util.h"
 #include "execution/compiler/output_checker.h"
@@ -40,7 +39,7 @@
 namespace terrier {
 class ParalleScanBenchmark : public benchmark::Fixture {};
 
-BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &state) {  // NOLINT
   // Below is the Working Version
   uint32_t num_row = 10000000;
   LoggersUtil::Initialize();
@@ -104,7 +103,7 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
   txn_manager->Commit(test_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) {  // NOLINT
   uint32_t num_row = 10000000;
   LoggersUtil::Initialize();
   auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
@@ -166,7 +165,7 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) 
 
   // Run & Check
   auto executable = execution::ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     uint64_t elapsed_ms = 0;
     {

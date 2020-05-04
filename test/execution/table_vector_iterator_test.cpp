@@ -160,9 +160,9 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   TableVectorIterator::ParallelScan(static_cast<uint32_t>(table_oid),  // ID of table to scan
                                     col_oids,
-                                    1,                                 // Query state to pass to scan threads
+                                    1,  // Query state to pass to scan threads
                                     thread_state_container.AccessThreadStateOfCurrentThread(),  // Thread states
-                                    scanner,                           // Scan function
+                                    scanner,                                                    // Scan function
                                     exec_ctx_.get());
 
   // Count total aggregate tuple count seen by all threads

@@ -98,8 +98,8 @@ class EXPORT TableVectorIterator {
    * @param scan_fn The callback function invoked for vectors of table input
    * @param exec_ctx Current execution context
    */
-  static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
-                           ScanFn scan_fn, exec::ExecutionContext *exec_ctx);
+  static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state, ScanFn scan_fn,
+                           exec::ExecutionContext *exec_ctx);
 
  private:
   exec::ExecutionContext *exec_ctx_;
