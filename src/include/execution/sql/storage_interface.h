@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "execution/exec/execution_context.h"
 #include "catalog/catalog_defs.h"
 #include "execution/util/execution_common.h"
 #include "storage/projected_row.h"

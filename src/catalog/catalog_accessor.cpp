@@ -100,6 +100,7 @@ const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_-
 
 bool CatalogAccessor::VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr) {
   return dbc_->VerifyTableInsertConstraint(txn_, table, pr);
+  return dbc_->VerifyTableInsertConstraint(txn_, table, pr);
 }
 
 bool CatalogAccessor::UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot) {
