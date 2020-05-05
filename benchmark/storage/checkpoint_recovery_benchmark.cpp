@@ -71,8 +71,7 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
         db = database.first;
       }
       // initalize threads for checkpoint
-      uint32_t num_threads = 4u;
-      common::WorkerPool thread_pool_{num_threads, {}};
+      common::WorkerPool thread_pool_{BenchmarkConfig::num_threads, {}};
       thread_pool_.Startup();
       // take checkpoint
       unlink(secondary_log_file.c_str());
