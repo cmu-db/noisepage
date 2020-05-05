@@ -246,7 +246,7 @@ class AlterPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param database_oid OID of the database
+     * @param table_oid OID of the table
      * @return builder object
      */
     Builder &SetTableOid(catalog::table_oid_t table_oid) {

@@ -49,6 +49,7 @@ class AlterTableStatement : public TableRefStatement {
      * Set default value
      * @param col_name column name
      * @param default_value default value of column
+     * @param drop_cascade true if should perform drop cascade
      */
     AlterTableCmd(std::string col_name, common::ManagedPointer<AbstractExpression> default_value, bool drop_cascade)
         : type_(AlterType::ColumnDefault),
@@ -61,6 +62,7 @@ class AlterTableStatement : public TableRefStatement {
      * Drop Column
      * @param col_name column name
      * @param if_exists IF table EXISTS
+     * @param drop_cascade true if should perform drop cascade
      */
     AlterTableCmd(std::string col_name, bool if_exists, bool drop_cascade)
         : type_(AlterType::DropColumn),

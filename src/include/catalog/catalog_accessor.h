@@ -170,6 +170,7 @@ class CatalogAccessor {
    * @param table OID of the modified table
    * @param new_schema object describing the table after modification
    * @param layout_version layout version to set for the new schema
+   * @param change_map maps col_id to different change types of alter command
    * @return true if the operation succeeded, false otherwise
    * @warning If the caller needs to reference the schema object after this call, they should use the GetSchema function
    * to obtain the authoritative schema for this table.

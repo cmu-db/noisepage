@@ -27,7 +27,9 @@ class AlterTableCmdExecutor {
   /**
    *
    * @param cmd  AddColumn Command
+   * @param schema Schema to accumulate changes
    * @param accessor accessor to use for this execution
+   * @param change_map to record the changes to schema
    * @return whether add column is successful
    */
   // NOLINTNEXTLINE

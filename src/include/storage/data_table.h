@@ -134,6 +134,7 @@ class DataTable {
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information and should not
    * reference col_id 0
+   * @param size_map columns which have size mismatch
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot, ProjectedRow *out_buffer,
@@ -161,6 +162,14 @@ class DataTable {
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             ProjectedColumns *out_buffer) const;
 
+  /**
+   * Similar to scan, but starts filling out_buffer from offset filled (assumes out_buffer already has filled elements)
+   * @param txn the calling transaction
+   * @param start_pos iterator to the starting location for the sequential scan
+   * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
+   *                   always cleared of old values.
+   * @param filled how many elements in the out_buffer has already been filled
+   */
   void IncrementalScan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
                        ProjectedColumns *out_buffer, uint32_t filled) const;
 

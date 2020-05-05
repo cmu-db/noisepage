@@ -2089,8 +2089,9 @@ class AlterTable : public OperatorNodeContents<AlterTable> {
  public:
   /**
    * @param table_oid OID of the table
-   * @param columns OIDs of Analyze columns
-   * @return
+   * @param cmds the commands of AlterTableStatement
+   * @param col_oids OIDs of Analyze columns
+   * @return Physical operator for AlterTable
    */
   static Operator Make(catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds,

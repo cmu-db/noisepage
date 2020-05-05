@@ -12,7 +12,7 @@ STRONG_TYPEDEF(query_id_t, uint64_t);
 STRONG_TYPEDEF(pipeline_id_t, uint64_t);
 
 /**
- * Use to represent different Alter commands type
+ * Use to represent different Alter command types
  */
 enum class ChangeType { Add, DropNoCascade, ChangeDefault, ChangeType };
 using ChangeMap = std::unordered_map<std::string, std::vector<ChangeType>>;

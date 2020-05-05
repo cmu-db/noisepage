@@ -2013,8 +2013,9 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
  public:
   /**
    * @param table_oid OID of the table
-   * @param columns OIDs of Alter columns
-   * @return
+   * @param cmds the commands of AlterTableStatement
+   * @param col_oids OIDs of Alter columns
+   * @return Logical operator for Alter Table
    */
   static Operator Make(catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds,

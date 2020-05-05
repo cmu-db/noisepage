@@ -144,6 +144,7 @@ class DatabaseCatalog {
    * @param table OID of the modified table
    * @param new_schema object describing the table after modification
    * @param layout_version_ptr layout version for the updated schema
+   * @param change_map maps col_id to different change types of alter command
    * @return true if the operation succeeded, false otherwise
    * @warning The catalog accessor assumes it takes ownership of the schema object
    * that is passed.  As such, there is no guarantee that the pointer is still

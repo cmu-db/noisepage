@@ -85,7 +85,7 @@ class SqlTable {
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. The
    * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @param layout_version Schema version the current querying transaction should see
-   * @param migrated_slot used to return tupleslot T after the update. Set this to null if T is not used by caller.
+   * @param updated_slot used to return tupleslot T after the update. Set this to null if T is not used by caller.
    * @return true if successful, false otherwise. Populates updated_slot with Tupleslot after the update. This will be
    * different from the original tupleslot if migration occurs.
    */
@@ -252,7 +252,7 @@ class SqlTable {
                                      layout_version_t layout_version = layout_version_t{0});
 
   /**
-   * @param version  version of the datatable
+   * @param layout_version  version of the datatable
    * @return the column oid to id map of a layout_version
    */
   const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t layout_version) const {
@@ -261,7 +261,7 @@ class SqlTable {
   }
 
   /**
-   * @param version  version of the datatable
+   * @param layout_version  version of the datatable
    * @return the column id to oid map of a layout_version
    */
   const ColumnIdToOidMap &GetColumnIdToOidMap(layout_version_t layout_version) const {
