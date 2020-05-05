@@ -15,7 +15,11 @@ namespace terrier {
 
 class CheckpointRecoveryBenchmark : public benchmark::Fixture {
  public:
-  void SetUp(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
+  void SetUp(const benchmark::State &state) final {
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    std::string suffix = "_catalog";
+    unlink((terrier::BenchmarkConfig::logfile_path.data() + suffix).c_str());
+  }
   void TearDown(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
 
   const uint32_t initial_table_size_ = 1000000;
@@ -33,6 +37,8 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
     for (auto _ : *state) {
       // Blow away log file after every benchmark iteration
       unlink(terrier::BenchmarkConfig::logfile_path.data());
+      std::string suffix = "_catalog";
+      unlink((terrier::BenchmarkConfig::logfile_path.data() + suffix).c_str());
       // Initialize table and run workload with logging enabled
       auto db_main = terrier::DBMain::Builder()
                          .SetLogFilePath(terrier::BenchmarkConfig::logfile_path.data())
@@ -56,6 +62,23 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
       tested->SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
       log_manager->ForceFlush();
 
+      std::string secondary_log_file = "test3.log";
+      std::string ckpt_path = "ckpt_test/";
+      std::filesystem::create_directory(ckpt_path);
+      // get db_oid
+      catalog::db_oid_t db;
+      for (auto &database : tested->GetTables()) {
+        db = database.first;
+      }
+      // initalize threads for checkpoint
+      uint32_t num_threads = 4u;
+      common::WorkerPool thread_pool_{num_threads, {}};
+      thread_pool_.Startup();
+      // take checkpoint
+      unlink(secondary_log_file.c_str());
+      storage::Checkpoint ckpt(catalog, txn_manager, deferred_action_manager, gc, log_manager);
+      ckpt.TakeCheckpoint(ckpt_path, db, terrier::BenchmarkConfig::logfile_path.data(), num_threads, &thread_pool_);
+
       // Start a new components with logging disabled, we don't want to log the log replaying
       auto recovery_db_main = DBMain::Builder()
                                   .SetUseThreadRegistry(true)
@@ -70,8 +93,8 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
       auto recovery_catalog = recovery_db_main->GetCatalogLayer()->GetCatalog();
       auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
 
-      // Instantiate recovery manager, and recover the tables.
-      storage::DiskLogProvider log_provider(terrier::BenchmarkConfig::logfile_path.data());
+      // Instantiate recovery manager, and recover the catalogs.
+      storage::DiskLogProvider log_provider(terrier::BenchmarkConfig::logfile_path.data() + suffix);
       storage::RecoveryManager recovery_manager(
           common::ManagedPointer<storage::AbstractLogProvider>(&log_provider), recovery_catalog, recovery_txn_manager,
           recovery_deferred_action_manager, recovery_thread_registry, recovery_block_store);
@@ -89,6 +112,7 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
       common::WorkerPool thread_pool_{num_threads, {}};
       unlink(secondary_log_file.c_str());
       storage::Checkpoint ckpt(catalog, txn_manager, deferred_action_manager, gc, log_manager);
+
       uint64_t elapsed_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -147,11 +171,11 @@ BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, HighStress)(benchmark::State &st
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)
+BENCHMARK_REGISTER_F(CheckpointRecoveryBenchmark, ReadWriteWorkload)
 ->Unit(benchmark::kMillisecond)
 ->UseManualTime()
 ->MinTime(10);
-BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)
+BENCHMARK_REGISTER_F(CheckpointRecoveryBenchmark, HighStress)
 ->Unit(benchmark::kMillisecond)
 ->UseManualTime()
 ->MinTime(10);
