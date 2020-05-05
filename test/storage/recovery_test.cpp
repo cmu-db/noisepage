@@ -830,6 +830,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   thread_pool_.Startup();
 
   ckpt.TakeCheckpoint(ckpt_path, db, LOG_FILE_NAME, num_threads, &thread_pool_);
+  tested->SimulateOltp(2, 1);
 
   // TODO(xuanxuan): check if the file is deleted, uncomment later
   //  std::ifstream ifile(LOG_FILE_NAME);
@@ -864,7 +865,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
                                    recovery_deferred_action_manager_,
                                    recovery_thread_registry_,
                                    recovery_block_store_};
-  recovery_manager.StartRecovery(true);
+  recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   recovery_manager.RecoverFromCheckpoint(ckpt_path, db);
@@ -997,7 +998,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
                                    recovery_deferred_action_manager_,
                                    recovery_thread_registry_,
                                    recovery_block_store_};
-  recovery_manager.StartRecovery(true);
+  recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   recovery_manager.RecoverFromCheckpoint(ckpt_path, db);

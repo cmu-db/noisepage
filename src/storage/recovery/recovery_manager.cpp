@@ -24,7 +24,7 @@ namespace terrier::storage {
 
 constexpr uint8_t ARROW_ALIGNMENT = 8;
 
-void RecoveryManager::RecoverFromLogs(bool catalog_only) {
+void RecoveryManager::RecoverFromLogs() {
   // Replay logs until the log provider no longer gives us logs
   std::ofstream o("lookrec.txt", std::ios::out|std::ios::app);
   while (true) {
@@ -52,7 +52,7 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
         deferred_txns_.insert(log_record->TxnBegin());
 
         // Process any deferred transactions that are safe to execute
-        recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn(), catalog_only);
+        recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
 
         // Clean up the log record
         deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
@@ -68,7 +68,7 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
     }
   }
   // Process all deferred txns
-  ProcessDeferredTransactions(transaction::INVALID_TXN_TIMESTAMP, catalog_only);
+  ProcessDeferredTransactions(transaction::INVALID_TXN_TIMESTAMP);
   TERRIER_ASSERT(deferred_txns_.empty(), "We should have no unprocessed deferred transactions at the end of recovery");
 
   // If we have unprocessed buffered changes, then these transactions were in-process at the time of system shutdown.
@@ -207,7 +207,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id, bool catalog_only) {
+void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id) {
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
 
@@ -220,23 +220,11 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
 
     if (IsSpecialCaseCatalogRecord(buffered_record)) {
       idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
-    } else if (!catalog_only) {
+    } else {
       if (buffered_record->RecordType() == LogRecordType::REDO) {
         ReplayRedoRecord(txn, buffered_record);
       } else {
         ReplayDeleteRecord(txn, buffered_record);
-      }
-    } else {
-      if (buffered_record->RecordType() == LogRecordType::REDO) {
-        auto staged_record = txn->StageRecoveryWrite(buffered_record);
-        if ((uint32_t)(staged_record->GetTableOid()) < catalog::START_OID) {
-          ReplayRedoRecord(txn, buffered_record);
-        }
-      } else {
-        auto delete_record = buffered_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
-        if ((uint32_t)(delete_record->GetTableOid()) < catalog::START_OID) {
-          ReplayDeleteRecord(txn, buffered_record);
-        }
       }
     }
   }
@@ -263,8 +251,7 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
   });
 }
 
-uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts,
-                                                      bool catalog_only) {
+uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {
   auto txns_processed = 0;
   // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
@@ -273,7 +260,7 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
   auto upper_bound_it = deferred_txns_.upper_bound(upper_bound_ts);
 
   for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
-    ProcessCommittedTransaction(*it, catalog_only);
+    ProcessCommittedTransaction(*it);
     txns_processed++;
   }
 
