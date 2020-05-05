@@ -25,7 +25,7 @@ class AlterCmdBase {
    * constructor for AlterCmdBase
    * @param oid The col oid that the command applies on
    */
-  AlterCmdBase(catalog::col_oid_t oid) : oid_(oid) {}
+  explicit AlterCmdBase(catalog::col_oid_t oid) : oid_(oid) {}
 
   /**
    * default destructor
@@ -40,7 +40,7 @@ class AlterCmdBase {
   /**
    * @return the oid of the column
    */
-  const catalog::col_oid_t GetColOid() const { return oid_; }
+  catalog::col_oid_t GetColOid() const { return oid_; }
 
   /**
    * @return  json encoded
@@ -379,7 +379,7 @@ class AlterPlanNode : public AbstractPlanNode {
     std::vector<common::ManagedPointer<AlterCmdBase>> ret;
     ret.reserve(cmds_.size());
 
-    for (const auto &cmd : cmds_) ret.push_back(common::ManagedPointer<AlterCmdBase>(cmd));
+    for (const auto &cmd : cmds_) ret.emplace_back(common::ManagedPointer<AlterCmdBase>(cmd));
     return ret;
   }
 

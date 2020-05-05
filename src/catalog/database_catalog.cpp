@@ -938,11 +938,11 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
   if (!TryLock(txn)) return false;
 
   // Iterate through the column being modified
-  for (auto itr = change_map.begin(); itr != change_map.end(); ++itr) {
-    auto col_name = itr->first;
+  for (const auto & itr : change_map) {
+    auto col_name = itr.first;
 
     // For all the change on this column
-    for (auto change : itr->second) {
+    for (auto change : itr.second) {
       switch (change) {
         case execution::ChangeType::Add: {
           // Get the next col_oid with the table_oid

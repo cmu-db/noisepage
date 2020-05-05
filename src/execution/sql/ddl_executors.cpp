@@ -181,7 +181,8 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
   // Get the current schema
   if (update_schema == nullptr) {
     const auto &schema = accessor->GetSchema(table_oid);
-    auto cols = schema.GetColumns();
+    const auto &cols = schema.GetColumns();
+    // NOLINTNEXTLINE
     update_schema.reset(new catalog::Schema(cols));
   }
 
