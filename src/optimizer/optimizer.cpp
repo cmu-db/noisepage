@@ -16,6 +16,7 @@
 #include "optimizer/property_enforcer.h"
 #include "optimizer/rule.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 
 namespace terrier::optimizer {
 
@@ -54,12 +55,54 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
   try {
     auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs);
 
+    // Assign CTE Schema to each CTE Node
+    if (context_->GetCTESchema() != nullptr) {
+      planner::AbstractPlanNode *leader = nullptr;
+      common::ManagedPointer<planner::AbstractPlanNode> ldr = common::ManagedPointer(leader);
+      ElectCTELeader(common::ManagedPointer(best_plan), &ldr);
+    }
+
     // Reset memo after finishing the optimization
     Reset();
     return best_plan;
   } catch (Exception &e) {
     Reset();
     throw e;
+  }
+}
+
+void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                               common::ManagedPointer<planner::AbstractPlanNode> *leader) {
+  if (plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
+    if (plan->GetChildren().empty()) {
+      // Set cte schema
+      auto cte_scan_plan_node_set = reinterpret_cast<planner::CteScanPlanNode *>(plan.Get());
+      cte_scan_plan_node_set->SetTableOutputSchema(std::move(context_->GetCTESchema()->Copy()));
+
+      if (*leader == nullptr) {
+        *leader = plan;
+        auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>((*leader).Get());
+        cte_scan_plan_node->SetLeader();
+      }
+    } else {
+      // Child bearing CTE node
+      // Replace with leader
+      if (*leader != nullptr) {
+        std::vector<std::unique_ptr<planner::AbstractPlanNode>> adopted_children;
+        plan->MoveChildren(&adopted_children);
+        TERRIER_ASSERT(adopted_children.size() == 1, "CTE leader should have 1 child");
+        (*leader)->AddChild(std::move(adopted_children[0]));
+      } else {
+        *leader = plan;
+        auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>((*leader).Get());
+        cte_scan_plan_node->SetLeader();
+      }
+    }
+  } else {
+    auto children = plan->GetChildren();
+    for (auto &i : children) {
+      ElectCTELeader(i, leader);
+    }
   }
 }
 
@@ -76,7 +119,6 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   // required_input_props is owned by the GroupExpression
   auto required_input_props = gexpr->GetInputProperties(required_props);
-  TERRIER_ASSERT(required_input_props.size() == child_groups.size(), "input properties and group size mismatch");
 
   // Firstly derive input/output columns
   InputColumnDeriver deriver(txn, accessor);
@@ -111,6 +153,18 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
                                       std::move(children_plans), std::move(children_expr_map));
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group {0}", id);
+
+  if (op->GetOp().GetType() == OpType::CTESCAN && !child_groups.empty()) {
+    TERRIER_ASSERT(child_groups.size() == 1, "CTE should not have more than 1 child.");
+    if (plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
+      auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(plan.get());
+      context_->SetCTESchema(cte_scan_plan_node->GetTableOutputSchema());
+    } else if ((*plan->GetChildren().begin())->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
+      // CTE Scan node can be inside a Projection node
+      auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(&(*plan->GetChildren().begin()->Get()));
+      context_->SetCTESchema((cte_scan_plan_node)->GetTableOutputSchema());
+    }
+  }
 
   delete op;
   return plan;

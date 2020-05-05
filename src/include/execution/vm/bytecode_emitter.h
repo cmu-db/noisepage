@@ -403,6 +403,18 @@ class BytecodeEmitter {
    */
   void EmitOutputCall(Bytecode bytecode, LocalVar exec_ctx);
 
+  /*Cte Scan Calls*/
+
+  /**
+   * Emit code to initialize an index iterator
+   * @param bytecode index initialization bytecode
+   * @param iter iterator in initialize
+   * @param exec_ctx the execution context
+   * @param col_schema_defn array of defns
+   * @param num_oids length of the array
+   */
+  void CteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
+
   // -------------------------------------------
   // Index Calls
   // -------------------------------------------

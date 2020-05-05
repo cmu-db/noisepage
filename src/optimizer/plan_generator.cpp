@@ -893,32 +893,57 @@ void PlanGenerator::Visit(const Analyze *analyze) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Limit + Sort
+// CTE
 ///////////////////////////////////////////////////////////////////////////////
 
-void PlanGenerator::Visit(const CteScan *op) {
+void PlanGenerator::Visit(const CteScan *cte_scan) {
   // CteScan has the same output schema as the child plan!
-  TERRIER_ASSERT(children_plans_.size() == 1, "CteScan needs 1 child plan");
-  output_plan_ = std::move(children_plans_[0]);
+  TERRIER_ASSERT(children_plans_.size() == 1 || children_plans_.empty(), "CteScan needs 1 child plan");
+  if (children_plans_.size() == 1) {
+    output_plan_ = std::move(children_plans_[0]);
+    // CteScan OutputSchema does not add/drop columns. All output columns of CteScan
+    // are the same as the output columns of the child plan. As such, the OutputSchema
+    // of a CteScan has the same columns vector as the child OutputSchema, with only
+    // DerivedValueExpressions
+    auto idx = 0;
+    auto &child_plan_cols = output_plan_->GetOutputSchema()->GetColumns();
+    std::vector<planner::OutputSchema::Column> child_columns;
+    for (auto &col : child_plan_cols) {
+      auto dve = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
+      child_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve));
+      idx++;
+    }
 
-  // CteScan OutputSchema does not add/drop columns. All output columns of CteScan
-  // are the same as the output columns of the child plan. As such, the OutputSchema
-  // of a CteScan has the same columns vector as the child OutputSchema, with only
-  // DerivedValueExpressions
-  auto idx = 0;
-  auto &child_plan_cols = output_plan_->GetOutputSchema()->GetColumns();
-  std::vector<planner::OutputSchema::Column> child_columns;
-  for (auto &col : child_plan_cols) {
-    auto dve = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
-    child_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve));
-    idx++;
+    std::vector<planner::OutputSchema::Column> columns;
+    for (auto &output_expr : output_cols_) {
+      auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+
+      // output schema of a plan node is literally the columns of the table.
+      // there is no such thing as an intermediate column here!
+      columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType(), tve->Copy());
+    }
+
+    auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
+    output_plan_ = planner::CteScanPlanNode::Builder()
+                       .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
+                       .SetTableOutputSchema(std::move(cte_scan_out))
+                       .AddChild(std::move(output_plan_))
+                       .Build();
+  } else {
+    // make schema from output columns
+    std::vector<planner::OutputSchema::Column> columns;
+    for (auto &output_expr : output_cols_) {
+      auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+
+      // output schema of a plan node is literally the columns of the table.
+      // there is no such thing as an intermediate column here!
+      columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType(), tve->Copy());
+    }
+
+    output_plan_ = planner::CteScanPlanNode::Builder()
+                       .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
+                       .Build();
   }
-
-  auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
-  output_plan_ = planner::CteScanPlanNode::Builder()
-      .SetOutputSchema(std::move(cte_scan_out))
-      .AddChild(std::move(output_plan_))
-      .Build();
 }
 
 }  // namespace terrier::optimizer

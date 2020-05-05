@@ -114,6 +114,7 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,          \
     OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
+  F(TempTableVectorIteratorPerformInit, OperandType::Local, OperandType::Local)                                       \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
   F(TableVectorIteratorReset, OperandType::Local)                                                                     \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
@@ -121,9 +122,12 @@ namespace terrier::execution::vm {
   F(ParallelScanTable, OperandType::UImm4, OperandType::UImm4, OperandType::Local, OperandType::Local,                \
     OperandType::FunctionId)                                                                                          \
                                                                                                                       \
-  F(CteScanInit, OperandType::Local)                                                                                  \
-  F(CteScanNext, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
-                                                                                                                      \
+  F(CteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)                      \
+  F(CteScanGetTable, OperandType::Local, OperandType::Local)                                                          \
+  F(CteScanGetTableOid, OperandType::Local, OperandType::Local)                                                       \
+  F(CteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                              \
+  F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
+  F(CteScanFree, OperandType::Local)                                                                                  \
                                                                                                                       \
   /* ProjectedColumns Iterator (PCI) */                                                                               \
   F(PCIIsFiltered, OperandType::Local, OperandType::Local)                                                            \

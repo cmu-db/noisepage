@@ -46,6 +46,7 @@ namespace terrier::execution::ast {
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
   F(TableIterInitBind, tableIterInitBind)                               \
+  F(TempTableIterInitBind, tempTableIterInitBind)                       \
   F(TableIterAdvance, tableIterAdvance)                                 \
   F(TableIterGetPCI, tableIterGetPCI)                                   \
   F(TableIterClose, tableIterClose)                                     \
@@ -54,7 +55,11 @@ namespace terrier::execution::ast {
                                                                         \
   /*Cte Scans*/                                                         \
   F(CteScanInit, cteScanInit)                                           \
-  F(CteScanNext, cteScanNext)                                           \
+  F(CteScanGetTable, cteScanGetTable)                                   \
+  F(CteScanGetTableOid, cteScanGetTableOid)                             \
+  F(CteScanGetInsertTempTablePR, cteScanGetInsertTempTablePR)           \
+  F(CteScanTableInsert, cteScanTableInsert)                             \
+  F(CteScanFree, cteScanFree)                                           \
                                                                         \
   /* PCI */                                                             \
   F(PCIIsFiltered, pciIsFiltered)                                       \
@@ -245,7 +250,10 @@ namespace terrier::execution::ast {
   F(GetParamDouble, getParamDouble)                                     \
   F(GetParamDate, getParamDate)                                         \
   F(GetParamTimestamp, getParamTimestamp)                               \
-  F(GetParamString, getParamString)
+  F(GetParamString, getParamString)                                     \
+                                                                        \
+  /* String functions */                                                \
+  F(Lower, lower)
 
 /**
  * Enum of builtins

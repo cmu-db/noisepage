@@ -14,4 +14,4 @@ class AstPrettyPrint {
   static void Dump(std::ostream &os, AstNode *node);
 };
 
-}  // namespace tpl::ast
+}  // namespace terrier::execution::ast

@@ -91,6 +91,7 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
   // INSERT INTO cte_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 and 505.
 
   // initialize the test_1 and the index on the table
+  auto table_oid0 = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "empty_table");
   auto table_oid1 = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid1 = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
 
@@ -102,14 +103,14 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
       exec_ctx_.get(), 1, !table_oid1, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
 
-  // TODO (Gautam): StorageInterface for the CTE's
+  // TODO(Gautam): StorageInterface for the CTE's
   auto cte_table_oid = static_cast<catalog::table_oid_t>(100003);
   std::vector<catalog::col_oid_t> cte_table_col_oids(col_oids.data(),
-      col_oids.data() + static_cast<uint32_t>(col_oids.size()));
+                                                     col_oids.data() + static_cast<uint32_t>(col_oids.size()));
 
-  // TODO (Gautam) : Check if the materialized tuple can be used to make the schema
+  // TODO(Gautam): Check if the materialized tuple can be used to make the schema
   // Using the store that was used in the set up
-  auto child_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid1);
+  auto child_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid0);
   auto cte_table = new storage::SqlTable(BlockStore(), child_schema);
 
   // Find the rows with colA BETWEEN 495 AND 505.
@@ -128,26 +129,27 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
     inserted_vals.emplace_back(*val_a);
     // Insert into table
     storage::ProjectedRowInitializer pri = cte_table->InitializerForProjectedRow((cte_table_col_oids));
-    auto txn = exec_ctx_->GetTxn();
-    auto table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), cte_table_oid, pri);
-    auto *const insert_pr(table_redo_->Delta());
+    auto table_redo = exec_ctx_->GetTxn()->StageWrite(exec_ctx_->DBOid(), cte_table_oid, pri);
+    auto *const insert_pr(table_redo->Delta());
     insert_pr->Set<int32_t, false>(0, *val_a, false);
-    cte_table->Insert(exec_ctx_->GetTxn(), table_redo_);
+    exec_ctx_->RowsAffected()++;
+    cte_table->Insert(exec_ctx_->GetTxn(), table_redo);
   }
 
   // Try to fetch the inserted values.
-  // TODO (Gautam) : Create our own TableVectorIterator that does not check in the catalog
-  TableVectorIterator table_iter(exec_ctx_.get(), !cte_table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
+  TableVectorIterator table_iter(exec_ctx_.get(), !cte_table_oid, col_oids.data(),
+                                 static_cast<uint32_t>(col_oids.size()));
   table_iter.InitTempTable(common::ManagedPointer(cte_table));
   ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
-  for (; pci->HasNext(); pci->Advance()) {
-  auto *val_a = pci->Get<int32_t, false>(0, nullptr);
-  ASSERT_EQ(*val_a, inserted_vals[num_tuples]);
-  num_tuples++;
-  }
-  pci->Reset();
+    for (; pci->HasNext(); pci->Advance()) {
+      auto *val_a = pci->Get<int32_t, false>(0, nullptr);
+      ASSERT_EQ(*val_a, inserted_vals[num_tuples]);
+      num_tuples++;
+    }
+    pci->Reset();
   }
   EXPECT_EQ(num_tuples, (hi_match - lo_match) + 1);
 }

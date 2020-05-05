@@ -73,6 +73,15 @@ class ColumnValueExpression : public AbstractExpression {
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}), table_oid_(table_oid), column_oid_(column_oid) {}
 
   /**
+   * This constructor is used to construct abstract value expressions used by CTEs
+   * for logical derived get below it to reference aliases.
+   * @param col_name name of the column.
+   * @param type Type of the column.
+   */
+  ColumnValueExpression(std::string col_name, type::TypeId type)
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}), column_name_(std::move(col_name)) {}
+
+  /**
    * @param table_name table name
    * @param col_name column name
    * @param database_oid database OID
@@ -174,10 +183,7 @@ class ColumnValueExpression : public AbstractExpression {
       this->SetExpressionName(column_name_);
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /**
    * @return expression serialized to json

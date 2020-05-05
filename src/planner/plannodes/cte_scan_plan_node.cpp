@@ -12,10 +12,7 @@ common::hash_t CteScanPlanNode::Hash() const {
   return hash;
 }
 
-bool CteScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (!AbstractPlanNode::operator==(rhs)) return false;
-  return true;
-}
+bool CteScanPlanNode::operator==(const AbstractPlanNode &rhs) const { return AbstractPlanNode::operator==(rhs); }
 
 nlohmann::json CteScanPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();

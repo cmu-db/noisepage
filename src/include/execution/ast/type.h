@@ -5,11 +5,11 @@
 
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
+#include "execution/sql/cte_scan_iterator.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 #include "llvm/Support/Casting.h"
-#include "execution/sql/cte_scan_iterator.h"
 
 namespace terrier::execution::ast {
 
@@ -73,6 +73,8 @@ class Context;
   NON_PRIM(ProjectedColumnsIterator, terrier::execution::sql::ProjectedColumnsIterator)         \
   NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                               \
   NON_PRIM(CteScanIterator, terrier::execution::sql::CteScanIterator)                           \
+  NON_PRIM(SqlTable, terrier::storage::SqlTable)                                                \
+  NON_PRIM(TableOid, terrier::catalog::table_oid_t)                                             \
                                                                                                 \
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */                        \
   NON_PRIM(CountAggregate, terrier::execution::sql::CountAggregate)                             \

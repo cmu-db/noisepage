@@ -18,12 +18,31 @@ public class UpdateTest extends TestUtility {
     private ResultSet rs;
 
     /**
-     * Setup for each test, make the default connection.
+     * Setup for each test, make the default connection
      */
     @Before
     public void setup() throws SQLException {
-        conn = makeDefaultConnection();
-        conn.setAutoCommit(true);
+        try {
+            conn = makeDefaultConnection();
+            conn.setAutoCommit(true);
+        } catch (SQLException e) {
+            DumpSQLException(e);
+        }
+    }
+
+    /**
+     * Cleanup for each test, execute after each test
+     * drop the default table and close connection
+     */
+    @After
+    public void teardown() throws SQLException {
+        try {
+            if (conn != null) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     /*
