@@ -25,6 +25,8 @@ class IndexFitCostModel : public AbstractCostModel {
    */
   static constexpr double SCAN_COST = 1000000.f;
 
+  static constexpr double NLJOIN_COST = 1000000.f;
+
   /**
    * Default constructor
    */
@@ -86,10 +88,25 @@ class IndexFitCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const Limit *op) override { output_cost_ = 0.f; }
 
   /**
+   * Visit a InnerIndexJoin operator
+   * @param op operator
+   */
+  void Visit(UNUSED_ATTRIBUTE const InnerIndexJoin *op) override {
+    // Get the table schema
+    // This heuristic is not really good --- it merely picks the index based on
+    // how many of those index's keys are set (op->GetBounds()) and the particular
+    // size of the index.
+    auto tbl_schema = accessor_->GetSchema(op->GetTableOID());
+    auto schema_size = tbl_schema.GetColumns().size();
+    if (schema_size < op->GetJoinKeys().size()) output_cost_ = 0.f;
+    else output_cost_ = static_cast<double>(schema_size - op->GetJoinKeys().size());
+  }
+
+  /**
    * Visit a InnerNLJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override { output_cost_ = 0.f; }
+  void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override { output_cost_ = NLJOIN_COST; }
 
   /**
    * Visit a LeftNLJoin operator
@@ -113,7 +130,7 @@ class IndexFitCostModel : public AbstractCostModel {
    * Visit a InnerHashJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = 1.f; }
+  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = NLJOIN_COST + 1.0f; }
 
   /**
    * Visit a LeftHashJoin operator

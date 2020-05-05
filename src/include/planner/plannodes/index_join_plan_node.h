@@ -41,7 +41,33 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
     std::unique_ptr<IndexJoinPlanNode> Build() {
       return std::unique_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(std::move(children_), std::move(output_schema_),
                                                                       join_type_, join_predicate_, index_oid_,
-                                                                      table_oid_, std::move(index_cols_)));
+                                                                      table_oid_, scan_type_,
+                                                                      std::move(lo_index_cols_),
+                                                                      std::move(hi_index_cols_)));
+    }
+
+    /**
+     * Sets the scan type
+     */
+    Builder &SetScanType(IndexScanType scan_type) {
+      scan_type_ = scan_type;
+      return *this;
+    }
+
+    /**
+     * Sets the lower bound index cols.
+     */
+    Builder &AddLoIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
+      lo_index_cols_.emplace(col_oid, expr);
+      return *this;
+    }
+
+    /**
+     * Sets the index upper bound cols.
+     */
+    Builder &AddHiIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
+      hi_index_cols_.emplace(col_oid, expr);
+      return *this;
     }
 
     /**
@@ -50,14 +76,6 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      */
     Builder &SetIndexOid(catalog::index_oid_t oid) {
       index_oid_ = oid;
-      return *this;
-    }
-
-    /**
-     * Sets the index cols.
-     */
-    Builder &AddIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
-      index_cols_.emplace(col_oid, expr);
       return *this;
     }
 
@@ -80,10 +98,9 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      */
     catalog::table_oid_t table_oid_;
 
-    /**
-     * Index Cols
-     */
-    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};
+    IndexScanType scan_type_;
+    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
+    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
   };
 
  private:
@@ -96,12 +113,16 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   IndexJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                     common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
-                    catalog::table_oid_t table_oid,
-                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&index_cols)
+                    catalog::table_oid_t table_oid, IndexScanType scan_type,
+                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_cols,
+                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols
+                    )
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
         index_oid_(index_oid),
         table_oid_(table_oid),
-        index_cols_(std::move(index_cols)) {}
+        scan_type_(scan_type),
+        lo_index_cols_(std::move(lo_cols)),
+        hi_index_cols_(std::move(hi_cols)) {}
 
  public:
   /**
@@ -138,10 +159,15 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return the index columns
-   */
-  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetIndexColumns() const { return index_cols_; }
+  IndexScanType GetScanType() const { return scan_type_; }
+
+  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetLoIndexColumns() const {
+    return lo_index_cols_;
+  }
+
+  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetHiIndexColumns() const {
+    return hi_index_cols_;
+  }
 
   /**
    * Collect all column oids in this expression
@@ -181,10 +207,10 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    * OID of the corresponding table
    */
   catalog::table_oid_t table_oid_;
-  /**
-   * Index columns
-   */
-  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};
+
+  IndexScanType scan_type_;
+  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
+  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
 };
 
 DEFINE_JSON_DECLARATIONS(IndexJoinPlanNode);

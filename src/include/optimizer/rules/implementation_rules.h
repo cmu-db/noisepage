@@ -317,6 +317,34 @@ class LogicalAggregateToPhysicalAggregate : public Rule {
 };
 
 /**
+ * Rule transforms Logical Inner Join to InnerIndexJoin
+ */
+class LogicalInnerJoinToPhysicalInnerIndexJoin : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalInnerJoinToPhysicalInnerIndexJoin();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input OperatorNode passes the check
+   */
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
  * Rule transforms Logical Inner Join to InnerNLJoin
  */
 class LogicalInnerJoinToPhysicalInnerNLJoin : public Rule {

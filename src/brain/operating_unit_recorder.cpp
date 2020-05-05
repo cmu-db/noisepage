@@ -117,6 +117,9 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
                                               UNUSED_ATTRIBUTE const planner::AbstractPlanNode *plan,
                                               size_t scaling_factor) {
   // TODO(wz2): Populate actual num_rows/cardinality after #759
+  // TODO(wz2): For OUTPUT, cardinality is just set to num_rows
+  // TODO(wz2): For HASHJOIN_PROBE, # rows is number of probe, cardinality is # matched rows
+  // TODO(wz2): For IDXSCAN, only scale the cardinality ("lookup size") feature
   size_t num_rows = 0;
   auto cardinality = 0.0;
 
@@ -307,23 +310,42 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
-  // Record features that are output
-  VisitAbstractJoinPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
+  // Scale by num_rows - 1 of the child
+  UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
 
-  std::vector<catalog::indexkeycol_oid_t> col_vec;
-  for (auto &col : plan->GetIndexColumns()) {
-    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col.second);
+  // Get features
+  std::unordered_set<catalog::indexkeycol_oid_t> cols;
+  for (auto &pair : plan->GetLoIndexColumns()) {
+    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(pair.second);
     arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
                                      std::make_move_iterator(features.end()));
 
-    col_vec.emplace_back(col.first);
+    cols.insert(pair.first);
   }
 
+  for (auto &pair : plan->GetHiIndexColumns()) {
+    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(pair.second);
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
+
+    cols.insert(pair.first);
+  }
+
+  // TODO(wz2): Use a real value for this after plan node have cardinalities
+  // Scale since these arithemtic features are done for every tuple of child
+  size_t child_num_rows = 1;
+  RecordArithmeticFeatures(plan, child_num_rows);
+
+  // Vector of indexkeycol_oid_t columns
+  std::vector<catalog::indexkeycol_oid_t> col_vec;
+  for (auto &col : cols) {
+    col_vec.push_back(col);
+  }
+
+  // Record as an IndexScan with scaling
   size_t num_keys = col_vec.size();
   size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec);
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
-  RecordArithmeticFeatures(plan, 1);
+  AggregateFeatures(brain::ExecutionOperatingUnitType::IDX_SCAN, key_size, num_keys, plan, child_num_rows);
 }
 
 void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
