@@ -9,7 +9,6 @@
 #include "storage/recovery/recovery_manager.h"
 #include "storage/storage_defs.h"
 #include "test_util/sql_table_test_util.h"
-#include <experimental/filesystem>
 #include "storage/checkpoints/checkpoint.h"
 
 namespace terrier {
@@ -79,7 +78,7 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
 
       std::string secondary_log_file = "test3.log";
       std::string ckpt_path = "ckpt_test/";
-      std::filesystem::create_directory(ckpt_path);
+      mkdir(ckpt_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
       // get db_oid
       catalog::db_oid_t db;
       for (auto &database : tested->GetTables()) {

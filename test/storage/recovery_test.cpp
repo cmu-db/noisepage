@@ -1,4 +1,3 @@
-#include <experimental/filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -817,7 +816,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   tested->SimulateOltp(2, 1);
 
   // Create directory
-  std::filesystem::create_directory(ckpt_path);
+  mkdir(ckpt_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
 
   Checkpoint ckpt(catalog_, txn_manager_, deferred_action_manager_, gc_, log_manager_);
 
@@ -966,7 +965,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
   tested->SimulateOltp(2, 1);
 
   // Create directory
-  std::filesystem::create_directory(ckpt_path);
+  mkdir(ckpt_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
 
   Checkpoint ckpt(catalog_, txn_manager_, deferred_action_manager_, gc_, log_manager_);
 
