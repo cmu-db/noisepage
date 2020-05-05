@@ -168,7 +168,7 @@ class AlterPlanNode : public AbstractPlanNode {
     /**
      * Constructor
      */
-    DropColumnCmd(const std::string &col_name, bool is_exist, bool drop_cascade, catalog::col_oid_t oid)
+    DropColumnCmd(std::string col_name, bool is_exist, bool drop_cascade, catalog::col_oid_t oid)
         : AlterCmdBase(oid), col_name_(col_name), is_exist_(is_exist), drop_cascade_(drop_cascade) {}
 
     /**

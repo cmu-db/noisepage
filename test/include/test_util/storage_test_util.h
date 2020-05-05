@@ -287,7 +287,7 @@ class StorageTestUtil {
 
   template <class RowType>
   static bool ProjectionListAtOidsEqual(const RowType *const row, const storage::ProjectionMap &oid_map,
-                                        const storage::BlockLayout layout, std::vector<catalog::col_oid_t> oids,
+                                        const storage::BlockLayout &layout, std::vector<catalog::col_oid_t> oids,
                                         const std::vector<std::unique_ptr<std::vector<byte>>> &default_values) {
     // Check for each default value
     for (size_t i = 0; i < oids.size(); i++) {

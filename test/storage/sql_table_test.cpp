@@ -284,44 +284,9 @@ class RandomSqlTableTestObject {
     redos_.emplace_back(insert_redo);
     storage::TupleSlot slot = table_->Insert(common::ManagedPointer(txn), insert_redo, layout_version);
     inserted_slots_.push_back(slot);
-    tuple_versions_[slot].push_back({timestamp, insert_tuple, layout_version});
-
-    return slot;
-  }
-
-  template <class Random>
-  storage::TupleSlot InsertTupleWithValues(const transaction::timestamp_t timestamp, Random *generator,
-                                           storage::RecordBufferSegmentPool *buffer_pool,
-                                           storage::layout_version_t layout_version,
-                                           const std::vector<catalog::Schema::Column> &cols,
-                                           const std::vector<const byte *> &values) {
-    // generate a txn with an UndoRecord to populate on Insert
-    auto *txn =
-        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
-    txns_.emplace_back(txn);
-
-    auto redo_initializer = pris_.at(layout_version);
-    auto *insert_redo = txn->StageWrite(catalog::db_oid_t{0}, catalog::table_oid_t{0}, redo_initializer);
-    auto *insert_tuple = insert_redo->Delta();
-    auto layout = table_->GetBlockLayout(layout_version);
-    StorageTestUtil::PopulateRandomRow(insert_tuple, layout, null_bias_, generator);
-
-    // Overwrite the values at the columns
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : cols) oids.push_back(col.Oid());
-    auto col_oid_to_pr_idx = GetProjectionMapForOids(layout_version);
-    for (size_t i = 0; i < cols.size(); i++) {
-      auto col = cols[i];
-      auto pr_idx = col_oid_to_pr_idx.at(col.Oid());
-      auto valp = values[i];
-      std::memcpy(insert_tuple->AccessForceNotNull(pr_idx), valp, type::TypeUtil::GetTypeSize(col.Type()));
-    }
-
-    // Do insert
-    redos_.emplace_back(insert_redo);
-    storage::TupleSlot slot = table_->Insert(common::ManagedPointer(txn), insert_redo, layout_version);
-    inserted_slots_.push_back(slot);
-    tuple_versions_[slot].push_back({timestamp, insert_tuple, layout_version});
+    tuple_versions_accessor_ accessor;
+    tuple_versions_.insert(accessor, slot);
+    accessor->second.push_back({timestamp, insert_tuple, layout_version});
 
     return slot;
   }
@@ -1044,7 +1009,7 @@ TEST_F(SqlTableTests, ChangeIntType) {
   }
 
   // Update the schema by changeing the col type
-  int16_t default_smallint = int16_t(default_tiny_int);
+  auto default_smallint = int16_t(default_tiny_int);
   std::vector<ByteVecPtr> default_vals;
   default_vals.push_back(CastValue(default_smallint, type::TypeId::SMALLINT));
   auto vers2 = vers1 + 1;

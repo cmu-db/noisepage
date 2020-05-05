@@ -405,7 +405,7 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNode) {
   auto schema_after_drop = accessor_->GetSchema(table_oid);
   EXPECT_EQ(schema_after_drop.GetColumns().size(), original_schema.GetColumns().size());
   auto cols = schema_after_drop.GetColumns();
-  for (auto c : cols) {
+  for (auto const &c : cols) {
     EXPECT_NE(c.Oid(), col_id);
     EXPECT_NE(c.Name(), "new_column");
   }
