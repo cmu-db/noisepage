@@ -146,7 +146,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
         auto col_id = column_ids[i];
         common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
         byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
-        auto s = (*record_buffers)[cur_buffer_index++]->length();
+        size_t s = (*record_buffers)[cur_buffer_index++]->length();
         TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap),
                        "bitmap length should match");
         ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap), s);
