@@ -24,7 +24,7 @@ void RandomSqlTableTransaction::RandomInsert(Random *generator) {
   // Generate random insert
   auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
-  StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->tables_.begin()->second.layout_, 0.0, generator);
+  StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->tables_.begin()->layout_, 0.0, generator);
   record->SetTupleSlot(storage::TupleSlot(nullptr, 0));
   auto tuple_slot = sql_table_ptr->Insert(common::ManagedPointer(txn_), record);
 
@@ -57,7 +57,7 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
       StorageTestUtil::RandomNonEmptySubset(sql_table_metadata->col_oids_, generator));
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   record->SetTupleSlot(updated);
-  StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->tables_.begin()->second.layout_, 0.0, generator);
+  StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->tables_.begin()->layout_, 0.0, generator);
   auto result = sql_table_ptr->Update(common::ManagedPointer(txn_), record);
   aborted_ = !result;
 }
@@ -253,7 +253,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       std::vector<storage::TupleSlot> inserted_tuples;
       for (uint32_t i = 0; i < num_tuples; i++) {
         auto *const redo = initial_txn_->StageWrite(database_oid, table_oid, initializer);
-        StorageTestUtil::PopulateRandomRow(redo->Delta(), sql_table->tables_.begin()->second.layout_, 0.0, generator);
+        StorageTestUtil::PopulateRandomRow(redo->Delta(), sql_table->tables_.begin()->layout_, 0.0, generator);
         const storage::TupleSlot inserted = sql_table->Insert(common::ManagedPointer(initial_txn_), redo);
         inserted_tuples.emplace_back(inserted);
       }
