@@ -804,7 +804,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
                                               .SetNumDatabases(1)
                                               .SetNumTables(5)
                                               .SetMaxColumns(5)
-                                              .SetInitialTableSize(100000)
+                                              .SetInitialTableSize(1000)
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({0.5, 0.3, 0.2, 0})
                                               .SetVarlenAllowed(true)
@@ -813,7 +813,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
 
   // Run workload
-  tested->SimulateOltp(100000, 1);
+  tested->SimulateOltp(1000, 2);
+  log_manager_->ForceFlush();
 
   // Create directory
   mkdir(ckpt_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
@@ -961,6 +962,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
 
   // Run workload
   tested->SimulateOltp(2, 1);
+  log_manager_->ForceFlush();
 
   // Create directory
   mkdir(ckpt_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);

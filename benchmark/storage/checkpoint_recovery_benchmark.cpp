@@ -140,15 +140,15 @@ BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, ReadWriteWorkload)(benchmark::St
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, HighStress)(benchmark::State &state) {
-  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-          .SetNumDatabases(1)
-          .SetNumTables(1)
-          .SetMaxColumns(1)
-          .SetInitialTableSize(initial_table_size_)
-          .SetTxnLength(5)
-          .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
-          .SetVarlenAllowed(false)
-          .Build();
+LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+        .SetNumDatabases(1)
+        .SetNumTables(1)
+        .SetMaxColumns(1)
+        .SetInitialTableSize(initial_table_size_)
+        .SetTxnLength(5)
+        .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
+        .SetVarlenAllowed(false)
+        .Build();
 
   RunBenchmark(&state, config);
 }
