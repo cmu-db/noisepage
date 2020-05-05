@@ -338,12 +338,71 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
   return visible;
 }
 
+template <class RowType>
+void DataTable::TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer, const std::function<void(VersionChainType)> lambda) const {
+  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+                 "The output buffer never returns the version pointer columns, so it should have "
+                 "fewer attributes.");
+  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
+  // This cannot be visible if it's already deallocated.
+  if (!accessor_.Allocated(slot)) return;
+
+  UndoRecord *version_ptr;
+  bool visible;
+  do {
+    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+    // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
+    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
+    // can potentially happen, and chase the version chain before returning anyway,
+    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                     "Output buffer should not read the version pointer column.");
+      StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+    }
+
+    // We still need to check the allocated bit because GC could have flipped it since last check
+    visible = Visible(slot, accessor_);
+  } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
+
+  if (visible) {
+    lambda(DataTable::VersionChainType::VISIBLE);
+  } else {
+    lambda(DataTable::VersionChainType::INVISIBLE);
+  }
+
+  // Apply deltas until we reconstruct a version safe for us to read
+  while (version_ptr != nullptr) {
+    switch (version_ptr->Type()) {
+      case DeltaRecordType::UPDATE:
+        // Normal delta to be applied. Does not modify the logical delete column.
+        lambda(DataTable::VersionChainType::POST_UPDATE);
+        StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
+        lambda(DataTable::VersionChainType::PRE_UPDATE);
+        break;
+      case DeltaRecordType::INSERT:
+        lambda(DataTable::VersionChainType::INSERT);
+        break;
+      case DeltaRecordType::DELETE:
+        lambda(DataTable::VersionChainType::DELETE);
+        break;
+      default:
+        throw std::runtime_error("unexpected delta record type");
+    }
+    version_ptr = version_ptr->Next();
+  }
+}
+
 template bool DataTable::SelectIntoBuffer<ProjectedRow>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
     ProjectedRow *const out_buffer) const;
 template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
     ProjectedColumns::RowView *const out_buffer) const;
+
+template void DataTable::TraverseVersionChain<ProjectedRow>(const TupleSlot slot,
+    ProjectedRow *const out_buffer, const std::function<void(VersionChainType)> lambda) const;
+template void DataTable::TraverseVersionChain<ProjectedColumns::RowView>(const TupleSlot slot,
+    ProjectedColumns::RowView *const out_buffer, const std::function<void(VersionChainType)> lambda) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value

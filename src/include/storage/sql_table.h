@@ -70,6 +70,11 @@ class SqlTable {
     return table_.data_table_->Select(txn, slot, out_buffer);
   }
 
+  template <class RowType>
+  void TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer, const std::function<void(DataTable::VersionChainType)> lambda) const {
+    table_.data_table_->TraverseVersionChain(slot, out_buffer, lambda);
+  }
+
   /**
    * Update the tuple according to the redo buffer given. StageWrite must have been called as well in order for the
    * operation to be logged.
