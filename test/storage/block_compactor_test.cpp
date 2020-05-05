@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "execution/exec/execution_context.h"
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "common/hash_util.h"
@@ -38,6 +39,7 @@ class BlockCompactorTests : public TerrierTest {
   // Original Components
   std::unique_ptr<DBMain> db_main_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager;
   common::ManagedPointer<storage::LogManager> log_manager_;
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
@@ -54,6 +56,7 @@ class BlockCompactorTests : public TerrierTest {
                    .SetUseCatalog(true)
                    .Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    deferred_action_manager = db_main_->GetTransactionLayer()->GetDeferredActionManager();
     log_manager_ = db_main_->GetLogManager();
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
@@ -141,6 +144,17 @@ class BlockCompactorTests : public TerrierTest {
   storage::BlockLayout &GetBlockLayout(common::ManagedPointer<storage::SqlTable> table) const {
     return table->table_.layout_;
   }
+
+  std::unique_ptr<execution::exec::ExecutionContext> MakeExecCtx(
+      catalog::db_oid_t test_db_oid,
+      transaction::TransactionContext *test_txn,
+      common::ManagedPointer<catalog::CatalogAccessor> accessor,
+      execution::exec::OutputCallback &&callback = nullptr,
+      const planner::OutputSchema *schema = nullptr) {
+    return std::make_unique<execution::exec::ExecutionContext>(test_db_oid, common::ManagedPointer(test_txn), callback, schema,
+                                                    common::ManagedPointer(accessor));
+  }
+
 };
 
 TEST_F(BlockCompactorTests, SimpleCompactionTest) {
@@ -166,6 +180,7 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
   EXPECT_EQ(1, schema.GetColumns().size());
   EXPECT_EQ(type::TypeId::INTEGER, schema.GetColumn(0).Type());
 
+  // Insert 5 tuples
   for (int32_t i = 0; i < 5; i++) {
     auto initializer = table_ptr->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
     auto *redo_record = txn1->StageWrite(db_oid, table_oid, initializer);
@@ -180,6 +195,53 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
   }
 
   EXPECT_EQ(num_records, 5);
+
+  auto txn2 = txn_manager_->BeginTransaction();
+  db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn2), db_oid);
+  table_ptr = db_catalog->GetTable(common::ManagedPointer(txn2), table_oid);
+
+  num_records = 0;
+  for (auto it = table_ptr->begin(); it != table_ptr->end(); it++) {
+    if (num_records == 2) break;
+    txn2->StageDelete(db_oid, table_oid, *it);
+    table_ptr->Delete(common::ManagedPointer(txn2), *it);
+    num_records++;
+  }
+
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  auto txn3 = txn_manager_->BeginTransaction();
+  std::unique_ptr<execution::exec::ExecutionContext> execCtx =
+      MakeExecCtx(db_oid, txn3, common::ManagedPointer(
+          catalog_->GetAccessor(common::ManagedPointer(txn3),
+              db_oid)
+      )); // Possible error -> Two pointers arent set (last 2 arguments not passed)
+  txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  col_id_t *col_oids = new col_id_t[1];
+  col_oids[0] = (col_id_t)1;
+  auto block = table_ptr->begin()->GetBlock();
+  execution::exec::ExecutionContext *exec = execCtx.get();
+
+  // Initialise block compactor and perform compaction
+  storage::BlockCompactor compactor(exec, col_oids, table_name.c_str());
+  compactor.PutInQueue(block);
+  transaction::DeferredActionManager *deferred_action_manager_ptr = deferred_action_manager.Get();
+  transaction::TransactionManager *txn_manager_ptr = txn_manager_.Get();
+  compactor.ProcessCompactionQueue(deferred_action_manager_ptr, txn_manager_ptr);
+
+  // Check for correctness of compaction
+  auto txn4 = txn_manager_->BeginTransaction();
+  auto initializer = table_ptr->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
+  byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *read_row = initializer.InitializeRow(buffer);
+
+  // 2, 3, 4 will be moved to the beginning of the block
+  for (uint32_t i = 0; i < 3; i++) {
+    storage::TupleSlot slot(block, i);
+    bool visible = table_ptr->Select(common::ManagedPointer(txn4), slot, read_row);
+    EXPECT_TRUE(visible);  // Should be filled after compaction
+  }
 }
 
 }  // namespace terrier::storage
