@@ -40,8 +40,7 @@ class SubqueryExpression : public AbstractExpression {
 
     auto parser_select = std::make_unique<SelectStatement>(
         std::move(select_columns), subselect_->IsSelectDistinct(), subselect_->GetSelectTable()->Copy(),
-        subselect_->GetSelectCondition(), std::move(group_by), std::move(order_by), std::move(limit),
-        std::move(with));
+        subselect_->GetSelectCondition(), std::move(group_by), std::move(order_by), std::move(limit), std::move(with));
     auto expr = std::make_unique<SubqueryExpression>(std::move(parser_select));
     expr->SetMutableStateForCopy(*this);
     return expr;
@@ -62,10 +61,7 @@ class SubqueryExpression : public AbstractExpression {
   /** @return managed pointer to the sub-select */
   common::ManagedPointer<parser::SelectStatement> GetSubselect() { return common::ManagedPointer(subselect_); }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /**
    * TODO(WAN): document the depths, ask Ling

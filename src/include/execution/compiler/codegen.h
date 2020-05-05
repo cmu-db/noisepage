@@ -438,6 +438,15 @@ class CodeGen {
   ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::Identifier col_oids);
 
   /**
+   * Call @tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
+   * @param tvi The identifier of table vector iterator
+   * @param cte_scan_iterator The identifier of cte scan iterator
+   * @param col_oids The identifier of the array of column oids to read.
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator, ast::Identifier col_oids);
+
+  /**
    * Call pciGetTypeNullable(pci, idx)
    * @param pci The identifier of the projected columns iterator
    * @param type The type of the column being accessed.
@@ -527,6 +536,14 @@ class CodeGen {
   ast::Expr *StorageInterfaceInit(ast::Identifier si, uint32_t table_oid, ast::Identifier col_oids, bool need_indexes);
 
   /**
+   * Call cteScanIteratorInit(&cte_scan_iterator, execCtx, col_types)
+   * @param si The cte scan iterator to initialize
+   * @param col_types The identifier of the array of column types to access.
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types);
+
+  /**
    * Make a generic builtin call with the given arguments.
    * @param builtin builtin function to call
    * @param params parameters of the builtin function
@@ -576,6 +593,10 @@ class CodeGen {
    */
   ast::Expr *ZeroArgCall(ast::Builtin builtin);
 
+  /*Return the identifier for a cte scan iterator in tpl generated
+   * */
+  ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_; }
+
  private:
   // Counter for the identifiers. Allows the creation of unique names.
   uint64_t id_count_{0};
@@ -610,6 +631,8 @@ class CodeGen {
    * Signature: (state: *State, execCtx: *ExecutionContext) -> nil
    */
   ast::Identifier teardown_fn_;
+
+  ast::Identifier cte_scan_iterator_;
 };
 
 }  // namespace terrier::execution::compiler

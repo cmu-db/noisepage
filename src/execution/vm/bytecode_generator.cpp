@@ -612,12 +612,9 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
     case ast::Builtin::TempTableIterInitBind: {
       // The second argument should be the execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      // The third argument is the table name
-      ast::Identifier table_name = call->Arguments()[2]->As<ast::LitExpr>()->RawStringVal();
-      TERRIER_ASSERT(std::string(table_name.Data()) == "temp_table", "Provided table is not a temp table");
-      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
-      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
-      LocalVar cte_scan_iterator = VisitExpressionForRValue(call->Arguments()[4]);
+      auto *arr_type = call->Arguments()[2]->GetType()->As<ast::ArrayType>();
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
+      LocalVar cte_scan_iterator = VisitExpressionForRValue(call->Arguments()[3]);
       // Emit the initialization codes
       Emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, 999, col_oids,
                                    static_cast<uint32_t>(arr_type->Length()));
@@ -1524,6 +1521,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
     }
     case ast::Builtin::Tan: {
       Emitter()->Emit(Bytecode::Tan, dest, src);
+      break;
     }
     default: {
       UNREACHABLE("Impossible trigonometric bytecode");
@@ -2054,6 +2052,20 @@ void BytecodeGenerator::VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin 
   }
 }
 
+void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+  LocalVar ret = ExecutionResult()->GetOrCreateDestination(call->GetType());
+  switch (builtin) {
+    case ast::Builtin::Lower: {
+      Emitter()->Emit(Bytecode::Lower, exec_ctx, ret, input_string);
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented string function!");
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ast::Builtin builtin;
 
@@ -2120,7 +2132,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::CteScanGetTable:
     case ast::Builtin::CteScanGetTableOid:
     case ast::Builtin::CteScanGetInsertTempTablePR:
-    case ast::Builtin::CteScanTableInsert: {
+    case ast::Builtin::CteScanTableInsert:
+    case ast::Builtin::CteScanFree: {
       VisitBuiltinCteScanCall(call, builtin);
       break;
     }
@@ -2343,6 +2356,11 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::GetParamTimestamp:
     case ast::Builtin::GetParamString: {
       VisitBuiltinParamCall(call, builtin);
+      break;
+    }
+
+    case ast::Builtin::Lower: {
+      VisitBuiltinStringCall(call, builtin);
       break;
     }
 
@@ -3013,6 +3031,10 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::CteScanGetTableOid: {
       LocalVar table_oid = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::CteScanGetTableOid, table_oid, iterator);
+      break;
+    }
+    case ast::Builtin::CteScanFree: {
+      Emitter()->Emit(Bytecode::CteScanFree, iterator);
       break;
     }
     default: {

@@ -159,6 +159,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin);
 
   // -------------------------------------------------------
   // Scoping

@@ -37,7 +37,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var tvi: TableVectorIterator
   var oids: [1]uint32
   oids[0] = 1 // colA
-  @tempTableIterInitBind(&tvi, execCtx, "temp_table", oids, &cte_scan_iterator)
+  @tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {

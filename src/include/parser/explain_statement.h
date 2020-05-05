@@ -18,10 +18,7 @@ class ExplainStatement : public SQLStatement {
 
   ~ExplainStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return the SQL statement to be explained */
   common::ManagedPointer<SQLStatement> GetSQLStatement() { return common::ManagedPointer(real_sql_stmt_); }

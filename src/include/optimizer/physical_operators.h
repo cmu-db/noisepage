@@ -2087,7 +2087,8 @@ class Analyze : public OperatorNodeContents<Analyze> {
  */
 class CteScan : public OperatorNodeContents<CteScan> {
  public:
-  static Operator Make();
+  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
+                       std::string table_alias);
 
   /**
    * Copy
@@ -2097,8 +2098,24 @@ class CteScan : public OperatorNodeContents<CteScan> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
-};
 
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetChildExpressions() const {
+    return child_expressions_;
+  }
+
+  /**
+   * @return the alias of the table to get from
+   */
+  const std::string &GetTableAlias() const { return table_alias_; }
+
+ private:
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions_;
+
+  /**
+   * Table alias
+   */
+  std::string table_alias_;
+};
 
 }  // namespace optimizer
 }  // namespace terrier

@@ -94,27 +94,28 @@ void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColum
 // ---------------------------------------------------------
 
 void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter, terrier::execution::exec::ExecutionContext *exec_ctx,
-                         uint32_t *schema_cols_type, uint32_t num_schema_cols) {
+                   uint32_t *schema_cols_type, uint32_t num_schema_cols) {
   new (iter) terrier::execution::sql::CteScanIterator(exec_ctx, schema_cols_type, num_schema_cols);
 }
 
-void OpCteScanGetTable(terrier::storage::SqlTable** sql_table, terrier::execution::sql::CteScanIterator *iter) {
+void OpCteScanGetTable(terrier::storage::SqlTable **sql_table, terrier::execution::sql::CteScanIterator *iter) {
   *sql_table = iter->GetTable();
 }
 
-void OpCteScanGetTableOid(terrier::catalog::table_oid_t* table_oid, terrier::execution::sql::CteScanIterator *iter) {
+void OpCteScanGetTableOid(terrier::catalog::table_oid_t *table_oid, terrier::execution::sql::CteScanIterator *iter) {
   *table_oid = iter->GetTableOid();
 }
 
-void OpCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow ** projected_row,
-                                         terrier::execution::sql::CteScanIterator *iter) {
+void OpCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
+                                   terrier::execution::sql::CteScanIterator *iter) {
   *projected_row = iter->GetInsertTempTablePR();
 }
 
-void OpCteScanTableInsert(terrier::storage::TupleSlot* tuple_slot, terrier::execution::sql::CteScanIterator *iter) {
+void OpCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::CteScanIterator *iter) {
   *tuple_slot = iter->TableInsert();
 }
 
+void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter) { iter->~CteScanIterator(); }
 
 // ---------------------------------------------------------
 // Filter Manager

@@ -18,6 +18,9 @@ import pprint
 import subprocess
 import urllib
 import logging
+import shutil
+import glob
+import csv
 from pprint import pprint
 
 import xml.etree.ElementTree as ElementTree
@@ -41,6 +44,13 @@ LOG.setLevel(logging.INFO)
 
 # Jenkins URL
 JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
+
+# Local Data Directory
+# Instead of checking with Jenkins, you can build a local repository of results
+LOCAL_REPO_DIR = os.path.realpath("local")
+
+# How many historical values are "required" before enforcing the threshold check
+MIN_REF_VALUES = 30
 
 # Default failure threshold
 # The regression threshold determines how much the benchmark is allowed to get
@@ -68,7 +78,7 @@ BENCHMARKS_TO_RUN = {
     "recovery_benchmark":                   DEFAULT_FAILURE_THRESHOLD,
     "large_transaction_metrics_benchmark":  DEFAULT_FAILURE_THRESHOLD,
     "logging_metrics_benchmark":            DEFAULT_FAILURE_THRESHOLD,
-    "tuple_access_strategy_benchmark":      12,
+    "tuple_access_strategy_benchmark":      15,
     "tpcc_benchmark":                       DEFAULT_FAILURE_THRESHOLD,
     "bwtree_benchmark":                     DEFAULT_FAILURE_THRESHOLD,
     "cuckoomap_benchmark":                  DEFAULT_FAILURE_THRESHOLD,
@@ -84,7 +94,7 @@ BENCHMARK_THREADS = 4
 BENCHMARK_LOGFILE_PATH = "/tmp/benchmark.log"
 
 # Where to find the benchmarks to execute
-BENCHMARK_PATH = "../../build/release/"
+BENCHMARK_PATH = os.path.realpath("../../build/release/")
 
 ## =========================================================
 
@@ -95,9 +105,6 @@ class Config(object):
     def __init__(self):
         # benchmark executables to run
         self.benchmarks = BENCHMARKS_TO_RUN
-
-        # how many historical values are "required".
-        self.min_ref_values = 10
 
         # if fewer than min_ref_values are available
         self.lax_tolerance = 30
@@ -354,7 +361,14 @@ class ArtifactProcessor(object):
         # key = (suite_name, test_name)
         self.results = {}
         self.required_num_items = required_num_items
+        
+        # Benchmark Name -> Suite Name
+        self.name_suite_xref = { }
+        self.suite_name_xref = { }
         return
+
+    def get_required_num_items(self):
+        return self.required_num_items
 
     def add_artifact_file(self, data):
         """
@@ -366,10 +380,18 @@ class ArtifactProcessor(object):
 
         # create a GBFileResult
         gbr = GBFileResult(json.loads(data))
+        bench_name = gbr.get_benchmark_name()
+        
         # iterate over the GBBenchResult objects
         for bench_result in gbr.benchmarks:
-            key = (bench_result.get_suite_name(),
-                   bench_result.get_test_name())
+            suite_name = bench_result.get_suite_name()
+            
+            if not bench_name in self.name_suite_xref:
+                self.name_suite_xref[bench_name] = suite_name
+            if not suite_name in self.suite_name_xref:
+                self.suite_name_xref[suite_name] = bench_name
+            
+            key = (suite_name, bench_result.get_test_name())
 
             # add to a GBBenchResultProcessor
             gbr_p = self.results.get(key)
@@ -448,6 +470,9 @@ class GBFileResult(object):
             self.benchmarks_dict[key] = result_obj
         return
 
+    def get_benchmark_name(self):
+        return os.path.basename(self.data["context"]["executable"])
+
     def get_datetime(self):
         """ Return when the result was generated as a datetime """
         date_str = self.data['context']['date']
@@ -501,11 +526,6 @@ class GBBenchResult(object):
             self.time_type = "cpu_time"
 
         self.attrs.add("time_type")
-        return
-
-    def add_timestamp(self, timestamp):
-        """ timestamp: as a datetime """
-        self.timestamp = timestamp
         return
 
     def add_timestamp(self, timestamp):
@@ -762,7 +782,7 @@ class RunMicroBenchmarks(object):
         self.config = config
         return
 
-    def run_all_benchmarks(self):
+    def run_benchmarks(self, benchmarks, enable_perf):
         """ Return 0 if all benchmarks succeed, otherwise return the error code
             code from the last benchmark to fail
         """
@@ -770,19 +790,18 @@ class RunMicroBenchmarks(object):
 
         # iterate over all benchmarks and run them
         cnt = 1
-        for bench_name in sorted(config.benchmarks):
-            LOG.info("Running '{}' with {} threads [{}/{}]".format(bench_name, BENCHMARK_THREADS, cnt, len(config.benchmarks)))
-            bench_ret_val = self.run_single_benchmark(bench_name)
+        for bench_name in sorted(benchmarks):
+            LOG.info("Running '{}' with {} threads [{}/{}]".format(bench_name, BENCHMARK_THREADS, cnt, len(benchmarks)))
+            bench_ret_val = self.run_single_benchmark(bench_name, enable_perf)
             if bench_ret_val:
-                LOG.debug("{} terminated with {}".format(bench_name,
-                                                         bench_ret_val))
+                LOG.debug("{} terminated with {}".format(bench_name, bench_ret_val))
                 ret_val = bench_ret_val
             cnt += 1
 
         # return fail, if any of the benchmarks failed to run or complete
         return ret_val
 
-    def run_single_benchmark(self, bench_name):
+    def run_single_benchmark(self, bench_name, enable_perf):
         """ Run benchmark, generate JSON results
         """
         benchmark_path = os.path.join(BENCHMARK_PATH, bench_name)
@@ -792,6 +811,16 @@ class RunMicroBenchmarks(object):
               " --benchmark_format=json" + \
               " --benchmark_out={}"
         cmd = cmd.format(benchmark_path, config.min_time, output_file)
+
+        # Perf Counter
+        if enable_perf:
+            try:
+                output = subprocess.check_output("perf --version", shell=True)
+            except:
+                raise Exception("Missing perf binary. Please install package")
+            perf_result = "%s.perf" % bench_name
+            LOG.debug("Enabling perf data collection [output=%s]", perf_result)
+            cmd = "perf record --output={} {}".format(perf_result, cmd)
         
         # Environment Variables
         os.environ["TERRIER_BENCHMARK_THREADS"] = str(BENCHMARK_THREADS) # has to be a str
@@ -802,11 +831,12 @@ class RunMicroBenchmarks(object):
         if not output:
             raise Exception("Missing numactl binary. Please install package")
         highest_cpu_node = int(output) - 1
-        LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
-
-        cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
+        if highest_cpu_node > 0:
+            LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
+            LOG.debug("Enabling NUMA support")
+            cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
+        
         LOG.debug("Executing command [num_threads={}]: {}".format(BENCHMARK_THREADS, cmd))
-
         proc = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         ret_val = proc.returncode
@@ -938,7 +968,7 @@ class ReferenceValue(object):
 
     def set_pass_fail(self):
         """ Set pass/fail for this result """
-        if self.reference_type == "config":
+        if self.reference_type == "none":
             # pass if we have no historical data
             self.result = True
         elif self.reference_type in ["history", "lax"]:
@@ -1009,17 +1039,14 @@ class ReferenceValue(object):
         """ Return a ReferenceValue constructed from configuration
             data
         """
-        suite_name = gbrp.get_suite_name()
-        test_name = gbrp.get_test_name()
+        suite_name, test_name = key
         LOG.debug("Loading configuration(?) data for %s.%s [%s]" % (suite_name, test_name, bench_name))
-        key = (suite_name, test_name)
-        assert key == in_key
         
         ret_obj = cls()
         ret_obj.key = key
         ret_obj.num_results = 0
         ret_obj.tolerance = 0
-        ret_obj.reference_type = "config"
+        ret_obj.reference_type = "none"
         return ret_obj
 
     def to_dict(self):
@@ -1060,7 +1087,7 @@ class ReferenceValueProvider(object):
     def get_reference(self, key, bench_name):
         """ Return reference value(s) """
         if self.ap.results.has_key(key):
-            n_desired = self.config.min_ref_values
+            n_desired = ap.get_required_num_items()
             suite_name, test_name = key
             # GBBenchResultProcessor
             gbrp = self.ap.get_result(suite_name, test_name)
@@ -1076,113 +1103,58 @@ class ReferenceValueProvider(object):
         # no checking
         return ReferenceValue.config(bench_name, key, self.config)
 
-## =========================================================
-## MAIN
-## =========================================================
 
-if __name__ == "__main__":
+def csv_dump(benchmarks, ap):
 
-    parser = argparse.ArgumentParser()
+    # Figure out what benchmark results we want to examine
+    suite_test_names = { }
+    timestamps = set()
+    for suite_name, test_name in ap.results.keys():
+        bench_name = ap.suite_name_xref[suite_name]
+        if bench_name in benchmarks:
+            if not suite_name in suite_test_names: suite_test_names[suite_name] = [ ]
+            suite_test_names[suite_name].append(test_name)
+            
+            # Get all the timestamps for the results
+            gbr_p = ap.get_result(suite_name, test_name)
+            map(timestamps.add, [ gbr.timestamp for gbr in gbr_p.gbresults ])
+    # FOR
 
-    parser.add_argument("--run",
-                        action="store_true",
-                        dest="run",
-                        default=False,
-                        help="Run Benchmarks")
+    # Now for each timestamp, get all the results across all benchmarks
+    # Each row in the CSV output will be for a single timestamp
+    writer = csv.writer(sys.stdout, quoting=csv.QUOTE_ALL)
+    header = [ "trial", "timestamp" ]
+    for suite_name, test_names in sorted(suite_test_names.items()):
+        map(header.append, [ "%s::%s" % (suite_name, test_name) for test_name in sorted(test_names) ])
+    writer.writerow(header)
     
-    parser.add_argument("--num-threads",
-                        metavar='N',
-                        type=int,
-                        default=BENCHMARK_THREADS,
-                        help="# of threads to use for benchmarks")
-    
-    parser.add_argument("--logfile-path",
-                        metavar='P',
-                        type=str,
-                        default=BENCHMARK_LOGFILE_PATH,
-                        help="Path to use for benchmark logfiles")
+    trial_ctr = 0
+    for timestamp in sorted(timestamps):
+        row = [ trial_ctr, timestamp ]
+        for suite_name, test_names in sorted(suite_test_names.items()):
+            for test_name in sorted(test_names):
+                gbr_p = ap.get_result(suite_name, test_name)
+                for gbr in gbr_p.gbresults:
+                    if gbr.timestamp != timestamp: continue
+                    row.append(gbr.items_per_second)
+                    #print suite_name, test_name, gbr.items_per_second
+                # FOR
+            # FOR
+        # FOR
+        writer.writerow(row)
+        trial_ctr += 1
+    # FOR
 
-    parser.add_argument("--debug",
-                        action="store_true",
-                        dest="debug",
-                        default=False,
-                        help="enable debug output")
+    return
+# DEF
 
-    args = parser.parse_args()
-
-    # -------------------------------------------------------
-
-
-    if args.debug: LOG.setLevel(logging.DEBUG)
-    if args.num_threads: BENCHMARK_THREADS = args.num_threads
-    if args.logfile_path: BENCHMARK_LOGFILE_PATH = args.logfile_path
-
-    # -------------------------------------------------------
-
-    config = Config()
-
-    if not os.path.exists(BENCHMARK_PATH):
-        LOG.error("The benchmark executable path directory '%s' does not exist" % BENCHMARK_PATH)
-        sys.exit(1)
-
-    # Run benchmarks
-    ret = 0
-    if args.run:
-        run_bench = RunMicroBenchmarks(config)
-        ret = run_bench.run_all_benchmarks()
-
-    # need <n> benchmark results to compare against
-    ap = ArtifactProcessor(config.min_ref_values)
-    LOG.debug("min_ref_values: %d" % config.min_ref_values)
-    h = Jenkins(JENKINS_URL)
-
-    data_src_list = config.ref_data_sources
-    need_more_builds = True
-    for repo_dict in data_src_list:
-        project = repo_dict.get("project")
-        branch = repo_dict.get("branch")
-        min_build = repo_dict.get("min_build")
-
-        kwargs = {"min_build" : min_build }
-        builds = h.get_builds(project, branch, **kwargs)
-
-        for build in builds:
-            LOG.debug("(%s, %s), build=#%d, status=%s", \
-                      project, branch, build.get_number(), build.get_result())
-
-            artifacts = build.get_artifacts()
-            for artifact in artifacts:
-                artifact_filename = artifact.get_filename()
-                LOG.debug("artifact: {}".format(artifact_filename))
-
-                ap.add_artifact_file(artifact.get_data())
-
-            # Determine if we have enough history. Stop collecting
-            # information if we do
-            if ap.have_min_history():
-                need_more_builds = False
-                break
-
-        if need_more_builds is False:
-            break
-
-    """
-    for key in ap.results.keys():
-        suite_name, test_name = key
-        v = ap.get_result(suite_name, test_name)
-        print v.get_suite_name(), " ",  v.get_test_name()
-        print "mean time = ", v.get_mean_time()
-        print "num items = ", v.get_num_items()
-        print "ips = ",  v.get_mean_items_per_second()
-    """
-
+def table_dump(benchmarks, ap):
+    """parse all the result files and compare current results vs. reference"""
     rvp = ReferenceValueProvider(config, ap)
     tt = TextTable()
-
-    # parse all the result files and compare current results vs. reference
-    for bench_name in sorted(config.benchmarks):
+    ret = 0
+    for bench_name in sorted(benchmarks):
         filename = "{}.json".format(bench_name)
-        # parse the json result file
         LOG.debug("Loading local benchmark result file '%s'", filename)
         with open(filename) as fh:
             contents = fh.read()
@@ -1225,11 +1197,208 @@ if __name__ == "__main__":
     # add # ref values
     # hist, cfg
     tt.add_column("reference_type", heading="ref type")
-    tt.add_column("num_results", heading="nres")
+    tt.add_column("num_results", heading="#results")
     tt.add_column("suite")
     tt.add_column("test")
     print("")
     print(tt)
+    
+    return (ret)
+# DEF
+
+
+
+## =========================================================
+## MAIN
+## =========================================================
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('benchmark',
+                        nargs='*',
+                        help="Benchmark suite to run [default=ALL]")
+
+    parser.add_argument("--run",
+                        action="store_true",
+                        dest="run",
+                        default=False,
+                        help="Run Benchmarks")
+    
+    parser.add_argument("--local",
+                        action="store_true",
+                        default=False,
+                        help="Store results in local directory")
+    
+    parser.add_argument("--num-threads",
+                        metavar='N',
+                        type=int,
+                        default=BENCHMARK_THREADS,
+                        help="# of threads to use for benchmarks")
+    
+    parser.add_argument("--logfile-path",
+                        metavar='P',
+                        type=str,
+                        default=BENCHMARK_LOGFILE_PATH,
+                        help="Path to use for benchmark WAL files")
+    
+    parser.add_argument("--min-ref-values",
+                        metavar='M',
+                        type=int,
+                        default=MIN_REF_VALUES,
+                        help="Minimal # of values needed to enforce threshold")
+        
+    parser.add_argument("--benchmark-path",
+                        metavar='B',
+                        type=str,
+                        default=BENCHMARK_PATH,
+                        help="Path to benchmark binaries")
+
+    parser.add_argument("--csv-dump",
+                        action="store_true",
+                        default=False,
+                        help="Print results to stdout as CSV")
+
+    parser.add_argument("--debug",
+                        action="store_true",
+                        dest="debug",
+                        default=False,
+                        help="Enable debug output")
+
+    parser.add_argument("--perf",
+                        action="store_true",
+                        default=False,
+                        help="Enable perf counter recording")
+
+    args = parser.parse_args()
+
+    # -------------------------------------------------------
+
+
+    if args.debug: LOG.setLevel(logging.DEBUG)
+    if args.num_threads: BENCHMARK_THREADS = args.num_threads
+    if args.logfile_path: BENCHMARK_LOGFILE_PATH = args.logfile_path
+    if args.benchmark_path: BENCHMARK_PATH = args.benchmark_path
+
+    # -------------------------------------------------------
+
+    config = Config()
+
+    if not os.path.exists(BENCHMARK_PATH):
+        LOG.error("The benchmark executable path directory '%s' does not exist" % BENCHMARK_PATH)
+        sys.exit(1)
+    benchmarks = sorted(args.benchmark) if args.benchmark else config.benchmarks
+    for b in benchmarks:
+        if not b.endswith("_benchmark"):
+            LOG.error("Invalid target benchmark '%s'" % b)
+            sys.exit(1)
+    
+    builds_to_skip = [ ]
+    
+    if args.local:
+        if not os.path.exists(LOCAL_REPO_DIR): os.mkdir(LOCAL_REPO_DIR)
+    
+    # Run benchmarks
+    ret = 0
+    if args.run:
+        run_bench = RunMicroBenchmarks(config)
+        ret = run_bench.run_benchmarks(benchmarks, args.perf)
+
+        # Store them locally if necessary
+        if args.local:
+            # Figure out next directory
+            build_dirs = next(os.walk(LOCAL_REPO_DIR))[1]
+            last_dir = max(build_dirs) if build_dirs else '000'
+            next_dir = os.path.join(LOCAL_REPO_DIR, "%03d" % (int(last_dir)+1))
+            LOG.info("Creating new result directory in local data repository '%s'", next_dir)
+            os.mkdir(next_dir)
+            
+            builds_to_skip.append(os.path.basename(next_dir))
+            
+            # Copy any JSON files that we find into our repository
+            for bench_name in benchmarks:
+                filename = "{}.json".format(bench_name)
+                shutil.copy(filename, next_dir)
+                LOG.debug("Copying result file '%s' into '%s'", filename, next_dir)
+        # IF 
+            
+    # need <n> benchmark results to compare against
+    ap = ArtifactProcessor(args.min_ref_values)
+    LOG.debug("min_ref_values: %d" % args.min_ref_values)
+    need_more_builds = True
+
+    ## LOCAL REPOSITORY RESULTS
+    if args.local:
+        LOG.debug("Processing local data repository '%s'", LOCAL_REPO_DIR)
+        for run_dir in reversed(sorted(next(os.walk(LOCAL_REPO_DIR))[1])):
+            if os.path.basename(run_dir) in builds_to_skip: 
+                LOG.debug("Skipping data dir '%s'", run_dir)
+                continue
+            LOG.debug("Reading results from local directory '%s'", run_dir)
+            for build_file in glob.glob(os.path.join(LOCAL_REPO_DIR, run_dir, '*.json')):
+                with open(build_file) as fh:
+                    try:
+                        contents = fh.read()
+                        ap.add_artifact_file(contents)
+                    except:
+                        LOG.error("Invalid data read from benchmark result file '%s'", build_file)
+                        LOG.error(contents)
+                        raise
+                # Determine if we have enough history. Stop collecting information if we do
+                if ap.have_min_history():
+                    need_more_builds = False
+                    break
+            ## FOR
+            if not need_more_builds: break
+        ## FOR
+        
+    ## REMOTE JENKINS REPOSITORY RESULTS
+    else:
+        h = Jenkins(JENKINS_URL)
+        data_src_list = config.ref_data_sources
+        for repo_dict in data_src_list:
+            project = repo_dict.get("project")
+            branch = repo_dict.get("branch")
+            min_build = repo_dict.get("min_build")
+
+            kwargs = {"min_build" : min_build }
+            builds = h.get_builds(project, branch, **kwargs)
+
+            for build in builds:
+                LOG.debug("(%s, %s), build=#%d, status=%s", \
+                          project, branch, build.get_number(), build.get_result())
+
+                artifacts = build.get_artifacts()
+                for artifact in artifacts:
+                    artifact_filename = artifact.get_filename()
+                    LOG.debug("artifact: {}".format(artifact_filename))
+
+                    ap.add_artifact_file(artifact.get_data())
+
+                # Determine if we have enough history. Stop collecting information if we do
+                if ap.have_min_history():
+                    need_more_builds = False
+                    break
+
+            if not need_more_builds: break
+    ## IF (jenkins)
+
+    """
+    for key in ap.results.keys():
+        suite_name, test_name = key
+        v = ap.get_result(suite_name, test_name)
+        print v.get_suite_name(), " ",  v.get_test_name()
+        print "mean time = ", v.get_mean_time()
+        print "num items = ", v.get_num_items()
+        print "ips = ",  v.get_mean_items_per_second()
+    """
+
+    if args.csv_dump:
+        ret = csv_dump(benchmarks, ap)
+    else:
+        ret = table_dump(benchmarks, ap)
+
 
     LOG.debug("Exit code = {}".format(ret))
     sys.exit(ret)

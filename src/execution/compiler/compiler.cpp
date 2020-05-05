@@ -8,6 +8,7 @@
 #include "execution/compiler/translator_factory.h"
 #include "execution/sema/sema.h"
 #include "loggers/execution_logger.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 
 namespace terrier::execution::compiler {
 
@@ -122,6 +123,26 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
       // Inner loop
       MakePipelines(*op.GetChild(0), curr_pipeline);
       curr_pipeline->Add(std::move(right_translator));
+      return;
+    }
+    case terrier::planner::PlanNodeType::CTESCAN: {
+      auto cte_scan_plan_node = reinterpret_cast<const terrier::planner::CteScanPlanNode *>(&op);
+      if (cte_scan_plan_node->IsLeader()) {
+        auto bottom_translator = TranslatorFactory::CteScanLeaderNodeTranslator(&op, codegen_);
+        auto top_translator = TranslatorFactory::CteScanNodeTranslator(&op, codegen_);
+
+        // The "build" side is a pipeline breaker. It belongs to a new pipeline.
+        auto next_pipeline = std::make_unique<Pipeline>(codegen_);
+        MakePipelines(*op.GetChild(0), next_pipeline.get());
+        next_pipeline->Add(std::move(bottom_translator));
+        pipelines_.emplace_back(std::move(next_pipeline));
+
+        curr_pipeline->Add(std::move(top_translator));
+        return;
+      }
+      // Every other operation just adds itself to the current pipeline.
+      auto translator = TranslatorFactory::CteScanNodeTranslator(&op, codegen_);
+      curr_pipeline->Add(std::move(translator));
       return;
     }
     default: {

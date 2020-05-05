@@ -59,6 +59,7 @@ namespace terrier::execution::ast {
   F(CteScanGetTableOid, cteScanGetTableOid)                             \
   F(CteScanGetInsertTempTablePR, cteScanGetInsertTempTablePR)           \
   F(CteScanTableInsert, cteScanTableInsert)                             \
+  F(CteScanFree, cteScanFree)                                           \
                                                                         \
   /* PCI */                                                             \
   F(PCIIsFiltered, pciIsFiltered)                                       \
@@ -249,7 +250,10 @@ namespace terrier::execution::ast {
   F(GetParamDouble, getParamDouble)                                     \
   F(GetParamDate, getParamDate)                                         \
   F(GetParamTimestamp, getParamTimestamp)                               \
-  F(GetParamString, getParamString)
+  F(GetParamString, getParamString)                                     \
+                                                                        \
+  /* String functions */                                                \
+  F(Lower, lower)
 
 /**
  * Enum of builtins

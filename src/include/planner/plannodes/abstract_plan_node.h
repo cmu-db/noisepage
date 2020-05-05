@@ -98,7 +98,7 @@ class AbstractPlanNode {
   /**
    * Move children nodes to provided vector
    */
-  void MoveChildren(std::vector<std::unique_ptr<AbstractPlanNode>> &adoption_list);
+  void MoveChildren(std::vector<std::unique_ptr<AbstractPlanNode>> *adoption_list);
 
   /**
    * @return number of children
@@ -132,28 +132,13 @@ class AbstractPlanNode {
   common::ManagedPointer<OutputSchema> GetOutputSchema() const { return common::ManagedPointer(output_schema_); }
 
   //===--------------------------------------------------------------------===//
-  // Update schema
-  //===--------------------------------------------------------------------===//
-
-  /**
-   * output schema for the node. The output schema contains information on columns of the output of the plan
-   * node operator
-   */
-  void SetOutputSchema(std::unique_ptr<OutputSchema> schema) {
-    // TODO(preetang): Test for memory leak
-    output_schema_ = std::move(schema);
-  }
-
-  //===--------------------------------------------------------------------===//
   // Add child
   //===--------------------------------------------------------------------===//
 
   /**
    * @param child child to be added
    */
-  void AddChild(std::unique_ptr<AbstractPlanNode> child) {
-    children_.emplace_back(std::move(child));
-  }
+  void AddChild(std::unique_ptr<AbstractPlanNode> child) { children_.emplace_back(std::move(child)); }
 
   //===--------------------------------------------------------------------===//
   // JSON Serialization/Deserialization
