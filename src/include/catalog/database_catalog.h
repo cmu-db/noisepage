@@ -751,7 +751,7 @@ class DatabaseCatalog {
    * @param slot tuple slot that associated with the table oid in classes_
    * @return projectedrow contains the information of the table
    */
-  storage::ProjectedRow *GetTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                       const catalog::table_oid_t table, byte **buffer_ptr, storage::TupleSlot *slot);
+  storage::ProjectedRow *GetTableEntry(common::ManagedPointer<transaction::TransactionContext> txn,
+                                       catalog::table_oid_t table, byte **buffer_ptr, storage::TupleSlot *slot);
 };
 }  // namespace terrier::catalog

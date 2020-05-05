@@ -383,7 +383,7 @@ class CatalogAccessor {
   /**
    * @return Transactional context for this accessor
    */
-  const common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() { return txn_; }
+  common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() { return txn_; }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

@@ -137,8 +137,6 @@ class AlterTableStatement : public TableRefStatement {
 
     const std::string col_name_;
 
-    const catalog::col_oid_t col_oid_ = catalog::INVALID_COLUMN_OID;
-
     // For Add Column
     std::unique_ptr<ColumnDefinition> col_ = nullptr;
 

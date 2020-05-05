@@ -1460,7 +1460,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
           tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
           break;
         case postgres::ClassKind::INDEX:
-//          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
+          //          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
         default:

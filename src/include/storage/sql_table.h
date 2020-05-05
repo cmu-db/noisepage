@@ -298,11 +298,10 @@ class SqlTable {
   std::map<layout_version_t, DataTableVersion> tables_;
 
   // Should only be used by database catalog accessing pg tables!
-  void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *start_pos,
-            ProjectedColumns *out_buffer) const {
+  void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn,
+                            DataTable::SlotIterator *start_pos, ProjectedColumns *out_buffer) const {
     return tables_.at(layout_version_t(0)).data_table_->ForceScanAllVersions(txn, start_pos, out_buffer);
   }
-
 
   /**
    * Translates out_buffer from desired version col_ids to tuple version col_ids, by mapping each col_id in out_buffer
@@ -321,7 +320,7 @@ class SqlTable {
                                                                           const DataTableVersion &tuple_version,
                                                                           const DataTableVersion &desired_version,
                                                                           col_id_t *cached_orig_header,
-                                                                          AttrSizeMap *const size_map) const;
+                                                                          AttrSizeMap *size_map) const;
 
   /**
    * Fill the missing columns in the out_buffer with default values of those columns in the desired_version

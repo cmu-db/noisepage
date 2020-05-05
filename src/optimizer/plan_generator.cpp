@@ -950,7 +950,7 @@ void PlanGenerator::Visit(const AlterTable *alter) {
       } break;
       default:
         TERRIER_ASSERT(false, "Not implemented");
-    };
+    }
   }
 
   output_plan_ = planner::AlterPlanNode::Builder()

@@ -80,8 +80,8 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
-void DataTable::ForceScanAllVersions(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
-                     ProjectedColumns *const out_buffer) const {
+void DataTable::ForceScanAllVersions(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                     SlotIterator *const start_pos, ProjectedColumns *const out_buffer) const {
   uint32_t filled = 0;
   uint8_t version_count = 0;
 
@@ -96,7 +96,7 @@ void DataTable::ForceScanAllVersions(const common::ManagedPointer<transaction::T
     }
     if (!version_left) {
       ++(*start_pos);
-      version_count =0;
+      version_count = 0;
     } else {
       version_count++;
     }
@@ -305,11 +305,8 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 }
 
 template <class RowType>
-bool DataTable::SelectAllVersionsIntoBuffer(common::ManagedPointer <transaction::TransactionContext> txn,
-                                            TupleSlot slot,
-                                            RowType *out_buffer,
-                                            uint8_t count,
-                                            bool *version_left,
+bool DataTable::SelectAllVersionsIntoBuffer(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
+                                            RowType *out_buffer, uint8_t count, bool *version_left,
                                             const AttrSizeMap *const size_map) const {
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
   // This cannot be visible if it's already deallocated.
@@ -332,7 +329,6 @@ bool DataTable::SelectAllVersionsIntoBuffer(common::ManagedPointer <transaction:
       else
         StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
-
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
@@ -367,11 +363,11 @@ bool DataTable::SelectAllVersionsIntoBuffer(common::ManagedPointer <transaction:
 
 template bool DataTable::SelectAllVersionsIntoBuffer<ProjectedRow>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-    ProjectedRow *const out_buffer, uint8_t count, bool* version_left, const AttrSizeMap *const size_map) const;
+    ProjectedRow *const out_buffer, uint8_t count, bool *version_left, const AttrSizeMap *const size_map) const;
 template bool DataTable::SelectAllVersionsIntoBuffer<ProjectedColumns::RowView>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-    ProjectedColumns::RowView *const out_buffer, uint8_t count, bool* version_left, const AttrSizeMap *const size_map) const;
-
+    ProjectedColumns::RowView *const out_buffer, uint8_t count, bool *version_left,
+    const AttrSizeMap *const size_map) const;
 
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
