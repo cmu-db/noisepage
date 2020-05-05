@@ -437,10 +437,10 @@ class RandomSqlTableTestObject {
 
   // Structure that defines hashing and comparison operations for user's type.
   struct SlotHash {
-    // NOLINT
+    // NOLINTNEXTLINE
     static size_t hash(const storage::TupleSlot &slot) { return std::hash<storage::TupleSlot>{}(slot); }
 
-    // NOLINT
+    // NOLINTNEXTLINE
     static bool equal(const storage::TupleSlot &slot1, const storage::TupleSlot &slot2) { return slot1 == slot2; }
   };
 
@@ -455,7 +455,7 @@ class RandomSqlTableTestObject {
   std::vector<storage::TupleSlot> updated_slots_;
   // oldest to newest
   tbb::concurrent_hash_map<storage::TupleSlot, std::vector<TupleVersion>, SlotHash> tuple_versions_;
-  // NOLINT
+  // NOLINTNEXTLINE
   typedef tbb::concurrent_hash_map<storage::TupleSlot, std::vector<TupleVersion>, SlotHash>::accessor
       tuple_versions_accessor_;
 
