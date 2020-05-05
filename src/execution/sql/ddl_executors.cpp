@@ -155,7 +155,7 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   auto *const index = index_builder.Build();
 
   if (concurrent) {
-    //TODO
+
   } else {
     index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), accessor->GetTransactionContext());
     index->SetNotLive();

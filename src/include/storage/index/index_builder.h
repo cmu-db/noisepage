@@ -91,6 +91,8 @@ class IndexBuilder {
   */
   void BulkInsert(Index *index) const {
 
+    transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
+    auto fake_txn_ptr = common::ManagedPointer(&fake_txn);
     const auto index_pr_initializer = index->GetProjectedRowInitializer();
 
     const uint32_t index_pr_size = index_pr_initializer.ProjectedRowSize();
@@ -110,23 +112,27 @@ class IndexBuilder {
 
     for (auto it = sql_table_->begin(); it != sql_table_->end(); ++it) {
       const TupleSlot slot = *it;
-      bool result = sql_table_->Select(txn_, slot, table_pr);
-      if (result) {
-        // Copy in each value from the table PR into the index PR
-        auto num_index_cols = key_schema_.GetColumns().size();
-        TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
-        for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
-          const auto &col = key_schema_.GetColumn(col_idx);
-          auto index_col_oid = col.Oid();
-          const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
-          if (table_pr->IsNull(pr_map[table_col_oid])) {
-            index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
-          } else {
-            auto size = AttrSizeBytes(col.AttrSize());
-            std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
-                        table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
-          }
+      bool UNUSED_ATTRIBUTE result = sql_table_->Select(fake_txn_ptr, slot, table_pr);
+      // Invisible balognis should be invisible
+      if (!result) {
+        continue;
+      }
+
+      // Copy in each value from the table PR into the index PR
+      auto num_index_cols = key_schema_.GetColumns().size();
+      TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
+      for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
+        const auto &col = key_schema_.GetColumn(col_idx);
+        auto index_col_oid = col.Oid();
+        const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
+        if (table_pr->IsNull(pr_map[table_col_oid])) {
+          index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
+        } else {
+          auto size = AttrSizeBytes(col.AttrSize());
+          std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
+                      table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
         }
+
         index->Insert(txn_, *index_pr, slot);
       }
     }

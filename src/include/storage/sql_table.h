@@ -41,8 +41,7 @@ class SqlTable {
   };
 
  public:
-
-  std::shared_mutex modify_mutex_;
+  transaction::TransactionContext::DebugLock modify_mutex_;
 
   /**
    * Constructs a new SqlTable with the given Schema, using the given BlockStore as the source

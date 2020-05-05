@@ -170,6 +170,9 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
         //TODO
       } else {
         auto table_oid = create_index_plan->GetTableOid();
+        if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
+          return {ResultType::ERROR, "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
+        }
         auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
         table_lock->lock();
         bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
@@ -295,7 +298,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   std::unordered_set<catalog::table_oid_t> modified_table_oids;
   physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
   for (const auto table_oid : modified_table_oids) {
-    connection_ctx->Accessor()->GetTableLock(table_oid)->lock_shared();
+    connection_ctx->Transaction()->LockIfNotLocked(table_oid, connection_ctx->Accessor()->GetTableLock(table_oid));
   }
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
@@ -341,13 +344,6 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
   exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-
-  // Unblock anything blocked
-  std::unordered_set<catalog::table_oid_t> modified_table_oids;
-  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
-  for (const auto table_oid : modified_table_oids) {
-    connection_ctx->Accessor()->GetTableLock(table_oid)->unlock_shared();
-  }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete

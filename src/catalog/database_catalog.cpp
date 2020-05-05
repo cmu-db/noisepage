@@ -938,7 +938,7 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
 
 common::ManagedPointer<std::shared_mutex> DatabaseCatalog::GetTableLock(common::ManagedPointer<transaction::TransactionContext> txn,
                                                        table_oid_t table) {
-  return common::ManagedPointer(&(GetTable(txn, table)->modify_mutex_));
+  return common::ManagedPointer(reinterpret_cast<std::shared_mutex*>(&(GetTable(txn, table)->modify_mutex_)));
 }
 
 bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,

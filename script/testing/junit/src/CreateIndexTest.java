@@ -13,7 +13,7 @@ import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings("ALL")
 public class CreateIndexTest extends TestUtility {
-    private static final int NUM_EXTRA_THREADS = 10;
+    private static final int NUM_EXTRA_THREADS = 2;
 
     private Connection conn;
     private Connection[] thread_conn = new Connection[NUM_EXTRA_THREADS];
@@ -111,7 +111,7 @@ public class CreateIndexTest extends TestUtility {
     public void testWriteBlocking() throws SQLException, InterruptedException {
         String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100);";
         Statement stmt = conn.createStatement();
-        int num_rows = 500;
+        int num_rows = 1500;
         for (int i = 0; i < num_rows; i++) {
             stmt.execute(sql);
         }
