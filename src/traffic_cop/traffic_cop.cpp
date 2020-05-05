@@ -30,6 +30,7 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
@@ -161,23 +162,25 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
-      // Create a transaction for the index builder
-      const auto populate_txn = txn_manager_->BeginTransaction();
-      if (execution::sql::DDLExecutors::CreateIndexExecutor(
-              physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
-              common::ManagedPointer(populate_txn))) {
-        if (populate_txn->MustAbort()) {
-          connection_ctx->Transaction()->SetMustAbort();
-          txn_manager_->Abort(populate_txn);
-          return {ResultType::ERROR, "ERROR:  failed to execute CREATE INDEX"};
+      auto create_index_plan = physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>();
+      bool concurrent = create_index_plan->GetConcurrent();
+      if (concurrent) {
+        connection_ctx->Transaction()->SetMustAbort();
+        return {ResultType::ERROR, "ERROR:  CREATE INDEX CONCURRENTLY not implemented"};
+        //TODO
+      } else {
+        auto table_oid = create_index_plan->GetTableOid();
+        if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
+          return {ResultType::ERROR, "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
         }
-        // Set up a blocking callback to wait for the populate txn to finish
-        std::promise<bool> promise;
-        auto future = promise.get_future();
-        TERRIER_ASSERT(future.valid(), "future must be valid for synchronization to work.");
-        txn_manager_->Commit(populate_txn, CommitCallback, &promise);
-        future.wait();
-        return {ResultType::COMPLETE, 0};
+        auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
+        table_lock->lock();
+        bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
+            physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor());
+        table_lock->unlock();
+        if (result) {
+          return {ResultType::COMPLETE, 0};
+        }
       }
       break;
     }
@@ -291,6 +294,13 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
+  // Block potential inserts on creating indexes
+  std::unordered_set<catalog::table_oid_t> modified_table_oids;
+  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
+  for (const auto table_oid : modified_table_oids) {
+    connection_ctx->Transaction()->LockIfNotLocked(table_oid, connection_ctx->Accessor()->GetTableLock(table_oid));
+  }
+
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
     return {ResultType::COMPLETE, 0};
@@ -331,7 +341,6 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
       connection_ctx->Accessor());
 
   exec_ctx->SetParams(portal->Parameters());
-
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
   exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);

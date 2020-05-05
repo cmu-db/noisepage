@@ -138,6 +138,13 @@ class DataTable {
   bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
               ProjectedRow *out_buffer) const;
 
+  enum class VersionChainType {
+    PRE_UPDATE, POST_UPDATE, INSERT, DELETE, VISIBLE, INVISIBLE
+  };
+
+  template <class RowType>
+  void TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer, const std::function<void(VersionChainType)> lambda) const;
+
   // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
   // save a point of scan and come back to it later?
   // Alternatively, we can provide an easy wrapper that takes in a const SlotIterator & and returns a SlotIterator,

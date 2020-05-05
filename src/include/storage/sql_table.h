@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <shared_mutex>
 
 #include "catalog/schema.h"
 #include "storage/data_table.h"
@@ -40,6 +41,8 @@ class SqlTable {
   };
 
  public:
+  transaction::TransactionContext::DebugLock modify_mutex_;
+
   /**
    * Constructs a new SqlTable with the given Schema, using the given BlockStore as the source
    * of its storage blocks.
@@ -65,6 +68,11 @@ class SqlTable {
   bool Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
               ProjectedRow *const out_buffer) const {
     return table_.data_table_->Select(txn, slot, out_buffer);
+  }
+
+  template <class RowType>
+  void TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer, const std::function<void(DataTable::VersionChainType)> lambda) const {
+    table_.data_table_->TraverseVersionChain(slot, out_buffer, lambda);
   }
 
   /**
@@ -105,6 +113,8 @@ class SqlTable {
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
+
+    //
     const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;

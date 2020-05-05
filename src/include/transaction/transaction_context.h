@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <shared_mutex>
 
 #include "common/macros.h"
 #include "common/managed_pointer.h"
@@ -30,6 +31,28 @@ namespace terrier::transaction {
  */
 class TransactionContext {
  public:
+  class DebugLock : public std::shared_mutex {
+   public:
+
+    void debug_lock_shared(const common::ManagedPointer<transaction::TransactionContext> &txn) {
+      TERRIER_ASSERT(std::count(readers.begin(), readers.end(), txn) == 0, "Locking a lock I already have!");
+      readers.push_back(txn);
+      lockers.insert(txn);
+      std::shared_mutex::lock_shared();
+    }
+
+    void debug_unlock_shared(const common::ManagedPointer<transaction::TransactionContext> &txn) {
+      int UNUSED_ATTRIBUTE cnt = lockers.count(txn);
+      TERRIER_ASSERT(std::count(readers.begin(), readers.end(), txn) != 0, "Unlocking when I dont have this!");
+      readers.erase(std::find(readers.begin(), readers.end(), txn));
+      std::shared_mutex::unlock_shared();
+    }
+
+    std::vector<common::ManagedPointer<transaction::TransactionContext>> readers;
+    std::unordered_set<common::ManagedPointer<transaction::TransactionContext>> lockers;
+
+  };
+
   /**
    * Constructs a new transaction context.
    *
@@ -50,6 +73,26 @@ class TransactionContext {
         finish_time_(finish),
         undo_buffer_(buffer_pool.Get()),
         redo_buffer_(log_manager.Get(), buffer_pool.Get()) {}
+
+
+  /**
+   * Constructs a new transaction context.
+   *
+   * @warning In the src/ folder this should only be called in TransactionManager::BeginTransaction to adhere to MVCC
+   * semantics. Tests are allowed to deterministically construct them in ways that violate the current MVCC semantics.
+   * @warning Beware that the buffer pool given must be the same one the log manager uses,
+   * if logging is enabled.
+   * @param start the start timestamp of the transaction. Should be unique within the system.
+   * @param finish in HyPer parlance this is txn id. Should be larger than all start times and commit times in current
+   * MVCC semantics
+   * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
+   * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
+   */
+  TransactionContext(const timestamp_t start, const timestamp_t finish)
+      : start_time_(start),
+        finish_time_(finish),
+        undo_buffer_(nullptr),
+        redo_buffer_(nullptr, nullptr) {}
 
   /**
    * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests
@@ -203,6 +246,21 @@ class TransactionContext {
    */
   void SetMustAbort() { must_abort_ = true; }
 
+  storage::UndoBuffer GetUndoBuffer() { return undo_buffer_; }
+  storage::RedoBuffer GetRedoBuffer() { return redo_buffer_; }
+
+  void LockIfNotLocked(catalog::table_oid_t table_oid, common::ManagedPointer<std::shared_mutex> table_lock) {
+    if (!IsTableLocked(table_oid)) {
+      reinterpret_cast<DebugLock*>(table_lock.Get())->debug_lock_shared(common::ManagedPointer(this));
+      held_table_oids_.insert(table_oid);
+      held_table_locks_.push_back(table_lock);
+    }
+  }
+
+  bool IsTableLocked(catalog::table_oid_t table_oid) const {
+    return held_table_oids_.count(table_oid) != 0;
+  }
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
@@ -219,6 +277,9 @@ class TransactionContext {
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
   //
   std::vector<const byte *> loose_ptrs_;
+
+  std::vector<common::ManagedPointer<std::shared_mutex>> held_table_locks_;
+  std::unordered_set<catalog::table_oid_t> held_table_oids_;
 
   // These actions will be triggered (not deferred) at abort/commit.
   std::forward_list<TransactionEndAction> abort_actions_;

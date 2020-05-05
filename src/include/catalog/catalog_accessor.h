@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <shared_mutex>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
@@ -160,6 +161,8 @@ class CatalogAccessor {
    * @return the storage object corresponding to the passed OID
    */
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
+
+  common::ManagedPointer<std::shared_mutex> GetTableLock(table_oid_t table) const;
 
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
@@ -395,6 +398,11 @@ class CatalogAccessor {
         txn_(txn),
         search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
         default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
+
+
+  bool TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to) {
+    return dbc_->TransferLock(from, to);
+  }
 
  private:
   const common::ManagedPointer<Catalog> catalog_;

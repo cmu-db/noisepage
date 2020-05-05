@@ -90,7 +90,6 @@ class IndexBuilder {
   * @return index with all the keys inserted
   */
   void BulkInsert(Index *index) const {
-
     const auto index_pr_initializer = index->GetProjectedRowInitializer();
 
     const uint32_t index_pr_size = index_pr_initializer.ProjectedRowSize();
@@ -110,9 +109,9 @@ class IndexBuilder {
 
     for (auto it = sql_table_->begin(); it != sql_table_->end(); ++it) {
       const TupleSlot slot = *it;
-      bool result = sql_table_->Select(txn_, slot, table_pr);
-      if (result) {
-        // Copy in each value from the table PR into the index PR
+
+      sql_table_->TraverseVersionChain(slot, table_pr, [&, this](auto type){
+        // Insert into the index
         auto num_index_cols = key_schema_.GetColumns().size();
         TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
         for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
@@ -127,8 +126,23 @@ class IndexBuilder {
                         table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
           }
         }
-        index->Insert(txn_, *index_pr, slot);
-      }
+
+        switch (type) {
+          case DataTable::VersionChainType::VISIBLE:
+            printf("Inserting into index");
+            index->Insert(txn_, *index_pr, slot);
+            break;
+          case DataTable::VersionChainType::INVISIBLE:
+          case DataTable::VersionChainType::PRE_UPDATE:
+            printf("Inserting into index");
+            index->Insert(txn_, *index_pr, slot);
+            printf("Deleting from index");
+            index->Delete(txn_, *index_pr, slot);
+            break;
+          default:
+            break;
+        }
+      });
     }
 
     delete[] index_pr_buffer;

@@ -66,13 +66,22 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param concurrent Whether the create should be concurrent
+     * @return builder object
+     */
+    Builder &SetConcurrent(bool concurrent) {
+      concurrent_ = concurrent;
+      return *this;
+    }
+
+    /**
      * Build the create index plan node
      * @return plan node
      */
     std::unique_ptr<CreateIndexPlanNode> Build() {
       return std::unique_ptr<CreateIndexPlanNode>(
           new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, table_oid_,
-                                  std::move(index_name_), std::move(schema_)));
+                                  std::move(index_name_), std::move(schema_), concurrent_));
     }
 
    protected:
@@ -95,6 +104,11 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * table schema
      */
     std::unique_ptr<catalog::IndexSchema> schema_;
+
+    /**
+     * Whether the build should be concurrent
+     */
+     bool concurrent_;
   };
 
  private:
@@ -112,12 +126,13 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::string index_name,
-                      std::unique_ptr<catalog::IndexSchema> schema)
+                      std::unique_ptr<catalog::IndexSchema> schema, bool concurrent)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         index_name_(std::move(index_name)),
-        schema_(std::move(schema)) {}
+        schema_(std::move(schema)),
+        concurrent_(concurrent) {}
 
  public:
   /**
@@ -153,6 +168,11 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   common::ManagedPointer<catalog::IndexSchema> GetSchema() const { return common::ManagedPointer(schema_); }
 
   /**
+   * @return Whether this creation is concurrent
+   */
+  bool GetConcurrent() const { return concurrent_; }
+
+  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
@@ -169,6 +189,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   catalog::table_oid_t table_oid_;
   std::string index_name_;
   std::unique_ptr<catalog::IndexSchema> schema_;
+  bool concurrent_;
 };
 
 DEFINE_JSON_DECLARATIONS(CreateIndexPlanNode);
