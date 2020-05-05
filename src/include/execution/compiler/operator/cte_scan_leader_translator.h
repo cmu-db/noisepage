@@ -46,8 +46,8 @@ class CteScanLeaderTranslator : public OperatorTranslator {
 
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {
-    ast::Expr *cte_free_call = codegen_->OneArgCall(ast::Builtin::CteScanFree,
-        codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
+    ast::Expr *cte_free_call =
+        codegen_->OneArgCall(ast::Builtin::CteScanFree, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
     teardown_stmts->emplace_back(codegen_->MakeStmt(cte_free_call));
   }
 
@@ -106,7 +106,6 @@ class CteScanLeaderTranslator : public OperatorTranslator {
   // var pci = @tableIterGetPCI(&tvi)
   // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
   void GenPCILoop(FunctionBuilder *builder);
-
 };
 
 }  // namespace terrier::execution::compiler

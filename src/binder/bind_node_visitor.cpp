@@ -646,6 +646,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BinderContext context(context_);
   context_ = common::ManagedPointer(&context);
 
+  if (node->GetSelectWith() != nullptr) {
+    // Store CTE table name
+    TERRIER_ASSERT(cte_table_name_.empty(), "cte table name should not be set.");
+    cte_table_name_ = node->GetSelectWith()->GetAlias();
+
+    node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  }
+
   if (node->GetSelectTable() != nullptr)
     node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
@@ -959,10 +967,17 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
   } else {
     // Single table
     if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
-      throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()),
+      // table not in catalog, check if table referred is the cte table
+      if (node->GetTableName() == cte_table_name_) {
+        // copy cte table's schema for this alias
+        context_->AddCTETable(node->GetTableName(), node->GetAlias());
+      } else {
+        throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()),
                              common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+      }
+    } else {
+      context_->AddRegularTable(catalog_accessor_, node, db_oid_);
     }
-    context_->AddRegularTable(catalog_accessor_, node, db_oid_);
   }
 }
 

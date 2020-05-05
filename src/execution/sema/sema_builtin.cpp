@@ -2048,9 +2048,7 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
   }
 }
 
-
 void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
-
   switch (builtin) {
 
     case ast::Builtin::CteScanInit:
@@ -2080,67 +2078,57 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
           ReportIncorrectCallArg(call, 2, "Third argument should be a fixed length uint32 array");
         }
 
-        call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+    } break;
+    case ast::Builtin::CteScanGetTable: {
+      if (!CheckArgCount(call, 1)) {
+        return;
       }
-      break;
-    case ast::Builtin::CteScanGetTable:
-      {
-        if (!CheckArgCount(call, 1)) {
-          return;
-        }
-        // First argument must be a pointer to a IndexIterator
-        auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
-        if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
-          ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
-          return;
-        }
-        call->SetType(GetBuiltinType(ast::BuiltinType::SqlTable)->PointerTo());
+      // First argument must be a pointer to a IndexIterator
+      auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
+      if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
+        return;
       }
-      break;
-    case ast::Builtin::CteScanGetInsertTempTablePR:
-      {
-        if (!CheckArgCount(call, 1)) {
-          return;
-        }
-        // First argument must be a pointer to a IndexIterator
-        auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
-        if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
-          ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
-          return;
-        }
-        call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::SqlTable)->PointerTo());
+    } break;
+    case ast::Builtin::CteScanGetInsertTempTablePR: {
+      if (!CheckArgCount(call, 1)) {
+        return;
       }
-      break;
-    case ast::Builtin::CteScanGetTableOid:
-      {
-        if (!CheckArgCount(call, 1)) {
-          return;
-        }
-        // First argument must be a pointer to a IndexIterator
-        auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
-        if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
-          ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
-          return;
-        }
-        call->SetType(GetBuiltinType(ast::BuiltinType::TableOid));
+      // First argument must be a pointer to a IndexIterator
+      auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
+      if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
+        return;
       }
-      break;
-    case ast::Builtin::CteScanTableInsert:
-      {
-        if (!CheckArgCount(call, 1)) {
-          return;
-        }
-        // First argument must be a pointer to a IndexIterator
-        auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
-        if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
-          ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
-          return;
-        }
-        call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+    } break;
+    case ast::Builtin::CteScanGetTableOid: {
+      if (!CheckArgCount(call, 1)) {
+        return;
       }
-      break;
-    case ast::Builtin::CteScanFree:
-    {
+      // First argument must be a pointer to a IndexIterator
+      auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
+      if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::TableOid));
+    } break;
+    case ast::Builtin::CteScanTableInsert: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // First argument must be a pointer to a IndexIterator
+      auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
+      if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
+    } break;
+    case ast::Builtin::CteScanFree: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
@@ -2151,8 +2139,7 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-    }
-      break;
+    } break;
     default:
       UNREACHABLE("Impossible Cte Scan call!");
   }

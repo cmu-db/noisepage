@@ -587,6 +587,15 @@ class CodeGen {
                                                 ast::Identifier worker_name);
 
   /**
+   * Call @tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
+   * @param tvi The identifier of table vector iterator
+   * @param cte_scan_iterator The identifier of cte scan iterator
+   * @param col_oids The identifier of the array of column oids to read.
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator, ast::Identifier col_oids);
+
+  /**
    * Call \@abortTxn(exec_ctx).
    * @param exec_ctx The execution context that we are running in.
    * @return The call.
@@ -1384,7 +1393,8 @@ class CodeGen {
 
   /*Return the identifier for a cte scan iterator in tpl generated
    * */
-  ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_;}
+  ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_; }
+
  private:
   // Enter a new lexical scope.
   void EnterScope();

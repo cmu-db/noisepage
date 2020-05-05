@@ -176,7 +176,8 @@ ast::Expr *CodeGen::ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind) {
   return GetFactory()->NewArrayType(position_, Const64(num_elems), BuiltinType(kind));
 }
 
-ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator, ast::Identifier col_oids) {
+ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator,
+                                      ast::Identifier col_oids) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::TempTableIterInitBind);
   ast::Expr *tvi_ptr = PointerTo(tvi);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
@@ -1182,8 +1183,7 @@ ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
   ast::Expr *col_oids_expr = MakeExpr(col_types);
 
-  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr},
-                                       Region()};
+  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 

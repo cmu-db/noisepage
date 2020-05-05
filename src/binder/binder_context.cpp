@@ -136,7 +136,6 @@ void BinderContext::AddCTETable(const std::string &cte_table_name, const std::st
   if (nested_table_alias_map_.find(table_alias) == nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION(("CTE table not in nested alias map " + cte_table_name).c_str());
   }
-
 }
 
 bool BinderContext::ColumnInSchema(const catalog::Schema &schema, const std::string &col_name) {

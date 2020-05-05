@@ -412,20 +412,21 @@ TEST_F(ParserTestBase, SelectTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, SelectWithTest) {
-auto result = parser::PostgresParser::BuildParseTree("WITH EMPLOYEE AS (SELECT * FROM COMPANY) SELECT * FROM EMPLOYEE;");
+  auto result =
+      parser::PostgresParser::BuildParseTree("WITH EMPLOYEE AS (SELECT * FROM COMPANY) SELECT * FROM EMPLOYEE;");
 
-EXPECT_EQ(result->GetStatements().size(), 1);
-EXPECT_EQ(result->GetStatement(0)->GetType(), StatementType::SELECT);
+  EXPECT_EQ(result->GetStatements().size(), 1);
+  EXPECT_EQ(result->GetStatement(0)->GetType(), StatementType::SELECT);
 
-auto select_stmt = result->GetStatement(0).CastManagedPointerTo<SelectStatement>();
-EXPECT_EQ(select_stmt->GetSelectTable()->GetTableName(), "employee");
-// CheckTable(select_stmt->from_->table_info_, std::string("foo"));
-EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
+  auto select_stmt = result->GetStatement(0).CastManagedPointerTo<SelectStatement>();
+  EXPECT_EQ(select_stmt->GetSelectTable()->GetTableName(), "employee");
+  // CheckTable(select_stmt->from_->table_info_, std::string("foo"));
+  EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
 
-auto with_select_stmt = select_stmt->GetSelectWith()->GetSelect();
-EXPECT_EQ(with_select_stmt->GetSelectTable()->GetTableName(), "company");
-EXPECT_EQ(select_stmt->GetSelectWith()->GetAlias(), "employee");
-EXPECT_EQ(with_select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
+  auto with_select_stmt = select_stmt->GetSelectWith()->GetSelect();
+  EXPECT_EQ(with_select_stmt->GetSelectTable()->GetTableName(), "company");
+  EXPECT_EQ(select_stmt->GetSelectWith()->GetAlias(), "employee");
+  EXPECT_EQ(with_select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
 }
 
 // NOLINTNEXTLINE

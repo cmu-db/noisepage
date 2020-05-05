@@ -612,13 +612,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
   OP(CteScanGetTable) : {
-    auto *table = frame->LocalAt<storage::SqlTable**>(READ_LOCAL_ID());
+    auto *table = frame->LocalAt<storage::SqlTable **>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     OpCteScanGetTable(table, iter);
     DISPATCH_NEXT();
   }
   OP(CteScanGetTableOid) : {
-    auto table_oid = frame->LocalAt<terrier::catalog::table_oid_t*>(READ_LOCAL_ID());
+    auto table_oid = frame->LocalAt<terrier::catalog::table_oid_t *>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     OpCteScanGetTableOid(table_oid, iter);
     DISPATCH_NEXT();
@@ -630,7 +630,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
   OP(CteScanTableInsert) : {
-    auto tuple_slot = frame->LocalAt<terrier::storage::TupleSlot*>(READ_LOCAL_ID());
+    auto tuple_slot = frame->LocalAt<terrier::storage::TupleSlot *>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     OpCteScanTableInsert(tuple_slot, iter);
     DISPATCH_NEXT();
@@ -640,7 +640,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     OpCteScanFree(iter);
     DISPATCH_NEXT();
   }
-
 
   // -------------------------------------------------------
   // VPI iteration operations

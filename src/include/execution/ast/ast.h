@@ -1281,9 +1281,6 @@ class IdentifierExpr : public Expr {
   Decl *decl_;
 };
 
-
-
-
 /**
  * An enumeration capturing all possible casting operations.
  */
@@ -1327,8 +1324,6 @@ enum class CastKind : uint8_t {
   // Convert a SQL integer into a SQL real
   SqlIntToSqlReal,
 };
-
-
 
 /**
  * @return A string representation for a given cast kind.

@@ -185,7 +185,6 @@ class PlanVisitor {
    */
   virtual void Visit(UNUSED_ATTRIBUTE const CteScanPlanNode *plan) {}
 
-
   /**
    * Visit an NestedLoopJoinPlanNode
    * @param plan NestedLoopJoinPlanNode
