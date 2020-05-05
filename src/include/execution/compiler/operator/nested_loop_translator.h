@@ -38,9 +38,7 @@ class NestedLoopLeftTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   // Pass through
-  void Produce(FunctionBuilder *builder) override {
-    child_translator_->Produce(builder);
-  }
+  void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }
   void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
 
   // Pass through
@@ -94,9 +92,7 @@ class NestedLoopRightTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   // Pass through
-  void Produce(FunctionBuilder *builder) override {
-    child_translator_->Produce(builder);
-  }
+  void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }
   void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
 
   // Generator if statement

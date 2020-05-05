@@ -972,15 +972,16 @@ LogicalCteScanToPhysicalCteScan::LogicalCteScanToPhysicalCteScan() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-bool LogicalCteScanToPhysicalCteScan::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
+bool LogicalCteScanToPhysicalCteScan::Check(common::ManagedPointer<OperatorNode> plan,
+                                            OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
 void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<OperatorNode> input,
-                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                            OptimizationContext *context) const {
+                                                std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                OptimizationContext *context) const {
   (void)context;
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalCteScan should have 1 child");
 
@@ -989,7 +990,6 @@ void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<OperatorN
   c.emplace_back(std::move(child));
 
   auto logical_op = input->GetOp().As<LogicalCteScan>();
-
 
   auto result_plan = std::make_unique<OperatorNode>(
       CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias())), std::move(c));
@@ -1005,17 +1005,18 @@ LogicalCteScanToPhysicalEmptyCteScan::LogicalCteScanToPhysicalEmptyCteScan() {
   match_pattern_ = new Pattern(OpType::LOGICALCTESCAN);
 }
 
-bool LogicalCteScanToPhysicalEmptyCteScan::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
+bool LogicalCteScanToPhysicalEmptyCteScan::Check(common::ManagedPointer<OperatorNode> plan,
+                                                 OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
 void LogicalCteScanToPhysicalEmptyCteScan::Transform(common::ManagedPointer<OperatorNode> input,
-                                                std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                                OptimizationContext *context) const {
+                                                     std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                     OptimizationContext *context) const {
   (void)context;
-  TERRIER_ASSERT(input->GetChildren().size() == 0, "EmptyLogicalCteScan should have 0 child");
+  TERRIER_ASSERT(input->GetChildren().empty(), "EmptyLogicalCteScan should have 0 child");
 
   std::vector<std::unique_ptr<OperatorNode>> c;
   auto logical_op = input->GetOp().As<LogicalCteScan>();

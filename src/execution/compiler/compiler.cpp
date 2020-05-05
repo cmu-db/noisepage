@@ -127,7 +127,7 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
     }
     case terrier::planner::PlanNodeType::CTESCAN: {
       auto cte_scan_plan_node = reinterpret_cast<const terrier::planner::CteScanPlanNode *>(&op);
-      if(cte_scan_plan_node->IsLeader()) {
+      if (cte_scan_plan_node->IsLeader()) {
         auto bottom_translator = TranslatorFactory::CteScanLeaderNodeTranslator(&op, codegen_);
         auto top_translator = TranslatorFactory::CteScanNodeTranslator(&op, codegen_);
 
@@ -139,12 +139,11 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
 
         curr_pipeline->Add(std::move(top_translator));
         return;
-      } else {
-        // Every other operation just adds itself to the current pipeline.
-        auto translator = TranslatorFactory::CteScanNodeTranslator(&op, codegen_);
-        curr_pipeline->Add(std::move(translator));
-        return;
       }
+      // Every other operation just adds itself to the current pipeline.
+      auto translator = TranslatorFactory::CteScanNodeTranslator(&op, codegen_);
+      curr_pipeline->Add(std::move(translator));
+      return;
     }
     default: {
       // Every other operation just adds itself to the current pipeline.
@@ -156,7 +155,6 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
       curr_pipeline->Add(std::move(translator));
       return;
     }
-
   }
 }
 

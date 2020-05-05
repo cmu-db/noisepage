@@ -58,7 +58,7 @@ std::string CastKindToInt(CastKind x) {
       // Convert a SQL integer into a SQL real
     case CastKind::SqlIntToSqlReal:
       return "SqlIntToSqlReal";
-    default :
+    default:
       return "default";
   }
 }
@@ -154,9 +154,7 @@ void AstPrettyPrintImpl::VisitFunctionDecl(FunctionDecl *node) {
   NewLine();
 }
 
-void AstPrettyPrintImpl::VisitIdentifierExpr(IdentifierExpr *node) {
-  os_ << std::string(node->Name().Data());
-}
+void AstPrettyPrintImpl::VisitIdentifierExpr(IdentifierExpr *node) { os_ << std::string(node->Name().Data()); }
 
 void AstPrettyPrintImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
   os_ << (terrier::execution::ast::CastKindToInt(node->GetCastKind())) << "(";
@@ -325,7 +323,7 @@ void AstPrettyPrintImpl::VisitIfStmt(IfStmt *node) {
   Visit(node->Condition());
   os_ << ") ";
   Visit(node->ThenStmt());
-  if (node->ElseStmt()) {
+  if (node->ElseStmt() != nullptr) {
     os_ << " else ";
     Visit(node->ElseStmt());
   }
@@ -359,4 +357,4 @@ void AstPrettyPrint::Dump(std::ostream &os, AstNode *node) {
   os << std::endl;
 }
 
-}  // namespace tpl::ast
+}  // namespace terrier::execution::ast

@@ -1956,5 +1956,4 @@ TEST_F(OperatorTransformerTest, SelectWithTest) {
   EXPECT_EQ(ref, info);
 }
 
-
 }  // namespace terrier

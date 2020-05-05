@@ -55,7 +55,6 @@ void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::ParseResult>
       common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 }
 
-
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> node) {
   BINDER_LOG_TRACE("Visiting AnalyzeStatement ...");
   SqlNodeVisitor::Visit(node);
@@ -437,11 +436,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BinderContext context(context_);
   context_ = common::ManagedPointer(&context);
 
-
-  if(node->GetSelectWith() != nullptr) {
+  if (node->GetSelectWith() != nullptr) {
     // Store CTE table name
-    TERRIER_ASSERT(cte_table_name_ == "", "cte table name should not be set.");
-    cte_table_name_ =  node->GetSelectWith()->GetAlias();
+    TERRIER_ASSERT(cte_table_name_.empty(), "cte table name should not be set.");
+    cte_table_name_ = node->GetSelectWith()->GetAlias();
 
     node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
@@ -744,13 +742,13 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       table->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else {
     // Single table
-    if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID ) {
+    if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
       // table not in catalog, check if table referred is the cte table
-      if (node->GetTableName() != cte_table_name_) {
-        throw BINDER_EXCEPTION("Accessing non-existing table.");
-      } else {
+      if (node->GetTableName() == cte_table_name_) {
         // copy cte table's schema for this alias
         context_->AddCTETable(node->GetTableName(), node->GetAlias());
+      } else {
+        throw BINDER_EXCEPTION("Accessing non-existing table.");
       }
     } else {
       context_->AddRegularTable(catalog_accessor_, node, db_oid_);

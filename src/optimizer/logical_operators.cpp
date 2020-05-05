@@ -1223,24 +1223,23 @@ bool LogicalAnalyze::operator==(const BaseOperatorNodeContents &r) {
   return true;
 }
 
-
 //===--------------------------------------------------------------------===//
 // LogicalCteScan
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCteScan::Copy() const { return new LogicalCteScan(*this); }
 
-Operator LogicalCteScan::Make(std::string table_alias, std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions) {
+Operator LogicalCteScan::Make(std::string table_alias,
+                              std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions) {
   auto op = std::make_unique<LogicalCteScan>();
   op->table_alias_ = std::move(table_alias);
-  op->child_expressions_ = child_expressions;
+  op->child_expressions_ = std::move(child_expressions);
   return Operator(std::move(op));
 }
 
 bool LogicalCteScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::LOGICALCTESCAN) return false;
   const LogicalCteScan &node = *dynamic_cast<const LogicalCteScan *>(&r);
-  if (table_alias_ != node.table_alias_) return false;
-  return (true);
+  return table_alias_ == node.table_alias_;
 }
 
 common::hash_t LogicalCteScan::Hash() const {
@@ -1248,7 +1247,6 @@ common::hash_t LogicalCteScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   return hash;
 }
-
 
 //===--------------------------------------------------------------------===//
 template <typename T>

@@ -15,14 +15,14 @@
 #include "execution/compiler/expression/star_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
+#include "execution/compiler/operator/cte_scan_leader_translator.h"
+#include "execution/compiler/operator/cte_scan_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/limit_translator.h"
-#include "execution/compiler/operator/cte_scan_translator.h"
-#include "execution/compiler/operator/cte_scan_leader_translator.h"
 #include "execution/compiler/operator/nested_loop_translator.h"
 #include "execution/compiler/operator/projection_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
@@ -70,15 +70,12 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CteScanNodeTranslator(
     const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
   return std::make_unique<CteScanTranslator>(static_cast<const planner::CteScanPlanNode *>(op), codegen);
-
 }
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CteScanLeaderNodeTranslator(
     const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
   return std::make_unique<CteScanLeaderTranslator>(static_cast<const planner::CteScanPlanNode *>(op), codegen);
-
 }
-
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateBottomTranslator(
     const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {

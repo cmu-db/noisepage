@@ -3,41 +3,36 @@
 #include "execution/compiler/translator_factory.h"
 #include "parser/expression/constant_value_expression.h"
 
-
 namespace terrier::execution::compiler {
 void CteScanLeaderTranslator::Produce(FunctionBuilder *builder) {
-
-    DeclareCteScanIterator(builder);
-    child_translator_->Produce(builder);
+  DeclareCteScanIterator(builder);
+  child_translator_->Produce(builder);
 }
 
 parser::ConstantValueExpression DummyLeaderCVE() {
   return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
 }
 
-
-CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen):
-  OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CTE_SCAN),
-  op_(op),
-  col_types_(codegen->NewIdentifier("col_types")),
-  insert_pr_(codegen->NewIdentifier("insert_pr")),
-  read_col_oids_(codegen_->NewIdentifier("read_col_oids")),
-  read_tvi_(codegen_->NewIdentifier("temp_table_iterator")),
-  read_pci_(codegen_->NewIdentifier("read_pci")) {
-
+CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CTE_SCAN),
+      op_(op),
+      col_types_(codegen->NewIdentifier("col_types")),
+      insert_pr_(codegen->NewIdentifier("insert_pr")),
+      read_col_oids_(codegen_->NewIdentifier("read_col_oids")),
+      read_tvi_(codegen_->NewIdentifier("temp_table_iterator")),
+      read_pci_(codegen_->NewIdentifier("read_pci")) {
   // ToDo(Gautam,Preetansh): Send the complete schema in the plan node.
-  auto & all_columns = op_->GetTableOutputSchema()->GetColumns();
-  for(auto &col: all_columns) {
+  auto &all_columns = op_->GetTableOutputSchema()->GetColumns();
+  for (auto &col : all_columns) {
     all_types_.emplace_back(static_cast<int>(col.GetType()));
   }
 
   std::vector<catalog::Schema::Column> all_schema_columns;
   for (uint32_t i = 0; i < all_types_.size(); i++) {
-    catalog::Schema::Column col("col" + std::to_string(i+1),
-                                static_cast<type::TypeId>(all_types_[i]), false,
-                                DummyLeaderCVE(), static_cast<catalog::col_oid_t>(i+1));
+    catalog::Schema::Column col("col" + std::to_string(i + 1), static_cast<type::TypeId>(all_types_[i]), false,
+                                DummyLeaderCVE(), static_cast<catalog::col_oid_t>(i + 1));
     all_schema_columns.push_back(col);
-    col_oids_.push_back(static_cast<catalog::col_oid_t>(i+1));
+    col_oids_.push_back(static_cast<catalog::col_oid_t>(i + 1));
   }
 
   // Create the table in the catalog.
@@ -86,7 +81,7 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScan
   std::map<storage::col_id_t, catalog::col_oid_t> inverse_map;
 
   // Notice the change in the inverse map argument different from sql_table get projection map function
-  for (uint16_t i = 0; i < col_oids_.size(); i++) inverse_map[col_oid_to_id[col_oids_[i]]] = col_oids_[i];
+  for (auto col_oid : col_oids_) inverse_map[col_oid_to_id[col_oid]] = col_oid;
 
   // Populate the projection map using the in-order iterator on std::map
   uint16_t i = 0;
@@ -94,19 +89,17 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScan
 }
 
 void CteScanLeaderTranslator::Consume(FunctionBuilder *builder) {
+  // Declare & Get table PR
+  DeclareInsertPR(builder);
+  GetInsertPR(builder);
 
-    // Declare & Get table PR
-    DeclareInsertPR(builder);
-    GetInsertPR(builder);
+  // Set the values to insert
+  FillPRFromChild(builder);
 
-    // Set the values to insert
-    FillPRFromChild(builder);
-
-    // Insert into table
-    GenTableInsert(builder);
+  // Insert into table
+  GenTableInsert(builder);
 }
 void CteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
-
   // Generate col types
   SetColumnTypes(builder);
   // Call @cteScanIteratorInit
@@ -126,7 +119,6 @@ void CteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) {
   }
 }
 
-
 void CteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr : *ProjectedRow
   auto pr_type = codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
@@ -135,14 +127,16 @@ void CteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::Func
 
 void CteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
-  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
+  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR,
+                                          codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
 }
 
 void CteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto insert_slot = codegen_->NewIdentifier("insert_slot");
-  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
+  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert,
+                                          codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
   builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
 }
 
@@ -161,7 +155,6 @@ void CteScanLeaderTranslator::FillPRFromChild(terrier::execution::compiler::Func
   }
 }
 void CteScanLeaderTranslator::SetReadOids(FunctionBuilder *builder) {
-
   // Declare: var col_oids: [num_cols]uint32
   ast::Expr *arr_type = codegen_->ArrayType(col_oids_.size(), ast::BuiltinType::Kind::Uint32);
   builder->Append(codegen_->DeclareVariable(read_col_oids_, arr_type, nullptr));
@@ -202,7 +195,6 @@ void CteScanLeaderTranslator::DoTableScan(FunctionBuilder *builder) {
   // Close TVI loop
   builder->FinishBlockStmt();
 }
-
 
 // Generate for(@tableIterAdvance(&tvi)) {...}
 void CteScanLeaderTranslator::GenTVILoop(FunctionBuilder *builder) {

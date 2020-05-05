@@ -72,13 +72,12 @@ class ColumnValueExpression : public AbstractExpression {
   ColumnValueExpression(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, type::TypeId type)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}), table_oid_(table_oid), column_oid_(column_oid) {}
 
-
   /**
    * This constructor is used to construct abstract value expressions used by CTEs
    * for logical derived get below it to reference aliases.
-  * @param col_name name of the column.
-  * @param type Type of the column.
-  */
+   * @param col_name name of the column.
+   * @param type Type of the column.
+   */
   ColumnValueExpression(std::string col_name, type::TypeId type)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}), column_name_(std::move(col_name)) {}
 

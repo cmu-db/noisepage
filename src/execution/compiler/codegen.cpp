@@ -26,8 +26,7 @@ CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
       main_fn_(Context()->GetIdentifier("main")),
       setup_fn_(Context()->GetIdentifier("setupFn")),
       teardown_fn_(Context()->GetIdentifier("teardownFn")),
-      cte_scan_iterator_(NewIdentifier("cte_scan_iterator"))
-      {}
+      cte_scan_iterator_(NewIdentifier("cte_scan_iterator")) {}
 
 ast::BlockStmt *CodeGen::EmptyBlock() {
   util::RegionVector<ast::Stmt *> stmts(Region());
@@ -126,7 +125,8 @@ ast::Expr *CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator, ast::Identifier col_oids) {
+ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator,
+                                      ast::Identifier col_oids) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::TempTableIterInitBind);
   ast::Expr *tvi_ptr = PointerTo(tvi);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
@@ -632,8 +632,7 @@ ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
   ast::Expr *col_oids_expr = MakeExpr(col_types);
 
-  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr},
-                                       Region()};
+  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 

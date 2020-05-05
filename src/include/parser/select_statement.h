@@ -399,8 +399,7 @@ class SelectStatement : public SQLStatement {
   SelectStatement(std::vector<common::ManagedPointer<AbstractExpression>> select, bool select_distinct,
                   std::unique_ptr<TableRef> from, common::ManagedPointer<AbstractExpression> where,
                   std::unique_ptr<GroupByDescription> group_by, std::unique_ptr<OrderByDescription> order_by,
-                  std::unique_ptr<LimitDescription> limit,
-                  std::unique_ptr<TableRef> with)
+                  std::unique_ptr<LimitDescription> limit, std::unique_ptr<TableRef> with)
       : SQLStatement(StatementType::SELECT),
         select_(std::move(select)),
         select_distinct_(select_distinct),

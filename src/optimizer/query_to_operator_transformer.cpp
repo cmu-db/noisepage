@@ -42,26 +42,25 @@ std::unique_ptr<OperatorNode> QueryToOperatorTransformer::ConvertToOpExpression(
 }
 
 bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<OperatorNode> child_expr) {
-  bool isAdded = false;
+  bool is_added = false;
 
   // TODO(preetang): Replace explicit string usage for operator name with reference to constant string
   if (child_expr->GetOp().GetName() == "LogicalCteScan") {
     // Leftmost LogicalCteScan found in tree
     child_expr->PushChild(std::move(output_expr_));
-    isAdded = true;
+    is_added = true;
   } else {
     auto children = child_expr->GetChildren();
     for (auto &i : children) {
-      isAdded = FindFirstCTEScanNode(i);
-      if (isAdded)  break;
+      is_added = FindFirstCTEScanNode(i);
+      if (is_added) break;
     }
   }
 
-  return isAdded;
+  return is_added;
 }
 
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStatement> op) {
-
   OPTIMIZER_LOG_DEBUG("Transforming SelectStatement to operators ...");
   // We do not visit the select list of a base table because the column
   // information is derived before the plan generation, at this step we
@@ -69,10 +68,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   auto pre_predicates = std::move(predicates_);
   predicates_ = {};
 
-  if(op->GetSelectWith() != nullptr) {
+  if (op->GetSelectWith() != nullptr) {
     // SELECT statement has CTE, register CTE table name
-    cte_table_name_ =  op->GetSelectWith()->GetAlias();
-    for(auto &elem: op->GetSelectWith()->GetSelect()->GetSelectColumns()) {
+    cte_table_name_ = op->GetSelectWith()->GetAlias();
+    for (auto &elem : op->GetSelectWith()->GetSelect()->GetSelectColumns()) {
       cte_expressions_.push_back(elem);
     }
   }
@@ -170,7 +169,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     output_expr_ = std::move(limit_expr);
   }
 
-  if(op->GetSelectWith() != nullptr) {
+  if (op->GetSelectWith() != nullptr) {
     // Store the current logical tree in another expression
     auto child_expr = std::move(output_expr_);
 
@@ -184,7 +183,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     output_expr_ = std::move(child_expr);
   }
 
-    predicates_ = std::move(pre_predicates);
+  predicates_ = std::move(pre_predicates);
 }
 
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefinition> node) {
@@ -291,10 +290,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
 
     if (node->GetTableName() == cte_table_name_) {
       // CTE table referred
-      auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_expressions_),
-          std::vector<std::unique_ptr<OperatorNode>>{});
-      output_expr_ = std::move(cte_scan_expr);;
+      auto cte_scan_expr = std::make_unique<OperatorNode>(LogicalCteScan::Make(node->GetAlias(), cte_expressions_),
+                                                          std::vector<std::unique_ptr<OperatorNode>>{});
+      output_expr_ = std::move(cte_scan_expr);
     } else {
       // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
       output_expr_ = std::make_unique<OperatorNode>(

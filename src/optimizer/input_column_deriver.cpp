@@ -112,34 +112,33 @@ void InputColumnDeriver::Visit(const CteScan *op) {
     cols.push_back(expr);
   }
 
-
   auto child_exprs = op->GetChildExpressions();
   bool alias_present = false;
-  for(auto &elem: child_exprs) {
-    if(elem->GetAlias() != "") {
+  for (auto &elem : child_exprs) {
+    if (!elem->GetAlias().empty()) {
       alias_present = true;
       break;
     }
   }
 
-  if(alias_present) {
+  if (alias_present) {
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
-    for(auto &elem : child_exprs) {
-      if (elem->GetAlias() != "") {
+    for (auto &elem : child_exprs) {
+      if (!elem->GetAlias().empty()) {
         if ((elem->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE)) {
           auto child_expr_pointer = reinterpret_cast<parser::ColumnValueExpression *>(elem.Get());
           std::string table_name = child_expr_pointer->GetTableName();
-          std::string col_name = child_expr_pointer->GetAlias();
+          const std::string &col_name = child_expr_pointer->GetAlias();
           auto col_expr = new parser::ColumnValueExpression(
               table_name, col_name, child_expr_pointer->GetDatabaseOid(), child_expr_pointer->GetTableOid(),
               child_expr_pointer->GetColumnOid(), child_expr_pointer->GetReturnValueType());
           parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
-          new_child_exprs.push_back(common::ManagedPointer(child_expr_abstract_pointer));
+          new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
           txn_->RegisterCommitAction([=]() { delete col_expr; });
           txn_->RegisterAbortAction([=]() { delete col_expr; });
         } else {
-          if(elem->GetChildrenSize() > 0 &&
-            elem->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+          if (elem->GetChildrenSize() > 0 &&
+              elem->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
             auto child_expr_pointer = reinterpret_cast<parser::ColumnValueExpression *>(elem->GetChild(0).Get());
             std::string table_name = child_expr_pointer->GetTableName();
             std::string col_name = elem->GetAlias();
@@ -147,14 +146,14 @@ void InputColumnDeriver::Visit(const CteScan *op) {
                 table_name, col_name, child_expr_pointer->GetDatabaseOid(), child_expr_pointer->GetTableOid(),
                 child_expr_pointer->GetColumnOid(), elem->GetReturnValueType());
             parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
-            new_child_exprs.push_back(common::ManagedPointer(child_expr_abstract_pointer));
+            new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
             txn_->RegisterCommitAction([=]() { delete col_expr; });
             txn_->RegisterAbortAction([=]() { delete col_expr; });
           } else {
             std::string col_name = elem->GetAlias();
             auto col_expr = new parser::ColumnValueExpression(col_name, elem->GetReturnValueType());
             parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
-            new_child_exprs.push_back(common::ManagedPointer(child_expr_abstract_pointer));
+            new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
             txn_->RegisterCommitAction([=]() { delete col_expr; });
             txn_->RegisterAbortAction([=]() { delete col_expr; });
           }

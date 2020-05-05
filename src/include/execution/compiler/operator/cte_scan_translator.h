@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "execution/compiler/operator/operator_translator.h"
@@ -54,9 +56,7 @@ class CteScanTranslator : public OperatorTranslator {
 
     auto nullable = false;
     // ToDo(Rohan) : Think if this can be simplified
-    uint16_t projection_map_index =
-        projection_map_[static_cast<catalog::col_oid_t>(
-            col_name_to_oid[name])];
+    uint16_t projection_map_index = projection_map_[static_cast<catalog::col_oid_t>(col_name_to_oid_[name])];
     return codegen_->PCIGet(read_pci_, type, nullable, projection_map_index);
   }
 
@@ -92,7 +92,7 @@ class CteScanTranslator : public OperatorTranslator {
   std::vector<int> all_types_;
   ast::Identifier insert_pr_;
   std::vector<catalog::col_oid_t> col_oids_;
-  std::unordered_map<std::string, uint32_t> col_name_to_oid;
+  std::unordered_map<std::string, uint32_t> col_name_to_oid_;
   storage::ProjectionMap projection_map_;
   ast::Identifier read_col_oids_;
   ast::Identifier read_tvi_;
