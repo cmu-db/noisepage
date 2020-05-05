@@ -1238,8 +1238,8 @@ void DatabaseCatalog::CopyColumnData(storage::ProjectedRow *table_pr, storage::P
     auto *const pr_ptr = table_pr->AccessForceNotNull(table_pr_index);
     const auto &table_col = schema.GetColumn(table_pr_index);
     if (table_col.Type() == type::TypeId::INTEGER) {
-      uint32_t val = *(reinterpret_cast<uint32_t *>(pr_ptr));
-      *(reinterpret_cast<uint32_t *>(index_ptr)) = val;
+      col_oid_t val = *(reinterpret_cast<col_oid_t *>(pr_ptr));
+      *(reinterpret_cast<col_oid_t *>(index_ptr)) = val;
     }
     else if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
       std::memcpy(index_ptr, pr_ptr, table_col.MaxVarlenSize());
@@ -1274,8 +1274,8 @@ bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::Tra
                                          const PG_Constraint &con_obj, storage::ProjectedRow *pr) {
   // get the index of the constraint
   index_oid_t fk_index = con_obj.conindid_;
-  table_oid_t ref_table = con_obj.fkMetadata_.confrelid_;
-  const Schema &ref_table_schema = GetSchema(txn, ref_table);
+  table_oid_t src_table = con_obj.conrelid_;
+  const Schema &src_table_schema = GetSchema(txn, src_table);
   common::ManagedPointer<storage::index::Index> ref_table_index = GetIndex(txn, fk_index);
   // get the schema of the ref table
   auto ref_index_pri = ref_table_index->GetProjectedRowInitializer();
@@ -1283,7 +1283,7 @@ bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::Tra
   auto *key_pr = ref_index_pri.InitializeRow(buffer);
   TERRIER_ASSERT(con_obj.fkMetadata_.fk_srcs_.size() == con_obj.fkMetadata_.fk_refs_.size(),
                   "Src and Ref should have the same amound of column");
-  CopyColumnData(pr, key_pr, con_obj.fkMetadata_.fk_refs_, ref_table_schema);
+  CopyColumnData(pr, key_pr, con_obj.fkMetadata_.fk_srcs_, src_table_schema);
   std::vector<storage::TupleSlot> index_scan_results;
   ref_table_index->ScanKey(*txn, *key_pr, &index_scan_results);
   // set the index projected row from source projected row
