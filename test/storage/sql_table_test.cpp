@@ -51,7 +51,7 @@ static std::unique_ptr<catalog::Schema> ChangeDefaultValue(const catalog::Schema
 
   return std::make_unique<catalog::Schema>(columns);
 }
-  
+
 // given new columns without oids, add them to the end, and assign them oids larger than existing oids
 static std::unique_ptr<catalog::Schema> AddColumnsToEnd(const catalog::Schema &schema,
                                                         const std::vector<catalog::Schema::Column *> &new_columns) {

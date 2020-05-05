@@ -938,7 +938,7 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
   if (!TryLock(txn)) return false;
 
   // Iterate through the column being modified
-  for (const auto & itr : change_map) {
+  for (const auto &itr : change_map) {
     auto col_name = itr.first;
 
     // For all the change on this column
