@@ -3,7 +3,6 @@
 #include <cstring>
 #include <vector>
 
-#include "common/container/concurrent_map.h"
 #include "tbb/concurrent_hash_map.h"
 
 #include "storage/storage_util.h"
@@ -159,18 +158,18 @@ class RandomSqlTableTestObject {
   // concurrently insert tuples with num_threads threads, and optionally also concurrently update schema
   template <class Random>
   void ConcurrentInsertRandomTuples(const transaction::timestamp_t timestamp, Random *generator,
-                                        storage::RecordBufferSegmentPool *buffer_pool,
-                                        storage::layout_version_t layout_version,
-                                        int num_threads, int num_inserts_per_thread,
-                                        common::ManagedPointer<transaction::TransactionContext> update_schema_txn = nullptr,
-                                        std::unique_ptr<catalog::Schema> updated_schema = nullptr,
-                                        const storage::layout_version_t updated_layout_version = 0) {
+                                    storage::RecordBufferSegmentPool *buffer_pool,
+                                    storage::layout_version_t layout_version, int num_threads,
+                                    int num_inserts_per_thread,
+                                    common::ManagedPointer<transaction::TransactionContext> update_schema_txn = nullptr,
+                                    std::unique_ptr<catalog::Schema> updated_schema = nullptr,
+                                    const storage::layout_version_t updated_layout_version = 0) {
     int num_new_tuples = num_threads * num_inserts_per_thread;
     int inserted_slots_size = inserted_slots_.size();
     inserted_slots_.resize(inserted_slots_size + num_new_tuples);
 
-    std::vector<transaction::TransactionContext*> new_txns;
-    std::vector<storage::RedoRecord*> new_redos;
+    std::vector<transaction::TransactionContext *> new_txns;
+    std::vector<storage::RedoRecord *> new_redos;
 
     for (int i = 0; i < num_new_tuples; i++) {
       // generate a txn with an UndoRecord to populate on Insert
@@ -204,7 +203,7 @@ class RandomSqlTableTestObject {
         UpdateSchema(update_schema_txn, std::move(updated_schema), updated_layout_version);
       } else {
         for (int i = 0; i < num_inserts_per_thread; i++) {
-          int loc = thread_id * num_inserts_per_thread + i;
+          int loc = static_cast<int>(thread_id) * num_inserts_per_thread + i;
           auto insert_redo = new_redos[loc];
           storage::TupleSlot slot = table_->Insert(common::ManagedPointer(new_txns[loc]), insert_redo, layout_version);
           inserted_slots_[inserted_slots_size + loc] = slot;
@@ -310,7 +309,7 @@ class RandomSqlTableTestObject {
 
   TupleVersion GetReferenceVersionedTuple(const storage::TupleSlot slot, const transaction::timestamp_t timestamp) {
     tuple_versions_accessor_ accessor;
-    int found = tuple_versions_.find(accessor, slot);
+    bool found = tuple_versions_.find(accessor, slot);
     TERRIER_ASSERT(found, "slot must be within tuple_versions_");
     auto &versions = accessor->second;
 
@@ -322,15 +321,17 @@ class RandomSqlTableTestObject {
     return {transaction::timestamp_t{transaction::INVALID_TXN_TIMESTAMP}, nullptr, storage::layout_version_t{0}};
   }
 
-  std::vector<storage::ProjectedRow*> ConcurrentlySelectTuples(std::vector<storage::TupleSlot> slots, const transaction::timestamp_t timestamp,
-                                                  storage::RecordBufferSegmentPool *buffer_pool,
-                                                  storage::layout_version_t layout_version, int num_threads) {
+  std::vector<storage::ProjectedRow *> ConcurrentlySelectTuples(std::vector<storage::TupleSlot> slots,
+                                                                const transaction::timestamp_t timestamp,
+                                                                storage::RecordBufferSegmentPool *buffer_pool,
+                                                                storage::layout_version_t layout_version,
+                                                                int num_threads) {
     int num_slots = slots.size();
     TERRIER_ASSERT(num_slots % num_threads == 0, "num slots must be multiple of num_threads");
     int slots_per_thread = num_slots / num_threads;
 
-    std::vector<storage::ProjectedRow*> rows;
-    std::vector<transaction::TransactionContext*> new_txns;
+    std::vector<storage::ProjectedRow *> rows;
+    std::vector<transaction::TransactionContext *> new_txns;
     for (int i = 0; i < num_slots; i++) {
       auto *txn =
           new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
@@ -344,10 +345,9 @@ class RandomSqlTableTestObject {
 
     common::WorkerPool thread_pool(num_threads, {});
 
-    //for (int i = 0; i < num_slots; i++) {
     auto workload = [&](uint32_t thread_id) {
       for (int i = 0; i < slots_per_thread; i++) {
-        int loc = thread_id * slots_per_thread + i;
+        int loc = static_cast<int>(thread_id) * slots_per_thread + i;
         table_->Select(common::ManagedPointer(new_txns[loc]), slots[loc], rows[loc], layout_version);
       }
     };
@@ -359,14 +359,10 @@ class RandomSqlTableTestObject {
 
   storage::ProjectedRow *Select(const storage::TupleSlot slot, const transaction::timestamp_t timestamp,
                                 storage::RecordBufferSegmentPool *buffer_pool,
-                                storage::layout_version_t layout_version, int slot_location = -1) {
+                                storage::layout_version_t layout_version) {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
-    if (slot_location == -1) {
-      txns_.emplace_back(txn);
-    } else {
-      txns_[slot_location] = std::unique_ptr<transaction::TransactionContext>(txn);
-    }
+    txns_.emplace_back(txn);
 
     // generate a redo ProjectedRow for Select
     storage::ProjectedRow *select_row = pris_.at(layout_version).InitializeRow(buffers_.at(layout_version));
@@ -441,13 +437,11 @@ class RandomSqlTableTestObject {
 
   // Structure that defines hashing and comparison operations for user's type.
   struct SlotHash {
-    static size_t hash( const storage::TupleSlot& slot ) {
-      return std::hash<storage::TupleSlot>{}(slot);
-    }
-    //! True if strings are equal
-    static bool equal( const storage::TupleSlot& slot1, const storage::TupleSlot& slot2 ) {
-      return slot1==slot2;
-    }
+    // NOLINT
+    static size_t hash(const storage::TupleSlot &slot) { return std::hash<storage::TupleSlot>{}(slot); }
+
+    // NOLINT
+    static bool equal(const storage::TupleSlot &slot1, const storage::TupleSlot &slot2) { return slot1 == slot2; }
   };
 
  private:
@@ -461,7 +455,9 @@ class RandomSqlTableTestObject {
   std::vector<storage::TupleSlot> updated_slots_;
   // oldest to newest
   tbb::concurrent_hash_map<storage::TupleSlot, std::vector<TupleVersion>, SlotHash> tuple_versions_;
-  typedef tbb::concurrent_hash_map<storage::TupleSlot, std::vector<TupleVersion>, SlotHash>::accessor tuple_versions_accessor_;
+  // NOLINT
+  typedef tbb::concurrent_hash_map<storage::TupleSlot, std::vector<TupleVersion>, SlotHash>::accessor
+      tuple_versions_accessor_;
 
   std::unordered_map<storage::layout_version_t, std::unique_ptr<catalog::Schema>> schemas_;
 };
@@ -506,14 +502,14 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
   RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
 
   // insert random tuples concurrently
-  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(0),
-      &generator_, &buffer_pool_, version, num_threads, num_inserts_per_thread);
+  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(0), &generator_, &buffer_pool_, version, num_threads,
+                                          num_inserts_per_thread);
 
   EXPECT_EQ(total_inserts, test_table.InsertedTuples().size());
 
   // Multiple thread selects into SqlTable concurrently
-  std::vector<storage::ProjectedRow*> stored_vec = test_table.ConcurrentlySelectTuples(test_table.InsertedTuples(),
-      transaction::timestamp_t(1), &buffer_pool_, version, num_threads);
+  std::vector<storage::ProjectedRow *> stored_vec = test_table.ConcurrentlySelectTuples(
+      test_table.InsertedTuples(), transaction::timestamp_t(1), &buffer_pool_, version, num_threads);
   EXPECT_EQ(2 * total_inserts, test_table.NumTxns());
 
   // Compares selected tuples with expected tuples
@@ -525,7 +521,6 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
         test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
         test_table.GetBlockLayout(version), stored_vec[i], test_table.GetProjectionMapForOids(version), {}, {}));
   }
-
 }
 
 // test concurrent insert, concurrent update schema, concurrent scan, concurrent update, and concurrently delete
@@ -534,11 +529,11 @@ TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
   const uint16_t max_columns = 20;
   uint64_t txn_ts = 0;
 
-  uint32_t num_inserts_per_thread = 10;
+  int num_inserts_per_thread = 10;
   const uint32_t machine_threads = MultiThreadTestUtil::HardwareConcurrency();
-  const uint32_t num_threads = machine_threads % 2 == 0 ? machine_threads: machine_threads - 1;
+  const uint32_t num_threads = machine_threads % 2 == 0 ? machine_threads : machine_threads - 1;
   common::WorkerPool thread_pool(num_threads, {});
-  const uint32_t num_inserts = num_threads * num_inserts_per_thread;
+  const uint32_t num_inserts = num_threads * static_cast<uint32_t>(num_inserts_per_thread);
 
   storage::layout_version_t version(0);
 
@@ -561,17 +556,17 @@ TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
   auto update_schema_txn = test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_);
 
   // concurrently insert first half of the tuples with old version, and concurrently update schema to new version
-  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(txn_ts - 1),
-                                          &generator_, &buffer_pool_, version, num_threads, num_inserts_per_thread/2,
-                                          update_schema_txn, std::move(new_schema), new_version);
+  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(txn_ts - 1), &generator_, &buffer_pool_, version,
+                                          num_threads, num_inserts_per_thread / 2, update_schema_txn,
+                                          std::move(new_schema), new_version);
 
   EXPECT_EQ(num_inserts / 2, test_table.InsertedTuples().size());
 
   txn_ts++;
 
   // concurrently insert second half of tuples, with new version
-  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(txn_ts),&generator_, &buffer_pool_,
-                                          new_version, num_threads,num_inserts_per_thread/2);
+  test_table.ConcurrentInsertRandomTuples(transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, new_version,
+                                          num_threads, num_inserts_per_thread / 2);
 
   EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
   // Compare each inserted by selecting as the new version
@@ -635,14 +630,14 @@ TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
   }
 
   // Scan the table with the newest version, seeing all the tuples except for the first tuple
+  // TODO(Sheng): Run scan in parallel
   for (int thread_id = 0; thread_id < scan_threads; thread_id++) {
-  //auto workload = [&](uint32_t thread_id) {
-        it = test_table.GetTable().begin();
-        std::cout << "begin scanning" << std::endl;
-        test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts + thread_id), &buffer_pool_), &it,
-                                   columns_vec[thread_id], new_version);
+    // auto workload = [&](uint32_t thread_id) {
+    it = test_table.GetTable().begin();
+    test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts + thread_id), &buffer_pool_),
+                               &it, columns_vec[thread_id], new_version);
   }
-  //MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, scan_threads, workload);
+  // MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, scan_threads, workload);
 
   for (int thread_id = 0; thread_id < scan_threads; thread_id++) {
     columns = columns_vec[thread_id];
@@ -660,14 +655,14 @@ TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
       }
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
           test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
-          test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version),
-          add_cols, drop_cols));
+          test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
+          drop_cols));
     }
     delete buffer_vec[thread_id];
   }
 
   // update the first half of the tuples except for the first one, under new version, these will migrate
-  txn_ts+=2;
+  txn_ts += 2;
   for (uint32_t i = 1; i < num_inserts / 2; i++) {
     auto slot = test_table.InsertedTuples()[i];
     auto updated_slot =
