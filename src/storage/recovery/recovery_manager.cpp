@@ -3,6 +3,7 @@
 #include <catalog/postgres/pg_proc.h>
 #include <algorithm>
 #include <filesystem>
+
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -132,7 +133,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
 
       // update insert_head and allocation bitmap
       TupleSlot place_holder_tuple_slot;
-      for (size_t j = 0; j < insert_head; j++) {
+      for (int64_t j = 0; j < insert_head; j++) {
         data_table->accessor_.Allocate(block, &place_holder_tuple_slot);
       }
 

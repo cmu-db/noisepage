@@ -63,6 +63,23 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
       tested->SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
       log_manager->ForceFlush();
 
+      std::string secondary_log_file = "test3.log";
+      std::string ckpt_path = "ckpt_test/";
+      std::filesystem::create_directory(ckpt_path);
+      // get db_oid
+      catalog::db_oid_t db;
+      for (auto &database : tested->GetTables()) {
+        db = database.first;
+      }
+      // initalize threads for checkpoint
+      uint32_t num_threads = 4u;
+      common::WorkerPool thread_pool_{num_threads, {}};
+      thread_pool_.Startup();
+      // take checkpoint
+      unlink(secondary_log_file.c_str());
+      storage::Checkpoint ckpt(catalog, txn_manager, deferred_action_manager, gc, log_manager);
+      ckpt.TakeCheckpoint(ckpt_path, db, terrier::BenchmarkConfig::logfile_path.data(), num_threads, &thread_pool_);
+
       // Start a new components with logging disabled, we don't want to log the log replaying
       auto recovery_db_main = DBMain::Builder()
                                   .SetUseThreadRegistry(true)
@@ -83,21 +100,7 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
           common::ManagedPointer<storage::AbstractLogProvider>(&log_provider), recovery_catalog, recovery_txn_manager,
           recovery_deferred_action_manager, recovery_thread_registry, recovery_block_store);
 
-      std::string secondary_log_file = "test3.log";
-      std::string ckpt_path = "ckpt_test/";
-      std::filesystem::create_directory(ckpt_path);
-      // get db_oid
-      catalog::db_oid_t db;
-      for (auto &database : tested->GetTables()) {
-        db = database.first;
-      }
-      // initalize threads for checkpoint
-      uint32_t num_threads = 4u;
-      common::WorkerPool thread_pool_{num_threads, {}};
-      // take checkpoint
-      unlink(secondary_log_file.c_str());
-      storage::Checkpoint ckpt(catalog, txn_manager, deferred_action_manager, gc, log_manager);
-      ckpt.TakeCheckpoint(ckpt_path, db, terrier::BenchmarkConfig::logfile_path.data(), num_threads, &thread_pool_);
+
       // recover
       uint64_t elapsed_ms;
       {
