@@ -142,11 +142,15 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, ParallelScan)(benchmark::State &state) 
     seq_scan_out.AddOutput("col3", common::ManagedPointer(col3));
     seq_scan_out.AddOutput("col4", common::ManagedPointer(col4));
     auto schema = seq_scan_out.MakeSchema();
+    // Predicate
+    auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(10));
+    auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
+    auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetColumnOids({cola_oid, colb_oid})
-                   .SetScanPredicate(nullptr)
+                   .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(test_ns_oid)
                    .SetTableOid(table_oid)
