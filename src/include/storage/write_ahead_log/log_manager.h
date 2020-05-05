@@ -128,6 +128,13 @@ class LogManager : public common::DedicatedThreadOwner {
     return false;
   }
 
+  void ResetLogFilePath(std::string log_file_path) {
+    for (auto buffer : *(disk_log_writer_task_->buffers_)) {
+      PosixIoWrappers::Close( buffer.out_);
+      buffer.out_ = PosixIoWrappers::Open(log_file_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    }
+  }
+
  private:
   // Flag to tell us when the log manager is running or during termination
   bool run_log_manager_;
