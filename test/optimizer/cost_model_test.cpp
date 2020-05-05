@@ -97,8 +97,10 @@ TEST_F(CostModelTests, InnerNLJoinOrderTest) {
   OperatorNode operator_expression_b_first = OperatorNode(inner_nl_join_b_first, std::move(children_b_first));
   GroupExpression *grexp_a_first =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression_a_first));
+  grexp_a_first->SetGroupID(group_id_t(0));
   GroupExpression *grexp_b_first =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression_b_first));
+  grexp_b_first->SetGroupID(group_id_t(0));
 
   // sets row counts for both tables in the child groups for A first
   optimizer_context.GetMemo()

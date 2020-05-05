@@ -23,7 +23,7 @@ struct OptimizerContextTest : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(OptimizerContextTest, PatternTest) {
   // Creates a Pattern and makes sure everything is set correctly
-  auto join = new Pattern(OpType::LOGICALINNERJOIN);
+  auto join = new Pattern(OpType::LOGICALJOIN);
   auto left_child = new Pattern(OpType::LOGICALGET);
   auto right_child = new Pattern(OpType::LOGICALEXTERNALFILEGET);
   join->AddChild(left_child);
@@ -31,7 +31,7 @@ TEST_F(OptimizerContextTest, PatternTest) {
 
   // Pattern should own its children
   EXPECT_EQ(join->GetChildPatternsSize(), 2);
-  EXPECT_EQ(join->Type(), OpType::LOGICALINNERJOIN);
+  EXPECT_EQ(join->Type(), OpType::LOGICALJOIN);
 
   EXPECT_EQ(join->Children().size(), 2);
   EXPECT_EQ(join->Children()[0]->GetChildPatternsSize(), 0);
@@ -127,7 +127,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::vector<std::unique_ptr<OperatorNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto join = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER), std::move(jc));
 
   // RecordOperatorNodeIntoGroup
   GroupExpression *join_gexpr;
@@ -166,7 +166,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   std::vector<std::unique_ptr<OperatorNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto left_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto left_join = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER), std::move(jc));
   auto lj_copy = left_join->Copy();
 
   auto right_join = left_join->Copy();
@@ -176,7 +176,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   std::vector<std::unique_ptr<OperatorNode>> jjc;
   jjc.emplace_back(std::move(left_join));
   jjc.emplace_back(std::move(right_join));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jjc));
+  auto join = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER), std::move(jjc));
 
   // RecordOperatorNodeIntoGroup
   GroupExpression *join_g_expr;
@@ -239,13 +239,13 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   std::vector<std::unique_ptr<OperatorNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto join = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
-  auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
+  auto *pattern = new Pattern(OpType::LOGICALJOIN);
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
 
@@ -274,13 +274,13 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   std::vector<std::unique_ptr<OperatorNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto join = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
-  auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
+  auto *pattern = new Pattern(OpType::LOGICALJOIN);
   pattern->AddChild(new Pattern(OpType::LEAF));
   pattern->AddChild(new Pattern(OpType::LEAF));
 

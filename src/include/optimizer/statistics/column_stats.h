@@ -47,6 +47,18 @@ class ColumnStats {
   ColumnStats() = default;
 
   /**
+   * Gets the database oid of the column
+   * @return the database oid
+   */
+  catalog::db_oid_t GetDatabaseID() const { return database_id_; }
+
+  /**
+   * Gets the table oid of the column
+   * @return the table oid
+   */
+  catalog::table_oid_t GetTableID() const { return table_id_; }
+
+  /**
    * Gets the column oid of the column
    * @return the column oid
    */
@@ -87,6 +99,13 @@ class ColumnStats {
    * @return common freqs
    */
   const std::vector<double> &GetCommonFreqs() const { return most_common_freqs_; }
+
+
+  /**
+   * Gets the fraction of null vals
+   * @return fraction of null vals
+   */
+  const double &GetFracNull() const { return frac_null_; }
 
   /**
    * Serializes a column stats object

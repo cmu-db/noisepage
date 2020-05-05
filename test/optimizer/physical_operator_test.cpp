@@ -372,22 +372,22 @@ TEST(OperatorTests, InnerNLJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator inner_nl_join_1 = InnerNLJoin::Make(std::vector<AnnotatedExpression>());
-  Operator inner_nl_join_2 = InnerNLJoin::Make(std::vector<AnnotatedExpression>());
-  Operator inner_nl_join_3 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator inner_nl_join_4 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator inner_nl_join_5 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator inner_nl_join_6 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator inner_nl_join_7 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
-  Operator inner_nl_join_8 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator inner_nl_join_9 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator inner_nl_join_1 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>());
+  Operator inner_nl_join_2 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>());
+  Operator inner_nl_join_3 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator inner_nl_join_4 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator inner_nl_join_5 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator inner_nl_join_6 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator inner_nl_join_7 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator inner_nl_join_8 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator inner_nl_join_9 = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>{annotated_expr_1});
 
-  EXPECT_EQ(inner_nl_join_1.GetType(), OpType::INNERNLJOIN);
-  EXPECT_EQ(inner_nl_join_3.GetType(), OpType::INNERNLJOIN);
+  EXPECT_EQ(inner_nl_join_1.GetType(), OpType::NLJOIN);
+  EXPECT_EQ(inner_nl_join_3.GetType(), OpType::NLJOIN);
   EXPECT_EQ(inner_nl_join_1.GetName(), "InnerNLJoin");
-  EXPECT_EQ(inner_nl_join_1.As<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(inner_nl_join_3.As<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(inner_nl_join_4.As<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(inner_nl_join_1.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(inner_nl_join_3.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(inner_nl_join_4.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_TRUE(inner_nl_join_1 == inner_nl_join_2);
   EXPECT_FALSE(inner_nl_join_1 == inner_nl_join_3);
   EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_3);
@@ -422,16 +422,20 @@ TEST(OperatorTests, LeftNLJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator left_nl_join_1 = LeftNLJoin::Make(x_1);
-  Operator left_nl_join_2 = LeftNLJoin::Make(x_2);
-  Operator left_nl_join_3 = LeftNLJoin::Make(x_3);
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  EXPECT_EQ(left_nl_join_1.GetType(), OpType::LEFTNLJOIN);
-  EXPECT_EQ(left_nl_join_3.GetType(), OpType::LEFTNLJOIN);
+  Operator left_nl_join_1 = NLJoin::Make(PhysicalJoinType::LEFT, std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator left_nl_join_2 = NLJoin::Make(PhysicalJoinType::LEFT, std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator left_nl_join_3 = NLJoin::Make(PhysicalJoinType::LEFT, std::vector<AnnotatedExpression>{annotated_expr_3});
+
+  EXPECT_EQ(left_nl_join_1.GetType(), OpType::NLJOIN);
+  EXPECT_EQ(left_nl_join_3.GetType(), OpType::NLJOIN);
   EXPECT_EQ(left_nl_join_1.GetName(), "LeftNLJoin");
-  EXPECT_EQ(*(left_nl_join_1.As<LeftNLJoin>()->GetJoinPredicate()), *x_1);
-  EXPECT_EQ(*(left_nl_join_2.As<LeftNLJoin>()->GetJoinPredicate()), *x_2);
-  EXPECT_EQ(*(left_nl_join_3.As<LeftNLJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_EQ(left_nl_join_1.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(left_nl_join_2.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_2});
+  EXPECT_EQ(left_nl_join_3.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_3});
   EXPECT_TRUE(left_nl_join_1 == left_nl_join_2);
   EXPECT_FALSE(left_nl_join_1 == left_nl_join_3);
   EXPECT_EQ(left_nl_join_1.Hash(), left_nl_join_2.Hash());
@@ -458,16 +462,20 @@ TEST(OperatorTests, RightNLJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator right_nl_join_1 = RightNLJoin::Make(x_1);
-  Operator right_nl_join_2 = RightNLJoin::Make(x_2);
-  Operator right_nl_join_3 = RightNLJoin::Make(x_3);
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  EXPECT_EQ(right_nl_join_1.GetType(), OpType::RIGHTNLJOIN);
-  EXPECT_EQ(right_nl_join_3.GetType(), OpType::RIGHTNLJOIN);
+  Operator right_nl_join_1 = NLJoin::Make(PhysicalJoinType::RIGHT, std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator right_nl_join_2 = NLJoin::Make(PhysicalJoinType::RIGHT, std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator right_nl_join_3 = NLJoin::Make(PhysicalJoinType::RIGHT, std::vector<AnnotatedExpression>{annotated_expr_3});
+
+  EXPECT_EQ(right_nl_join_1.GetType(), OpType::NLJOIN);
+  EXPECT_EQ(right_nl_join_3.GetType(), OpType::NLJOIN);
   EXPECT_EQ(right_nl_join_1.GetName(), "RightNLJoin");
-  EXPECT_EQ(*(right_nl_join_1.As<RightNLJoin>()->GetJoinPredicate()), *x_1);
-  EXPECT_EQ(*(right_nl_join_2.As<RightNLJoin>()->GetJoinPredicate()), *x_2);
-  EXPECT_EQ(*(right_nl_join_3.As<RightNLJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_EQ(right_nl_join_1.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(right_nl_join_2.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_2});
+  EXPECT_EQ(right_nl_join_3.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_3});
   EXPECT_TRUE(right_nl_join_1 == right_nl_join_2);
   EXPECT_FALSE(right_nl_join_1 == right_nl_join_3);
   EXPECT_EQ(right_nl_join_1.Hash(), right_nl_join_2.Hash());
@@ -494,16 +502,20 @@ TEST(OperatorTests, OuterNLJoin) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator outer_nl_join_1 = OuterNLJoin::Make(x_1);
-  Operator outer_nl_join_2 = OuterNLJoin::Make(x_2);
-  Operator outer_nl_join_3 = OuterNLJoin::Make(x_3);
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  EXPECT_EQ(outer_nl_join_1.GetType(), OpType::OUTERNLJOIN);
-  EXPECT_EQ(outer_nl_join_3.GetType(), OpType::OUTERNLJOIN);
+  Operator outer_nl_join_1 = NLJoin::Make(PhysicalJoinType::OUTER, std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator outer_nl_join_2 = NLJoin::Make(PhysicalJoinType::OUTER, std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator outer_nl_join_3 = NLJoin::Make(PhysicalJoinType::OUTER, std::vector<AnnotatedExpression>{annotated_expr_3});
+
+  EXPECT_EQ(outer_nl_join_1.GetType(), OpType::NLJOIN);
+  EXPECT_EQ(outer_nl_join_3.GetType(), OpType::NLJOIN);
   EXPECT_EQ(outer_nl_join_1.GetName(), "OuterNLJoin");
-  EXPECT_EQ(*(outer_nl_join_1.As<OuterNLJoin>()->GetJoinPredicate()), *x_1);
-  EXPECT_EQ(*(outer_nl_join_2.As<OuterNLJoin>()->GetJoinPredicate()), *x_2);
-  EXPECT_EQ(*(outer_nl_join_3.As<OuterNLJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_EQ(outer_nl_join_1.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(outer_nl_join_2.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_2});
+  EXPECT_EQ(outer_nl_join_3.As<NLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_3});
   EXPECT_TRUE(outer_nl_join_1 == outer_nl_join_2);
   EXPECT_FALSE(outer_nl_join_1 == outer_nl_join_3);
   EXPECT_EQ(outer_nl_join_1.Hash(), outer_nl_join_2.Hash());
