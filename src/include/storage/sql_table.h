@@ -45,7 +45,7 @@ class SqlTable {
     //  Consider storing forward and backward delta of the schema change maybe in the future
     ColumnIdToOidMap column_id_to_oid_map_;
     common::ManagedPointer<const catalog::Schema> schema_;
-    const DefaultValueMap default_value_map_;
+    DefaultValueMap default_value_map_;
   };
 
  public:
@@ -62,7 +62,7 @@ class SqlTable {
    * Destructs a SqlTable, frees all its member datatables.
    */
   ~SqlTable() {
-    for (const auto &it : tables_) delete it.second.data_table_;
+    for (const auto &it : tables_) delete it.data_table_;
   }
 
   /**
@@ -157,13 +157,10 @@ class SqlTable {
    * @param layout_version Version number for the new schema
    * @param schema the updated schema of this SqlTable
    */
-  void UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn, const catalog::Schema &schema,
+  bool UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn, const catalog::Schema &schema,
                     const layout_version_t layout_version = layout_version_t{0}) {
-    TERRIER_ASSERT(tables_.lower_bound(layout_version) == tables_.end(),
-                   "input version should be strictly larger than all versions");
-    auto table = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), block_store_, layout_version);
-    const auto UNUSED_ATTRIBUTE result = tables_.insert(std::make_pair(layout_version, table));
-    TERRIER_ASSERT(result.first != tables_.end() && result.second, "inserting new tableversion should not fail");
+    TERRIER_ASSERT(layout_version == num_of_versions_, "Input version should be strictly larger than all versions");
+    return CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version);
   }
 
   // TODO(Schema-Change): Do we retain the begin() and end(), or implement begin and end function with version number?
@@ -174,7 +171,7 @@ class SqlTable {
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator begin() const {
     TERRIER_ASSERT(!tables_.empty(), "sqltable should have at least one underlying datatable");
-    return tables_.begin()->second.data_table_->begin();
+    return tables_.begin()->data_table_->begin();
   }
 
   /**
@@ -183,7 +180,7 @@ class SqlTable {
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator end() const {
     TERRIER_ASSERT(!tables_.empty(), "sqltable should have at least one underlying datatable");
-    return std::prev(tables_.end())->second.data_table_->end();
+    return tables_[num_of_versions_ - 1].data_table_->end();
   }  // NOLINT for STL name compability
 
   /**
@@ -258,18 +255,19 @@ class SqlTable {
    * @param version  version of the datatable
    * @return the column oid to id map of a layout_version
    */
-  const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t version) const {
-    TERRIER_ASSERT(tables_.count(version) > 0, "version not existing..");
-    return tables_.at(version).column_oid_to_id_map_;
+  const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t layout_version) const {
+    TERRIER_ASSERT(layout_version < num_of_versions_, "Version does not exist.");
+    return tables_.at(layout_version).column_oid_to_id_map_;
   }
 
   /**
    * @param version  version of the datatable
    * @return the column id to oid map of a layout_version
    */
-  const ColumnIdToOidMap &GetColumnIdToOidMap(layout_version_t version) const {
-    TERRIER_ASSERT(tables_.count(version) > 0, "version not existing..");
-    return tables_.at(version).column_id_to_oid_map_;
+  const ColumnIdToOidMap &GetColumnIdToOidMap(layout_version_t layout_version) const {
+    TERRIER_ASSERT(layout_version < MAX_NUM_OF_VERSIONS && tables_[layout_version].data_table_ != nullptr,
+                   "Version does not exist.");
+    return tables_.at(layout_version).column_id_to_oid_map_;
   }
 
   /**
@@ -279,6 +277,8 @@ class SqlTable {
    * @return
    */
   const BlockLayout &GetBlockLayout(layout_version_t layout_version = layout_version_t{0}) {
+    TERRIER_ASSERT(layout_version < MAX_NUM_OF_VERSIONS && tables_[layout_version].data_table_ != nullptr,
+                   "Version does not exist.");
     return tables_.at(layout_version).layout_;
   }
 
@@ -289,13 +289,18 @@ class SqlTable {
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
-  const common::ManagedPointer<BlockStore>
-      block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.
+  // TODO(Matt): do we need this stashed at this layer? We don't use it.
+  const common::ManagedPointer<BlockStore> block_store_;
 
-  // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
-  // TODO(Schema-Change): add concurrent access support. Implement single threaded version first
-  // Used ordered map for traversing data table that are less or equal to curr version
-  std::map<layout_version_t, DataTableVersion> tables_;
+  // TODO(Schema-Change): add concurrent layout version to dataTable lookup
+  //  when layout version is not monotonically increasing from 0;
+  //  for example, when we implement garbage collecting empty old datatable, or when we collapse versions
+  //  We could potentially used ordered map for traversing data table that are less or equal to curr version
+  // Vector of tables with fixed size of MAX_NUM_OF_VERSIONS
+  //  We could later see if a unbounded concurrent vector greatly a affect the performance
+  std::vector<DataTableVersion> tables_;
+
+  std::atomic<uint8_t> num_of_versions_ = 0;
 
   // Should only be used by database catalog accessing pg tables!
   void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -335,12 +340,10 @@ class SqlTable {
   /**
    * Creates a new datatble version given the schema and version number
    * @param schema the initial Schema of this SqlTable
-   * @param store the Block store to use.
    * @param version Schema version of the created/updated table version
-   * @return DataTableVersion
+   * @return If the datatable version has been successfully created
    */
-  DataTableVersion CreateTable(common::ManagedPointer<const catalog::Schema> schema,
-                               common::ManagedPointer<BlockStore> store, layout_version_t version);
+  bool CreateTable(common::ManagedPointer<const catalog::Schema> schema, layout_version_t version);
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization

@@ -2,19 +2,19 @@
 
 ## Overview
 
-Each table in a DBMS has a schema, which specifies how many columns are in the table, and the constrains on each column (type, nullable, default value). A schema change can involving adding/dropping columns, or updating column constraints. Many DBMSs (PostgreSQL, SQLite, and RocksDB) block the table when they perform a schema change on a table. This causes the table to be unavailable for a considerable duration, which is undesirable for systems requiring high availability. Terrier currently does not support schema change. 
+Each table in a DBMS has a schema, which specifies how many columns are in the table, and the constraints on each column (type, nullable, default value). A schema change can involving adding/dropping columns, or updating column constraints. Many DBMSs (PostgreSQL, SQLite, and RocksDB) block the table when they perform a schema change on a table. This causes the table to be unavailable for a considerable duration, which is undesirable for systems requiring high availability. Terrier currently does not support schema change. 
 
-The goal of this project is to add schema change functionality to Terrier, and do it in a non-blocking, lazy way. The idea is to store a separate Datatable for each schema version, and do it Our goals are:
+The goal of this project is to add schema change functionality to Terrier, do it in a non-blocking, lazy way, and add support for the ALTER TABLE SQL command. The idea is to store a separate Datatable for each schema version. Our goals are:
 
-75%: Support lazy add/drop column and arbitrary number of schema versions      (mostly done, need to update the upper level of the system and the catalog, and pass benchmarks)
+75%: Support lazy add/drop column and arbitrary number of schema versions (DONE)
 
-100%: Do background migration of tupleslots. Support GC of old schema versions and datatables. 
+100%: Support ALTER TABLE command, including add/drop column, change column type, change column default value (add/drop column DONE)
 
-125%: Support unsafe schema changes, which includes updating type, nullable, or default value status of columns.
+125%: Do background migration of tupleslots. Support GC of old schema versions and datatables. 
 
-150%: Codegen layer to precompile tuple transformations.
+150%: Support unsafe schema changes, which includes updating type, nullable, or default value status of columns. Codegen layer to precompile tuple transformations.
 
-We have yet to design our system for unsafe schema changes and precompilation. In this design doc we will focus on the 75% and 100% goals.
+We have yet to design our system for unsafe schema changes and precompilation. In this design doc we will focus on the 75% to 125% goals.
 
 ## Scope
 
@@ -24,9 +24,11 @@ We will modify the Catalog to support the functions DatabaseCatalog::UpdateSchem
 
 We will not change the API of Datatable, and make only minor additions to it. For convenience, within each Datatable we store its corresponding version, default value map, column id to oid map, and column oid to id map (explained below). Similarly, we will not be touching Tupleslots, Rawblocks, or Index.
 
-We will also make minor changes to upper levels of Terrier, such the execution layer (e.g. storage_interface.cpp). 
+We will make changes to the parser, binder, optimizer, planner, and execution layers, to support different types of ALTER TABLE SQL commands.
 
 ## Architectural Design
+
+### SqlTable
 
 To manage multiple datatables, each Sqltable keeps a ordered map (tables_) from version number to a struct containing the metadata of each datatable (called DataTableVersion). 
 
@@ -53,7 +55,7 @@ Whether *storage_version < intended_version* or *storage_version = intended_vers
 #### Sqltable::update
 
 If *storage_version < intended_version* we will read the tuple from the old datatable, do tuple transformation to new schema and update the tuple, then logically delete it from the old datatable  (corresponding to 
-*storage_version*) and then insert it to the new datatable (corresponding to *intended_version*).  We will return the old tupleslot and the new tupleslot to the execution layer, which will update the index as described above.
+*storage_version*) and then insert it to the new datatable (corresponding to *intended_version*).  We will return the new tupleslot to the execution layer, which will update the index as described above.
 
 #### Sqltable::select
 
@@ -67,19 +69,30 @@ Therefore, scan works by scanning all datatables in order. Recall that tables_ i
 
 #### Default Values
 
-Default values of columns are abstract expressions that can be evaluated. Since the schema of each datatable is fixed, for each datatablewe store a map in its DatatableVersion struct specifying the default values of all columns in its schema. The map is from column id to abstract expression. We can use this map for tuple transformation.
+Default values of columns are abstract expressions that can be evaluated. Since the schema of each datatable is fixed, for each datatable we store a map in its DatatableVersion struct specifying the default values of all columns in its schema. The map is from column id to abstract expression. We can use this map for tuple transformation.
 
 #### Tuple Transformation
 
 We need to translate column_ids in the storage version to column_ids of the intended version. For any column present in the storage version but not present in the intended version we set the column_id to IGNORE_COLUMN_ID, and within DataTable we will skip over any columns with IGNORE_COLUMN_ID . For any column present in the intended version but not present in the storage version, we fill in default values for columns that were not present in the storage version.
 
+### Catalog
+<FILL IN HERE>
+
+### ALTERTABLE command (parser, binder, optimizer, planner, and execution)
+<FILL IN HERE>
+
+
 ## Design Rationale
 
 #### Map or vector of datatables? 
 
-Within Sqltable, we can either use a ordered concurrent map of version number to datatable, or use a vector of datatables (index i of vector corresponds to datatable with version number i) augmented with locks.  We conjecture that using a vector will be faster than a map. One potential problem with vectors is how to make it work with GC of old versions, and recovery. One potential problem with using Terrier's concurrent_map.h, which is a wrapper around tbb_concurrent_unordered_map, is that it is unordered (we need order for scan) and unsafe for concurrent deletes (useful for GC of old versions).
+Within Sqltable, we can either use a ordered concurrent map of version number to datatable, or use a vector of datatables (index i of vector corresponds to datatable with version number i) augmented with locks.  
 
-For now we are just using a std::map for single-threaded implementation, and we will revisit this decision later.
+We decided to use a fixed-size vector, where the datatable with version i is stored in the i-th position of the vector. We use a MAX_NUM_OF_VERSIONS as the size of the vector, which is the max allowed number of versions for a single datatable.
+
+We use a fixed-size vector because of low synchronization overhead: there is no need for locking the vector since different versions access different indices. Also, we need not make a special case for tables with a single version, because accessing an index in the vector is as fast as reading a pointer. Using a vector is thus much faster than a concurrent map.
+
+One potential issue with fixed-size vector is dealing with datatables with more than MAX_NUM_OF_VERSIONS. This should be extremely rare if we set MAX_NUM_OF_VERSIONS, since schema changes generally don't happen too often on a datatable. When we support GC of stale versions, we can implement recycling segments of the vector with stale versions, and adding offset to allow using this vector in a cyclic fashion,
 
 #### When to perform background migration and GC of old versions?
 
@@ -95,17 +108,20 @@ Our current decision is to not do migration on reads, since it might affect thro
 
 ## Testing Plan
 
-First, we will write single-threaded unit tests in sql_table_test.cpp that tests schema changes. Currently, we wrote the testing framework, and have a test that tests inserting and a test that updates the schema by adding a single column. We will add more unit tests that add and drop multiple columns for multiple rounds. We will test that Sqltable::insert/delete/select/update/scan still works properly, after our change.
+First, we wrote single-threaded unit tests in sql_table_test.cpp that tests schema changes. We test adding and dropping multiple columns in a single schema change, combining multiple schema changes with various SQL table operations (insert/delete/select/scan/update). We also added multithreaded versions of the same tests to test correctness under concurrent threads.
+We also added unit tests to test the correctness of the changes we made to the binder, execution, optimizer, and parser layers. 
 
-We will also write benchmarks that concurrently performs schema updates with normal Sqltable queries. This is mainly to test the correctness of our approach in the multi-threaded case, and can test the correctness of our changes to the catalog and storage layer. We will also use benchmarks with different workloads (read-heavy, update-heavy, eg.) to test the performance under schema changes.
+We also plan to write benchmarks that performs concurrent ALTER TABLE commands with normal Sqltable queries, both to test the correctness of our changes to the various layers, and to test the throughput with schema changes (under different workoads, read-heavy, update-heavy, etc.).
 
 Finally, as a stretch goal, we can integrate the Pantha Rei Schema Evolution Benchmark, which contains over 4.5 years of schema changes in Wikipedia’s history, and use this real world benchmark to test the throughput and memory usage of our non-blocking schema change implementation.
 
 ## Trade-offs and Potential Problems
 
-One potential problem is we are unsure how adding versions and multiple datatables will influence logging and recovery. We will revisit this later when we finish the 100% goal.
+One potential problem is we are unsure how adding versions and multiple datatables will influence logging and recovery. We can revisit this after the recovery group merges their changes.
 
 ## Future Work
-
-One optimization is to precompile the tuple transformations. The code for different tuple transformations are mostly similar, except that the types of columns are different. Therefore, we can add code to the codegen layer to precompile the tuple transformation logic for different column types. This may speed up tuple transformations.
+1. Can support more types of ALTER TABLE SQL commands. Current we have separate classes for each type of ALTER TABLE, which might need to be compacted if there are a dozen types of ALTER TABLE.
+2. For scanning tuples in a table to check if a type change is allowed, we can use TPL.
+3. Support unsafe schema changes, which includes updating type, nullable, or default value status of columns.
+4. One optimization is to precompile the tuple transformations. The code for different tuple transformations are mostly similar, except that the types of columns are different. Therefore, we can add code to the codegen layer to precompile the tuple transformation logic for different column types. This may speed up tuple transformations.
 
