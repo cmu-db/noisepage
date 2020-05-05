@@ -156,5 +156,51 @@ public class CreateIndexTest extends TestUtility {
         }
         assertNoMoreRows(rs);
     }
+    /**
+     * Checks to see if delete propagates to index
+     */
+    @Test
+    public void testSimpleDelete() throws SQLException {
+        String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 102);";
+        Statement stmt = conn.createStatement();
+        int num_rows = 1000;
+        for (int i = 0; i < num_rows; i++) { stmt.execute(sql); }
 
+        // This will be the tuple that we later delete
+        stmt.execute("INSERT INTO tbl VALUES (3, 4, 101);");
+
+        stmt.execute("CREATE INDEX tbl_ind on tbl (c2);");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC;");
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
+        }
+        rs.next();
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 4, 101});
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 102});
+        }
+        assertNoMoreRows(rs);
+
+        stmt.execute("DELETE FROM tbl WHERE c3 = 101;");
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
+        }
+
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 102});
+        }
+        assertNoMoreRows(rs);
+    }
+
+     /**
+      * Checks to see if an aborting transaction doesn't update the index
+      */
+    @Test
+    public void testSimpleAbort() throws SQLException, InterruptedException {
+        return;
+    }
 }
