@@ -172,6 +172,10 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       result = DeleteTransform(parse_result, reinterpret_cast<DeleteStmt *>(node));
       break;
     }
+    case T_AlterTableStmt: {
+      result = AlterTableTransform(parse_result, reinterpret_cast<AlterTableStmt *>(node));
+      break;
+    }
     default: {
       PARSER_LOG_DEBUG("NodeTransform: statement type {} unsupported", node->type);
       throw PARSER_EXCEPTION("NodeTransform: unsupported statement type");
@@ -1658,6 +1662,72 @@ std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(ParseResult *pa
   auto table = RangeVarTransform(parse_result, root->relation_);
   auto where = WhereTransform(parse_result, root->where_clause_);
   result = std::make_unique<DeleteStatement>(std::move(table), where);
+  return result;
+}
+
+// Postgres.AlterTableStmt -> terrier.AlterTableStatement
+// TODO(SC)
+std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseResult *parse_result,
+                                                                         AlterTableStmt *root) {
+  // Parse Table Info
+  RangeVar *relation = root->relation_;
+  auto table_name = relation->relname_ != nullptr ? relation->relname_ : "";
+  auto schema_name = relation->schemaname_ != nullptr ? relation->schemaname_ : "";
+  auto database_name = relation->catalogname_ != nullptr ? relation->catalogname_ : "";
+  std::unique_ptr<TableInfo> table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
+
+  // Parse subcmds
+  TERRIER_ASSERT(root->cmds_->length > 0, "Alter table sub command must not be empty");
+  std::vector<AlterTableStatement::AlterTableCmd> cmds;
+  for (auto node = root->cmds_->head; node != nullptr; node = node->next) {
+    auto cmd = reinterpret_cast<AlterTableCmd *>(node->data.ptr_value);
+    TERRIER_ASSERT(cmd->type == T_AlterTableCmd, "Invlaid alter table cmd, failed to parse");
+    std::string col_name;
+    common::ManagedPointer<AbstractExpression> default_val = nullptr;
+    std::unique_ptr<ColumnDefinition> col_def;
+
+    switch (cmd->subtype) {
+      case AT_AddColumn:
+        col_def = ColumnDefTransform(parse_result, reinterpret_cast<ColumnDef *>(cmd->def)).col_;
+        col_name = col_def->GetColumnName();
+        cmds.emplace_back(std::move(col_def), std::move(col_name), cmd->missing_ok);
+        break;
+      case AT_ColumnDefault: {
+        std::unique_ptr<AbstractExpression> expr;
+        if (cmd->def != nullptr) {
+          expr = ExprTransform(parse_result, cmd->def, nullptr);
+        } else {
+          // DROP DEFAULT is translated to SET DEFAULT NULL
+          auto v = type::TransientValueFactory::GetNull(type::TypeId::INVALID);
+          expr = std::make_unique<ConstantValueExpression>(std::move(v));
+        }
+        default_val = common::ManagedPointer(expr);
+        col_name = std::string(cmd->name);
+        if (expr != nullptr) parse_result->AddExpression(std::move(expr));
+        cmds.emplace_back(col_name, default_val, cmd->behavior == DropBehavior::DROP_CASCADE);
+        break;
+      }
+      case AT_DropColumn:
+        col_name = std::string(cmd->name);
+        cmds.emplace_back(col_name, cmd->missing_ok, cmd->behavior == DropBehavior::DROP_CASCADE);
+        break;
+      case AT_AlterColumnType:
+        // FIXME(xc): why cmd->def->colname_ might be 0x0 here???
+        // TODO(Ling): should we, for changing type, save only the col_name and the new type in the command .
+        {
+          auto raw_def = reinterpret_cast<ColumnDef *>(cmd->def);
+          if (raw_def->colname_ == nullptr) raw_def->colname_ = cmd->name;
+          col_def = ColumnDefTransform(parse_result, raw_def).col_;
+          col_name = col_def->GetColumnName();
+          cmds.emplace_back(std::move(col_def), std::move(col_name));
+        }
+        break;
+      default:
+        PARSER_LOG_AND_THROW("AlterTableTransform", "Action type", cmd->subtype);
+    }
+    // TODO(SC) parse name, behaviour, newowner?
+  }
+  auto result = std::make_unique<AlterTableStatement>(std::move(table_info), std::move(cmds), root->missing_ok_);
   return result;
 }
 

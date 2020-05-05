@@ -485,6 +485,85 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::Tran
   SqlNodeVisitor::Visit(node);
 }
 
+void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> node) {
+  BINDER_LOG_TRACE("Visiting AlterTableStatement ...");
+  SqlNodeVisitor::Visit(node);
+
+  TERRIER_ASSERT(context_ == nullptr, "ALTER TABLE should be a root.");
+  BinderContext context(nullptr);
+  context_ = common::ManagedPointer(&context);
+
+  ValidateDatabaseName(node->GetDatabaseName());
+
+  if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
+    if (node->IsIfExists()) return;
+    throw BINDER_EXCEPTION("Table does not exists");
+  }
+  context_->AddRegularTable(catalog_accessor_, db_oid_, node->GetNamespaceName(), node->GetTableName(),
+                            node->GetTableName());
+
+  auto tb_oid = catalog_accessor_->GetTableOid(node->GetTableName());
+  uint32_t cmd_idx = 0;
+  for (const auto &cmd : node->GetAlterTableCmds()) {
+    auto alter_type = cmd.GetAlterType();
+    switch (alter_type) {
+      case parser::AlterTableStatement::AlterType::AddColumn: {
+        // check if the column name already exists
+        if (BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), cmd.GetColumnName())) {
+          throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " already exists in table.").c_str());
+        }
+
+        auto &col = cmd.GetColumn();
+        if (col.GetDefaultExpression() != nullptr) {
+          // The schema is authoritative on what the type of this default value should be.
+          sherpa_->SetDesiredType(col.GetDefaultExpression().CastManagedPointerTo<parser::AbstractExpression>(),
+                                  col.GetValueType());
+          col.GetDefaultExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        }
+        if (col.GetCheckExpression() != nullptr)
+          col.GetCheckExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        // TODO(Ling): add foreign key constraints to column?
+        break;
+      }
+      case parser::AlterTableStatement::AlterType::DropColumn:
+        // check if the column name already exists
+        if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), cmd.GetColumnName())) {
+          if (cmd.IsIfExists()) continue;
+          throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " does not exist in table").c_str());
+        }
+        node->SetColumnOid(cmd_idx, catalog_accessor_->GetSchema(tb_oid).GetColumn(cmd.GetColumnName()).Oid());
+        break;
+      case parser::AlterTableStatement::AlterType::ColumnDefault: {
+        // check if the column name already exists
+        if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), cmd.GetColumnName())) {
+          throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " does not exist in table").c_str());
+        }
+        node->SetColumnOid(cmd_idx, catalog_accessor_->GetSchema(tb_oid).GetColumn(cmd.GetColumnName()).Oid());
+
+        auto binder_table_data = context_->GetTableMapping(node->GetTableName());
+        const auto &table_schema = std::get<2>(*binder_table_data);
+        const auto &existing_col = table_schema.GetColumn(cmd.GetColumnName());
+        // Get the default value expression and update to correct type
+        // It is allowed to set a NOT NULL column's default value to NULL or drop default value
+        // as long as no tuple violates the constraint.
+        auto default_val = cmd.GetDefaultExpression();
+        sherpa_->SetDesiredType(default_val.CastManagedPointerTo<parser::AbstractExpression>(), existing_col.Type());
+        default_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        break;
+      }
+      case parser::AlterTableStatement::AlterType::AlterColumnType:
+        // check if the column name already exists
+        if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), cmd.GetColumnName())) {
+          if (cmd.IsIfExists()) continue;
+          throw BINDER_EXCEPTION(("Column " + cmd.GetColumnName() + " does not exist in table").c_str());
+        }
+        node->SetColumnOid(cmd_idx, catalog_accessor_->GetSchema(tb_oid).GetColumn(cmd.GetColumnName()).Oid());
+        break;
+    }
+    cmd_idx++;
+  }
+}
+
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node) {
   BINDER_LOG_TRACE("Visiting UpdateStatement ...");
   SqlNodeVisitor::Visit(node);

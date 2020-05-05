@@ -1,6 +1,7 @@
 #pragma once
 
 // convenience file
+#include "parser/alter_table_statement.h"
 #include "parser/analyze_statement.h"
 #include "parser/copy_statement.h"
 #include "parser/create_function_statement.h"

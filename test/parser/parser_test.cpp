@@ -54,6 +54,140 @@ TEST_F(ParserTestBase, AnalyzeTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, AlterTest) {
+  // Add Column
+  {
+    auto result = parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ADD new_column INT DEFAULT 15721;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    EXPECT_EQ(alter_stmt->GetType(), StatementType::ALTER);
+    EXPECT_EQ(alter_stmt->GetTableName(), "table_name");
+    EXPECT_EQ(alter_stmt->IsIfExists(), false);
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(cmds.size(), 1);
+    EXPECT_EQ(alter_stmt->GetColOids().size(), 1);
+    EXPECT_EQ(alter_stmt->GetColOids()[0], catalog::INVALID_COLUMN_OID);
+    auto &col = cmds[0].GetColumn();
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::AddColumn);
+    EXPECT_FALSE(cmds[0].IsIfExists());
+    EXPECT_EQ(col.GetColumnName(), "new_column");
+    EXPECT_EQ(col.GetColumnType(), ColumnDefinition::DataType::INT);
+    auto default_expr = col.GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_NE(default_expr, nullptr);
+    EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INTEGER);
+    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(default_expr->GetValue()), 15721);
+  }
+
+  // Drop Column cascade
+  {
+    auto result =
+        parser::PostgresParser::BuildParseTree("ALTER TABLE IF EXISTS table_name DROP IF EXISTS old_column CASCADE;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    EXPECT_EQ(alter_stmt->GetType(), StatementType::ALTER);
+    EXPECT_EQ(alter_stmt->IsIfExists(), true);
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(cmds.size(), 1);
+    EXPECT_EQ(alter_stmt->GetColOids().size(), 1);
+    EXPECT_EQ(alter_stmt->GetColOids()[0], catalog::INVALID_COLUMN_OID);
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::DropColumn);
+    EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
+    EXPECT_TRUE(cmds[0].IsIfExists());
+    EXPECT_TRUE(cmds[0].IsDropCascade());
+  }
+
+  // Change default
+  {
+    auto result =
+        parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column SET DEFAULT 15721;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(alter_stmt->GetColOids().size(), 1);
+    EXPECT_EQ(alter_stmt->GetColOids()[0], catalog::INVALID_COLUMN_OID);
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::ColumnDefault);
+    auto default_expr = cmds[0].GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_NE(default_expr, nullptr);
+    EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
+    EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INTEGER);
+    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(default_expr->GetValue()), 15721);
+  }
+  {
+    auto result =
+        parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column SET DEFAULT NULL;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(alter_stmt->GetColOids().size(), 1);
+    EXPECT_EQ(alter_stmt->GetColOids()[0], catalog::INVALID_COLUMN_OID);
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::ColumnDefault);
+    auto default_expr = cmds[0].GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_NE(default_expr, nullptr);
+    EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
+    EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INVALID);
+  }
+
+  // Drop default
+  {
+    auto result =
+        parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column DROP DEFAULT;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(alter_stmt->GetColOids().size(), 1);
+    EXPECT_EQ(alter_stmt->GetColOids()[0], catalog::INVALID_COLUMN_OID);
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::ColumnDefault);
+    auto default_expr = cmds[0].GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_NE(default_expr, nullptr);
+    EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
+    EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INVALID);
+  }
+
+  // Change type
+  {
+    auto result = parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column TYPE DOUBLE;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::AlterColumnType);
+    auto &col = cmds[0].GetColumn();
+    EXPECT_EQ(alter_stmt->GetColOids().size(), 1);
+    EXPECT_EQ(alter_stmt->GetColOids()[0], catalog::INVALID_COLUMN_OID);
+    EXPECT_EQ(col.GetColumnName(), "old_column");
+    EXPECT_EQ(col.GetColumnType(), ColumnDefinition::DataType::DOUBLE);
+  }
+
+  // Multiple commands
+  {
+    auto result = parser::PostgresParser::BuildParseTree(
+        "ALTER TABLE table_name ADD new_column INT DEFAULT 15721, DROP IF EXISTS old_column CASCADE, ALTER COLUMN "
+        "old_column_2 SET DEFAULT 15721;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    EXPECT_EQ(alter_stmt->GetType(), StatementType::ALTER);
+    EXPECT_EQ(alter_stmt->GetTableName(), "table_name");
+    EXPECT_EQ(alter_stmt->IsIfExists(), false);
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(cmds.size(), 3);
+    EXPECT_EQ(alter_stmt->GetColOids().size(), 3);
+    EXPECT_EQ(alter_stmt->GetColOids()[0], catalog::INVALID_COLUMN_OID);
+    auto &col = cmds[0].GetColumn();
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::AddColumn);
+    EXPECT_FALSE(cmds[0].IsIfExists());
+    EXPECT_EQ(col.GetColumnName(), "new_column");
+    EXPECT_EQ(col.GetColumnType(), ColumnDefinition::DataType::INT);
+    auto default_expr = col.GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_NE(default_expr, nullptr);
+    EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INTEGER);
+    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(default_expr->GetValue()), 15721);
+
+    EXPECT_EQ(cmds[1].GetAlterType(), AlterTableStatement::AlterType::DropColumn);
+    EXPECT_EQ(cmds[1].GetColumnName(), "old_column");
+    EXPECT_TRUE(cmds[1].IsIfExists());
+    EXPECT_TRUE(cmds[1].IsDropCascade());
+
+    default_expr = cmds[2].GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_NE(default_expr, nullptr);
+    EXPECT_EQ(cmds[2].GetColumnName(), "old_column_2");
+    EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INTEGER);
+    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(default_expr->GetValue()), 15721);
+  }
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, NOOPTest) {
   auto result = parser::PostgresParser::BuildParseTree(";");
   EXPECT_EQ(result->GetStatements().size(), 0);
