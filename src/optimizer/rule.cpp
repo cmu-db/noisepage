@@ -1,3 +1,4 @@
+#include "optimizer/rules/rewriter_rules.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/rules/implementation_rules.h"
 #include "optimizer/rules/rewrite_rules.h"
@@ -7,7 +8,7 @@
 namespace terrier::optimizer {
 
 RulePromise Rule::Promise(GroupExpression *group_expr) const {
-  auto root_type = match_pattern_->Type();
+  auto root_type = match_pattern_->GetOpType();
   // This rule is not applicable
   if (root_type != OpType::LEAF && root_type != group_expr->Contents()->GetOpType()) {
     return RulePromise::NO_PROMISE;
@@ -17,6 +18,8 @@ RulePromise Rule::Promise(GroupExpression *group_expr) const {
 }
 
 RuleSet::RuleSet() {
+
+  // ===== Optimizer Rules ===== //
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinCommutativity());
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinAssociativity());
 
@@ -60,6 +63,23 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughAggregation());
+
+  // ===== Query Rewriter Rules ===== //
+
+  // Equivalent Transform related rules (flip AND, OR, EQUAL)
+  std::vector<std::pair<RuleType, parser::ExpressionType>> equiv_pairs = {
+      std::make_pair(RuleType::EQUIV_AND, parser::ExpressionType::CONJUNCTION_AND),
+      std::make_pair(RuleType::EQUIV_OR, parser::ExpressionType::CONJUNCTION_OR),
+      std::make_pair(RuleType::EQUIV_COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL)
+  };
+
+  for (auto &pair : equiv_pairs) {
+    AddRule(RuleSetName::EQUIVALENT_TRANSFORM,
+                    new EquivalentTransform(pair.first, pair.second));
+  }
+
+  // Additional rewriter rules
+  AddRule(RuleSetName::GENERIC_RULES, new TransitiveClosureConstantTransform());
 }
 
 }  // namespace terrier::optimizer

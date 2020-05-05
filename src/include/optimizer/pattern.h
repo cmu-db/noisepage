@@ -13,10 +13,16 @@ namespace terrier::optimizer {
 class Pattern {
  public:
   /**
-   * Creates a new pattern
+   * Creates a new operator-based pattern
    * @param op Operator that node should match
    */
-  explicit Pattern(OpType op) : type_(op) {}
+  explicit Pattern(OpType op) : op_type_(op), exp_type_(parser::ExpressionType::INVALID) {}
+
+  /**
+   * Creates a new expression-based pattern
+   * @param exp  ExpressionType the node should match
+   */
+  explicit Pattern(parser::ExpressionType exp) : op_type_(OpType::UNDEFINED), exp_type_(exp) {}
 
   /**
    * Destructor. Deletes all children
@@ -51,13 +57,24 @@ class Pattern {
    * Gets the operator this Pattern supposed to represent
    * @returns OpType that Pattern matches against
    */
-  OpType Type() const { return type_; }
+  OpType GetOpType() const { return op_type_; }
+
+  /**
+   * Gets the expression type this Pattern is supposed to represent
+   * @return ExpressionType the pattern matches against
+   */
+  parser::ExpressionType GetExpType() const { return exp_type_; }
 
  private:
   /**
-   * Target Node Type
+   * Target Node Type (Operator-based)
    */
-  OpType type_;
+  OpType op_type_;
+
+  /**
+   * Target Node Type (Expression-based)
+   */
+  parser::ExpressionType exp_type_;
 
   /**
    * Pattern Children

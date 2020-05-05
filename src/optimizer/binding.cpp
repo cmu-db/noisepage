@@ -11,7 +11,7 @@
 namespace terrier::optimizer {
 
 bool GroupBindingIterator::HasNext() {
-  if (pattern_->Type() == OpType::LEAF) {
+  if (pattern_->GetOpType() == OpType::LEAF) {
     return current_item_index_ == 0;
   }
 
@@ -42,7 +42,7 @@ bool GroupBindingIterator::HasNext() {
 }
 
 std::unique_ptr<AbstractOptimizerNode> GroupBindingIterator::Next() {
-  if (pattern_->Type() == OpType::LEAF) {
+  if (pattern_->GetOpType() == OpType::LEAF) {
     current_item_index_ = num_group_items_;
     std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
     return std::make_unique<OperatorNode>(LeafOperator::Make(group_id_).RegisterWithTxnContext(txn_), std::move(c),
@@ -55,7 +55,7 @@ std::unique_ptr<AbstractOptimizerNode> GroupBindingIterator::Next() {
 GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
                                                    transaction::TransactionContext *txn)
     : BindingIterator(memo), gexpr_(gexpr), first_(true), has_next_(false), current_binding_(nullptr), txn_(txn) {
-  if (gexpr->Contents()->GetOpType() != pattern->Type()) {
+  if (gexpr->Contents()->GetOpType() != pattern->GetOpType()) {
     // Check root node type
     return;
   }

@@ -69,6 +69,11 @@ enum class RuleType : uint32_t {
   PULL_FILTER_THROUGH_MARK_JOIN,
   PULL_FILTER_THROUGH_AGGREGATION,
 
+  // Equivalent transform rules
+  EQUIV_AND,
+  EQUIV_OR,
+  EQUIV_COMPARE_EQUAL,
+
   // Place holder to generate number of rules compile time
   NUM_RULES
 };
@@ -80,7 +85,9 @@ enum class RuleSetName : uint32_t {
   PREDICATE_PUSH_DOWN = 0,
   UNNEST_SUBQUERY,
   LOGICAL_TRANSFORMATION,
-  PHYSICAL_IMPLEMENTATION
+  PHYSICAL_IMPLEMENTATION,
+  EQUIVALENT_TRANSFORM,
+  GENERIC_RULES
 };
 
 /**
@@ -272,8 +279,10 @@ class RuleSet {
    * Destructor
    */
   ~RuleSet() {
+    std::cout << "DESTROYING RULE SET\n";
     for (auto &it : rules_map_) {
-      for (auto rule : it.second) {
+      for (auto *rule : it.second) {
+        std::cout << " opt rule: " << rule << "\n";
         delete rule;
       }
     }
@@ -288,14 +297,14 @@ class RuleSet {
 
   /**
    * Gets all stored rules in a given RuleSet
-   * @param set Rewrite RuleSet to fetch
-   * @returns vector of rules in that rewrite ruleset group
+   * @param set RuleSet to fetch
+   * @returns vector of rules in that ruleset group
    */
   std::vector<Rule *> &GetRulesByName(RuleSetName set) { return rules_map_[static_cast<uint32_t>(set)]; }
 
  private:
   /**
-   * Map from RuleSetName (uint32_t) -> vector of rules
+   * Map from RuleSetName (uint32_t) -> vector of rules for optimizer
    */
   std::unordered_map<uint32_t, std::vector<Rule *>> rules_map_;
 };

@@ -120,11 +120,13 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
     }
   }
   // Register the output with the transaction context
-  parser::AbstractExpression *result_ptr = result.Get();
-  if (txn_ != nullptr) {
+  //parser::AbstractExpression *result_ptr = result.Get();
+  std::cout << " context: " << txn_ << "\n";
+  /*if (txn_ != nullptr) {
     txn_->RegisterCommitAction([=]() { delete result_ptr; });
     txn_->RegisterAbortAction([=]() { delete result_ptr; });
-  }
+  }*/
+  std::cout << " registered!\n";
   return result;
 }
 

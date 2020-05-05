@@ -379,12 +379,45 @@ class DeriveStats : public OptimizerTask {
 };
 
 /**
+ * @brief Higher abstraction above TopDownRewrite and BottomUpRewrite that
+ * implements functionality similar between the two and relied upon by both.
+ */
+class RewriteTask : public OptimizerTask {
+ public:
+  /**
+   * Constructor.
+   * @param type the type of optimizer task this is (top down vs bottom up)
+   * @param group_id The group ID being examined
+   * @param context The current optimization context
+   * @param rule_set_name The name of the set of rules being used
+   */
+  RewriteTask(OptimizerTaskType type, group_id_t group_id, OptimizationContext *context,
+              RuleSetName rule_set_name) : OptimizerTask(context, type),
+                                           group_id_(group_id), rule_set_name_(rule_set_name) {}
+
+  /**
+   * Virtual execute method (should only be called in subclasses)
+   */
+  virtual void Execute() override {
+    TERRIER_ASSERT(false, "RewriteTask::execute invoked directly and not in subclass");
+  }
+
+ protected:
+  std::set<group_id_t> GetUniqueChildGroupIDs();
+  bool OptimizeCurrentGroup(bool replace_on_match);
+
+  group_id_t group_id_;
+  RuleSetName rule_set_name_;
+};
+
+
+/**
  * TopDownRewrite performs a top-down rewrite pass. A generally held assumption for
  * any RuleSet utilizing TopDownRewrite is that once a tree level has been saturated,
  * the tree level will remain saturated. i.e rewriting expresions lower in the operator
  * tree will not allow a rule to be applicable at a higher level.
  */
-class TopDownRewrite : public OptimizerTask {
+class TopDownRewrite : public RewriteTask {
  public:
   /**
    * Constructor for TopDownRewrite task
@@ -393,25 +426,25 @@ class TopDownRewrite : public OptimizerTask {
    * @param rule_set_name RuleSet to execute
    */
   TopDownRewrite(group_id_t group_id, OptimizationContext *context, RuleSetName rule_set_name)
-      : OptimizerTask(context, OptimizerTaskType::TOP_DOWN_REWRITE),
-        group_id_(group_id),
-        rule_set_name_(rule_set_name) {}
+      : RewriteTask(OptimizerTaskType::BOTTOM_UP_REWRITE, group_id, context, rule_set_name),
+        replace_on_transform_(true) {}
 
   /**
    * Function to execute the task
    */
   void Execute() override;
 
+  /**
+   * Sets the flag for replace-on-transform
+   * @param replace the value to set the flag to
+   */
+  void SetReplaceOnTransform(bool replace) { replace_on_transform_ = replace; }
+
  private:
   /**
-   * GroupID to do top-down rewriting for
+   * Flag for replace-on-transform
    */
-  group_id_t group_id_;
-
-  /**
-   * Set of rules to apply
-   */
-  RuleSetName rule_set_name_;
+  bool replace_on_transform_;
 };
 
 /**
@@ -419,7 +452,7 @@ class TopDownRewrite : public OptimizerTask {
  * which requires that upper level rewrites in the operator tree WILL NOT enable
  * lower level rewrites.
  */
-class BottomUpRewrite : public OptimizerTask {
+class BottomUpRewrite : public RewriteTask {
  public:
   /**
    * Constructor for BottomUpRewrite task
@@ -430,9 +463,7 @@ class BottomUpRewrite : public OptimizerTask {
    */
   BottomUpRewrite(group_id_t group_id, OptimizationContext *context, RuleSetName rule_set_name,
                   bool has_optimized_child)
-      : OptimizerTask(context, OptimizerTaskType::BOTTOM_UP_REWRITE),
-        group_id_(group_id),
-        rule_set_name_(rule_set_name),
+      : RewriteTask(OptimizerTaskType::BOTTOM_UP_REWRITE, group_id, context, rule_set_name),
         has_optimized_child_(has_optimized_child) {}
 
   /**
@@ -441,16 +472,6 @@ class BottomUpRewrite : public OptimizerTask {
   void Execute() override;
 
  private:
-  /**
-   * GroupID to do bottom-up rewriting for
-   */
-  group_id_t group_id_;
-
-  /**
-   * Set of rules to apply
-   */
-  RuleSetName rule_set_name_;
-
   /**
    * Flag indicating whether children have been optimized
    */

@@ -34,14 +34,14 @@ TEST_F(OptimizerContextTest, PatternTest) {
 
   // Pattern should own its children
   EXPECT_EQ(join->GetChildPatternsSize(), 2);
-  EXPECT_EQ(join->Type(), OpType::LOGICALINNERJOIN);
+  EXPECT_EQ(join->GetOpType(), OpType::LOGICALINNERJOIN);
 
   EXPECT_EQ(join->Children().size(), 2);
   EXPECT_EQ(join->Children()[0]->GetChildPatternsSize(), 0);
   EXPECT_EQ(join->Children()[1]->GetChildPatternsSize(), 0);
 
-  EXPECT_EQ(join->Children()[0]->Type(), OpType::LOGICALGET);
-  EXPECT_EQ(join->Children()[1]->Type(), OpType::LOGICALEXTERNALFILEGET);
+  EXPECT_EQ(join->Children()[0]->GetOpType(), OpType::LOGICALGET);
+  EXPECT_EQ(join->Children()[1]->GetOpType(), OpType::LOGICALEXTERNALFILEGET);
   delete join;
 }
 

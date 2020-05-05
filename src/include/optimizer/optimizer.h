@@ -8,6 +8,7 @@
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/property_set.h"
+#include "optimizer/rewriter.h"
 
 namespace terrier {
 

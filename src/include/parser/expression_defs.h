@@ -72,7 +72,9 @@ enum class ExpressionType : uint8_t {
   PLACEHOLDER,
   COLUMN_REF,
   FUNCTION_REF,
-  TABLE_REF
+  TABLE_REF,
+
+  GROUP_MARKER  // Used as a wild card in rewriter match patterns
 };
 
 /**
