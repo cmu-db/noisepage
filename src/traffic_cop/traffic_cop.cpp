@@ -388,16 +388,24 @@ catalog::table_oid_t TrafficCop::CreateTempTable(
   std::vector<catalog::Schema::Column> columns;
 
   auto seq_id_col = catalog::Schema::Column("sequence_oid",type::TypeId::INTEGER,false,
-      parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   auto last_nextval_col = catalog::Schema::Column("last_nextval",type::TypeId::INTEGER,false,
-                                            parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+
   columns.emplace_back(seq_id_col);
   columns.emplace_back(last_nextval_col);
 
   const catalog::Schema tmp_schema{columns};
   const auto temp_table_oid =
       catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable(ns_oid,
-          "temp_table" + std::to_string(static_cast<uint16_t>(connection_id)), tmp_schema);
+          "temp_table3", tmp_schema);
+
+  if (temp_table_oid == catalog::INVALID_TABLE_OID) {
+    // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
+    txn_manager_->Abort(txn);
+    STORAGE_LOG_ERROR("catalog::INVALID_TABLE_OID");
+    return catalog::INVALID_TABLE_OID;
+  }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   return temp_table_oid;
