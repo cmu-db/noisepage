@@ -3,14 +3,14 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include "execution/exec/execution_context.h"
+#include "execution/vm/module.h"
+#include "execution/vm/module_compiler.h"
 #include "storage/arrow_block_metadata.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-#include "execution/vm/module.h"
-#include "execution/vm/module_compiler.h"
-#include "execution/exec/execution_context.h"
-
 
 namespace terrier::storage {
 
@@ -38,9 +38,7 @@ class BlockCompactor {
           all_cols_initializer_(ProjectedRowInitializer::Create(table_->accessor_.GetBlockLayout(),
                                                                 table_->accessor_.GetBlockLayout().AllColumns())),
           read_buffer_(all_cols_initializer_.InitializeRow(
-              common::AllocationUtil::AllocateAligned(all_cols_initializer_.ProjectedRowSize())))
-          {
-    }
+              common::AllocationUtil::AllocateAligned(all_cols_initializer_.ProjectedRowSize()))) {}
 
     ~CompactionGroup() {
       // Deleting nullptr is just a noop
@@ -56,11 +54,11 @@ class BlockCompactor {
   };
 
  public:
-  BlockCompactor(execution::exec::ExecutionContext *exec, col_id_t *col_oids, char *table_name) {
-  	// Init data members for movetuple builtin
-  	exec_ = exec;
-  	col_oids_ = col_oids;
-  	table_name_ = table_name;
+  BlockCompactor(execution::exec::ExecutionContext *exec, col_id_t *col_oids, const char *table_name) {
+    // Init data members for movetuple builtin
+    exec_ = exec;
+    col_oids_ = col_oids;
+    table_name_ = table_name;
     // tpl code for use in moveTuple. It deletes the tuple from the table and from the index and then inserts the tuple
     // to the table (a specific block) and to the index. It returns true if the delete succeeds (because delete returns
     // false if a concurrent transaction is updating the tuple that is trying to be moved, the only condition where
@@ -70,48 +68,18 @@ class BlockCompactor {
     //      return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
     // @todo: do we need to consider that insertIndex could fail? Do so now.
     auto tpl_code = R"(
-    // execution context
-    // table name
-    // col_oids
-    // projected row
     fun moveTuple(execCtx: *ExecutionContext, slot_from: TupleSlot*, slot_to: TupleSlot*, col_oids: uint16*, table_name: char*) -> bool {
-      // Initialize and bind the storage_interface
-      // @todo: FIX! should the variables here be passed in as arguments to the function. Are they all needed?
-      // Do we need to define another storageInterfaceInitBind-like method? That seems not helpful.
       var storage_interface: StorageInterface
       @storageInterfaceInitBind(&storage_interface, execCtx, table_name, col_oids, true)
 
-      // Delete on Table
-      // If the table delete fails, unbind the storage interface and return false
       if (!@tableDelete(&storage_interface, &slot_from)) {
         @storageInterfaceFree(&storage_interface)
         return false
       }
 
-      // Insert on Table
-      // @todo: FIX! how is the redo being set (it is a member variable of the storage interface)?
-      // I'm not convinced the projected row is being used. Here is example code from update.tpl:
-      // var insert_pr = @getTablePR(&updater)
-      // @prSetInt(insert_pr, 0, colA + @intToSql(100000))
       @tableInsertInto(&storage_interface, &slot_to)
-
-
-      // Delete on Index
-      // @todo: FIX! are any of these commented-out-lines needed? They are example code from update.tpl:
-      // var index_pr = @getIndexPRBind(&storage_interface, "index_1")
-      // @prSetInt(index_pr, 0, colA)
-      @indexDelete(&storage_interface, &slot_from)
-
-      // Insert on Index
-      // @todo: FIX! is something like this needed? It is example code from update.tpl:
-      // @prSetInt(index_pr, 0, colA + @intToSql(100000))
-      // if the index insert fails, unbind the storage interface and return false
-      if (!@indexInsert(&storage_interface)) {
-        @storageInterfaceFree(&storage_interface)
-        return false
       }
 
-      // If the function gets to the end, all processes succeeded. Return true
       return true
     })";
     auto compiler = execution::vm::test::ModuleCompiler();
@@ -167,12 +135,14 @@ class BlockCompactor {
 
   std::queue<RawBlock *> compaction_queue_;
 
-  // stores compiled bytecode that can be called with different arguments (look in the blockcompactor constructor for details)
-  std::function<bool(execution::exec::ExecutionContext *, TupleSlot*, TupleSlot*, col_id_t*, char *)> move_tuple_;
+  // stores compiled bytecode that can be called with different arguments (look in the blockcompactor constructor for
+  // details)
+  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *, const char *)>
+      move_tuple_;
 
   // Variables required for calling the MoveTuple builtin
   execution::exec::ExecutionContext *exec_;
   col_id_t *col_oids_;
-  char *table_name_;
+  const char *table_name_;
 };
 }  // namespace terrier::storage
