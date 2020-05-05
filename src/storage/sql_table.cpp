@@ -37,11 +37,12 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
   // the tuple exists in an older version.
   // TODO(schema-change): handle versions from add and/or drop column only
   col_id_t orig_header[out_buffer->NumColumns()];
+  AttrSizeMap size_map;
 
   auto desired_v = tables_.at(layout_version);
   DataTableVersion tuple_v = tables_.at(tuple_version);
-  auto missing_cols = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &orig_header[0]);
-  auto result = tuple_v.data_table_->Select(txn, slot, out_buffer);
+  auto missing_cols = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &orig_header[0], &size_map);
+  auto result = tuple_v.data_table_->Select(txn, slot, out_buffer, &size_map);
 
   // copy back the original header
   std::memcpy(out_buffer->ColumnIds(), orig_header, sizeof(col_id_t) * out_buffer->NumColumns());
@@ -73,11 +74,13 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
   if (tuple_version == layout_version) {
     result = tables_.at(layout_version).data_table_->Update(txn, curr_tuple, *(redo->Delta()));
   } else {
-    // tuple is in an older version, check if all modified columns are in the datatable version where the tuple is in
+    // tuple in an older version, check if all modified columns are in the datatable version where the tuple is in
     col_id_t orig_header[redo->Delta()->NumColumns()];
+    AttrSizeMap size_map;
+
     auto desired_v = tables_.at(layout_version);
     auto tuple_v = tables_.at(tuple_version);
-    auto missing = AlignHeaderToVersion(redo->Delta(), tuple_v, desired_v, &orig_header[0]);
+    auto missing = AlignHeaderToVersion(redo->Delta(), tuple_v, desired_v, &orig_header[0], &size_map);
 
     if (missing.empty()) {
       result = tuple_v.data_table_->Update(txn, curr_tuple, *(redo->Delta()));
@@ -158,7 +161,8 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
        i++) {
     auto start_idx = filled;
     auto tuple_v = tables_.at(i);
-    auto missing_cols = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &orig_header[0]);
+    AttrSizeMap size_map;
+    auto missing_cols = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &orig_header[0], &size_map);
 
     if (i != tuple_version) *start_pos = tuple_v.data_table_->begin();
     tuple_v.data_table_->IncrementalScan(txn, start_pos, out_buffer, filled);
@@ -260,10 +264,11 @@ void SqlTable::FillMissingColumns(RowType *out_buffer,
     // Find the until a version has the required column, use the default value that is closest to the tuple version
     for (layout_version_t start_version = tuple_version + 1; start_version <= layout_version; start_version++) {
       auto curr_version = tables_.at(start_version);
+      // Not found in this version
       if (curr_version.default_value_map_.find(it.second) == curr_version.default_value_map_.end()) continue;
 
-      auto default_const = tables_.at(layout_version)
-                               .default_value_map_.at(it.second)
+      // Found the default value at curr_version
+      auto default_const = curr_version.default_value_map_.at(it.second)
                                .CastManagedPointerTo<const parser::ConstantValueExpression>()
                                ->GetValue();
       auto value_size = curr_version.schema_->GetColumn(it.second).AttrSize();
@@ -276,6 +281,7 @@ void SqlTable::FillMissingColumns(RowType *out_buffer,
         StorageUtil::CopyWithNullCheck(output, out_buffer, curr_version.schema_->GetColumn(it.second).AttrSize(),
                                        it.first);
         out_buffer->SetNotNull(it.first);
+        break;
       }
     }
   }
@@ -291,20 +297,31 @@ template void SqlTable::FillMissingColumns<ProjectedColumns::RowView>(
 template <class RowType>
 std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeaderToVersion(
     RowType *const out_buffer, const DataTableVersion &tuple_version, const DataTableVersion &desired_version,
-    col_id_t *cached_orig_header) const {
+    col_id_t *cached_orig_header, AttrSizeMap *const size_map) const {
   std::vector<std::pair<size_t, catalog::col_oid_t>> missing_col;
   // reserve the original header, aka desired version column ids
   std::memcpy(cached_orig_header, out_buffer->ColumnIds(), sizeof(col_id_t) * out_buffer->NumColumns());
 
   // map each desired version col_id (preserving order) to tuple version col_id, by matching col_oid
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-    TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Output buffer should not read the version pointer column.");
+    auto col_id = out_buffer->ColumnIds()[i];
+    TERRIER_ASSERT(col_id != VERSION_POINTER_COLUMN_ID, "Output buffer should not read the version pointer column.");
     TERRIER_ASSERT(desired_version.column_id_to_oid_map_.count(out_buffer->ColumnIds()[i]) > 0,
                    "col_id from out_buffer should be in desired_version map");
-    catalog::col_oid_t col_oid = desired_version.column_id_to_oid_map_.at(out_buffer->ColumnIds()[i]);
+    catalog::col_oid_t col_oid = desired_version.column_id_to_oid_map_.at(col_id);
     if (tuple_version.column_oid_to_id_map_.count(col_oid) > 0) {
-      out_buffer->ColumnIds()[i] = tuple_version.column_oid_to_id_map_.at(col_oid);
+      auto tuple_col_id = tuple_version.column_oid_to_id_map_.at(col_oid);
+      out_buffer->ColumnIds()[i] = tuple_col_id;
+
+      // If the physical stored attr has a larger size, we cannot copy the attribute with its size stored in the
+      // tupleaccessor, but with explicit smaller size of the desired projectedrow's attribute
+      // If the phsyical stored attr has a smaller size, we also need to memset the projected row to be 0 first before
+      // copying a smaller attribute from the tupleslot
+      auto tuple_attr_size = tuple_version.layout_.AttrSize(tuple_col_id);
+      auto pr_attr_size = desired_version.layout_.AttrSize(col_id);
+      if (tuple_attr_size != pr_attr_size) {
+        size_map->insert({tuple_col_id, pr_attr_size});
+      }
     } else {
       // oid is not represented in datatable with tuple version, so put a placeholder in outbuffer
       missing_col.emplace_back(i, col_oid);
@@ -316,10 +333,10 @@ std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeaderToVersio
 
 template std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeaderToVersion<ProjectedRow>(
     ProjectedRow *const out_buffer, const DataTableVersion &tuple_version, const DataTableVersion &desired_version,
-    col_id_t *cached_orig_header) const;
+    col_id_t *cached_orig_header, AttrSizeMap *const size_map) const;
 template std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeaderToVersion<ProjectedColumns::RowView>(
     ProjectedColumns::RowView *const out_buffer, const DataTableVersion &tuple_version,
-    const DataTableVersion &desired_version, col_id_t *cached_orig_header) const;
+    const DataTableVersion &desired_version, col_id_t *cached_orig_header, AttrSizeMap *const size_map) const;
 
 bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema, layout_version_t version) {
   auto curr_num = ++num_of_versions_;

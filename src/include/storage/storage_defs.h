@@ -218,6 +218,12 @@ using DefaultValueMap =
 using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
 /**
+ * Used by storage to explicitly select an attribute with different size, stores a mapping from the column_id to the
+ * actual size in the projected row
+ */
+using AttrSizeMap = std::unordered_map<col_id_t, uint8_t>;
+
+/**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
  */
 enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };

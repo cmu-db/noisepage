@@ -35,9 +35,9 @@ DataTable::~DataTable() {
 }
 
 bool DataTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
-                       ProjectedRow *out_buffer) const {
+                       ProjectedRow *out_buffer, const AttrSizeMap *const size_map) const {
   data_table_counter_.IncrementNumSelect(1);
-  return SelectIntoBuffer(txn, slot, out_buffer);
+  return SelectIntoBuffer(txn, slot, out_buffer, size_map);
 }
 
 void DataTable::IncrementalScan(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -282,7 +282,8 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                 const TupleSlot slot, RowType *const out_buffer) const {
+                                 const TupleSlot slot, RowType *const out_buffer,
+                                 const AttrSizeMap *const size_map) const {
   //  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
   //                 "The output buffer never returns the version pointer columns, so it should have "
   //                 "fewer attributes.");
@@ -298,11 +299,13 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
     // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                     "Output buffer should not read the version pointer column.");
+      auto col_id = out_buffer->ColumnIds()[i];
+      TERRIER_ASSERT(col_id != VERSION_POINTER_COLUMN_ID, "Output buffer should not read the version pointer column.");
       // TODO(Schem-Change): pre-set columns belonging to newer schema to null to facilitate future default value change
       if (out_buffer->ColumnIds()[i] == IGNORE_COLUMN_ID)
         StorageUtil::CopyWithNullCheck(nullptr, out_buffer, 0, i);
+      else if (size_map != nullptr && size_map->count(col_id) > 0)
+        StorageUtil::CopyAttrIntoProjectionWithSize(accessor_, slot, out_buffer, i, size_map->at(col_id));
       else
         StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
@@ -368,10 +371,10 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
 
 template bool DataTable::SelectIntoBuffer<ProjectedRow>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-    ProjectedRow *const out_buffer) const;
+    ProjectedRow *const out_buffer, const AttrSizeMap *const size_map) const;
 template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-    ProjectedColumns::RowView *const out_buffer) const;
+    ProjectedColumns::RowView *const out_buffer, const AttrSizeMap *const size_map) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value

@@ -53,6 +53,20 @@ class StorageUtil {
                                      uint16_t projection_list_offset);
 
   /**
+   *  Copy an attribute from a block into a ProjectedRow, with explicit size. This is used to copy attribute with type
+   * changed
+   * @tparam RowType the row type
+   * @param accessor TupleAccessStrategy used to interact with the block.
+   * @param from the tupleslot to copy from
+   * @param to projected row to copy into
+   * @param projection_list_offset index of the column to copy
+   * @param size the size of the attribute at the column
+   */
+  template <class RowType>
+  static void CopyAttrIntoProjectionWithSize(const TupleAccessStrategy &accessor, TupleSlot from, RowType *to,
+                                             uint16_t projection_list_offset, uint8_t size);
+
+  /**
    * Copy an attribute from a ProjectedRow into a block.
    * @param accessor TupleAccessStrategy used to interact with the given block.
    * @param to tuple slot to copy to

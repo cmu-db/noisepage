@@ -286,8 +286,8 @@ class StorageTestUtil {
 
   template <class RowType>
   static bool ProjectionListAtOidsEqual(const RowType *const row, const storage::ProjectionMap &oid_map,
-                                        const storage::BlockLayout &layout, const std::vector<catalog::col_oid_t> &oids,
-                                        const std::vector<int> &default_values) {
+                                        const storage::BlockLayout layout, std::vector<catalog::col_oid_t> oids,
+                                        std::vector<std::unique_ptr<std::vector<byte>>> &default_values) {
     // Check for each default value
     for (size_t i = 0; i < oids.size(); i++) {
       auto idx = oid_map.at(oids[i]);
@@ -297,9 +297,7 @@ class StorageTestUtil {
       uint8_t attr_size = layout.AttrSize(col_id);
       const byte *row_content = row->AccessWithNullCheck(idx);
 
-      byte default_bytes[type::TypeUtil::GetTypeSize(type::TypeId::INTEGER)];
-      memcpy(default_bytes, &default_values[i], type::TypeUtil::GetTypeSize(type::TypeId::INTEGER));
-      const byte *default_content = &default_bytes[0];
+      const byte *default_content = default_values[i]->data();
 
       // both are null or neither is null.
       if (row_content == nullptr || default_content == nullptr) {
@@ -362,6 +360,10 @@ class StorageTestUtil {
   }
 
   static void SetOid(catalog::Schema::Column *col, catalog::col_oid_t oid) { col->SetOid(oid); }
+  static void SetType(catalog::Schema::Column *col, const type::TypeId id) { col->SetType(id); }
+  static void SetDefaultValue(catalog::Schema::Column *col, std::unique_ptr<parser::AbstractExpression> default_value) {
+    col->default_value_.swap(default_value);
+  }
 
   template <class RowType1, class RowType2>
   static bool ProjectionListEqualDeep(const storage::BlockLayout &layout, const RowType1 *const one,
