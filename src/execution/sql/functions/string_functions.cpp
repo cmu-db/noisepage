@@ -208,35 +208,66 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
 
   // Update temp table
-  auto tempTableOid = ctx->GetTempTable();
   int64_t seq_val = seq->nextval();
-  auto tempTable = accessor->GetTable(tempTableOid);
 
-  auto *const class_insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
-  auto *const class_insert_pr = class_insert_redo->Delta();
+  auto temp_table_oid = ctx->GetTempTable();
+  auto temp_table = accessor->GetTable(temp_table_oid).Get();
+  auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
+  // Sequence table only have two colums right now
+  const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
+  auto temp_pri = temp_table->InitializerForProjectedRow(temp_colums_oids);
 
-  // Write the sequence_oid into the PR
-  auto sequence_oid_offset = pg_class_all_cols_prm_[postgres::RELOID_COL_OID];
-  auto *sequence_oid_ptr = class_insert_pr->AccessForceNotNull(sequence_oid_offset);
-  *(reinterpret_cast<sequence_oid_t *>(sequence_oid_ptr)) = sequence_oid;
+  auto *const table_insert_redo = ctx->GetTxn()->StageWrite(ctx->DBOid(), temp_table_oid, temp_pri);
+  auto *const table_insert_pr = table_insert_redo->Delta();
+  auto const table_projectino_map =  temp_table->ProjectionMapForOids(temp_colums_oids);
 
+  // First column is session id
+  auto *first_col_oid_ptr = table_insert_pr->AccessForceNotNull(table_projectino_map.at(temp_colums_oids[0]));
+  *(reinterpret_cast<catalog::sequence_oid_t *>(first_col_oid_ptr)) = sequence_oid;
+
+  // Second colum is last next val
+  auto *second_col_oid_ptr = table_insert_pr->AccessForceNotNull(table_projectino_map.at(temp_colums_oids[1]));
+  *(reinterpret_cast<int64_t *>(second_col_oid_ptr)) = seq_val;
+
+  temp_table->Insert(ctx->GetTxn(), table_insert_redo);
 
   result->is_null_ = str.is_null_;
   result->val_ = seq_val;
 }
 
 void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
-    auto accessor = ctx->GetAccessor();
-    std::string_view s_v = str.StringView();
-    std::string s(s_v.data(), s_v.size());
+//    auto accessor = ctx->GetAccessor();
+//    std::string_view s_v = str.StringView();
+//    std::string s(s_v.data(), s_v.size());
 
-    auto sequence_oid = accessor->GetSequenceOid(s);
-    common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
-    auto tempNamespace = ctx->GetTempNamespace();
-    int64_t seq_val = seq->currval(tempNamespace);
+//    auto sequence_oid = accessor->GetSequenceOid(s);
+//    common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
+
+    // Read from temp table
+//    auto temp_table_oid = ctx->GetTempTable();
+//    auto temp_table = accessor->GetTable(temp_table_oid).Get();
+//
+//    auto it = temp_table->begin();
+//    auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
+//    // Sequence table only have two colums right now
+//    const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
+//    auto temp_pri = temp_table->InitializerForProjectedColumns(temp_colums_oids, common::Constants::K_DEFAULT_VECTOR_SIZE);
+//    auto *buffer = common::AllocationUtil::AllocateAligned(temp_pri.ProjectedColumnsSize());
+//    storage::ProjectedColumns *columns = temp_pri.Initialize(buffer);
+//
+//    temp_table->Scan(ctx->GetTxn(), &it, columns);
+//    auto tuples = columns->TupleSlots();
+//    auto tuples_len = columns->MaxTuples();
+//    auto target_tuple = storage::TupleSlot();
+//
+//    for (int i = 0; i ++ ; i < tuples_len) {
+//      if (tuples[i].operator==()) {
+//
+//      }
+//    }
 
     result->is_null_ = str.is_null_;
-    result->val_ = seq_val;
+    result->val_ = 0;
 }
 
 void StringFunctions::Length(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {

@@ -325,13 +325,13 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), connection_ctx->GetTempNamespaceOid());
+      connection_ctx->Accessor(), connection_ctx->GetTempNamespaceOid(), connection_ctx->GetTempTable());
 
   exec_ctx->SetParams(portal->Parameters());
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  // UDF currval will throw exception.
+  // builtin function currval will throw exception.
   try {
     exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   }catch (...) {
@@ -386,9 +386,6 @@ catalog::table_oid_t TrafficCop::CreateTempTable(
   auto *const txn = txn_manager_->BeginTransaction();
 
   std::vector<catalog::Schema::Column> columns;
-
-//  auto col = catalog::Schema::Column("col1", type::TypeId::INTEGER, false,
-//                                     parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
 
   auto seq_id_col = catalog::Schema::Column("sequence_oid",type::TypeId::INTEGER,false,
       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));

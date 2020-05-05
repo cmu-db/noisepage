@@ -1396,7 +1396,7 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
   class_insert_pr->SetNull(next_col_oid_offset);
 
-  // Set sequence_ptr to NULL because it gets set by execution layer after instantiation
+  // Set sequence_ptr to SequenceMetadata
   const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
   auto *const sequence_ptr = class_insert_pr->AccessForceNotNull(index_ptr_offset);
   SequenceMetadata *seq_obj = new SequenceMetadata();

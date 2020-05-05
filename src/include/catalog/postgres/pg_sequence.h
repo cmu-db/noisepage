@@ -37,9 +37,6 @@ private:
     }
 
     int64_t currval(terrier::catalog::namespace_oid_t session_namespace){
-        if (cache_.count(session_namespace) == 0) {
-          throw terrier::CATALOG_EXCEPTION("Nextval has never been called in this session");
-        }
-        return cache_[session_namespace];
+        return curr_value;
     }
 };
