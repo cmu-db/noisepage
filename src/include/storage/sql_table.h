@@ -92,6 +92,16 @@ class SqlTable {
   }
 
   /**
+   * Allocates a new slot at the insertion head in the Data Table
+   * @return the allocated TupleSlot
+   */
+  TupleSlot AllocateSlot() {
+    // TODO (abhijithanilkumar): This function is probably only useful to test the TPL code for
+    // CompactionInsertInto. Is there an alternate way to do this?
+    return table_.data_table_->AllocateSlot();
+  }
+
+  /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been
    * called as well in order for the operation to be logged.
    *

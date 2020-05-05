@@ -1645,6 +1645,9 @@ VM_OP void OpStorageInterfaceTableUpdate(bool *result, terrier::execution::sql::
 VM_OP void OpStorageInterfaceTableDelete(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);
 
+VM_OP void OpStorageInterfaceTableAllocateSlot(terrier::storage::TupleSlot *tuple_slot,
+                                               terrier::execution::sql::StorageInterface *storage_interface);
+
 VM_OP void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
                                          terrier::execution::sql::StorageInterface *storage_interface);
 

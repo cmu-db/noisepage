@@ -421,6 +421,7 @@ namespace terrier::execution::vm {
     OperandType::UImm4, OperandType::Local)                                                                           \
   F(StorageInterfaceGetTablePR, OperandType::Local, OperandType::Local)                                               \
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(StorageInterfaceTableAllocateSlot, OperandType::Local, OperandType::Local)                                        \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceTableCompactionInsertInto, OperandType::Local, OperandType::Local)                                          \
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \

@@ -2064,6 +2064,17 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
+    case ast::Builtin::TableAllocateSlot: {
+      // TableAllocateSlot has only 1 argument: Pointer to the storage interface
+      if(!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      // Set return type as TupleSlot
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      call->SetType(GetBuiltinType(tuple_slot_type));
+      break;
+    }
     case ast::Builtin::TableInsert: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -2595,6 +2606,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::StorageInterfaceInit:
     case ast::Builtin::StorageInterfaceInitBind:
     case ast::Builtin::GetTablePR:
+    case ast::Builtin::TableAllocateSlot:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableCompactionInsertInto:
     case ast::Builtin::TableDelete:

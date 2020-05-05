@@ -48,6 +48,12 @@ class EXPORT StorageInterface {
   bool TableUpdate(storage::TupleSlot table_tuple_slot);
 
   /**
+   * Allocate and return a new slot in the Data Table
+   * @return the allocated TupleSlot
+   */
+  storage::TupleSlot TableAllocateSlot();
+
+  /**
    * Reinsert tuple into table.
    * @return slot where the insertion occurred.
    */

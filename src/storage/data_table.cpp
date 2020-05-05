@@ -217,11 +217,59 @@ RawBlock *DataTable::CreateCompactedBlock() {
   return block;
 }
 
+// TODO (abhijithanilkumar): This function is probably only useful to test the TPL code for
+// CompactionInsertInto. Is there an alternate way to do this?
+TupleSlot DataTable::AllocateSlot() {
+
+  TupleSlot result;
+  auto block = insertion_head_;
+  while (true) {
+    // No free block left
+    if (block == blocks_.end()) {
+      RawBlock *new_block = NewBlock();
+      TERRIER_ASSERT(accessor_.SetBlockBusyStatus(new_block), "Status of new block should not be busy");
+      // No need to flip the busy status bit
+      accessor_.Allocate(new_block, &result);
+      // take latch
+      common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+      // insert block
+      blocks_.push_back(new_block);
+      block = --blocks_.end();
+      break;
+    }
+
+    if (accessor_.SetBlockBusyStatus(*block)) {
+      // No one is inserting into this block
+      if (accessor_.Allocate(*block, &result)) {
+        // The block is not full, succeed
+        break;
+      }
+      // Fail to insert into the block, flip back the status bit
+      accessor_.ClearBlockBusyStatus(*block);
+      // if the full block is the insertion_header, move the insertion_header
+      // Next insert txn will search from the new insertion_header
+      CheckMoveHead(block);
+    }
+    // The block is full or the block is being inserted by other txn, try next block
+    ++block;
+  }
+
+  // Do not need to wait unit finish inserting,
+  // can flip back the status bit once the thread gets the allocated tuple slot
+  accessor_.ClearBlockBusyStatus(*block);
+
+  return result;
+}
 
 void DataTable::CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn,
                             const ProjectedRow &redo, TupleSlot dest) {
-  accessor_.Deallocate(dest);
-  accessor_.Reallocate(dest);
+
+  // Reallocate the slot if it had been deallocated
+  if (!accessor_.Allocated(dest)) {
+    accessor_.Reallocate(dest);
+  }
+
+  // Insert into the slot
   InsertInto(txn, redo, dest);
 }
 

@@ -209,6 +209,11 @@ void OpStorageInterfaceTableDelete(bool *result, terrier::execution::sql::Storag
   *result = storage_interface->TableDelete(*tuple_slot);
 }
 
+void OpStorageInterfaceTableAllocateSlot(terrier::storage::TupleSlot *tuple_slot,
+                                         terrier::execution::sql::StorageInterface *storage_interface) {
+  *tuple_slot = storage_interface->TableAllocateSlot();
+}
+
 void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
                                    terrier::execution::sql::StorageInterface *storage_interface) {
   *tuple_slot = storage_interface->TableInsert();

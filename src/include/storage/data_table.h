@@ -175,6 +175,12 @@ class DataTable {
   SlotIterator end() const;  // NOLINT for STL name compability
 
   /**
+   * Allocate a new tuple slot and return the allocated slot
+   * @return slot allocated
+   */
+  TupleSlot AllocateSlot();
+
+  /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
    * undo record that is allocated in the txn. The undo record is populated with a before-image of the tuple in the
    * process. Update will only happen if there is no write-write conflict and tuple is visible, otherwise, this is

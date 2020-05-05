@@ -221,6 +221,7 @@ namespace terrier::execution::ast {
   F(StorageInterfaceInit, storageInterfaceInit)                         \
   F(StorageInterfaceInitBind, storageInterfaceInitBind)                 \
   F(GetTablePR, getTablePR)                                             \
+  F(TableAllocateSlot, tableAllocateSlot)                                             \
   F(TableInsert, tableInsert)                                           \
   F(TableCompactionInsertInto, tableCompactionInsertInto)               \
   F(TableDelete, tableDelete)                                           \

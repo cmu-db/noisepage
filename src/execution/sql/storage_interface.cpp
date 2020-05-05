@@ -47,6 +47,10 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   return index_pr_;
 }
 
+storage::TupleSlot StorageInterface::TableAllocateSlot() {
+  return table_->AllocateSlot();
+}
+
 storage::TupleSlot StorageInterface::TableInsert() {
   exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
   return table_->Insert(exec_ctx_->GetTxn(), table_redo_);
