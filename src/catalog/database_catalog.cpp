@@ -1219,6 +1219,7 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
     if (!verify_res) {
       delete[] child_buffer;
       delete[] buffer;
+      txn->SetMustAbort();
       return false;
     }
   }
@@ -1236,7 +1237,11 @@ void DatabaseCatalog::CopyColumnData(storage::ProjectedRow *table_pr, storage::P
     auto *const index_ptr = index_pr->AccessForceNotNull(index_pr_index);
     auto *const pr_ptr = table_pr->AccessForceNotNull(table_pr_index);
     const auto &table_col = schema.GetColumn(table_pr_index);
-    if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+    if (table_col.Type() == type::TypeId::INTEGER) {
+      uint32_t val = *(reinterpret_cast<uint32_t *>(pr_ptr));
+      *(reinterpret_cast<uint32_t *>(index_ptr)) = val;
+    }
+    else if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
       std::memcpy(index_ptr, pr_ptr, table_col.MaxVarlenSize());
     } else {
       std::memcpy(index_ptr, pr_ptr, type::TypeUtil::GetTypeSize(table_col.Type()));
@@ -1257,7 +1262,7 @@ bool DatabaseCatalog::VerifyUniquePKConstraint(common::ManagedPointer<transactio
   std::vector<storage::TupleSlot> index_scan_results;
   index->ScanKey(*txn, *key_pr, &index_scan_results);
   // set the index projected row from source projected row
-  if (index_scan_results.empty()) {
+  if (!index_scan_results.empty()) {
     delete[] buffer;
     return false;
   }

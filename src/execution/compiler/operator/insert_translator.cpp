@@ -36,15 +36,17 @@ void InsertTranslator::Produce(FunctionBuilder *builder) {
     GetInsertPR(builder);
     // Set the table PR
     GenSetTablePR(builder, idx);
+
+
     // Insert into Table
     GenTableInsert(builder);
+    GenConstraintVerify(builder);
     // Insert into each index.
     const auto &indexes = codegen_->Accessor()->GetIndexOids(op_->GetTableOid());
     for (auto &index_oid : indexes) {
       GenIndexInsert(builder, index_oid);
     }
 
-    GenConstraintVerify(builder);
   }
   GenInserterFree(builder);
 }
@@ -63,15 +65,16 @@ void InsertTranslator::Consume(FunctionBuilder *builder) {
   // Set the values to insert
   FillPRFromChild(builder);
 
+
   // Insert into table
   GenTableInsert(builder);
-
+  GenConstraintVerify(builder);
   // Insert into every index
   const auto &indexes = codegen_->Accessor()->GetIndexOids(op_->GetTableOid());
   for (auto &index_oid : indexes) {
     GenIndexInsert(builder, index_oid);
   }
-  GenConstraintVerify(builder);
+
 }
 
 void InsertTranslator::DeclareInserter(terrier::execution::compiler::FunctionBuilder *builder) {
