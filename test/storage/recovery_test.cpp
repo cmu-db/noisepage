@@ -813,7 +813,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
 
   // Run workload
-  tested->SimulateOltp(1000, 2);
+  tested->SimulateOltp(1000, 1);
   log_manager_->ForceFlush();
 
   // Create directory

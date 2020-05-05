@@ -120,6 +120,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     // Convert RecordBatch
     std::list<RawBlock *> blocks;
     int32_t place_holder;
+
     // Create DataTable
     while (f.read(reinterpret_cast<char *>(&place_holder), sizeof(place_holder)) && place_holder == -1) {
       RawBlock *block = new RawBlock();
