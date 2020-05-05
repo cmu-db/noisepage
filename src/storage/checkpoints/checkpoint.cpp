@@ -4,10 +4,20 @@
 #include <storage/recovery/disk_log_provider.h>
 #include <fstream>
 #include "common/constants.h"
+#include <dirent.h>
 namespace terrier::storage {
 
 bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, const char *cur_log_file,
                                 uint32_t num_threads, common::WorkerPool *thread_pool_) {
+  // clear directory
+  struct dirent *file_entry;
+  auto dir = opendir(path.c_str());
+  while ((file_entry = readdir(dir)) != NULL) {
+    // Find the table
+    if (file_entry->d_type != 0x8) continue;
+    std::string in_file = file_entry->d_name;
+    remove((path + in_file).c_str());
+  }
   // get db catalog accessor
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(static_cast<common::ManagedPointer<transaction::TransactionContext>>(txn), db);
