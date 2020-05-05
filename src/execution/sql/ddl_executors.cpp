@@ -276,7 +276,7 @@ bool DDLExecutors::CreateFKConstraintsAndIndices(const common::ManagedPointer<ca
                               parser::ColumnValueExpression(connection_db, sink_table, table_col.Oid()));
       }
     }
-    catalog::IndexSchema sink_index_schema(key_cols, storage::index::IndexType::BWTREE, true, false, false, true);
+    catalog::IndexSchema sink_index_schema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
     // Create the index, and use its return value as overall success result
     catalog::index_oid_t sink_index_oid = CreateIndexForConstraints(accessor, plan_node->GetNamespaceOid(),
                                                                fk.constraint_name_ + "_sink", sink_table, sink_index_schema);
@@ -296,7 +296,7 @@ bool DDLExecutors::CreateFKConstraintsAndIndices(const common::ManagedPointer<ca
                               parser::ColumnValueExpression(connection_db, table, table_col.Oid()));
       }
     }
-    catalog::IndexSchema src_index_schema(key_cols, storage::index::IndexType::BWTREE, true, false, false, true);
+    catalog::IndexSchema src_index_schema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
     // Create the index, and use its return value as overall success result
     catalog::index_oid_t src_index_oid = CreateIndexForConstraints(accessor, plan_node->GetNamespaceOid(),
                                                                fk.constraint_name_+"_src", table, src_index_schema);
