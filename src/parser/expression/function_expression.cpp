@@ -1,5 +1,5 @@
 #include "parser/expression/function_expression.h"
-3include "common/json.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 

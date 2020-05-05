@@ -41,7 +41,7 @@ void IndexSchema::FromJson(const nlohmann::json &j) {
   TERRIER_ASSERT(false, "Schema::FromJson should never be invoked directly; use DeserializeSchema");
 }
 
-std::unique_ptr<IndexSchema> static IndexSchema::DeserializeSchema(const nlohmann::json &j) {
+std::unique_ptr<IndexSchema> IndexSchema::DeserializeSchema(const nlohmann::json &j) {
   auto columns = j.at("columns").get<std::vector<IndexSchema::Column>>();
 
   auto unique = j.at("unique").get<bool>();

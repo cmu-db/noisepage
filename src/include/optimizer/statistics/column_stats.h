@@ -5,6 +5,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
+#include "common/json_header.h"
 
 namespace terrier::optimizer {
 /**

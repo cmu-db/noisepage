@@ -1,4 +1,5 @@
 #include "parser/sql_statement.h"
+#include "parser/expression/abstract_expression.h"
 #include "common/json.h"
 
 namespace terrier::parser {
@@ -19,13 +20,13 @@ std::vector<std::unique_ptr<AbstractExpression>> TableInfo::FromJson(const nlohm
   return exprs;
 }
 
-virtual nlohmann::json SQLStatement::ToJson() const {
+nlohmann::json SQLStatement::ToJson() const {
   nlohmann::json j;
   j["stmt_type"] = stmt_type_;
   return j;
 }
 
-virtual std::vector<std::unique_ptr<parser::AbstractExpression>> SQLStatement::FromJson(const nlohmann::json &j) {
+std::vector<std::unique_ptr<parser::AbstractExpression>> SQLStatement::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
   stmt_type_ = j.at("stmt_type").get<StatementType>();
   return exprs;

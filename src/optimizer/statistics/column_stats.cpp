@@ -1,4 +1,4 @@
-#include "statistics/column_stats.h"
+#include "optimizer/statistics/column_stats.h"
 #include "common/json.h"
 
 namespace terrier::optimizer {

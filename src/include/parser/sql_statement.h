@@ -12,6 +12,7 @@
 #include "common/json_header.h"
 #include "common/macros.h"
 #include "parser/parser_defs.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier {
 
