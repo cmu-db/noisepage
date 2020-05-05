@@ -1,8 +1,9 @@
 #include "storage/recovery/recovery_manager.h"
 
 #include <catalog/postgres/pg_proc.h>
+#include <dirent.h>
+
 #include <algorithm>
-#include <filesystem>
 
 #include <string>
 #include <unordered_map>
@@ -91,11 +92,14 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
 
   // Get all table oids
   auto table_oids = accessor->GetAllTableOids();
-  for (auto file_entry : std::filesystem::directory_iterator(path)) {
+  struct dirent *file_entry;
+  auto dir = opendir(path.c_str());
+  while ((file_entry = readdir(dir)) != NULL) {
     // Find the table
+    if (file_entry->d_type != 0x8) continue;
     catalog::table_oid_t table_oid;
-    std::string in_file = file_entry.path();
-    Checkpoint::GenOidFromFileName(in_file.substr(path.length(), in_file.length()), db_oid, table_oid);
+    std::string in_file = file_entry->d_name;
+    Checkpoint::GenOidFromFileName(in_file, db_oid, table_oid);
     common::ManagedPointer<storage::SqlTable> table = accessor->GetTable(table_oid);
     auto &data_table = table->table_.data_table_;
     const auto layout = data_table->GetBlockLayout();
@@ -105,7 +109,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
 
     // Find the file
     std::ifstream f;
-    f.open(in_file, std::ios::binary);
+    f.open(path + in_file, std::ios::binary);
 
     // Convert Schema
     uint32_t schema_size;
@@ -207,6 +211,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     delete[] buffer;
     f.close();
   }
+  closedir(dir);
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 

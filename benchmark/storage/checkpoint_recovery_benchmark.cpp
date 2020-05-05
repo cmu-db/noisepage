@@ -123,14 +123,14 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, ReadWriteWorkload)(benchmark::State &state) {
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-                                              .SetNumDatabases(1)
-                                              .SetNumTables(1)
-                                              .SetMaxColumns(5)
-                                              .SetInitialTableSize(initial_table_size_)
-                                              .SetTxnLength(5)
-                                              .SetInsertUpdateSelectDeleteRatio({0.5, 0.0, 0.5, 0.0})
-                                              .SetVarlenAllowed(true)
-                                              .Build();
+          .SetNumDatabases(1)
+          .SetNumTables(5)
+          .SetMaxColumns(5)
+          .SetInitialTableSize(1000)
+          .SetTxnLength(5)
+          .SetInsertUpdateSelectDeleteRatio({0.5, 0.3, 0.2, 0})
+          .SetVarlenAllowed(true)
+          .Build();
 
   RunBenchmark(&state, config);
 }
@@ -140,15 +140,15 @@ BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, ReadWriteWorkload)(benchmark::St
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, HighStress)(benchmark::State &state) {
-  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-                                              .SetNumDatabases(1)
-                                              .SetNumTables(1)
-                                              .SetMaxColumns(1)
-                                              .SetInitialTableSize(initial_table_size_)
-                                              .SetTxnLength(5)
-                                              .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
-                                              .SetVarlenAllowed(false)
-                                              .Build();
+LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+        .SetNumDatabases(1)
+        .SetNumTables(5)
+        .SetMaxColumns(5)
+        .SetInitialTableSize(1000)
+        .SetTxnLength(5)
+        .SetInsertUpdateSelectDeleteRatio({1, 0, 0, 0})
+        .SetVarlenAllowed(true)
+        .Build();
 
   RunBenchmark(&state, config);
 }
