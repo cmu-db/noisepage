@@ -68,18 +68,14 @@ class BlockCompactor {
     //      return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
     // @todo: do we need to consider that insertIndex could fail? Do so now.
     auto tpl_code = R"(
-    fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: *uint16, table_name: *char) -> bool {
+    fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: *uint16, table_name: *uint8) -> bool {
       var storage_interface: StorageInterface
-      @storageInterfaceInitBind(&storage_interface, execCtx, table_name, col_oids, true)
-
-      if (!@tableDelete(&storage_interface, &slot_from)) {
-        @storageInterfaceFree(&storage_interface)
-        return false
-      }
-
-      @tableCompactionInsertInto(&storage_interface, &slot_to)
-      }
-
+      //@storageInterfaceInitBind(&storage_interface, execCtx, table_name, col_oids, true)
+      //if (!@tableDelete(&storage_interface, &slot_from)) {
+        //@storageInterfaceFree(&storage_interface)
+        //return false
+      //}
+      //@tableCompactionInsertInto(&storage_interface, &slot_to)
       return true
     })";
     auto compiler = execution::vm::test::ModuleCompiler();
