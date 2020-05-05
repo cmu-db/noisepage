@@ -265,10 +265,44 @@ TrafficCopResult TrafficCop::BindQuery(
   return {ResultType::COMPLETE, 0};
 }
 
-TrafficCopResult TrafficCop::CodegenAndRunPhysicalPlan(
+TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<network::PostgresPacketWriter> out,
     const common::ManagedPointer<network::Portal> portal) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
+  const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
+  const auto physical_plan = portal->PhysicalPlan();
+  TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
+                 "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+
+  if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
+    // We've already codegen'd this, move on...
+    return {ResultType::COMPLETE, 0};
+  }
+
+  // TODO(Matt): We should get rid of the need of an OutputWriter to ExecutionContext since we just throw this one away
+  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
+
+  // TODO(Matt): We should get rid of the need of an ExecutionContext to perform codegen since we just throw this one
+  // away
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+      connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
+      connection_ctx->Accessor());
+
+  auto exec_query = std::make_unique<execution::ExecutableQuery>(common::ManagedPointer(physical_plan),
+                                                                 common::ManagedPointer(exec_ctx));
+
+  // TODO(Matt): handle code generation failing
+  portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
+
+  return {ResultType::COMPLETE, 0};
+}
+
+TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                                const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                                const common::ManagedPointer<network::Portal> portal) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type = portal->GetStatement()->GetQueryType();
@@ -284,9 +318,9 @@ TrafficCopResult TrafficCop::CodegenAndRunPhysicalPlan(
 
   exec_ctx->SetParams(portal->Parameters());
 
-  auto exec_query = execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
+  const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete
