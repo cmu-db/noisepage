@@ -44,21 +44,6 @@ class Index {
   const IndexMetadata metadata_;
 
   /**
-   * Whether or not the index is live yet and ready for updates
-   */
-  bool is_live_ = true;
-
-  /**
-   * A mutex protecting the is_live_ boolean
-   */
-  mutable std::mutex is_live_mutex_ = {};
-
-  /**
-   * Block on this to get woken up when the index becomes live
-   */
-  mutable std::condition_variable is_live_condvar_ = {};
-
-  /**
    * Determine if a tuple is visible by asking the DataTable associated with the TupleSlot. Used for scans.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to check visibility on
@@ -186,35 +171,6 @@ class Index {
    * @return IndexKeyKind selected by the IndexBuilder at index construction
    */
   IndexKeyKind KeyKind() const { return metadata_.KeyKind(); }
-
-  /**
-   * Waits until the is_live_ variable is true
-   */
-  void WaitUntilLive() const {
-    std::unique_lock<std::mutex> lock(is_live_mutex_);
-    while (!is_live_) {
-      is_live_condvar_.wait(lock);
-    }
-    lock.unlock();
-  }
-
-  /**
-   * Sets the is_live_ variable to true and notifies any waiters on it
-   */
-  void SetLive() {
-    {
-      std::lock_guard<std::mutex> lock(is_live_mutex_);
-      is_live_ = true;
-    }
-    is_live_condvar_.notify_all();
-  }
-
-  /**
-   * Sets the index as not being live yet. Used while populating
-   */
-  void SetNotLive() {
-    is_live_ = false;
-  }
 };
 
 }  // namespace terrier::storage::index

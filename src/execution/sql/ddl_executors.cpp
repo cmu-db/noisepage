@@ -158,14 +158,14 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
 
   } else {
     index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), accessor->GetTransactionContext());
-    index->SetNotLive();
 
     bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
     TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
 
     // Now, populate the index
     index_builder.BulkInsert(index);
-    index->SetLive();
+
+    // Communicate to readers that the index is live
     accessor->SetIndexLive(index_oid);
   }
   return true;
