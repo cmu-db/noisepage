@@ -2,6 +2,7 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <random>
 #include <string>
 #include <unordered_map>
@@ -287,7 +288,7 @@ class StorageTestUtil {
   template <class RowType>
   static bool ProjectionListAtOidsEqual(const RowType *const row, const storage::ProjectionMap &oid_map,
                                         const storage::BlockLayout layout, std::vector<catalog::col_oid_t> oids,
-                                        std::vector<std::unique_ptr<std::vector<byte>>> &default_values) {
+                                        const std::vector<std::unique_ptr<std::vector<byte>>> &default_values) {
     // Check for each default value
     for (size_t i = 0; i < oids.size(); i++) {
       auto idx = oid_map.at(oids[i]);
