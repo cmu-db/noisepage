@@ -99,20 +99,6 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
           common::ManagedPointer<storage::AbstractLogProvider>(&log_provider), recovery_catalog, recovery_txn_manager,
           recovery_deferred_action_manager, recovery_thread_registry, recovery_block_store);
 
-      std::string secondary_log_file = "test3.log";
-      std::string ckpt_path = "ckpt_test/";
-      mkdir(ckpt_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
-      // get db_oid
-      catalog::db_oid_t db;
-      for (auto &database : tested->GetTables()) {
-        db = database.first;
-      }
-      // initalize threads for checkpoint
-      uint32_t num_threads = 4u;
-      common::WorkerPool thread_pool_{num_threads, {}};
-      unlink(secondary_log_file.c_str());
-      storage::Checkpoint ckpt(catalog, txn_manager, deferred_action_manager, gc, log_manager);
-
       uint64_t elapsed_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
