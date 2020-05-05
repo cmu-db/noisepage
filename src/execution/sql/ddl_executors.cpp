@@ -190,10 +190,10 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
     switch (cmd->GetType()) {
       case parser::AlterTableStatement::AlterType::AddColumn: {
         // Add the column to the schema
-        if (!AlterTableCmdExecutor::AddColumn(cmd, update_schema, accessor, change_map)) return false;
+        if (!AlterTableCmdExecutor::AddColumn(cmd, &update_schema, accessor, &change_map)) return false;
       } break;
       case parser::AlterTableStatement::AlterType::DropColumn: {
-        if (!AlterTableCmdExecutor::DropColumn(cmd, update_schema, accessor, change_map)) return false;
+        if (!AlterTableCmdExecutor::DropColumn(cmd, &update_schema, accessor, &change_map)) return false;
       } break;
       default:
         TERRIER_ASSERT(false, "not implemented");

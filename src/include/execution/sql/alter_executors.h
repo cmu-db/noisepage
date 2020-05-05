@@ -29,9 +29,10 @@ class AlterTableCmdExecutor {
    * @param accessor accessor to use for this execution
    * @return whether add column is successful
    */
+  // NOLINTNEXTLINE
   static bool AddColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
-                        const std::unique_ptr<catalog::Schema> &schema,
-                        common::ManagedPointer<catalog::CatalogAccessor> accessor, const ChangeMap &change_map);
+                        std::unique_ptr<catalog::Schema> *schema,
+                        common::ManagedPointer<catalog::CatalogAccessor> accessor, ChangeMap *change_map);
 
   /**
    * Drops a column
@@ -41,9 +42,10 @@ class AlterTableCmdExecutor {
    * @param change_map  to record the changes to schema
    * @return whether drop column is successful
    */
+  // NOLINTNEXTLINE
   static bool DropColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
-                         const std::unique_ptr<catalog::Schema> &schema,
-                         common::ManagedPointer<catalog::CatalogAccessor> accessor, const ChangeMap &change_map);
+                         std::unique_ptr<catalog::Schema> *schema,
+                         common::ManagedPointer<catalog::CatalogAccessor> accessor, ChangeMap *change_map);
 };
 
 }  // namespace terrier::execution::sql

@@ -326,6 +326,7 @@ class StorageTestUtil {
       auto idx1 = itr.second;
       if (drop_cols.find(oid1) == drop_cols.end()) {  // Column not dropped
         auto idx2 = oid_map2.at(oid1);
+        // NOLINTNEXTLINE
         storage::col_id_t one_id = one->ColumnIds()[idx1];
 
         // Check that the two have the same content bit-wise

@@ -44,6 +44,7 @@ static std::unique_ptr<catalog::Schema> ChangeDefaultValue(const catalog::Schema
   std::vector<catalog::Schema::Column> columns(schema.GetColumns());
   for (auto &col : columns) {
     if (col.Oid() == oid) {
+      // NOLINTNEXTLINE
       StorageTestUtil::SetDefaultValue(&col, std::move(default_value));
     }
   }
@@ -271,6 +272,7 @@ class RandomSqlTableTestObject {
 
     // Overwrite the values at the columns
     std::vector<catalog::col_oid_t> oids;
+    oids.reserve(cols.size());
     for (const auto &col : cols) oids.push_back(col.Oid());
     auto col_oid_to_pr_idx = GetProjectionMapForOids(layout_version);
     for (size_t i = 0; i < cols.size(); i++) {
