@@ -17,6 +17,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/alter_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_function_plan_node.h"
@@ -888,6 +889,74 @@ void PlanGenerator::Visit(const Analyze *analyze) {
                      .SetDatabaseOid(analyze->GetDatabaseOid())
                      .SetTableOid(analyze->GetTableOid())
                      .SetColumnOIDs(analyze->GetColumns())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const AlterTable *alter) {
+  const auto &cmd_refs = alter->GetCommands();
+  const auto &oids = alter->GetColOids();
+
+  auto builder = planner::AlterPlanNode::Builder();
+  std::vector<std::unique_ptr<planner::AlterCmdBase>> cmds;
+
+  for (size_t idx = 0; idx < cmd_refs.size(); idx++) {
+    const auto &cmd_ref = cmd_refs[idx];
+    auto col_oid = oids[idx];
+
+    switch (cmd_ref->GetAlterType()) {
+      case parser::AlterTableStatement::AlterType::AddColumn: {
+        auto &col_def = cmd_ref->GetColumn();
+        std::unique_ptr<planner::UniqueInfo> unique_info;
+        std::unique_ptr<planner::CheckInfo> check_info;
+        std::unique_ptr<planner::ForeignKeyInfo> fk_info;
+
+        if (col_def.IsUnique()) {
+          unique_info = builder.ProcessUniqueConstraint(col_def);
+        }
+
+        if (col_def.GetCheckExpression()) {
+          check_info = builder.ProcessCheckConstraint(col_def);
+        }
+
+        // Extract default value
+        auto val_type = col_def.GetValueType();
+        parser::ConstantValueExpression null_val{type::TransientValueFactory::GetNull(val_type)};
+        auto &val = col_def.GetDefaultExpression() != nullptr ? *col_def.GetDefaultExpression() : null_val;
+
+        // Add to command
+        std::unique_ptr<planner::AlterPlanNode::AddColumnCmd> add_col_cmd;
+        if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {
+          add_col_cmd = std::make_unique<planner::AlterPlanNode::AddColumnCmd>(
+              catalog::Schema::Column(col_def.GetColumnName(), val_type, col_def.GetVarlenSize(), col_def.IsNullable(),
+                                      val),
+              nullptr, std::move(unique_info), std::move(check_info));
+          cmds.push_back(std::move(add_col_cmd));
+        } else {
+          add_col_cmd = std::make_unique<planner::AlterPlanNode::AddColumnCmd>(
+              catalog::Schema::Column(col_def.GetColumnName(), val_type, col_def.IsNullable(), val), nullptr,
+              std::move(unique_info), std::move(check_info));
+          cmds.push_back(std::move(add_col_cmd));
+        }
+      } break;
+      case parser::AlterTableStatement::AlterType::DropColumn: {
+        auto col_name = cmd_ref->GetColumnName();
+        auto if_exist = cmd_ref->IsIfExists();
+        auto drop_cascade = cmd_ref->IsDropCascade();
+
+        // Add to the cmd queues
+        auto drop_col_cmd =
+            std::make_unique<planner::AlterPlanNode::DropColumnCmd>(col_name, if_exist, drop_cascade, col_oid);
+        cmds.push_back(std::move(drop_col_cmd));
+      } break;
+      default:
+        TERRIER_ASSERT(false, "Not implemented");
+    }
+  }
+
+  output_plan_ = planner::AlterPlanNode::Builder()
+                     .SetTableOid(alter->GetTableOid())
+                     .SetColumnOIDs(alter->GetColOids())
+                     .SetCommands(std::move(cmds))
                      .Build();
 }
 

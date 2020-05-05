@@ -135,6 +135,15 @@ class TrafficCop {
                              common::ManagedPointer<std::vector<type::TransientValue>> parameters) const;
 
   /**
+   * Contains the logic to reason about ALTER execution
+   * @param connection_ctx context to be used to access the internal txn
+   * @param physical_plan to be executed
+   * @return result of the operation
+   */
+  TrafficCopResult ExecuteAlterStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                         common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
+
+  /**
    * Contains the logic to reason about CREATE execution.
    * @param connection_ctx context to be used to access the internal txn
    * @param physical_plan to be executed

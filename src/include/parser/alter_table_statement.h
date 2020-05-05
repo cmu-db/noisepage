@@ -17,7 +17,9 @@ namespace terrier::parser {
 class AlterTableStatement : public TableRefStatement {
  public:
   /**
-   * Alter table command type (currently supported)
+   * Alter table command type (currently supported):
+   * Add a column, drop a column, change default value (and possibly type) of column, change type of column
+   *
    */
   enum class AlterType { AddColumn, DropColumn, ColumnDefault, AlterColumnType };
 
@@ -26,8 +28,8 @@ class AlterTableStatement : public TableRefStatement {
     /**
      * Add Column
      * @param col_def column definition
-     * @param col_name
-     * @param if_exists IF EXISTS
+     * @param col_name column name
+     * @param if_exists IF table EXISTS
      */
     AlterTableCmd(std::unique_ptr<ColumnDefinition> col_def, std::string col_name, bool if_exists)
         : type_(AlterType::AddColumn),
@@ -37,16 +39,16 @@ class AlterTableStatement : public TableRefStatement {
 
     /**
      * Change Column Type
-     * @param col_def
-     * @param col_name
+     * @param col_def column definition
+     * @param col_name column name
      */
     AlterTableCmd(std::unique_ptr<ColumnDefinition> col_def, std::string col_name)
         : type_(AlterType::AlterColumnType), col_name_(std::move(col_name)), col_(std::move(col_def)) {}
 
     /**
      * Set default value
-     * @param col_name
-     * @param default_value
+     * @param col_name column name
+     * @param default_value default value of column
      */
     AlterTableCmd(std::string col_name, common::ManagedPointer<AbstractExpression> default_value, bool drop_cascade)
         : type_(AlterType::ColumnDefault),
@@ -57,8 +59,8 @@ class AlterTableStatement : public TableRefStatement {
 
     /**
      * Drop Column
-     * @param col_name
-     * @param if_exists
+     * @param col_name column name
+     * @param if_exists IF table EXISTS
      */
     AlterTableCmd(std::string col_name, bool if_exists, bool drop_cascade)
         : type_(AlterType::DropColumn),
@@ -98,18 +100,48 @@ class AlterTableStatement : public TableRefStatement {
      */
     bool IsDropCascade() const { return drop_cascade_; }
 
+    /**
+     * Equality check
+     * @param rhs  other command
+     * @return true if the two commands are same
+     */
+    bool operator==(const AlterTableCmd &rhs) const {
+      if (type_ != rhs.type_) return false;
+      if (col_name_ != rhs.col_name_) return false;
+      if (if_exists_ != rhs.if_exists_) return false;
+      if (drop_cascade_ != rhs.drop_cascade_) return false;
+      if ((!col_ && rhs.col_) || (col_ && rhs.col_ != col_)) return false;
+      if ((!default_value_ && rhs.default_value_) || (default_value_ && default_value_ != rhs.default_value_))
+        return false;
+      return true;
+    }
+
+    /**
+     * Hash
+     * @return hash of the cmd
+     */
+    const common::hash_t Hash() const {
+      common::hash_t hash = common::HashUtil::Hash(type_);
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_name_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(drop_cascade_));
+      // TODO(XC): is there any case when the underlying values should be hashed rather than pointers?
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(default_value_));
+
+      return hash;
+    }
+
    private:
     AlterType type_;
 
     const std::string col_name_;
 
-    const catalog::col_oid_t col_oid_ = catalog::INVALID_COLUMN_OID;
-
     // For Add Column
     std::unique_ptr<ColumnDefinition> col_ = nullptr;
 
     // NOTE: Postgresql 9.6 has ADD COLUMN IF NOT EXISTS, but we are not supporting it yet.
-    // Drop Column IF EXISTS
+    // Drop Column IF table EXISTS
     bool if_exists_ = false;
 
     // Drop column cascade or not
@@ -159,7 +191,7 @@ class AlterTableStatement : public TableRefStatement {
   }
 
   // Column Commands
-  const std::vector<AlterTableCmd> cmds_;
+  std::vector<AlterTableCmd> cmds_;
 
   // Oids of column
   std::vector<catalog::col_oid_t> col_oids_;

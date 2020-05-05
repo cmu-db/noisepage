@@ -1237,6 +1237,38 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// AlterTable
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *AlterTable::Copy() const { return new AlterTable(*this); }
+
+Operator AlterTable::Make(catalog::table_oid_t table_oid,
+                          std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> &&cmds,
+                          std::vector<catalog::col_oid_t> &&col_oids) {
+  auto op = std::make_unique<AlterTable>();
+  op->table_oid_ = table_oid;
+  op->cmds_ = std::move(cmds);
+  op->col_oids_ = std::move(col_oids);
+  return Operator(std::move(op));
+}
+
+common::hash_t AlterTable::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashInRange(hash, cmds_.begin(), cmds_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, col_oids_.begin(), col_oids_.end());
+  return hash;
+}
+
+bool AlterTable::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::ALTERTABLE) return false;
+  const AlterTable &node = *dynamic_cast<const AlterTable *>(&r);
+  if (table_oid_ != node.table_oid_) return false;
+  if (cmds_ != node.cmds_) return false;
+  if (col_oids_ != node.col_oids_) return false;
+  return true;
+}
+
+//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNodeContents<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
@@ -1317,6 +1349,8 @@ template <>
 const char *OperatorNodeContents<DropView>::name = "DropView";
 template <>
 const char *OperatorNodeContents<Analyze>::name = "Analyze";
+template <>
+const char *OperatorNodeContents<AlterTable>::name = "AlterTable";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1393,6 +1427,8 @@ template <>
 OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 template <>
 OpType OperatorNodeContents<Analyze>::type = OpType::ANALYZE;
+template <>
+OpType OperatorNodeContents<AlterTable>::type = OpType::ALTERTABLE;
 
 template <typename T>
 bool OperatorNodeContents<T>::IsLogical() const {

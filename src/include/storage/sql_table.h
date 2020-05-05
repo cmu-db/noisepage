@@ -159,7 +159,7 @@ class SqlTable {
    */
   bool UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn, const catalog::Schema &schema,
                     const layout_version_t layout_version = layout_version_t{0}) {
-    TERRIER_ASSERT(layout_version == num_of_versions_, "lalaInput version should be strictly larger than all versions");
+    TERRIER_ASSERT(layout_version == num_of_versions_, "Input version should be strictly larger than all versions");
     return CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version);
   }
 
@@ -283,6 +283,7 @@ class SqlTable {
   }
 
  private:
+  friend class catalog::DatabaseCatalog;
   friend class RecoveryManager;  // Needs access to OID and ID mappings
   friend class terrier::RandomSqlTableTransaction;
   friend class terrier::LargeSqlTableTestObject;
@@ -301,6 +302,12 @@ class SqlTable {
 
   std::atomic<uint8_t> num_of_versions_ = 0;
 
+  // Should only be used by database catalog accessing pg tables!
+  void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn,
+                            DataTable::SlotIterator *start_pos, ProjectedColumns *out_buffer) const {
+    return tables_.at(layout_version_t(0)).data_table_->ForceScanAllVersions(txn, start_pos, out_buffer);
+  }
+
   /**
    * Translates out_buffer from desired version col_ids to tuple version col_ids, by mapping each col_id in out_buffer
    * to its matching col_id in tuple version (2 col_ids match if they map to the same col_oid) or IGNORE_COLUMN_ID if
@@ -318,7 +325,7 @@ class SqlTable {
                                                                           const DataTableVersion &tuple_version,
                                                                           const DataTableVersion &desired_version,
                                                                           col_id_t *cached_orig_header,
-                                                                          AttrSizeMap *const size_map) const;
+                                                                          AttrSizeMap *size_map) const;
 
   /**
    * Fill the missing columns in the out_buffer with default values of those columns in the desired_version

@@ -5,12 +5,14 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "execution/exec_defs.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "type/type_id.h"
@@ -167,11 +169,15 @@ class CatalogAccessor {
    * modified columns will be stable across a schema change.
    * @param table OID of the modified table
    * @param new_schema object describing the table after modification
+   * @param layout_version layout version to set for the new schema
    * @return true if the operation succeeded, false otherwise
    * @warning If the caller needs to reference the schema object after this call, they should use the GetSchema function
    * to obtain the authoritative schema for this table.
    */
-  bool UpdateSchema(table_oid_t table, Schema *new_schema) const;
+  bool UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version,
+                    const execution::ChangeMap &change_map) const;
+
+  // TODO(XC)
 
   /**
    * Get the visible schema describing the table.
@@ -359,6 +365,25 @@ class CatalogAccessor {
    * @return BlockStore to be used for CREATE operations
    */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
+
+  /**
+   * Get the table columns given a table oid
+   * @param table table_oid
+   * @return vector of columns of the table
+   */
+  std::vector<Schema::Column> GetColumns(table_oid_t table);
+
+  /**
+   * Get the layout version of the table
+   * @param table table_oid
+   * @return the most recent layout version of the table visible to the caller
+   */
+  storage::layout_version_t GetLayoutVersion(table_oid_t table) const;
+
+  /**
+   * @return Transactional context for this accessor
+   */
+  common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() { return txn_; }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

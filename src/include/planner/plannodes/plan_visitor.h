@@ -4,6 +4,7 @@ namespace terrier::planner {
 
 class AggregatePlanNode;
 class AnalyzePlanNode;
+class AlterPlanNode;
 class CreateDatabasePlanNode;
 class CreateFunctionPlanNode;
 class CreateIndexPlanNode;
@@ -51,6 +52,12 @@ class PlanVisitor {
    * @param plan AnalyzePlanNode
    */
   virtual void Visit(UNUSED_ATTRIBUTE const AnalyzePlanNode *plan) {}
+
+  /**
+   * Visist an AlterPlanNode
+   * @param plan AlterPlanNode
+   */
+  virtual void Visit(UNUSED_ATTRIBUTE const AlterPlanNode *plan) {}
 
   /**
    * Visit an CreateDatabasePlanNode

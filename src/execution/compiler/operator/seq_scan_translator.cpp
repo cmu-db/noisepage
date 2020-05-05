@@ -16,7 +16,9 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
       op_(op),
       schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
       input_oids_(MakeInputOids(schema_, op_)),
-      pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
+      pm_(codegen->Accessor()
+              ->GetTable(op_->GetTableOid())
+              ->ProjectionMapForOids(input_oids_, codegen->Accessor()->GetLayoutVersion(op_->GetTableOid()))),
       has_predicate_(op_->GetScanPredicate() != nullptr),
       is_vectorizable_{IsVectorizable(op_->GetScanPredicate().Get())},
       tvi_(codegen->NewIdentifier("tvi")),

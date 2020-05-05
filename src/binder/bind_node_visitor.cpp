@@ -497,7 +497,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
 
   if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
     if (node->IsIfExists()) return;
-    throw BINDER_EXCEPTION("Table does not exists");
+    throw BINDER_EXCEPTION("Table does not exist");
   }
   context_->AddRegularTable(catalog_accessor_, db_oid_, node->GetNamespaceName(), node->GetTableName(),
                             node->GetTableName());
@@ -522,6 +522,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
         }
         if (col.GetCheckExpression() != nullptr)
           col.GetCheckExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+
         // TODO(Ling): add foreign key constraints to column?
         break;
       }

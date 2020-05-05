@@ -7,7 +7,9 @@
 #include "catalog/catalog_accessor.h"
 #include "common/macros.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/alter_executors.h"
 #include "parser/expression/column_value_expression.h"
+#include "planner/plannodes/alter_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
@@ -154,6 +156,61 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   auto *const index = index_builder.Build();
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+  return true;
+}
+
+// TODO(SC): in case any of the commands fail to execute, the entire ALTER TABLE sql should be rolled back
+//  This means updates made by the previous commands (which are already materialized on the catalog tables) need to be
+//  reverted
+bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::AlterPlanNode> node,
+                                      const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  const auto &cmds = node->GetCommands();
+
+  // Get the table
+  const auto table_oid = node->GetTableOid();
+  const auto sql_table = accessor->GetTable(table_oid);
+
+  // Not a regular table
+  if (sql_table == nullptr) return false;
+
+  // Schema to accumulate the changes from various actions
+  std::unique_ptr<catalog::Schema> update_schema(nullptr);
+
+  // Map to indicate the changes to columns
+  std::unordered_map<std::string, std::vector<ChangeType>> change_map;
+  // Get the current schema
+  if (update_schema == nullptr) {
+    const auto &schema = accessor->GetSchema(table_oid);
+    auto cols = schema.GetColumns();
+    update_schema.reset(new catalog::Schema(cols));
+  }
+
+  for (const auto &cmd : cmds) {
+    switch (cmd->GetType()) {
+      case parser::AlterTableStatement::AlterType::AddColumn: {
+        // Add the column to the schema
+        if (!AlterTableCmdExecutor::AddColumn(cmd, update_schema, accessor, change_map)) return false;
+      } break;
+      case parser::AlterTableStatement::AlterType::DropColumn: {
+        if (!AlterTableCmdExecutor::DropColumn(cmd, update_schema, accessor, change_map)) return false;
+      } break;
+      default:
+        TERRIER_ASSERT(false, "not implemented");
+    }
+  }
+
+  // All the commands execute OK
+
+  // Some commands modify the schema, so update the schema
+  if (update_schema != nullptr) {
+    // The catalog will own the Schema
+    auto new_schema = update_schema.release();
+    storage::layout_version_t new_version;
+    if (accessor->UpdateSchema(table_oid, new_schema, &new_version, change_map)) {
+      // WARNING: Update the underlying sql_table, the update is not transactional
+      sql_table->UpdateSchema(accessor->GetTransactionContext(), accessor->GetSchema(table_oid), new_version);
+    }
+  }
   return true;
 }
 }  // namespace terrier::execution::sql

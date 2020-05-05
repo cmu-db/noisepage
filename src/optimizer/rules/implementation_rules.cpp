@@ -962,4 +962,35 @@ void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<OperatorN
   transformed->emplace_back(std::move(op));
 }
 
+LogicalAlterToPhysicalAlter::LogicalAlterToPhysicalAlter() {
+  type_ = RuleType::ALTER_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALALTER);
+}
+
+bool LogicalAlterToPhysicalAlter::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
+  // Checking the oid and the cmd size here?
+  auto logical_op = plan->GetOp().As<LogicalAlter>();
+
+  if (logical_op->GetCommands().size() == 0) return false;
+  if (logical_op->GetTableOid() == catalog::INVALID_TABLE_OID) return false;
+  if (logical_op->GetCommands().size() != logical_op->GetColOids().size()) return false;
+  (void)context;
+
+  return true;
+}
+
+void LogicalAlterToPhysicalAlter::Transform(common::ManagedPointer<OperatorNode> input,
+                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                            UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto logical_op = input->GetOp().As<LogicalAlter>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAlter should have 0 children");
+
+  auto op =
+      std::make_unique<OperatorNode>(AlterTable::Make(logical_op->GetTableOid(), std::move(logical_op->GetCommands()),
+                                                      std::move(logical_op->GetColOids())),
+                                     std::vector<std::unique_ptr<OperatorNode>>());
+
+  transformed->emplace_back(std::move(op));
+}
+
 }  // namespace terrier::optimizer

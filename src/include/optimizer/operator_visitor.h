@@ -240,6 +240,12 @@ class OperatorVisitor {
   virtual void Visit(const Analyze *analyze) {}
 
   /**
+   * Visit a AlterTable physical operator
+   * @param alter table operator
+   */
+  virtual void Visit(const AlterTable *alter) {}
+
+  /**
    * Visit a LogicalGet operator
    * @param logical_get operator
    */
@@ -442,6 +448,12 @@ class OperatorVisitor {
    * @param logical_analyze operator
    */
   virtual void Visit(const LogicalAnalyze *logical_analyze) {}
+
+  /**
+   * Visit a LogicalAlter operator
+   * @param logical_alter  logcial_alter operator
+   */
+  virtual void Visit(const LogicalAlter *logical_alter) {}
 };
 
 }  // namespace terrier::optimizer

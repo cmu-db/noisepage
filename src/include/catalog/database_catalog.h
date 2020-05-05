@@ -13,6 +13,7 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "execution/exec_defs.h"
 #include "execution/udf/udf_context.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -142,6 +143,7 @@ class DatabaseCatalog {
    * @param txn for the operation
    * @param table OID of the modified table
    * @param new_schema object describing the table after modification
+   * @param layout_version_ptr layout version for the updated schema
    * @return true if the operation succeeded, false otherwise
    * @warning The catalog accessor assumes it takes ownership of the schema object
    * that is passed.  As such, there is no guarantee that the pointer is still
@@ -149,7 +151,8 @@ class DatabaseCatalog {
    * schema object after this call, they should use the GetSchema function to
    * obtain the authoritative schema for this table.
    */
-  bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, Schema *new_schema);
+  bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, Schema *new_schema,
+                    storage::layout_version_t *layout_version_ptr, const execution::ChangeMap &change_map);
 
   /**
    * Get the visible schema describing the table.
@@ -378,6 +381,25 @@ class DatabaseCatalog {
    */
   type_oid_t GetTypeOidForType(type::TypeId type);
 
+  /**
+   * Get entries from pg_attribute
+   * @tparam Column type of columns
+   * @param txn txn to use
+   * @param class_oid oid of table or index
+   * @return the column from pg_attribute
+   */
+  template <typename Column, typename ClassOid, typename ColOid>
+  std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
+
+  /**
+   * Get the layout version of the table
+   * @param txn txn to use
+   * @param table_oid  oid of the table
+   * @return the layout version
+   */
+  storage::layout_version_t GetLayoutVersion(common::ManagedPointer<transaction::TransactionContext> txn,
+                                             table_oid_t table_oid);
+
  private:
   // TODO(tanujnay112) Add support for other parameters
 
@@ -413,15 +435,20 @@ class DatabaseCatalog {
   template <typename Column, typename ClassOid, typename ColOid>
   bool CreateColumn(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid, ColOid col_oid,
                     const Column &col);
+
   /**
-   * Get entries from pg_attribute
-   * @tparam Column type of columns
-   * @param txn txn to use
-   * @param class_oid oid of table or index
-   * @return the column from pg_attribute
+   * Drop a single column given the tupleslot of the column
+   * @tparam ClassOid table column or index column
+   * @param txn txn context to use
+   * @param slot tupleslot in columns_ table
+   * @param class_oid class oid
+   * @param pr_buffer buffer to hold the pr selected from the table
+   * @param key_buffer buffer to hold keys to query into index
+   * @return
    */
-  template <typename Column, typename ClassOid, typename ColOid>
-  std::vector<Column> GetColumns(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
+  template <typename ClassOid>
+  bool DropColumn(common::ManagedPointer<transaction::TransactionContext> txn, const storage::TupleSlot &slot,
+                  ClassOid class_oid, byte *pr_buffer, byte *key_buffer);
 
   /**
    * A list of all oids and their postgres::ClassKind from pg_class on the given namespace. This is currently designed
@@ -459,10 +486,13 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer get_class_oid_kind_pri_;
   storage::ProjectedRowInitializer set_class_pointer_pri_;
   storage::ProjectedRowInitializer set_class_schema_pri_;
+  storage::ProjectedRowInitializer set_class_schema_and_version_pri_;
+  storage::ProjectedRowInitializer set_class_next_col_oid_pri_;
   storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
   storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
   storage::ProjectedRowInitializer get_class_object_and_schema_pri_;
   storage::ProjectionMap get_class_object_and_schema_prm_;
+  storage::ProjectionMap set_class_schema_and_version_prm_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
@@ -474,8 +504,10 @@ class DatabaseCatalog {
   storage::ProjectionMap pg_index_all_cols_prm_;
 
   storage::SqlTable *columns_;
-  storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
+  storage::index::Index *columns_oid_index_;  // indexed on class OID and column OID
+  storage::ProjectedRowInitializer column_oid_index_pri_;
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
+  storage::ProjectedRowInitializer column_name_index_pri_;
   storage::ProjectedRowInitializer pg_attribute_all_cols_pri_;
   storage::ProjectionMap pg_attribute_all_cols_prm_;
   storage::ProjectedRowInitializer get_columns_pri_;
@@ -511,7 +543,7 @@ class DatabaseCatalog {
   storage::ProjectionMap pg_proc_all_cols_prm_;
   storage::ProjectedRowInitializer pg_proc_ptr_pri_;
 
-  std::atomic<uint32_t> next_oid_;
+  std::atomic<uint32_t> next_oid_;  // for index
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
@@ -710,5 +742,16 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
+
+  /**
+   * Convenient function that gets the class entry associated with a given table oid.
+   * @param txn transactional context
+   * @param table  table_oid to look up
+   * @param buffer_ptr pointer to buffer that backs up the projectedrow
+   * @param slot tuple slot that associated with the table oid in classes_
+   * @return projectedrow contains the information of the table
+   */
+  storage::ProjectedRow *GetTableEntry(common::ManagedPointer<transaction::TransactionContext> txn,
+                                       catalog::table_oid_t table, byte **buffer_ptr, storage::TupleSlot *slot);
 };
 }  // namespace terrier::catalog

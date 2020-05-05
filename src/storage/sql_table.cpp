@@ -73,6 +73,8 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
   bool result;
   if (tuple_version == layout_version) {
     result = tables_.at(layout_version).data_table_->Update(txn, curr_tuple, *(redo->Delta()));
+    // If the updated_slot pointer is used
+    if (updated_slot != nullptr) *updated_slot = curr_tuple;
   } else {
     // tuple in an older version, check if all modified columns are in the datatable version where the tuple is in
     col_id_t orig_header[redo->Delta()->NumColumns()];

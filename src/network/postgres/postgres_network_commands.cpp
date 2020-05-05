@@ -45,6 +45,8 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
       return;
     }
     result = t_cop->ExecuteDropStatement(connection_ctx, physical_plan, query_type);
+  } else if (query_type <= network::QueryType::QUERY_ALTER) {
+    result = t_cop->ExecuteAlterStatement(connection_ctx, physical_plan);
   }
 
   if (result.type_ == trafficcop::ResultType::COMPLETE) {

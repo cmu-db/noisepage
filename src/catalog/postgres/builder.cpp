@@ -194,6 +194,9 @@ Schema Builder::GetClassTableSchema() {
   columns.emplace_back("nextcoloid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(REL_NEXTCOLOID_COL_OID);
 
+  columns.emplace_back("layoutversion", type::TypeId::SMALLINT, true, MakeNull(type::TypeId::SMALLINT));
+  columns.back().SetOid(REL_VERS_COL_OID);
+
   return Schema(columns);
 }
 

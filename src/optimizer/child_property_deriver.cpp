@@ -249,4 +249,9 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropView *drop_view) {
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
 }
 
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const AlterTable *alter_table) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
 }  // namespace terrier::optimizer

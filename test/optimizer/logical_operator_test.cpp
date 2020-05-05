@@ -1602,4 +1602,42 @@ TEST(OperatorTests, LogicalDropViewTest) {
   EXPECT_NE(op1.Hash(), op6.Hash());
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalAlterTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalAlter
+  //===--------------------------------------------------------------------===//
+  auto default_expr = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(9));
+  auto col_def =
+      std::make_unique<parser::ColumnDefinition>("col_1", parser::ColumnDefinition::DataType::INTEGER, true, true, true,
+                                                 common::ManagedPointer<parser::ConstantValueExpression>(default_expr)
+                                                     .CastManagedPointerTo<parser::AbstractExpression>(),
+                                                 nullptr, 4);
+  const parser::AlterTableStatement::AlterTableCmd cmd1(std::move(col_def), "col_1", true);
+  Operator op1 =
+      LogicalAlter::Make(catalog::table_oid_t(1), {common::ManagedPointer(&cmd1)}, {catalog::INVALID_COLUMN_OID});
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALALTER);
+  EXPECT_EQ(op1.GetName(), "LogicalAlter");
+  EXPECT_EQ(op1.As<LogicalAlter>()->GetTableOid(), catalog::table_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalAlter>()->GetCommands().size(), 1);
+  EXPECT_EQ(op1.As<LogicalAlter>()->GetColOids().size(), 1);
+  EXPECT_EQ(op1.As<LogicalAlter>()->GetColOids().at(0), catalog::INVALID_COLUMN_OID);
+
+  Operator op2 =
+      LogicalAlter::Make(catalog::table_oid_t(1), {common::ManagedPointer(&cmd1)}, {catalog::INVALID_COLUMN_OID});
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  col_def =
+      std::make_unique<parser::ColumnDefinition>("col_2", parser::ColumnDefinition::DataType::INTEGER, true, true, true,
+                                                 common::ManagedPointer<parser::ConstantValueExpression>(default_expr)
+                                                     .CastManagedPointerTo<parser::AbstractExpression>(),
+                                                 nullptr, 4);
+  const parser::AlterTableStatement::AlterTableCmd cmd2(std::move(col_def), "col_2", true);
+  Operator op3 =
+      LogicalAlter::Make(catalog::table_oid_t(1), {common::ManagedPointer(&cmd2)}, {catalog::INVALID_COLUMN_OID});
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
 }  // namespace terrier::optimizer

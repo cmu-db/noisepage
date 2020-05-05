@@ -305,6 +305,14 @@ void DatabaseCatalog::BootstrapPRIs() {
   const std::vector<col_oid_t> set_class_schema_oids{postgres::REL_SCHEMA_COL_OID};
   set_class_schema_pri_ = classes_->InitializerForProjectedRow(set_class_schema_oids);
 
+  const std::vector<col_oid_t> set_class_next_col_oid_oids{postgres::REL_NEXTCOLOID_COL_OID};
+  set_class_next_col_oid_pri_ = classes_->InitializerForProjectedRow(set_class_next_col_oid_oids);
+
+  const std::vector<col_oid_t> set_class_schema_and_version_oids{postgres::REL_SCHEMA_COL_OID,
+                                                                 postgres::REL_VERS_COL_OID};
+  set_class_schema_and_version_pri_ = classes_->InitializerForProjectedRow(set_class_schema_and_version_oids);
+  set_class_schema_and_version_prm_ = classes_->ProjectionMapForOids(set_class_schema_and_version_oids);
+
   const std::vector<col_oid_t> get_class_pointer_kind_oids{postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID};
   get_class_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_pointer_kind_oids);
 
@@ -658,28 +666,31 @@ template <typename Column, typename ClassOid>
 bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::TransactionContext> txn,
                                     const ClassOid class_oid) {
   // Step 1: Read Index
-  const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+  column_oid_index_pri_ = columns_oid_index_->GetProjectedRowInitializer();
+  column_name_index_pri_ = columns_name_index_->GetProjectedRowInitializer();
   auto oid_prm = columns_oid_index_->GetKeyOidToOffsetMap();
-  const auto name_pri = columns_name_index_->GetProjectedRowInitializer();
 
   // Buffer is large enough to hold all prs
-  byte *const buffer = common::AllocationUtil::AllocateAligned(delete_columns_pri_.ProjectedRowSize());
-  byte *const key_buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  auto buffer_size =
+      std::max(delete_columns_pri_.ProjectedRowSize(),
+               std::max(column_oid_index_pri_.ProjectedRowSize(), column_name_index_pri_.ProjectedRowSize()));
+  byte *const buffer1 = common::AllocationUtil::AllocateAligned(buffer_size);
+  byte *const buffer2 = common::AllocationUtil::AllocateAligned(buffer_size);
   // Scan the class index
-  auto *pr = oid_pri.InitializeRow(buffer);
-  auto *key_pr = oid_pri.InitializeRow(key_buffer);
+  auto *low_pr = column_oid_index_pri_.InitializeRow(buffer1);
+  auto *high_pr = column_oid_index_pri_.InitializeRow(buffer2);
 
   // Write the attributes in the ProjectedRow
   // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
+  *(reinterpret_cast<ClassOid *>(low_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
+  *(reinterpret_cast<uint32_t *>(low_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
 
   auto next_oid = ClassOid(!class_oid + 1);
   // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-  *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = next_oid;
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
+  *(reinterpret_cast<ClassOid *>(high_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = next_oid;
+  *(reinterpret_cast<uint32_t *>(high_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
   std::vector<storage::TupleSlot> index_results;
-  columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, key_pr, 0, &index_results);
+  columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, low_pr, high_pr, 0, &index_results);
 
   TERRIER_ASSERT(!index_results.empty(),
                  "Incorrect number of results from index scan. empty() implies that function was called with an oid "
@@ -689,46 +700,15 @@ bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::Tr
   // another catalog table maybe?
 
   // Step 2: Scan the table to get the columns
-  pr = delete_columns_pri_.InitializeRow(buffer);
   for (const auto &slot : index_results) {
-    // 1. Extract attributes from the tuple for the index deletions
-    auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
-    TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
-    const auto *const col_name = reinterpret_cast<const storage::VarlenEntry *const>(
-        pr->AccessWithNullCheck(delete_columns_prm_[postgres::ATTNAME_COL_OID]));
-    TERRIER_ASSERT(col_name != nullptr, "Name shouldn't be NULL.");
-    const auto *const col_oid =
-        reinterpret_cast<const uint32_t *const>(pr->AccessWithNullCheck(delete_columns_prm_[postgres::ATTNUM_COL_OID]));
-    TERRIER_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
-
-    // 2. Delete from the table
-    txn->StageDelete(db_oid_, postgres::COLUMN_TABLE_OID, slot);
-    result = columns_->Delete(txn, slot);
-    if (!result) {
-      // Failed to delete one of the columns, clean up and return false to indicate failure
-      delete[] buffer;
-      delete[] key_buffer;
+    if (!DropColumn(txn, slot, class_oid, buffer1, buffer2)) {
+      delete[] buffer1;
+      delete[] buffer2;
       return false;
     }
-
-    // 4. Delete from oid index
-    key_pr = oid_pri.InitializeRow(key_buffer);
-    // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
-    // Builder::GetColumnOidIndexSchema()
-    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
-    *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = *col_oid;
-    columns_oid_index_->Delete(txn, *key_pr, slot);
-
-    // 5. Delete from name index
-    key_pr = name_pri.InitializeRow(key_buffer);
-    // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of
-    // attribute sizes
-    *(reinterpret_cast<storage::VarlenEntry *>(key_pr->AccessForceNotNull(0))) = *col_name;
-    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(1))) = class_oid;
-    columns_name_index_->Delete(txn, *key_pr, slot);
   }
-  delete[] buffer;
-  delete[] key_buffer;
+  delete[] buffer1;
+  delete[] buffer2;
   return true;
 }
 
@@ -940,12 +920,129 @@ bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::Tran
   return false;
 }
 
+storage::layout_version_t DatabaseCatalog::GetLayoutVersion(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                            table_oid_t table_oid) {
+  byte *buffer = nullptr;
+  storage::TupleSlot tuple_slot;
+  auto all_cols_pr = GetTableEntry(txn, table_oid, &buffer, &tuple_slot);
+  auto layout_version = *(reinterpret_cast<storage::layout_version_t *>(
+      all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
+  delete[] buffer;
+  return layout_version;
+}
+
 bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const table_oid_t table, Schema *const new_schema) {
+                                   const table_oid_t table, Schema *new_schema,
+                                   storage::layout_version_t *layout_version_ptr,
+                                   const execution::ChangeMap &change_map) {
   if (!TryLock(txn)) return false;
-  // TODO(John): Implement
-  TERRIER_ASSERT(false, "Not implemented");
-  return false;
+
+  // Iterate through the column being modified
+  for (auto itr = change_map.begin(); itr != change_map.end(); ++itr) {
+    auto col_name = itr->first;
+
+    // For all the change on this column
+    for (auto change : itr->second) {
+      switch (change) {
+        case execution::ChangeType::Add: {
+          // Get the next col_oid with the table_oid
+          byte *buffer_ptr = nullptr;
+          storage::TupleSlot tuple_slot;
+          auto all_cols_pr = GetTableEntry(txn, table, &buffer_ptr, &tuple_slot);
+
+          auto next_oid = *(reinterpret_cast<col_oid_t *>(
+              all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID])));
+          delete[] buffer_ptr;
+
+          // Create the column with the next_oid
+          auto success = CreateColumn(txn, table, next_oid, new_schema->GetColumn(col_name));
+          if (!success) return false;
+
+          // Update the next_col_oid
+          auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_next_col_oid_pri_);
+          auto *const update_pr = update_redo->Delta();
+
+          update_redo->SetTupleSlot(tuple_slot);
+
+          *reinterpret_cast<col_oid_t *>(update_pr->AccessForceNotNull(0)) = next_oid + 1;
+          storage::TupleSlot new_slot;
+          auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo, storage::layout_version_t(0), &new_slot);
+          TERRIER_ASSERT(res, "Updating the next_col_oid should not fail");
+          TERRIER_ASSERT(update_redo->GetTupleSlot() == new_slot, "Updating should not move the tuple slot");
+        } break;
+        case execution::ChangeType::DropNoCascade: {
+          // Get the tuple slot from the index by name
+          // Initialize the PRI
+          column_name_index_pri_ = columns_name_index_->GetProjectedRowInitializer();
+          column_oid_index_pri_ = columns_oid_index_->GetProjectedRowInitializer();
+
+          auto buffer_size =
+              std::max(delete_columns_pri_.ProjectedRowSize(),
+                       std::max(column_name_index_pri_.ProjectedRowSize(), column_oid_index_pri_.ProjectedRowSize()));
+          auto *const pr_buffer = common::AllocationUtil::AllocateAligned(buffer_size);
+          auto *const key_buffer = common::AllocationUtil::AllocateAligned(buffer_size);
+
+          // Fill up the PR
+          auto *key_pr = column_name_index_pri_.InitializeRow(key_buffer);
+          auto name_varlen = storage::StorageUtil::CreateVarlen(col_name);
+          *(reinterpret_cast<storage::VarlenEntry *>(key_pr->AccessForceNotNull(0))) = name_varlen;
+          *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(1))) = table;
+
+          std::vector<storage::TupleSlot> results;
+          columns_name_index_->ScanKey(*txn, *key_pr, &results);
+          TERRIER_ASSERT(results.size() == 1, "column oid should be unique and binding succeeds");
+          auto slot = results[0];
+
+          // Clean up the name varlen content
+          if (!name_varlen.IsInlined()) {
+            delete[] name_varlen.Content();
+          }
+
+          // Drop the column
+          auto success = DropColumn(txn, slot, table, pr_buffer, key_buffer);
+
+          // Done
+          delete[] pr_buffer;
+          delete[] key_buffer;
+          if (!success) return false;
+        } break;
+        default:
+          throw std::runtime_error("Unimplemented alter table type.");
+      }
+    }
+  }
+
+  // Delete the pointer in case of abort
+  std::vector<Schema::Column> cols_with_valid_oid = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table);
+  // Free the schema with oids not valid
+  delete new_schema;
+  // Create schema from cols with valid oids
+  new_schema = new Schema(cols_with_valid_oid);
+  txn->RegisterAbortAction([=]() { delete new_schema; });
+
+  // Get the current layout_version
+  byte *buffer_ptr = nullptr;
+  storage::TupleSlot tuple_slot;
+  auto all_cols_pr = GetTableEntry(txn, table, &buffer_ptr, &tuple_slot);
+
+  auto cur_layout_version = *(reinterpret_cast<storage::layout_version_t *>(
+      all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
+  delete[] buffer_ptr;
+
+  auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_schema_and_version_pri_);
+  auto *const update_pr = update_redo->Delta();
+
+  update_redo->SetTupleSlot(tuple_slot);
+  *(reinterpret_cast<Schema **>(
+      update_pr->AccessForceNotNull(set_class_schema_and_version_prm_[postgres::REL_SCHEMA_COL_OID]))) = new_schema;
+  *(reinterpret_cast<storage::layout_version_t *>(update_pr->AccessForceNotNull(
+      set_class_schema_and_version_prm_[postgres::REL_VERS_COL_OID]))) = cur_layout_version + 1;
+  storage::TupleSlot new_slot;
+  auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo, storage::layout_version_t(0), &new_slot);
+  TERRIER_ASSERT(update_redo->GetTupleSlot() == new_slot, "Updating should not move the tuple slot");
+
+  *layout_version_ptr = cur_layout_version + 1;
+  return true;
 }
 
 const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1360,14 +1457,32 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
       TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
-          table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
           tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
           break;
         case postgres::ClassKind::INDEX:
-          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
+          //          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
         default:
+          throw std::runtime_error("Unimplemented destructor needed");
+      }
+    }
+  }
+
+  // Scan the table
+  table_iter = classes_->begin();
+  while (table_iter != classes_->end()) {
+    classes_->ForceScanAllVersions(txn, &table_iter, pc);
+    for (uint i = 0; i < pc->NumTuples(); i++) {
+      switch (classes[i]) {
+        case postgres::ClassKind::REGULAR_TABLE:
+          table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
+          break;
+        case postgres::ClassKind::INDEX:
+          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
+          break;
+        default:
+          break;
           throw std::runtime_error("Unimplemented destructor needed");
       }
     }
@@ -1609,8 +1724,8 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   *reinterpret_cast<IndexSchema **>(update_pr->AccessForceNotNull(0)) = new_schema;
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
   TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
-  // TODO(Schema-Change): deal with the case in which tupleslot is migrated
-
+  // NOTE: Schema-Change.
+  // We are assuming catalog table only has 1 schema version. So this update never caused migration.
   return true;
 }
 
@@ -1939,6 +2054,11 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   const auto kind_offset = pg_class_all_cols_prm_[postgres::RELKIND_COL_OID];
   auto *const kind_ptr = insert_pr->AccessForceNotNull(kind_offset);
   *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::REGULAR_TABLE);
+
+  // Write the layout version into the PR
+  const auto layout_version_offset = pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID];
+  auto *const layout_version_ptr = insert_pr->AccessForceNotNull(layout_version_offset);
+  *(reinterpret_cast<storage::layout_version_t *>(layout_version_ptr)) = storage::layout_version_t(0);
 
   // Create the necessary varlen for storage operations
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
@@ -2558,6 +2678,73 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
 
   delete[] buffer;
   return ret;
+}
+
+storage::ProjectedRow *DatabaseCatalog::GetTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                                      const catalog::table_oid_t table, byte **buffer_ptr,
+                                                      storage::TupleSlot *slot) {
+  auto pri = classes_oid_index_->GetProjectedRowInitializer();
+  byte *const idx_buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
+  auto pr = pri.InitializeRow(idx_buffer);
+  *(reinterpret_cast<table_oid_t *>(pr->AccessForceNotNull(0))) = table;
+
+  std::vector<storage::TupleSlot> results;
+  classes_oid_index_->ScanKey(*txn, *pr, &results);
+  delete[] idx_buffer;
+
+  TERRIER_ASSERT(results.size() == 1, "Unique index on table_oid should not return 0 for Add Column");
+
+  *slot = results[0];
+
+  byte *const entry_buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
+  auto all_cols_pr = pg_class_all_cols_pri_.InitializeRow(entry_buffer);
+  classes_->Select(txn, *slot, all_cols_pr);
+
+  *buffer_ptr = entry_buffer;
+
+  return all_cols_pr;
+}
+
+template <typename ClassOid>
+bool DatabaseCatalog::DropColumn(common::ManagedPointer<transaction::TransactionContext> txn,
+                                 const storage::TupleSlot &slot, ClassOid class_oid, byte *pr_buffer,
+                                 byte *key_buffer) {
+  auto *delete_pr = delete_columns_pri_.InitializeRow(pr_buffer);
+  auto oid_prm = columns_oid_index_->GetKeyOidToOffsetMap();
+  // Extract attributes from the tuple for the index deletions
+  auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, delete_pr);
+  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+  const auto *const col_name = reinterpret_cast<const storage::VarlenEntry *const>(
+      delete_pr->AccessWithNullCheck(delete_columns_prm_[postgres::ATTNAME_COL_OID]));
+  TERRIER_ASSERT(col_name != nullptr, "Name shouldn't be NULL.");
+  const auto *const col_oid = reinterpret_cast<const uint32_t *const>(
+      delete_pr->AccessWithNullCheck(delete_columns_prm_[postgres::ATTNUM_COL_OID]));
+  TERRIER_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
+
+  // Delete from the table
+  txn->StageDelete(db_oid_, postgres::COLUMN_TABLE_OID, slot);
+  result = columns_->Delete(txn, slot);
+  if (!result) {
+    return false;
+  }
+
+  // Delete from oid index
+  // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
+  // Builder::GetColumnOidIndexSchema()
+  auto *oid_key_pr = column_oid_index_pri_.InitializeRow(key_buffer);
+  *(reinterpret_cast<ClassOid *>(oid_key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
+  *(reinterpret_cast<uint32_t *>(oid_key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = *col_oid;
+  columns_oid_index_->Delete(txn, *oid_key_pr, slot);
+
+  // Delete from name index
+  // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of
+  // attribute sizes
+  auto *name_key_pr = column_name_index_pri_.InitializeRow(key_buffer);
+  *(reinterpret_cast<storage::VarlenEntry *>(name_key_pr->AccessForceNotNull(0))) = *col_name;
+  *(reinterpret_cast<ClassOid *>(name_key_pr->AccessForceNotNull(1))) = class_oid;
+  columns_name_index_->Delete(txn, *name_key_pr, slot);
+
+  return true;
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(
