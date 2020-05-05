@@ -99,10 +99,10 @@ class StatsStorage {
   /**
    * The following tests check to make sure the protected insert/delete functions work.
    */
+  friend class CostModelTests;
   FRIEND_TEST(StatsStorageTests, GetTableStatsTest);
   FRIEND_TEST(StatsStorageTests, InsertTableStatsTest);
   FRIEND_TEST(StatsStorageTests, DeleteTableStatsTest);
-  FRIEND_TEST(CostModelTests, InnerNLJoinOrderTest);
 
   /**
    * An unordered map mapping StatsStorageKey objects (database_id and table_id) to

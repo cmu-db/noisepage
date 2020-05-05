@@ -91,7 +91,6 @@ class CostModel : public AbstractCostModel {
     // this is the overall cost algorithm for now; will add initial cost optimization later
     double outer_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
     double inner_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
-    auto total_row_count = memo_->GetGroupByID(gexpr_->GetGroupID())->GetNumRows();
 
     // automatically set row counts to 1 if given counts aren't valid
     if (outer_rows <= 0) {
@@ -127,8 +126,7 @@ class CostModel : public AbstractCostModel {
     total_cpu_cost_per_tuple = GetCPUCostForQuals(const_cast<std::vector<AnnotatedExpression> &&>(op->GetJoinPredicates())) + tuple_cpu_cost;
 
     // calculate total cpu cost for all tuples
-    output_cost_ = num_tuples * total_cpu_cost_per_tuple + rows * tuple_cpu_cost;
-    output_cost_ += outer_rows * tuple_cpu_cost + tuple_cpu_cost * total_row_count;
+    output_cost_ = num_tuples * total_cpu_cost_per_tuple + rows * tuple_cpu_cost + outer_rows * tuple_cpu_cost;;
   }
 
   /**
@@ -213,8 +211,7 @@ class CostModel : public AbstractCostModel {
       row_est = uint32_t(row_est);
     }
 
-    output_cost_ += hash_cost * left_rows * row_est * 0.5;
-    output_cost_ += tuple_cpu_cost * total_row_count;
+    output_cost_ = hash_cost * left_rows * row_est * 0.5 + tuple_cpu_cost * total_row_count;
   }
 
   /**
@@ -290,7 +287,7 @@ class CostModel : public AbstractCostModel {
    * @return CPU cost
    */
   double GetCPUCostForQuals(std::vector<AnnotatedExpression> &&qualifiers) {
-    auto total_cost = 0.f;
+    auto total_cost = 1.f;
     for (const auto &q : qualifiers) {
       total_cost += GetCPUCostPerQual(q.GetExpr());
     }
