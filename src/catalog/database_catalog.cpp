@@ -2702,6 +2702,86 @@ bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transa
   return true;
 }
 
+std::unique_ptr<optimizer::TableStats> DatabaseCatalog::GetTableStats(
+    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_id) {
+  // Check that the table ID is valid
+  // TODO(khg): is this needed?
+  const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(table_id));
+  if (ptr_pair.second != postgres::ClassKind::REGULAR_TABLE) {
+    // OID is for an object that doesn't have type REGULAR_TABLE
+    return nullptr;
+  }
+
+  // Read index to find all pg_statistic rows corresponding to table
+  const auto oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
+  auto oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
+  std::vector<storage::TupleSlot> index_results;
+  {
+    // Buffer is large enough to hold all prs
+    const std::unique_ptr<byte[]> buffer_lo(common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize()));
+    const std::unique_ptr<byte[]> buffer_hi(common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize()));
+
+    // Scan the class index
+    auto *pr_lo = oid_pri.InitializeRow(buffer_lo.get());
+    auto *pr_hi = oid_pri.InitializeRow(buffer_hi.get());
+
+    // Low key (class, INVALID_COLUMN_OID)
+    *(reinterpret_cast<table_oid_t *>(pr_lo->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = table_id;
+    *(reinterpret_cast<col_oid_t *>(pr_lo->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = col_oid_t(0);
+
+    auto next_oid = table_oid_t(!table_id + 1);
+    // High key (class + 1, INVALID_COLUMN_OID)
+    *(reinterpret_cast<table_oid_t *>(pr_hi->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = next_oid;
+    *(reinterpret_cast<col_oid_t *>(pr_hi->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = col_oid_t(0);
+
+    statistics_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
+  }
+
+  TERRIER_ASSERT(!index_results.empty(),
+                 "Incorrect number of results from index scan. empty() implies that function was called with an oid "
+                 "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
+
+  // Scan the table to get the columns
+  const std::unique_ptr<byte[]> buffer(
+      common::AllocationUtil::AllocateAligned(pg_statistic_all_cols_pri_.ProjectedRowSize()));
+  auto *pr = pg_statistic_all_cols_pri_.InitializeRow(buffer.get());
+
+  // Accumulate ColumnStats object for each column
+  std::vector<optimizer::ColumnStats> col_stats_list;
+  size_t table_num_rows = 0;
+
+  for (const auto &slot : index_results) {
+    // Extract attributes from the tuple for the index deletions
+    auto UNUSED_ATTRIBUTE result = statistics_->Select(txn, slot, pr);
+    TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+
+    const auto *const col_oid = reinterpret_cast<const col_oid_t *const>(
+        pr->AccessWithNullCheck(pg_statistic_all_cols_prm_[postgres::STAATTNUM_COL_OID]));
+    TERRIER_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
+
+    const auto *const nullfrac = reinterpret_cast<const double *const>(
+        pr->AccessWithNullCheck(pg_statistic_all_cols_prm_[postgres::STANULLFRAC_COL_OID]));
+    TERRIER_ASSERT(nullfrac != nullptr, "nullfrac shouldn't be NULL.");
+
+    const auto *const distinct = reinterpret_cast<const double *const>(
+        pr->AccessWithNullCheck(pg_statistic_all_cols_prm_[postgres::STADISTINCT_COL_OID]));
+    TERRIER_ASSERT(distinct != nullptr, "distinct shouldn't be NULL.");
+
+    const auto *const num_rows = reinterpret_cast<const uint32_t *const>(
+        pr->AccessWithNullCheck(pg_statistic_all_cols_prm_[postgres::STA_NUMROWS_COL_OID]));
+    TERRIER_ASSERT(num_rows != nullptr, "num_rows shouldn't be NULL.");
+
+    // Update num_rows in table
+    table_num_rows = static_cast<size_t>(*num_rows);
+
+    // Create a corresponding ColumnStats object
+    col_stats_list.emplace_back(db_oid_, table_id, *col_oid, static_cast<size_t>(*num_rows), *distinct, *nullfrac,
+                                std::vector<double>{}, std::vector<double>{}, std::vector<double>{}, true);
+  }
+
+  return std::make_unique<optimizer::TableStats>(db_oid_, table_id, table_num_rows, true, col_stats_list);
+}
+
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t class_oid,
     const col_oid_t col_oid, const Schema::Column &col);

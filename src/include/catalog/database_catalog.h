@@ -14,6 +14,7 @@
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "execution/udf/udf_context.h"
+#include "optimizer/statistics/table_stats.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -744,5 +745,13 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ClassOid>
   bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
+
+  /**
+   * Returns a TableStats object corresponding to the given table.
+   * @param table_id oid of table to retrieve statistics for
+   * @return nullptr if table_id is invalid, else a valid TableStats object
+   */
+  std::unique_ptr<optimizer::TableStats> GetTableStats(
+      common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_id);
 };
 }  // namespace terrier::catalog
