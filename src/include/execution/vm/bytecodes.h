@@ -129,7 +129,6 @@ namespace terrier::execution::vm {
   F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
   F(CteScanFree, OperandType::Local)                                                                                  \
                                                                                                                       \
-                                                                                                                      \
   /* ProjectedColumns Iterator (PCI) */                                                                               \
   F(PCIIsFiltered, OperandType::Local, OperandType::Local)                                                            \
   F(PCIHasNext, OperandType::Local, OperandType::Local)                                                               \

@@ -2188,7 +2188,9 @@ class CteScan : public OperatorNodeContents<CteScan> {
   bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetChildExpressions() const {return child_expressions_;}
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetChildExpressions() const {
+    return child_expressions_;
+  }
 
   /**
    * @return the alias of the table to get from
@@ -2202,9 +2204,7 @@ class CteScan : public OperatorNodeContents<CteScan> {
    * Table alias
    */
   std::string table_alias_;
-
 };
-
 
 }  // namespace optimizer
 }  // namespace terrier

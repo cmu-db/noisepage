@@ -50,11 +50,10 @@ class CteScanPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
-      return std::unique_ptr<CteScanPlanNode>(
-          new CteScanPlanNode(std::move(children_), std::move(output_schema_), is_leader_, std::move(table_output_schema_)));
+      return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                  is_leader_, std::move(table_output_schema_)));
     }
 
-   protected:
    private:
     bool is_leader_ = false;
     std::unique_ptr<OutputSchema> table_output_schema_;
@@ -65,10 +64,12 @@ class CteScanPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    */
-  CteScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-      bool is_leader, std::unique_ptr<OutputSchema> table_output_schema)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), is_leader_(is_leader),
-      table_output_schema_(std::move(table_output_schema)){}
+  CteScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                  std::unique_ptr<OutputSchema> output_schema, bool is_leader,
+                  std::unique_ptr<OutputSchema> table_output_schema)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        is_leader_(is_leader),
+        table_output_schema_(std::move(table_output_schema)) {}
 
  public:
   /**
@@ -92,15 +93,17 @@ class CteScanPlanNode : public AbstractPlanNode {
 
   void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
-  bool IsLeader() const {return  is_leader_;}
+  bool IsLeader() const { return is_leader_; }
 
-  void SetLeader() {is_leader_ = true;}
+  void SetLeader() { is_leader_ = true; }
 
   /**
-   * @return table output schema for the node. The output schema contains information on columns of the output of the plan
-   * node operator
+   * @return table output schema for the node. The output schema contains information on columns of the output of the
+   * plan node operator
    */
-  common::ManagedPointer<OutputSchema> GetTableOutputSchema() const { return common::ManagedPointer(table_output_schema_); }
+  common::ManagedPointer<OutputSchema> GetTableOutputSchema() const {
+    return common::ManagedPointer(table_output_schema_);
+  }
 
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;

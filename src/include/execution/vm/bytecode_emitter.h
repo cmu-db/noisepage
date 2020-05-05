@@ -415,7 +415,6 @@ class BytecodeEmitter {
    */
   void CteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
 
-
   // -------------------------------------------
   // Index Calls
   // -------------------------------------------
@@ -433,7 +432,6 @@ class BytecodeEmitter {
    */
   void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t num_attrs,
                              uint32_t table_oid, uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
-
 
   /**
    * Initialize a StringVal from a char array

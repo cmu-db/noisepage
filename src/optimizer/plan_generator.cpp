@@ -973,9 +973,9 @@ void PlanGenerator::Visit(const Analyze *analyze) {
 // CTE
 ///////////////////////////////////////////////////////////////////////////////
 
-void PlanGenerator::Visit(const CteScan *op) {
+void PlanGenerator::Visit(const CteScan *cte_scan) {
   // CteScan has the same output schema as the child plan!
-  TERRIER_ASSERT(children_plans_.size() == 1 || children_plans_.size() == 0, "CteScan needs 1 child plan");
+  TERRIER_ASSERT(children_plans_.size() == 1 || children_plans_.empty(), "CteScan needs 1 child plan");
   if (children_plans_.size() == 1) {
     output_plan_ = std::move(children_plans_[0]);
     // CteScan OutputSchema does not add/drop columns. All output columns of CteScan
@@ -1002,10 +1002,10 @@ void PlanGenerator::Visit(const CteScan *op) {
 
     auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
     output_plan_ = planner::CteScanPlanNode::Builder()
-        .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
-        .SetTableOutputSchema(std::move(cte_scan_out))
-        .AddChild(std::move(output_plan_))
-        .Build();
+                       .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
+                       .SetTableOutputSchema(std::move(cte_scan_out))
+                       .AddChild(std::move(output_plan_))
+                       .Build();
   } else {
     // make schema from output columns
     std::vector<planner::OutputSchema::Column> columns;
@@ -1018,8 +1018,8 @@ void PlanGenerator::Visit(const CteScan *op) {
     }
 
     output_plan_ = planner::CteScanPlanNode::Builder()
-        .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
-        .Build();
+                       .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
+                       .Build();
   }
 }
 
