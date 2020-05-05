@@ -178,7 +178,13 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       }
       data_table->blocks_.push_back(block);
     }
-    data_table->UpdateInsertionHead(nullptr);
+    data_table->insertion_head_ = data_table->blocks_.begin();
+    for (auto block : data_table->blocks_) {
+      if (block->GetInsertHead() != layout.NumSlots()) {
+        break;
+      }
+      data_table->insertion_head_ ++;
+    }
 
     // update indexes
     auto db_catalog_ptr = GetDatabaseCatalog(recovery_txn, db_oid);

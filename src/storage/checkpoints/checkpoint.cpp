@@ -22,11 +22,7 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
     // copy data table
     common::ManagedPointer<storage::SqlTable> curr_sql_table = accessor->GetTable(oid);
     storage::DataTable *curr_data_table = curr_sql_table->table_.data_table_;
-    std::list<RawBlock *> new_blocks(curr_data_table->blocks_);
-    storage::DataTable *new_table = new storage::DataTable(
-        curr_data_table->block_store_, curr_data_table->GetBlockLayout(), curr_data_table->layout_version_);
-    new_table->blocks_ = new_blocks;
-    queue.emplace_back(oid, new_table);
+    queue.emplace_back(oid, curr_data_table);
   }
   std::string tmp = "_catalog";
   std::string catalog_file = std::string(cur_log_file) + tmp; //catalog file: test.log_catalog
@@ -101,6 +97,10 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     // write to disk
     storage::ArrowSerializer arrow_serializer(*data_table);
     arrow_serializer.ExportTable(out_file, &column_types, false);
+
+    for (RawBlock *block : data_table->blocks_) {
+      block->controller_.GetBlockState()->store(BlockState::HOT);
+    }
   }
 }
 
