@@ -77,7 +77,7 @@ class BlockCompactor {
         return false
       }
 
-      @tableInsertInto(&storage_interface, &slot_to)
+      @tableCompactionInsertInto(&storage_interface, &slot_to)
       }
 
       return true

@@ -1,8 +1,6 @@
 #include "storage/block_compactor.h"
 
 #include <memory>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "execution/exec/execution_context.h"
@@ -11,17 +9,12 @@
 #include "common/hash_util.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
-#include "storage/block_access_controller.h"
-#include "storage/garbage_collector.h"
-#include "storage/garbage_collector_thread.h"
 #include "storage/index/index_builder.h"
-#include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/write_ahead_log/log_manager.h"
-#include "test_util/catalog_test_util.h"
 #include "test_util/sql_table_test_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
