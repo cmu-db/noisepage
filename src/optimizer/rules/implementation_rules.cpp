@@ -971,7 +971,7 @@ bool LogicalAlterToPhysicalAlter::Check(common::ManagedPointer<OperatorNode> pla
   // Checking the oid and the cmd size here?
   auto logical_op = plan->GetOp().As<LogicalAlter>();
 
-  if (logical_op->GetCommands().size() == 0) return false;
+  if (logical_op->GetCommands().empty()) return false;
   if (logical_op->GetTableOid() == catalog::INVALID_TABLE_OID) return false;
   if (logical_op->GetCommands().size() != logical_op->GetColOids().size()) return false;
   (void)context;

@@ -806,13 +806,13 @@ using AlterTableType = enum AlterTableType {
 };
 
 using AlterTableCmd = struct AlterTableCmd {
-  NodeTag type;
-  AlterTableType subtype; /* Type of table alteration to apply */
-  char *name;             /* column, constraint, or trigger to act on, or tablespace */
-  Node *newowner;         /* RoleSpec */
-  Node *def;              /* definition of new column, index, constraint, or parent table */
-  DropBehavior behavior;  /* RESTRICT or CASCADE for DROP cases */
-  bool missing_ok;        /* skip error if missing? */
+  NodeTag type_;
+  AlterTableType subtype_; /* Type of table alteration to apply */
+  char *name_;             /* column, constraint, or trigger to act on, or tablespace */
+  Node *newowner_;         /* RoleSpec */
+  Node *def_;              /* definition of new column, index, constraint, or parent table */
+  DropBehavior behavior_;  /* RESTRICT or CASCADE for DROP cases */
+  bool missing_ok_;        /* skip error if missing? */
 };
 
 using ViewCheckOption = enum ViewCheckOption { NO_CHECK_OPTION, LOCAL_CHECK_OPTION, CASCADED_CHECK_OPTION };

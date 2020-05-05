@@ -5,9 +5,9 @@
 
 namespace terrier::execution::sql {
 bool AlterTableCmdExecutor::AddColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
-                                      std::unique_ptr<catalog::Schema> &schema,
-                                      const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                      std::unordered_map<std::string, std::vector<ChangeType>> &change_map) {
+                                      const std::unique_ptr<catalog::Schema> &schema,
+                                      common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                      const ChangeMap &change_map) {
   // Add the column
   auto add_col_cmd = cmd.CastManagedPointerTo<planner::AlterPlanNode::AddColumnCmd>();
   auto new_col = add_col_cmd->GetColumn();
@@ -20,15 +20,15 @@ bool AlterTableCmdExecutor::AddColumn(const common::ManagedPointer<planner::Alte
   // Generate the new schema
   std::unique_ptr<catalog::Schema> tmp_schema(new catalog::Schema(cols));
   schema.swap(tmp_schema);
-  // TODO(SC): adding constrain ?
+  // TODO(SC): adding constraints ?
 
   return true;
 }
 
 bool AlterTableCmdExecutor::DropColumn(const common::ManagedPointer<planner::AlterCmdBase> &cmd,
-                                       std::unique_ptr<catalog::Schema> &schema,
-                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                       ChangeMap &change_map) {
+                                       const std::unique_ptr<catalog::Schema> &schema,
+                                       common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                       const ChangeMap &change_map) {
   auto drop_col_cmd = cmd.CastManagedPointerTo<planner::AlterPlanNode::DropColumnCmd>();
   auto drop_col_oid = drop_col_cmd->GetColOid();
   if (drop_col_oid == catalog::INVALID_COLUMN_OID) {

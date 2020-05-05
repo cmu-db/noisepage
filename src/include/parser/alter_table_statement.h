@@ -76,7 +76,7 @@ class AlterTableStatement : public TableRefStatement {
     /**
      * @return  type of the command
      */
-    const AlterType GetAlterType() const { return type_; }
+    AlterType GetAlterType() const { return type_; }
 
     /**
      * @return column name
@@ -120,7 +120,7 @@ class AlterTableStatement : public TableRefStatement {
      * Hash
      * @return hash of the cmd
      */
-    const common::hash_t Hash() const {
+    common::hash_t Hash() const {
       common::hash_t hash = common::HashUtil::Hash(type_);
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_name_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));

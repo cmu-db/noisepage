@@ -1681,49 +1681,49 @@ std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseRe
   std::vector<AlterTableStatement::AlterTableCmd> cmds;
   for (auto node = root->cmds_->head; node != nullptr; node = node->next) {
     auto cmd = reinterpret_cast<AlterTableCmd *>(node->data.ptr_value);
-    TERRIER_ASSERT(cmd->type == T_AlterTableCmd, "Invlaid alter table cmd, failed to parse");
+    TERRIER_ASSERT(cmd->type_ == T_AlterTableCmd, "Invlaid alter table cmd, failed to parse");
     std::string col_name;
     common::ManagedPointer<AbstractExpression> default_val = nullptr;
     std::unique_ptr<ColumnDefinition> col_def;
 
-    switch (cmd->subtype) {
+    switch (cmd->subtype_) {
       case AT_AddColumn:
-        col_def = ColumnDefTransform(parse_result, reinterpret_cast<ColumnDef *>(cmd->def)).col_;
+        col_def = ColumnDefTransform(parse_result, reinterpret_cast<ColumnDef *>(cmd->def_)).col_;
         col_name = col_def->GetColumnName();
-        cmds.emplace_back(std::move(col_def), std::move(col_name), cmd->missing_ok);
+        cmds.emplace_back(std::move(col_def), std::move(col_name), cmd->missing_ok_);
         break;
       case AT_ColumnDefault: {
         std::unique_ptr<AbstractExpression> expr;
-        if (cmd->def != nullptr) {
-          expr = ExprTransform(parse_result, cmd->def, nullptr);
+        if (cmd->def_ != nullptr) {
+          expr = ExprTransform(parse_result, cmd->def_, nullptr);
         } else {
           // DROP DEFAULT is translated to SET DEFAULT NULL
           auto v = type::TransientValueFactory::GetNull(type::TypeId::INVALID);
           expr = std::make_unique<ConstantValueExpression>(std::move(v));
         }
         default_val = common::ManagedPointer(expr);
-        col_name = std::string(cmd->name);
+        col_name = std::string(cmd->name_);
         if (expr != nullptr) parse_result->AddExpression(std::move(expr));
-        cmds.emplace_back(col_name, default_val, cmd->behavior == DropBehavior::DROP_CASCADE);
+        cmds.emplace_back(col_name, default_val, cmd->behavior_ == DropBehavior::DROP_CASCADE);
         break;
       }
       case AT_DropColumn:
-        col_name = std::string(cmd->name);
-        cmds.emplace_back(col_name, cmd->missing_ok, cmd->behavior == DropBehavior::DROP_CASCADE);
+        col_name = std::string(cmd->name_);
+        cmds.emplace_back(col_name, cmd->missing_ok_, cmd->behavior_ == DropBehavior::DROP_CASCADE);
         break;
       case AT_AlterColumnType:
         // FIXME(xc): why cmd->def->colname_ might be 0x0 here???
         // TODO(Ling): should we, for changing type, save only the col_name and the new type in the command .
         {
-          auto raw_def = reinterpret_cast<ColumnDef *>(cmd->def);
-          if (raw_def->colname_ == nullptr) raw_def->colname_ = cmd->name;
+          auto raw_def = reinterpret_cast<ColumnDef *>(cmd->def_);
+          if (raw_def->colname_ == nullptr) raw_def->colname_ = cmd->name_;
           col_def = ColumnDefTransform(parse_result, raw_def).col_;
           col_name = col_def->GetColumnName();
           cmds.emplace_back(std::move(col_def), std::move(col_name));
         }
         break;
       default:
-        PARSER_LOG_AND_THROW("AlterTableTransform", "Action type", cmd->subtype);
+        PARSER_LOG_AND_THROW("AlterTableTransform", "Action type", cmd->subtype_);
     }
     // TODO(SC) parse name, behaviour, newowner?
   }
