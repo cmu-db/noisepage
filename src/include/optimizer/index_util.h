@@ -187,10 +187,6 @@ class IndexUtil {
           } else if (allow_cves && (ltype == parser::ExpressionType::COLUMN_VALUE && rtype == parser::ExpressionType::COLUMN_VALUE)) {
             auto lexpr = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
             auto rexpr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
-            if (lexpr->GetTableOid() == rexpr->GetTableOid()) {
-              continue;
-            }
-
             if (lexpr->GetTableOid() == tbl_oid) {
               tv_expr = lexpr;
               idx_expr = expr->GetChild(1);

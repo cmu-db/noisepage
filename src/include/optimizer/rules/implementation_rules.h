@@ -118,6 +118,11 @@ class LogicalGetToPhysicalIndexScan : public Rule {
    */
   void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
+
+  void SetAllowCVEs(bool allow) { allow_cves_ = allow; }
+
+ private:
+  bool allow_cves_ = false;
 };
 
 /**

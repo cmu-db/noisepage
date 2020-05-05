@@ -143,7 +143,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorNod
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
-      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, false, &scan_type, &bounds)) {
+      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, allow_cves_, &scan_type, &bounds)) {
         auto op =
             std::make_unique<OperatorNode>(IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds),
                                                            is_update, scan_type, std::move(bounds)),
@@ -486,8 +486,8 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(common::ManagedPointer<
 
   std::vector<std::unique_ptr<OperatorNode>> transform;
   LogicalGetToPhysicalIndexScan idx_scan_transform;
+  idx_scan_transform.SetAllowCVEs(true);
   idx_scan_transform.Transform(common::ManagedPointer(new_child), &transform, context);
-  TERRIER_ASSERT(transform.size() > 0, "Right child should be able to be done as an IndexScan");
 
   for (const auto &idx_op: transform) {
     // IndexJoinTranslator will only translate the inner index as Exact
