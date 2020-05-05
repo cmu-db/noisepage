@@ -7,7 +7,7 @@
 namespace terrier::execution::exec {
 
 OutputBuffer::~OutputBuffer() {
-  memory_pool_->Deallocate(num_tuples_, MAX_THREAD_SIZE * sizeof(uint32_t));
+  memory_pool_->Deallocate(num_tuples_, max_thread_ * sizeof(uint32_t));
   for (auto &it : buffer_map_) {
     memory_pool_->Deallocate(it.second.second, BATCH_SIZE * tuple_size_);
   }
