@@ -11,8 +11,8 @@ OutputBuffer::~OutputBuffer() {
   for (auto &it : buffer_map_) {
     memory_pool_->Deallocate(it.second.second, BATCH_SIZE * tuple_size_);
   }
-  // memory_pool_->Deallocate(tuples_, BATCH_SIZE * tuple_size_); }
 }
+
 void OutputBuffer::Finalize() {
   std::thread::id this_id = std::this_thread::get_id();
   InsertIfAbsent(this_id);

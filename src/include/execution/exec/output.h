@@ -26,7 +26,6 @@ namespace terrier::execution::exec {
 // Callback function
 // Params(): tuples, num_tuples, tuple_size;
 using OutputCallback = std::function<void(byte *, uint32_t, uint32_t)>;
-static constexpr const int MAX_THREAD_SIZE = 32;
 /**
  * A class that buffers the output and makes a callback for every batch.
  */
@@ -45,12 +44,15 @@ class EXPORT OutputBuffer {
    * @param callback upper layer callback
    */
   explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size, OutputCallback callback)
-      : memory_pool_(memory_pool),
-        num_tuples_(reinterpret_cast<uint32_t *>(
-            memory_pool->AllocateAligned(MAX_THREAD_SIZE * sizeof(uint32_t), alignof(uint32_t), true))),
-        tuple_size_(tuple_size),
-        id_(0),
-        callback_(std::move(callback)) {}
+      : memory_pool_(memory_pool), tuple_size_(tuple_size), id_(0), callback_(std::move(callback)) {
+    max_thread_ = std::thread::hardware_concurrency();
+    if (max_thread_ == 0) {
+      // Single thread if fail to get the number of cores
+      max_thread_ = 1;
+    }
+    num_tuples_ = reinterpret_cast<uint32_t *>(
+        memory_pool->AllocateAligned(max_thread_ * sizeof(uint32_t), alignof(uint32_t), true));
+  }
 
   /**
    * Insert the corresponding buffer of a thread to the map if not created yet
@@ -60,8 +62,9 @@ class EXPORT OutputBuffer {
     if (buffer_map_.find(id) == buffer_map_.end()) {
       byte *tuples =
           reinterpret_cast<byte *>(memory_pool_->AllocateAligned(BATCH_SIZE * tuple_size_, alignof(uint64_t), true));
-      int index = id_++;
-      TERRIER_ASSERT(index <= MAX_THREAD_SIZE, "Thread id is larger than MAX_THREAD_SIZE");
+      int index = id_;
+      id_++;
+      TERRIER_ASSERT(index < max_thread_, "Thread id is larger than MAX_THREAD_SIZE");
       buffer_map_.insert(std::make_pair(id, std::make_pair(index, tuples)));
     }
   }
@@ -97,11 +100,12 @@ class EXPORT OutputBuffer {
 
  private:
   sql::MemoryPool *memory_pool_;
-  uint32_t *num_tuples_;
   uint32_t tuple_size_;
   std::atomic<int> id_;
   // byte *tuples_;
   OutputCallback callback_;
+  uint32_t *num_tuples_;
+  int max_thread_;
   tbb::concurrent_unordered_map<std::thread::id, std::pair<int, byte *>, std::hash<std::thread::id> > buffer_map_;
   common::SpinLatch latch_;
 };
