@@ -1092,15 +1092,15 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
           auto *const fk_oid_oid_ptr = fk_index_pr->AccessForceNotNull(0);
           *(reinterpret_cast<constraint_oid_t *>(fk_oid_oid_ptr)) = fk_id;
           std::vector<storage::TupleSlot> fk_index_scan_results;
-          constraints_table_index_->ScanKey(*txn, *key_pr, &fk_index_scan_results);
+          fk_constraints_oid_index_->ScanKey(*txn, *fk_index_pr, &fk_index_scan_results);
 
           // If we found no indexes, return an empty list
           TERRIER_ASSERT(!fk_index_scan_results.empty(),
               "if there is a foreign key in pg_constraint, then fk_constraint table has to have record in index");
           TERRIER_ASSERT(fk_index_scan_results.size() == 1,
                          "one fk_id stored in pg-constraint confrelid array should only have one entry in fk_constraint");
-          auto *fk_select_pr = pg_fk_constraints_all_cols_pri_.InitializeRow(buffer);
-          for (auto &fk_slot : index_scan_results) {
+          auto *fk_select_pr = pg_fk_constraints_all_cols_pri_.InitializeRow(child_buffer);
+          for (auto &fk_slot : fk_index_scan_results) {
             const auto fk_result UNUSED_ATTRIBUTE = fk_constraints_->Select(txn, fk_slot, fk_select_pr);
             TERRIER_ASSERT(fk_result, "Index already verified visibility. This shouldn't fail.");
             auto fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKID_COL_OID];
