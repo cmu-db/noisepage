@@ -798,7 +798,9 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 TEST_F(RecoveryTests, CatalogOnlyTest) {
   std::string secondary_log_file = "test3.log";
   std::string ckpt_path = "ckpt_test/";
+  std::string suffix = "_catalog";
   unlink(secondary_log_file.c_str());
+  unlink((LOG_FILE_NAME + suffix).c_str());
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
                                               .SetNumDatabases(1)
                                               .SetNumTables(5)
@@ -858,7 +860,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   //--------------------------------
 
   // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider("catalog.log");
+
+  DiskLogProvider log_provider(LOG_FILE_NAME + suffix);
   RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
                                    recovery_catalog_,
                                    recovery_txn_manager_,
@@ -991,7 +994,8 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
   //--------------------------------
 
   // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(LOG_FILE_NAME);
+  std::string suffix = "_catalog";
+  DiskLogProvider log_provider(LOG_FILE_NAME + suffix);
   RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
                                    recovery_catalog_,
                                    recovery_txn_manager_,
