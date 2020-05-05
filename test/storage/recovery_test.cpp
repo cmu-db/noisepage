@@ -821,10 +821,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   Checkpoint ckpt(catalog_, txn_manager_, deferred_action_manager_, gc_, log_manager_);
 
   // get db_oid
-  catalog::db_oid_t db;
-  for (auto &database : tested->GetTables()) {
-    db = database.first;
-  }
+  catalog::db_oid_t db = (*(tested->GetTables().begin())).first;
+
   // initalize threads for checkpoint
   uint32_t num_threads = 4u;
   common::WorkerPool thread_pool_{num_threads, {}};
@@ -970,10 +968,8 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
   Checkpoint ckpt(catalog_, txn_manager_, deferred_action_manager_, gc_, log_manager_);
 
   // get db_oid
-  catalog::db_oid_t db;
-  for (auto &database : tested->GetTables()) {
-    db = database.first;
-  }
+  catalog::db_oid_t db = (*(tested->GetTables().begin())).first;
+
   // initalize threads for checkpoint
   uint32_t num_threads = 4u;
   common::WorkerPool thread_pool_{num_threads, {}};
