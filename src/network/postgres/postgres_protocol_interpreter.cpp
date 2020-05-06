@@ -128,11 +128,12 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
     std::this_thread::sleep_for(std::chrono::milliseconds{sleep_time});
     sleep_time *= BACKOFF_FACTOR;
   } while (sleep_time <= MAX_BACKOFF_TIME);
+
   if (temp_oid == catalog::INVALID_TABLE_OID) {
-    STORAGE_LOG_ERROR("INVALID !!!");
-    writer.WriteErrorResponse(
-        "ERROR:  Failed to create a temporary table for this connection.");
-    return Transition::TERMINATE;
+      STORAGE_LOG_ERROR("INVALID !!!");
+      writer.WriteErrorResponse(
+              "ERROR:  Failed to create a temporary table for this connection.");
+      return Transition::TERMINATE;
   }
 
   // Temp namespace creation succeeded, stash some metadata about it in the ConnectionContext

@@ -78,6 +78,11 @@ class Catalog {
   db_oid_t CreateDatabase(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
                           bool bootstrap);
 
+  storage::SqlTable *CreateTempTable(Schema schema) {
+    auto temp_table = new storage::SqlTable(catalog_block_store_, schema);
+    return temp_table;
+  }
+
   /**
    * Deletes the given database.  This operation will fail if there is any DDL
    * operation currently in-flight because it will cause a write-write conflict.

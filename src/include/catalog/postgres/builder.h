@@ -59,6 +59,11 @@ class Builder {
   static Schema GetSequenceTableSchema();
 
   /**
+   * @return schema object for sequence tmp table
+   */
+  static Schema GetSequenceTempTableSchema();
+
+  /**
    * @return schema object for pg_constraints table
    */
   static Schema GetConstraintTableSchema();

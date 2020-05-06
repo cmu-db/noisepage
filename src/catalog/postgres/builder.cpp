@@ -217,6 +217,18 @@ Schema Builder::GetSequenceTableSchema() {
     return Schema(columns);
 }
 
+Schema Builder::GetSequenceTempTableSchema() {
+    std::vector<Schema::Column> columns;
+
+    columns.emplace_back("sequence_oid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+    columns.back().SetOid(SEQTEMPTABLEID_COL_OID);
+
+    columns.emplace_back("last_nextval", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+    columns.back().SetOid(SEQTEMPTABLEVAL_COL_OID);
+
+    return Schema(columns);
+}
+
 Schema Builder::GetConstraintTableSchema() {
   std::vector<Schema::Column> columns;
 
