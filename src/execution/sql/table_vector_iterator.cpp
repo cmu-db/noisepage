@@ -101,8 +101,9 @@ class ScanTask {
 };
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
-                                       const ScanFn scan_fn, exec::ExecutionContext *exec_ctx) {
+bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
+                                       void *query_state, const ScanFn scan_fn, exec::ExecutionContext *exec_ctx,
+                                       unsigned int num_threads) {
   // Lookup table
   common::ManagedPointer<storage::SqlTable> table =
       exec_ctx->GetAccessor()->GetTable(static_cast<catalog::table_oid_t>(table_oid));
@@ -110,11 +111,15 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
     return false;
   }
 
-  // Get number of cores
-  auto processor_count = std::thread::hardware_concurrency();
-  if (processor_count == 0) {
-    // Single thread if fail to get the number of cores
-    processor_count = 1;
+
+  if (num_threads == 0) {
+    // Get the number of cores
+    num_threads = std::thread::hardware_concurrency();
+
+    if (num_threads == 0) {
+      // Single thread if fail to get the number of cores
+      num_threads = 1;
+    }
   }
 
   // Get the number of blocks in the table
@@ -122,7 +127,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
   // Calculate number of blocks for each thread
   size_t min_grain_size =
-      (table->GetBlockListSize() / processor_count) + ((table->GetBlockListSize() % processor_count) > 0 ? 1 : 0);
+      (table->GetBlockListSize() / num_threads) + ((table->GetBlockListSize() % num_threads) > 0 ? 1 : 0);
 
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;
