@@ -1,12 +1,15 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "execution/executable_query.h"
 #include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/type_id.h"
 
@@ -15,32 +18,31 @@ namespace terrier::network {
 /**
  * Statement is a postgres concept (see the Extended Query documentation:
  * https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
- * It encapsulates a parsed statement, the parameter types (if any). It represents a statement ready to be turned into a
- * Portal with a Bind message.
+ * It owns the original query text that came across in the message parsed statement, the output from the Parser, and the
+ * parameter types (if any).
+ *
+ * For caching purposes, it also takes ownership of the physical plan and the ExecutableQuery after code generation.
+ * This allows for a single fingerprint to reference this prepared statement be bound and executed with different
+ * parameters multiple times.
  */
 class Statement {
  public:
   /**
    * Constructor that doesn't have parameter types, i.e. Simple Query protocol
-   * @param parse_result unbound output from postgresparser
+   * @param query_text original query text from the wire
+   * @param parse_result output from postgresparser
    */
-  explicit Statement(std::unique_ptr<parser::ParseResult> &&parse_result) : Statement(std::move(parse_result), {}) {}
+  Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result)
+      : Statement(std::move(query_text), std::move(parse_result), {}) {}
 
   /**
    * Constructor that does have parameter types, i.e. Extended Query protocol
-   * @param parse_result unbound output from postgresparser
+   * @param query_text original query text from the wire
+   * @param parse_result output from postgresparser
    * @param param_types types of the values to be bound
    */
-  Statement(std::unique_ptr<parser::ParseResult> &&parse_result, std::vector<type::TypeId> &&param_types)
-      : parse_result_(std::move(parse_result)), param_types_(std::move(param_types)) {
-    if (Valid()) {
-      TERRIER_ASSERT(parse_result_->GetStatements().size() <= 1, "We currently expect one statement per string.");
-      if (!Empty()) {
-        root_statement_ = parse_result_->GetStatement(0);
-        type_ = trafficcop::TrafficCopUtil::QueryTypeForStatement(root_statement_);
-      }
-    }
-  }
+  Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
+            std::vector<type::TypeId> &&param_types);
 
   /**
    * @return true if parser succeeded and this statement is usable
@@ -81,11 +83,50 @@ class Statement {
    */
   QueryType GetQueryType() const { return type_; }
 
+  /**
+   * @return the original query text. This is a const & instead of a std::string_view because we require that it be
+   * null-terminated to pass the underlying C-string to libpgquery methods. std::string_view does not guarantee
+   * null-termination. We could add a std::string_view accessor for performance if we can justify it.
+   */
+  const std::string &GetQueryText() const { return query_text_; }
+
+  /**
+   * @return the optimized physical plan for this query
+   */
+  common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const {
+    return common::ManagedPointer(physical_plan_);
+  }
+
+  /**
+   * @return the compiled executable query
+   */
+  common::ManagedPointer<execution::ExecutableQuery> GetExecutableQuery() const {
+    return common::ManagedPointer(executable_query_);
+  }
+
+  /**
+   * @param physical_plan physical plan to take ownership of
+   */
+  void SetPhysicalPlan(std::unique_ptr<planner::AbstractPlanNode> &&physical_plan) {
+    physical_plan_ = std::move(physical_plan);
+  }
+
+  /**
+   * @param executable_query executable query to take ownership of
+   */
+  void SetExecutableQuery(std::unique_ptr<execution::ExecutableQuery> &&executable_query) {
+    executable_query_ = std::move(executable_query);
+  }
+
  private:
+  const std::string query_text_;
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
   const std::vector<type::TypeId> param_types_;
   common::ManagedPointer<parser::SQLStatement> root_statement_ = nullptr;
   enum QueryType type_ = QueryType::QUERY_INVALID;
+
+  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;
+  std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;
 };
 
 }  // namespace terrier::network
