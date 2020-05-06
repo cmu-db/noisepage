@@ -335,8 +335,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   // builtin function currval will throw exception.
   try {
     exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-  }catch (...) {
-    return {ResultType::ERROR, "Query failed."};
+  }catch (Exception& exception) {
+      return {ResultType::ERROR, "Query failed. " + std::string(exception.what())};
   }
 
 
@@ -388,9 +388,14 @@ catalog::table_oid_t TrafficCop::CreateTempTable(
 
   const catalog::Schema temp_schema = catalog::postgres::Builder::GetSequenceTempTableSchema();
 
-  const auto temp_table_oid =
-      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable((catalog::namespace_oid_t)15,
-          "temp_table_" + std::to_string((uint32_t)ns_oid), temp_schema);
+//  const auto temp_table_oid =
+//      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable((catalog::namespace_oid_t)15,
+//          "temp_table_" + std::to_string((uint32_t)ns_oid), temp_schema);
+
+    const auto temp_table_oid =
+            catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable(ns_oid,
+                                                                                    "temp_table_" + std::to_string((uint32_t)ns_oid), temp_schema);
+
 
   if (temp_table_oid == catalog::INVALID_TABLE_OID) {
     // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
