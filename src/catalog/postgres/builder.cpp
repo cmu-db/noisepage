@@ -214,6 +214,9 @@ Schema Builder::GetSequenceTableSchema() {
     columns.emplace_back("seqrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
     columns.back().SetOid(SEQRELID_COL_OID);
 
+    columns.emplace_back("seqnextval", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+    columns.back().SetOid(SEQNEXTVAL_COL_OID);
+
     return Schema(columns);
 }
 

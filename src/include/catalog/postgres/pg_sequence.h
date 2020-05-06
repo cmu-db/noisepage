@@ -18,28 +18,22 @@ namespace terrier::catalog::postgres {
  */
     constexpr col_oid_t SEQOID_COL_OID = col_oid_t(1);   // INTEGER (pkey)
     constexpr col_oid_t SEQRELID_COL_OID = col_oid_t(2); // INTEGER (fkey: pg_class)
+    constexpr col_oid_t SEQNEXTVAL_COL_OID = col_oid_t(3); // INTEGER
 
     constexpr col_oid_t SEQTEMPTABLEID_COL_OID = col_oid_t(1);
     constexpr col_oid_t SEQTEMPTABLEVAL_COL_OID = col_oid_t(2);
 
-    constexpr uint8_t NUM_PG_SEQUENCE_COLS = 2;
+    constexpr uint8_t NUM_PG_SEQUENCE_COLS = 3;
 
-    constexpr std::array<col_oid_t, NUM_PG_SEQUENCE_COLS> PG_SEQUENCE_ALL_COL_OIDS{SEQOID_COL_OID, SEQRELID_COL_OID};
+    constexpr std::array<col_oid_t, NUM_PG_SEQUENCE_COLS> PG_SEQUENCE_ALL_COL_OIDS{SEQOID_COL_OID, SEQRELID_COL_OID, SEQNEXTVAL_COL_OID};
 }  // namespace terrier::catalog::postgres
 
 
 class SequenceMetadata {
 private:
-    int64_t curr_value = 0;
 
  public:
     int64_t nextval(){
-        curr_value ++;
-
-        return curr_value;
-    }
-
-    int64_t currval(terrier::catalog::namespace_oid_t session_namespace){
-        return curr_value;
+        return 0;
     }
 };

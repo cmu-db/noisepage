@@ -205,10 +205,24 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   std::string s(s_v.data(), s_v.size());
 
   auto sequence_oid = accessor->GetSequenceOid(s);
-  common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
+//  common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
 
   // Update temp table
-  int64_t seq_val = seq->nextval();
+//  int64_t seq_val = seq->nextval();
+  int64_t seq_val = 0;
+// Get nextval from pg_sequence
+//  auto pg_sequence = accessor->GetTable(catalog::postgres::SEQUENCE_TABLE_OID).Get();
+  auto pg_sequence_index = accessor->GetIndex(catalog::postgres::SEQUENCE_OID_INDEX_OID);
+  auto pg_sequence_index_pri = pg_sequence_index->GetProjectedRowInitializer();
+  byte *const pg_index_buffer = common::AllocationUtil::AllocateAligned(pg_sequence_index_pri.ProjectedRowSize());
+  auto pg_index_pr = pg_sequence_index_pri.InitializeRow(pg_index_buffer);
+  *(reinterpret_cast<catalog::sequence_oid_t *>(pg_index_pr->AccessForceNotNull(0))) = sequence_oid;
+  std::vector<storage::TupleSlot> index_scan_result;
+
+  pg_sequence_index->ScanKey(*ctx->GetTxn().Get(), *pg_index_pr, &index_scan_result);
+  STORAGE_LOG_ERROR("SCAN result");
+  STORAGE_LOG_ERROR(index_scan_result.size());
+
 
   auto temp_table_oid = ctx->GetTempTable();
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
