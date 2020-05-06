@@ -398,7 +398,7 @@ catalog::table_oid_t TrafficCop::CreateTempTable(
   const catalog::Schema tmp_schema{columns};
   const auto temp_table_oid =
       catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable(ns_oid,
-          "temp_table3", tmp_schema);
+          "temp_table", tmp_schema);
 
   if (temp_table_oid == catalog::INVALID_TABLE_OID) {
     // Failed to create new namespace. Could be a concurrent DDL change and worth retrying

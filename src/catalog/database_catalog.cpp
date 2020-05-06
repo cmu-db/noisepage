@@ -2287,7 +2287,9 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   col_oid_t curr_col_oid(1);
   for (auto &col : schema.GetColumns()) {
     auto success = CreateColumn(txn, table_oid, curr_col_oid++, col);
-    if (!success) return false;
+    if (!success) {
+      return false;
+    }
   }
 
   std::vector<Schema::Column> cols = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table_oid);

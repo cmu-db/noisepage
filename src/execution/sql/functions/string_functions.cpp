@@ -210,32 +210,24 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   // Update temp table
   int64_t seq_val = seq->nextval();
 
-  STORAGE_LOG_ERROR("1");
   auto temp_table_oid = ctx->GetTempTable();
-  STORAGE_LOG_ERROR("11");
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
-  STORAGE_LOG_ERROR("111");
   auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
-  STORAGE_LOG_ERROR("1111");
   // Sequence table only have two colums right now
-  const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
-  STORAGE_LOG_ERROR("11111");
+  std::vector<catalog::col_oid_t> temp_colums_oids;
+  temp_colums_oids.emplace_back(temp_colums[0].Oid());
+  temp_colums_oids.emplace_back(temp_colums[1].Oid());
   auto temp_pri = temp_table->InitializerForProjectedRow(temp_colums_oids);
-  STORAGE_LOG_ERROR("2");
   auto *const table_insert_redo = ctx->GetTxn()->StageWrite(ctx->DBOid(), temp_table_oid, temp_pri);
   auto *const table_insert_pr = table_insert_redo->Delta();
   auto const table_projectino_map =  temp_table->ProjectionMapForOids(temp_colums_oids);
-  STORAGE_LOG_ERROR("3");
   // First column is session id
   auto *first_col_oid_ptr = table_insert_pr->AccessForceNotNull(table_projectino_map.at(temp_colums_oids[0]));
   *(reinterpret_cast<catalog::sequence_oid_t *>(first_col_oid_ptr)) = sequence_oid;
-  STORAGE_LOG_ERROR("4");
   // Second colum is last next val
   auto *second_col_oid_ptr = table_insert_pr->AccessForceNotNull(table_projectino_map.at(temp_colums_oids[1]));
   *(reinterpret_cast<int64_t *>(second_col_oid_ptr)) = seq_val;
-  STORAGE_LOG_ERROR("5");
   temp_table->Insert(ctx->GetTxn(), table_insert_redo);
-  STORAGE_LOG_ERROR("6");
   result->is_null_ = str.is_null_;
   result->val_ = seq_val;
 }
