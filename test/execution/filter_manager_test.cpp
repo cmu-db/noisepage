@@ -36,7 +36,7 @@ enum Col : uint8_t { A = 0, B = 1, C = 2, D = 3 };
 
 uint32_t TaaTLt500(ProjectedColumnsIterator *pci) {
   pci->RunFilter([pci]() -> bool {
-    auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
+    auto cola = *pci->Get<int32_t, false>(terrier::storage::col_id_t(Col::A), nullptr);
     return cola < 500;
   });
   return pci->NumSelected();
@@ -70,7 +70,7 @@ TEST_F(FilterManagerTest, DISABLED_SimpleFilterManagerTest) {
 
     // Check
     pci->ForEach([pci]() {
-      auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
+      auto cola = *pci->Get<int32_t, false>(terrier::storage::col_id_t(Col::A), nullptr);
       EXPECT_LT(cola, 500);
     });
   }
@@ -94,7 +94,7 @@ TEST_F(FilterManagerTest, DISABLED_AdaptiveFilterManagerTest) {
 
     // Check
     pci->ForEach([pci]() {
-      auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
+      auto cola = *pci->Get<int32_t, false>(terrier::storage::col_id_t(Col::A), nullptr);
       EXPECT_LT(cola, 500);
     });
   }

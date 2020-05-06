@@ -45,22 +45,22 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   // Iterate through the table.
   while (table_iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {
-      auto *key = pci->Get<int32_t, false>(0, nullptr);
+      auto *key = pci->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
       // Check that the key can be recovered through the index
       auto *const index_pr(index_iter.PR());
-      index_pr->Set<int32_t, false>(0, *key, false);
+      index_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), *key, false);
       index_iter.ScanKey();
       // One entry should be found
       ASSERT_TRUE(index_iter.Advance());
       // Get directly from iterator
       auto *const table_pr(index_iter.TablePR());
-      auto *val = table_pr->Get<int32_t, false>(0, nullptr);
+      auto *val = table_pr->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
       ASSERT_EQ(*key, *val);
       val = nullptr;
       // Get indirectly from tuple slot
       storage::TupleSlot slot(index_iter.CurrentSlot());
       ASSERT_TRUE(sql_table->Select(exec_ctx_->GetTxn(), slot, index_iter.TablePR()));
-      val = table_pr->Get<int32_t, false>(0, nullptr);
+      val = table_pr->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
       ASSERT_EQ(*key, *val);
 
       // Check that there are no more entries.
@@ -84,14 +84,14 @@ TEST_F(IndexIteratorTest, SimpleAscendingScanTest) {
   index_iter.Init();
   auto *const lo_pr(index_iter.LoPR());
   auto *const hi_pr(index_iter.HiPR());
-  lo_pr->Set<int32_t, false>(0, 495, false);
-  hi_pr->Set<int32_t, false>(0, 505, false);
+  lo_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 495, false);
+  hi_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 505, false);
   index_iter.ScanAscending(storage::index::ScanType::Closed, 0);
   int32_t curr_match = 495;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
     auto *const table_pr(index_iter.TablePR());
-    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
+    auto *val = table_pr->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
     EXPECT_EQ(*val, curr_match);
     curr_match++;
     num_matches++;
@@ -113,14 +113,14 @@ TEST_F(IndexIteratorTest, SimpleLimitAscendingScanTest) {
   index_iter.Init();
   auto *const lo_pr(index_iter.LoPR());
   auto *const hi_pr(index_iter.HiPR());
-  lo_pr->Set<int32_t, false>(0, 495, false);
-  hi_pr->Set<int32_t, false>(0, 505, false);
+  lo_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 495, false);
+  hi_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 505, false);
   index_iter.ScanAscending(storage::index::ScanType::Closed, 5);
   int32_t curr_match = 495;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
     auto *const table_pr(index_iter.TablePR());
-    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
+    auto *val = table_pr->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
     EXPECT_EQ(*val, curr_match);
     curr_match++;
     num_matches++;
@@ -144,14 +144,14 @@ TEST_F(IndexIteratorTest, SimpleDescendingScanTest) {
   // Iterate through the table.
   auto *const lo_pr(index_iter.LoPR());
   auto *const hi_pr(index_iter.HiPR());
-  lo_pr->Set<int32_t, false>(0, 495, false);
-  hi_pr->Set<int32_t, false>(0, 505, false);
+  lo_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 495, false);
+  hi_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 505, false);
   index_iter.ScanDescending();
   int32_t curr_match = 505;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
     auto *const table_pr(index_iter.TablePR());
-    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
+    auto *val = table_pr->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
     ASSERT_EQ(*val, curr_match);
     curr_match--;
     num_matches++;
@@ -175,14 +175,14 @@ TEST_F(IndexIteratorTest, SimpleLimitDescendingScanTest) {
   // Iterate through the table.
   auto *const lo_pr(index_iter.LoPR());
   auto *const hi_pr(index_iter.HiPR());
-  lo_pr->Set<int32_t, false>(0, 495, false);
-  hi_pr->Set<int32_t, false>(0, 505, false);
+  lo_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 495, false);
+  hi_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 505, false);
   index_iter.ScanLimitDescending(5);
   int32_t curr_match = 505;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
     auto *const table_pr(index_iter.TablePR());
-    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
+    auto *val = table_pr->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
     ASSERT_EQ(*val, curr_match);
     curr_match--;
     num_matches++;

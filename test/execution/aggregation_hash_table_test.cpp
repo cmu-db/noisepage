@@ -242,29 +242,29 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
 
   const auto hash_fn = [](void *x) {
     auto iters = reinterpret_cast<ProjectedColumnsIterator **>(x);
-    auto key = iters[0]->Get<uint32_t, false>(0, nullptr);
+    auto key = iters[0]->Get<uint32_t, false>(terrier::storage::col_id_t(0), nullptr);
     return util::Hasher::Hash(reinterpret_cast<const uint8_t *>(key), sizeof(uint32_t));
   };
 
   const auto key_eq = [](const void *agg, const void *x) {
     auto agg_tuple = reinterpret_cast<const AggTuple *>(agg);
     auto iters = reinterpret_cast<const ProjectedColumnsIterator *const *>(x);
-    auto pci_key = iters[0]->Get<uint32_t, false>(0, nullptr);
+    auto pci_key = iters[0]->Get<uint32_t, false>(terrier::storage::col_id_t(0), nullptr);
     return agg_tuple->key_ == *pci_key;
   };
 
   const auto init_agg = [](void *agg, void *x) {
     auto iters = reinterpret_cast<ProjectedColumnsIterator **>(x);
-    auto key = iters[0]->Get<uint32_t, false>(0, nullptr);
-    auto val = iters[0]->Get<uint32_t, false>(1, nullptr);
+    auto key = iters[0]->Get<uint32_t, false>(terrier::storage::col_id_t(0), nullptr);
+    auto val = iters[0]->Get<uint32_t, false>(terrier::storage::col_id_t(1), nullptr);
     new (agg) AggTuple(InputTuple(*key, *val));
   };
 
   const auto advance_agg = [](void *agg, void *x) {
     auto agg_tuple = reinterpret_cast<AggTuple *>(agg);
     auto iters = reinterpret_cast<ProjectedColumnsIterator **>(x);
-    auto key = iters[0]->Get<uint32_t, false>(0, nullptr);
-    auto val = iters[0]->Get<uint32_t, false>(1, nullptr);
+    auto key = iters[0]->Get<uint32_t, false>(terrier::storage::col_id_t(0), nullptr);
+    auto val = iters[0]->Get<uint32_t, false>(terrier::storage::col_id_t(1), nullptr);
     agg_tuple->Advance(InputTuple(*key, *val));
   };
 

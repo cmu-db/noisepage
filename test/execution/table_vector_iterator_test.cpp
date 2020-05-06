@@ -58,7 +58,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   int32_t prev_val{0};
   while (iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {
-      auto *val = pci->Get<int32_t, false>(0, nullptr);
+      auto *val = pci->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }
@@ -88,7 +88,7 @@ TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
   while (iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {
       // The serial column is the smallest one (SmallInt type), so it should be the last index in the storage layer.
-      auto *val = pci->Get<int16_t, false>(3, nullptr);
+      auto *val = pci->Get<int16_t, false>(terrier::storage::col_id_t(3), nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }
@@ -117,7 +117,7 @@ TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
   while (iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {
       // Because we only specified one column, its index is 0 instead of three
-      auto *val = pci->Get<int16_t, false>(0, nullptr);
+      auto *val = pci->Get<int16_t, false>(terrier::storage::col_id_t(0), nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }

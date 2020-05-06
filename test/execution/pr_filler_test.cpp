@@ -112,14 +112,14 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   auto index_buffer = common::AllocationUtil::AllocateAligned(index_init.ProjectedRowSize());
   auto index_pr = index_init.InitializeRow(index_buffer);
 
-  table_pr->Set<int32_t, false>(0, 500, false);
+  table_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 500, false);
   filler_fn(table_pr, index_pr);
-  auto val = index_pr->Get<int32_t, false>(0, nullptr);
+  auto val = index_pr->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
   ASSERT_EQ(*val, 500);
 
-  table_pr->Set<int32_t, false>(0, 651, false);
+  table_pr->Set<int32_t, false>(terrier::storage::col_id_t(0), 651, false);
   filler_fn(table_pr, index_pr);
-  val = index_pr->Get<int32_t, false>(0, nullptr);
+  val = index_pr->Get<int32_t, false>(terrier::storage::col_id_t(0), nullptr);
   ASSERT_EQ(*val, 651);
 
   delete[] table_buffer;

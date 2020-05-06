@@ -146,8 +146,8 @@ class PACKED ProjectedRow {
    * @return The typed value at the current iterator position in the column
    */
   template <typename T, bool Nullable>
-  const T *Get(const uint16_t col_idx, bool *const null) const {
-    const auto *result = reinterpret_cast<const T *>(AccessWithNullCheck(col_idx));
+  const T *Get(const col_id_t col_idx, bool *const null) const {
+    const auto *result = reinterpret_cast<const T *>(AccessWithNullCheck(!col_idx));
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Nullable) {
       TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
@@ -169,15 +169,15 @@ class PACKED ProjectedRow {
    * @param null whether the value is null
    */
   template <typename T, bool Nullable>
-  void Set(const uint16_t col_idx, const T &value, const bool null) {
+  void Set(const col_id_t col_idx, const T &value, const bool null) {
     if constexpr (Nullable) {
       if (null) {
-        SetNull(static_cast<uint16_t>(col_idx));
+        SetNull(!col_idx);
       } else {
-        *reinterpret_cast<T *>(AccessForceNotNull(col_idx)) = value;
+        *reinterpret_cast<T *>(AccessForceNotNull(!col_idx)) = value;
       }
     } else {  // NOLINT
-      *reinterpret_cast<T *>(AccessForceNotNull(col_idx)) = value;
+      *reinterpret_cast<T *>(AccessForceNotNull(!col_idx)) = value;
     }
   }
 

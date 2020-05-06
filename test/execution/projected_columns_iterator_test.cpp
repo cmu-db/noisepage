@@ -231,7 +231,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleIteratorTest) {
     bool entered = false;
     for (int16_t last = -1; iter.HasNext(); iter.Advance()) {
       entered = true;
-      auto *ptr = iter.Get<int16_t, false>(GetColOffset(ColId::col_a), nullptr);
+      auto *ptr = iter.Get<int16_t, false>(terrier::storage::col_id_t(GetColOffset(ColId::col_a)), nullptr);
       EXPECT_NE(nullptr, ptr);
       if (last != -1) {
         EXPECT_LE(last, *ptr);
@@ -256,7 +256,7 @@ TEST_F(ProjectedColumnsIteratorTest, ReadNullableColumnsTest) {
   uint32_t num_nulls = 0;
   for (; iter.HasNext(); iter.Advance()) {
     bool null = false;
-    auto *ptr = iter.Get<int32_t, true>(GetColOffset(ColId::col_b), &null);
+    auto *ptr = iter.Get<int32_t, true>(terrier::storage::col_id_t(GetColOffset(ColId::col_b)), &null);
     EXPECT_NE(nullptr, ptr);
     num_nulls += static_cast<uint32_t>(null);
   }
@@ -277,7 +277,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
 
     for (; iter.HasNext(); iter.Advance()) {
       bool null = false;
-      iter.Get<int32_t, true>(GetColOffset(ColId::col_b), &null);
+      iter.Get<int32_t, true>(terrier::storage::col_id_t(GetColOffset(ColId::col_b)), &null);
       iter.Match(!null);
     }
 
@@ -287,7 +287,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
     uint32_t num_non_null = 0;
     for (; iter.HasNextFiltered(); iter.AdvanceFiltered()) {
       bool null = false;
-      iter.Get<int32_t, true>(GetColOffset(ColId::col_b), &null);
+      iter.Get<int32_t, true>(terrier::storage::col_id_t(GetColOffset(ColId::col_b)), &null);
       EXPECT_FALSE(null);
       num_non_null++;
     }
@@ -314,7 +314,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
     SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     for (; iter.HasNext(); iter.Advance()) {
-      auto *val = iter.Get<int16_t, false>(GetColOffset(ColId::col_a), nullptr);
+      auto *val = iter.Get<int16_t, false>(terrier::storage::col_id_t(GetColOffset(ColId::col_a)), nullptr);
       iter.Match(*val < 100);
     }
 
@@ -322,7 +322,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
 
     for (; iter.HasNextFiltered(); iter.AdvanceFiltered()) {
       bool null = false;
-      iter.Get<int32_t, true>(GetColOffset(ColId::col_b), &null);
+      iter.Get<int32_t, true>(terrier::storage::col_id_t(GetColOffset(ColId::col_b)), &null);
       iter.Match(null);
     }
 
@@ -333,14 +333,14 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
     for (; iter.HasNextFiltered(); iter.AdvanceFiltered()) {
       // col_a must be less than 100
       {
-        auto *val = iter.Get<int16_t, false>(GetColOffset(ColId::col_a), nullptr);
+        auto *val = iter.Get<int16_t, false>(terrier::storage::col_id_t(GetColOffset(ColId::col_a)), nullptr);
         EXPECT_LT(*val, 100);
       }
 
       // col_b must be NULL
       {
         bool null = false;
-        iter.Get<int32_t, true>(GetColOffset(ColId::col_b), &null);
+        iter.Get<int32_t, true>(terrier::storage::col_id_t(GetColOffset(ColId::col_b)), &null);
         EXPECT_TRUE(null);
       }
     }
@@ -359,7 +359,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
 
   iter.RunFilter([&iter, this]() {
     bool null = false;
-    iter.Get<int32_t, true>(this->GetColOffset(ColId::col_b), &null);
+    iter.Get<int32_t, true>(terrier::storage::col_id_t(this->GetColOffset(ColId::col_b)), &null);
     return !null;
   });
 
@@ -375,7 +375,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
     iter.ForEach([&iter, &c, this]() {
       c++;
       bool null = false;
-      iter.Get<int32_t, true>(this->GetColOffset(ColId::col_b), &null);
+      iter.Get<int32_t, true>(terrier::storage::col_id_t(this->GetColOffset(ColId::col_b)), &null);
       EXPECT_FALSE(null);
     });
 
@@ -397,7 +397,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
   // Compute expected result
   uint32_t expected = 0;
   for (; iter.HasNext(); iter.Advance()) {
-    auto val = *iter.Get<int32_t, false>(GetColOffset(ColId::col_c), nullptr);
+    auto val = *iter.Get<int32_t, false>(terrier::storage::col_id_t(GetColOffset(ColId::col_c)), nullptr);
     if (val < 100) {
       expected++;
     }
@@ -410,7 +410,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
   // Check
   uint32_t count = 0;
   for (; iter.HasNextFiltered(); iter.AdvanceFiltered()) {
-    auto val = *iter.Get<int32_t, false>(GetColOffset(ColId::col_c), nullptr);
+    auto val = *iter.Get<int32_t, false>(terrier::storage::col_id_t(GetColOffset(ColId::col_c)), nullptr);
     EXPECT_LT(val, 100);
     count++;
   }
@@ -441,8 +441,8 @@ TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
   // Check
   uint32_t count = 0;
   for (; iter.HasNextFiltered(); iter.AdvanceFiltered()) {
-    auto col_a_val = *iter.Get<int16_t, false>(GetColOffset(ColId::col_a), nullptr);
-    auto col_c_val = *iter.Get<int32_t, false>(GetColOffset(ColId::col_c), nullptr);
+    auto col_a_val = *iter.Get<int16_t, false>(terrier::storage::col_id_t(GetColOffset(ColId::col_a)), nullptr);
+    auto col_c_val = *iter.Get<int32_t, false>(terrier::storage::col_id_t(GetColOffset(ColId::col_c)), nullptr);
     EXPECT_LT(col_a_val, 10);
     EXPECT_LT(col_c_val, 750);
     count++;

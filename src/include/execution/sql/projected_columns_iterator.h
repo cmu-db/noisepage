@@ -5,6 +5,7 @@
 #include "storage/projected_columns.h"
 
 #include "common/macros.h"
+#include "common/strong_typedef.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/execution_common.h"
 #include "type/type_id.h"
@@ -68,7 +69,7 @@ class EXPORT ProjectedColumnsIterator {
    * @return The typed value at the current iterator position in the column
    */
   template <typename T, bool nullable>
-  const T *Get(uint32_t col_idx, bool *null) const;
+  const T *Get(terrier::storage::col_id_t col_idx, bool *null) const;
 
   /**
    * Set the current iterator position
@@ -257,13 +258,13 @@ class EXPORT ProjectedColumnsIterator {
 // Retrieve a single column value (and potentially its NULL indicator) from the
 // desired column's input data
 template <typename T, bool Nullable>
-inline const T *ProjectedColumnsIterator::Get(uint32_t col_idx, bool *null) const {
+inline const T *ProjectedColumnsIterator::Get(terrier::storage::col_id_t col_idx, bool *null) const {
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (Nullable) {
     TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
-    *null = !projected_column_->ColumnNullBitmap(static_cast<uint16_t>(col_idx))->Test(curr_idx_);
+    *null = !projected_column_->ColumnNullBitmap(!col_idx)->Test(curr_idx_);
   }
-  const T *col_data = reinterpret_cast<T *>(projected_column_->ColumnStart(static_cast<uint16_t>(col_idx)));
+  const T *col_data = reinterpret_cast<T *>(projected_column_->ColumnStart(!col_idx));
   return &col_data[curr_idx_];
 }
 

@@ -88,7 +88,7 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
 
   template <uint8_t N>
   static hash_t HashTupleInPCI(ProjectedColumnsIterator *pci) noexcept {
-    const auto *key_ptr = pci->Get<uint32_t, false>(0, nullptr);
+    const auto *key_ptr = pci->Get<uint32_t, false>(terrier::storage::col_id_t(0), nullptr);
     return util::Hasher::Hash(reinterpret_cast<const uint8_t *>(key_ptr), sizeof(Tuple<N>::build_key_));
   }
 
@@ -98,7 +98,7 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
   template <uint8_t N>
   static bool CmpTupleInPCI(const void *table_tuple, ProjectedColumnsIterator *pci) noexcept {
     auto lhs_key = reinterpret_cast<const Tuple<N> *>(table_tuple)->build_key_;
-    auto rhs_key = *pci->Get<uint32_t, false>(0, nullptr);
+    auto rhs_key = *pci->Get<uint32_t, false>(terrier::storage::col_id_t(0), nullptr);
     return lhs_key == rhs_key;
   }
 
@@ -169,7 +169,7 @@ TEST_F(JoinHashTableVectorProbeTest, SimpleGenericLookupTest) {
       auto ht_key = entry->PayloadAs<Tuple<n>>()->build_key_;
       // NOTE: this would break if the columns had different sizes_ since the
       // storage layer might reorder them.
-      auto probe_key = *pci.Get<uint32_t, false>(0, nullptr);
+      auto probe_key = *pci.Get<uint32_t, false>(terrier::storage::col_id_t(0), nullptr);
       EXPECT_EQ(ht_key, probe_key);
     }
   }
