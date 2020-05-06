@@ -30,7 +30,11 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (query_type <= network::QueryType::QUERY_DELETE) {
     // DML query to put through codegen
-    result = t_cop->CodegenAndRunPhysicalPlan(connection_ctx, out, portal);
+    result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
+
+    // TODO(Matt): do something with result here in case codegen fails
+
+    result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
   } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_CREATE_DB) {
       out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
@@ -67,9 +71,11 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
                  "caught at the protocol interpreter Process() level.");
 
-  const auto query = in_.ReadString();
+  auto query_text = in_.ReadString();
 
-  auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection));
+  auto parse_result = t_cop->ParseQuery(query_text, connection);
+
+  const auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result));
 
   // Parsing a SimpleQuery clears the unnamed statement and portal
   postgres_interpreter->CloseStatement("");
@@ -133,7 +139,9 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
       // Binding succeeded, optimize to generate a physical plan and then execute
       auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
 
-      const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement), std::move(physical_plan));
+      statement->SetPhysicalPlan(std::move(physical_plan));
+
+      const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement));
 
       if (query_type == network::QueryType::QUERY_SELECT) {
         out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
@@ -188,11 +196,12 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     return Transition::PROCEED;
   }
 
-  const auto query = in_.ReadString();
-
+  auto query_text = in_.ReadString();
+  auto parse_result = t_cop->ParseQuery(query_text, connection);
   auto param_types = PostgresPacketUtil::ReadParamTypes(common::ManagedPointer(&in_));
 
-  auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection), std::move(param_types));
+  auto statement =
+      std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result), std::move(param_types));
 
   // Extended Query protocol doesn't allow for more than one statement per query string
   if (!statement->Valid() || statement->ParseResult()->NumStatements() > 1) {
@@ -210,7 +219,17 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  postgres_interpreter->SetStatement(statement_name, std::move(statement));
+  const auto fingerprint_result = pg_query_fingerprint(statement->GetQueryText().c_str());
+
+  auto cached_statement = postgres_interpreter->LookupStatementInCache(fingerprint_result.hexdigest);
+  if (cached_statement == nullptr) {
+    // Not in the cache, add to cache
+    cached_statement = common::ManagedPointer(statement);
+    postgres_interpreter->AddStatementToCache(fingerprint_result.hexdigest, std::move(statement));
+  }
+  pg_query_free_fingerprint_result(fingerprint_result);
+
+  postgres_interpreter->SetStatement(statement_name, cached_statement);
 
   out->WriteParseComplete();
 
@@ -256,6 +275,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   TERRIER_ASSERT(param_formats.size() == 1 || param_formats.size() == statement->ParamTypes().size(),
                  "Incorrect number of parameter format codes. Should either be 1 (all the same) or the number of "
                  "parameters required for this statement.");
+  // TODO(Matt): probably shouldn't be an assert, but rather an error response
 
   // read the params
   auto params =
@@ -283,8 +303,8 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (query_type <= network::QueryType::QUERY_ROLLBACK) {
     // Don't begin an implicit txn in this case, and don't bind or optimize this statement
-    postgres_interpreter->SetPortal(
-        portal_name, std::make_unique<Portal>(statement, nullptr, std::move(params), std::move(result_formats)));
+    postgres_interpreter->SetPortal(portal_name,
+                                    std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
     return Transition::PROCEED;
   }
@@ -292,8 +312,8 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   if (query_type >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
     // Don't begin an implicit txn in this case, and don't bind or optimize this statement
-    postgres_interpreter->SetPortal(
-        portal_name, std::make_unique<Portal>(statement, nullptr, std::move(params), std::move(result_formats)));
+    postgres_interpreter->SetPortal(portal_name,
+                                    std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
     out->WriteBindComplete();
     return Transition::PROCEED;
@@ -302,19 +322,22 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // Bind it, plan it
   const auto bind_result = t_cop->BindQuery(connection, statement, common::ManagedPointer(&params));
   if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
-    // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+    // Binding succeeded, optimize to generate a physical plan
+    if (statement->PhysicalPlan() == nullptr || !t_cop->UseQueryCache()) {
+      // it's not cached, optimize it
+      auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+      statement->SetPhysicalPlan(std::move(physical_plan));
+    }
 
-    postgres_interpreter->SetPortal(
-        portal_name,
-        std::make_unique<Portal>(statement, std::move(physical_plan), std::move(params), std::move(result_formats)));
+    postgres_interpreter->SetPortal(portal_name,
+                                    std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
   } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
     // Binding generated a NOTICE, i.e. IF EXISTS failed, so we're not going to generate a physical plan of nullptr and
     // handle that case in Execute
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
-    postgres_interpreter->SetPortal(
-        portal_name, std::make_unique<Portal>(statement, nullptr, std::move(params), std::move(result_formats)));
+    postgres_interpreter->SetPortal(portal_name,
+                                    std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
     out->WriteBindComplete();
   } else {
