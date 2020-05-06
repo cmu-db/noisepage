@@ -9,6 +9,7 @@
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
+#include "catalog/postgres/builder.h"
 #include "common/exception.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
@@ -385,20 +386,11 @@ catalog::table_oid_t TrafficCop::CreateTempTable(
     const catalog::db_oid_t db_oid,  const catalog::namespace_oid_t ns_oid, const network::connection_id_t connection_id) {
   auto *const txn = txn_manager_->BeginTransaction();
 
-  std::vector<catalog::Schema::Column> columns;
+  const catalog::Schema temp_schema = catalog::postgres::Builder::GetSequenceTempTableSchema();
 
-  auto seq_id_col = catalog::Schema::Column("sequence_oid",type::TypeId::INTEGER,false,
-      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto last_nextval_col = catalog::Schema::Column("last_nextval",type::TypeId::INTEGER,false,
-      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-
-  columns.emplace_back(seq_id_col);
-  columns.emplace_back(last_nextval_col);
-
-  const catalog::Schema tmp_schema{columns};
   const auto temp_table_oid =
-      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable(ns_oid,
-          "temp_table3", tmp_schema);
+      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable((catalog::namespace_oid_t)15,
+          "temp_table_" + std::to_string((uint32_t)ns_oid), temp_schema);
 
   if (temp_table_oid == catalog::INVALID_TABLE_OID) {
     // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
@@ -406,6 +398,9 @@ catalog::table_oid_t TrafficCop::CreateTempTable(
     STORAGE_LOG_ERROR("catalog::INVALID_TABLE_OID");
     return catalog::INVALID_TABLE_OID;
   }
+
+  auto sequence_temp_table = catalog_->CreateTempTable(temp_schema);
+  catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->SetTablePointer(temp_table_oid, sequence_temp_table);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   return temp_table_oid;

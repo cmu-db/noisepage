@@ -19,6 +19,9 @@ namespace terrier::catalog::postgres {
     constexpr col_oid_t SEQOID_COL_OID = col_oid_t(1);   // INTEGER (pkey)
     constexpr col_oid_t SEQRELID_COL_OID = col_oid_t(2); // INTEGER (fkey: pg_class)
 
+    constexpr col_oid_t SEQTEMPTABLEID_COL_OID = col_oid_t(1);
+    constexpr col_oid_t SEQTEMPTABLEVAL_COL_OID = col_oid_t(2);
+
     constexpr uint8_t NUM_PG_SEQUENCE_COLS = 2;
 
     constexpr std::array<col_oid_t, NUM_PG_SEQUENCE_COLS> PG_SEQUENCE_ALL_COL_OIDS{SEQOID_COL_OID, SEQRELID_COL_OID};

@@ -122,16 +122,24 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
   sleep_time = INITIAL_BACKOFF_TIME;
   do {
     temp_oid = t_cop->CreateTempTable(oids.first, oids.second, context->GetConnectionID());
-    if (temp_oid == catalog::INVALID_TABLE_OID) {
+    if (temp_oid != catalog::INVALID_TABLE_OID) {
       // Failed to create temporary namespace. Client should retry.
-      writer.WriteErrorResponse(
+      /*writer.WriteErrorResponse(
           "ERROR:  Failed to create a temporary table for this connection. There may be a concurrent DDL change. "
           "Please retry.");
-      return Transition::TERMINATE;
+      return Transition::TERMINATE;*/
+      break;
     };
     std::this_thread::sleep_for(std::chrono::milliseconds{sleep_time});
     sleep_time *= BACKOFF_FACTOR;
   } while (sleep_time <= MAX_BACKOFF_TIME);
+
+  if (temp_oid == catalog::INVALID_TABLE_OID) {
+      STORAGE_LOG_ERROR("INVALID !!!");
+      writer.WriteErrorResponse(
+              "ERROR:  Failed to create a temporary table for this connection.");
+      return Transition::TERMINATE;
+  }
 
   STORAGE_LOG_ERROR(temp_oid);
 

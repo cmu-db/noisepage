@@ -212,6 +212,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 
   STORAGE_LOG_ERROR("1");
   auto temp_table_oid = ctx->GetTempTable();
+  STORAGE_LOG_ERROR(temp_table_oid);
   STORAGE_LOG_ERROR("11");
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
   STORAGE_LOG_ERROR("111");
@@ -220,6 +221,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   // Sequence table only have two colums right now
   const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
   STORAGE_LOG_ERROR("11111");
+  std::cout << temp_colums[0].Oid() << " " << temp_colums[1].Oid() << "\n";
   auto temp_pri = temp_table->InitializerForProjectedRow(temp_colums_oids);
   STORAGE_LOG_ERROR("2");
   auto *const table_insert_redo = ctx->GetTxn()->StageWrite(ctx->DBOid(), temp_table_oid, temp_pri);
@@ -238,6 +240,39 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   STORAGE_LOG_ERROR("6");
   result->is_null_ = str.is_null_;
   result->val_ = seq_val;
+
+    const std::vector<catalog::col_oid_t> cols{temp_colums[1].Oid()};
+
+    STORAGE_LOG_ERROR("7");
+
+    // Only one column, so we only need the initializer and not the ProjectionMap
+    const auto pci = temp_table->InitializerForProjectedColumns(cols, 100);
+
+    STORAGE_LOG_ERROR("8");
+
+    // This could potentially be optimized by calculating this size and hard-coding a byte array on the stack
+    byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
+    auto pc = pci.Initialize(buffer);
+
+    // We've requested a single column so we know the column index is 0, and since
+    // we will be reusing this same projected column the pointer to the start of
+    // the column is stable.  Therefore we only need to do this cast once before
+    // the loop.
+    auto db_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(pc->ColumnStart(0));
+
+    STORAGE_LOG_ERROR("9");
+
+    // Scan the table and accumulate the pointers into a vector
+    std::vector<catalog::sequence_oid_t> db_cats;
+    auto table_iter = temp_table->begin();
+    while (table_iter != temp_table->end()) {
+        temp_table->Scan(common::ManagedPointer(ctx->GetTxn()), &table_iter, pc);
+
+        for (uint i = 0; i < pc->NumTuples(); i++) {
+            db_cats.emplace_back(db_ptrs[i]);
+            std::cout << "Value " << (uint32_t)db_ptrs[i] << "\n";
+        }
+    }
 }
 
 void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {

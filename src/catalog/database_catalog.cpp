@@ -2269,6 +2269,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns_oid;
   if (!classes_name_index_->InsertUnique(txn, *index_pr, tuple_slot)) {
+      STORAGE_LOG_ERROR("InsertUnique classes_name_index_ error");
     // There was a name conflict and we need to abort.  Free the buffer and
     // return INVALID_TABLE_OID to indicate the database was not created.
     delete[] index_buffer;
