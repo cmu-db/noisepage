@@ -161,7 +161,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   };
 
 #ifdef TPL_DEBUG_TRACE_INSTRUCTIONS
-  #define DEBUG_TRACE_INSTRUCTIONS(op)                                                                                  \
+#define DEBUG_TRACE_INSTRUCTIONS(op)                                                                                  \
   do {                                                                                                                \
     auto bytecode = Bytecodes::FromByte(op);                                                                          \
     bytecode_counts_[op]++;                                                                                           \
@@ -245,7 +245,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   DO_GEN_COMPARISON(LessThanEqual, type)    \
   DO_GEN_COMPARISON(NotEqual, type)
 
-ALL_TYPES(GEN_COMPARISON_TYPES)
+  ALL_TYPES(GEN_COMPARISON_TYPES)
 #undef GEN_COMPARISON_TYPES
 #undef DO_GEN_COMPARISON
 
@@ -272,7 +272,7 @@ ALL_TYPES(GEN_COMPARISON_TYPES)
   DO_GEN_ARITHMETIC_OP(Div, true, type)  \
   DO_GEN_ARITHMETIC_OP(Rem, true, type)
 
-ALL_NUMERIC_TYPES(GEN_ARITHMETIC_OP)
+  ALL_NUMERIC_TYPES(GEN_ARITHMETIC_OP)
 #undef GEN_ARITHMETIC_OP
 #undef DO_GEN_ARITHMETIC_OP
 
@@ -288,7 +288,7 @@ ALL_NUMERIC_TYPES(GEN_ARITHMETIC_OP)
     DISPATCH_NEXT();                                      \
   }
 
-ALL_NUMERIC_TYPES(GEN_NEG_OP)
+  ALL_NUMERIC_TYPES(GEN_NEG_OP)
 #undef GEN_NEG_OP
 
   // -------------------------------------------------------
@@ -316,7 +316,7 @@ ALL_NUMERIC_TYPES(GEN_NEG_OP)
   DO_GEN_BIT_OP(BitXor, type) \
   DO_GEN_NEG_OP(type)
 
-INT_TYPES(GEN_BIT_OP)
+  INT_TYPES(GEN_BIT_OP)
 #undef GEN_BIT_OP
 #undef GEN_NEG_OP
 #undef DO_GEN_BIT_OP
@@ -387,10 +387,10 @@ INT_TYPES(GEN_BIT_OP)
     OpDeref##size(dest, src);                             \
     DISPATCH_NEXT();                                      \
   }
-GEN_DEREF(int8_t, 1);
-GEN_DEREF(int16_t, 2);
-GEN_DEREF(int32_t, 4);
-GEN_DEREF(int64_t, 8);
+  GEN_DEREF(int8_t, 1);
+  GEN_DEREF(int16_t, 2);
+  GEN_DEREF(int32_t, 4);
+  GEN_DEREF(int64_t, 8);
 #undef GEN_DEREF
 
   OP(DerefN) : {
@@ -413,10 +413,10 @@ GEN_DEREF(int64_t, 8);
     OpAssignImm##size(dest, READ_IMM##size());            \
     DISPATCH_NEXT();                                      \
   }
-GEN_ASSIGN(int8_t, 1);
-GEN_ASSIGN(int16_t, 2);
-GEN_ASSIGN(int32_t, 4);
-GEN_ASSIGN(int64_t, 8);
+  GEN_ASSIGN(int8_t, 1);
+  GEN_ASSIGN(int16_t, 2);
+  GEN_ASSIGN(int32_t, 4);
+  GEN_ASSIGN(int64_t, 8);
 #undef GEN_ASSIGN
 
   OP(AssignImm4F) : {
@@ -670,17 +670,17 @@ GEN_ASSIGN(int64_t, 8);
     OpPCIGet##type_str##Null(result, pci, col_idx);                               \
     DISPATCH_NEXT();                                                              \
   }
-GEN_PCI_ACCESS(Bool, sql::BoolVal)
-GEN_PCI_ACCESS(TinyInt, sql::Integer)
-GEN_PCI_ACCESS(SmallInt, sql::Integer)
-GEN_PCI_ACCESS(Integer, sql::Integer)
-GEN_PCI_ACCESS(BigInt, sql::Integer)
-GEN_PCI_ACCESS(Real, sql::Real)
-GEN_PCI_ACCESS(Double, sql::Real)
-GEN_PCI_ACCESS(Decimal, sql::Decimal)
-GEN_PCI_ACCESS(DateVal, sql::DateVal)
-GEN_PCI_ACCESS(TimestampVal, sql::TimestampVal)
-GEN_PCI_ACCESS(Varlen, sql::StringVal)
+  GEN_PCI_ACCESS(Bool, sql::BoolVal)
+  GEN_PCI_ACCESS(TinyInt, sql::Integer)
+  GEN_PCI_ACCESS(SmallInt, sql::Integer)
+  GEN_PCI_ACCESS(Integer, sql::Integer)
+  GEN_PCI_ACCESS(BigInt, sql::Integer)
+  GEN_PCI_ACCESS(Real, sql::Real)
+  GEN_PCI_ACCESS(Double, sql::Real)
+  GEN_PCI_ACCESS(Decimal, sql::Decimal)
+  GEN_PCI_ACCESS(DateVal, sql::DateVal)
+  GEN_PCI_ACCESS(TimestampVal, sql::TimestampVal)
+  GEN_PCI_ACCESS(Varlen, sql::StringVal)
 #undef GEN_PCI_ACCESS
 
 #define GEN_PCI_FILTER(Op)                                                         \
@@ -693,12 +693,12 @@ GEN_PCI_ACCESS(Varlen, sql::StringVal)
     OpPCIFilter##Op(size, iter, col_idx, type, val);                               \
     DISPATCH_NEXT();                                                               \
   }
-GEN_PCI_FILTER(Equal)
-GEN_PCI_FILTER(GreaterThan)
-GEN_PCI_FILTER(GreaterThanEqual)
-GEN_PCI_FILTER(LessThan)
-GEN_PCI_FILTER(LessThanEqual)
-GEN_PCI_FILTER(NotEqual)
+  GEN_PCI_FILTER(Equal)
+  GEN_PCI_FILTER(GreaterThan)
+  GEN_PCI_FILTER(GreaterThanEqual)
+  GEN_PCI_FILTER(LessThan)
+  GEN_PCI_FILTER(LessThanEqual)
+  GEN_PCI_FILTER(NotEqual)
 #undef GEN_PCI_FILTER
 
   // ------------------------------------------------------
@@ -919,12 +919,12 @@ GEN_PCI_FILTER(NotEqual)
     Op##op##TimestampVal(result, left, right);                          \
     DISPATCH_NEXT();                                                    \
   }
-GEN_CMP(GreaterThan);
-GEN_CMP(GreaterThanEqual);
-GEN_CMP(Equal);
-GEN_CMP(LessThan);
-GEN_CMP(LessThanEqual);
-GEN_CMP(NotEqual);
+  GEN_CMP(GreaterThan);
+  GEN_CMP(GreaterThanEqual);
+  GEN_CMP(Equal);
+  GEN_CMP(LessThan);
+  GEN_CMP(LessThanEqual);
+  GEN_CMP(NotEqual);
 #undef GEN_CMP
 
 #define GEN_UNARY_MATH_OPS(op)                                      \
@@ -941,7 +941,7 @@ GEN_CMP(NotEqual);
     DISPATCH_NEXT();                                                \
   }
 
-GEN_UNARY_MATH_OPS(Abs)
+  GEN_UNARY_MATH_OPS(Abs)
 
 #undef GEN_UNARY_MATH_OPS
 
@@ -975,11 +975,11 @@ GEN_UNARY_MATH_OPS(Abs)
     DISPATCH_NEXT();                                                \
   }
 
-GEN_MATH_OPS(Add)
-GEN_MATH_OPS(Sub)
-GEN_MATH_OPS(Mul)
-GEN_MATH_OPS(Div)
-GEN_MATH_OPS(Rem)
+  GEN_MATH_OPS(Add)
+  GEN_MATH_OPS(Sub)
+  GEN_MATH_OPS(Mul)
+  GEN_MATH_OPS(Div)
+  GEN_MATH_OPS(Rem)
 
 #undef GEN_MATH_OPS
 
@@ -1072,11 +1072,11 @@ GEN_MATH_OPS(Rem)
   }
 
   OP(AggregationHashTableIteratorHasNext) : {
-  auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
-  auto *iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
-  OpAggregationHashTableIteratorHasNext(has_more, iter);
-  DISPATCH_NEXT();
-}
+    auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    OpAggregationHashTableIteratorHasNext(has_more, iter);
+    DISPATCH_NEXT();
+  }
 
   OP(AggregationHashTableIteratorNext) : {
     auto *agg_hash_table_iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
@@ -1237,12 +1237,12 @@ GEN_MATH_OPS(Rem)
     DISPATCH_NEXT();                                                 \
   }
 
-GEN_AGGREGATE(Integer, IntegerSumAggregate);
-GEN_AGGREGATE(Integer, IntegerMaxAggregate);
-GEN_AGGREGATE(Integer, IntegerMinAggregate);
-GEN_AGGREGATE(Real, RealSumAggregate);
-GEN_AGGREGATE(Real, RealMaxAggregate);
-GEN_AGGREGATE(Real, RealMinAggregate);
+  GEN_AGGREGATE(Integer, IntegerSumAggregate);
+  GEN_AGGREGATE(Integer, IntegerMaxAggregate);
+  GEN_AGGREGATE(Integer, IntegerMinAggregate);
+  GEN_AGGREGATE(Real, RealSumAggregate);
+  GEN_AGGREGATE(Real, RealMaxAggregate);
+  GEN_AGGREGATE(Real, RealMinAggregate);
 
 #undef GEN_AGGREGATE
 
@@ -1501,10 +1501,10 @@ GEN_AGGREGATE(Real, RealMinAggregate);
   }
 
   OP(IndexIteratorScanKey) : {
-  auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-  OpIndexIteratorScanKey(iter);
-  DISPATCH_NEXT();
-}
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorScanKey(iter);
+    DISPATCH_NEXT();
+  }
 
   OP(IndexIteratorScanAscending) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
@@ -1594,16 +1594,16 @@ GEN_AGGREGATE(Real, RealMinAggregate);
     OpPRGet##type_str##Null(result, pr, col_idx);                        \
     DISPATCH_NEXT();                                                     \
   }
-GEN_PR_ACCESS(Bool, sql::BoolVal)
-GEN_PR_ACCESS(TinyInt, sql::Integer)
-GEN_PR_ACCESS(SmallInt, sql::Integer)
-GEN_PR_ACCESS(Int, sql::Integer)
-GEN_PR_ACCESS(BigInt, sql::Integer)
-GEN_PR_ACCESS(Real, sql::Real)
-GEN_PR_ACCESS(Double, sql::Real)
-GEN_PR_ACCESS(DateVal, sql::DateVal)
-GEN_PR_ACCESS(TimestampVal, sql::TimestampVal)
-GEN_PR_ACCESS(Varlen, sql::StringVal)
+  GEN_PR_ACCESS(Bool, sql::BoolVal)
+  GEN_PR_ACCESS(TinyInt, sql::Integer)
+  GEN_PR_ACCESS(SmallInt, sql::Integer)
+  GEN_PR_ACCESS(Int, sql::Integer)
+  GEN_PR_ACCESS(BigInt, sql::Integer)
+  GEN_PR_ACCESS(Real, sql::Real)
+  GEN_PR_ACCESS(Double, sql::Real)
+  GEN_PR_ACCESS(DateVal, sql::DateVal)
+  GEN_PR_ACCESS(TimestampVal, sql::TimestampVal)
+  GEN_PR_ACCESS(Varlen, sql::StringVal)
 #undef GEN_PR_ACCESS
 
 #define GEN_PR_SET(type_str, type)                                       \
@@ -1621,15 +1621,15 @@ GEN_PR_ACCESS(Varlen, sql::StringVal)
     OpPRSet##type_str##Null(pr, col_idx, val);                           \
     DISPATCH_NEXT();                                                     \
   }
-GEN_PR_SET(Bool, sql::BoolVal)
-GEN_PR_SET(TinyInt, sql::Integer)
-GEN_PR_SET(SmallInt, sql::Integer)
-GEN_PR_SET(Int, sql::Integer)
-GEN_PR_SET(BigInt, sql::Integer)
-GEN_PR_SET(Real, sql::Real)
-GEN_PR_SET(Double, sql::Real)
-GEN_PR_SET(DateVal, sql::DateVal)
-GEN_PR_SET(TimestampVal, sql::TimestampVal)
+  GEN_PR_SET(Bool, sql::BoolVal)
+  GEN_PR_SET(TinyInt, sql::Integer)
+  GEN_PR_SET(SmallInt, sql::Integer)
+  GEN_PR_SET(Int, sql::Integer)
+  GEN_PR_SET(BigInt, sql::Integer)
+  GEN_PR_SET(Real, sql::Real)
+  GEN_PR_SET(Double, sql::Real)
+  GEN_PR_SET(DateVal, sql::DateVal)
+  GEN_PR_SET(TimestampVal, sql::TimestampVal)
 #undef GEN_PR_SET
 
   OP(PRSetVarlen) : {
@@ -1748,16 +1748,16 @@ GEN_PR_SET(TimestampVal, sql::TimestampVal)
     DISPATCH_NEXT();                                                            \
   }
 
-GEN_PARAM_GET(Bool, BoolVal)
-GEN_PARAM_GET(TinyInt, Integer)
-GEN_PARAM_GET(SmallInt, Integer)
-GEN_PARAM_GET(Int, Integer)
-GEN_PARAM_GET(BigInt, Integer)
-GEN_PARAM_GET(Real, Real)
-GEN_PARAM_GET(Double, Real)
-GEN_PARAM_GET(DateVal, DateVal)
-GEN_PARAM_GET(TimestampVal, TimestampVal)
-GEN_PARAM_GET(String, StringVal)
+  GEN_PARAM_GET(Bool, BoolVal)
+  GEN_PARAM_GET(TinyInt, Integer)
+  GEN_PARAM_GET(SmallInt, Integer)
+  GEN_PARAM_GET(Int, Integer)
+  GEN_PARAM_GET(BigInt, Integer)
+  GEN_PARAM_GET(Real, Real)
+  GEN_PARAM_GET(Double, Real)
+  GEN_PARAM_GET(DateVal, DateVal)
+  GEN_PARAM_GET(TimestampVal, TimestampVal)
+  GEN_PARAM_GET(String, StringVal)
 #undef GEN_PARAM_GET
 
   // -------------------------------------------------------
@@ -1797,32 +1797,32 @@ GEN_PARAM_GET(String, StringVal)
     DISPATCH_NEXT();                                                   \
   }
 
-UNARY_REAL_MATH_OP(Sin);
-UNARY_REAL_MATH_OP(Asin);
-UNARY_REAL_MATH_OP(Cos);
-UNARY_REAL_MATH_OP(Acos);
-UNARY_REAL_MATH_OP(Tan);
-UNARY_REAL_MATH_OP(Cot);
-UNARY_REAL_MATH_OP(Atan);
-UNARY_REAL_MATH_OP(Cosh);
-UNARY_REAL_MATH_OP(Tanh);
-UNARY_REAL_MATH_OP(Sinh);
-UNARY_REAL_MATH_OP(Sqrt);
-UNARY_REAL_MATH_OP(Cbrt);
-UNARY_REAL_MATH_OP(Exp);
-UNARY_REAL_MATH_OP(Ceil);
-UNARY_REAL_MATH_OP(Floor);
-UNARY_REAL_MATH_OP(Truncate);
-UNARY_REAL_MATH_OP(Ln);
-UNARY_REAL_MATH_OP(Log2);
-UNARY_REAL_MATH_OP(Log10);
-UNARY_REAL_MATH_OP(Sign);
-UNARY_REAL_MATH_OP(Radians);
-UNARY_REAL_MATH_OP(Degrees);
-UNARY_REAL_MATH_OP(Round);
-BINARY_REAL_MATH_OP(Atan2);
-BINARY_REAL_MATH_OP(Log);
-BINARY_REAL_MATH_OP(Pow);
+  UNARY_REAL_MATH_OP(Sin);
+  UNARY_REAL_MATH_OP(Asin);
+  UNARY_REAL_MATH_OP(Cos);
+  UNARY_REAL_MATH_OP(Acos);
+  UNARY_REAL_MATH_OP(Tan);
+  UNARY_REAL_MATH_OP(Cot);
+  UNARY_REAL_MATH_OP(Atan);
+  UNARY_REAL_MATH_OP(Cosh);
+  UNARY_REAL_MATH_OP(Tanh);
+  UNARY_REAL_MATH_OP(Sinh);
+  UNARY_REAL_MATH_OP(Sqrt);
+  UNARY_REAL_MATH_OP(Cbrt);
+  UNARY_REAL_MATH_OP(Exp);
+  UNARY_REAL_MATH_OP(Ceil);
+  UNARY_REAL_MATH_OP(Floor);
+  UNARY_REAL_MATH_OP(Truncate);
+  UNARY_REAL_MATH_OP(Ln);
+  UNARY_REAL_MATH_OP(Log2);
+  UNARY_REAL_MATH_OP(Log10);
+  UNARY_REAL_MATH_OP(Sign);
+  UNARY_REAL_MATH_OP(Radians);
+  UNARY_REAL_MATH_OP(Degrees);
+  UNARY_REAL_MATH_OP(Round);
+  BINARY_REAL_MATH_OP(Atan2);
+  BINARY_REAL_MATH_OP(Log);
+  BINARY_REAL_MATH_OP(Pow);
 
   OP(RoundUpTo) : {
     auto *result = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
