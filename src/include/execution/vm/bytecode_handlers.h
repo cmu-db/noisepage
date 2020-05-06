@@ -1478,22 +1478,22 @@ VM_OP_WARM void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot,
   *slot = iter->CurrentSlot();
 }
 
-#define GEN_PR_SCALAR_SET_CALLS(Name, SqlType, CppType)                                    \
-  VM_OP_HOT void OpPRSet##Name(terrier::storage::ProjectedRow *pr, uint16_t col_idx,       \
-                               terrier::execution::sql::SqlType *val) {                    \
-    pr->Set<CppType, false>(terrier::storage::col_id_t(col_idx), static_cast<CppType>(val->val_), val->is_null_);      \
-  }                                                                                        \
-                                                                                           \
-  VM_OP_HOT void OpPRSet##Name##Null(terrier::storage::ProjectedRow *pr, uint16_t col_idx, \
-                                     terrier::execution::sql::SqlType *val) {              \
-    pr->Set<CppType, true>(terrier::storage::col_id_t(col_idx), static_cast<CppType>(val->val_), val->is_null_);       \
+#define GEN_PR_SCALAR_SET_CALLS(Name, SqlType, CppType)                                                          \
+  VM_OP_HOT void OpPRSet##Name(terrier::storage::ProjectedRow *pr, uint16_t col_idx,                             \
+                               terrier::execution::sql::SqlType *val) {                                          \
+    pr->Set<CppType, false>(terrier::storage::col_id_t(col_idx), static_cast<CppType>(val->val_), val->is_null_);\
+  }                                                                                                              \
+                                                                                                                 \
+  VM_OP_HOT void OpPRSet##Name##Null(terrier::storage::ProjectedRow *pr, uint16_t col_idx,                       \
+                                     terrier::execution::sql::SqlType *val) {                                    \
+    pr->Set<CppType, true>(terrier::storage::col_id_t(col_idx), static_cast<CppType>(val->val_), val->is_null_); \
   }
 
 #define GEN_PR_SCALAR_GET_CALLS(Name, SqlType, CppType)                                                         \
   VM_OP_HOT void OpPRGet##Name(terrier::execution::sql::SqlType *out, terrier::storage::ProjectedRow *pr,       \
                                uint16_t col_idx) {                                                              \
     /* Read */                                                                                                  \
-    auto *ptr = pr->Get<CppType, false>(terrier::storage::col_id_t(col_idx), nullptr);                                                      \
+    auto *ptr = pr->Get<CppType, false>(terrier::storage::col_id_t(col_idx), nullptr);                          \
     TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                                 \
     /* Set */                                                                                                   \
     out->is_null_ = false;                                                                                      \
@@ -1504,7 +1504,7 @@ VM_OP_WARM void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot,
                                      uint16_t col_idx) {                                                        \
     /* Read */                                                                                                  \
     bool null = false;                                                                                          \
-    auto *ptr = pr->Get<CppType, true>(terrier::storage::col_id_t(col_idx), &null);                                                         \
+    auto *ptr = pr->Get<CppType, true>(terrier::storage::col_id_t(col_idx), &null);                             \
     /* Set */                                                                                                   \
     out->is_null_ = null;                                                                                       \
     out->val_ = null ? 0 : *ptr;                                                                                \
