@@ -211,7 +211,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 //  int64_t seq_val = seq->nextval();
   int64_t seq_val = 0;
 // Get nextval from pg_sequence
-//  auto pg_sequence = accessor->GetTable(catalog::postgres::SEQUENCE_TABLE_OID).Get();
+  auto pg_sequence = accessor->GetTable(catalog::postgres::SEQUENCE_TABLE_OID).Get();
   auto pg_sequence_index = accessor->GetIndex(catalog::postgres::SEQUENCE_OID_INDEX_OID);
   auto pg_sequence_index_pri = pg_sequence_index->GetProjectedRowInitializer();
   byte *const pg_index_buffer = common::AllocationUtil::AllocateAligned(pg_sequence_index_pri.ProjectedRowSize());
@@ -223,6 +223,16 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   STORAGE_LOG_ERROR("SCAN result");
   STORAGE_LOG_ERROR(index_scan_result.size());
 
+  const std::vector<catalog::col_oid_t> pg_sequence_col_oids{catalog::postgres::SEQOID_COL_OID,
+                                                             catalog::postgres::SEQRELID_COL_OID, catalog::postgres::SEQNEXTVAL_COL_OID};
+  auto const pg_projection_map =  pg_sequence->ProjectionMapForOids(pg_sequence_col_oids);
+  const auto pg_sequenc_pci = pg_sequence->InitializerForProjectedColumns(pg_sequence_col_oids, 1);
+  byte *pg_buffer = common::AllocationUtil::AllocateAligned(pg_sequenc_pci.ProjectedColumnsSize());
+  auto pg_pc = pg_sequenc_pci.Initialize(pg_buffer);
+
+  // TODO(Adrian) Change it to non-dummy one. It's here for the sake of fast development
+  auto nextval_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(pg_pc->ColumnStart(pg_projection_map.at(catalog::postgres::SEQNEXTVAL_COL_OID)));
+  STORAGE_LOG_ERROR(nextval_ptrs[0]);
 
   auto temp_table_oid = ctx->GetTempTable();
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
