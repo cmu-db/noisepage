@@ -100,6 +100,14 @@ class BwTreeIndex final : public Index {
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
                    "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
+#ifndef NDEBUG
+    // Verify that the TupleSlot we're deleting is actually in the index
+    std::vector<TupleSlot> results;
+    bwtree_->GetValue(index_key, results);
+    TERRIER_ASSERT(std::find(std::begin(results), std::end(results), location) != results.end(),
+                   "Called index delete on a TupleSlot that's not in the index");
+#endif
+
     // Register a deferred action for the GC with txn manager. See base function comment.
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
       deferred_action_manager->RegisterDeferredAction([=]() {

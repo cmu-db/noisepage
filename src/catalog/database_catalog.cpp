@@ -373,8 +373,8 @@ void DatabaseCatalog::BootstrapPRIs() {
 
   // Used to select rows to delete in DeleteColumnStatistics
   const std::vector<col_oid_t> delete_statistics_oids{postgres::STAATTNUM_COL_OID};
-  delete_statistics_pri_ = columns_->InitializerForProjectedRow(delete_statistics_oids);
-  delete_statistics_prm_ = columns_->ProjectionMapForOids(delete_statistics_oids);
+  delete_statistics_pri_ = statistics_->InitializerForProjectedRow(delete_statistics_oids);
+  delete_statistics_prm_ = statistics_->ProjectionMapForOids(delete_statistics_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
