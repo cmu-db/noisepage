@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -347,6 +348,13 @@ class CatalogAccessor {
    * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
    */
   common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(proc_oid_t proc_oid);
+
+  /**
+   * Returns a TableStats object containing statistics for the given table.
+   * @param table_id oid of table to retrieve statistics for
+   * @return nullptr if table_id is invalid, else a valid TableStats object
+   */
+  std::unique_ptr<optimizer::TableStats> GetTableStats(table_oid_t table_id);
 
   /**
    * Returns the type oid of the given TypeId in pg_type

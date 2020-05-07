@@ -373,6 +373,15 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
   /**
+   * Returns a TableStats object containing statistics for the given table.
+   * @param txn transaction to use
+   * @param table_id oid of table to retrieve statistics for
+   * @return nullptr if table_id is invalid, else a valid TableStats object
+   */
+  std::unique_ptr<optimizer::TableStats> GetTableStats(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                       table_oid_t table_id);
+
+  /**
    * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid
    * @param type internal type
    * @return oid for internal type
@@ -745,13 +754,5 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ClassOid>
   bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
-
-  /**
-   * Returns a TableStats object corresponding to the given table.
-   * @param table_id oid of table to retrieve statistics for
-   * @return nullptr if table_id is invalid, else a valid TableStats object
-   */
-  std::unique_ptr<optimizer::TableStats> GetTableStats(
-      common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_id);
 };
 }  // namespace terrier::catalog

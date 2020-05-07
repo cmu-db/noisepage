@@ -9,6 +9,7 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_statistic.h"
 #include "main/db_main.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -257,7 +258,6 @@ TEST_F(CatalogTests, NamespaceTest) {
 
 /*
  * Create and delete a user table.
- * TODO(khg,moreshko): update for pg_statistic
  */
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, UserTableTest) {

@@ -178,6 +178,10 @@ common::ManagedPointer<execution::udf::UDFContext> CatalogAccessor::GetUDFContex
   return dbc_->GetUDFContext(txn_, proc_oid);
 }
 
+std::unique_ptr<optimizer::TableStats> CatalogAccessor::GetTableStats(table_oid_t table_id) {
+  return dbc_->GetTableStats(txn_, table_id);
+}
+
 type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {

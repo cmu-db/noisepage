@@ -2772,6 +2772,7 @@ std::unique_ptr<optimizer::TableStats> DatabaseCatalog::GetTableStats(
     TERRIER_ASSERT(num_rows != nullptr, "num_rows shouldn't be NULL.");
 
     // Update num_rows in table
+    // TODO(khg): could the number of rows in each column differ?
     table_num_rows = static_cast<size_t>(*num_rows);
 
     // Create a corresponding ColumnStats object
