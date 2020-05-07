@@ -2627,7 +2627,7 @@ void DatabaseCatalog::CreateColumnStatistic(const common::ManagedPointer<transac
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
   *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = col_oid;
 
-  bool result = statistics_oid_index_->InsertUnique(txn, *pr, tupleslot);
+  bool UNUSED_ATTRIBUTE result = statistics_oid_index_->InsertUnique(txn, *pr, tupleslot);
   TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
 }
 
