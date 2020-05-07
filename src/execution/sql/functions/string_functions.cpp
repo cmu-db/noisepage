@@ -205,13 +205,8 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   std::string s(s_v.data(), s_v.size());
 
   auto sequence_oid = accessor->GetSequenceOid(s);
-//  common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
 
-  // Update temp table
-//  int64_t seq_val = seq->nextval();
-  int64_t seq_val = 0;
-// Get nextval from pg_sequence
-  auto pg_sequence = accessor->GetTable(catalog::postgres::SEQUENCE_TABLE_OID).Get();
+  // Using pg_sequence_index to get corresponding sequence tuple
   auto pg_sequence_index = accessor->GetIndex(catalog::postgres::SEQUENCE_OID_INDEX_OID);
   auto pg_sequence_index_pri = pg_sequence_index->GetProjectedRowInitializer();
   byte *const pg_index_buffer = common::AllocationUtil::AllocateAligned(pg_sequence_index_pri.ProjectedRowSize());
@@ -220,19 +215,17 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   std::vector<storage::TupleSlot> index_scan_result;
 
   pg_sequence_index->ScanKey(*ctx->GetTxn().Get(), *pg_index_pr, &index_scan_result);
-  STORAGE_LOG_ERROR("SCAN result");
-  STORAGE_LOG_ERROR(index_scan_result.size());
 
-  const std::vector<catalog::col_oid_t> pg_sequence_col_oids{catalog::postgres::SEQOID_COL_OID,
-                                                             catalog::postgres::SEQRELID_COL_OID, catalog::postgres::SEQNEXTVAL_COL_OID};
-  auto const pg_projection_map =  pg_sequence->ProjectionMapForOids(pg_sequence_col_oids);
-  const auto pg_sequenc_pci = pg_sequence->InitializerForProjectedColumns(pg_sequence_col_oids, 1);
-  byte *pg_buffer = common::AllocationUtil::AllocateAligned(pg_sequenc_pci.ProjectedColumnsSize());
-  auto pg_pc = pg_sequenc_pci.Initialize(pg_buffer);
+  TERRIER_ASSERT(index_scan_result.size() == 1, "Can't find the sequence or have duplicate sequences");
 
-  // TODO(Adrian) Change it to non-dummy one. It's here for the sake of fast development
-  auto nextval_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(pg_pc->ColumnStart(pg_projection_map.at(catalog::postgres::SEQNEXTVAL_COL_OID)));
-  STORAGE_LOG_ERROR(nextval_ptrs[0]);
+  // Using TupleAccessStrategy to get nextval and update it
+  auto const pg_index_datatable = index_scan_result[0].GetBlock()->data_table_;
+  storage::BlockLayout layout = pg_index_datatable->GetBlockLayout();
+  storage::TupleAccessStrategy tuple_access_strategy(layout);
+
+  auto seq_val =
+      reinterpret_cast<int64_t *>(tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[2])) + 1;
+  *seq_val = *seq_val + 1;
 
   auto temp_table_oid = ctx->GetTempTable();
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
@@ -249,10 +242,10 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   *(reinterpret_cast<catalog::sequence_oid_t *>(first_col_oid_ptr)) = sequence_oid;
   // Second colum is last next val
   auto *second_col_oid_ptr = table_insert_pr->AccessForceNotNull(table_projection_map.at(temp_colums_oids[1]));
-  *(reinterpret_cast<int64_t *>(second_col_oid_ptr)) = seq_val;
+  *(reinterpret_cast<int64_t *>(second_col_oid_ptr)) = *seq_val;
 
   result->is_null_ = str.is_null_;
-  result->val_ = seq_val;
+  result->val_ = *seq_val;
 
   const auto pci = temp_table->InitializerForProjectedColumns(temp_colums_oids, 1);
 
