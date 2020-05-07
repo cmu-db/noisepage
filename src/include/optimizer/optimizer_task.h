@@ -397,7 +397,7 @@ class RewriteTask : public OptimizerTask {
   /**
    * Virtual execute method (should only be called in subclasses)
    */
-  virtual void Execute() override {
+  void Execute() override {
     TERRIER_ASSERT(false, "RewriteTask::execute invoked directly and not in subclass");
   }
 

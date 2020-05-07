@@ -385,7 +385,7 @@ std::set<group_id_t> RewriteTask::GetUniqueChildGroupIDs() {
   // Get current group and logical expressions
   auto cur_group = this->GetMemo().GetGroupByID(group_id_);
   auto cur_group_exprs = cur_group->GetLogicalExpressions();
-  TERRIER_ASSERT(cur_group_exprs.size() >= 1, "Current group should have a nonzero number of logical expressions");
+  TERRIER_ASSERT(!cur_group_exprs.empty(), "Current group should have a nonzero number of logical expressions");
 
   // Generate unique group ID numbers so we don't repeat work
   std::set<group_id_t> child_groups;
@@ -414,7 +414,7 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
     ConstructValidRules(cur_group_expr, GetRuleSet().GetRulesByName(rule_set_name_), &valid_rules);
 
     // Sort so that we apply rewrite rules with higher promise first
-    std::sort(valid_rules.begin(), valid_rules.end(), std::greater<RuleWithPromise>());
+    std::sort(valid_rules.begin(), valid_rules.end(), std::greater<>());
 
     // Try applying each rule
     for (auto &r : valid_rules) {
@@ -445,17 +445,16 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
 
             // Return true to indicate optimize succeeded and the caller should try again
             return true;
-          } else {
-            // Insert as a new logical equivalent expression
-            std::shared_ptr<GroupExpression> new_gexpr;
-            group_id_t group = cur_group_expr->GetGroupID();
-            (void)group;
-            // Try again only if we succeeded in recording a new expression
-            // return this->context_->metadata->RecordTransformedExpression(new_expr, new_gexpr, group);
           }
+
+          // Insert as a new logical equivalent expression
+          std::shared_ptr<GroupExpression> new_gexpr;
+          group_id_t group = cur_group_expr->GetGroupID();
+          (void)group;
+          // Try again only if we succeeded in recording a new expression
+          // return this->context_->metadata->RecordTransformedExpression(new_expr, new_gexpr, group);
         }
       }
-
       cur_group_expr->SetRuleExplored(r.GetRule());
     }
   }

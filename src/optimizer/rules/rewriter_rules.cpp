@@ -118,8 +118,8 @@ void TransitiveClosureConstantTransform::Transform(common::ManagedPointer<Abstra
 
   auto l_tv = l_eq->GetChildren()[0];
   auto l_cv = l_eq->GetChildren()[1];
-  TERRIER_ASSERT(l_tv->GetChildren().size() == 0, "Left EQUAL should have no grandchildren");
-  TERRIER_ASSERT(l_cv->GetChildren().size() == 0, "Left EQUAL should have no grandchildren");
+  TERRIER_ASSERT(l_tv->GetChildren().empty(), "Left EQUAL should have no grandchildren");
+  TERRIER_ASSERT(l_cv->GetChildren().empty(), "Left EQUAL should have no grandchildren");
   TERRIER_ASSERT(l_tv->Contents()->GetExpType() == parser::ExpressionType::COLUMN_VALUE,
                  "Left EQUAL left child should be column value");
   TERRIER_ASSERT(l_cv->Contents()->GetExpType() == parser::ExpressionType::VALUE_CONSTANT,
@@ -127,8 +127,8 @@ void TransitiveClosureConstantTransform::Transform(common::ManagedPointer<Abstra
 
   auto r_tv_l = r_eq->GetChildren()[0];
   auto r_tv_r = r_eq->GetChildren()[1];
-  TERRIER_ASSERT(r_tv_l->GetChildren().size() == 0, "Right EQUAL should have no grandchildren");
-  TERRIER_ASSERT(r_tv_r->GetChildren().size() == 0, "Right EQUAL should have no grandchildren");
+  TERRIER_ASSERT(r_tv_l->GetChildren().empty(), "Right EQUAL should have no grandchildren");
+  TERRIER_ASSERT(r_tv_r->GetChildren().empty(), "Right EQUAL should have no grandchildren");
   TERRIER_ASSERT(r_tv_l->Contents()->GetExpType() == parser::ExpressionType::COLUMN_VALUE,
                  "Right EQUAL left child should be column value");
   TERRIER_ASSERT(r_tv_r->Contents()->GetExpType() == parser::ExpressionType::COLUMN_VALUE,

@@ -68,7 +68,7 @@ common::ManagedPointer<parser::AbstractExpression> Rewriter::RebuildExpression(g
   // If we optimized a group successfully, then it would have been
   // collapsed to only a single group. If we did not optimize a group,
   // then they are all equivalent, so pick any.
-  TERRIER_ASSERT(exprs.size() >= 1, "Optimized group should collapse into a single group");
+  TERRIER_ASSERT(!exprs.empty(), "Optimized group should collapse into a single group");
   auto *expr = exprs[0];
 
   std::vector<group_id_t> child_groups = expr->GetChildGroupIDs();
