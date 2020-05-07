@@ -201,6 +201,57 @@ public class CreateIndexTest extends TestUtility {
       */
     @Test
     public void testSimpleAbort() throws SQLException, InterruptedException {
-        return;
+        String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100);";
+        Statement stmt = conn.createStatement();
+        int num_rows = 1500;
+        for (int i = 0; i < num_rows; i++) {
+            stmt.execute(sql);
+        }
+
+        Thread[] threads = new Thread[NUM_EXTRA_THREADS];
+        for (int i = 0; i < NUM_EXTRA_THREADS; i++) {
+            thread_conn[i].setAutoCommit(false);
+            final Connection conn2 = thread_conn[i];
+            final int i2 = i;
+            threads[i] = new Thread(() -> {
+                try {
+                    Statement stmt = conn2.createStatement();
+                    for (int j = 0; j < num_rows; j++) {
+                        if (i2 == 0) { stmt.execute("INSERT INTO tbl VALUES (3, 4, 200);"); }
+                        else { stmt.execute("INSERT INTO tbl VALUES (7, 8, 200);"); }
+                    }
+
+                    if(i2 == 0) {
+                        Thread.sleep(30); //TODO (Kunal): Check if this is right
+                        conn2.rollback();
+                    } else {
+                        conn2.commit();
+                    }
+                } catch(SQLException e) {
+                    DumpSQLException(e);
+                    Assert.fail();
+                }
+            });
+            threads[i].start();
+        }
+        Thread.sleep(100);
+        stmt.execute("CREATE INDEX tbl_ind ON tbl (c2)");
+        for (Thread t : threads) {
+            t.join();
+        }
+        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC");
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
+        }
+        for (int i = 0; i < num_rows * NUM_EXTRA_THREADS; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 100});
+        }
+        for (int i = 0; i < num_rows; i++) {
+            rs.next();
+            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {7, 8, 200});
+        }
+        assertNoMoreRows(rs);
     }
 }
