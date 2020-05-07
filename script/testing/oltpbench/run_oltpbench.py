@@ -26,6 +26,8 @@ if __name__ == "__main__":
                          help="How long to execute each benchmark trial (default: 20)")
     aparser.add_argument("--terminals", type=int, metavar="T", \
                          help="Number of terminals in each benchmark trial (default: 1)")
+    aparser.add_argument("--loader-threads", type=int, metavar="L", \
+                         help="Number of loader threads to use (default: 1)")
     aparser.add_argument("--build-type",
                          default="debug",
                          choices=["debug", "release", "relwithdebinfo"],
