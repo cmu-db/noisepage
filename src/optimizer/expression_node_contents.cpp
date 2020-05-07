@@ -73,7 +73,7 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
     case parser::ExpressionType::AGGREGATE_AVG: {
       // Unfortunately, the aggregate expression (also applies to function) may
       // already have extra state information created due to the binder.
-      // Under terrier's desgn, we decide to just copy() the node and then
+      // Under terrier's design, we decide to just copy() the node and then
       // install the child.
       auto expr_copy = expr_->Copy();
       if (children.size() == 1) {
@@ -120,13 +120,11 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
     }
   }
   // Register the output with the transaction context
-  //parser::AbstractExpression *result_ptr = result.Get();
-  std::cout << " context: " << txn_ << "\n";
-  /*if (txn_ != nullptr) {
+  parser::AbstractExpression *result_ptr = result.Get();
+  if (txn_ != nullptr) {
     txn_->RegisterCommitAction([=]() { delete result_ptr; });
     txn_->RegisterAbortAction([=]() { delete result_ptr; });
-  }*/
-  std::cout << " registered!\n";
+  }
   return result;
 }
 

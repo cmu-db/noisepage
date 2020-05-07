@@ -64,20 +64,22 @@ void EquivalentTransform::Transform(common::ManagedPointer<AbstractOptimizerNode
 //
 // ==============================================
 TransitiveClosureConstantTransform::TransitiveClosureConstantTransform() {
+  type_ = RuleType::TRANSITIVE_CLOSURE_CONSTANT_TRANSFORM;
+
   // (T.X == a) AND (T.X == T.Y)
   match_pattern_ = new Pattern(parser::ExpressionType::CONJUNCTION_AND);
 
   // Left side: (T.X == a)
   auto *l_equals = new Pattern(parser::ExpressionType::COMPARE_EQUAL);
-  auto *l_left_child = new Pattern(parser::ExpressionType::VALUE_TUPLE);
+  auto *l_left_child = new Pattern(parser::ExpressionType::COLUMN_VALUE);
   auto *l_right_child = new Pattern(parser::ExpressionType::VALUE_CONSTANT);
   l_equals->AddChild(l_left_child);
   l_equals->AddChild(l_right_child);
 
   // Right side: (T.X == T.Y)
   auto *r_equals = new Pattern(parser::ExpressionType::COMPARE_EQUAL);
-  auto *r_left_child = new Pattern(parser::ExpressionType::VALUE_TUPLE);
-  auto *r_right_child = new Pattern(parser::ExpressionType::VALUE_TUPLE);
+  auto *r_left_child = new Pattern(parser::ExpressionType::COLUMN_VALUE);
+  auto *r_right_child = new Pattern(parser::ExpressionType::COLUMN_VALUE);
   r_equals->AddChild(r_left_child);
   r_equals->AddChild(r_right_child);
 
@@ -118,8 +120,8 @@ void TransitiveClosureConstantTransform::Transform(common::ManagedPointer<Abstra
   auto l_cv = l_eq->GetChildren()[1];
   TERRIER_ASSERT(l_tv->GetChildren().size() == 0, "Left EQUAL should have no grandchildren");
   TERRIER_ASSERT(l_cv->GetChildren().size() == 0, "Left EQUAL should have no grandchildren");
-  TERRIER_ASSERT(l_tv->Contents()->GetExpType() == parser::ExpressionType::VALUE_TUPLE,
-                 "Left EQUAL left child should be tuple ref");
+  TERRIER_ASSERT(l_tv->Contents()->GetExpType() == parser::ExpressionType::COLUMN_VALUE,
+                 "Left EQUAL left child should be column value");
   TERRIER_ASSERT(l_cv->Contents()->GetExpType() == parser::ExpressionType::VALUE_CONSTANT,
                  "Left EQUAL right child should be constant");
 
@@ -127,10 +129,10 @@ void TransitiveClosureConstantTransform::Transform(common::ManagedPointer<Abstra
   auto r_tv_r = r_eq->GetChildren()[1];
   TERRIER_ASSERT(r_tv_l->GetChildren().size() == 0, "Right EQUAL should have no grandchildren");
   TERRIER_ASSERT(r_tv_r->GetChildren().size() == 0, "Right EQUAL should have no grandchildren");
-  TERRIER_ASSERT(r_tv_l->Contents()->GetExpType() == parser::ExpressionType::VALUE_TUPLE,
-                 "Right EQUAL left child should be tuple ref");
-  TERRIER_ASSERT(r_tv_r->Contents()->GetExpType() == parser::ExpressionType::VALUE_TUPLE,
-                 "Right EQUAL left child should be tuple ref");
+  TERRIER_ASSERT(r_tv_l->Contents()->GetExpType() == parser::ExpressionType::COLUMN_VALUE,
+                 "Right EQUAL left child should be column value");
+  TERRIER_ASSERT(r_tv_r->Contents()->GetExpType() == parser::ExpressionType::COLUMN_VALUE,
+                 "Right EQUAL left child should be column value");
 
   auto l_tv_c = l_tv->Contents().CastManagedPointerTo<ExpressionNodeContents>();
   auto r_tv_l_c = r_tv_l->Contents().CastManagedPointerTo<ExpressionNodeContents>();
@@ -154,7 +156,8 @@ void TransitiveClosureConstantTransform::Transform(common::ManagedPointer<Abstra
   }
 
   std::unique_ptr<AbstractOptimizerNode> new_l_eq = l_eq->Copy();
-  std::unique_ptr<AbstractOptimizerNode> new_r_eq = std::make_unique<ExpressionNode>(r_eq->Contents(), nullptr);
+  std::unique_ptr<AbstractOptimizerNode> new_r_eq =
+      std::make_unique<ExpressionNode>(r_eq->Contents(), context->GetOptimizerContext()->GetTxn());
   std::unique_ptr<AbstractOptimizerNode> constant_value_copy = l_cv->Copy();
 
   // At this stage, we have knowledge that C.D != E.F

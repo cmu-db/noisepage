@@ -25,14 +25,15 @@ namespace terrier::optimizer {
 class Rewriter {
  public:
   /**
-   * Default constructor
+   * Constructor.
+   * @param txn the transaction context being
    */
   explicit Rewriter(transaction::TransactionContext *txn);
 
   /**
    * Destructor.
    */
-  ~Rewriter() = default;
+  ~Rewriter();
 
   /**
    * Resets the internal state of the rewriter
@@ -46,7 +47,7 @@ class Rewriter {
    * @param txn the transaction context to use
    */
   void SetTxn(transaction::TransactionContext *txn) { context_->SetTxn(txn); }
-  
+
   /**
    * Gets the OptimizerMetadata used by the rewriter
    * @returns internal OptimizerMetadata

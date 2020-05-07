@@ -68,13 +68,10 @@ class ExpressionNode : public AbstractOptimizerNode {
   std::unique_ptr<AbstractOptimizerNode> Copy() override {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> copy_children;
     for (const auto &child : children_) {
-      auto *copy_node = dynamic_cast<ExpressionNode *>(child.get())->Copy().release();
-      const auto abstract_child = dynamic_cast<AbstractOptimizerNode *>(copy_node);
-      if (txn_ != nullptr) {
-        txn_->RegisterCommitAction([=]() { delete copy_node; });
-        txn_->RegisterAbortAction([=]() { delete copy_node; });
-      }
-      copy_children.emplace_back(abstract_child);
+      TERRIER_ASSERT(child != nullptr, "Expression node shouldn't have null children");
+      TERRIER_ASSERT(child->Contents()->GetExpType() != parser::ExpressionType::INVALID,
+                     "Expression node should have expression node children");
+      copy_children.emplace_back(child->Copy());
     }
     return std::make_unique<ExpressionNode>(contents_, std::move(copy_children), txn_.Get());
   }

@@ -27,7 +27,7 @@ void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
 
     // Cleanup any memory allocations by contract
     delete output_properties;
-    for (auto prop : pending_deletion) {
+    for (auto *prop : pending_deletion) {
       delete prop;
     }
   }

@@ -1,7 +1,7 @@
-#include "optimizer/rules/rewriter_rules.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/rules/implementation_rules.h"
 #include "optimizer/rules/rewrite_rules.h"
+#include "optimizer/rules/rewriter_rules.h"
 #include "optimizer/rules/transformation_rules.h"
 #include "optimizer/rules/unnesting_rules.h"
 
@@ -18,7 +18,6 @@ RulePromise Rule::Promise(GroupExpression *group_expr) const {
 }
 
 RuleSet::RuleSet() {
-
   // ===== Optimizer Rules ===== //
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinCommutativity());
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinAssociativity());
@@ -70,12 +69,10 @@ RuleSet::RuleSet() {
   std::vector<std::pair<RuleType, parser::ExpressionType>> equiv_pairs = {
       std::make_pair(RuleType::EQUIV_AND, parser::ExpressionType::CONJUNCTION_AND),
       std::make_pair(RuleType::EQUIV_OR, parser::ExpressionType::CONJUNCTION_OR),
-      std::make_pair(RuleType::EQUIV_COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL)
-  };
+      std::make_pair(RuleType::EQUIV_COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL)};
 
   for (auto &pair : equiv_pairs) {
-    AddRule(RuleSetName::EQUIVALENT_TRANSFORM,
-                    new EquivalentTransform(pair.first, pair.second));
+    AddRule(RuleSetName::EQUIVALENT_TRANSFORM, new EquivalentTransform(pair.first, pair.second));
   }
 
   // Additional rewriter rules

@@ -1,10 +1,11 @@
+#include "optimizer/binding.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "optimizer/binding.h"
-
 #include "loggers/optimizer_logger.h"
+#include "optimizer/expression_node.h"
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer.h"
 
@@ -55,7 +56,8 @@ std::unique_ptr<AbstractOptimizerNode> GroupBindingIterator::Next() {
 GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
                                                    transaction::TransactionContext *txn)
     : BindingIterator(memo), gexpr_(gexpr), first_(true), has_next_(false), current_binding_(nullptr), txn_(txn) {
-  if (gexpr->Contents()->GetOpType() != pattern->GetOpType()) {
+  if (gexpr->Contents()->GetOpType() != pattern->GetOpType() ||
+      gexpr->Contents()->GetExpType() != pattern->GetExpType()) {
     // Check root node type
     return;
   }
@@ -98,7 +100,13 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
   }
 
   has_next_ = true;
-  current_binding_ = std::make_unique<OperatorNode>(gexpr->Contents(), std::move(children), txn_);
+  if (gexpr->Contents()->GetOpType() == OpType::UNDEFINED) {
+    // If op type is undefined, then we're working with an expression node
+    current_binding_ = std::make_unique<ExpressionNode>(gexpr->Contents(), std::move(children), txn_);
+  } else {
+    // Otherwise, we're working with an operator node
+    current_binding_ = std::make_unique<OperatorNode>(gexpr->Contents(), std::move(children), txn_);
+  }
 }
 
 bool GroupExprBindingIterator::HasNext() {
@@ -133,7 +141,11 @@ bool GroupExprBindingIterator::HasNext() {
       }
 
       TERRIER_ASSERT(!current_binding_, "Next() should have been called");
-      current_binding_ = std::make_unique<OperatorNode>(gexpr_->Contents(), std::move(children), txn_);
+      if (gexpr_->Contents()->GetOpType() == OpType::UNDEFINED) {
+        current_binding_ = std::make_unique<ExpressionNode>(gexpr_->Contents(), std::move(children), txn_);
+      } else {
+        current_binding_ = std::make_unique<OperatorNode>(gexpr_->Contents(), std::move(children), txn_);
+      }
     }
   }
 

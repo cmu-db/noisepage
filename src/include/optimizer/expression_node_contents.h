@@ -8,6 +8,7 @@
 #include "optimizer/abstract_optimizer_node_contents.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
@@ -144,7 +145,13 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    *   copies get deallocated on commit/abort)
    * @param txn the transaction context to register with
    */
-  void RegisterWithTxnContext(transaction::TransactionContext *txn) { txn_ = txn; }
+  void RegisterWithTxnContext(transaction::TransactionContext *txn) {
+    txn_ = txn;
+    if (txn_ != nullptr) {
+      txn_->RegisterCommitAction([=]() { delete this; });
+      txn_->RegisterAbortAction([=]() { delete this; });
+    }
+  }
 
  private:
   common::ManagedPointer<parser::AbstractExpression> expr_{};

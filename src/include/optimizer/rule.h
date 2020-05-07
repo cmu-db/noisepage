@@ -74,6 +74,9 @@ enum class RuleType : uint32_t {
   EQUIV_OR,
   EQUIV_COMPARE_EQUAL,
 
+  // Rewriter rules
+  TRANSITIVE_CLOSURE_CONSTANT_TRANSFORM,
+
   // Place holder to generate number of rules compile time
   NUM_RULES
 };
@@ -279,10 +282,8 @@ class RuleSet {
    * Destructor
    */
   ~RuleSet() {
-    std::cout << "DESTROYING RULE SET\n";
     for (auto &it : rules_map_) {
       for (auto *rule : it.second) {
-        std::cout << " opt rule: " << rule << "\n";
         delete rule;
       }
     }

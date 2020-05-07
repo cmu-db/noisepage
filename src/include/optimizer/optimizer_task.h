@@ -391,9 +391,8 @@ class RewriteTask : public OptimizerTask {
    * @param context The current optimization context
    * @param rule_set_name The name of the set of rules being used
    */
-  RewriteTask(OptimizerTaskType type, group_id_t group_id, OptimizationContext *context,
-              RuleSetName rule_set_name) : OptimizerTask(context, type),
-                                           group_id_(group_id), rule_set_name_(rule_set_name) {}
+  RewriteTask(OptimizerTaskType type, group_id_t group_id, OptimizationContext *context, RuleSetName rule_set_name)
+      : OptimizerTask(context, type), group_id_(group_id), rule_set_name_(rule_set_name) {}
 
   /**
    * Virtual execute method (should only be called in subclasses)
@@ -409,7 +408,6 @@ class RewriteTask : public OptimizerTask {
   group_id_t group_id_;
   RuleSetName rule_set_name_;
 };
-
 
 /**
  * TopDownRewrite performs a top-down rewrite pass. A generally held assumption for

@@ -19,15 +19,10 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::vector<Rule *> &rules,
                                         std::vector<RuleWithPromise> *valid_rules) {
-  std::cout << "size: " << rules.size() << "\n";
   for (const auto &rule : rules) {
-    std::cout << " rule: " << rule << "\n";
     // Check if we can apply the rule
-    std::cout << "????\n";
     bool root_pattern_mismatch = group_expr->Contents()->GetOpType() != rule->GetMatchPattern()->GetOpType();
-    std::cout << "????\n";
     bool already_explored = group_expr->HasRuleExplored(rule);
-    std::cout << "????\n";
 
     // This check exists only as an "early" reject. As is evident, we do not check
     // the full pattern here. Checking the full pattern happens when actually trying to
@@ -38,7 +33,6 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::
     if (root_pattern_mismatch || already_explored || child_pattern_mismatch) {
       continue;
     }
-
 
     auto promise = rule->Promise(group_expr);
     if (promise != RulePromise::NO_PROMISE) valid_rules->emplace_back(rule, promise);
@@ -417,13 +411,10 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
     auto cur_group_expr = cur_group_expr_ptr;
 
     // Construct valid transformation rules from rule set
-    ConstructValidRules(cur_group_expr,
-                        GetRuleSet().GetRulesByName(rule_set_name_),
-                        &valid_rules);
+    ConstructValidRules(cur_group_expr, GetRuleSet().GetRulesByName(rule_set_name_), &valid_rules);
 
     // Sort so that we apply rewrite rules with higher promise first
-    std::sort(valid_rules.begin(), valid_rules.end(),
-              std::greater<RuleWithPromise>());
+    std::sort(valid_rules.begin(), valid_rules.end(), std::greater<RuleWithPromise>());
 
     // Try applying each rule
     for (auto &r : valid_rules) {
@@ -450,7 +441,7 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
           if (replace_on_match) {
             // Replace entire group. We do not need to generate logically equivalent
             // because rewriting expressions will not generate new AND or OR clauses.
-            //this->context_->metadata->ReplaceRewritedExpression(new_expr, group_id_);
+            // this->context_->metadata->ReplaceRewritedExpression(new_expr, group_id_);
 
             // Return true to indicate optimize succeeded and the caller should try again
             return true;
@@ -460,7 +451,7 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
             group_id_t group = cur_group_expr->GetGroupID();
             (void)group;
             // Try again only if we succeeded in recording a new expression
-            //return this->context_->metadata->RecordTransformedExpression(new_expr, new_gexpr, group);
+            // return this->context_->metadata->RecordTransformedExpression(new_expr, new_gexpr, group);
           }
         }
       }
@@ -471,7 +462,6 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
 
   return false;
 }
-
 
 void TopDownRewrite::Execute() {
   std::vector<RuleWithPromise> valid_rules;
@@ -518,14 +508,10 @@ void TopDownRewrite::Execute() {
 }
 
 void BottomUpRewrite::Execute() {
-
-  std::cout << "bottom up rewrite executing\n";
   std::vector<RuleWithPromise> valid_rules;
 
   auto *cur_group = GetMemo().GetGroupByID(group_id_);
   auto *cur_group_expr = cur_group->GetLogicalExpression();
-
-  std::cout << "1\n";
 
   if (!has_optimized_child_) {
     PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, true));
@@ -540,17 +526,12 @@ void BottomUpRewrite::Execute() {
     return;
   }
 
-  std::cout << "2\n";
-
   // Construct valid transformation rules from rule set
   std::vector<Rule *> set = GetRuleSet().GetRulesByName(rule_set_name_);
-  std::cout << "3\n";
   ConstructValidRules(cur_group_expr, set, &valid_rules);
-  std::cout << "4\n";
 
   // Sort so that we apply rewrite rules with higher promise first
   std::sort(valid_rules.begin(), valid_rules.end(), std::greater<>());
-
 
   for (auto &r : valid_rules) {
     Rule *rule = r.GetRule();
@@ -569,12 +550,11 @@ void BottomUpRewrite::Execute() {
       // saturated, also children are already been rewritten
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);
+        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr), group_id_);
         PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false));
         return;
       }
     }
-
     cur_group_expr->SetRuleExplored(rule);
   }
 }

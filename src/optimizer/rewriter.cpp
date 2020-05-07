@@ -32,47 +32,44 @@ Rewriter::Rewriter(transaction::TransactionContext *txn) {
   SetTxn(txn);
 }
 
+Rewriter::~Rewriter() { delete context_; }
+
 void Rewriter::Reset(transaction::TransactionContext *txn) {
-  std::cout << " deleting context\n";
   delete context_;
-  std::cout << " done\n";
   context_ = new OptimizerContext(nullptr);
   SetTxn(txn);
 }
 
 void Rewriter::RewriteLoop(group_id_t root_group_id) {
   std::unique_ptr<OptimizationContext> root_context = std::make_unique<OptimizationContext>(context_, nullptr);
-  auto task_stack = std::make_unique<OptimizerTaskStack>();
-  context_->SetTaskPool(task_stack.get());
+  auto *task_stack = new OptimizerTaskStack();
+  context_->SetTaskPool(task_stack);
 
   // Rewrite using all rules (which will be applied based on priority)
   task_stack->Push(new BottomUpRewrite(root_group_id, root_context.get(), RuleSetName::GENERIC_RULES, false));
 
   // Generate equivalences first
-  //auto *equiv_task = new TopDownRewrite(root_group_id, root_context.get(), RuleSetName::EQUIVALENT_TRANSFORM);
-  //equiv_task->SetReplaceOnTransform(false);  // generate equivalent
-  //task_stack->Push(equiv_task);
+  // auto *equiv_task = new TopDownRewrite(root_group_id, root_context.get(), RuleSetName::EQUIVALENT_TRANSFORM);
+  // equiv_task->SetReplaceOnTransform(false);  // generate equivalent
+  // task_stack->Push(equiv_task);
 
   // Iterate through the task stack
   while (!task_stack->Empty()) {
-    std::cout << "task!\n";
-    auto task = task_stack->Pop();
-    std::cout << "task popped\n";
+    auto *task = task_stack->Pop();
     task->Execute();
-    std::cout << "task executed\n";
+    delete task;
   }
-  std::cout << "done with rewrite loop\n";
 }
 
 common::ManagedPointer<parser::AbstractExpression> Rewriter::RebuildExpression(group_id_t root) {
-  auto cur_group = context_->GetMemo().GetGroupByID(root);
+  auto *cur_group = context_->GetMemo().GetGroupByID(root);
   auto exprs = cur_group->GetLogicalExpressions();
 
   // If we optimized a group successfully, then it would have been
   // collapsed to only a single group. If we did not optimize a group,
   // then they are all equivalent, so pick any.
   TERRIER_ASSERT(exprs.size() >= 1, "Optimized group should collapse into a single group");
-  auto expr = exprs[0];
+  auto *expr = exprs[0];
 
   std::vector<group_id_t> child_groups = expr->GetChildGroupIDs();
   std::vector<std::unique_ptr<parser::AbstractExpression>> child_exprs;
@@ -92,15 +89,6 @@ common::ManagedPointer<parser::AbstractExpression> Rewriter::RebuildExpression(g
 
 std::unique_ptr<AbstractOptimizerNode> Rewriter::ConvertToOptimizerNode(
     common::ManagedPointer<parser::AbstractExpression> expr) {
-  // TODO(): remove the Copy invocation when in terrier since terrier uses shared_ptr
-  //
-  // This Copy() is not very efficient at all. but within Peloton, this is the only way
-  // to present a common::ManagedPointer to the AbstractOptimizerNodeContents/Expression classes. In terrier,
-  // this Copy() is *definitely* not needed because the AbstractExpression there already
-  // utilizes common::ManagedPointer properly.
-  // common::ManagedPointer<parser::AbstractExpression> copy =
-  //     common::ManagedPointer<parser::AbstractExpression>(expr);
-
   // Create current AbstractOptimizerNode
   auto *expr_node_contents = new ExpressionNodeContents(expr);
   expr_node_contents->RegisterWithTxnContext(context_->GetTxn());
@@ -142,9 +130,7 @@ common::ManagedPointer<parser::AbstractExpression> Rewriter::RewriteExpression(
   common::ManagedPointer<parser::AbstractExpression> expr_tree = RebuildExpression(root_id);
   OPTIMIZER_LOG_TRACE("Rebuilt expression tree from memo table");
 
-  std::cout << "rebuilt expression\n";
   Reset(context_->GetTxn());
-  std::cout << "reset rewriter\n";
   OPTIMIZER_LOG_TRACE("Reset the rewriter");
   return expr_tree;
 }
