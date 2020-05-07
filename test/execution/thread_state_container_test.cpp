@@ -32,7 +32,7 @@ class ThreadStateContainerTest : public TplTest {
 // NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, EmptyStateTest) {
   MemoryPool memory(nullptr);
-  ThreadStateContainer container(&memory);
+  ThreadStateContainer container((common::ManagedPointer<MemoryPool>(&memory)));
   container.Reset(0, nullptr, nullptr, nullptr);
   UNUSED_ATTRIBUTE auto *state = container.AccessThreadStateOfCurrentThread();
   container.Clear();
@@ -49,7 +49,7 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   };
 
   MemoryPool memory(nullptr);
-  ThreadStateContainer container(&memory);
+  ThreadStateContainer container((common::ManagedPointer<MemoryPool>(&memory)));
 
   container.Reset(
       sizeof(Object),
@@ -74,9 +74,9 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
 TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   // The container
   MemoryPool memory(nullptr);
-  ThreadStateContainer container(&memory);
+  ThreadStateContainer container((common::ManagedPointer<MemoryPool>(&memory)));
 
-  //
+//
   // Test: Create thread local state that adds to a contextually provided
   //       counter on construction, and decrements upon destruction. Try
   //       resetting the container multiple times. After all is said and done,
@@ -115,7 +115,7 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   //
 
   MemoryPool memory(nullptr);
-  ThreadStateContainer container(&memory);
+  ThreadStateContainer container((common::ManagedPointer<MemoryPool>(&memory)));
   container.Reset(
       sizeof(uint32_t), [](UNUSED_ATTRIBUTE auto *ctx, auto *s) { *reinterpret_cast<uint32_t *>(s) = 0; }, nullptr,
       nullptr);

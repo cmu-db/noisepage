@@ -186,5 +186,8 @@ BENCHMARK_REGISTER_F(ParalleScanBenchmark, TableVectorParallel)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
     ->UseManualTime();
-BENCHMARK_REGISTER_F(ParalleScanBenchmark, ParallelScan)->Unit(benchmark::kMillisecond)->UseRealTime()->UseManualTime();
+BENCHMARK_REGISTER_F(ParalleScanBenchmark, ParallelScan)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
 }  // namespace terrier

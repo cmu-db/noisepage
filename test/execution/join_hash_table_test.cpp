@@ -169,7 +169,7 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
   const uint32_t num_tuples = 100000;
 
   MemoryPool memory(nullptr);
-  ThreadStateContainer container(&memory);
+  ThreadStateContainer container((common::ManagedPointer<MemoryPool>(&memory)));
 
   container.Reset(
       sizeof(JoinHashTable),

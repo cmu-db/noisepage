@@ -184,7 +184,7 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
 
   // Create container
   exec::ExecutionContext exec_ctx(catalog::INVALID_DATABASE_OID, nullptr, nullptr, nullptr, nullptr);
-  ThreadStateContainer container(exec_ctx.GetMemoryPool());
+  ThreadStateContainer container(common::ManagedPointer<MemoryPool>(exec_ctx.GetMemoryPool()));
 
   container.Reset(sizeof(Sorter), init_sorter, destroy_sorter, &exec_ctx);
 

@@ -441,7 +441,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
 
   QS qstate{0};
   // Create container
-  ThreadStateContainer container(exec_ctx_->GetMemoryPool());
+  ThreadStateContainer container(common::ManagedPointer<MemoryPool>(exec_ctx_->GetMemoryPool()));
 
   // Build thread-local tables
   container.Reset(sizeof(AggregationHashTable), init_ht, destroy_ht, exec_ctx_.get());
