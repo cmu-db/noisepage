@@ -13,16 +13,22 @@ class GroupExpression;
 
 /**
  * This cost model is meant to just be a trivial cost model. The decisions it makes are as follows
- * Always choose index scan (cost of 0) over sequential scan (cost of 1)
+ * Always choose index scan with cost differentiation based on # columns  over sequential scan (cost of SCAN_COST)
  * Choose NL if left rows is a single record (for single record lookup queries), else choose hash join
  * Choose hash group by over sort group by
  */
-class TrivialCostModel : public AbstractCostModel {
+class IndexFitCostModel : public AbstractCostModel {
  public:
+  /**
+   * Cost of performing a scan
+   * Meant as a rough heuristic to ensure that INDEX_SCANs are always picked
+   */
+  static constexpr double SCAN_COST = 1000000.f;
+
   /**
    * Default constructor
    */
-  TrivialCostModel() = default;
+  IndexFitCostModel() = default;
 
   /**
    * Costs a GroupExpression
@@ -31,10 +37,11 @@ class TrivialCostModel : public AbstractCostModel {
    * @param memo Memo object containing all relevant groups
    * @param gexpr GroupExpression to calculate cost for
    */
-  double CalculateCost(transaction::TransactionContext *txn, UNUSED_ATTRIBUTE catalog::CatalogAccessor *accessor, Memo *memo, GroupExpression *gexpr) override {
+  double CalculateCost(transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, Memo *memo, GroupExpression *gexpr) override {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;
+    accessor_ = accessor;
     gexpr_->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
     return output_cost_;
   };
@@ -43,13 +50,22 @@ class TrivialCostModel : public AbstractCostModel {
    * Visit a SeqScan operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const SeqScan *op) override { output_cost_ = 1.f; }
+  void Visit(UNUSED_ATTRIBUTE const SeqScan *op) override { output_cost_ = SCAN_COST; }
 
   /**
    * Visit a IndexScan operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const IndexScan *op) override { output_cost_ = 0.f; }
+  void Visit(UNUSED_ATTRIBUTE const IndexScan *op) override {
+    // Get the table schema
+    // This heuristic is not really good --- it merely picks the index based on
+    // how many of those index's keys are set (op->GetBounds()) and the particular
+    // size of the index.
+    auto tbl_schema = accessor_->GetSchema(op->GetTableOID());
+    auto schema_size = tbl_schema.GetColumns().size();
+    if (schema_size < op->GetBounds().size()) output_cost_ = 0.f;
+    else output_cost_ = static_cast<double>(schema_size - op->GetBounds().size());
+  }
 
   /**
    * Visit a QueryDerivedScan operator
@@ -174,6 +190,11 @@ class TrivialCostModel : public AbstractCostModel {
    * Transaction Context
    */
   transaction::TransactionContext *txn_;
+
+  /**
+   * Accessor
+   */
+  catalog::CatalogAccessor *accessor_;
 
   /**
    * Computed output cost
