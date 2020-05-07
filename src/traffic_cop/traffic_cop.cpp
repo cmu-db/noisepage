@@ -295,6 +295,8 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   auto exec_query = std::make_unique<execution::ExecutableQuery>(common::ManagedPointer(physical_plan),
                                                                  common::ManagedPointer(exec_ctx));
 
+  printf("%ld %s\n", !exec_query->GetQueryId(), portal->GetStatement()->GetQueryText().c_str());
+
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 

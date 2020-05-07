@@ -85,7 +85,8 @@ def _pipeline_get_grouped_op_unit_data(filename):
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
                 opunits.append((opunit, x_loc))
 
-            data_list.append(GroupedOpUnitData("{}".format(opunits), opunits, np.array(metrics)))
+            data_list.append(GroupedOpUnitData("q{} p{} {}".format(line[0], line[1], opunits), opunits,
+                                               np.array(metrics)))
 
     return data_list
 

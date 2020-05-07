@@ -240,7 +240,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         ratio_error = abs(y - pipeline_y_pred) / (y + 1e-6)
         logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
 
-        io_util.write_csv_result(prediction_path, data.name + " " + str(x[0][-1]),
-                                 [""] + list(y) + [""] + list(pipeline_y_pred) + [""] + list(ratio_error))
+        io_util.write_csv_result(prediction_path, data.name, [""] + list(y) + [""] + list(pipeline_y_pred) + [""] +
+                                 list(ratio_error))
 
         logging.debug("")
