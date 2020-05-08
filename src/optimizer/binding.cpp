@@ -5,14 +5,17 @@
 #include <vector>
 
 #include "loggers/optimizer_logger.h"
+#include "parser/expression/group_marker_expression.h"
 #include "optimizer/expression_node.h"
 #include "optimizer/operator_visitor.h"
+#include "optimizer/expression_node_contents.h"
 #include "optimizer/optimizer.h"
 
 namespace terrier::optimizer {
 
 bool GroupBindingIterator::HasNext() {
-  if (pattern_->GetOpType() == OpType::LEAF) {
+  if ((pattern_->GetOpType() == OpType::LEAF && pattern_->GetExpType() == parser::ExpressionType::INVALID) ||
+      (pattern_->GetOpType() == OpType::UNDEFINED && pattern_->GetExpType() == parser::ExpressionType::GROUP_MARKER)) {
     return current_item_index_ == 0;
   }
 
@@ -43,11 +46,23 @@ bool GroupBindingIterator::HasNext() {
 }
 
 std::unique_ptr<AbstractOptimizerNode> GroupBindingIterator::Next() {
-  if (pattern_->GetOpType() == OpType::LEAF) {
+  if (pattern_->GetOpType() == OpType::LEAF && pattern_->GetExpType() == parser::ExpressionType::INVALID) {
     current_item_index_ = num_group_items_;
     std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
     return std::make_unique<OperatorNode>(LeafOperator::Make(group_id_).RegisterWithTxnContext(txn_), std::move(c),
                                           txn_);
+  }
+
+  if (pattern_->GetOpType() == OpType::UNDEFINED && pattern_->GetExpType() == parser::ExpressionType::GROUP_MARKER) {
+    current_item_index_ = num_group_items_;
+    auto *expr = new parser::GroupMarkerExpression(group_id_);
+    if (txn_ != nullptr) {
+      txn_->RegisterCommitAction([=]() { delete expr; });
+      txn_->RegisterAbortAction([=]() { delete expr; });
+    }
+    auto *expr_node_contents = new ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression>(expr));
+    expr_node_contents->RegisterWithTxnContext(txn_);
+    return std::make_unique<ExpressionNode>(common::ManagedPointer<AbstractOptimizerNodeContents>(expr_node_contents), txn_);
   }
 
   return current_iterator_->Next();

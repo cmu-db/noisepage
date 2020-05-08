@@ -4,13 +4,16 @@
 
 #include "optimizer/group_expression.h"
 #include "optimizer/logical_operators.h"
+#include "optimizer/expression_node_contents.h"
+#include "parser/expression/group_marker_expression.h"
 #include "optimizer/memo.h"
 
 namespace terrier::optimizer {
 
 GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t target_group, bool enforced) {
   // If leaf, then just return
-  if (gexpr->Contents()->GetOpType() == OpType::LEAF) {
+  if (gexpr->Contents()->GetOpType() == OpType::LEAF &&
+      gexpr->Contents()->GetExpType() == parser::ExpressionType::INVALID) {
     const auto leaf = gexpr->Contents()->GetContentsAs<LeafOperator>();
     TERRIER_ASSERT(target_group == UNDEFINED_GROUP || target_group == leaf->GetOriginGroup(),
                    "target_group does not match the LeafOperator's group");
@@ -18,6 +21,22 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
 
     // Let the caller delete!
     // Caller needs the origin_group
+    return nullptr;
+  }
+
+  // If group marker, then just return
+  if (gexpr->Contents()->GetOpType() == OpType::UNDEFINED &&
+      gexpr->Contents()->GetExpType() == parser::ExpressionType::GROUP_MARKER) {
+
+    auto node_contents = gexpr->Contents();
+    TERRIER_ASSERT(node_contents != nullptr, "Group expression's contents should be non-null");
+
+    auto gm_expr = node_contents.CastManagedPointerTo<ExpressionNodeContents>()->GetExpr()
+                       .CastManagedPointerTo<parser::GroupMarkerExpression>();
+    TERRIER_ASSERT(gm_expr != nullptr, "Group marker node should have intact group marker expression");
+    TERRIER_ASSERT(target_group == UNDEFINED_GROUP || target_group == gm_expr->GetGroupID(),
+                   "Target group should be undefined or the group ID of the group marker");
+    gexpr->SetGroupID(gm_expr->GetGroupID());
     return nullptr;
   }
 

@@ -112,8 +112,10 @@ class Memo {
     auto idx = !group_id;
     TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
 
-    auto gexpr = groups_[idx]->GetLogicalExpression();
-    group_expressions_.erase(gexpr);
+    std::vector<GroupExpression *> gexprs = groups_[idx]->GetLogicalExpressions();
+    for (auto *gexpr : gexprs) {
+      group_expressions_.erase(gexpr);
+    }
     groups_[idx]->EraseLogicalExpression();
   }
 

@@ -8,11 +8,20 @@
 namespace terrier::optimizer {
 
 RulePromise Rule::Promise(GroupExpression *group_expr) const {
-  auto root_type = match_pattern_->GetOpType();
+  auto root_op_type = match_pattern_->GetOpType();
+  auto root_exp_type = match_pattern_->GetExpType();
   // This rule is not applicable
-  if (root_type != OpType::LEAF && root_type != group_expr->Contents()->GetOpType()) {
+  if (root_op_type != OpType::LEAF &&
+      root_op_type != OpType::UNDEFINED &&
+      root_op_type != group_expr->Contents()->GetOpType()) {
     return RulePromise::NO_PROMISE;
   }
+  if (root_exp_type != parser::ExpressionType::INVALID &&
+      root_exp_type != parser::ExpressionType::GROUP_MARKER &&
+      root_exp_type != group_expr->Contents()->GetExpType()) {
+    return RulePromise::NO_PROMISE;
+  }
+
   if (IsPhysical()) return RulePromise::PHYSICAL_PROMISE;
   return RulePromise::LOGICAL_PROMISE;
 }

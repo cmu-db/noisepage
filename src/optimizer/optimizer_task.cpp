@@ -383,7 +383,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 
 std::set<group_id_t> RewriteTask::GetUniqueChildGroupIDs() {
   // Get current group and logical expressions
-  auto cur_group = this->GetMemo().GetGroupByID(group_id_);
+  auto cur_group = GetMemo().GetGroupByID(group_id_);
   auto cur_group_exprs = cur_group->GetLogicalExpressions();
   TERRIER_ASSERT(!cur_group_exprs.empty(), "Current group should have a nonzero number of logical expressions");
 
@@ -407,8 +407,7 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
 
   // Try to optimize all the logical group expressions.
   // If one gets optimized, then the group is collapsed.
-  for (auto cur_group_expr_ptr : cur_group_exprs) {
-    auto cur_group_expr = cur_group_expr_ptr;
+  for (auto *cur_group_expr : cur_group_exprs) {
 
     // Construct valid transformation rules from rule set
     ConstructValidRules(cur_group_expr, GetRuleSet().GetRulesByName(rule_set_name_), &valid_rules);
@@ -418,7 +417,7 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
 
     // Try applying each rule
     for (auto &r : valid_rules) {
-      GroupExprBindingIterator iterator(this->GetMemo(), cur_group_expr, r.GetRule()->GetMatchPattern(),
+      GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, r.GetRule()->GetMatchPattern(),
                                         context_->GetOptimizerContext()->GetTxn());
       // Keep trying to apply until we exhaust all the bindings.
       // This could possibly be sub-optimal since the first binding that results
@@ -441,18 +440,17 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
           if (replace_on_match) {
             // Replace entire group. We do not need to generate logically equivalent
             // because rewriting expressions will not generate new AND or OR clauses.
-            // this->context_->metadata->ReplaceRewritedExpression(new_expr, group_id_);
+            context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr), group_id_);
 
             // Return true to indicate optimize succeeded and the caller should try again
             return true;
           }
 
           // Insert as a new logical equivalent expression
-          std::shared_ptr<GroupExpression> new_gexpr;
+          GroupExpression *new_gexpr;
           group_id_t group = cur_group_expr->GetGroupID();
-          (void)group;
           // Try again only if we succeeded in recording a new expression
-          // return this->context_->metadata->RecordTransformedExpression(new_expr, new_gexpr, group);
+          return context_->GetOptimizerContext()->RecordOptimizerNodeIntoGroup(common::ManagedPointer(new_expr), &new_gexpr, group);
         }
       }
       cur_group_expr->SetRuleExplored(r.GetRule());
@@ -463,6 +461,7 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
 }
 
 void TopDownRewrite::Execute() {
+  /*
   std::vector<RuleWithPromise> valid_rules;
 
   auto *cur_group = GetMemo().GetGroupByID(group_id_);
@@ -504,9 +503,27 @@ void TopDownRewrite::Execute() {
     auto task = new TopDownRewrite(id, context_, rule_set_name_);
     PushTask(task);
   }
+   */
+  bool did_optimize = OptimizeCurrentGroup(replace_on_transform_);
+
+  if (did_optimize && replace_on_transform_) {
+    auto *top = new TopDownRewrite(group_id_, context_, rule_set_name_);
+    top->SetReplaceOnTransform(replace_on_transform_);
+    PushTask(top);
+    return;
+  }
+
+  // This group has been optimized, so move on to the children
+  std::set<group_id_t> child_groups = GetUniqueChildGroupIDs();
+  for (auto g_id : child_groups) {
+    auto *top = new TopDownRewrite(g_id, context_, rule_set_name_);
+    top->SetReplaceOnTransform(replace_on_transform_);
+    PushTask(top);
+  }
 }
 
 void BottomUpRewrite::Execute() {
+  /*
   std::vector<RuleWithPromise> valid_rules;
 
   auto *cur_group = GetMemo().GetGroupByID(group_id_);
@@ -555,6 +572,23 @@ void BottomUpRewrite::Execute() {
       }
     }
     cur_group_expr->SetRuleExplored(rule);
+  }
+   */
+  if (!has_optimized_child_) {
+    PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, true));
+
+    // Get all unique GroupIDs to minimize repeated work
+    // Need to rewrite all sub trees first
+    std::set<group_id_t> child_groups = GetUniqueChildGroupIDs();
+    for (auto g_id : child_groups) {
+      PushTask(new BottomUpRewrite(g_id, context_, rule_set_name_, false));
+    }
+    return;
+  }
+
+  // Keep rewriting until we finish
+  if (OptimizeCurrentGroup(true)) {
+    PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false));
   }
 }
 

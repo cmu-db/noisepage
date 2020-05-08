@@ -209,7 +209,7 @@ class OptimizerContext {
    */
   void ReplaceRewriteExpression(common::ManagedPointer<AbstractOptimizerNode> node, group_id_t target_group) {
     memo_.EraseExpression(target_group);
-    UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(node), target_group, false);
+    UNUSED_ATTRIBUTE auto *ret = memo_.InsertExpression(MakeGroupExpression(node), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
   }
 

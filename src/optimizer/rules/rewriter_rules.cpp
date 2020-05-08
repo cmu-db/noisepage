@@ -24,7 +24,7 @@ EquivalentTransform::EquivalentTransform(RuleType rule, parser::ExpressionType r
 
 RulePromise EquivalentTransform::Promise(GroupExpression *gexpr) const {
   (void)gexpr;
-  return RulePromise::LOGICAL_PROMISE;
+  return RulePromise::UNNEST_PROMISE_HIGH;
 }
 
 bool EquivalentTransform::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
@@ -49,6 +49,11 @@ void EquivalentTransform::Transform(common::ManagedPointer<AbstractOptimizerNode
 
   auto type = match_pattern_->GetExpType();
   auto *expr = new parser::ConjunctionExpression(type, {});
+  transaction::TransactionContext *txn = context->GetOptimizerContext()->GetTxn();
+  if (txn != nullptr) {
+    txn->RegisterCommitAction([=]() { delete expr; });
+    txn->RegisterAbortAction([=]() { delete expr; });
+  }
   auto *expr_node_contents = new ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression>(expr));
   expr_node_contents->RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn());
   std::unique_ptr<AbstractOptimizerNode> expr_node =
