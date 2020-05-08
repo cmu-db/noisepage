@@ -38,7 +38,7 @@ class ExpressionNode : public AbstractOptimizerNode {
 
   /**
    * Pushes a child node onto this node's children
-   * @param child a child node
+   * @param child the child node to be pushed
    */
   void PushChild(std::unique_ptr<AbstractOptimizerNode> child) override { children_.emplace_back(std::move(child)); }
 
@@ -48,7 +48,7 @@ class ExpressionNode : public AbstractOptimizerNode {
   std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
     std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
     result.reserve(children_.size());
-    for (auto &child : children_) {
+    for (const auto &child : children_) {
       result.emplace_back(common::ManagedPointer(child));
     }
     return result;
@@ -58,7 +58,10 @@ class ExpressionNode : public AbstractOptimizerNode {
    * @return The ExpressionNodeContents contained in this node.
    */
   common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const override {
-    // TODO(esargent): bring over assert for contents being expression-based
+    TERRIER_ASSERT(contents_->GetOpType() == OpType::UNDEFINED,
+                   "Expression nodes should have an undefined OpType");
+    TERRIER_ASSERT(contents_->GetExpType() != parser::ExpressionType::INVALID,
+                   "Expression nodes should have a valid expression type");
     return contents_;
   }
 

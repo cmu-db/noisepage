@@ -110,7 +110,6 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    * @return Whether or not this is equal to the other node contents
    */
   bool operator==(const ExpressionNodeContents &r) {
-    // TODO(esargent): proper equality check
     // Equality check relies on performing the following:
     // - Check each node's ExpressionType
     // - Check other parameters for a given node
@@ -119,10 +118,10 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     // The reason behind why the children-less guarantee is required,
     // is that the "real" children are actually tracked by the
     // ExpressionNode class.
-    if (IsDefined() && r.IsDefined()) {
-      return false;
-    }
-    return !IsDefined() && !r.IsDefined();
+    if (GetExpType() != r.GetExpType()) return false;
+    if (expr_ == nullptr) return (r.expr_ == nullptr);
+    if (r.expr_ == nullptr) return false;
+    return (*expr_ == *r.expr_);
   }
 
   /**
@@ -154,8 +153,14 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
   }
 
  private:
+  /**
+   * The expression that these node contents contain
+   */
   common::ManagedPointer<parser::AbstractExpression> expr_{};
 
+  /**
+   * Pointer to the transaction context used for memory management
+   */
   transaction::TransactionContext *txn_;
 };
 

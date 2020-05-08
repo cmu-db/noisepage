@@ -1,15 +1,3 @@
-//===----------------------------------------------------------------------===//
-//
-//                         Peloton
-//
-// rewriter.h
-//
-// Identification: src/include/optimizer/rewriter.h
-//
-// Copyright (c) 2015-2018, Carnegie Mellon University Database Group
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <memory>
@@ -26,7 +14,7 @@ class Rewriter {
  public:
   /**
    * Constructor.
-   * @param txn the transaction context being
+   * @param txn the transaction context being used for memory management
    */
   explicit Rewriter(transaction::TransactionContext *txn);
 
@@ -37,6 +25,7 @@ class Rewriter {
 
   /**
    * Resets the internal state of the rewriter
+   * @param txn the transaction context being used for memory management
    */
   void Reset(transaction::TransactionContext *txn);
 

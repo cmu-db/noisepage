@@ -21,13 +21,25 @@ namespace terrier::parser {
  */
 class GroupMarkerExpression : public AbstractExpression {
  public:
-  GroupMarkerExpression(optimizer::group_id_t group_id)
+  /**
+   * Constructor.
+   * @param group_id the Group ID that this marker represents
+   */
+  explicit GroupMarkerExpression(optimizer::group_id_t group_id)
       : AbstractExpression(ExpressionType::GROUP_MARKER, type::TypeId::INVALID, {}), group_id_(group_id){};
 
+  /**
+   * Constructor with children.
+   * @param group_id the Group ID that this marker represents
+   * @param children the children to be passed to the node
+   */
   GroupMarkerExpression(optimizer::group_id_t group_id, std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : AbstractExpression(ExpressionType::GROUP_MARKER, type::TypeId::INVALID, std::move(children)),
         group_id_(group_id) {}
 
+  /**
+   * @return this expression's Group ID
+   */
   optimizer::group_id_t GetGroupID() { return group_id_; }
 
   std::unique_ptr<AbstractExpression> Copy() const override {

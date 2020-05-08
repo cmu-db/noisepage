@@ -69,7 +69,7 @@ TEST_F(RuleRewriteTests, TransitiveClosureUnableTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  auto cv1 = GetConstantExpression(1);
+  auto *cv1 = GetConstantExpression(1);
   auto *tv_base1 = new parser::ColumnValueExpression("A", "B");
   auto *tv_base2 = new parser::ColumnValueExpression("A", "C");
   auto *tv_base3 = new parser::ColumnValueExpression("A", "D");
@@ -77,7 +77,7 @@ TEST_F(RuleRewriteTests, TransitiveClosureUnableTest) {
   auto *rewriter = new Rewriter(txn_context);
 
   // Base (A = 1) AND (B = C)
-  auto base = CreateMultiLevelExpression(tv_base1, cv1, tv_base2, tv_base3);
+  auto *base = CreateMultiLevelExpression(tv_base1, cv1, tv_base2, tv_base3);
 
   auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
   delete rewriter;
@@ -255,7 +255,7 @@ TEST_F(RuleRewriteTests, TransitiveClosureHalfTrue) {
   auto *rewriter = new Rewriter(txn_context);
 
   // Base (B = 1) AND (B = B)
-  auto base = CreateMultiLevelExpression(tv_base1, cv1, tv_base1, tv_base1);
+  auto *base = CreateMultiLevelExpression(tv_base1, cv1, tv_base1, tv_base1);
 
   auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
   delete rewriter;
