@@ -370,7 +370,7 @@ void DataTable::TraverseVersionChain(const TupleSlot slot, RowType *const out_bu
     lambda(DataTable::VersionChainType::INVISIBLE);
   }
 
-  // Apply deltas until we reconstruct a version safe for us to read
+  // Apply deltas until we reconstruct a version safe for everyone to read
   while (version_ptr != nullptr) {
     switch (version_ptr->Type()) {
       case DeltaRecordType::UPDATE:

@@ -938,7 +938,7 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
 
 common::ManagedPointer<std::shared_mutex> DatabaseCatalog::GetTableLock(common::ManagedPointer<transaction::TransactionContext> txn,
                                                        table_oid_t table) {
-  return common::ManagedPointer(reinterpret_cast<std::shared_mutex*>(&(GetTable(txn, table)->modify_mutex_)));
+  return common::ManagedPointer(reinterpret_cast<std::shared_mutex*>(&(GetTable(txn, table)->modify_lock_)));
 }
 
 bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -2183,26 +2183,6 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   col.SetOid(ColOid(col_oid));
   return col;
 }
-
-bool DatabaseCatalog::TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to) {
-  bool locked = TryLock(from);
-  if(!locked) {
-    return false;
-  }
-  const transaction::timestamp_t txn_id = to->FinishTime();
-  auto current_val = write_lock_.load();
-
-  if (write_lock_.compare_exchange_strong(current_val, txn_id)) {
-    // acquired the lock
-    auto *const write_lock = &write_lock_;
-    to->RegisterCommitAction([=]() -> void { write_lock->store(to->FinishTime()); });
-    to->RegisterAbortAction([=]() -> void { write_lock->store(current_val); });
-    return true;
-  }
-
-  return false;
-}
-
 
 bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto current_val = write_lock_.load();

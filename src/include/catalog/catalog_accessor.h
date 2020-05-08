@@ -162,6 +162,14 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
 
+  /**
+   * Obtain the pointer to the read/write lock for the given table. This must be taken in read mode for
+   * any updates to the table contents (e.g. INSERT, DELETE, UPDATE), and in write mode for CREATE INDEX
+   *
+   * @param table to which we want the read/write lock, this must be a valid oid from GetTableOid. Invalid input will
+   * trigger an assert
+   * @return a pointer to the read/write lock for the given table.
+   */
   common::ManagedPointer<std::shared_mutex> GetTableLock(table_oid_t table) const;
 
   /**
@@ -194,6 +202,7 @@ class CatalogAccessor {
   /**
    * A list of all indexes on the given table
    * @param table being queried
+   * @param only_live whether or not to only look for indexes that have been marked as live
    * @return vector of OIDs for all of the indexes on this table
    */
   std::vector<index_oid_t> GetIndexOids(table_oid_t table, bool only_live = false) const;
@@ -371,18 +380,9 @@ class CatalogAccessor {
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
  /**
-  *
-  * @return TransactionContext to be used for creating and building an index
+  * @return The transaction that this accessor was initialized with
   */
   common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
-
-  /**
-   * Instantiates a new accessor into for the same catalog with the new txn
-   * @param new_txn the new transaction
-   */
-  CatalogAccessor SetTxn(const common::ManagedPointer<transaction::TransactionContext> new_txn) const {
-    return CatalogAccessor(catalog_, dbc_, new_txn);
-  }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.
@@ -399,10 +399,6 @@ class CatalogAccessor {
         search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
         default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
 
-
-  bool TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to) {
-    return dbc_->TransferLock(from, to);
-  }
 
  private:
   const common::ManagedPointer<Catalog> catalog_;
