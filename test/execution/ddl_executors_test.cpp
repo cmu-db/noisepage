@@ -342,10 +342,10 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNode) {
   planner::CreateTablePlanNode::Builder builder;
   catalog::Schema original_schema(table_schema_->GetColumns());
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-      .SetTableSchema(std::move(table_schema_))
-      .SetTableName("foo")
-      .SetBlockStore(block_store_)
-      .Build();
+                               .SetTableSchema(std::move(table_schema_))
+                               .SetTableName("foo")
+                               .SetBlockStore(block_store_)
+                               .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
@@ -367,9 +367,9 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNode) {
   auto add_cmd = std::make_unique<planner::AlterPlanNode::AddColumnCmd>(std::move(col), nullptr, nullptr, nullptr);
   cmds.push_back(std::move(add_cmd));
   auto alter_table_node = alter_builder.SetTableOid(table_oid)
-      .SetCommands(std::move(cmds))
-      .SetColumnOIDs({catalog::INVALID_COLUMN_OID})
-      .Build();
+                              .SetCommands(std::move(cmds))
+                              .SetColumnOIDs({catalog::INVALID_COLUMN_OID})
+                              .Build();
   EXPECT_TRUE(
       execution::sql::DDLExecutors::AlterTableExecutor(common::ManagedPointer<planner::AlterPlanNode>(alter_table_node),
                                                        common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
@@ -415,7 +415,6 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNode) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, ConcurrentAlterTablePlanNode) {
-
   // Create table
   planner::CreateTablePlanNode::Builder builder;
   catalog::Schema original_schema(table_schema_->GetColumns());
@@ -447,8 +446,6 @@ TEST_F(DDLExecutorsTests, ConcurrentAlterTablePlanNode) {
 
   // each thread tries to adds a new column to the original schema
   for (int i = 0; i < num_threads; i++) {
-    std::cout << i << std::endl;
-    // Add a column
     txn_ = txn_manager_->BeginTransaction();
     accessors.push_back(catalog_->GetAccessor(common::ManagedPointer(txn_), db_));
     txns.push_back(txn_);
@@ -460,27 +457,29 @@ TEST_F(DDLExecutorsTests, ConcurrentAlterTablePlanNode) {
     auto add_cmd = std::make_unique<planner::AlterPlanNode::AddColumnCmd>(std::move(col), nullptr, nullptr, nullptr);
     cmds.push_back(std::move(add_cmd));
     alter_table_nodes.push_back(alter_builder.SetTableOid(table_oid)
-        .SetCommands(std::move(cmds))
-        .SetColumnOIDs({catalog::INVALID_COLUMN_OID})
-        .Build());
+                                    .SetCommands(std::move(cmds))
+                                    .SetColumnOIDs({catalog::INVALID_COLUMN_OID})
+                                    .Build());
   }
 
-  std::atomic<int> thread_that_succeeds = -1;
   int orig_value = -1;
+  std::atomic<int> thread_that_succeeds = orig_value;
 
   common::WorkerPool thread_pool(num_threads, {});
 
   // concurrent perform altertable with several transactions, each adding a column. Note that only one transaction will
   // succeed while the others will fail
   auto workload = [&](uint32_t thread_id) {
-    bool res = execution::sql::DDLExecutors::AlterTableExecutor(common::ManagedPointer<planner::AlterPlanNode>(alter_table_nodes[thread_id]),
-                                                     common::ManagedPointer<catalog::CatalogAccessor>(accessors[thread_id]));
+    bool res = execution::sql::DDLExecutors::AlterTableExecutor(
+        common::ManagedPointer<planner::AlterPlanNode>(alter_table_nodes[thread_id]),
+        common::ManagedPointer<catalog::CatalogAccessor>(accessors[thread_id]));
     if (res) thread_that_succeeds.compare_exchange_strong(orig_value, thread_id);
   };
   MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
   std::string new_col_name = col_names[thread_that_succeeds];
-  std::cout << "thread_that_succeeds: " << thread_that_succeeds << std::endl;
+  EXPECT_TRUE(thread_that_succeeds != orig_value);
+
   catalog::Schema::Column new_col;
 
   for (int i = 0; i < num_threads; i++) {
