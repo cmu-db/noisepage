@@ -197,7 +197,6 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
         TERRIER_ASSERT(false, "not implemented");
     }
   }
-  std::cout << "AlterTableCmdExecutor ok" << std::endl;
 
   // All the commands execute OK
 
@@ -208,7 +207,6 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
   storage::layout_version_t new_version;
   if (accessor->UpdateSchema(table_oid, new_schema, &new_version, change_map)) {
     // WARNING: Update the underlying sql_table, the update is not transactional
-    std::cout << "Updating schema" << std::endl;
     sql_table->UpdateSchema(accessor->GetTransactionContext(), accessor->GetSchema(table_oid), new_version);
   } else {
     return false;

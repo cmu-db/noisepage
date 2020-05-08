@@ -18,6 +18,7 @@
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "test_util/catalog_test_util.h"
+#include "test_util/multithread_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -432,19 +433,18 @@ TEST_F(DDLExecutorsTests, ConcurrentAlterTablePlanNode) {
   EXPECT_NE(table_ptr, nullptr);
   EXPECT_EQ(accessor_->GetColumns(table_oid).size(), original_schema.GetColumns().size());
   txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-  std::cout << "original size: " << original_schema.GetColumns().size() << std::endl;
 
   std::vector<std::unique_ptr<catalog::CatalogAccessor>> accessors;
   std::vector<std::unique_ptr<planner::AlterPlanNode>> alter_table_nodes;
   std::vector<transaction::TransactionContext *> txns;
   planner::AlterPlanNode::Builder alter_builder;
-  int num_threads = 2;
+  // run 3 update schema transactions concurrently
+  int num_threads = 3;
 
   auto default_val = parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(15712));
-  std::vector<std::string> col_names{"new_column1", "new_column2"};
+  std::vector<std::string> col_names{"new_column1", "new_column2", "new_column3"};
   std::vector<catalog::Schema::Column> cols;
 
-  std::cout << "hello1" << std::endl;
   // each thread tries to adds a new column to the original schema
   for (int i = 0; i < num_threads; i++) {
     std::cout << i << std::endl;
@@ -465,27 +465,25 @@ TEST_F(DDLExecutorsTests, ConcurrentAlterTablePlanNode) {
         .Build());
   }
 
-  std::cout << "hello4" << std::endl;
   std::atomic<int> thread_that_succeeds = -1;
   int orig_value = -1;
 
-  // concurrent perform altertable with two transactions, each adding a column. Note that one transaction will succeed
-  // while the other one will fail
-  for (int i = 0; i < num_threads; i++) {
-    std::cout << i << std::endl;
-    bool res = execution::sql::DDLExecutors::AlterTableExecutor(common::ManagedPointer<planner::AlterPlanNode>(alter_table_nodes[i]),
-                                                     common::ManagedPointer<catalog::CatalogAccessor>(accessors[i]));
+  common::WorkerPool thread_pool(num_threads, {});
 
-    if (res) thread_that_succeeds.compare_exchange_strong(orig_value, i);
-  }
+  // concurrent perform altertable with several transactions, each adding a column. Note that only one transaction will
+  // succeed while the others will fail
+  auto workload = [&](uint32_t thread_id) {
+    bool res = execution::sql::DDLExecutors::AlterTableExecutor(common::ManagedPointer<planner::AlterPlanNode>(alter_table_nodes[thread_id]),
+                                                     common::ManagedPointer<catalog::CatalogAccessor>(accessors[thread_id]));
+    if (res) thread_that_succeeds.compare_exchange_strong(orig_value, thread_id);
+  };
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
 
   std::string new_col_name = col_names[thread_that_succeeds];
   std::cout << "thread_that_succeeds: " << thread_that_succeeds << std::endl;
-  std::cout << "new_col_name: " << new_col_name << std::endl;
   catalog::Schema::Column new_col;
 
   for (int i = 0; i < num_threads; i++) {
-    std::cout << i << std::endl;
     if (i != thread_that_succeeds) {
       EXPECT_EQ(accessors[i]->GetColumns(table_oid).size(), original_schema.GetColumns().size());
       auto &cur_schema = accessors[i]->GetSchema(table_oid);
@@ -505,9 +503,8 @@ TEST_F(DDLExecutorsTests, ConcurrentAlterTablePlanNode) {
       txn_manager_->Commit(txns[i], transaction::TransactionUtil::EmptyCallback, nullptr);
     }
   }
-  std::cout << "hello6" << std::endl;
 
-  // Drop a column
+  // Drop the column added by the successful transaction
   txn_ = txn_manager_->BeginTransaction();
   accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
 
