@@ -31,6 +31,7 @@ namespace terrier::transaction {
  */
 class TransactionContext {
  public:
+  //Temporary lock being used to debug a deadlock. Will be removed before merge to cmu-db/master
   class DebugLock : public std::shared_mutex {
    public:
 
@@ -246,9 +247,13 @@ class TransactionContext {
    */
   void SetMustAbort() { must_abort_ = true; }
 
-  storage::UndoBuffer GetUndoBuffer() { return undo_buffer_; }
-  storage::RedoBuffer GetRedoBuffer() { return redo_buffer_; }
-
+  /**
+   * Attempts to acquire a read lock for this transaction on the given table. If the table is already locked
+   * for this transaction then this operation is a no-op.
+   *
+   * @param table_oid the table to lock on
+   * @param table_lock the lock for that table
+   */
   void LockIfNotLocked(catalog::table_oid_t table_oid, common::ManagedPointer<std::shared_mutex> table_lock) {
     if (!IsTableLocked(table_oid)) {
       reinterpret_cast<DebugLock*>(table_lock.Get())->debug_lock_shared(common::ManagedPointer(this));
@@ -257,6 +262,12 @@ class TransactionContext {
     }
   }
 
+  /**
+   * Returns whether or not this transaction holds a read lock for the given table
+   *
+   * @param table_oid the oid to check whether this transaction holds a read lock on
+   * @return whether or not this transaction holds a read lock for the given table
+   */
   bool IsTableLocked(catalog::table_oid_t table_oid) const {
     return held_table_oids_.count(table_oid) != 0;
   }

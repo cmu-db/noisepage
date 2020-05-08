@@ -135,6 +135,14 @@ class DatabaseCatalog {
   common::ManagedPointer<storage::SqlTable> GetTable(common::ManagedPointer<transaction::TransactionContext> txn,
                                                      table_oid_t table);
 
+  /**
+   * Obtain the pointer to the read/write lock for the given table. This must be taken in read mode for
+   * any updates to the table contents (e.g. INSERT, DELETE, UPDATE), and in write mode for CREATE INDEX
+   *
+   * @param table to which we want the read/write lock, this must be a valid oid from GetTableOid. Invalid input will
+   * trigger an assert
+   * @return a pointer to the read/write lock for the given table.
+   */
   common::ManagedPointer<std::shared_mutex> GetTableLock(common::ManagedPointer<transaction::TransactionContext> txn,
                                                          table_oid_t table);
 
@@ -390,8 +398,6 @@ class DatabaseCatalog {
    * @return oid for internal type
    */
   type_oid_t GetTypeOidForType(type::TypeId type);
-
-  bool TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to);
 
  private:
   // TODO(tanujnay112) Add support for other parameters

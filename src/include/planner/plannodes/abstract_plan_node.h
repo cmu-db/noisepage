@@ -147,6 +147,11 @@ class AbstractPlanNode {
   // Utilities
   //===--------------------------------------------------------------------===//
 
+  /**
+   * Populates the given set with all of the tables that this plan will perform modifications for (e.g. UPDATE, INSERT
+   * or DELETE)
+   * @param tables the set to populate
+   */
   virtual void GetModifiedTables(common::ManagedPointer<std::unordered_set<catalog::table_oid_t>> tables) const {
     for (auto const &child : children_) {
       child->GetModifiedTables(tables);

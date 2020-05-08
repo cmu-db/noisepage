@@ -1360,6 +1360,7 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    * @param table_oid OID of the table
    * @param index_name Name of the index
    * @param schema Index schema of the new index
+   * @param concurrent Whether to allow concurrent modifications to the table while creating the index
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, std::string index_name,

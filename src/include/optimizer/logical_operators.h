@@ -1327,6 +1327,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @param unique If the index to be created should be unique
    * @param index_name Name of the index
    * @param index_attrs Attributes of the index
+   * @param concurrent Whether to allow concurrent modifications to the table while creating the index
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,

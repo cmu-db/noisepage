@@ -73,7 +73,9 @@ class IndexBuilder {
   }
 
  /**
-  * @param sql_table, transaction context
+  * Set the SQL table and transaction context for this index builder to allow it to perform bulk inserts
+  * @param sql_table the table this index is being built on
+  * @param txn the transaction to use when inserting into the table
   * @return the builder object
   */
   IndexBuilder &SetSqlTableAndTransactionContext(common::ManagedPointer<storage::SqlTable> sql_table,
@@ -84,10 +86,10 @@ class IndexBuilder {
     txn_ = txn;
     return *this;
   }
+
  /**
-  *
-  * @param newly created index
-  * @return index with all the keys inserted
+  * Insert everything in the table this index is made on into the index
+  * @param index newly created index
   */
   void BulkInsert(Index *index) const {
     const auto index_pr_initializer = index->GetProjectedRowInitializer();

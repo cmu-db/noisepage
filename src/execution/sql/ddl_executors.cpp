@@ -141,6 +141,8 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
                                const catalog::namespace_oid_t ns, const std::string &name,
                                const catalog::table_oid_t table, const catalog::IndexSchema &input_schema,
                                bool concurrent) {
+  TERRIER_ASSERT(!concurrent, "Concurrent is not implemented yet, and this should for now be caught in the traffic cop");
+
   // Request permission from the Catalog to see if this a valid namespace and table name
   const auto index_oid = accessor->CreateIndex(ns, table, name, input_schema);
   if (index_oid == catalog::INVALID_INDEX_OID) {
@@ -154,20 +156,16 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
 
-  if (concurrent) {
+  index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), accessor->GetTransactionContext());
 
-  } else {
-    index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), accessor->GetTransactionContext());
+  bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
+  TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
 
-    bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
-    TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+  // Now, populate the index
+  index_builder.BulkInsert(index);
 
-    // Now, populate the index
-    index_builder.BulkInsert(index);
-
-    // Communicate to readers that the index is live
-    accessor->SetIndexLive(index_oid);
-  }
+  // Communicate to readers that the index is live
+  accessor->SetIndexLive(index_oid);
   return true;
 }
 }  // namespace terrier::execution::sql
