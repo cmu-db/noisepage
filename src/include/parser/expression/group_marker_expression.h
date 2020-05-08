@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include "parser/expression/abstract_expression.h"
 #include "optimizer/group_expression.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
 
@@ -21,13 +21,12 @@ namespace terrier::parser {
  */
 class GroupMarkerExpression : public AbstractExpression {
  public:
-  GroupMarkerExpression(optimizer::group_id_t group_id) :
-      AbstractExpression(ExpressionType::GROUP_MARKER, type::TypeId::INVALID, {}),
-      group_id_(group_id) {};
+  GroupMarkerExpression(optimizer::group_id_t group_id)
+      : AbstractExpression(ExpressionType::GROUP_MARKER, type::TypeId::INVALID, {}), group_id_(group_id){};
 
-  GroupMarkerExpression(optimizer::group_id_t group_id, std::vector<std::unique_ptr<AbstractExpression>> &&children) :
-      AbstractExpression(ExpressionType::GROUP_MARKER, type::TypeId::INVALID, std::move(children)),
-      group_id_(group_id) {}
+  GroupMarkerExpression(optimizer::group_id_t group_id, std::vector<std::unique_ptr<AbstractExpression>> &&children)
+      : AbstractExpression(ExpressionType::GROUP_MARKER, type::TypeId::INVALID, std::move(children)),
+        group_id_(group_id) {}
 
   optimizer::group_id_t GetGroupID() { return group_id_; }
 
@@ -35,7 +34,8 @@ class GroupMarkerExpression : public AbstractExpression {
     return std::make_unique<GroupMarkerExpression>(group_id_);
   }
 
-  std::unique_ptr<AbstractExpression> CopyWithChildren(std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
     return std::make_unique<GroupMarkerExpression>(group_id_, std::move(children));
   }
 
@@ -47,4 +47,4 @@ class GroupMarkerExpression : public AbstractExpression {
   optimizer::group_id_t group_id_;
 };
 
-} // namespace terrier::parser
+}  // namespace terrier::parser

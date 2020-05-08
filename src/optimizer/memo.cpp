@@ -2,11 +2,11 @@
 #include <unordered_set>
 #include <utility>
 
+#include "optimizer/expression_node_contents.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/logical_operators.h"
-#include "optimizer/expression_node_contents.h"
-#include "parser/expression/group_marker_expression.h"
 #include "optimizer/memo.h"
+#include "parser/expression/group_marker_expression.h"
 
 namespace terrier::optimizer {
 
@@ -27,11 +27,11 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
   // If group marker, then just return
   if (gexpr->Contents()->GetOpType() == OpType::UNDEFINED &&
       gexpr->Contents()->GetExpType() == parser::ExpressionType::GROUP_MARKER) {
-
     auto node_contents = gexpr->Contents();
     TERRIER_ASSERT(node_contents != nullptr, "Group expression's contents should be non-null");
 
-    auto gm_expr = node_contents.CastManagedPointerTo<ExpressionNodeContents>()->GetExpr()
+    auto gm_expr = node_contents.CastManagedPointerTo<ExpressionNodeContents>()
+                       ->GetExpr()
                        .CastManagedPointerTo<parser::GroupMarkerExpression>();
     TERRIER_ASSERT(gm_expr != nullptr, "Group marker node should have intact group marker expression");
     TERRIER_ASSERT(target_group == UNDEFINED_GROUP || target_group == gm_expr->GetGroupID(),

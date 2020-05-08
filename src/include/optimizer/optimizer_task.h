@@ -397,9 +397,7 @@ class RewriteTask : public OptimizerTask {
   /**
    * Virtual execute method (should only be called in subclasses)
    */
-  void Execute() override {
-    TERRIER_ASSERT(false, "RewriteTask::execute invoked directly and not in subclass");
-  }
+  void Execute() override { TERRIER_ASSERT(false, "RewriteTask::execute invoked directly and not in subclass"); }
 
  protected:
   std::set<group_id_t> GetUniqueChildGroupIDs();

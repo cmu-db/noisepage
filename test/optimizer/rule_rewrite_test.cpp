@@ -21,8 +21,10 @@ class RuleRewriteTests : public TerrierTest {
    * @param a, b, x, y The four sub-expressions (corresponding to their positions above)
    * @return the multi-level expression
    */
-  static parser::AbstractExpression *CreateMultiLevelExpression(parser::AbstractExpression *a, parser::AbstractExpression *x,
-                                                                parser::AbstractExpression *b, parser::AbstractExpression *y) {
+  static parser::AbstractExpression *CreateMultiLevelExpression(parser::AbstractExpression *a,
+                                                                parser::AbstractExpression *x,
+                                                                parser::AbstractExpression *b,
+                                                                parser::AbstractExpression *y) {
     std::vector<std::unique_ptr<parser::AbstractExpression>> left_children;
     left_children.push_back(a->Copy());
     left_children.push_back(x->Copy());
@@ -170,66 +172,66 @@ TEST_F(RuleRewriteTests, TransitiveClosureRewrite) {
 }
 
 TEST_F(RuleRewriteTests, TransitiveClosureFlippedRewrite) {
-/*
- * Transitive Closure Test -- full rewrite with flipped ordering (uses equivalent transform)
- *   Input expression: (A.B = A.C) AND (A.B = 1)
- *   Expected output: (A.B = 1) AND (1 = A.C)
- */
-auto timestamp_manager = transaction::TimestampManager();
-auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
-auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
-transaction::TransactionManager txn_manager = transaction::TransactionManager(
-    common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-    common::ManagedPointer(&buffer_pool), false, nullptr);
+  /*
+   * Transitive Closure Test -- full rewrite with flipped ordering (uses equivalent transform)
+   *   Input expression: (A.B = A.C) AND (A.B = 1)
+   *   Expected output: (A.B = 1) AND (1 = A.C)
+   */
+  auto timestamp_manager = transaction::TimestampManager();
+  auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(
+      common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
+      common::ManagedPointer(&buffer_pool), false, nullptr);
 
-transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-parser::AbstractExpression *cv1 = GetConstantExpression(1);
-parser::AbstractExpression *tv_base1 = new parser::ColumnValueExpression("A", "B");
-parser::AbstractExpression *tv_base2 = new parser::ColumnValueExpression("A", "C");
+  parser::AbstractExpression *cv1 = GetConstantExpression(1);
+  parser::AbstractExpression *tv_base1 = new parser::ColumnValueExpression("A", "B");
+  parser::AbstractExpression *tv_base2 = new parser::ColumnValueExpression("A", "C");
 
-auto *rewriter = new Rewriter(txn_context);
+  auto *rewriter = new Rewriter(txn_context);
 
-// Base (B = C) AND (B = 1)
-auto *base = CreateMultiLevelExpression(tv_base1, tv_base2, tv_base1, cv1);
+  // Base (B = C) AND (B = 1)
+  auto *base = CreateMultiLevelExpression(tv_base1, tv_base2, tv_base1, cv1);
 
-auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
-delete rewriter;
-delete base;
+  auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
+  delete rewriter;
+  delete base;
 
-// Returned expression should be (B = 1) AND (1 = C)
-//   (equivalent transform switches around order of clauses, then transitive closure rule is applied)
-EXPECT_EQ(parser::ExpressionType::CONJUNCTION_AND, expr->GetExpressionType());
-EXPECT_EQ(2, expr->GetChildrenSize());
+  // Returned expression should be (B = 1) AND (1 = C)
+  //   (equivalent transform switches around order of clauses, then transitive closure rule is applied)
+  EXPECT_EQ(parser::ExpressionType::CONJUNCTION_AND, expr->GetExpressionType());
+  EXPECT_EQ(2, expr->GetChildrenSize());
 
-auto left_eq = expr->GetChild(0);
-auto right_eq = expr->GetChild(1);
-EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, left_eq->GetExpressionType());
-EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, right_eq->GetExpressionType());
-EXPECT_EQ(2, left_eq->GetChildrenSize());
-EXPECT_EQ(2, right_eq->GetChildrenSize());
+  auto left_eq = expr->GetChild(0);
+  auto right_eq = expr->GetChild(1);
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, left_eq->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, right_eq->GetExpressionType());
+  EXPECT_EQ(2, left_eq->GetChildrenSize());
+  EXPECT_EQ(2, right_eq->GetChildrenSize());
 
-EXPECT_EQ(parser::ExpressionType::COLUMN_VALUE, left_eq->GetChild(0)->GetExpressionType());
-EXPECT_EQ(parser::ExpressionType::VALUE_CONSTANT, left_eq->GetChild(1)->GetExpressionType());
-EXPECT_EQ(parser::ExpressionType::VALUE_CONSTANT, right_eq->GetChild(0)->GetExpressionType());
-EXPECT_EQ(parser::ExpressionType::COLUMN_VALUE, right_eq->GetChild(1)->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COLUMN_VALUE, left_eq->GetChild(0)->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::VALUE_CONSTANT, left_eq->GetChild(1)->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::VALUE_CONSTANT, right_eq->GetChild(0)->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COLUMN_VALUE, right_eq->GetChild(1)->GetExpressionType());
 
-auto ll_tv = left_eq->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
-auto lr_cv = left_eq->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-auto rl_cv = right_eq->GetChild(0).CastManagedPointerTo<parser::ConstantValueExpression>();
-auto rr_tv = right_eq->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
-EXPECT_TRUE(ll_tv != nullptr && lr_cv != nullptr && rl_cv != nullptr && rr_tv != nullptr);
-EXPECT_EQ((*lr_cv), (*cv1));
-EXPECT_EQ((*ll_tv), (*tv_base1));
-EXPECT_EQ((*rl_cv), (*cv1));
-EXPECT_EQ((*rr_tv), (*tv_base2));
+  auto ll_tv = left_eq->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto lr_cv = left_eq->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
+  auto rl_cv = right_eq->GetChild(0).CastManagedPointerTo<parser::ConstantValueExpression>();
+  auto rr_tv = right_eq->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_TRUE(ll_tv != nullptr && lr_cv != nullptr && rl_cv != nullptr && rr_tv != nullptr);
+  EXPECT_EQ((*lr_cv), (*cv1));
+  EXPECT_EQ((*ll_tv), (*tv_base1));
+  EXPECT_EQ((*rl_cv), (*cv1));
+  EXPECT_EQ((*rr_tv), (*tv_base2));
 
-delete cv1;
-delete tv_base1;
-delete tv_base2;
+  delete cv1;
+  delete tv_base1;
+  delete tv_base2;
 
-txn_manager.Abort(txn_context);
-delete txn_context;
+  txn_manager.Abort(txn_context);
+  delete txn_context;
 }
 
 TEST_F(RuleRewriteTests, TransitiveClosureHalfTrue) {

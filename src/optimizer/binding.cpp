@@ -5,11 +5,11 @@
 #include <vector>
 
 #include "loggers/optimizer_logger.h"
-#include "parser/expression/group_marker_expression.h"
 #include "optimizer/expression_node.h"
-#include "optimizer/operator_visitor.h"
 #include "optimizer/expression_node_contents.h"
+#include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer.h"
+#include "parser/expression/group_marker_expression.h"
 
 namespace terrier::optimizer {
 
@@ -62,7 +62,8 @@ std::unique_ptr<AbstractOptimizerNode> GroupBindingIterator::Next() {
     }
     auto *expr_node_contents = new ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression>(expr));
     expr_node_contents->RegisterWithTxnContext(txn_);
-    return std::make_unique<ExpressionNode>(common::ManagedPointer<AbstractOptimizerNodeContents>(expr_node_contents), txn_);
+    return std::make_unique<ExpressionNode>(common::ManagedPointer<AbstractOptimizerNodeContents>(expr_node_contents),
+                                            txn_);
   }
 
   return current_iterator_->Next();

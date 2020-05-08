@@ -408,7 +408,6 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
   // Try to optimize all the logical group expressions.
   // If one gets optimized, then the group is collapsed.
   for (auto *cur_group_expr : cur_group_exprs) {
-
     // Construct valid transformation rules from rule set
     ConstructValidRules(cur_group_expr, GetRuleSet().GetRulesByName(rule_set_name_), &valid_rules);
 
@@ -450,7 +449,8 @@ bool RewriteTask::OptimizeCurrentGroup(bool replace_on_match) {
           GroupExpression *new_gexpr;
           group_id_t group = cur_group_expr->GetGroupID();
           // Try again only if we succeeded in recording a new expression
-          return context_->GetOptimizerContext()->RecordOptimizerNodeIntoGroup(common::ManagedPointer(new_expr), &new_gexpr, group);
+          return context_->GetOptimizerContext()->RecordOptimizerNodeIntoGroup(common::ManagedPointer(new_expr),
+                                                                               &new_gexpr, group);
         }
       }
       cur_group_expr->SetRuleExplored(r.GetRule());
