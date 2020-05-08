@@ -2634,8 +2634,8 @@ void DatabaseCatalog::CreateColumnStatistic(const common::ManagedPointer<transac
 template <typename Column, typename ClassOid>
 bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transaction::TransactionContext> txn,
                                              const ClassOid class_oid) {
-  const auto oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
-  auto oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
+  const auto &oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
 
   // Step 1: Read Index
   std::vector<storage::TupleSlot> index_results;
@@ -2650,13 +2650,13 @@ bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transa
 
     // Write the attributes in the ProjectedRow
     // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-    *(reinterpret_cast<ClassOid *>(pr_lo->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
-    *(reinterpret_cast<uint32_t *>(pr_lo->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
+    *(reinterpret_cast<ClassOid *>(pr_lo->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = class_oid;
+    *(reinterpret_cast<uint32_t *>(pr_lo->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = 0;
 
     auto next_oid = ClassOid(!class_oid + 1);
     // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-    *(reinterpret_cast<ClassOid *>(pr_hi->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = next_oid;
-    *(reinterpret_cast<uint32_t *>(pr_hi->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
+    *(reinterpret_cast<ClassOid *>(pr_hi->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = next_oid;
+    *(reinterpret_cast<uint32_t *>(pr_hi->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = 0;
 
     statistics_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
   }
@@ -2679,7 +2679,7 @@ bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transa
     auto UNUSED_ATTRIBUTE result = statistics_->Select(txn, slot, pr);
     TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
     const auto *const col_oid = reinterpret_cast<const uint32_t *const>(
-        pr->AccessWithNullCheck(delete_statistics_prm_[postgres::STAATTNUM_COL_OID]));
+        pr->AccessWithNullCheck(delete_statistics_prm_.at(postgres::STAATTNUM_COL_OID)));
     TERRIER_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
     // 2. Delete from the table
@@ -2694,8 +2694,8 @@ bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transa
     auto *key_pr = oid_pri.InitializeRow(key_buffer.get());
     // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
     // Builder::GetStatisticOidIndexSchema()
-    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
-    *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = *col_oid;
+    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = class_oid;
+    *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = *col_oid;
     statistics_oid_index_->Delete(txn, *key_pr, slot);
   }
 

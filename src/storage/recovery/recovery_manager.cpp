@@ -15,6 +15,7 @@
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_statistic.h"
 #include "catalog/postgres/pg_type.h"
 #include "storage/index/index_builder.h"
 #include "storage/write_ahead_log/log_io.h"
@@ -293,6 +294,12 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       break;
     }
 
+    case (!catalog::postgres::STATISTIC_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->statistics_oid_index_,
+                                 db_catalog_ptr->statistics_oid_index_->metadata_.GetSchema());
+      break;
+    }
+
     default:  // Non-catalog table
       index_objects = db_catalog_ptr->GetIndexes(common::ManagedPointer(txn), table_oid);
   }
@@ -401,6 +408,15 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
     case (!catalog::postgres::PRO_TABLE_OID): {
       return ProcessSpecialCasePGProcRecord(txn, buffered_changes, start_idx);
+    }
+
+    case (!catalog::postgres::STATISTIC_TABLE_OID): {
+      TERRIER_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
+                     "Special case pg_statistic record must be a delete");
+      // Note: see the logic above for catalog::postgres::COLUMN_TABLE_OID.
+      // Currently, we only support dropping an entire table at once. So we do not need to do anything to process
+      // deletes of pg_statistic entries, since DeleteTable will clean up the appropriate pg_statistic columns for us.
+      return 0;  // No additional records processed
     }
 
     default:
@@ -841,6 +857,10 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->procs_);
       break;
     }
+    case (!catalog::postgres::STATISTIC_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->statistics_);
+      break;
+    }
     default:
       table_ptr = db_catalog_ptr->GetTable(common::ManagedPointer(txn), table_oid);
   }
@@ -953,6 +973,10 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
 
     case (!catalog::postgres::PRO_NAME_INDEX_OID): {
       return db_catalog->procs_name_index_;
+    }
+
+    case (!catalog::postgres::STATISTIC_OID_INDEX_OID): {
+      return db_catalog->statistics_oid_index_;
     }
 
     default:

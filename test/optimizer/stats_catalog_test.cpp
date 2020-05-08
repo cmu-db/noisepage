@@ -170,9 +170,9 @@ TEST_F(StatsCatalogTests, StatisticTest) {
 
       result = statistics_->Update(common::ManagedPointer(txn), redo);
       EXPECT_TRUE(result);
-
-      txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
+
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
   // Ensure the sets of column OIDs are equal

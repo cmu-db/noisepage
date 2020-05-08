@@ -14,6 +14,7 @@
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_statistic.h"
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
@@ -86,6 +87,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog::postgres::Builder::GetConstraintTableSchema();
     catalog_table_schemas_[catalog::postgres::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
     catalog_table_schemas_[catalog::postgres::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
+    catalog_table_schemas_[catalog::postgres::STATISTIC_TABLE_OID] =
+        catalog::postgres::Builder::GetStatisticTableSchema();
   }
 
   /**
@@ -274,7 +277,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     return delete_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::INDEX_TABLE_OID ||
-           delete_record->GetTableOid() == catalog::postgres::COLUMN_TABLE_OID;
+           delete_record->GetTableOid() == catalog::postgres::COLUMN_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::postgres::STATISTIC_TABLE_OID;
   }
 
   /**
