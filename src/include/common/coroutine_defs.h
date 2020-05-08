@@ -43,11 +43,11 @@ class PoolContext {
    * @return func_finished_ will signify whether the current function has finished its execution path
    */
   bool YieldToFunc() {
-    TERRIER_ASSERT(func_ != nullptr, "must have called SetFunction before yielding to function");
-    TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to function");
-    TERRIER_ASSERT(in_, "in_ should always have yielded");
+    TERRIER_ASSERT(func_ != nullptr && sink_ != nullptr && in_,
+                   "must have called SetFunction before yielding to function, initialized sink_ before yielding to "
+                   "function, and in_ just yielded");
     in_();
-    TERRIER_ASSERT(in_, "in_ should always have yielded");
+    TERRIER_ASSERT(in_, "in_ should always yield");
     return func_finished_;
   }
 
@@ -77,7 +77,8 @@ class PoolContext {
  private:
   // current function that to be executed in the coroutine
   std::function<void(PoolContext *)> func_ = nullptr;
-  // pointer to push_type coroutine passed in by boost library this allows the
+  // pointer to push_type coroutine passed in by boost library this allows the context to yield control back to the
+  // thread pool by yielding the pull_type
   push_type *sink_ = nullptr;
   // Initialization of in_ will yield back to execution pool to allow setting of function before running workload
   pull_type in_ = pull_type([&](push_type &s) {  // NOLINT

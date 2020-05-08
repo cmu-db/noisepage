@@ -45,7 +45,7 @@ class DedicatedThreadOwner {
    * @return the number of threads owned by this owner
    */
   size_t GetThreadCount() {
-    tbb::spin_mutex::scoped_lock l(thread_count_latch_);
+    tbb::spin_mutex::scoped_lock guard(thread_count_latch_);
     return thread_count_;
   }
 
@@ -72,7 +72,7 @@ class DedicatedThreadOwner {
    * Notifies the owner that a new thread has been given to it
    */
   virtual void AddThread(DedicatedThreadTask *task) {
-    tbb::spin_mutex::scoped_lock l(thread_count_latch_);
+    tbb::spin_mutex::scoped_lock guard(thread_count_latch_);
     thread_count_++;
   }
 
@@ -80,7 +80,7 @@ class DedicatedThreadOwner {
    * Notifies the owner that a new thread has removed from them
    */
   virtual void RemoveThread(DedicatedThreadTask *task) {
-    tbb::spin_mutex::scoped_lock l(thread_count_latch_);
+    tbb::spin_mutex::scoped_lock guard(thread_count_latch_);
     thread_count_--;
   }
 

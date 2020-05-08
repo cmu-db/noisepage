@@ -23,6 +23,8 @@
 #include "storage/storage_defs.h"
 #include "tbb/concurrent_queue.h"
 
+#define MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS 10000
+
 namespace terrier::common {
 
 /**
@@ -75,6 +77,9 @@ class ExecutionThreadPool : DedicatedThreadOwner {
         workers_(num_regions_),
         task_queue_(num_regions_) {
     for (int cpu_id : *cpu_ids) {
+      // launches a TerrierThread inside a std::thread. The first arguement to this function is the DedicatedThreadOwner
+      // requesting that the DedicatedThreadTask (the interface TerrierThread implements) be created. The rest of the
+      // inputs to this function are inputs to the contructor for the TerrierThread
       thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(this, cpu_id, this);
     }
   }
@@ -97,7 +102,8 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    * SubmitTask allows for a user to submit a task to the given NUMA region with an associated execution context
    * @param promise a void promise pointer that will be set when the task has been executed, if nullptr is input then
    * the pool will not signal when the task has finished.
-   * @param task a void to void function that is the task to be executed
+   * @param task a PoolContext to void function that is the task to be executed. The pool context can be used inside the
+   * function to yield execution back to the thread pool. Ex. cannot obtain lock and yields
    * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
    */
   void SubmitTask(std::promise<void> *promise, const std::function<void(PoolContext *)> &task,
@@ -108,7 +114,8 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     PoolContext *ctx = context_pool_.Get();
     ctx->SetFunction(task);
     task_queue_[static_cast<int16_t>(numa_hint)].push({ctx, promise});
-    if (busy_workers_ != total_workers_) task_cv_.notify_all();
+    // there are sleeping workers so they should be awakened
+    if (busy_workers_ < total_workers_) task_cv_.notify_all();
   }
 
   /**
@@ -247,8 +254,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   };
 
  private:
-  static const uint32_t MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS = 10000;
-
   common::ManagedPointer<DedicatedThreadRegistry> thread_registry_;
   // Number of NUMA regions
   // The worker threads

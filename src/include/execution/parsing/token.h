@@ -7,6 +7,7 @@
 namespace terrier::execution::parsing {
 
 #undef NIL  // pg_list.h defined this symbol, but TPL uses it as a different symbol so need to undef it
+// these are needed to fix a compilation issue that came from linking with the boost library
 #undef TRUE
 #undef FALSE
 

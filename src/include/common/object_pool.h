@@ -94,7 +94,7 @@ class ObjectPool {
    * @return pointer to memory that can hold T
    */
   T *Get() {
-    tbb::spin_mutex::scoped_lock l(latch_);
+    tbb::spin_mutex::scoped_lock guard(latch_);
     if (reuse_queue_.empty() && current_size_ >= size_limit_) throw NoMoreObjectException(size_limit_);
     T *result = nullptr;
     if (reuse_queue_.empty()) {
@@ -121,7 +121,7 @@ class ObjectPool {
    * @return true if new_size is successfully set and false the operation fails
    */
   bool SetSizeLimit(uint64_t new_size) {
-    tbb::spin_mutex::scoped_lock l(latch_);
+    tbb::spin_mutex::scoped_lock guard(latch_);
     if (new_size >= current_size_) {
       // current_size_ might increase and become > new_size if we don't use lock
       size_limit_ = new_size;
@@ -147,7 +147,7 @@ class ObjectPool {
    * @param new_reuse_limit
    */
   void SetReuseLimit(uint64_t new_reuse_limit) {
-    tbb::spin_mutex::scoped_lock l(latch_);
+    tbb::spin_mutex::scoped_lock guard(latch_);
     reuse_limit_ = new_reuse_limit;
     T *obj = nullptr;
     while (reuse_queue_.size() > reuse_limit_) {
@@ -167,7 +167,7 @@ class ObjectPool {
    */
   void Release(T *obj) {
     TERRIER_ASSERT(obj != nullptr, "releasing a null pointer");
-    tbb::spin_mutex::scoped_lock l(latch_);
+    tbb::spin_mutex::scoped_lock guard(latch_);
     if (reuse_queue_.size() >= reuse_limit_) {
       alloc_.Delete(obj);
       current_size_--;

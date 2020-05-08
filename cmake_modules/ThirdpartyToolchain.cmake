@@ -275,6 +275,7 @@ find_package(PQXX REQUIRED)
 include_directories(SYSTEM ${PQXX_INCLUDE_DIRECTORIES})
 list(APPEND TERRIER_LINK_LIBS ${PQXX_LIBRARIES})
 
+# boost library is included to use boost coroutine2. This enables yielding between tasks and the thread pool
 find_package(Boost REQUIRED COMPONENTS thread context)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 list(APPEND TERRIER_LINK_LIBS ${Boost_LIBRARIES})

@@ -3,8 +3,6 @@
 #include <tbb/concurrent_unordered_set.h>
 
 #include <list>
-#include <map>
-#include <unordered_map>
 #include <vector>
 
 #include "common/managed_pointer.h"

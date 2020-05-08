@@ -47,7 +47,7 @@ class DedicatedThreadRegistry {
    * @warning This method does give the owners the opportunity to clean up their task
    */
   void TearDown() {
-    tbb::spin_mutex::scoped_lock l(table_latch_);
+    tbb::spin_mutex::scoped_lock guard(table_latch_);
     for (auto &entry : thread_owners_table_) {
       for (auto *task : entry.second) {
         task->Terminate();
@@ -75,7 +75,7 @@ class DedicatedThreadRegistry {
    */
   template <class T, class... Targs>
   common::ManagedPointer<T> RegisterDedicatedThread(DedicatedThreadOwner *requester, Targs... args) {
-    tbb::spin_mutex::scoped_lock l(table_latch_);
+    tbb::spin_mutex::scoped_lock guard(table_latch_);
     auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);
     threads_table_.emplace(task, std::thread([=] {
@@ -100,7 +100,7 @@ class DedicatedThreadRegistry {
     DedicatedThreadTask *task_ptr;
     std::thread *task_thread;
     {
-      tbb::spin_mutex::scoped_lock l(table_latch_);
+      tbb::spin_mutex::scoped_lock guard(table_latch_);
       // Exposing the raw pointer like this is okay because we own the underlying raw pointer
       auto search = threads_table_.find(task.operator->());
       TERRIER_ASSERT(search != threads_table_.end(), "Task is not registered");
@@ -117,7 +117,7 @@ class DedicatedThreadRegistry {
 
     // Clear Metadata
     {
-      tbb::spin_mutex::scoped_lock l(table_latch_);
+      tbb::spin_mutex::scoped_lock guard(table_latch_);
       requester->RemoveThread(task.operator->());
       threads_table_.erase(task_ptr);
       thread_owners_table_[requester].erase(task_ptr);

@@ -24,9 +24,12 @@ class SharedLatch {
    */
   void LockExclusive(common::PoolContext *ctx = nullptr) {
     if (ctx != nullptr) {
+      // if we have access to a pool context we try to get the latch. if we fail then we yield control back to the
+      // thread pool. We repeat this until we get the latch.
       while (!TryExclusiveLock()) ctx->YieldToPool();
       return;
     }
+    // if no context then just try to get the latch the old fashioned way
     latch_.lock();
   }
 
@@ -36,9 +39,12 @@ class SharedLatch {
    */
   void LockShared(common::PoolContext *ctx = nullptr) {
     if (ctx != nullptr) {
+      // if we have access to a pool context we try to get the latch. if we fail then we yield control back to the
+      // thread pool. We repeat this until we get the latch.
       while (!TryLockShared()) ctx->YieldToPool();
       return;
     }
+    // if no context then just try to get the latch the old fashioned way
     latch_.lock_read();
   }
 
