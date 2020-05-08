@@ -96,10 +96,10 @@ public class NestedQueryTest extends TestUtility {
      * ---------------------------------------------
      */
     /**
-     * Test TypeA
+     * Test TypeA, max
      */
     @Test
-    public void test1TypeASimple() throws SQLException {
+    public void test1TypeAMaxSimple() throws SQLException {
         Statement stmt = conn.createStatement();
         String sql = "INSERT INTO shipment VALUES (2, 2, 2);";
         stmt.execute(sql);
@@ -119,10 +119,10 @@ public class NestedQueryTest extends TestUtility {
     }
 
     /**
-     * Test TypeA, multiple results
+     * Test TypeA, max, multiple results
      */
     @Test
-    public void test2TypeAMulti() throws SQLException {
+    public void test2TypeAMaxMulti() throws SQLException {
         Statement stmt = conn.createStatement();
         String sql = "INSERT INTO shipment VALUES (2, 2, 2);";
         stmt.execute(sql);
@@ -144,10 +144,10 @@ public class NestedQueryTest extends TestUtility {
     }
 
     /**
-     * Test TypeA, not equal
+     * Test TypeA, max, not equal
      */
     @Test
-    public void test2TypeAMulti() throws SQLException {
+    public void test2TypeAMaxNot() throws SQLException {
         Statement stmt = conn.createStatement();
         String sql = "INSERT INTO shipment VALUES (2, 2, 2);";
         stmt.execute(sql);
@@ -159,13 +159,59 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         sql = "INSERT INTO part VALUES (2, 30);";
         stmt.execute(sql);
-        String select_SQL = "SELECT sno FROM shipment WHERE pno = (SELECT MAX(pno) FROM part WHERE price = 30);";
+        String select_SQL = "SELECT sno FROM shipment WHERE pno != (SELECT MAX(pno) FROM part WHERE price = 30);";
+        rs = stmt.executeQuery(select_SQL);
+        rs.next();
+        checkIntRow(rs, new String [] {"sno"}, new int [] {1});
+        assertNoMoreRows(rs);
+    }
+
+    /**
+     * Test TypeA, avg
+     */
+    @Test
+    public void test2TypeAAvgSimple() throws SQLException {
+        Statement stmt = conn.createStatement();
+        String sql = "INSERT INTO shipment VALUES (2, 2, 2);";
+        stmt.execute(sql);
+        sql = "INSERT INTO shipment VALUES (1, 1, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO shipment VALUES (3, 3, 3);";
+        stmt.execute(sql);
+        sql = "INSERT INTO part VALUES (1, 30);";
+        stmt.execute(sql);
+        sql = "INSERT INTO part VALUES (3, 30);";
+        stmt.execute(sql);
+        String select_SQL = "SELECT sno FROM shipment WHERE pno = (SELECT AVG(pno) FROM part WHERE price = 30);";
+        rs = stmt.executeQuery(select_SQL);
+        rs.next();
+        checkIntRow(rs, new String [] {"sno"}, new int [] {2});
+        assertNoMoreRows(rs);
+    }
+     /**
+     * Test TypeA, avg, multiple results
+     */
+    @Test
+    public void test2TypeAAvgMultiple() throws SQLException {
+        Statement stmt = conn.createStatement();
+        String sql = "INSERT INTO shipment VALUES (2, 2, 2);";
+        stmt.execute(sql);
+        sql = "INSERT INTO shipment VALUES (1, 1, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO shipment VALUES (3, 2, 3);";
+        stmt.execute(sql);
+        sql = "INSERT INTO part VALUES (1, 30);";
+        stmt.execute(sql);
+        sql = "INSERT INTO part VALUES (3, 30);";
+        stmt.execute(sql);
+        String select_SQL = "SELECT sno FROM shipment WHERE pno = (SELECT AVG(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {2});
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {3});
         assertNoMoreRows(rs);
+
     }
 
     /**
