@@ -5,7 +5,7 @@
 #include <string>
 
 #include "common/hash_util.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "common/macros.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
@@ -196,33 +196,14 @@ class TransientValue {
    * @warning this method is ONLY used for serialization and deserialization. It should NOT be used to peek at the
    * values
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["type"] = type_;
-    if (Type() == TypeId::VARCHAR && !Null()) {
-      const uint32_t length = *reinterpret_cast<const uint32_t *const>(data_);
-      auto varchar = std::string(reinterpret_cast<const char *const>(data_), length + sizeof(uint32_t));
-      j["data"] = varchar;
-    } else {
-      j["data"] = data_;
-    }
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * @param j json to deserialize
    * @warning this method is ONLY used for serialization and deserialization. It should NOT be used to peek at the
    * values
    */
-  void FromJson(const nlohmann::json &j) {
-    type_ = j.at("type").get<TypeId>();
-    if (Type() == TypeId::VARCHAR && !Null()) {
-      data_ = 0;
-      CopyVarChar(reinterpret_cast<const char *const>(j.at("data").get<std::string>().c_str()));
-    } else {
-      data_ = j.at("data").get<uintptr_t>();
-    }
-  }
+  void FromJson(const nlohmann::json &j);
 
   /**
    * Default constructor used for deserializing json
@@ -360,28 +341,6 @@ class TransientValue {
   uintptr_t data_;
 };
 
-
-inline void to_json(nlohmann::json &j, const TransientValue &c) {j = c.ToJson(); }                                                                                     \
-  inline void to_json(nlohmann::json &j, const std::unique_ptr<TransientValue> c) {
-  if (c != nullptr) {
-    j = *c;
-  } else {
-    j = nullptr;
-  }
-}
-inline void to_json(nlohmann::json &j, common::ManagedPointer<TransientValue> c) {
-  if (c != nullptr) {
-    j = c->ToJson();
-  } else {
-    j = nullptr;
-  }
-}
-inline void from_json(const nlohmann::json &j, TransientValue &c) { c.FromJson(j); }
-inline void from_json(const nlohmann::json &j, std::unique_ptr<TransientValue> c) {
-  if (c != nullptr) {
-    c->FromJson(j);
-  }
-}
-
+DEFINE_JSON_HEADER_DECLARATIONS(TransientValue);
 
 }  // namespace terrier::type

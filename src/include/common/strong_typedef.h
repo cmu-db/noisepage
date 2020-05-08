@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "common/json.h"
+#include "common/json_header.h"
 #include "common/macros.h"
 
 namespace terrier::common {
@@ -47,14 +47,14 @@ namespace terrier::common {
  *
  * This works with all types of ints.
  */
-#define STRONG_TYPEDEF(name, underlying_type)                                                 \
+#define STRONG_TYPEDEF_HEADER(name, underlying_type)                                          \
   namespace tags {                                                                            \
   struct name##_typedef_tag {};                                                               \
   }                                                                                           \
   using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
   namespace tags {                                                                            \
-  inline void to_json(nlohmann::json &j, const name &c) { j = c.ToJson(); }  /* NOLINT */     \
-  inline void from_json(const nlohmann::json &j, name &c) { c.FromJson(j); } /* NOLINT */     \
+  void to_json(nlohmann::json &j, const name &c); /* NOLINT */                                \
+  void from_json(const nlohmann::json &j, name &c); /* NOLINT */                              \
   }
 
 /**
@@ -213,15 +213,12 @@ class StrongTypeAlias {
   /**
    * @return underlying value serialized to json
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j = val_;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) { val_ = j.get<IntType>(); }
+  void FromJson(const nlohmann::json &j);
 
  private:
   IntType val_;

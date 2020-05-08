@@ -1,4 +1,6 @@
 #include "planner/plannodes/create_index_plan_node.h"
+#include "common/json.h"
+
 #include <memory>
 #include <string>
 #include <utility>

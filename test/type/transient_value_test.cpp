@@ -4,6 +4,7 @@
 #include "test_util/test_harness.h"
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
+#include "common/json.h"
 
 namespace terrier::type {
 

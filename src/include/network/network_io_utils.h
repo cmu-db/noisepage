@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <cstring>
 #include <string>
 #include <vector>
 

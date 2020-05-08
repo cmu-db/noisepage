@@ -2,6 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "optimizer/statistics/table_stats.h"
+#include "common/json.h"
 
 #include "test_util/test_harness.h"
 

@@ -11,11 +11,11 @@ namespace terrier::common {
  */
 using json = nlohmann::json;
 
-#define DEFINE_JSON_HEADER_DECLARATIONS(ClassName)                                           \
-  inline void to_json(nlohmann::json &j, const ClassName &c);                   /* NOLINT */ \
-  inline void to_json(nlohmann::json &j, const std::unique_ptr<ClassName> c);   /* NOLINT */ \
-  inline void to_json(nlohmann::json &j, common::ManagedPointer<ClassName> c);  /* NOLINT */ \
-  inline void from_json(const nlohmann::json &j, ClassName &c);                 /* NOLINT */ \
-  inline void from_json(const nlohmann::json &j, std::unique_ptr<ClassName> c);
+#define DEFINE_JSON_HEADER_DECLARATIONS(ClassName)                                    \
+  void to_json(nlohmann::json &j, const ClassName &c);                   /* NOLINT */ \
+  void to_json(nlohmann::json &j, const std::unique_ptr<ClassName> c);   /* NOLINT */ \
+  void to_json(nlohmann::json &j, common::ManagedPointer<ClassName> c);  /* NOLINT */ \
+  void from_json(const nlohmann::json &j, ClassName &c);                 /* NOLINT */ \
+  void from_json(const nlohmann::json &j, std::unique_ptr<ClassName> c);
 
 }  // namespace terrier::common

@@ -39,6 +39,6 @@ std::vector<std::unique_ptr<AbstractExpression>> DerivedValueExpression::FromJso
   return exprs;
 }
 
-DEFINE_JSON_BODY_DECLARATIONS(AbstractExpression);
+DEFINE_JSON_BODY_DECLARATIONS(DerivedValueExpression);
 
 }  // namespace terrier::parser

@@ -1,4 +1,5 @@
 #include "planner/plannodes/abstract_join_plan_node.h"
+#include "common/json.h"
 
 #include <memory>
 #include <utility>

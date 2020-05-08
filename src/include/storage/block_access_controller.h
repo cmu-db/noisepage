@@ -2,6 +2,7 @@
 #include <emmintrin.h>
 #include <atomic>
 #include <utility>
+#include <cstring>
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 namespace terrier::storage {

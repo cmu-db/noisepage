@@ -1,4 +1,5 @@
 #include "planner/plannodes/drop_table_plan_node.h"
+#include "common/json.h"
 
 #include <memory>
 #include <string>

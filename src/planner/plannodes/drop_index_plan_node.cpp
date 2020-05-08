@@ -1,4 +1,5 @@
 #include "planner/plannodes/drop_index_plan_node.h"
+#include "common/json.h"
 
 #include <memory>
 #include <string>
@@ -37,6 +38,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropIndexPlanNode::From
   return exprs;
 }
 
-DEFINE_JSON_BODY_DECLARATIONS(SeqScanPlanNode);
+DEFINE_JSON_BODY_DECLARATIONS(DropIndexPlanNode);
 
 }  // namespace terrier::planner
