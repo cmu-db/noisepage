@@ -203,6 +203,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   auto accessor = ctx->GetAccessor();
   std::string_view s_v = str.StringView();
   std::string s(s_v.data(), s_v.size());
+  auto mini_txn = ctx->Get_mini_txn();
 
   auto sequence_oid = accessor->GetSequenceOid(s);
   if (sequence_oid == catalog::INVALID_SEQUENCE_OID) {
@@ -221,44 +222,58 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 
   TERRIER_ASSERT(index_scan_result.size() == 1, "Can't find the sequence or have duplicate sequences");
 
-  // Using TupleAccessStrategy to get nextval pointer and update it
+  // Using TupleAccessStrategy to get nextval value
   auto const pg_index_datatable = index_scan_result[0].GetBlock()->data_table_;
   storage::BlockLayout layout = pg_index_datatable->GetBlockLayout();
   storage::TupleAccessStrategy tuple_access_strategy(layout);
-
-  // Need lock
   auto seq_val =
-      reinterpret_cast<uint32_t *>(tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[2]));
-  *seq_val = *seq_val + 1;
+        reinterpret_cast<uint32_t *>(tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[2]));
 
-  // Update or insert nextval into pg_sequence with mini_txn
+  // Write to redo log, and update in sqltable
+  auto sequence_table_oid = accessor->GetTableOid("pg_sequence");
+  TERRIER_ASSERT(sequence_table_oid != catalog::INVALID_TABLE_OID, "Sequence table oid should not be invalid");
+  auto sequence_table = accessor->GetTable(sequence_table_oid).Get();
+  auto sequence_columns = accessor->GetSchema(sequence_table_oid).GetColumns();
+  const std::vector<catalog::col_oid_t> sequence_columns_oids{sequence_columns[0].Oid(), sequence_columns[1].Oid(), sequence_columns[2].Oid()};
+  auto sequence_pri = sequence_table->InitializerForProjectedRow(sequence_columns_oids);
+  auto sequence_update_redo = mini_txn->StageWrite(ctx->DBOid(), sequence_table_oid, sequence_pri);
+  auto const sequence_projection_map =  sequence_table->ProjectionMapForOids(sequence_columns_oids);
+
+  for (uint16_t i = 0; i < 2; i++)
+      storage::StorageUtil::CopyAttrIntoProjection(tuple_access_strategy, index_scan_result[0], sequence_update_redo->Delta(), i);
+  auto *sequence_nextval_ptr = sequence_update_redo->Delta()->AccessForceNotNull(sequence_projection_map.at(sequence_columns_oids[2]));
+  *(reinterpret_cast<int64_t *>(sequence_nextval_ptr)) = *seq_val + 1;
+
+  sequence_update_redo->SetTupleSlot(index_scan_result[0]);
+  sequence_table->Update(mini_txn, sequence_update_redo);
+
+  // Update or insert nextval into temp_table with mini_txn
   auto temp_table_oid = ctx->GetTempTable();
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
-  auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
-  auto mini_txn = ctx->Get_mini_txn();
+  auto temp_columns = accessor->GetSchema(temp_table_oid).GetColumns();
 
   // Sequence table only have two colums right now
-  const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
+  const std::vector<catalog::col_oid_t> temp_colums_oids{temp_columns[0].Oid(), temp_columns[1].Oid()};
   auto temp_pri = temp_table->InitializerForProjectedRow(temp_colums_oids);
-  auto *const table_insert_redo = mini_txn->StageWrite(ctx->DBOid(), temp_table_oid, temp_pri);
-  auto *const table_insert_pr = table_insert_redo->Delta();
-  auto const table_projection_map =  temp_table->ProjectionMapForOids(temp_colums_oids);
+  auto *const temp_insert_redo = mini_txn->StageWrite(ctx->DBOid(), temp_table_oid, temp_pri);
+  auto *const temp_insert_pr = temp_insert_redo->Delta();
+  auto const temp_projection_map =  temp_table->ProjectionMapForOids(temp_colums_oids);
   // First column is session id
-  auto *first_col_oid_ptr = table_insert_pr->AccessForceNotNull(table_projection_map.at(temp_colums_oids[0]));
+  auto *first_col_oid_ptr = temp_insert_pr->AccessForceNotNull(temp_projection_map.at(temp_colums_oids[0]));
   *(reinterpret_cast<catalog::sequence_oid_t *>(first_col_oid_ptr)) = sequence_oid;
   // Second colum is last next val
-  auto *second_col_oid_ptr = table_insert_pr->AccessForceNotNull(table_projection_map.at(temp_colums_oids[1]));
+  auto *second_col_oid_ptr = temp_insert_pr->AccessForceNotNull(temp_projection_map.at(temp_colums_oids[1]));
   *(reinterpret_cast<int64_t *>(second_col_oid_ptr)) = *seq_val;
 
   result->is_null_ = str.is_null_;
   result->val_ = *seq_val;
 
+  // Initiate projected columns to hold scan result
   const auto pci = temp_table->InitializerForProjectedColumns(temp_colums_oids, 1);
-
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
   auto pc = pci.Initialize(buffer);
 
-  auto seq_oid_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[0])));
+  auto seq_oid_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(pc->ColumnStart(temp_projection_map.at(temp_colums_oids[0])));
 
   std::vector<catalog::sequence_oid_t> db_cats;
   auto table_iter = temp_table->begin();
@@ -267,16 +282,16 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   // Scan one row at a time into pc
   while (table_iter != temp_table->end()) {
     temp_table->Scan(common::ManagedPointer(mini_txn), &table_iter, pc);
-
+    // Has sequence entry, update instead of insert
     if (seq_oid_ptrs[0] == sequence_oid) {
-        table_insert_redo->SetTupleSlot(*prev_table_iter);
-        temp_table->Update(mini_txn, table_insert_redo);
+        temp_insert_redo->SetTupleSlot(*prev_table_iter);
+        temp_table->Update(mini_txn, temp_insert_redo);
         return;
     }
     prev_table_iter = table_iter;
   }
 
-  temp_table->Insert(mini_txn, table_insert_redo);
+  temp_table->Insert(mini_txn, temp_insert_redo);
 }
 
 void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
@@ -294,8 +309,8 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
     const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
     auto const table_projection_map =  temp_table->ProjectionMapForOids(temp_colums_oids);
 
+    // Initiate projected columns to hold scan result
     const auto pci = temp_table->InitializerForProjectedColumns(temp_colums_oids, 100);
-
     byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
     auto pc = pci.Initialize(buffer);
 
@@ -317,10 +332,7 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
             }
         }
     }
-
     throw terrier::CATALOG_EXCEPTION("Nextval has never been called in this session");
-    result->is_null_ = str.is_null_;
-    result->val_ = 0;
 }
 
 void StringFunctions::Length(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
