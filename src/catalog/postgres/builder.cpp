@@ -239,8 +239,47 @@ Schema Builder::GetConstraintTableSchema() {
                        parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(CONFRELID_COL_OID);
 
+  columns.emplace_back("conparentid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CONPARENTID_COL_OID);
+
   columns.emplace_back("conbin", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
   columns.back().SetOid(CONBIN_COL_OID);
+
+  columns.emplace_back("confupdtype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(CONFUPDTYPE_COL_OID);
+
+  columns.emplace_back("confdeltype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(CONFDELTYPE_COL_OID);
+
+  columns.emplace_back("confmatchtype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(CONFMATCHTYPE_COL_OID);
+
+  columns.emplace_back("conislocal", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(CONISLOCAL_COL_OID);
+
+  columns.emplace_back("coninhcount", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CONINHCOUNT_COL_OID);
+
+  columns.emplace_back("connoinherit", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(CONNOINHERIT_COL_OID);
+
+  columns.emplace_back("conkey", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONKEY_COL_OID);
+
+  columns.emplace_back("confkey", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONFKEY_COL_OID);
+
+  columns.emplace_back("conpfeqop", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONPFEQOP_COL_OID);
+
+  columns.emplace_back("conppeqop", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONPPEQOP_COL_OID);
+
+  columns.emplace_back("conffeqop", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONFFEQOP_COL_OID);
+
+  columns.emplace_back("conexclop", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONEXCLOP_COL_OID);
 
   columns.emplace_back("consrc", type::TypeId::VARCHAR, 4096, false,
                        parser::ConstantValueExpression(type::TypeId::VARCHAR));
