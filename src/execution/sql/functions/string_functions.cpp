@@ -205,6 +205,9 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   std::string s(s_v.data(), s_v.size());
 
   auto sequence_oid = accessor->GetSequenceOid(s);
+  if (sequence_oid == catalog::INVALID_SEQUENCE_OID) {
+    throw terrier::CATALOG_EXCEPTION("Invalid sequence");
+  }
 
   // Using pg_sequence_index to get corresponding sequence tuple
   auto pg_sequence_index = accessor->GetIndex(catalog::postgres::SEQUENCE_OID_INDEX_OID);
