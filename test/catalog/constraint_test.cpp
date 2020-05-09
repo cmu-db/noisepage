@@ -64,9 +64,6 @@ struct ConstraintTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_attribute");
     VerifyTablePresent(accessor, ns_oid, "pg_class");
     VerifyTablePresent(accessor, ns_oid, "pg_constraint");
-    VerifyTablePresent(accessor, ns_oid, "fk_constraint");
-    VerifyTablePresent(accessor, ns_oid, "check_constraint");
-    VerifyTablePresent(accessor, ns_oid, "exclusion_constraint");
     VerifyTablePresent(accessor, ns_oid, "pg_index");
     VerifyTablePresent(accessor, ns_oid, "pg_namespace");
     VerifyTablePresent(accessor, ns_oid, "pg_type");

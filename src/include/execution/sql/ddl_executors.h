@@ -4,7 +4,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
-#include "catalog/postgres/fk_constraint.h"
 #include "common/managed_pointer.h"
 namespace terrier::planner {
 class CreateDatabasePlanNode;

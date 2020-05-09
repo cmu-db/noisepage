@@ -6,7 +6,6 @@
 
 #include "catalog/postgres/check_constraint.h"
 #include "catalog/postgres/exclusion_constraint.h"
-#include "catalog/postgres/fk_constraint.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
