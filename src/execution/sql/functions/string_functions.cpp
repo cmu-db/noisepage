@@ -225,7 +225,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 
   // Need lock
   auto seq_val =
-      reinterpret_cast<int32_t *>(tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[2]));
+      reinterpret_cast<uint32_t *>(tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[2]));
   *seq_val = *seq_val + 1;
 
   // Update or insert nextval into pg_sequence with mini_txn
@@ -257,10 +257,11 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 
   auto seq_oid_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[0])));
 
-  // Scan the table and accumulate the pointers into a vector
   std::vector<catalog::sequence_oid_t> db_cats;
   auto table_iter = temp_table->begin();
   auto prev_table_iter = table_iter;
+
+  // Scan one row at a time into pc
   while (table_iter != temp_table->end()) {
     temp_table->Scan(common::ManagedPointer(mini_txn), &table_iter, pc);
 
@@ -281,12 +282,9 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
     std::string s(s_v.data(), s_v.size());
 
     auto sequence_oid = accessor->GetSequenceOid(s);
-    //common::ManagedPointer<SequenceMetadata> seq = accessor->GetSequence(sequence_oid);
-
     auto temp_table_oid = ctx->GetTempTable();
     auto temp_table = accessor->GetTable(temp_table_oid).Get();
     auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
-
 
     // Sequence table only have two colums right now
     const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
@@ -300,10 +298,10 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
     auto seq_oid_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[0])));
     auto seq_value_ptrs = reinterpret_cast<uint32_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[1])));
 
-    // Scan the table and accumulate the pointers into a vector
     std::vector<catalog::sequence_oid_t> db_cats;
     auto table_iter = temp_table->begin();
 
+    // Scan 100 at a time into pc
     while (table_iter != temp_table->end()) {
         temp_table->Scan(common::ManagedPointer(ctx->GetTxn()), &table_iter, pc);
 

@@ -1396,11 +1396,9 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
   class_insert_pr->SetNull(next_col_oid_offset);
 
-  // Set sequence_ptr to SequenceMetadata
+  // Set sequence_ptr to NULL because it gets set by execution layer after instantiation
   const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
-  auto *const sequence_ptr = class_insert_pr->AccessForceNotNull(index_ptr_offset);
-  SequenceMetadata *seq_obj = new SequenceMetadata();
-  *(reinterpret_cast<SequenceMetadata **>(sequence_ptr)) = seq_obj;
+  class_insert_pr->SetNull(index_ptr_offset);
 
   // Insert into pg_class table
   const auto class_tuple_slot = classes_->Insert(txn, class_insert_redo);
@@ -1454,7 +1452,7 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   // Write nextval into the PR. Default is 0
   const auto sequence_nextval_offset = pg_sequence_all_cols_prm_[postgres::SEQNEXTVAL_COL_OID];
   const auto sequence_nextval_ptr = sequences_insert_pr->AccessForceNotNull(sequence_nextval_offset);
-  *(reinterpret_cast<int32_t *>(sequence_nextval_ptr)) = 0;
+  *(reinterpret_cast<uint32_t *>(sequence_nextval_ptr)) = 0;
 
   const auto tuple_slot = sequences_->Insert(txn, sequences_insert_redo);
 
@@ -1588,15 +1586,6 @@ sequence_oid_t DatabaseCatalog::GetSequenceOid(const common::ManagedPointer<tran
   return sequence_oid_t(oid_pair.first);
 }
 
-common::ManagedPointer<SequenceMetadata> DatabaseCatalog::GetSequence(
-        const common::ManagedPointer<transaction::TransactionContext> txn, sequence_oid_t sequence) {
-    const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(sequence));
-    if (ptr_pair.second != postgres::ClassKind::SEQUENCE) {
-        // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
-        return common::ManagedPointer<SequenceMetadata>(nullptr);
-    }
-    return common::ManagedPointer(reinterpret_cast<SequenceMetadata *>(ptr_pair.first));
-}
 
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<parser::AbstractExpression *> expressions;
