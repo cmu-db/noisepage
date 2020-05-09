@@ -148,10 +148,6 @@ sequence_oid_t CatalogAccessor::GetSequenceOid(std::string name) const {
   return INVALID_SEQUENCE_OID;
 }
 
-common::ManagedPointer<SequenceMetadata> CatalogAccessor::GetSequence(sequence_oid_t sequence) const {
-    return dbc_->GetSequence(txn_, sequence);
-}
-
 sequence_oid_t CatalogAccessor::GetSequenceOid(namespace_oid_t ns, std::string name) const {
   NormalizeObjectName(&name);
   return dbc_->GetSequenceOid(txn_, ns, name);

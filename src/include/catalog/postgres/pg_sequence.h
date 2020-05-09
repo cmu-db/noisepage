@@ -28,12 +28,3 @@ namespace terrier::catalog::postgres {
     constexpr std::array<col_oid_t, NUM_PG_SEQUENCE_COLS> PG_SEQUENCE_ALL_COL_OIDS{SEQOID_COL_OID, SEQRELID_COL_OID, SEQNEXTVAL_COL_OID};
 }  // namespace terrier::catalog::postgres
 
-
-class SequenceMetadata {
-private:
-
- public:
-    int64_t nextval(){
-        return 0;
-    }
-};
