@@ -106,6 +106,8 @@ When we are sure that no transactions will ever access the schema version repres
 
 Our current decision is to use a threshold to decide whether to do background migration: once the amount of tuples in an outdated datatable drops below the threshold, we start a background thread to migrate its tuples and GC the datatable when we're done.
 
+Currently background migration has not been implemented.
+
 #### Should we do migration on reads?
 
 This is related to the above decision on GC. Currently, we only migrate tuples on Sqltable::update, if the tuple belongs to a newer datatable. Another policy is to also do migration on reads: after reading a tuple that belongs to a newer datatable (in Sqltable::select or Sqltable::scan), we migrate it to the new datatable before reading it. The benefit of migration on reads is: if we read a tuple from an outdated table multiple times,  transforming the tuple to its newest schema every time can be costly. With migration on reads, we need to do tuple transformation only once. Migration on reads  works well with aggresive migration. However, migration on reads might need to take write locks to do the migration, which can considerably slow down throughput of reads.
@@ -126,8 +128,11 @@ Finally, as a stretch goal, we can integrate the Pantha Rei Schema Evolution Ben
 One potential problem is we are unsure how adding versions and multiple datatables will influence logging and recovery. We can revisit this after the recovery group merges their changes.
 
 ## Future Work
-1. Can support more types of ALTER TABLE SQL commands. Current we have separate classes for each type of ALTER TABLE, which might need to be compacted if there are a dozen types of ALTER TABLE.
-2. For scanning tuples in a table to check if a type change is allowed, we can use TPL.
-3. Support unsafe schema changes, which includes updating type, nullable, or default value status of columns.
-4. One optimization is to precompile the tuple transformations. The code for different tuple transformations are mostly similar, except that the types of columns are different. Therefore, we can add code to the codegen layer to precompile the tuple transformation logic for different column types. This may speed up tuple transformations.
+1. Can support more types of ALTER TABLE SQL commands such as change type and change default value. Currently we only support add and drop column. 
+2. Current we have separate classes for each type of ALTER TABLE, which might need to be compacted if there are a dozen types of ALTER TABLE.
+3. Support background migration of tuples, and GC of unused schema versions.
+4. For scanning tuples in a table to check if a type change is allowed, we can use TPL.
+5. Support unsafe schema changes, which includes updating type, nullable, or default value status of columns.
+6. One optimization is to precompile the tuple transformations. The code for different tuple transformations are mostly similar, except that the types of columns are different. Therefore, we can add code to the codegen layer to precompile the tuple transformation logic for different column types. This may speed up tuple transformations.
+7. In the future, we might want to get rid of the sqltable layer all together, so schema change logic should be moved to the execution layer.
 
