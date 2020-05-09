@@ -464,7 +464,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         sql = "INSERT INTO supplier VALUES (2, 2, 1);";
         stmt.execute(sql);
-        String select_SQL = "SELECT pno FROM shipment WHERE shipment.sno > ANY (SELECT sno FROM supplier);";
+        String select_SQL = "SELECT pno FROM shipment WHERE shipment.sno = ANY (SELECT sno FROM supplier);";
         rs = stmt.executeQuery(select_SQL);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {1});
