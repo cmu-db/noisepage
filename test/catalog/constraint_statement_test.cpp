@@ -362,10 +362,10 @@ pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmod
                                         port_, catalog::DEFAULT_DATABASE));
 
 pqxx::work txn1(connection);
-txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, data2 INT UNIQUE);");
+txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT UNIQUE);");
 txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT references TableA(id));");
-//txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 'abcacb');");
-txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 2);");
+txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 'abcacb');");
+//txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 2);");
 pqxx::result r = txn1.exec("SELECT * FROM TableA");
 EXPECT_EQ(r.size(), 1);
 r = txn1.exec("SELECT * FROM pg_constraint");

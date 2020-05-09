@@ -167,14 +167,13 @@ class DatabaseCatalog {
   template <typename OidType>
   std::vector<OidType> SpaceSeparatedOidToVector(std::string s);
   std::string VarlentoString(const storage::VarlenEntry &entry);
-  void CopyColumnData(storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr, std::vector<col_oid_t> col_vec,
-                      const Schema &schema);
+  void CopyColumnData(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr, std::vector<col_oid_t> col_vec,
+                      table_oid_t table_oid, common::ManagedPointer<storage::index::Index> index);
   bool VerifyUniquePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const PG_Constraint &con_obj, storage::ProjectedRow *pr);
   bool VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, const PG_Constraint &con_obj,
                           storage::ProjectedRow *pr);
   bool VerifyCheckConstraint(const PG_Constraint &con_obj);
-  std::unordered_map<col_oid_t, uint16_t> ColToOffsetMap(const Schema &schema);
   bool VerifyExclusionConstraint(const PG_Constraint &con_obj);
   bool VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                                    storage::ProjectedRow *pr);
