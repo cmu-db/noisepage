@@ -163,7 +163,7 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
   const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
 
-  for (auto it = data_table_.GetBlocks()->begin(); it != data_table_.GetBlocks()->end(); it++) { // NOLINT
+  for (auto it = data_table_.GetBlocks()->begin(); it != data_table_.GetBlocks()->end(); it++) {  // NOLINT
     RawBlock *block = *it;
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
