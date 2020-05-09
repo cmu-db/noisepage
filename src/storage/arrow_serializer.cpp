@@ -43,8 +43,8 @@ void ArrowSerializer::AssembleMetadataBuffer(std::ofstream &outfile, flatbuf::Me
 void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
                                          std::vector<type::TypeId> *col_types,
                                          flatbuffers::FlatBufferBuilder *flatbuf_builder) {
-  const BlockLayout &layout = data_table_.GetAccessor().GetBlockLayout();
-  ArrowBlockMetadata &metadata = data_table_.GetAccessor().GetArrowBlockMetadata((*data_table_.GetBlockArray())[0]);
+  const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
+  ArrowBlockMetadata &metadata = data_table_.accessor_.GetArrowBlockMetadata(*(data_table_.GetBlocks()->begin()));
   std::vector<flatbuffers::Offset<flatbuf::Field>> fields;
   int64_t dictionary_id = 0;
 
@@ -65,7 +65,7 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
     flatbuffers::Offset<void> type_offset;
     flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
     if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
-      uint8_t byte_width = data_table_.GetAccessor().GetBlockLayout().AttrSize(col_id);
+      uint8_t byte_width = data_table_.accessor_.GetBlockLayout().AttrSize(col_id);
       switch ((*col_types)[!col_id]) {
         case type::TypeId::BOOLEAN:
           type = flatbuf::Type_Bool;
@@ -160,18 +160,18 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
   std::unordered_map<col_id_t, int64_t> dictionary_ids;
   WriteSchemaMessage(outfile, &dictionary_ids, col_types, &flatbuf_builder);
 
-  const BlockLayout &layout = data_table_.GetAccessor().GetBlockLayout();
+  const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
 
-  for (uint64_t block_index = 0; block_index < data_table_.GetNumBlocks(); block_index++) {
-    RawBlock *block = (*data_table_.GetBlockArray())[block_index];
+  for (auto it = data_table_.GetBlocks()->begin(); it != data_table_.GetBlocks()->end(); it++) { // NOLINT
+    RawBlock *block = *it;
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
 
     // Make sure varlen columns have correct data when reading
     while (!block->controller_.TryAcquireInPlaceRead()) {
     }
-    ArrowBlockMetadata &metadata = data_table_.GetAccessor().GetArrowBlockMetadata(block);
+    ArrowBlockMetadata &metadata = data_table_.accessor_.GetArrowBlockMetadata(block);
     uint32_t num_slots = metadata.NumRecords();
 
     size_t buffer_offset = 0;
@@ -180,8 +180,8 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
     // First pass, write metadata_flatbuffer
     for (size_t i = 0; i < column_id_size; ++i) {
       auto col_id = column_ids[i];
-      common::RawConcurrentBitmap *column_bitmap = data_table_.GetAccessor().ColumnNullBitmap(block, col_id);
-      std::byte *column_start = data_table_.GetAccessor().ColumnStart(block, col_id);
+      common::RawConcurrentBitmap *column_bitmap = data_table_.accessor_.ColumnNullBitmap(block, col_id);
+      std::byte *column_start = data_table_.accessor_.ColumnStart(block, col_id);
 
       ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
       field_nodes.emplace_back(num_slots, metadata.NullCount(col_id));
@@ -217,7 +217,7 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
           cur_buffer_len = ((casted_column_start + mask) & (~mask)) - casted_column_start;
         } else {
           cur_buffer_len =
-              reinterpret_cast<uintptr_t>(data_table_.GetAccessor().ColumnNullBitmap(block, column_ids[i + 1])) -
+              reinterpret_cast<uintptr_t>(data_table_.accessor_.ColumnNullBitmap(block, column_ids[i + 1])) -
               reinterpret_cast<uintptr_t>(column_start);
         }
         AddBufferInfo(&buffer_offset, cur_buffer_len, &buffers);
@@ -233,8 +233,8 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
     // Second pass, write data.
     for (size_t i = 0; i < column_id_size; ++i) {
       auto col_id = column_ids[i];
-      common::RawConcurrentBitmap *column_bitmap = data_table_.GetAccessor().ColumnNullBitmap(block, col_id);
-      std::byte *column_start = data_table_.GetAccessor().ColumnStart(block, col_id);
+      common::RawConcurrentBitmap *column_bitmap = data_table_.accessor_.ColumnNullBitmap(block, col_id);
+      std::byte *column_start = data_table_.accessor_.ColumnStart(block, col_id);
 
       ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
       field_nodes.emplace_back(num_slots, metadata.NullCount(col_id));
@@ -267,7 +267,7 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
           cur_buffer_len = ((casted_column_start + mask) & (~mask)) - casted_column_start;
         } else {
           cur_buffer_len =
-              reinterpret_cast<uintptr_t>(data_table_.GetAccessor().ColumnNullBitmap(block, column_ids[i + 1])) -
+              reinterpret_cast<uintptr_t>(data_table_.accessor_.ColumnNullBitmap(block, column_ids[i + 1])) -
               reinterpret_cast<uintptr_t>(column_start);
         }
         WriteDataBlock(outfile, reinterpret_cast<const char *>(column_start), cur_buffer_len);
