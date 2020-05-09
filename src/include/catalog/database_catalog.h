@@ -509,25 +509,10 @@ class DatabaseCatalog {
   storage::index::Index *constraints_namespace_index_;
   storage::index::Index *constraints_table_index_;
   storage::index::Index *constraints_index_index_;
-  // storage::index::Index *constraints_foreigntable_index_;
+  storage::index::Index *constraints_foreigntable_index_;
   storage::ProjectedRowInitializer pg_constraints_all_cols_pri_;
   storage::ProjectedRowInitializer pg_constraints_get_from_table_pri_;
   storage::ProjectionMap pg_constraints_all_cols_prm_;
-  storage::SqlTable *fk_constraints_;
-  storage::index::Index *fk_constraints_oid_index_;
-  storage::index::Index *fk_constraints_constraint_oid_index_;
-  storage::index::Index *fk_constraints_src_table_oid_index_;
-  storage::index::Index *fk_constraints_ref_table_oid_index_;
-  storage::ProjectedRowInitializer pg_fk_constraints_all_cols_pri_;
-  storage::ProjectionMap pg_fk_constraints_all_cols_prm_;
-  storage::SqlTable *check_constraints_;
-  storage::index::Index *check_constraints_oid_index_;
-  storage::ProjectedRowInitializer pg_check_constraints_all_cols_pri_;
-  storage::ProjectionMap pg_check_constraints_all_cols_prm_;
-  storage::SqlTable *exclusion_constraints_;
-  storage::index::Index *exclusion_constraints_oid_index_;
-  storage::ProjectedRowInitializer pg_exclusion_constraints_all_cols_pri_;
-  storage::ProjectionMap pg_exclusion_constraints_all_cols_prm_;
 
   storage::SqlTable *languages_;
   storage::index::Index *languages_oid_index_;

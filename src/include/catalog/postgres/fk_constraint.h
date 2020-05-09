@@ -36,14 +36,5 @@ constexpr std::array<col_oid_t, NUM_FK_CONSTRAINT_COLS> FK_CONSTRAINT_ALL_COL_OI
     FKID_COL_OID,    FKCONID_COL_OID,    FKREFTABLE_COL_OID,     FKSRCTABLE_COL_OID, FKREFCOL_COL_OID,
     FKSRCCOL_COL_OID, FKUPDATEACTION_COL_OID, FKDELETEACTION_COL_OID};
 
-enum class FKActionType : char {
-  NOACT = 'a', // no action
-  RESTRICTION = 'r', // restrict
-  CASCADE = 'c', // cascade
-  SETNULL = 'n', // set null
-  SETDEFAULT = 'd', // set default
-  SETINVALID = 'i' // set invalid
-};
-const char FK_UPDATE = 'u';
-const char FK_DELETE = 'd';
+
 }  // namespace terrier::catalog::postgres

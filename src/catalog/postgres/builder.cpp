@@ -8,9 +8,6 @@
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
-#include "catalog/postgres/fk_constraint.h"
-#include "catalog/postgres/check_constraint.h"
-#include "catalog/postgres/exclusion_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
@@ -88,9 +85,6 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
-  dbc->fk_constraints_ = new storage::SqlTable(block_store, Builder::GetFKConstraintTableSchema());
-  dbc->check_constraints_ = new storage::SqlTable(block_store, Builder::GetCheckConstraintTableSchema());
-  dbc->exclusion_constraints_ = new storage::SqlTable(block_store, Builder::GetExclusionConstraintTableSchema());
   dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
   dbc->procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
 
@@ -131,20 +125,8 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(oid), CONSTRAINT_TABLE_INDEX_OID);
   dbc->constraints_index_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), CONSTRAINT_INDEX_INDEX_OID);
-  // dbc->constraints_foreigntable_index_ =
-  //     Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
-  dbc->fk_constraints_oid_index_ = 
-      Builder::BuildUniqueIndex(Builder::GetFKConstraintOidIndexSchema(oid), FK_OID_INDEX_OID);
-  dbc->fk_constraints_constraint_oid_index_ = 
-      Builder::BuildLookupIndex(Builder::GetFKConstraintConstraintOidIndexSchema(oid), FK_CON_OID_INDEX_OID);
-  dbc->fk_constraints_src_table_oid_index_ = 
-      Builder::BuildLookupIndex(Builder::GetFKConstraintSrcTableOidIndexSchema(oid), FK_SRC_TABLE_OID_INDEX_OID);
-  dbc->fk_constraints_ref_table_oid_index_ = 
-      Builder::BuildLookupIndex(Builder::GetFKConstraintRefTableOidIndexSchema(oid), FK_REF_TABLE_OID_INDEX_OID);
-  dbc->check_constraints_oid_index_ = 
-      Builder::BuildUniqueIndex(Builder::GetCheckConstraintOidIndexSchema(oid), CHECK_OID_INDEX_OID);
-  dbc->exclusion_constraints_oid_index_ = 
-      Builder::BuildUniqueIndex(Builder::GetExclusionConstraintOidIndexSchema(oid), EXCLUSION_OID_INDEX_OID);
+  dbc->constraints_foreigntable_index_ =
+      Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
   // Indexes on pg_language
   dbc->languages_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), LANGUAGE_OID_INDEX_OID);
@@ -244,103 +226,50 @@ Schema Builder::GetConstraintTableSchema() {
   columns.emplace_back("conindid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(CONINDID_COL_OID);
 
-  columns.emplace_back("confrelid", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("conparentid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CONPARENTID_COL_OID);
+
+  columns.emplace_back("confrelid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(CONFRELID_COL_OID);
 
-  columns.emplace_back("concol", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
-  columns.back().SetOid(CONCOL_COL_OID);
+  columns.emplace_back("confupdtype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(CONFUPDTYPE_COL_OID);
 
-  columns.emplace_back("concheck", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(CONCHECK_COL_OID);
+  columns.emplace_back("confdeltype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(CONFDELTYPE_COL_OID);
 
-  columns.emplace_back("conexclusion", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(CONEXCLUSION_COL_OID);
+  columns.emplace_back("confmatchtype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(CONFMATCHTYPE_COL_OID);
+
+  columns.emplace_back("conislocal", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(CONISLOCAL_COL_OID);
+
+  columns.emplace_back("coninhcount", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CONINHCOUNT_COL_OID);
+
+  columns.emplace_back("connoinherit", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(CONNOINHERIT_COL_OID);
+
+  columns.emplace_back("conkey", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONKEY_COL_OID);
+
+  columns.emplace_back("confkey", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONFKEY_COL_OID);
+
+  columns.emplace_back("conpfeqop", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONPFEQOP_COL_OID);
+
+  columns.emplace_back("conppeqop", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONPPEQOP_COL_OID);
+
+  columns.emplace_back("conffeqop", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONFFEQOP_COL_OID);
+
+  columns.emplace_back("conexclop", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONEXCLOP_COL_OID);
 
   columns.emplace_back("conbin", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
   columns.back().SetOid(CONBIN_COL_OID);
-
-  return Schema(columns);
-}
-
-Schema Builder::GetFKConstraintTableSchema() {
-  std::vector<Schema::Column> columns;
-
-  columns.emplace_back("fkid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(FKID_COL_OID);
-
-  columns.emplace_back("fkconid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(FKCONID_COL_OID);
-
-  columns.emplace_back("fkreftable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(FKREFTABLE_COL_OID);
-
-  columns.emplace_back("fksrctable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(FKSRCTABLE_COL_OID);
-
-  columns.emplace_back("fkrefcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(FKREFCOL_COL_OID);
-
-  columns.emplace_back("fksrccol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(FKSRCCOL_COL_OID);
-
-  columns.emplace_back("fkupdateaction", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
-  columns.back().SetOid(FKUPDATEACTION_COL_OID);
-
-  columns.emplace_back("fkdeleteaction", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
-  columns.back().SetOid(FKDELETEACTION_COL_OID);
-
-  return Schema(columns);
-}
-Schema Builder::GetCheckConstraintTableSchema() {
-  std::vector<Schema::Column> columns;
-
-  columns.emplace_back("checkid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(CHECKID_COL_OID);
-
-  columns.emplace_back("checkconid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(CHECKCONID_COL_OID);
-
-  columns.emplace_back("checkreftable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(CHECKREFTABLE_COL_OID);
-
-  columns.emplace_back("checkchildtable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(CHECKCHILDTABLE_COL_OID);
-
-  columns.emplace_back("checkrefcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(CHECKREFCOL_COL_OID);
-
-  columns.emplace_back("checkchildcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(CHECKCHILDCOL_COL_OID);
-
-  columns.emplace_back("checkbin", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
-  columns.back().SetOid(CHECKBIN_COL_OID);
-
-  columns.emplace_back("checksrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
-  columns.back().SetOid(CHECKSRC_COL_OID);
-
-  return Schema(columns);
-}
-
-Schema Builder::GetExclusionConstraintTableSchema() {
-  std::vector<Schema::Column> columns;
-
-  columns.emplace_back("exclusionid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(EXCLUSIONID_COL_OID);
-
-  columns.emplace_back("exclusionconid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(EXCLUSIONCONID_COL_OID);
-
-  columns.emplace_back("exclusionreftable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(EXCLUSIONREFTABLE_COL_OID);
-
-  columns.emplace_back("exclusionchildtable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(EXCLUSIONCHILDTABLE_COL_OID);
-
-  columns.emplace_back("exclusionrefcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(EXCLUSIONREFCOL_COL_OID);
-
-  columns.emplace_back("exclusionchildcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(EXCLUSIONCHILDCOL_COL_OID);
 
   return Schema(columns);
 }
@@ -629,84 +558,6 @@ IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   return schema;
 }
 
-IndexSchema Builder::GetFKConstraintOidIndexSchema(db_oid_t db) {
-  std::vector<IndexSchema::Column> columns;
-
-  columns.emplace_back("fkid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, FK_TABLE_OID, FKID_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
-
-  // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
-
-  return schema;
-}
-
-IndexSchema Builder::GetFKConstraintConstraintOidIndexSchema(db_oid_t db) {
-  std::vector<IndexSchema::Column> columns;
-
-  columns.emplace_back("fkconid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, FK_TABLE_OID, FKCONID_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
-
-  // not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
-
-  return schema;
-}
-
-IndexSchema Builder::GetFKConstraintSrcTableOidIndexSchema(db_oid_t db) {
-  std::vector<IndexSchema::Column> columns;
-
-  columns.emplace_back("fksrctable", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, FK_TABLE_OID, FKSRCTABLE_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
-
-  // not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
-
-  return schema;
-}
-
-IndexSchema Builder::GetFKConstraintRefTableOidIndexSchema(db_oid_t db) {
-  std::vector<IndexSchema::Column> columns;
-
-  columns.emplace_back("fkreftable", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, FK_TABLE_OID, FKREFTABLE_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
-
-  // not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
-
-  return schema;
-}
-
-IndexSchema Builder::GetCheckConstraintOidIndexSchema(db_oid_t db) {
-  std::vector<IndexSchema::Column> columns;
-
-  columns.emplace_back("checkid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CHECK_TABLE_OID, CHECKID_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
-
-  // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
-
-  return schema;
-}
-
-IndexSchema Builder::GetExclusionConstraintOidIndexSchema(db_oid_t db) {
-  std::vector<IndexSchema::Column> columns;
-
-  columns.emplace_back("exclusionid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, EXCLUSION_TABLE_OID, EXCLUSIONID_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
-
-  // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
-
-  return schema;
-}
-
 IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
@@ -763,18 +614,18 @@ IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
   return schema;
 }
 
-// IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
-//   std::vector<IndexSchema::Column> columns;
+IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
 
-//   columns.emplace_back("confrelid", type::TypeId::INTEGER, false,
-//                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
-//   columns.back().SetOid(indexkeycol_oid_t(1));
+  columns.emplace_back("confrelid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
 
-//   // Not unique
-//   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+  // Not unique
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
-//   return schema;
-// }
+  return schema;
+}
 
 IndexSchema Builder::GetLanguageOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
