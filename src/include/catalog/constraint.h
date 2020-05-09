@@ -40,7 +40,6 @@ struct UNIQUEMetadata {
 // the metadata for FK
 using FKMetadata = struct FKMetadata {
   table_oid_t confrelid_;                           // the referenced table oid
-  std::vector<constraint_oid_t> fk_constraints_;  // the pks for each fk constraints
   std::vector<col_oid_t> fk_srcs_;            // the column indcies in the current table for foreign key
   std::vector<col_oid_t> fk_refs_;  // the column indicies in the parent table that are reference for the foreign key
   postgres::FKActionType update_action_;
@@ -106,16 +105,6 @@ class PG_Constraint {
       conrelid_ = con_relid;
       conindid_ = con_index_id;
       FillConCol(con_col_varchar);
-   }
-
-   void AddFKConstraintMetadata(table_oid_t con_frelid, constraint_oid_t fk_id, col_oid_t src_col,
-       col_oid_t ref_col, postgres::FKActionType update_action, postgres::FKActionType delete_action) {
-     fkMetadata_.confrelid_ = con_frelid;
-     fkMetadata_.fk_constraints_.push_back(fk_id);
-     fkMetadata_.fk_srcs_.push_back(src_col);
-     fkMetadata_.fk_refs_.push_back(ref_col);
-     fkMetadata_.update_action_ = update_action;
-     fkMetadata_.delete_action_ = delete_action;
    }
    void AddCheckConstraintMetaData(constraint_oid_t con_check) {
    }
