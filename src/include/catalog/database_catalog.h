@@ -1,5 +1,7 @@
 #pragma once
 
+#include <planner/plannodes/abstract_plan_node.h>
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -199,10 +201,6 @@ class DatabaseCatalog {
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t table, const std::string &name, index_oid_t index,
                                       const std::vector<col_oid_t> &pk_cols);
-  constraint_oid_t CreatePKConstraintEntry(common::ManagedPointer<transaction::TransactionContext> txn,
-                                           namespace_oid_t ns, table_oid_t table, constraint_oid_t constraint_oid,
-                                           const std::string &name, index_oid_t index,
-                                           const std::vector<col_oid_t> &pk_cols);
   constraint_oid_t CreateFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t src_table, table_oid_t sink_table, const std::string &name,
                                       index_oid_t src_index, index_oid_t sink_index,
@@ -215,19 +213,18 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, constraint_oid_t constraint, table_oid_t src_table,
       table_oid_t sink_table, const std::vector<col_oid_t> &src_cols, const std::vector<col_oid_t> &sink_cols,
       postgres::FKActionType update_action, postgres::FKActionType delete_action);
-  void FillConstraintPR(storage::ProjectedRow *const constraints_insert_pr, constraint_oid_t constraint_oid,
-                        std::string name, namespace_oid_t ns, postgres::ConstraintType con_type, bool deferrable, bool deferred, bool validated,
-                        table_oid_t table, index_oid_t index, constraint_oid_t parent, table_oid_t foreign_table,
-                        postgres::FKActionType update_action, postgres::FKActionType delete_action,
-                        postgres::FKActionType fk_match_type, bool is_local, uint32_t inherit_count,
-                        bool non_inheritable, std::string &con_cols, std::string &fk_cols, std::string &fk_pk_eq_op,
-                        std::string &pk_pk_eq_op, std::string &fk_fk_eq_op, std::string &exclu_op,
-                        planner::AbstractPlanNode **conbin);
+  void FillConstraintPR(storage::ProjectedRow *constraints_insert_pr, constraint_oid_t constraint_oid,
+                        const std::string name, namespace_oid_t ns, postgres::ConstraintType con_type, bool deferrable,
+                        bool deferred, bool validated, table_oid_t table, index_oid_t index, constraint_oid_t parent,
+                        table_oid_t foreign_table, postgres::FKActionType update_action,
+                        postgres::FKActionType delete_action, postgres::FKMatchType fk_match_type, bool is_local,
+                        uint32_t inherit_count, bool non_inheritable, const std::string &con_cols,
+                        const std::string &fk_cols, const std::string &fk_pk_eq_op, const std::string &pk_pk_eq_op,
+                        const std::string &fk_fk_eq_op, const std::string &exclu_op, planner::AbstractPlanNode *conbin);
 
   bool PropagateConstraintIndex(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const storage::TupleSlot tuple_slot, constraint_oid_t constraint_oid, std::string name,
-                                namespace_oid_t ns, index_oid_t index, table_oid_t table,
-                                table_oid_t foreign_table = INVALID_TABLE_OID);
+                                namespace_oid_t ns, index_oid_t index, table_oid_t table, table_oid_t foreign_table);
   /**
    * A list of all constraints on this table
    * @param txn for the operation
