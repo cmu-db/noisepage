@@ -288,6 +288,7 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
     auto temp_table_oid = ctx->GetTempTable();
     auto temp_table = accessor->GetTable(temp_table_oid).Get();
     auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
+    auto mini_txn = ctx->Get_mini_txn();
 
     // Sequence table only have two colums right now
     const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
@@ -306,7 +307,7 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
 
     // Scan 100 at a time into pc
     while (table_iter != temp_table->end()) {
-        temp_table->Scan(common::ManagedPointer(ctx->GetTxn()), &table_iter, pc);
+        temp_table->Scan(common::ManagedPointer(mini_txn), &table_iter, pc);
 
         for (uint i = 0; i < pc->NumTuples(); i++) {
             if (seq_oid_ptrs[i] == sequence_oid) {
