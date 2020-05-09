@@ -132,6 +132,10 @@ TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::Transaction
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                  "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                  "immediately before?");
+  if (layout_version > num_versions_) {
+    std::cout << "INSERT version wrong! layout version: " << layout_version <<  std::endl;
+    std::cout << "INSERT version wrong! num_versions_: " << num_versions_ <<  std::endl;
+  }
   const auto slot = tables_.at(layout_version).data_table_->Insert(txn, *(redo->Delta()));
   redo->SetTupleSlot(slot);
   return slot;
@@ -341,9 +345,9 @@ template std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeade
     const DataTableVersion &desired_version, col_id_t *cached_orig_header, AttrSizeMap *const size_map) const;
 
 bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema, layout_version_t version) {
-  auto curr_num = ++num_of_versions_;
+  auto curr_num = ++num_versions_;
   if (curr_num > MAX_NUM_OF_VERSIONS) {
-    num_of_versions_.store(MAX_NUM_OF_VERSIONS);
+    num_versions_.store(MAX_NUM_OF_VERSIONS);
     return false;
   }
 

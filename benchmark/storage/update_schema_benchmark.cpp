@@ -52,14 +52,18 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
           new LargeSqlTableTestObject(config, txn_manager.Get(), catalog.Get(), block_store.Get(), &generator_);
 
       int num_threads = 3;
+      int num_schema_updates = 10;
 
       uint64_t elapsed_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-        if (update_schema) {
-          tested->SimulateOltpAndUpdateSchema(num_txns_, num_threads + 1);
-        } else {
-          tested->SimulateOltp(num_txns_, num_threads);
+
+        for (int i = 0; i < num_schema_updates; i++) {
+          if (update_schema) {
+            tested->SimulateOltpAndUpdateSchema(num_txns_, num_threads + 1);
+          } else {
+            tested->SimulateOltp(num_txns_, num_threads);
+          }
         }
       }
 
@@ -86,7 +90,7 @@ LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder(
     .SetMaxColumns(5)
     .SetInitialTableSize(initial_table_size_)
     .SetTxnLength(5)
-    .SetInsertUpdateSelectDeleteRatio({0.5, 0.0, 0.5, 0.0})
+    .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
     .SetVarlenAllowed(true)
     .Build();
 
@@ -115,10 +119,10 @@ RunBenchmark(&state, config, false);
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(UpdateSchemaBenchmark, ReadWriteWorkload)
-->Unit(benchmark::kMillisecond)
-->UseManualTime()
-->MinTime(10);
+//BENCHMARK_REGISTER_F(UpdateSchemaBenchmark, ReadWriteWorkload)
+//->Unit(benchmark::kMillisecond)
+//->UseManualTime()
+//->MinTime(10);
 BENCHMARK_REGISTER_F(UpdateSchemaBenchmark, ReadWriteUpdateSchemaWorkload)
 ->Unit(benchmark::kMillisecond)
 ->UseManualTime()

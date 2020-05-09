@@ -60,9 +60,35 @@ std::unique_ptr<catalog::Schema> RandomSqlTableTransaction::AddColumn(Random *ge
   columns.push_back(new_col);
 
   auto schema = std::make_unique<catalog::Schema>(columns);
+  std::cout << "Test util adding column, schema version: " << layout_version << ", column size: " << columns.size() << std::endl;
 
   // update schema, with new layout_version, and schema with new column added
   sql_table_ptr->UpdateSchema(common::ManagedPointer<transaction::TransactionContext>(txn_), *schema, layout_version + 1);
+
+  return schema;
+}
+
+template <class Random>
+std::unique_ptr<catalog::Schema> RandomSqlTableTransaction::DropColumn(Random *generator, storage::layout_version_t layout_version) {
+  if (aborted_) return nullptr;
+  // Generate random database and table
+  const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
+  const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
+
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
+      ->GetTable(common::ManagedPointer(txn_), table_oid);
+
+  auto old_schema = test_object_->GetSchema(layout_version);
+
+  // drop the last column
+  auto old_columns = old_schema.GetColumns();
+  std::vector<catalog::Schema::Column> columns(old_columns.begin(), old_columns.end() - 1);
+  auto schema = std::make_unique<catalog::Schema>(columns);
+  std::cout << "Test util dropping column, schema version: " << layout_version << ", column size: " << columns.size() << std::endl;
+
+  // update schema, with new layout_version, and schema with new column added
+  sql_table_ptr->UpdateSchema(common::ManagedPointer<transaction::TransactionContext>(txn_), *schema, layout_version + 1);
+
   return schema;
 }
 
@@ -215,9 +241,12 @@ uint64_t LargeSqlTableTestObject::SimulateOltpAndUpdateSchema(uint32_t num_trans
       auto txn = new RandomSqlTableTransaction(this);
       std::default_random_engine thread_generator(txns_run);
 
-      txn->AddColumn(&thread_generator, latest_layout_version);
+      auto new_schema = txn->AddColumn(&thread_generator, latest_layout_version);
+      std::cout << "finished adding column" << std::endl;
+      schemas_[latest_layout_version + 1] = std::move(new_schema);
       txn->Finish();
     } else {
+      std::cout << "thread " << thread_id << " operations with version: " << latest_layout_version << std::endl;
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         txns[txn_id] = new RandomSqlTableTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id, latest_layout_version);
@@ -303,6 +332,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
                                                    "table" + std::to_string(table_idx), *schema);
       TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "Table creation should always succeed");
       schemas_[storage::layout_version_t(0)] = std::unique_ptr<catalog::Schema>(schema);
+      std::cout << "INITIALIZING NEW TABLE: " << table_oid << std::endl;
 
       table_oids_[database_oid].emplace_back(table_oid);
       auto catalog_schema = db_catalog_ptr->GetSchema(common::ManagedPointer(initial_txn_), table_oid);

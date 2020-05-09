@@ -204,6 +204,9 @@ class RandomSqlTableTransaction {
   template <class Random>
   std::unique_ptr<catalog::Schema> AddColumn(Random *generator, storage::layout_version_t layout_version);
 
+  template <class Random>
+  std::unique_ptr<catalog::Schema> DropColumn(Random *generator, storage::layout_version_t layout_version);
+
   /**
    * Finish the simulation of this transaction. The underlying transaction will either commit or abort.
    */
@@ -314,7 +317,7 @@ class LargeSqlTableTestObject {
   std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, SqlTableMetadata *>> tables_;
 
   std::unordered_map<storage::layout_version_t, std::unique_ptr<catalog::Schema>> schemas_;
-  std::vector<storage::layout_version_t> layout_versions;
+  // std::vector<storage::layout_version_t> layout_versions;
   int latest_layout_version = 0;
 };
 }  // namespace terrier

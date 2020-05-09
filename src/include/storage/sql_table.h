@@ -159,8 +159,12 @@ class SqlTable {
    */
   bool UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn, const catalog::Schema &schema,
                     const layout_version_t layout_version = layout_version_t{0}) {
-    TERRIER_ASSERT(layout_version == num_of_versions_, "Input version should be strictly larger than all versions");
-    return CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version);
+    std::cout << "num versions before update schema: " << num_versions_.load() << std::endl;
+    TERRIER_ASSERT(layout_version == num_versions_, "Input version should be strictly larger than all versions");
+    int res = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version);
+    std::cout << "update schema, layout version: " << layout_version <<  std::endl;
+    if (!res) std::cout << "update schema failed!" << std::endl;
+    return res;
   }
 
   // TODO(Schema-Change): Do we retain the begin() and end(), or implement begin and end function with version number?
@@ -180,7 +184,7 @@ class SqlTable {
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator end() const {
     TERRIER_ASSERT(!tables_.empty(), "sqltable should have at least one underlying datatable");
-    return tables_[num_of_versions_ - 1].data_table_->end();
+    return tables_[num_versions_ - 1].data_table_->end();
   }  // NOLINT for STL name compability
 
   /**
@@ -256,7 +260,7 @@ class SqlTable {
    * @return the column oid to id map of a layout_version
    */
   const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t layout_version) const {
-    TERRIER_ASSERT(layout_version < num_of_versions_, "Version does not exist.");
+    TERRIER_ASSERT(layout_version < num_versions_, "Version does not exist.");
     return tables_.at(layout_version).column_oid_to_id_map_;
   }
 
@@ -300,7 +304,7 @@ class SqlTable {
   //  We could later see if a unbounded concurrent vector greatly a affect the performance
   std::vector<DataTableVersion> tables_;
 
-  std::atomic<uint8_t> num_of_versions_ = 0;
+  std::atomic<uint8_t> num_versions_ = 0;
 
   // Should only be used by database catalog accessing pg tables!
   void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn,
