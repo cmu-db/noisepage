@@ -1113,11 +1113,20 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
   return true;
 }
 
-void DatabaseCatalog::CopyColumnData(storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr,
-                                     std::vector<col_oid_t> col_vec, const Schema &schema) {
-  auto col_offset_map = ColToOffsetMap(schema);
-  for (uint16_t col_index = 0; col_index < col_vec.size(); col_index++) {
-    auto index_pr_index = col_index;                           // idx of the pr for index retrieval
+void DatabaseCatalog::CopyColumnData(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr,
+                                     std::vector<col_oid_t> col_vec, table_oid_t table_oid, common::ManagedPointer<storage::index::Index> index) {
+  auto &schema = GetSchema(txn, table_oid);
+  auto cols = schema.GetColumns();
+  std::vector<col_oid_t> col_oids;
+  col_oids.reserve(cols.size());
+  for (size_t i = 0; i < cols.size(); i ++) {
+      col_oids.push_back(cols[i].Oid());
+  }
+  auto col_offset_map = GetTable(txn, table_oid)->ProjectionMapForOids(col_oids);
+  auto index_offset_map = index->GetKeyOidToOffsetMap();
+
+  for (uint32_t col_index = 0; col_index < col_vec.size(); col_index++) {
+    auto index_pr_index = index_offset_map[static_cast<catalog::indexkeycol_oid_t>(col_index + 1)];                           // idx of the pr for index retrieval
     auto table_pr_index = col_offset_map[col_vec[col_index]];  // index to get the data from pr
     auto *const index_ptr = index_pr->AccessForceNotNull(index_pr_index);
     auto *const pr_ptr = table_pr->AccessForceNotNull(table_pr_index);
@@ -1135,13 +1144,12 @@ void DatabaseCatalog::CopyColumnData(storage::ProjectedRow *table_pr, storage::P
 
 bool DatabaseCatalog::VerifyUniquePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                                const PG_Constraint &con_obj, storage::ProjectedRow *pr) {
-  const Schema &table_schema = GetSchema(txn, con_obj.conrelid_);
   TERRIER_ASSERT(con_obj.concol_.size() > 0, "UNIQUE and PK constraint should always have affecting column");
   common::ManagedPointer<storage::index::Index> index = GetIndex(txn, con_obj.conindid_);
   const auto pri = index->GetProjectedRowInitializer();
   auto *const buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
   auto *key_pr = pri.InitializeRow(buffer);
-  CopyColumnData(pr, key_pr, con_obj.concol_, table_schema);
+  CopyColumnData(txn, pr, key_pr, con_obj.concol_, con_obj.conrelid_, index);
   std::vector<storage::TupleSlot> index_scan_results;
   index->ScanKey(*txn, *key_pr, &index_scan_results);
   // set the index projected row from source projected row
@@ -1158,7 +1166,6 @@ bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::Tra
   // get the index of the constraint
   index_oid_t fk_index = con_obj.conindid_;
   table_oid_t src_table = con_obj.conrelid_;
-  const Schema &src_table_schema = GetSchema(txn, src_table);
   common::ManagedPointer<storage::index::Index> ref_table_index = GetIndex(txn, fk_index);
   // get the schema of the ref table
   auto ref_index_pri = ref_table_index->GetProjectedRowInitializer();
@@ -1166,7 +1173,7 @@ bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::Tra
   auto *key_pr = ref_index_pri.InitializeRow(buffer);
   TERRIER_ASSERT(con_obj.fkMetadata_.fk_srcs_.size() == con_obj.fkMetadata_.fk_refs_.size(),
                  "Src and Ref should have the same amound of column");
-  CopyColumnData(pr, key_pr, con_obj.fkMetadata_.fk_srcs_, src_table_schema);
+  CopyColumnData(txn, pr, key_pr, con_obj.fkMetadata_.fk_srcs_, src_table, ref_table_index);
   std::vector<storage::TupleSlot> index_scan_results;
   ref_table_index->ScanKey(*txn, *key_pr, &index_scan_results);
   // set the index projected row from source projected row
@@ -1176,15 +1183,6 @@ bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::Tra
   }
   delete[] buffer;
   return true;
-}
-
-std::unordered_map<col_oid_t, uint16_t> DatabaseCatalog::ColToOffsetMap(const Schema &schema) {
-  uint16_t i = 0;
-  std::unordered_map<col_oid_t, uint16_t> map;
-  for (const catalog::Schema::Column &col : schema.GetColumns()) {
-    map[col.Oid()] = i++;
-  }
-  return map;
 }
 
 bool DatabaseCatalog::VerifyCheckConstraint(const PG_Constraint &con_obj) { return true; }
