@@ -218,7 +218,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 
   TERRIER_ASSERT(index_scan_result.size() == 1, "Can't find the sequence or have duplicate sequences");
 
-  // Using TupleAccessStrategy to get nextval and update it
+  // Using TupleAccessStrategy to get nextval pointer and update it
   auto const pg_index_datatable = index_scan_result[0].GetBlock()->data_table_;
   storage::BlockLayout layout = pg_index_datatable->GetBlockLayout();
   storage::TupleAccessStrategy tuple_access_strategy(layout);

@@ -1454,7 +1454,7 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   // Write nextval into the PR. Default is 0
   const auto sequence_nextval_offset = pg_sequence_all_cols_prm_[postgres::SEQNEXTVAL_COL_OID];
   const auto sequence_nextval_ptr = sequences_insert_pr->AccessForceNotNull(sequence_nextval_offset);
-  *(reinterpret_cast<int64_t *>(sequence_nextval_ptr)) = 2;
+  *(reinterpret_cast<int64_t *>(sequence_nextval_ptr)) = 0;
 
   const auto tuple_slot = sequences_->Insert(txn, sequences_insert_redo);
 
