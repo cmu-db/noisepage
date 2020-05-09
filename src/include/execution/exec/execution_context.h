@@ -78,7 +78,8 @@ class EXPORT ExecutionContext {
                    const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                    catalog::namespace_oid_t temp_namespace = catalog::INVALID_NAMESPACE_OID,
-                   catalog::table_oid_t temp_table = catalog::INVALID_TABLE_OID)
+                   catalog::table_oid_t temp_table = catalog::INVALID_TABLE_OID,
+                   common::ManagedPointer<transaction::TransactionContext> mini_txn = nullptr)
       : db_oid_(db_oid),
         txn_(txn),
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
@@ -89,7 +90,8 @@ class EXPORT ExecutionContext {
         string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
         accessor_(accessor),
         temp_namespace_(temp_namespace),
-        temp_table_(temp_table){}
+        temp_table_(temp_table),
+        mini_txn_(mini_txn){}
   /**
    * @return the transaction used by this query
    */
@@ -194,6 +196,10 @@ class EXPORT ExecutionContext {
     return temp_table_;
   }
 
+  common::ManagedPointer<transaction::TransactionContext> Get_mini_txn() {
+    return mini_txn_;
+  }
+
  private:
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
@@ -210,5 +216,6 @@ class EXPORT ExecutionContext {
   //TODO(Adrian) : changed
   catalog::namespace_oid_t temp_namespace_;
   catalog::table_oid_t temp_table_;
+  common::ManagedPointer<transaction::TransactionContext> mini_txn_;
 };
 }  // namespace terrier::execution::exec

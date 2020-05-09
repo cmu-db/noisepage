@@ -223,18 +223,21 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   storage::BlockLayout layout = pg_index_datatable->GetBlockLayout();
   storage::TupleAccessStrategy tuple_access_strategy(layout);
 
+  // Need lock
   auto seq_val =
-      reinterpret_cast<int64_t *>(tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[2])) + 1;
+      reinterpret_cast<int32_t *>(tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[2]));
   *seq_val = *seq_val + 1;
 
+  // Update or insert nextval into pg_sequence with mini_txn
   auto temp_table_oid = ctx->GetTempTable();
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
   auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
+  auto mini_txn = ctx->Get_mini_txn();
 
   // Sequence table only have two colums right now
   const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
   auto temp_pri = temp_table->InitializerForProjectedRow(temp_colums_oids);
-  auto *const table_insert_redo = ctx->GetTxn()->StageWrite(ctx->DBOid(), temp_table_oid, temp_pri);
+  auto *const table_insert_redo = mini_txn->StageWrite(ctx->DBOid(), temp_table_oid, temp_pri);
   auto *const table_insert_pr = table_insert_redo->Delta();
   auto const table_projection_map =  temp_table->ProjectionMapForOids(temp_colums_oids);
   // First column is session id
@@ -259,17 +262,17 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   auto table_iter = temp_table->begin();
   auto prev_table_iter = table_iter;
   while (table_iter != temp_table->end()) {
-    temp_table->Scan(common::ManagedPointer(ctx->GetTxn()), &table_iter, pc);
+    temp_table->Scan(common::ManagedPointer(mini_txn), &table_iter, pc);
 
     if (seq_oid_ptrs[0] == sequence_oid) {
         table_insert_redo->SetTupleSlot(*prev_table_iter);
-        temp_table->Update(ctx->GetTxn(), table_insert_redo);
+        temp_table->Update(mini_txn, table_insert_redo);
         return;
     }
     prev_table_iter = table_iter;
   }
 
-  temp_table->Insert(ctx->GetTxn(), table_insert_redo);
+  temp_table->Insert(mini_txn, table_insert_redo);
 }
 
 void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
