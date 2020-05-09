@@ -237,26 +237,16 @@ class DataTable {
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
   /**
-   * @return pointer to this DataTable's BlockLayout
-   */
-  BlockLayout *GetBlockLayout() const { return const_cast<BlockLayout *>(&accessor_.GetBlockLayout()); }
-
-  /**
-   * @return reference to this DataTable's Accessor
-   */
-  TupleAccessStrategy &GetAccessor() const { return const_cast<TupleAccessStrategy &>(accessor_); }
-
-  /**
-   * @return the number of blocks that are in the RawBlock* array
-   */
-  uint64_t GetNumBlocks() const { return blocks_.size(); }
-
-  /**
    * @return pointer to underlying vector of blocks
    */
   common::ConcurrentPointerVector<RawBlock> *GetBlocks() const {
     return const_cast<common::ConcurrentPointerVector<RawBlock> *>(&blocks_);
   }
+
+  /**
+   * accessor_ tuple access strategy for DataTable
+   */
+  const TupleAccessStrategy accessor_;
 
  private:
   static const uint64_t START_VECTOR_SIZE = 256;
@@ -276,7 +266,6 @@ class DataTable {
 
   common::ManagedPointer<BlockStore> const block_store_;
   const layout_version_t layout_version_;
-  const TupleAccessStrategy accessor_;
   common::ConcurrentPointerVector<RawBlock> blocks_;
   std::atomic<uint64_t> insert_index_ = 0;
   const SlotIterator end_ = {};

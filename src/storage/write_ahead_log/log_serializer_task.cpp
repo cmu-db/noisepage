@@ -197,11 +197,10 @@ uint64_t LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &r
 
       // Write out the attr sizes boundaries, this way we can deserialize the records without the need of the block
       // layout
-      const auto &block_layout = record_body->GetTupleSlot().GetBlock()->data_table_->GetBlockLayout();
+      const auto &block_layout = record_body->GetTupleSlot().GetBlock()->data_table_->accessor_.GetBlockLayout();
       uint16_t boundaries[NUM_ATTR_BOUNDARIES];
       memset(boundaries, 0, sizeof(uint16_t) * NUM_ATTR_BOUNDARIES);
-      auto layout = *block_layout;
-      StorageUtil::ComputeAttributeSizeBoundaries(layout, delta->ColumnIds(), delta->NumColumns(), boundaries);
+      StorageUtil::ComputeAttributeSizeBoundaries(block_layout, delta->ColumnIds(), delta->NumColumns(), boundaries);
       WriteValue(boundaries, sizeof(uint16_t) * NUM_ATTR_BOUNDARIES);
 
       // Write out the null bitmap.
@@ -218,7 +217,7 @@ uint64_t LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &r
         // Get the column id of the current column in the ProjectedRow.
         col_id_t col_id = delta->ColumnIds()[i];
 
-        if (block_layout->IsVarlen(col_id)) {
+        if (block_layout.IsVarlen(col_id)) {
           // Inline column value is a pointer to a VarlenEntry, so reinterpret as such.
           const auto *varlen_entry = reinterpret_cast<const VarlenEntry *>(column_value_address);
           // Serialize out length of the varlen entry.
@@ -234,7 +233,7 @@ uint64_t LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &r
           // Inline column value is the actual data we want to serialize out.
           // Note that by writing out AttrSize(col_id) bytes instead of just the difference between successive offsets
           // of the delta record, we avoid serializing out any potential padding.
-          num_bytes += WriteValue(column_value_address, block_layout->AttrSize(col_id));
+          num_bytes += WriteValue(column_value_address, block_layout.AttrSize(col_id));
         }
       }
       break;
