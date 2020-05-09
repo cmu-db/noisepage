@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "catalog/catalog.h"
-#include "catalog/postgres/fk_constraint.h"
 #include "catalog/postgres/pg_proc.h"
 
 namespace terrier::catalog {
