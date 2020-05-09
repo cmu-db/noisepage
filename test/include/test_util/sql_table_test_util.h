@@ -172,7 +172,7 @@ class RandomSqlTableTransaction {
    * @param generator the random generator to use
    */
   template <class Random>
-  void RandomInsert(Random *generator);
+  void RandomInsert(Random *generator, storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   /**
    * Randomly updates a tuple, using the given generator as source of randomness.
@@ -181,7 +181,7 @@ class RandomSqlTableTransaction {
    * @param generator the random generator to use
    */
   template <class Random>
-  void RandomUpdate(Random *generator);
+  void RandomUpdate(Random *generator, storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   /**
    * Randomly deletes a tuple, using the given generator as source of randomness.
@@ -199,7 +199,10 @@ class RandomSqlTableTransaction {
    * @param generator the random generator to use
    */
   template <class Random>
-  void RandomSelect(Random *generator);
+  void RandomSelect(Random *generator, storage::layout_version_t layout_version = storage::layout_version_t(0));
+
+  template <class Random>
+  std::unique_ptr<catalog::Schema> AddColumn(Random *generator, storage::layout_version_t layout_version);
 
   /**
    * Finish the simulation of this transaction. The underlying transaction will either commit or abort.
@@ -258,6 +261,8 @@ class LargeSqlTableTestObject {
    */
   ~LargeSqlTableTestObject();
 
+  uint64_t SimulateOltpAndUpdateSchema(uint32_t num_transactions, uint32_t num_concurrent_txns);
+
   /**
    * Simulate an oltp workload, running the specified number of total transactions while allowing the specified number
    * of transactions to run concurrently. Transactions are generated using the configuration provided on construction.
@@ -283,11 +288,14 @@ class LargeSqlTableTestObject {
   }
 
  private:
-  void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id);
+  void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id,
+      storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   template <class Random>
   void PopulateInitialTables(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns, uint32_t num_tuples,
                              bool varlen_allowed, storage::BlockStore *block_store, Random *generator);
+
+  const catalog::Schema &GetSchema(storage::layout_version_t version) const { return *schemas_.at(version); }
 
   friend class RandomSqlTableTransaction;
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
@@ -304,5 +312,9 @@ class LargeSqlTableTestObject {
 
   // Maps database and table oids to struct holding testing metadata for each table
   std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, SqlTableMetadata *>> tables_;
+
+  std::unordered_map<storage::layout_version_t, std::unique_ptr<catalog::Schema>> schemas_;
+  std::vector<storage::layout_version_t> layout_versions;
+  int latest_layout_version = 0;
 };
 }  // namespace terrier

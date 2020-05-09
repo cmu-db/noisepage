@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "storage/sql_table.h"
+#include "storage/storage_defs.h"
 #include "test_util/catalog_test_util.h"
 
 namespace terrier {
@@ -12,7 +13,7 @@ RandomSqlTableTransaction::RandomSqlTableTransaction(LargeSqlTableTestObject *te
     : test_object_(test_object), txn_(test_object->txn_manager_->BeginTransaction()), aborted_(false) {}
 
 template <class Random>
-void RandomSqlTableTransaction::RandomInsert(Random *generator) {
+void RandomSqlTableTransaction::RandomInsert(Random *generator, storage::layout_version_t layout_version) {
   if (aborted_) return;
   // Generate random database and table
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
@@ -22,18 +23,51 @@ void RandomSqlTableTransaction::RandomInsert(Random *generator) {
                            ->GetTable(common::ManagedPointer(txn_), table_oid);
 
   // Generate random insert
-  auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
+  auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_, layout_version);
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->tables_.begin()->layout_, 0.0, generator);
   record->SetTupleSlot(storage::TupleSlot(nullptr, 0));
-  auto tuple_slot = sql_table_ptr->Insert(common::ManagedPointer(txn_), record);
+  auto tuple_slot = sql_table_ptr->Insert(common::ManagedPointer(txn_), record, layout_version);
 
   // Defer addition of tuples until commit in case of aborts
   inserted_tuples_[database_oid][table_oid].push_back(tuple_slot);
 }
 
 template <class Random>
-void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
+std::unique_ptr<catalog::Schema> RandomSqlTableTransaction::AddColumn(Random *generator, storage::layout_version_t layout_version) {
+  if (aborted_) return nullptr;
+  // Generate random database and table
+  const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
+  const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
+
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
+      ->GetTable(common::ManagedPointer(txn_), table_oid);
+
+  auto old_schema = test_object_->GetSchema(layout_version);
+
+  // add column
+  int default_value = 1;
+  catalog::Schema::Column new_col("new_col", type::TypeId::INTEGER, false,
+                               parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_value)));
+  std::vector<catalog::Schema::Column> columns(old_schema.GetColumns());
+  catalog::col_oid_t max_oid = columns.begin()->Oid();
+  for (auto &col : columns) {
+    if (col.Oid() > max_oid) {
+      max_oid = col.Oid();
+    }
+  }
+  StorageTestUtil::SetOid(&new_col, max_oid + 1);
+  columns.push_back(new_col);
+
+  auto schema = std::make_unique<catalog::Schema>(columns);
+
+  // update schema, with new layout_version, and schema with new column added
+  sql_table_ptr->UpdateSchema(common::ManagedPointer<transaction::TransactionContext>(txn_), *schema, layout_version + 1);
+  return schema;
+}
+
+template <class Random>
+void RandomSqlTableTransaction::RandomUpdate(Random *generator, storage::layout_version_t layout_version) {
   if (aborted_) return;
   // Generate random database and table
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
@@ -54,11 +88,11 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
                            ->GetTable(common::ManagedPointer(txn_), table_oid);
   auto initializer = sql_table_ptr->InitializerForProjectedRow(
-      StorageTestUtil::RandomNonEmptySubset(sql_table_metadata->col_oids_, generator));
+      StorageTestUtil::RandomNonEmptySubset(sql_table_metadata->col_oids_, generator), layout_version);
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   record->SetTupleSlot(updated);
   StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->tables_.begin()->layout_, 0.0, generator);
-  auto result = sql_table_ptr->Update(common::ManagedPointer(txn_), record);
+  auto result = sql_table_ptr->Update(common::ManagedPointer(txn_), record, layout_version);
   aborted_ = !result;
 }
 
@@ -102,7 +136,7 @@ void RandomSqlTableTransaction::RandomDelete(Random *generator) {
 }
 
 template <class Random>
-void RandomSqlTableTransaction::RandomSelect(Random *generator) {
+void RandomSqlTableTransaction::RandomSelect(Random *generator, storage::layout_version_t layout_version) {
   if (aborted_) return;
   // Generate random database and table
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
@@ -121,9 +155,9 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
   auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
                            ->GetTable(common::ManagedPointer(txn_), table_oid);
-  auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
+  auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_, layout_version);
   storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);
-  sql_table_ptr->Select(common::ManagedPointer(txn_), selected, select);
+  sql_table_ptr->Select(common::ManagedPointer(txn_), selected, select, layout_version);
 }
 
 void RandomSqlTableTransaction::Finish() {
@@ -168,6 +202,42 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
+uint64_t LargeSqlTableTestObject::SimulateOltpAndUpdateSchema(uint32_t num_transactions, uint32_t num_concurrent_txns) {
+  common::WorkerPool thread_pool(num_concurrent_txns, {});
+  thread_pool.Startup();
+  std::vector<RandomSqlTableTransaction *> txns(num_transactions);
+  std::function<void(uint32_t)> workload;
+  std::atomic<uint32_t> txns_run = 0;
+  // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
+  // test objects
+  workload = [&](uint32_t thread_id) {
+    if (thread_id == 0) {
+      auto txn = new RandomSqlTableTransaction(this);
+      std::default_random_engine thread_generator(txns_run);
+
+      txn->AddColumn(&thread_generator, latest_layout_version);
+      txn->Finish();
+    } else {
+      for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
+        txns[txn_id] = new RandomSqlTableTransaction(this);
+        SimulateOneTransaction(txns[txn_id], txn_id, latest_layout_version);
+      }
+    }
+  };
+
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
+
+  // We only need to deallocate, and return, if gc is on, this loop is a no-op
+  for (RandomSqlTableTransaction *txn : txns) {
+    if (txn->aborted_) abort_count_++;
+    delete txn;
+  }
+  latest_layout_version++;
+
+  return abort_count_;
+}
+
+// Caller is responsible for freeing the returned results if bookkeeping is on.
 uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
   thread_pool.Startup();
@@ -176,7 +246,7 @@ uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32
   std::atomic<uint32_t> txns_run = 0;
   // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
   // test objects
-  workload = [&](uint32_t /*unused*/) {
+  workload = [&](uint32_t thread_id) {
     for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
       txns[txn_id] = new RandomSqlTableTransaction(this);
       SimulateOneTransaction(txns[txn_id], txn_id);
@@ -193,12 +263,13 @@ uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32
   return abort_count_;
 }
 
-void LargeSqlTableTestObject::SimulateOneTransaction(terrier::RandomSqlTableTransaction *txn, uint32_t txn_id) {
+void LargeSqlTableTestObject::SimulateOneTransaction(terrier::RandomSqlTableTransaction *txn, uint32_t txn_id,
+    storage::layout_version_t layout_version) {
   std::default_random_engine thread_generator(txn_id);
 
-  auto insert = [&] { txn->RandomInsert(&thread_generator); };
-  auto update = [&] { txn->RandomUpdate(&thread_generator); };
-  auto select = [&] { txn->RandomSelect(&thread_generator); };
+  auto insert = [&] { txn->RandomInsert(&thread_generator, layout_version); };
+  auto update = [&] { txn->RandomUpdate(&thread_generator, layout_version); };
+  auto select = [&] { txn->RandomSelect(&thread_generator, layout_version); };
   auto remove = [&] { txn->RandomDelete(&thread_generator); };
 
   RandomTestUtil::InvokeWorkloadWithDistribution({insert, update, select, remove}, insert_update_select_delete_ratio_,
@@ -231,7 +302,8 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       auto table_oid = db_catalog_ptr->CreateTable(common::ManagedPointer(initial_txn_), namespace_oid,
                                                    "table" + std::to_string(table_idx), *schema);
       TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "Table creation should always succeed");
-      delete schema;
+      schemas_[storage::layout_version_t(0)] = std::unique_ptr<catalog::Schema>(schema);
+
       table_oids_[database_oid].emplace_back(table_oid);
       auto catalog_schema = db_catalog_ptr->GetSchema(common::ManagedPointer(initial_txn_), table_oid);
       auto *sql_table = new storage::SqlTable(common::ManagedPointer(block_store), catalog_schema);
