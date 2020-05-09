@@ -194,10 +194,6 @@ class DatabaseCatalog {
   constraint_oid_t CreateUNIQUEConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                           namespace_oid_t ns, table_oid_t table, const std::string &name,
                                           index_oid_t index, const std::vector<col_oid_t> &unique_cols);
-  std::vector<constraint_oid_t> CreateFKConstraintInFKTable(
-      common::ManagedPointer<transaction::TransactionContext> txn, constraint_oid_t constraint, table_oid_t src_table,
-      table_oid_t sink_table, const std::vector<col_oid_t> &src_cols, const std::vector<col_oid_t> &sink_cols,
-      postgres::FKActionType update_action, postgres::FKActionType delete_action);
   void FillConstraintPR(storage::ProjectedRow *constraints_insert_pr, constraint_oid_t constraint_oid,
                         const std::string name, namespace_oid_t ns, postgres::ConstraintType con_type, bool deferrable,
                         bool deferred, bool validated, table_oid_t table, index_oid_t index, constraint_oid_t parent,

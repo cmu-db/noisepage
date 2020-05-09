@@ -1026,8 +1026,6 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
   auto *select_pr = pg_constraints_all_cols_pri_.InitializeRow(buffer);
   std::vector<PG_Constraint> constraints;
   constraints.reserve(index_scan_results.size());
-  auto *const child_buffer =
-      common::AllocationUtil::AllocateAligned(pg_fk_constraints_all_cols_pri_.ProjectedRowSize());
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
@@ -1060,18 +1058,12 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
     index_oid_t con_index = *(reinterpret_cast<index_oid_t *>(offset));
 
     offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONFRELID_COL_OID]);
-    storage::VarlenEntry &con_frelid_varlen = *(reinterpret_cast<storage::VarlenEntry *>(offset));
-    std::string confrel_str = VarlentoString(con_frelid_varlen);
+    table_oid_t con_fk_table = *(reinterpret_cast<table_oid_t *>(offset));
 
-    offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONCOL_COL_OID]);
+    offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONKEY_COL_OID]);
     auto con_col_varlen = *(reinterpret_cast<storage::VarlenEntry *>(offset));
     std::string con_col_str = VarlentoString(con_col_varlen);
 
-    offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONCHECK_COL_OID]);
-    constraint_oid_t con_check = *(reinterpret_cast<constraint_oid_t *>(offset));
-
-    offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONEXCLUSION_COL_OID]);
-    constraint_oid_t con_exclusion = *(reinterpret_cast<constraint_oid_t *>(offset));
     // TODO: resolve CONBIN
     //    offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONBIN_COL_OID]);
     //    auto con_oid = *(reinterpret_cast<planner::AbstractPlanNode **>(offset));
@@ -1083,77 +1075,36 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
         con_obj.contype_ == postgres::ConstraintType::PRIMARY_KEY) {
       verify_res = VerifyUniquePKConstraint(txn, con_obj, pr);
     } else if (con_obj.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
-      std::vector<constraint_oid_t> con_ids = SpaceSeparatedOidToVector<constraint_oid_t>(confrel_str);
-      auto fk_index_pri = fk_constraints_oid_index_->GetProjectedRowInitializer();
-      for (constraint_oid_t fk_id : con_ids) {
-        // Find all entries for the given table using the index
-        auto *fk_index_pr = fk_index_pri.InitializeRow(child_buffer);
-        auto *const fk_oid_oid_ptr = fk_index_pr->AccessForceNotNull(0);
-        *(reinterpret_cast<constraint_oid_t *>(fk_oid_oid_ptr)) = fk_id;
-        std::vector<storage::TupleSlot> fk_index_scan_results;
-        fk_constraints_oid_index_->ScanKey(*txn, *fk_index_pr, &fk_index_scan_results);
-
-        // If we found no indexes, return an empty list
-        TERRIER_ASSERT(
-            !fk_index_scan_results.empty(),
-            "if there is a foreign key in pg_constraint, then fk_constraint table has to have record in index");
-        TERRIER_ASSERT(fk_index_scan_results.size() == 1,
-                       "one fk_id stored in pg-constraint confrelid array should only have one entry in fk_constraint");
-        auto *fk_select_pr = pg_fk_constraints_all_cols_pri_.InitializeRow(child_buffer);
-        for (auto &fk_slot : fk_index_scan_results) {
-          const auto fk_result UNUSED_ATTRIBUTE = fk_constraints_->Select(txn, fk_slot, fk_select_pr);
-          TERRIER_ASSERT(fk_result, "Index already verified visibility. This shouldn't fail.");
-          auto fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKID_COL_OID];
-          constraint_oid_t fk_oid =
-              *(reinterpret_cast<constraint_oid_t *>(fk_select_pr->AccessForceNotNull(fk_offset)));
-
-          fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKCONID_COL_OID];
-          TERRIER_ASSERT(
-              *(reinterpret_cast<constraint_oid_t *>(fk_select_pr->AccessForceNotNull(fk_offset))) == con_oid,
-              "entry selected from fk_constraint should have same con_id as the one called from pg_constraint");
-
-          fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKREFTABLE_COL_OID];
-          table_oid_t fk_ref_table = *(reinterpret_cast<table_oid_t *>(fk_select_pr->AccessForceNotNull(fk_offset)));
-
-          fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKSRCTABLE_COL_OID];
-          TERRIER_ASSERT(*(reinterpret_cast<table_oid_t *>(fk_select_pr->AccessForceNotNull(fk_offset))) == con_rel,
-                         "fk_constraint src table should be the same as con_rel");
-
-          fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKREFCOL_COL_OID];
-          col_oid_t fk_ref_col = *(reinterpret_cast<col_oid_t *>(fk_select_pr->AccessForceNotNull(fk_offset)));
-
-          fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKSRCCOL_COL_OID];
-          col_oid_t fk_src_col = *(reinterpret_cast<col_oid_t *>(fk_select_pr->AccessForceNotNull(fk_offset)));
-
-          fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKUPDATEACTION_COL_OID];
-          postgres::FKActionType update_action =
-              *(reinterpret_cast<postgres::FKActionType *>(fk_select_pr->AccessForceNotNull(fk_offset)));
-
-          fk_offset = pg_fk_constraints_all_cols_prm_[postgres::FKDELETEACTION_COL_OID];
-          postgres::FKActionType delete_action =
-              *(reinterpret_cast<postgres::FKActionType *>(fk_select_pr->AccessForceNotNull(fk_offset)));
-          con_obj.AddFKConstraintMetadata(fk_ref_table, fk_oid, fk_src_col, fk_ref_col, update_action, delete_action);
-        }
-      }
-      verify_res = VerifyFKConstraint(txn, con_obj, pr);
+        offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONFKEY_COL_OID]);
+        auto con_fkcol_varlen = *(reinterpret_cast<storage::VarlenEntry *>(offset));
+        offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONFUPDTYPE_COL_OID]);
+        auto update_action = *(reinterpret_cast<postgres::FKActionType *>(offset));
+        offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONFDELTYPE_COL_OID]);
+        auto delete_action = *(reinterpret_cast<postgres::FKActionType *>(offset));
+        std::string con_fkcol_str = VarlentoString(con_fkcol_varlen);
+        std::vector<col_oid_t> con_src_ids = SpaceSeparatedOidToVector<col_oid_t>(con_col_str);
+        std::vector<col_oid_t> con_ref_ids = SpaceSeparatedOidToVector<col_oid_t>(con_fkcol_str);
+        TERRIER_ASSERT(con_src_ids.size() == con_ref_ids.size(), "FK SRC and REF should have same cardinality");
+        con_obj.fkMetadata_.confrelid_ = con_fk_table;
+        con_obj.fkMetadata_.fk_srcs_.insert(con_obj.fkMetadata_.fk_srcs_.begin(), con_src_ids.begin(), con_src_ids.end());
+        con_obj.fkMetadata_.fk_refs_.insert(con_obj.fkMetadata_.fk_refs_.begin(), con_ref_ids.begin(), con_ref_ids.end());
+        con_obj.fkMetadata_.update_action_ = update_action;
+        con_obj.fkMetadata_.delete_action_ = delete_action;
+        verify_res = VerifyFKConstraint(txn, con_obj, pr);
     } else if (con_obj.contype_ == postgres::ConstraintType::CHECK) {
       // TODO: implement support for check constraint
-      con_obj.AddCheckConstraintMetaData(con_check);
       verify_res = VerifyCheckConstraint(con_obj);
     } else if (con_obj.contype_ == postgres::ConstraintType::EXCLUSION) {
       // TODO: implement support for exclusion constraint
-      con_obj.AddExclusionConstraintMetadata(con_exclusion);
       verify_res = VerifyExclusionConstraint(con_obj);
     }
 
     if (!verify_res) {
-      delete[] child_buffer;
       delete[] buffer;
       txn->SetMustAbort();
       return false;
     }
   }
-  delete[] child_buffer;
   delete[] buffer;
   return true;
 }
