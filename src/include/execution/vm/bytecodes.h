@@ -427,7 +427,7 @@ namespace terrier::execution::vm {
   F(StorageInterfaceVerifyTableInsertConstraint, OperandType::Local, OperandType::Local)                              \
   F(StorageInterfaceDeleteCascade, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   F(StorageInterfaceUpdateCascade, OperandType::Local, OperandType::Local, OperandType::Local)                        \
-  F(StorageInterfaceUpdateVerify, OperandType::Local, OperandType::Local)                                             \
+  F(StorageInterfaceUpdateVerify, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \
   /* Trig functions */                                                                                                \

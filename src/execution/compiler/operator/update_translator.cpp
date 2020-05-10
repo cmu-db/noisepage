@@ -38,7 +38,7 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
   GetUpdatePR(builder);
   FillPRFromChild(builder);
 
-  GenUpdateVerify(builder);
+
 
   if (op_->GetIndexedUpdate()) {
     // Indexed updates re-insert into the table
@@ -52,10 +52,11 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
     }
     return;
   }
+
   GenUpdateCascade(builder);
   // Non indexed updates just update.
   GenTableUpdate(builder);
-
+  GenUpdateVerify(builder);
 
 }
 

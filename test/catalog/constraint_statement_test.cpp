@@ -356,57 +356,35 @@ class ConstraintStatementTest : public TerrierTest {
 //}
 //}
 
-TEST_F(ConstraintStatementTest, EnforceFKTest) {
-try {
-pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                                        port_, catalog::DEFAULT_DATABASE));
-
-pqxx::work txn1(connection);
-txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
-txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT references TableA(id));");
-    txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk1 TEXT references TableA(data));");
-txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 'abcacb');");
-//txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 2);");
-pqxx::result r = txn1.exec("SELECT * FROM TableA");
-EXPECT_EQ(r.size(), 1);
-r = txn1.exec("SELECT * FROM pg_constraint");
-EXPECT_EQ(r.size(), 5);
-r = txn1.exec("SELECT * FROM TableA");
-EXPECT_EQ(r.size(), 1);
-r = txn1.exec("SELECT * FROM TableB");
-EXPECT_EQ(r.size(), 0);
-txn1.exec("INSERT INTO TableB VALUES (1, 1);");
-r = txn1.exec("SELECT * FROM TableB");
-EXPECT_EQ(r.size(), 1);
-txn1.exec("INSERT INTO TableB VALUES (2, 1);");
-//txn1.exec("INSERT INTO TableB VALUES (3, 2);");
-r = txn1.exec("SELECT * FROM TableB");
-EXPECT_EQ(r.size(), 2);
-txn1.exec("INSERT INTO TableC VALUES (1, 'abcacb');");
-r = txn1.exec("SELECT * FROM TableC");
-EXPECT_EQ(r.size(), 1);
-std::cerr << "till end\n";
-txn1.commit();
-connection.disconnect();
-} catch (const std::exception &e) {
-EXPECT_TRUE(false);
-std::cerr << e.what();
-}
-}
-
-//TEST_F(ConstraintStatementTest, CascadeTest) {
+//TEST_F(ConstraintStatementTest, EnforceFKTest) {
 //try {
 //pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
 //                                        port_, catalog::DEFAULT_DATABASE));
 //
 //pqxx::work txn1(connection);
-//txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, name TEXT);");
-//txn1.exec("INSERT INTO TableA (id, data, name) VALUES (1, 2, 'abc');");
+//txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
+//txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT references TableA(id));");
+//    txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk1 TEXT references TableA(data));");
+//txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 'abcacb');");
+////txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 2);");
 //pqxx::result r = txn1.exec("SELECT * FROM TableA");
 //EXPECT_EQ(r.size(), 1);
-//
-//txn1.exec("DELETE FROM TableA WHERE data = 2 AND id = 1;");
-//
+//r = txn1.exec("SELECT * FROM pg_constraint");
+//EXPECT_EQ(r.size(), 5);
+//r = txn1.exec("SELECT * FROM TableA");
+//EXPECT_EQ(r.size(), 1);
+//r = txn1.exec("SELECT * FROM TableB");
+//EXPECT_EQ(r.size(), 0);
+//txn1.exec("INSERT INTO TableB VALUES (1, 1);");
+//r = txn1.exec("SELECT * FROM TableB");
+//EXPECT_EQ(r.size(), 1);
+//txn1.exec("INSERT INTO TableB VALUES (2, 1);");
+////txn1.exec("INSERT INTO TableB VALUES (3, 2);");
+//r = txn1.exec("SELECT * FROM TableB");
+//EXPECT_EQ(r.size(), 2);
+//txn1.exec("INSERT INTO TableC VALUES (1, 'abcacb');");
+//r = txn1.exec("SELECT * FROM TableC");
+//EXPECT_EQ(r.size(), 1);
 //std::cerr << "till end\n";
 //txn1.commit();
 //connection.disconnect();
@@ -415,5 +393,27 @@ std::cerr << e.what();
 //std::cerr << e.what();
 //}
 //}
+
+TEST_F(ConstraintStatementTest, CascadeTest) {
+try {
+pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                        port_, catalog::DEFAULT_DATABASE));
+
+pqxx::work txn1(connection);
+txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, name TEXT);");
+txn1.exec("INSERT INTO TableA (id, data, name) VALUES (1, 2, 'abc');");
+pqxx::result r = txn1.exec("SELECT * FROM TableA");
+EXPECT_EQ(r.size(), 1);
+
+txn1.exec("UPDATE TableA SET data = 3, name = 'def' WHERE id = 1;");
+
+std::cerr << "till end\n";
+txn1.commit();
+connection.disconnect();
+} catch (const std::exception &e) {
+EXPECT_TRUE(false);
+std::cerr << e.what();
+}
+}
 
 }  // namespace terrier::trafficcop

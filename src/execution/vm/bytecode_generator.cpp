@@ -1996,7 +1996,8 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
     }
     case ast::Builtin::UpdateVerify: {
       LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      Emitter()->Emit(Bytecode::StorageInterfaceUpdateVerify, cond, storage_interface);
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceUpdateVerify, cond, storage_interface, tuple_slot);
       ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
