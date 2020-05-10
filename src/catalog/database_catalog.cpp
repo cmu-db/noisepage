@@ -1169,7 +1169,6 @@ void DatabaseCatalog::CopyColumnData(common::ManagedPointer<transaction::Transac
     const auto &table_col = schema.GetColumn(col_vec[col_index]);
     if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
         auto *varlenval = reinterpret_cast<storage::VarlenEntry *>(pr_ptr);
-        std::string string UNUSED_ATTRIBUTE = VarlentoString(*varlenval);
         *(reinterpret_cast<storage::VarlenEntry *>(index_ptr)) = *(varlenval);
     } else {
       std::memcpy(index_ptr, pr_ptr, type::TypeUtil::GetTypeSize(table_col.Type()));
