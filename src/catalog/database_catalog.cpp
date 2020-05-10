@@ -1015,7 +1015,7 @@ bool DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionC
   std::cerr << "offset: " << table_tuple_slot.GetOffset() <<"\n";
 
 auto *const rptr = pr->AccessForceNotNull(1);
-std::cerr << "1: " << *(reinterpret_cast<uint32_t *>(rptr)) <<"\n";
+std::cerr << "1: " << VarlentoString(*(reinterpret_cast<storage::VarlenEntry *>(rptr))) <<"\n";
   return true;
 }
 
