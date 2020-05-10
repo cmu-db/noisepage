@@ -61,6 +61,18 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> nod
 
   InitTableRef(node->GetAnalyzeTable());
   ValidateDatabaseName(node->GetAnalyzeTable()->GetDatabaseName());
+
+  auto tb_oid = catalog_accessor_->GetTableOid(node->GetAnalyzeTable()->GetTableName());
+  if (tb_oid == catalog::INVALID_TABLE_OID) {
+    throw BINDER_EXCEPTION("Analyze table does not exist");
+  }
+
+  auto schema = catalog_accessor_->GetSchema(tb_oid);
+  for (const auto &col : *(node->GetColumns())) {
+    if (!BinderContext::ColumnInSchema(schema, col)) {
+      throw BINDER_EXCEPTION("Analyze column does not exist");
+    }
+  }
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) {

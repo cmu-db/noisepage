@@ -946,4 +946,34 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr), BinderException);
 }
 
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, AnalyzeStatementSimpleTest) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "ANALYZE a (a1);";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr));
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, AnalyzeStatementInvalidTableTest) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "ANALYZE zz (a1);";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, AnalyzeStatementInvalidColumnTest) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "ANALYZE a (a99);";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr), BinderException);
+}
+
 }  // namespace terrier
