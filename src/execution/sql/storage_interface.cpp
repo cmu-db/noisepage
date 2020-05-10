@@ -6,6 +6,7 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
@@ -57,16 +58,16 @@ bool StorageInterface::VerifyTableInsertConstraint() {
   return db_accessor_->VerifyTableInsertConstraint(table_oid_, pr);
 }
 
-bool StorageInterface::UpdateVerify() {
-    return true;
+bool StorageInterface::UpdateVerify(storage::TupleSlot table_tuple_slot) {
+    return db_accessor_->VerifyTableUpdateConstraint(table_oid_, col_oids_, table_redo_->Delta(), table_tuple_slot);
 }
 
 bool StorageInterface::UpdateCascade(storage::TupleSlot table_tuple_slot) {
-  return db_accessor_->UpdateCascade(table_oid_, table_tuple_slot);
+  return db_accessor_->UpdateCascade(table_oid_, table_tuple_slot, table_redo_->Delta());
 }
 
 bool StorageInterface::DeleteCascade(storage::TupleSlot table_tuple_slot) {
-  return db_accessor_->UpdateCascade(table_oid_, table_tuple_slot);
+  return db_accessor_->DeleteCascade(table_oid_, table_tuple_slot, table_redo_->Delta());
 }
 
 storage::TupleSlot StorageInterface::TableInsert() { return table_->Insert(exec_ctx_->GetTxn(), table_redo_); }
@@ -79,6 +80,7 @@ bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
 
 bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   table_redo_->SetTupleSlot(table_tuple_slot);
+//  UpdateCascade(table_tuple_slot);
   return table_->Update(exec_ctx_->GetTxn(), table_redo_);
 }
 

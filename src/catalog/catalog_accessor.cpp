@@ -98,17 +98,21 @@ bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const 
 const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }
 
 
-bool CatalogAccessor::VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr) {
+bool CatalogAccessor::VerifyTableInsertConstraint(table_oid_t table,  storage::ProjectedRow *pr) {
   return dbc_->VerifyTableInsertConstraint(txn_, table, pr);
   return dbc_->VerifyTableInsertConstraint(txn_, table, pr);
 }
 
-bool CatalogAccessor::UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot) {
-    return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_UPDATE);
+bool CatalogAccessor::VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
+    return dbc_->VerifyTableUpdateConstraint(txn_, table, col_oids, pr, tuple_slot);
 }
 
-bool CatalogAccessor::DeleteCascade(table_oid_t table, storage::TupleSlot table_tuple_slot) {
-    return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_DELETE);
+bool CatalogAccessor::UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
+    return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_UPDATE, pr);
+}
+
+bool CatalogAccessor::DeleteCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
+    return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_DELETE, pr);
 }
 
 constraint_oid_t CatalogAccessor::CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,

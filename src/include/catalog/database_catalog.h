@@ -186,7 +186,7 @@ class DatabaseCatalog {
   std::vector<OidType> SpaceSeparatedOidToVector(std::string s);
   std::string VarlentoString(const storage::VarlenEntry &entry);
   void CopyColumnData(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr, std::vector<col_oid_t> col_vec,
-                      table_oid_t table_oid, common::ManagedPointer<storage::index::Index> index);
+                      table_oid_t table_oid, index_oid_t index_oid, common::ManagedPointer<storage::index::Index> index);
   bool VerifyUniquePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const PG_Constraint &con_obj, storage::ProjectedRow *pr);
   bool VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, const PG_Constraint &con_obj,
@@ -195,8 +195,10 @@ class DatabaseCatalog {
   bool VerifyExclusionConstraint(const PG_Constraint &con_obj);
   bool VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                                    storage::ProjectedRow *pr);
+  bool VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
+          storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
   bool FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table,
-                 storage::TupleSlot table_tuple_slot, const char cascade_type);
+                 storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr);
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t table, const std::string &name, index_oid_t index,
                                       const std::vector<col_oid_t> &pk_cols);
@@ -209,7 +211,7 @@ class DatabaseCatalog {
                                           namespace_oid_t ns, table_oid_t table, const std::string &name,
                                           index_oid_t index, const std::vector<col_oid_t> &unique_cols);
   void FillConstraintPR(storage::ProjectedRow *constraints_insert_pr, constraint_oid_t constraint_oid,
-                        const std::string name, namespace_oid_t ns, postgres::ConstraintType con_type, bool deferrable,
+                        const std::string &name, namespace_oid_t ns, postgres::ConstraintType con_type, bool deferrable,
                         bool deferred, bool validated, table_oid_t table, index_oid_t index, constraint_oid_t parent,
                         table_oid_t foreign_table, postgres::FKActionType update_action,
                         postgres::FKActionType delete_action, postgres::FKMatchType fk_match_type, bool is_local,
@@ -218,7 +220,7 @@ class DatabaseCatalog {
                         const std::string &fk_fk_eq_op, const std::string &exclu_op, planner::AbstractPlanNode *conbin);
 
   bool PropagateConstraintIndex(common::ManagedPointer<transaction::TransactionContext> txn,
-                                const storage::TupleSlot tuple_slot, constraint_oid_t constraint_oid, std::string name,
+                                const storage::TupleSlot tuple_slot, constraint_oid_t constraint_oid, const std::string &name,
                                 namespace_oid_t ns, index_oid_t index, table_oid_t table, table_oid_t foreign_table);
   /**
    * A list of all constraints on this table
@@ -230,12 +232,6 @@ class DatabaseCatalog {
                                                table_oid_t table);
   bool DeleteConstraints(common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table);
   bool DeleteConstraint(common::ManagedPointer<transaction::TransactionContext> txn, constraint_oid_t constraint);
-  bool DeleteFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
-                          constraint_oid_t constraint, storage::VarlenEntry fk_constraints);
-  bool DeleteCheckConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
-                             constraint_oid_t constraint, constraint_oid_t check_constraint);
-  bool DeleteExclusionConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
-                                 constraint_oid_t constraint, constraint_oid_t exclusion_constraint);
   /**
    * A list of all indexes on the given table
    * @param txn for the operation

@@ -1004,10 +1004,18 @@ std::vector<OidType> DatabaseCatalog::SpaceSeparatedOidToVector(std::string s) {
 std::string DatabaseCatalog::VarlentoString(const storage::VarlenEntry &entry) {
   return std::string(reinterpret_cast<const char *const>(entry.Content()), entry.Size());
 }
+
+
 // recursively find child and make cascade update if satisfied
 bool DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table,
-                                storage::TupleSlot table_tuple_slot, const char cascade_type) {
+                                storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr) {
   // find all the constraints from fk_constraint that set current table as reference
+  auto *const ptr = pr->AccessForceNotNull(0);
+  std::cerr << "0: " << *(reinterpret_cast<uint32_t *>(ptr)) <<"\n";
+  std::cerr << "offset: " << table_tuple_slot.GetOffset() <<"\n";
+
+auto *const rptr = pr->AccessForceNotNull(1);
+std::cerr << "1: " << *(reinterpret_cast<uint32_t *>(rptr)) <<"\n";
   return true;
 }
 
@@ -1113,8 +1121,29 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
   return true;
 }
 
+bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
+                          table_oid_t table_oid, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr,
+                          storage::TupleSlot tuple_slot) {
+    auto table = GetTable(txn, table_oid);
+    const auto table_schema = GetSchema(txn, table_oid);
+    std::vector<col_oid_t> table_col_oids;
+    table_col_oids.reserve(table_schema.GetColumns().size());
+    for (const auto &col : table_schema.GetColumns()) {
+        table_col_oids.push_back(col.Oid());
+    }
+    auto table_pri = table-> InitializerForProjectedRow(table_col_oids);
+    auto *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+    auto *table_pr = table_pri.InitializeRow(buffer);
+    bool result UNUSED_ATTRIBUTE = table->Select(txn, tuple_slot, table_pr);
+    // for each of the projected
+    // get out all the constraint from the table
+
+    delete[] buffer;
+    return true;
+}
+
 void DatabaseCatalog::CopyColumnData(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr,
-                                     std::vector<col_oid_t> col_vec, table_oid_t table_oid, common::ManagedPointer<storage::index::Index> index) {
+                                     std::vector<col_oid_t> col_vec, table_oid_t table_oid, index_oid_t index_oid, common::ManagedPointer<storage::index::Index> index) {
   auto &schema = GetSchema(txn, table_oid);
   auto cols = schema.GetColumns();
   std::vector<col_oid_t> col_oids;
@@ -1125,17 +1154,23 @@ void DatabaseCatalog::CopyColumnData(common::ManagedPointer<transaction::Transac
   auto col_offset_map = GetTable(txn, table_oid)->ProjectionMapForOids(col_oids);
   auto index_offset_map = index->GetKeyOidToOffsetMap();
 
+  auto index_cols = GetIndexSchema(txn, index_oid).GetColumns();
+  std::vector<catalog::indexkeycol_oid_t> index_col_oids;
+  index_col_oids.reserve(index_cols.size());
+    for (size_t i = 0; i < index_cols.size(); i ++) {
+        index_col_oids.push_back(index_cols[i].Oid());
+    }
+
   for (uint32_t col_index = 0; col_index < col_vec.size(); col_index++) {
-    auto index_pr_index = index_offset_map[static_cast<catalog::indexkeycol_oid_t>(col_index + 1)];                           // idx of the pr for index retrieval
+    auto index_pr_index = index_offset_map[index_col_oids[col_index]];                           // idx of the pr for index retrieval
     auto table_pr_index = col_offset_map[col_vec[col_index]];  // index to get the data from pr
     auto *const index_ptr = index_pr->AccessForceNotNull(index_pr_index);
     auto *const pr_ptr = table_pr->AccessForceNotNull(table_pr_index);
-    const auto &table_col = schema.GetColumn(table_pr_index);
-    if (table_col.Type() == type::TypeId::INTEGER) {
-      col_oid_t val = *(reinterpret_cast<col_oid_t *>(pr_ptr));
-      *(reinterpret_cast<col_oid_t *>(index_ptr)) = val;
-    } else if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
-      std::memcpy(index_ptr, pr_ptr, table_col.MaxVarlenSize());
+    const auto &table_col = schema.GetColumn(col_vec[col_index]);
+    if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+        auto *varlenval = reinterpret_cast<storage::VarlenEntry *>(pr_ptr);
+        std::string string UNUSED_ATTRIBUTE = VarlentoString(*varlenval);
+        *(reinterpret_cast<storage::VarlenEntry *>(index_ptr)) = *(varlenval);
     } else {
       std::memcpy(index_ptr, pr_ptr, type::TypeUtil::GetTypeSize(table_col.Type()));
     }
@@ -1149,7 +1184,7 @@ bool DatabaseCatalog::VerifyUniquePKConstraint(common::ManagedPointer<transactio
   const auto pri = index->GetProjectedRowInitializer();
   auto *const buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
   auto *key_pr = pri.InitializeRow(buffer);
-  CopyColumnData(txn, pr, key_pr, con_obj.concol_, con_obj.conrelid_, index);
+  CopyColumnData(txn, pr, key_pr, con_obj.concol_, con_obj.conrelid_, con_obj.conindid_, index);
   std::vector<storage::TupleSlot> index_scan_results;
   index->ScanKey(*txn, *key_pr, &index_scan_results);
   // set the index projected row from source projected row
@@ -1173,7 +1208,7 @@ bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::Tra
   auto *key_pr = ref_index_pri.InitializeRow(buffer);
   TERRIER_ASSERT(con_obj.fkMetadata_.fk_srcs_.size() == con_obj.fkMetadata_.fk_refs_.size(),
                  "Src and Ref should have the same amound of column");
-  CopyColumnData(txn, pr, key_pr, con_obj.fkMetadata_.fk_srcs_, src_table, ref_table_index);
+  CopyColumnData(txn, pr, key_pr, con_obj.fkMetadata_.fk_srcs_, src_table, fk_index, ref_table_index);
   std::vector<storage::TupleSlot> index_scan_results;
   ref_table_index->ScanKey(*txn, *key_pr, &index_scan_results);
   // set the index projected row from source projected row
@@ -1255,7 +1290,7 @@ constraint_oid_t DatabaseCatalog::CreateFKConstraint(common::ManagedPointer<tran
 }
 
 void DatabaseCatalog::FillConstraintPR(storage::ProjectedRow *constraints_insert_pr, constraint_oid_t constraint_oid,
-                                       std::string name, namespace_oid_t ns, postgres::ConstraintType con_type,
+                                       const std::string &name, namespace_oid_t ns, postgres::ConstraintType con_type,
                                        bool deferrable, bool deferred, bool validated, table_oid_t table,
                                        index_oid_t index, constraint_oid_t parent, table_oid_t foreign_table,
                                        postgres::FKActionType update_action, postgres::FKActionType delete_action,
@@ -1371,7 +1406,7 @@ void DatabaseCatalog::FillConstraintPR(storage::ProjectedRow *constraints_insert
 
 bool DatabaseCatalog::PropagateConstraintIndex(common::ManagedPointer<transaction::TransactionContext> txn,
                                                const storage::TupleSlot tuple_slot, constraint_oid_t constraint_oid,
-                                               const std::string name, namespace_oid_t ns, index_oid_t index,
+                                               const std::string &name, namespace_oid_t ns, index_oid_t index,
                                                table_oid_t table, table_oid_t foreign_table) {
   // Now insert into the indexes on pg_constraint
   // Get PR initializers and allocate a buffer from the largest one

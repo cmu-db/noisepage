@@ -5,6 +5,7 @@
 #include "execution/exec/execution_context.h"
 #include "catalog/catalog_defs.h"
 #include "execution/util/execution_common.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "storage/projected_row.h"
 
 namespace terrier::storage {
@@ -68,7 +69,7 @@ class EXPORT StorageInterface {
 
   bool VerifyTableInsertConstraint();
 
-  bool UpdateVerify();
+  bool UpdateVerify(storage::TupleSlot table_tuple_slot);
 
   bool UpdateCascade(storage::TupleSlot table_tuple_slot);
 
