@@ -200,7 +200,8 @@ class RandomSqlTableTransaction {
    * @param generator the random generator to use
    */
   template <class Random>
-  void RandomSelect(Random *generator, storage::layout_version_t layout_version = storage::layout_version_t(0));
+  void RandomSelect(Random *generator, byte *buffer,
+          storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   template <class Random>
   std::unique_ptr<catalog::Schema> AddColumn(Random *generator, storage::layout_version_t layout_version);
@@ -241,13 +242,12 @@ class LargeSqlTableTestObject {
     std::vector<std::vector<catalog::col_oid_t>> col_oids_;
     // ProjectedRowInitializer for each version of this table.
     std::vector<storage::ProjectedRowInitializer> pris_;
-    // Buffer for select queries for each version of this table. Not thread safe, but since we aren't doing bookkeeping,
-    // it doesn't matter
-    std::unordered_map<storage::layout_version_t, byte *> buffers_;
     // Tuple slots inserted into this sql table
     std::vector<storage::TupleSlot> inserted_tuples_;
     // Latch to protect inserted tuples to allow for concurrent transactions
     common::SpinLatch inserted_tuples_latch_;
+    // Buffer for select queries. Not thread safe, but since we aren't doing bookkeeping, it doesn't matter
+    byte *singlethread_buffer_;
   };
 
  public:
@@ -258,6 +258,7 @@ class LargeSqlTableTestObject {
    * @param catalog catalog to use for test object
    * @param block_store block store for table creation
    * @param generator the random generator to use for the test
+   * @param num_threads the max number of threads that concurrently does oltp transactions
    */
   LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config, transaction::TransactionManager *txn_manager,
                           catalog::Catalog *catalog, storage::BlockStore *block_store,
@@ -294,7 +295,7 @@ class LargeSqlTableTestObject {
   }
 
  private:
-  void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id,
+  void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id, byte *buffer = nullptr,
       storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   template <class Random>
@@ -320,7 +321,8 @@ class LargeSqlTableTestObject {
   std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, SqlTableMetadata *>> tables_;
 
   std::unordered_map<storage::layout_version_t, std::unique_ptr<catalog::Schema>> schemas_;
-  // std::vector<storage::layout_version_t> layout_versions;
-  int latest_layout_version = 0;
+  int latest_layout_version_ = 0;
+  // Buffers used by this table.
+  std::vector<byte *> buffers_to_free_;
 };
 }  // namespace terrier
