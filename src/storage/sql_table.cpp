@@ -132,10 +132,6 @@ TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::Transaction
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                  "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                  "immediately before?");
-  if (layout_version > num_versions_) {
-    std::cout << "INSERT version wrong! layout version: " << layout_version <<  std::endl;
-    std::cout << "INSERT version wrong! num_versions_: " << num_versions_ <<  std::endl;
-  }
   const auto slot = tables_.at(layout_version).data_table_->Insert(txn, *(redo->Delta()));
   redo->SetTupleSlot(slot);
   return slot;
@@ -403,13 +399,10 @@ bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema,
         throw std::runtime_error("unexpected switch case value");
     }
   }
-  std::cout << "hello1, tables size: " << tables_.size() << std::endl;
+
   tables_[curr_num - 1].layout_ = storage::BlockLayout(attr_sizes);
-  std::cout << "hello2" << std::endl;
   tables_[curr_num - 1].schema_ = schema;
-  std::cout << "hello3" << std::endl;
   tables_[curr_num - 1].data_table_ = new DataTable(block_store_, tables_[curr_num - 1].layout_, version);
-  std::cout << "finish CreateTable" << std::endl;
   return true;
 }
 

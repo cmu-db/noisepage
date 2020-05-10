@@ -159,12 +159,8 @@ class SqlTable {
    */
   bool UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn, const catalog::Schema &schema,
                     const layout_version_t layout_version = layout_version_t{0}) {
-      std::cout << "update schema, new layout version: " << layout_version <<  std::endl;
-    std::cout << "num versions before update schema: " << (int)num_versions_ << std::endl;
     TERRIER_ASSERT(layout_version >= num_versions_, "Input version should be strictly larger than all versions");
     int res = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version);
-      std::cout << "num versions after update schema: " << (int)num_versions_ << std::endl;
-    if (!res) std::cout << "update schema failed!" << std::endl;
     return res;
   }
 

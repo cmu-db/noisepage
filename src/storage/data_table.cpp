@@ -13,20 +13,15 @@ namespace terrier::storage {
 DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
     : block_store_(store), layout_version_(layout_version), accessor_(layout) {
-    std::cout << "hello4" << std::endl;
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-    std::cout << "hello5" << std::endl;
   if (block_store_ != nullptr) {
-      std::cout << "hello6" << std::endl;
     RawBlock *new_block = NewBlock();
-      std::cout << "hello7" << std::endl;
     // insert block
     blocks_.push_back(new_block);
   }
-    std::cout << "hello8" << std::endl;
   insertion_head_ = blocks_.begin();
 }
 
@@ -210,9 +205,6 @@ void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
 
 TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                             const ProjectedRow &redo) {
-    std::cout << "redo.NumColumns(): " << redo.NumColumns() << std::endl;
-    std::cout << "accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS: " << accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS << std::endl;
-
     TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");

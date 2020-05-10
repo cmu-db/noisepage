@@ -236,7 +236,7 @@ class LargeSqlTableTestObject {
    * Holds meta data for tables created by test object
    */
   struct SqlTableMetadata {
-    // Column oids for this table for each version. We cache them to generate random updates.
+    // Column oids for each version of this table. We cache them to generate random updates.
     std::vector<std::vector<catalog::col_oid_t>> col_oids_;
     // Tuple slots inserted into this sql table
     std::vector<storage::TupleSlot> inserted_tuples_;
@@ -308,7 +308,7 @@ class LargeSqlTableTestObject {
   catalog::Catalog *catalog_;
   transaction::TransactionContext *initial_txn_;
   uint64_t abort_count_ = 0;
-  // So we can easily get a random database and table oid
+  // So we can easily get a random database oid
   std::vector<catalog::db_oid_t> database_oids_;
   std::unordered_map<catalog::db_oid_t, std::vector<catalog::table_oid_t>> table_oids_;
 
