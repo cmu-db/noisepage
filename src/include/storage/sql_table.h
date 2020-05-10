@@ -160,8 +160,7 @@ class SqlTable {
   bool UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn, const catalog::Schema &schema,
                     const layout_version_t layout_version = layout_version_t{0}) {
     TERRIER_ASSERT(layout_version >= num_versions_, "Input version should be strictly larger than all versions");
-    int res = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version);
-    return res;
+    return CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version);
   }
 
   // TODO(Schema-Change): Do we retain the begin() and end(), or implement begin and end function with version number?

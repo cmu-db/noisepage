@@ -7,6 +7,7 @@
 #include "catalog/catalog.h"
 #include "gtest/gtest.h"
 #include "storage/garbage_collector.h"
+#include "storage/projected_row.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
@@ -238,12 +239,15 @@ class LargeSqlTableTestObject {
   struct SqlTableMetadata {
     // Column oids for each version of this table. We cache them to generate random updates.
     std::vector<std::vector<catalog::col_oid_t>> col_oids_;
+    // ProjectedRowInitializer for each version of this table.
+    std::vector<storage::ProjectedRowInitializer> pris_;
+    // Buffer for select queries for each version of this table. Not thread safe, but since we aren't doing bookkeeping,
+    // it doesn't matter
+    std::unordered_map<storage::layout_version_t, byte *> buffers_;
     // Tuple slots inserted into this sql table
     std::vector<storage::TupleSlot> inserted_tuples_;
     // Latch to protect inserted tuples to allow for concurrent transactions
     common::SpinLatch inserted_tuples_latch_;
-    // Buffer for select queries. Not thread safe, but since we aren't doing bookkeeping, it doesn't matter
-    byte *buffer_;
   };
 
  public:

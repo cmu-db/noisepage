@@ -1,5 +1,4 @@
 #include <list>
-#include <iostream>
 
 #include "common/allocator.h"
 #include "storage/block_access_controller.h"
@@ -205,7 +204,7 @@ void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
 
 TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                             const ProjectedRow &redo) {
-    TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+  TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");
 

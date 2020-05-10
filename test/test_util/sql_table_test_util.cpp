@@ -30,56 +30,77 @@ std::unique_ptr<catalog::Schema> RandomSqlTableTransaction::AddColumn(Random *ge
     catalog::Schema::Column new_col("new_col", type::TypeId::INTEGER, false,
                                     parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_value)));
     std::vector<catalog::Schema::Column> columns(old_schema.GetColumns());
+
+    std::vector<catalog::col_oid_t> new_oids;
     catalog::col_oid_t max_oid = columns.begin()->Oid();
     for (auto &col : columns) {
         if (col.Oid() > max_oid) {
             max_oid = col.Oid();
         }
+        new_oids.push_back(col.Oid());
     }
+
     StorageTestUtil::SetOid(&new_col, max_oid + 1);
     columns.push_back(new_col);
+    new_oids.push_back(max_oid + 1);
 
     auto schema = std::make_unique<catalog::Schema>(columns);
+    auto new_version = layout_version + 1;
 
     // update schema, with new layout_version, and schema with new column added
-    sql_table_ptr->UpdateSchema(common::ManagedPointer<transaction::TransactionContext>(txn_), *schema, layout_version + 1);
+    sql_table_ptr->UpdateSchema(common::ManagedPointer<transaction::TransactionContext>(txn_), *schema, new_version);
 
-    sql_table_metadata->col_oids_[layout_version + 1].reserve(schema->GetColumns().size());
+    auto initializer = sql_table_ptr->InitializerForProjectedRow(new_oids, new_version);
+    sql_table_metadata->pris_.push_back(initializer);
+    sql_table_metadata->buffers_[new_version] = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+
+    sql_table_metadata->col_oids_[new_version].reserve(schema->GetColumns().size());
     for (const auto &col : schema->GetColumns()) {
-        sql_table_metadata->col_oids_[layout_version + 1].push_back(col.Oid());
+        sql_table_metadata->col_oids_[new_version].push_back(col.Oid());
     }
 
     return schema;
 }
 
-template <class Random>
-std::unique_ptr<catalog::Schema> RandomSqlTableTransaction::DropColumn(Random *generator, storage::layout_version_t layout_version) {
-    if (aborted_) return nullptr;
-    // Generate random database and table
-    const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
-    const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
-    auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
-
-    auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
-            ->GetTable(common::ManagedPointer(txn_), table_oid);
-
-    auto old_schema = test_object_->GetSchema(layout_version);
-
-    // drop the last column
-    auto old_columns = old_schema.GetColumns();
-    std::vector<catalog::Schema::Column> columns(old_columns.begin(), old_columns.end() - 1);
-    auto schema = std::make_unique<catalog::Schema>(columns);
-
-    // update schema, with new layout_version, and schema with new column added
-    sql_table_ptr->UpdateSchema(common::ManagedPointer<transaction::TransactionContext>(txn_), *schema, layout_version + 1);
-
-    sql_table_metadata->col_oids_[layout_version + 1].reserve(schema->GetColumns().size());
-    for (const auto &col : schema->GetColumns()) {
-        sql_table_metadata->col_oids_[layout_version + 1].push_back(col.Oid());
-    }
-
-    return schema;
-}
+//template <class Random>
+//std::unique_ptr<catalog::Schema> RandomSqlTableTransaction::DropColumn(Random *generator, storage::layout_version_t layout_version) {
+//    if (aborted_) return nullptr;
+//    // Generate random database and table
+//    const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
+//    const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
+//    auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
+//
+//    auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
+//            ->GetTable(common::ManagedPointer(txn_), table_oid);
+//
+//    auto old_schema = test_object_->GetSchema(layout_version);
+//
+//    // drop the last column
+//    auto old_columns = old_schema.GetColumns();
+//    std::vector<catalog::Schema::Column> columns(old_columns.begin(), old_columns.end() - 1);
+//
+//    std::vector<catalog::col_oid_t> new_oids;
+//    for (auto &col : columns) {
+//        new_oids.push_back(col.Oid());
+//    }
+//
+//    auto schema = std::make_unique<catalog::Schema>(columns);
+//    auto new_version = layout_version + 1;
+//
+//    auto initializer = sql_table_ptr->InitializerForProjectedRow(new_oids, new_version);
+//    sql_table_metadata->pris_.push_back(initializer);
+//    sql_table_metadata->buffers_[new_version] = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+//
+//    // update schema, with new layout_version, and schema with new column added
+//    sql_table_ptr->UpdateSchema(common::ManagedPointer<transaction::TransactionContext>(txn_), *schema, new_version);
+//
+//    sql_table_metadata->col_oids_[new_version].reserve(schema->GetColumns().size());
+//    for (const auto &col : schema->GetColumns()) {
+//        sql_table_metadata->col_oids_[new_version].push_back(col.Oid());
+//    }
+//
+//    return schema;
+//}
 
 template <class Random>
 void RandomSqlTableTransaction::RandomInsert(Random *generator, storage::layout_version_t layout_version) {
@@ -191,9 +212,13 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator, storage::layout_
   // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
   auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
                            ->GetTable(common::ManagedPointer(txn_), table_oid);
+
   auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_[layout_version], layout_version);
-  storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);
+  // auto initializer = sql_table_metadata->pris_[layout_version];
+  storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffers_[layout_version]);
+  std::cout << "before select" << std::endl;
   sql_table_ptr->Select(common::ManagedPointer(txn_), selected, select, layout_version);
+  std::cout << "finish select" << std::endl;
 }
 
 void RandomSqlTableTransaction::Finish() {
@@ -231,7 +256,9 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
   for (auto &db_pair : tables_) {
     for (auto &table_pair : db_pair.second) {
       auto *metadata = table_pair.second;
-      delete[] metadata->buffer_;
+     for (auto &it : metadata->buffers_) {
+      delete[] it.second;
+     }
       delete metadata;
     }
   }
@@ -252,13 +279,13 @@ uint64_t LargeSqlTableTestObject::SimulateOltpAndUpdateSchema(uint32_t num_trans
       std::default_random_engine thread_generator(txns_run.load());
 
       // alternate between adding and dropping columns
-      std::unique_ptr<terrier::catalog::Schema> new_schema(nullptr);
-      if (latest_layout_version % 2 == 0) {
-          new_schema = txn->AddColumn(&thread_generator, latest_layout_version);
-      } else {
-          new_schema = txn->DropColumn(&thread_generator, latest_layout_version);
-      }
-      // auto new_schema = txn->AddColumn(&thread_generator, latest_layout_version);
+//      std::unique_ptr<terrier::catalog::Schema> new_schema(nullptr);
+//      if (latest_layout_version % 2 == 0) {
+//          new_schema = txn->AddColumn(&thread_generator, latest_layout_version);
+//      } else {
+//          new_schema = txn->DropColumn(&thread_generator, latest_layout_version);
+//      }
+      auto new_schema = txn->AddColumn(&thread_generator, latest_layout_version);
       schemas_[latest_layout_version + 1] = std::move(new_schema);
 
       txn->Finish();
@@ -368,6 +395,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
 
       // Create row initializer
       auto initializer = sql_table->InitializerForProjectedRow(metadata->col_oids_[0]);
+      metadata->pris_.push_back(initializer);
 
       // Populate table
       std::vector<storage::TupleSlot> inserted_tuples;
@@ -380,7 +408,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
 
       // Update metadata object
       metadata->inserted_tuples_ = std::move(inserted_tuples);
-      metadata->buffer_ = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+      metadata->buffers_[0] = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       tables_[database_oid][table_oid] = metadata;
     }
   }

@@ -341,7 +341,6 @@ template std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeade
     const DataTableVersion &desired_version, col_id_t *cached_orig_header, AttrSizeMap *const size_map) const;
 
 bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema, layout_version_t version) {
-
   auto curr_num = ++num_versions_;
   if (curr_num >= MAX_NUM_VERSIONS) {
     num_versions_.store(MAX_NUM_VERSIONS);

@@ -144,7 +144,6 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
       case 1:
         break;
       default:
-          std::cout << size << std::endl;
         throw std::runtime_error("unexpected switch case value");
     }
   }
