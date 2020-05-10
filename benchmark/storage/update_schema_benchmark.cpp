@@ -18,7 +18,7 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
 
   const uint32_t initial_table_size_ = 10000;
-  const uint32_t num_txns_ = 1000;
+  const uint32_t num_txns_ = 5;
   const uint32_t num_indexes_ = 5;
   std::default_random_engine generator_;
 

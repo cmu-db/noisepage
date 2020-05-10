@@ -14,7 +14,7 @@
 namespace terrier::storage {
 
 SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema)
-    : block_store_(store), tables_(MAX_NUM_OF_VERSIONS, DataTableVersion()) {
+    : block_store_(store), tables_(MAX_NUM_VERSIONS, DataTableVersion()) {
   // Initialize a DataTable
   auto success UNUSED_ATTRIBUTE =
       CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version_t(0));
@@ -345,18 +345,20 @@ template std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeade
     const DataTableVersion &desired_version, col_id_t *cached_orig_header, AttrSizeMap *const size_map) const;
 
 bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema, layout_version_t version) {
+
   auto curr_num = ++num_versions_;
-  if (curr_num > MAX_NUM_OF_VERSIONS) {
-    num_versions_.store(MAX_NUM_OF_VERSIONS);
+  if (curr_num >= MAX_NUM_VERSIONS) {
+    num_versions_.store(MAX_NUM_VERSIONS);
     return false;
   }
+  std::cout << "begin CreateTable curr_num: " << (int)curr_num << std::endl;
 
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint16_t> attr_sizes;
   attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema->GetColumns().size());
 
   for (uint8_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
-    attr_sizes.emplace_back(MAX_NUM_OF_VERSIONS);
+    attr_sizes.emplace_back(8);
   }
 
   TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
@@ -401,10 +403,13 @@ bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema,
         throw std::runtime_error("unexpected switch case value");
     }
   }
-
+  std::cout << "hello1, tables size: " << tables_.size() << std::endl;
   tables_[curr_num - 1].layout_ = storage::BlockLayout(attr_sizes);
+  std::cout << "hello2" << std::endl;
   tables_[curr_num - 1].schema_ = schema;
+  std::cout << "hello3" << std::endl;
   tables_[curr_num - 1].data_table_ = new DataTable(block_store_, tables_[curr_num - 1].layout_, version);
+  std::cout << "finish CreateTable" << std::endl;
   return true;
 }
 

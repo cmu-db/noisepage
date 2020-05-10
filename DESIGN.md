@@ -94,11 +94,11 @@ ALTER TABLE commands are parsed, binded and optimized just like other commands t
 
 Within Sqltable, we can either use a ordered concurrent map of version number to datatable, or use a vector of datatables (index i of vector corresponds to datatable with version number i) augmented with locks.  
 
-We decided to use a fixed-size vector, where the datatable with version i is stored in the i-th position of the vector. We use a MAX_NUM_OF_VERSIONS as the size of the vector, which is the max allowed number of versions for a single datatable.
+We decided to use a fixed-size vector, where the datatable with version i is stored in the i-th position of the vector. We use a MAX_NUM_VERSIONS as the size of the vector, which is the max allowed number of versions for a single datatable.
 
 We use a fixed-size vector because of low synchronization overhead: there is no need for locking the vector since different versions access different indices. Also, we need not make a special case for tables with a single version, because accessing an index in the vector is as fast as reading a pointer. Using a vector is thus much faster than a concurrent map.
 
-One potential issue with fixed-size vector is dealing with datatables with more than MAX_NUM_OF_VERSIONS. This should be extremely rare if we set MAX_NUM_OF_VERSIONS, since schema changes generally don't happen too often on a datatable. When we support GC of stale versions, we can implement recycling segments of the vector with stale versions, and adding offset to allow using this vector in a cyclic fashion,
+One potential issue with fixed-size vector is dealing with datatables with more than MAX_NUM_VERSIONS. This should be extremely rare if we set MAX_NUM_VERSIONS, since schema changes generally don't happen too often on a datatable. When we support GC of stale versions, we can implement recycling segments of the vector with stale versions, and adding offset to allow using this vector in a cyclic fashion,
 
 #### When to perform background migration and GC of old versions?
 
