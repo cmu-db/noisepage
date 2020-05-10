@@ -1,11 +1,11 @@
 
 #include "optimizer/rules/rewriter_rules.h"
+#include "optimizer/abstract_optimizer_node_contents.h"
 #include "optimizer/expression_node.h"
 #include "optimizer/expression_node_contents.h"
-#include "optimizer/abstract_optimizer_node_contents.h"
 #include "optimizer/optimizer_context.h"
-#include "parser/expression/conjunction_expression.h"
 #include "parser/expression/comparison_expression.h"
+#include "parser/expression/conjunction_expression.h"
 
 namespace terrier::optimizer {
 
@@ -191,11 +191,12 @@ void TransitiveClosureConstantTransform::Transform(common::ManagedPointer<Abstra
 // ComparisonIntersection methods
 //
 // ==============================================
-ComparisonIntersection::ComparisonIntersection(RuleType type,
-                                               parser::ExpressionType left_comparison,
+ComparisonIntersection::ComparisonIntersection(RuleType type, parser::ExpressionType left_comparison,
                                                parser::ExpressionType right_comparison,
-                                               parser::ExpressionType result_comparison) :
-  left_compare_type_(left_comparison), right_compare_type_(right_comparison), result_compare_type_(result_comparison) {
+                                               parser::ExpressionType result_comparison)
+    : left_compare_type_(left_comparison),
+      right_compare_type_(right_comparison),
+      result_compare_type_(result_comparison) {
   type_ = type;
 
   // Pattern: (A [c1] B) AND (A [c2] B)
@@ -232,7 +233,6 @@ bool ComparisonIntersection::Check(common::ManagedPointer<AbstractOptimizerNode>
 void ComparisonIntersection::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
                                        std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                        OptimizationContext *context) const {
-
   TERRIER_ASSERT(input->GetChildren().size() == 2, "Input should have 2 children");
   TERRIER_ASSERT(input->Contents()->GetExpType() == parser::ExpressionType::CONJUNCTION_AND,
                  "Input should be an AND node");
@@ -257,7 +257,6 @@ void ComparisonIntersection::Transform(common::ManagedPointer<AbstractOptimizerN
 
   // Only transform if the two expressions being compared are the same in both clauses
   if (*left_lchild_expr == *right_lchild_expr && *left_rchild_expr == *right_rchild_expr) {
-
     transaction::TransactionContext *txn = context->GetOptimizerContext()->GetTxn();
     // Case where intersection of comparisons is non-empty
     if (result_compare_type_ != parser::ExpressionType::INVALID) {
@@ -266,15 +265,16 @@ void ComparisonIntersection::Transform(common::ManagedPointer<AbstractOptimizerN
         txn->RegisterCommitAction([=]() { delete transformed_expr; });
         txn->RegisterAbortAction([=]() { delete transformed_expr; });
       }
-      auto *transformed_expr_contents = new ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression>(transformed_expr));
+      auto *transformed_expr_contents =
+          new ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression>(transformed_expr));
       transformed_expr_contents->RegisterWithTxnContext(txn);
       std::vector<std::unique_ptr<AbstractOptimizerNode>> new_children;
       new_children.push_back(left_lchild->Copy());
       new_children.push_back(left_rchild->Copy());
 
       std::unique_ptr<AbstractOptimizerNode> transformed_expr_node = std::make_unique<ExpressionNode>(
-          common::ManagedPointer<AbstractOptimizerNodeContents>(transformed_expr_contents),
-          std::move(new_children), txn);
+          common::ManagedPointer<AbstractOptimizerNodeContents>(transformed_expr_contents), std::move(new_children),
+          txn);
       transformed->push_back(std::move(transformed_expr_node));
     }
     // Case where intersection of comparisons is empty set (result is "FALSE")
@@ -285,12 +285,13 @@ void ComparisonIntersection::Transform(common::ManagedPointer<AbstractOptimizerN
         txn->RegisterCommitAction([=]() { delete transformed_expr; });
         txn->RegisterAbortAction([=]() { delete transformed_expr; });
       }
-      auto *transformed_expr_contents = new ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression>(transformed_expr));
+      auto *transformed_expr_contents =
+          new ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression>(transformed_expr));
       transformed_expr_contents->RegisterWithTxnContext(txn);
       std::vector<std::unique_ptr<AbstractOptimizerNode>> new_children;
       std::unique_ptr<AbstractOptimizerNode> transformed_expr_node = std::make_unique<ExpressionNode>(
-          common::ManagedPointer<AbstractOptimizerNodeContents>(transformed_expr_contents),
-          std::move(new_children), txn);
+          common::ManagedPointer<AbstractOptimizerNodeContents>(transformed_expr_contents), std::move(new_children),
+          txn);
       transformed->push_back(std::move(transformed_expr_node));
     }
   }

@@ -30,8 +30,7 @@ class RuleRewriteTests : public TerrierTest {
                                                                 parser::AbstractExpression *x,
                                                                 parser::AbstractExpression *b,
                                                                 parser::AbstractExpression *y,
-                                                                parser::ExpressionType c1,
-                                                                parser::ExpressionType c2) {
+                                                                parser::ExpressionType c1, parser::ExpressionType c2) {
     std::vector<std::unique_ptr<parser::AbstractExpression>> left_children;
     left_children.push_back(a->Copy());
     left_children.push_back(x->Copy());
@@ -41,8 +40,8 @@ class RuleRewriteTests : public TerrierTest {
     std::vector<std::unique_ptr<parser::AbstractExpression>> right_children;
     right_children.push_back(b->Copy());
     right_children.push_back(y->Copy());
-    std::unique_ptr<parser::AbstractExpression> right_eq = std::make_unique<parser::ComparisonExpression>(
-        c2, std::move(right_children));
+    std::unique_ptr<parser::AbstractExpression> right_eq =
+        std::make_unique<parser::ComparisonExpression>(c2, std::move(right_children));
 
     std::vector<std::unique_ptr<parser::AbstractExpression>> root_children;
     root_children.push_back(std::move(left_eq));
@@ -61,10 +60,10 @@ class RuleRewriteTests : public TerrierTest {
   }
 
   /**
- * Util function for rewriter tests. Creates an boolean constant expression with the provided value.
- * @param val the boolean value of the expression
- * @return the constant expression
- */
+   * Util function for rewriter tests. Creates an boolean constant expression with the provided value.
+   * @param val the boolean value of the expression
+   * @return the constant expression
+   */
   static parser::ConstantValueExpression *GetConstantExpression(bool val) {
     auto value = type::TransientValueFactory::GetBoolean(val);
     return new parser::ConstantValueExpression(value);
@@ -98,7 +97,8 @@ TEST_F(RuleRewriteTests, TransitiveClosureUnableTest) {
   auto *rewriter = new Rewriter(txn_context);
 
   // Base (A = 1) AND (B = C)
-  auto *base = CreateMultiLevelExpression(tv_base1, cv1, tv_base2, tv_base3, parser::ExpressionType::COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL);
+  auto *base = CreateMultiLevelExpression(tv_base1, cv1, tv_base2, tv_base3, parser::ExpressionType::COMPARE_EQUAL,
+                                          parser::ExpressionType::COMPARE_EQUAL);
 
   auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
   delete rewriter;
@@ -156,7 +156,8 @@ TEST_F(RuleRewriteTests, TransitiveClosureRewrite) {
   auto *rewriter = new Rewriter(txn_context);
 
   // Base (B = 1) AND (B = C)
-  auto *base = CreateMultiLevelExpression(tv_base1, cv1, tv_base1, tv_base2, parser::ExpressionType::COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL);
+  auto *base = CreateMultiLevelExpression(tv_base1, cv1, tv_base1, tv_base2, parser::ExpressionType::COMPARE_EQUAL,
+                                          parser::ExpressionType::COMPARE_EQUAL);
 
   auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
   delete rewriter;
@@ -214,7 +215,8 @@ TEST_F(RuleRewriteTests, TransitiveClosureFlippedRewrite) {
   auto *rewriter = new Rewriter(txn_context);
 
   // Base (B = C) AND (B = 1)
-  auto *base = CreateMultiLevelExpression(tv_base1, tv_base2, tv_base1, cv1, parser::ExpressionType::COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL);
+  auto *base = CreateMultiLevelExpression(tv_base1, tv_base2, tv_base1, cv1, parser::ExpressionType::COMPARE_EQUAL,
+                                          parser::ExpressionType::COMPARE_EQUAL);
 
   auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
   delete rewriter;
@@ -276,7 +278,8 @@ TEST_F(RuleRewriteTests, TransitiveClosureHalfTrue) {
   auto *rewriter = new Rewriter(txn_context);
 
   // Base (B = 1) AND (B = B)
-  auto *base = CreateMultiLevelExpression(tv_base1, cv1, tv_base1, tv_base1, parser::ExpressionType::COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL);
+  auto *base = CreateMultiLevelExpression(tv_base1, cv1, tv_base1, tv_base1, parser::ExpressionType::COMPARE_EQUAL,
+                                          parser::ExpressionType::COMPARE_EQUAL);
 
   auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
   delete rewriter;
@@ -324,7 +327,8 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEmptyIntersection) {
   std::vector<parser::AbstractExpression *> empty_rewrite_expressions = {
       // (B < C) AND (B > C)
       CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
-                                 parser::ExpressionType::COMPARE_LESS_THAN, parser::ExpressionType::COMPARE_GREATER_THAN),
+                                 parser::ExpressionType::COMPARE_LESS_THAN,
+                                 parser::ExpressionType::COMPARE_GREATER_THAN),
       // (B > C) AND (B = C)
       CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
                                  parser::ExpressionType::COMPARE_GREATER_THAN, parser::ExpressionType::COMPARE_EQUAL),
@@ -333,10 +337,12 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEmptyIntersection) {
                                  parser::ExpressionType::COMPARE_LESS_THAN, parser::ExpressionType::COMPARE_EQUAL),
       // (B > C) AND (B <= C)
       CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
-                                 parser::ExpressionType::COMPARE_GREATER_THAN, parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO),
+                                 parser::ExpressionType::COMPARE_GREATER_THAN,
+                                 parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO),
       // (B < C) AND (B >= C)
       CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
-                                 parser::ExpressionType::COMPARE_LESS_THAN, parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO),
+                                 parser::ExpressionType::COMPARE_LESS_THAN,
+                                 parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO),
   };
 
   for (auto *base : empty_rewrite_expressions) {
@@ -344,7 +350,8 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEmptyIntersection) {
     delete base;
 
     // Result should be single boolean constant expression (false)
-    TERRIER_ASSERT(expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT, "Rewritten expression should be a boolean constant value");
+    TERRIER_ASSERT(expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
+                   "Rewritten expression should be a boolean constant value");
     TERRIER_ASSERT(expr->GetChildrenSize() == 0, "Rewritten expression should have no children");
   }
   delete rewriter;
@@ -354,7 +361,6 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEmptyIntersection) {
   delete column_ref_b;
   delete column_ref_c;
 }
-
 
 TEST_F(RuleRewriteTests, ComparisonIntersectionEqualIntersection) {
   /*
@@ -379,15 +385,15 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEqualIntersection) {
       // (B < C) AND (B > C)
       CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
                                  parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
-                                 parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO)
-  };
+                                 parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO)};
 
   for (auto *base : empty_rewrite_expressions) {
     auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
     delete base;
 
     // Result should be single boolean constant expression (false)
-    TERRIER_ASSERT(expr->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL, "Rewritten expression should be an EQUAL");
+    TERRIER_ASSERT(expr->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL,
+                   "Rewritten expression should be an EQUAL");
     TERRIER_ASSERT(expr->GetChildrenSize() == 2, "Rewritten expression should have 2 children");
 
     auto left_child = expr->GetChildren()[0];
@@ -432,7 +438,8 @@ TEST_F(RuleRewriteTests, TransitiveClosureComparisonIntersectionMix) {
   std::vector<std::unique_ptr<parser::AbstractExpression>> right_grandchildren;
   right_grandchildren.push_back(tv_base1->Copy());
   right_grandchildren.push_back(cv1->Copy());
-  auto *right_child = new parser::ComparisonExpression(parser::ExpressionType::COMPARE_EQUAL, std::move(right_grandchildren));
+  auto *right_child =
+      new parser::ComparisonExpression(parser::ExpressionType::COMPARE_EQUAL, std::move(right_grandchildren));
 
   auto *rewriter = new Rewriter(txn_context);
 

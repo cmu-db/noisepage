@@ -109,9 +109,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    * @param r The other (expression) node contents to be compared
    * @return Whether or not this is equal to the other node contents
    */
-  bool operator==(const ExpressionNodeContents &r) {
-    return !IsDefined() && !r.IsDefined();
-  }
+  bool operator==(const ExpressionNodeContents &r) { return !IsDefined() && !r.IsDefined(); }
 
   /**
    * @return Whether or not this node contents contains a defined expression

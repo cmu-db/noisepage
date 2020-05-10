@@ -58,8 +58,7 @@ class ExpressionNode : public AbstractOptimizerNode {
    * @return The ExpressionNodeContents contained in this node.
    */
   common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const override {
-    TERRIER_ASSERT(contents_->GetOpType() == OpType::UNDEFINED,
-                   "Expression nodes should have an undefined OpType");
+    TERRIER_ASSERT(contents_->GetOpType() == OpType::UNDEFINED, "Expression nodes should have an undefined OpType");
     TERRIER_ASSERT(contents_->GetExpType() != parser::ExpressionType::INVALID,
                    "Expression nodes should have a valid expression type");
     return contents_;

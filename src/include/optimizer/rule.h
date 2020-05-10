@@ -84,7 +84,6 @@ enum class RuleType : uint32_t {
   COMPARISON_INTERSECTION_GT_LE,
   COMPARISON_INTERSECTION_GE_LE,
 
-
   // Place holder to generate number of rules compile time
   NUM_RULES
 };

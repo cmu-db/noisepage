@@ -105,9 +105,7 @@ class ComparisonIntersection : public Rule {
    * @param right_comparison c2
    * @param result_comparison c3
    */
-  ComparisonIntersection(RuleType type,
-                         parser::ExpressionType left_comparison,
-                         parser::ExpressionType right_comparison,
+  ComparisonIntersection(RuleType type, parser::ExpressionType left_comparison, parser::ExpressionType right_comparison,
                          parser::ExpressionType result_comparison);
 
   /**
