@@ -110,18 +110,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    * @return Whether or not this is equal to the other node contents
    */
   bool operator==(const ExpressionNodeContents &r) {
-    // Equality check relies on performing the following:
-    // - Check each node's ExpressionType
-    // - Check other parameters for a given node
-    // We believe that in terrier so long as the AbstractExpression
-    // are children-less, operator== provides sufficient checking.
-    // The reason behind why the children-less guarantee is required,
-    // is that the "real" children are actually tracked by the
-    // ExpressionNode class.
-    if (GetExpType() != r.GetExpType()) return false;
-    if (expr_ == nullptr) return (r.expr_ == nullptr);
-    if (r.expr_ == nullptr) return false;
-    return (*expr_ == *r.expr_);
+    return !IsDefined() && !r.IsDefined();
   }
 
   /**

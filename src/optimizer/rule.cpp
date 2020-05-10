@@ -72,17 +72,50 @@ RuleSet::RuleSet() {
 
   // ===== Query Rewriter Rules ===== //
 
-  // Equivalent Transform related rules (flip AND, OR, EQUAL)
-  std::vector<std::pair<RuleType, parser::ExpressionType>> equiv_pairs = {
+  // Equivalent Transform related rules (flip AND, OR, EQUAL, NOT_EQUAL)
+  std::vector<std::pair<RuleType, parser::ExpressionType>> equivalent_transform_pairs = {
       std::make_pair(RuleType::EQUIV_AND, parser::ExpressionType::CONJUNCTION_AND),
       std::make_pair(RuleType::EQUIV_OR, parser::ExpressionType::CONJUNCTION_OR),
-      std::make_pair(RuleType::EQUIV_COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL)};
+      std::make_pair(RuleType::EQUIV_COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL),
+      std::make_pair(RuleType::EQUIV_COMPARE_NOT_EQUAL, parser::ExpressionType::COMPARE_NOT_EQUAL)
+  };
 
-  for (auto &pair : equiv_pairs) {
+  for (auto &pair : equivalent_transform_pairs) {
     AddRule(RuleSetName::EQUIVALENT_TRANSFORM, new EquivalentTransform(pair.first, pair.second));
   }
 
   // Additional rewriter rules
+  std::vector<std::pair<RuleType, std::vector<parser::ExpressionType>>> comparison_intersection_pairs = {
+    std::make_pair(RuleType::COMPARISON_INTERSECTION_LT_GT, std::vector<parser::ExpressionType>(
+                                                                         { parser::ExpressionType::COMPARE_LESS_THAN,
+                                                                              parser::ExpressionType::COMPARE_GREATER_THAN,
+                                                                              parser::ExpressionType::INVALID })),
+    std::make_pair(RuleType::COMPARISON_INTERSECTION_LT_EQ, std::vector<parser::ExpressionType>(
+                                                                         { parser::ExpressionType::COMPARE_GREATER_THAN,
+                                                                              parser::ExpressionType::COMPARE_EQUAL,
+                                                                              parser::ExpressionType::INVALID})),
+    std::make_pair(RuleType::COMPARISON_INTERSECTION_GT_EQ, std::vector<parser::ExpressionType>(
+                                                                         { parser::ExpressionType::COMPARE_LESS_THAN,
+                                                                              parser::ExpressionType::COMPARE_EQUAL,
+                                                                              parser::ExpressionType::INVALID})),
+    std::make_pair(RuleType::COMPARISON_INTERSECTION_LT_GE, std::vector<parser::ExpressionType>(
+                                                                         { parser::ExpressionType::COMPARE_LESS_THAN,
+                                                                              parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
+                                                                              parser::ExpressionType::INVALID})),
+    std::make_pair(RuleType::COMPARISON_INTERSECTION_GT_LE, std::vector<parser::ExpressionType>(
+                                                                         { parser::ExpressionType::COMPARE_GREATER_THAN,
+                                                                              parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
+                                                                              parser::ExpressionType::INVALID})),
+    std::make_pair(RuleType::COMPARISON_INTERSECTION_GE_LE, std::vector<parser::ExpressionType>(
+                                                                         { parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
+                                                                              parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
+                                                                              parser::ExpressionType::COMPARE_EQUAL}))
+  };
+
+  for (auto &pair : comparison_intersection_pairs) {
+    AddRule(RuleSetName::GENERIC_RULES, new ComparisonIntersection(pair.first, pair.second[0], pair.second[1], pair.second[2]));
+  }
+
   AddRule(RuleSetName::GENERIC_RULES, new TransitiveClosureConstantTransform());
 }
 
