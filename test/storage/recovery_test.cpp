@@ -978,7 +978,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
   thread_pool_.Startup();
 
   auto loop = CheckpointBackgroundLoop(ckpt_path, db, LOG_FILE_NAME, num_threads, &thread_pool_, &ckpt);
-  loop.StartBackgroundLoop(2, 100);
+  loop.StartBackgroundLoop(10, 100);
   std::this_thread::sleep_for(std::chrono::seconds(2));
   loop.EndBackgroundLoop();
   // TODO(xuanxuan): check if the file is deleted, uncomment later
