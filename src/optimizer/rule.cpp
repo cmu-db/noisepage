@@ -114,7 +114,27 @@ RuleSet::RuleSet() {
       std::make_pair(RuleType::COMPARISON_INTERSECTION_GE_LE,
                      std::vector<parser::ExpressionType>({parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
                                                           parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
-                                                          parser::ExpressionType::COMPARE_EQUAL}))};
+                                                          parser::ExpressionType::COMPARE_EQUAL})),
+      // (A >= B) AND (A = B) --> A = B
+      std::make_pair(RuleType::COMPARISON_INTERSECTION_GE_EQ,
+                     std::vector<parser::ExpressionType>({parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
+                                                          parser::ExpressionType::COMPARE_EQUAL,
+                                                          parser::ExpressionType::COMPARE_EQUAL})),
+      // (A <= B) AND (A = B) --> A = B
+      std::make_pair(RuleType::COMPARISON_INTERSECTION_LE_EQ,
+                     std::vector<parser::ExpressionType>({parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
+                                                          parser::ExpressionType::COMPARE_EQUAL,
+                                                          parser::ExpressionType::COMPARE_EQUAL})),
+      // (A >= B) AND (A != B) --> A > B
+      std::make_pair(RuleType::COMPARISON_INTERSECTION_NE_GE,
+                     std::vector<parser::ExpressionType>({parser::ExpressionType::COMPARE_NOT_EQUAL,
+                                                          parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
+                                                          parser::ExpressionType::COMPARE_GREATER_THAN})),
+      // (A <= B) AND (A != B) --> A < B
+      std::make_pair(RuleType::COMPARISON_INTERSECTION_NE_LE,
+                     std::vector<parser::ExpressionType>({parser::ExpressionType::COMPARE_NOT_EQUAL,
+                                                          parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
+                                                          parser::ExpressionType::COMPARE_LESS_THAN}))};
 
   for (auto &pair : comparison_intersection_pairs) {
     AddRule(RuleSetName::GENERIC_RULES,

@@ -77,12 +77,19 @@ enum class RuleType : uint32_t {
 
   // Rewriter rules
   TRANSITIVE_CLOSURE_CONSTANT_TRANSFORM,
+  // Types of comparison intersection, based on their pattern's comparison types
+  //   (LT = less than, GT = greater than, EQ = equal, NE = not equal,
+  //    LE = less than or equal to, GE = greater than or equal to)
   COMPARISON_INTERSECTION_LT_GT,
   COMPARISON_INTERSECTION_LT_EQ,
   COMPARISON_INTERSECTION_GT_EQ,
   COMPARISON_INTERSECTION_LT_GE,
   COMPARISON_INTERSECTION_GT_LE,
   COMPARISON_INTERSECTION_GE_LE,
+  COMPARISON_INTERSECTION_GE_EQ,
+  COMPARISON_INTERSECTION_LE_EQ,
+  COMPARISON_INTERSECTION_NE_GE,
+  COMPARISON_INTERSECTION_NE_LE,
 
   // Place holder to generate number of rules compile time
   NUM_RULES

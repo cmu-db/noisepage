@@ -60,7 +60,7 @@ class RuleRewriteTests : public TerrierTest {
   }
 
   /**
-   * Util function for rewriter tests. Creates an boolean constant expression with the provided value.
+   * Util function for rewriter tests. Creates a boolean constant expression with the provided value.
    * @param val the boolean value of the expression
    * @return the constant expression
    */
@@ -380,14 +380,22 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEqualIntersection) {
 
   auto *rewriter = new Rewriter(txn_context);
 
-  // Expressions that all get rewritten to FALSE due to empty intersection
-  std::vector<parser::AbstractExpression *> empty_rewrite_expressions = {
-      // (B < C) AND (B > C)
+  // Expressions that all get rewritten to (B = C)
+  std::vector<parser::AbstractExpression *> base_expressions = {
+      // (B <= C) AND (B >= C)
       CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
                                  parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
-                                 parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO)};
+                                 parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO),
+      // (B <= C) AND (B = C)
+      CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
+                                 parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
+                                 parser::ExpressionType::COMPARE_EQUAL),
+      // (B >= C) AND (B = C)
+      CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
+                                 parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
+                                 parser::ExpressionType::COMPARE_EQUAL)};
 
-  for (auto *base : empty_rewrite_expressions) {
+  for (auto *base : base_expressions) {
     auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
     delete base;
 
@@ -409,14 +417,110 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEqualIntersection) {
   delete column_ref_c;
 }
 
+TEST_F(RuleRewriteTests, ComparisonIntersectionLessThanIntersection) {
+  /*
+   * Comparison Intersection test -- check that comparisons that yield intersections of the form B < C do so properly
+   */
+  auto timestamp_manager = transaction::TimestampManager();
+  auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(
+      common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
+      common::ManagedPointer(&buffer_pool), false, nullptr);
+
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
+  auto *column_ref_b = new parser::ColumnValueExpression("A", "B");
+  auto *column_ref_c = new parser::ColumnValueExpression("A", "C");
+
+  auto *rewriter = new Rewriter(txn_context);
+
+  // Expressions that all get rewritten to (B < C)
+  std::vector<parser::AbstractExpression *> base_expressions = {
+      // (B <= C) AND (B != C)
+      CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
+                                 parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
+                                 parser::ExpressionType::COMPARE_NOT_EQUAL)};
+
+  for (auto *base : base_expressions) {
+    auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
+    delete base;
+
+    // Result should be single boolean constant expression (false)
+    TERRIER_ASSERT(expr->GetExpressionType() == parser::ExpressionType::COMPARE_LESS_THAN,
+                   "Rewritten expression should be LESS THAN");
+    TERRIER_ASSERT(expr->GetChildrenSize() == 2, "Rewritten expression should have 2 children");
+
+    auto left_child = expr->GetChildren()[0];
+    auto right_child = expr->GetChildren()[1];
+    TERRIER_ASSERT(*left_child == *column_ref_b, "Left child should be A.B");
+    TERRIER_ASSERT(*right_child == *column_ref_c, "Right child should be A.C");
+  }
+  delete rewriter;
+
+  txn_manager.Abort(txn_context);
+  delete txn_context;
+  delete column_ref_b;
+  delete column_ref_c;
+}
+
+TEST_F(RuleRewriteTests, ComparisonIntersectionGreaterThanIntersection) {
+  /*
+   * Comparison Intersection test -- check that comparisons that yield intersections of the form B > C do so properly
+   */
+  auto timestamp_manager = transaction::TimestampManager();
+  auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(
+      common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
+      common::ManagedPointer(&buffer_pool), false, nullptr);
+
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
+  auto *column_ref_b = new parser::ColumnValueExpression("A", "B");
+  auto *column_ref_c = new parser::ColumnValueExpression("A", "C");
+
+  auto *rewriter = new Rewriter(txn_context);
+
+  // Expressions that all get rewritten to (B > C)
+  std::vector<parser::AbstractExpression *> base_expressions = {
+      // (B >= C) AND (B != C)
+      CreateMultiLevelExpression(column_ref_b, column_ref_c, column_ref_b, column_ref_c,
+                                 parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
+                                 parser::ExpressionType::COMPARE_NOT_EQUAL)};
+
+  for (auto *base : base_expressions) {
+    auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
+    delete base;
+
+    // Result should be single boolean constant expression (false)
+    TERRIER_ASSERT(expr->GetExpressionType() == parser::ExpressionType::COMPARE_GREATER_THAN,
+                   "Rewritten expression should be GREATER THAN");
+    TERRIER_ASSERT(expr->GetChildrenSize() == 2, "Rewritten expression should have 2 children");
+
+    auto left_child = expr->GetChildren()[0];
+    auto right_child = expr->GetChildren()[1];
+    TERRIER_ASSERT(*left_child == *column_ref_b, "Left child should be A.B");
+    TERRIER_ASSERT(*right_child == *column_ref_c, "Right child should be A.C");
+  }
+  delete rewriter;
+
+  txn_manager.Abort(txn_context);
+  delete txn_context;
+  delete column_ref_b;
+  delete column_ref_c;
+}
+
 // ========================================================================== //
 // Mix tests
 // ========================================================================== //
 TEST_F(RuleRewriteTests, TransitiveClosureComparisonIntersectionMix) {
   /*
-   * Transitive Closure Test -- full rewrite
+   * Mix test for Transitive Closure & Comparison Intersection
    *   Input expression: (A.B = 1) AND ((A.B <= A.C) AND (A.B >= A.C))
    *   Expected output: (A.B = 1) AND (1 = A.C)
+   * (comparison intersection applied on right branch, then transitive closure
+   *  applied on remaining expression)
    */
   auto timestamp_manager = transaction::TimestampManager();
   auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
