@@ -175,6 +175,7 @@ class DatabaseCatalog {
                           storage::ProjectedRow *pr);
   bool VerifyCheckConstraint(const PG_Constraint &con_obj);
   bool VerifyExclusionConstraint(const PG_Constraint &con_obj);
+  PG_Constraint PGConstraintPRToObj(storage::ProjectedRow *select_pr);
   bool VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                                    storage::ProjectedRow *pr);
   bool VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
@@ -210,8 +211,11 @@ class DatabaseCatalog {
    * @param table being queried
    * @return vector of OIDs for all of the constraints that apply to this table
    */
+  std::vector<storage::TupleSlot> GetConstraintsTupleSlots(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                              table_oid_t table);
   std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
                                                table_oid_t table);
+  std::vector<PG_Constraint> GetConstraintObjs(const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
   bool DeleteConstraints(common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table);
   bool DeleteConstraint(common::ManagedPointer<transaction::TransactionContext> txn, constraint_oid_t constraint);
   /**
