@@ -348,6 +348,11 @@ class DatabaseCatalog {
    */
   type_oid_t GetTypeOidForType(type::TypeId type);
 
+  /**
+   * Returns all table_oid for user tables.
+   * @param txn the transaction to use
+   * @return vector of all user table oids
+   */
   std::vector<table_oid_t> GetAllTableOids(const common::ManagedPointer<transaction::TransactionContext> txn);
 
  private:
@@ -487,9 +492,6 @@ class DatabaseCatalog {
 
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
-
-  // save all table_oids in this databse
-  mutable std::unordered_set<table_oid_t> table_oids;
 
   DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
       : write_lock_(transaction::INITIAL_TXN_TIMESTAMP), db_oid_(oid), garbage_collector_(garbage_collector) {}

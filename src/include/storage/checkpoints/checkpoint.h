@@ -16,7 +16,13 @@
 #include "transaction/transaction_manager.h"
 
 namespace terrier::storage {
-
+/**
+ * The Checkpoint class is responsible for taking checkpoints for a single database. The flow of checkpoint taking is
+ * as follows:
+ *      1. checkpoint class being constructed and called by a background thread
+ *      2. filter the log file to separate logs related to catalog tables
+ *      3. write data of user tables to disk using ArrowSerializer
+ */
 class Checkpoint {
  public:
   Checkpoint(const common::ManagedPointer<catalog::Catalog> catalog,
@@ -76,7 +82,7 @@ class Checkpoint {
 
   /**
    * Splits a string into a vector
-   * @param s to split
+   * @param s string to split
    * @param delimiter that separates the string
    * @return vector of strings
    */
@@ -118,6 +124,13 @@ class Checkpoint {
    */
   void WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                    catalog::db_oid_t db_oid);
+
+  /**
+ * Filter the logs in original log file to separate logs related to catalog tables to another file
+ * @param old_log_path the path of the original log file
+ * @param new_log_path the path of the new log file to save the logs related to catalog tables
+ * @return None
+ */
   void FilterCatalogLogs(const std::string &old_log_path, const std::string &new_log_path);
 
 

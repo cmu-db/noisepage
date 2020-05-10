@@ -733,7 +733,6 @@ table_oid_t DatabaseCatalog::CreateTable(const common::ManagedPointer<transactio
                                          const namespace_oid_t ns, const std::string &name, const Schema &schema) {
   if (!TryLock(txn)) return INVALID_TABLE_OID;
   const table_oid_t table_oid = static_cast<table_oid_t>(next_oid_++);
-  table_oids.insert(table_oid);
 
   return CreateTableEntry(txn, table_oid, ns, name, schema) ? table_oid : INVALID_TABLE_OID;
 }
@@ -844,8 +843,6 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   });
 
   delete[] buffer;
-  //  auto iter = table_oids.equal_range(table);
-  table_oids.erase(table);
   return true;
 }
 
@@ -903,10 +900,9 @@ std::vector<table_oid_t> DatabaseCatalog::GetAllTableOids(const common::ManagedP
   auto pr = name_pri.InitializeRow(buffer);
   std::vector<storage::TupleSlot> slots;
   pr = get_class_oid_kind_pri_.InitializeRow(buffer);
+  // iterate the sql table to get all user table oids
   for (auto start = classes_->begin(); start != classes_->end(); start ++) {
     const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, *start, pr);
-    // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
-    // sizes
     table_oid_t oid = *(reinterpret_cast<const table_oid_t *const>(pr->AccessForceNotNull(0)));
     if ((uint32_t)oid >= catalog::START_OID) {
       result_vec.push_back(oid);
