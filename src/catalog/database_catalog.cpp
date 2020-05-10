@@ -894,6 +894,29 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(
   return std::make_pair(oid, kind);
 }
 
+std::vector<table_oid_t> DatabaseCatalog::GetAllTableOids(const common::ManagedPointer<transaction::TransactionContext> txn){
+  std::vector<table_oid_t> result_vec;
+  const auto name_pri = classes_name_index_->GetProjectedRowInitializer();
+
+  // Buffer is large enough to hold all prs
+  auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  auto pr = name_pri.InitializeRow(buffer);
+  std::vector<storage::TupleSlot> slots;
+  pr = get_class_oid_kind_pri_.InitializeRow(buffer);
+  for (auto start = classes_->begin(); start != classes_->end(); start ++) {
+    const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, *start, pr);
+    // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
+    // sizes
+    table_oid_t oid = *(reinterpret_cast<const table_oid_t *const>(pr->AccessForceNotNull(0)));
+    if ((uint32_t)oid >= catalog::START_OID) {
+      result_vec.push_back(oid);
+    }
+  }
+  // Finish
+  delete[] buffer;
+  return result_vec;
+}
+
 table_oid_t DatabaseCatalog::GetTableOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const namespace_oid_t ns, const std::string &name) {
   const auto oid_pair = GetClassOidKind(txn, ns, name);

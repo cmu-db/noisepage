@@ -21,7 +21,7 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
   // get db catalog accessor
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(static_cast<common::ManagedPointer<transaction::TransactionContext>>(txn), db);
-  std::unordered_set<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
+  std::vector<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
 
   // lock the log_serializer buffer to prevent further logging
   common::ManagedPointer<LogSerializerTask> log_serializer_task = log_manager_->log_serializer_task_;
@@ -43,7 +43,6 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
   remove(cur_log_file);
 
   // create empty log file for other logs
-  std::ofstream new_log_file(cur_log_file, std::ios::in | std::ios::app);
   log_manager_->ResetLogFilePath(cur_log_file);
 
   auto workload = [&](uint32_t worker_id) {
@@ -128,7 +127,6 @@ void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::s
     // If we have exhausted all the logs, break from the loop
     if (log_record == nullptr) break;
     auto cur_pos = log_provider.in_.read_head_;
-//    record_size = log_record->Size();
     uint32_t size = cur_pos - pos;
     if (cur_pos < pos) size = (cur_pos + common::Constants::LOG_BUFFER_SIZE) - pos;
     auto buf = new char[size];
@@ -136,21 +134,18 @@ void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::s
     if (log_record->RecordType() == LogRecordType::ABORT || log_record->RecordType() == LogRecordType::COMMIT) {
       infile.read(reinterpret_cast<char *>(buf), size);
       outfile.write(reinterpret_cast<char *>(buf), size);
-//      o << "A/C " << log_record->Size()<<std::endl;
     } else {
       if (log_record->RecordType() == LogRecordType::REDO) {
         auto *record_body = log_record->GetUnderlyingRecordBodyAs<RedoRecord>();
         infile.read(reinterpret_cast<char *>(buf), size);
         if ((uint32_t)(record_body->GetTableOid()) < catalog::START_OID) {
           outfile.write(reinterpret_cast<char *>(buf), size);
-//          o << "REDO " << record_body->GetDatabaseOid() << ' ' << log_record->Size()<<' '<<record_body->GetTableOid()<<std::endl;
         }
       } else if (log_record->RecordType() == LogRecordType::DELETE) {
         auto *record_body = log_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
         infile.read(reinterpret_cast<char *>(buf), size);
         if ((uint32_t)(record_body->GetTableOid()) < catalog::START_OID) {
           outfile.write(reinterpret_cast<char *>(buf), size);
-//          o << "DELETE " << record_body->GetDatabaseOid() << ' ' << record_body->GetTableOid() <<' '<< log_record->Size()<<std::endl;
         }
       }
     }

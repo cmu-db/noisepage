@@ -348,7 +348,7 @@ class DatabaseCatalog {
    */
   type_oid_t GetTypeOidForType(type::TypeId type);
 
-  std::unordered_set<table_oid_t> &GetTableOidsFromDBC() { return table_oids; }
+  std::vector<table_oid_t> GetAllTableOids(const common::ManagedPointer<transaction::TransactionContext> txn);
 
  private:
   // TODO(tanujnay112) Add support for other parameters
@@ -678,5 +678,6 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
+
 };
 }  // namespace terrier::catalog

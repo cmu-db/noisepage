@@ -340,7 +340,7 @@ class CatalogAccessor {
   /**
    * @return All table oids
    */
-  std::unordered_set<table_oid_t> &GetAllTableOids();
+  std::vector<table_oid_t> GetAllTableOids();
 
   /**
    * Instantiates a new accessor into the catalog for the given database.
