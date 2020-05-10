@@ -6,6 +6,7 @@
 
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/value.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
@@ -1747,7 +1748,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   OP(StorageInterfaceUpdateVerify) : {
   auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
   auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-  OpStorageInterfaceUpdateVerify(result, storage_interface);
+  auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+  OpStorageInterfaceUpdateVerify(result, storage_interface, tuple_slot);
   DISPATCH_NEXT();
 }
 

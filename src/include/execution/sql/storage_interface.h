@@ -4,6 +4,7 @@
 
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
+#include "planner/plannodes/update_plan_node.h"
 
 namespace terrier::execution::sql {
 
@@ -49,7 +50,7 @@ class EXPORT StorageInterface {
 
   bool VerifyTableInsertConstraint();
 
-  bool UpdateVerify();
+  bool UpdateVerify(storage::TupleSlot table_tuple_slot);
 
   bool UpdateCascade(storage::TupleSlot table_tuple_slot);
 

@@ -3,6 +3,7 @@
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/projected_columns_iterator.h"
+#include "planner/plannodes/update_plan_node.h"
 
 extern "C" {
 
@@ -247,8 +248,9 @@ void OpStorageInterfaceUpdateCascade(bool *result, terrier::execution::sql::Stor
   *result = storage_interface->UpdateCascade(*tuple_slot);
 }
 
-void OpStorageInterfaceUpdateVerify(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
-  *result = storage_interface->UpdateVerify();
+void OpStorageInterfaceUpdateVerify(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                    terrier::storage::TupleSlot *tuple_slot) {
+  *result = storage_interface->UpdateVerify(*tuple_slot);
 }
 
 void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface) {

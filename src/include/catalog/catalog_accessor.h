@@ -183,9 +183,11 @@ class CatalogAccessor {
 
   bool VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr);
 
-  bool UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot);
+  bool VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
 
-  bool DeleteCascade(table_oid_t table, storage::TupleSlot table_tuple_slot);
+  bool UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
+
+  bool DeleteCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
 
   /**
    * Given the constraint name and its specification, add it to the catalog
