@@ -1,4 +1,3 @@
-#include <iostream>
 #include <set>
 #include <vector>
 
@@ -20,6 +19,73 @@ class OptimizerRewriteTest : public TerrierTest {
 
   void TearDown() override { TerrierTest::TearDown(); }
 };
+
+// NOLINTNEXTLINE
+TEST_F(OptimizerRewriteTest, CombindConsecutiveFilterAndEmbedFilterIntoGetTest) {
+  auto optimizer_context = new OptimizerContext(nullptr);
+  auto optimization_context = new OptimizationContext(optimizer_context, nullptr);
+  optimizer_context->AddOptimizationContext(optimization_context);
+
+  // Setup the task stack
+  auto task_stack = new OptimizerTaskStack();
+  optimizer_context->SetTaskPool(task_stack);
+
+  // Create OperatorNode of FILTER1 (FILTER2 (GET A))
+  std::vector<std::unique_ptr<OperatorNode>> get_children;
+  auto get = std::make_unique<OperatorNode>(
+    LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl1", false),
+    std::move(get_children));
+  auto get_copy = get->Copy();
+
+  // Build two expressions for filters
+  parser::AbstractExpression *expr_b_1 =
+    new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+    new parser::ConstantValueExpression(type::TransientValueFactory::GetDecimal(1.0));
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto expression_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>{"tbl1"});
+  auto expression_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>{"tbl2"});
+
+  std::vector<AnnotatedExpression> filter_pred {expression_2};
+  std::vector<std::unique_ptr<OperatorNode>> filter_children;
+  filter_children.emplace_back(std::move(get));
+  auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(filter_pred)), std::move(filter_children));
+
+  std::vector<AnnotatedExpression> root_pred {expression_1};
+  std::vector<std::unique_ptr<OperatorNode>> root_children;
+  root_children.emplace_back(std::move(filter));
+  auto root = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(root_pred)), std::move(root_children));
+
+  // RecordOperatorNodeIntoGroup
+  GroupExpression *gexpr;
+  EXPECT_TRUE(optimizer_context->RecordOperatorNodeIntoGroup(common::ManagedPointer(root), &gexpr));
+  EXPECT_TRUE(gexpr != nullptr);
+
+  // Add rewrite tasks
+  group_id_t root_id = gexpr->GetGroupID();
+  task_stack->Push(new TopDownRewrite(root_id, optimization_context, RuleSetName::PREDICATE_PUSH_DOWN));
+
+  // Execute the tasks in stack
+  // Two rules will be applied: COMBINE_CONSECUTIVE_FILTER & EMBED_FILTER_INTO_GET
+  while (!task_stack->Empty()) {
+    auto task = task_stack->Pop();
+    task->Execute();
+    delete task;
+  }
+
+  // Expected OperatorNode: GET A
+  auto root_gexpr = optimizer_context->GetMemo().GetGroupByID(root_id)->GetLogicalExpression();
+  EXPECT_EQ(root_gexpr->Op().GetType(), OpType::LOGICALGET);
+  EXPECT_EQ(root_gexpr->GetChildrenGroupsSize(), 0);
+  EXPECT_EQ(root_gexpr->Op().As<LogicalGet>()->GetPredicates().size(), 2);
+  std::vector<AnnotatedExpression> preds {expression_1, expression_2};
+  EXPECT_EQ(root_gexpr->Op().As<LogicalGet>()->GetPredicates(), preds);
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete optimizer_context;
+}
 
 // NOLINTNEXTLINE
 TEST_F(OptimizerRewriteTest, SingleJoinGetToInnerJoinTest) {
@@ -57,7 +123,6 @@ TEST_F(OptimizerRewriteTest, SingleJoinGetToInnerJoinTest) {
 
   // Add rewrite tasks
   group_id_t root_id = join_gexpr->GetGroupID();
-  task_stack->Push(new TopDownRewrite(root_id, optimization_context, RuleSetName::PREDICATE_PUSH_DOWN));
   task_stack->Push(new BottomUpRewrite(root_id, optimization_context, RuleSetName::UNNEST_SUBQUERY, false));
 
   // Execute the tasks in stack
