@@ -285,7 +285,7 @@ public class NestedQueryTest extends TestUtility {
         assertNoMoreRows(rs);
     }
 
-    /**
+     /**
      * Test TypeA, avg, multiple results
      */
     @Test
@@ -312,25 +312,25 @@ public class NestedQueryTest extends TestUtility {
     }
 
     /**
-     * Test TypeA, sum
+     * Test TypeA, avg, not equal
      */
     @Test
-    public void TypeASumSimple() throws SQLException {
+    public void test2TypeAAvgNot() throws SQLException {
         Statement stmt = conn.createStatement();
         String sql = "INSERT INTO shipment VALUES (2, 2, 2);";
         stmt.execute(sql);
         sql = "INSERT INTO shipment VALUES (1, 1, 1);";
         stmt.execute(sql);
-        sql = "INSERT INTO shipment VALUES (3, 3, 3);";
+        sql = "INSERT INTO shipment VALUES (3, 2, 3);";
         stmt.execute(sql);
         sql = "INSERT INTO part VALUES (1, 30);";
         stmt.execute(sql);
-        sql = "INSERT INTO part VALUES (2, 30);";
+        sql = "INSERT INTO part VALUES (3, 30);";
         stmt.execute(sql);
-        String select_SQL = "SELECT sno FROM shipment WHERE pno = (SELECT SUM(pno) FROM part WHERE price = 30);";
+        String select_SQL = "SELECT sno FROM shipment WHERE pno != (SELECT AVG(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkIntRow(rs, new String [] {"sno"}, new int [] {3});
+        checkIntRow(rs, new String [] {"sno"}, new int [] {1});
         assertNoMoreRows(rs);
 
     }
@@ -403,6 +403,29 @@ public class NestedQueryTest extends TestUtility {
         assertNoMoreRows(rs);
     }
  */
+
+    /**
+     * Test TypeN, limit
+     */
+    @Test
+    public void test2TypeNLimit() throws SQLException {
+        String sql = "INSERT INTO shipment VALUES (2, 2, 1);";
+        Statement stmt = conn.createStatement();
+        stmt.execute(sql);
+        sql = "INSERT INTO shipment VALUES (1, 1, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO supplier VALUES (1, 1, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO supplier VALUES (1, 2, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO supplier VALUES (2, 2, 1);";
+        stmt.execute(sql);
+        String select_SQL = "SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier limit 1);";
+        rs = stmt.executeQuery(select_SQL);
+        rs.next();
+        checkIntRow(rs, new String [] {"pno"}, new int [] {1});
+        assertNoMoreRows(rs);
+    }
 
     /**
      * Test TypeN, Multiple nested layers
@@ -495,6 +518,29 @@ public class NestedQueryTest extends TestUtility {
     }
 
     /**
+     * Test TypeJ, limit
+     */
+    @Test
+    public void test2TypeJLimit() throws SQLException {
+        String sql = "INSERT INTO shipment VALUES (2, 2, 1);";
+        Statement stmt = conn.createStatement();
+        stmt.execute(sql);
+        sql = "INSERT INTO shipment VALUES (1, 1, 2);";
+        stmt.execute(sql);
+        sql = "INSERT INTO supplier VALUES (2, 1, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO supplier VALUES (1, 1, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO supplier VALUES (1, 2, 2);";
+        stmt.execute(sql);
+        String select_SQL = "SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier WHERE subdget = qty limit 1);";
+        rs = stmt.executeQuery(select_SQL);
+        rs.next();
+        checkIntRow(rs, new String [] {"pno"}, new int [] {2});
+        assertNoMoreRows(rs);
+    }
+
+    /**
      * Test TypeJA, less than max
      */
     @Test
@@ -533,6 +579,27 @@ public class NestedQueryTest extends TestUtility {
         rs = stmt.executeQuery(select_SQL);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {2});
+        assertNoMoreRows(rs);
+    }
+
+    /**
+     * Test TypeJA, greater than avg
+     */
+    @Test
+    public void test3TypeJA() throws SQLException {
+        String sql = "INSERT INTO shipment VALUES (2, 2, 2);";
+        Statement stmt = conn.createStatement();
+        stmt.execute(sql);
+        sql = "INSERT INTO shipment VALUES (2, 1, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO supplier VALUES (1, 1, 1);";
+        stmt.execute(sql);
+        sql = "INSERT INTO supplier VALUES (2, 1, 1);";
+        stmt.execute(sql);
+        String select_SQL = "SELECT pno FROM shipment WHERE sno > (SELECT avg(sno) FROM supplier WHERE subdget = qty);";
+        rs = stmt.executeQuery(select_SQL);
+        rs.next();
+        checkIntRow(rs, new String [] {"pno"}, new int [] {1});
         assertNoMoreRows(rs);
     }
 
