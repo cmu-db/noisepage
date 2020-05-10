@@ -32,18 +32,19 @@ TEST(ExecutionThreadPoolTests, SimpleTest) {
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   std::atomic<int> counter(0);
 
-  int var1 = 1;
+  int count1 = 1;
 
   std::promise<void> p;
   thread_pool.SubmitTask(&p, [&]() {
-    var1++;
+    count1++;
     counter.fetch_add(1);
   });
 
   // Wait for all the test to finish
   p.get_future().get();
 
-  EXPECT_EQ(2, var1);
+  EXPECT_EQ(2, count1);
+  EXPECT_EQ(1, counter);
 }
 
 // NOLINTNEXTLINE
@@ -78,7 +79,6 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
     var4 = var4 / var4;
     counter.fetch_add(1);
   });
-
   thread_pool.SubmitTask(&ps[4], [&]() {
     var5 = var5 / var5;
     counter.fetch_add(1);
@@ -93,6 +93,7 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
   EXPECT_EQ(9, var3);
   EXPECT_EQ(1, var4);
   EXPECT_EQ(1, var5);
+  EXPECT_EQ(5, counter);
 }
 
 // NOLINTNEXTLINE

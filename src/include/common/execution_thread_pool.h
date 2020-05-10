@@ -23,7 +23,7 @@
 #include "storage/storage_defs.h"
 #include "tbb/concurrent_queue.h"
 
-#define MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS 10000
+constexpr uint64_t MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS = 10000;
 
 namespace terrier::common {
 
