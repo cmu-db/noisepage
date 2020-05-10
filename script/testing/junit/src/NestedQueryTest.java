@@ -454,7 +454,7 @@ public class NestedQueryTest extends TestUtility {
      * Test TypeN, greater than equal to any
      */
     @Test
-    public void TypeNGreaterAny() throws SQLException {
+    public void TypeNEqAny() throws SQLException {
         String sql = "INSERT INTO shipment VALUES (2, 2, 1);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
