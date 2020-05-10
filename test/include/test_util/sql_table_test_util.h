@@ -204,6 +204,10 @@ class RandomSqlTableTransaction {
           storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   template <class Random>
+  std::unique_ptr<catalog::Schema> UpdateSchema(Random *generator, std::vector<catalog::Schema::Column> &columns,
+          storage::layout_version_t new_version);
+
+  template <class Random>
   std::unique_ptr<catalog::Schema> AddColumn(Random *generator, storage::layout_version_t layout_version);
 
   template <class Random>

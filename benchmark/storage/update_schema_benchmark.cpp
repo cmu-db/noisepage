@@ -51,7 +51,7 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
       auto *tested =
           new LargeSqlTableTestObject(config, txn_manager.Get(), catalog.Get(), block_store.Get(), &generator_);
 
-      int num_threads = 3;
+      int num_threads = 2;
       int num_schema_updates = 10;
 
       uint64_t elapsed_ms;
@@ -90,7 +90,8 @@ LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder(
     .SetMaxColumns(5)
     .SetInitialTableSize(initial_table_size_)
     .SetTxnLength(5)
-    .SetInsertUpdateSelectDeleteRatio({0.5, 0.0, 0.5, 0.0})
+    .SetInsertUpdateSelectDeleteRatio({0.0, 1.0, 0.0, 0.0})
+//    .SetInsertUpdateSelectDeleteRatio({0.4, 0.2, 0.2, 0.2})
     .SetVarlenAllowed(true)
     .Build();
 

@@ -86,12 +86,11 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
 
     if (missing.empty()) {
       result = tuple_v.data_table_->Update(txn, curr_tuple, *(redo->Delta()));
-      *updated_slot = curr_tuple;
+      if (updated_slot != nullptr) *updated_slot = curr_tuple;
       std::memcpy(redo->Delta()->ColumnIds(), orig_header, sizeof(col_id_t) * redo->Delta()->NumColumns());
     } else {
       // touching columns that are in the desired version, but not the tuple version
       // do an delete followed by an insert
-
       // get projected row from redo (This projection is deterministic for identical set of columns)
       std::vector<col_id_t> col_ids;
       for (const auto &it : desired_v.column_id_to_oid_map_) col_ids.emplace_back(it.first);
@@ -101,7 +100,7 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
 
       // fill in values to the projection
       result = Select(txn, curr_tuple, pr, layout_version);
-      *updated_slot = curr_tuple;
+      if (updated_slot != nullptr) *updated_slot = curr_tuple;
 
       if (result) {
         // delete it from old datatable
@@ -111,7 +110,7 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
 
           // apply the change
           StorageUtil::ApplyDelta(desired_v.layout_, *(redo->Delta()), pr);
-          *updated_slot = desired_v.data_table_->Insert(txn, *pr);
+          if (updated_slot != nullptr) *updated_slot = desired_v.data_table_->Insert(txn, *pr);
         }
       }
       delete[] buffer;
@@ -308,7 +307,7 @@ std::vector<std::pair<size_t, catalog::col_oid_t>> SqlTable::AlignHeaderToVersio
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
     auto col_id = out_buffer->ColumnIds()[i];
     TERRIER_ASSERT(col_id != VERSION_POINTER_COLUMN_ID, "Output buffer should not read the version pointer column.");
-    TERRIER_ASSERT(desired_version.column_id_to_oid_map_.count(out_buffer->ColumnIds()[i]) > 0,
+    TERRIER_ASSERT(desired_version.column_id_to_oid_map_.count(col_id) > 0,
                    "col_id from out_buffer should be in desired_version map");
     catalog::col_oid_t col_oid = desired_version.column_id_to_oid_map_.at(col_id);
     if (tuple_version.column_oid_to_id_map_.count(col_oid) > 0) {
@@ -346,7 +345,7 @@ bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema,
     num_versions_.store(MAX_NUM_VERSIONS);
     return false;
   }
-  std::cout << "begin CreateTable curr_num: " << (int)curr_num << std::endl;
+  std::cout << "begin CreateTable version: " << (int)version << std::endl;
 
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint16_t> attr_sizes;
