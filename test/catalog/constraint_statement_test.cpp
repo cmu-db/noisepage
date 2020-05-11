@@ -356,43 +356,43 @@ class ConstraintStatementTest : public TerrierTest {
 //}
 //}
 
-TEST_F(ConstraintStatementTest, EnforceFKTest) {
-try {
-pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                                        port_, catalog::DEFAULT_DATABASE));
-
-pqxx::work txn1(connection);
-txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
-txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT references TableA(id));");
-    txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk1 TEXT references TableA(data));");
-txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 'abcacb');");
-//txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 2);");
-pqxx::result r = txn1.exec("SELECT * FROM TableA");
-EXPECT_EQ(r.size(), 1);
-r = txn1.exec("SELECT * FROM pg_constraint");
-EXPECT_EQ(r.size(), 5);
-r = txn1.exec("SELECT * FROM TableA");
-EXPECT_EQ(r.size(), 1);
-r = txn1.exec("SELECT * FROM TableB");
-EXPECT_EQ(r.size(), 0);
-txn1.exec("INSERT INTO TableB VALUES (1, 1);");
-r = txn1.exec("SELECT * FROM TableB");
-EXPECT_EQ(r.size(), 1);
-txn1.exec("INSERT INTO TableB VALUES (2, 1);");
-//txn1.exec("INSERT INTO TableB VALUES (3, 2);");
-r = txn1.exec("SELECT * FROM TableB");
-EXPECT_EQ(r.size(), 2);
-txn1.exec("INSERT INTO TableC VALUES (1, 'abcacb');");
-r = txn1.exec("SELECT * FROM TableC");
-EXPECT_EQ(r.size(), 1);
-std::cerr << "till end\n";
-txn1.commit();
-connection.disconnect();
-} catch (const std::exception &e) {
-EXPECT_TRUE(false);
-std::cerr << e.what();
-}
-}
+//TEST_F(ConstraintStatementTest, EnforceFKTest) {
+//try {
+//pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+//                                        port_, catalog::DEFAULT_DATABASE));
+//
+//pqxx::work txn1(connection);
+//txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
+//txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT references TableA(id));");
+//    txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk1 TEXT references TableA(data));");
+//txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 'abcacb');");
+////txn1.exec("INSERT INTO TableA (id, data) VALUES (1, 2);");
+//pqxx::result r = txn1.exec("SELECT * FROM TableA");
+//EXPECT_EQ(r.size(), 1);
+//r = txn1.exec("SELECT * FROM pg_constraint");
+//EXPECT_EQ(r.size(), 5);
+//r = txn1.exec("SELECT * FROM TableA");
+//EXPECT_EQ(r.size(), 1);
+//r = txn1.exec("SELECT * FROM TableB");
+//EXPECT_EQ(r.size(), 0);
+//txn1.exec("INSERT INTO TableB VALUES (1, 1);");
+//r = txn1.exec("SELECT * FROM TableB");
+//EXPECT_EQ(r.size(), 1);
+//txn1.exec("INSERT INTO TableB VALUES (2, 1);");
+////txn1.exec("INSERT INTO TableB VALUES (3, 2);");
+//r = txn1.exec("SELECT * FROM TableB");
+//EXPECT_EQ(r.size(), 2);
+//txn1.exec("INSERT INTO TableC VALUES (1, 'abcacb');");
+//r = txn1.exec("SELECT * FROM TableC");
+//EXPECT_EQ(r.size(), 1);
+//std::cerr << "till end\n";
+//txn1.commit();
+//connection.disconnect();
+//} catch (const std::exception &e) {
+//EXPECT_TRUE(false);
+//std::cerr << e.what();
+//}
+//}
 
 TEST_F(ConstraintStatementTest, CascadeTest) {
 try {
@@ -400,13 +400,20 @@ pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmod
                                         port_, catalog::DEFAULT_DATABASE));
 
 pqxx::work txn1(connection);
-txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, name TEXT);");
-txn1.exec("INSERT INTO TableA (id, data, name) VALUES (1, 2, 'abc');");
+txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT UNIQUE, name TEXT UNIQUE);");
+txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT references TableA(id));");
+txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk2 TEXT references TableA(name));");
+txn1.exec("INSERT INTO TableA (id, data, name) VALUES (1, 2, 'abcd');");
+txn1.exec("INSERT INTO TableA (id, data, name) VALUES (2, 3, 'defg');");
+txn1.exec("INSERT INTO TableB (id, fk1) VALUES (1, 2);");
+txn1.exec("INSERT INTO TableC (id, fk2) VALUES (1, 'defg');");
 pqxx::result r = txn1.exec("SELECT * FROM TableA");
-EXPECT_EQ(r.size(), 1);
+EXPECT_EQ(r.size(), 2);
 
-txn1.exec("UPDATE TableA SET data = 3, name = 'def' WHERE id = 1;");
-
+//txn1.exec("UPDATE TableA SET data = 2, name = 'abc' WHERE id = 1;");
+//txn1.exec("UPDATE TableB SET fk1 = 2 WHERE id = 1;");
+txn1.exec("UPDATE TableB SET fk1 = 3 WHERE id = 1;");
+//txn1.exec("UPDATE TableC SET fk2 = 'abc' WHERE id = 1;");
 std::cerr << "till end\n";
 txn1.commit();
 connection.disconnect();

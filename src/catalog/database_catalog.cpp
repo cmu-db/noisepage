@@ -1214,8 +1214,6 @@ bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::Tra
   return true;
 }
 
-
-
 PG_Constraint DatabaseCatalog::PGConstraintPRToObj(storage::ProjectedRow *select_pr) {
   auto offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONOID_COL_OID]);
   constraint_oid_t con_oid = *(reinterpret_cast<constraint_oid_t *>(offset));
@@ -1264,6 +1262,9 @@ PG_Constraint DatabaseCatalog::PGConstraintPRToObj(storage::ProjectedRow *select
     auto update_action = *(reinterpret_cast<postgres::FKActionType *>(offset));
     offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONFDELTYPE_COL_OID]);
     auto delete_action = *(reinterpret_cast<postgres::FKActionType *>(offset));
+    // TODO: we temporarily store thr source table index inside the exclusion varchar as string
+    offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONEXCLOP_COL_OID]);
+    auto src_index_string = VarlentoString(*(reinterpret_cast<storage::VarlenEntry *>(offset)));
     std::string con_fkcol_str = VarlentoString(con_fkcol_varlen);
     std::vector<col_oid_t> con_src_ids = SpaceSeparatedOidToVector<col_oid_t>(con_col_str);
     std::vector<col_oid_t> con_ref_ids = SpaceSeparatedOidToVector<col_oid_t>(con_fkcol_str);
@@ -1273,6 +1274,8 @@ PG_Constraint DatabaseCatalog::PGConstraintPRToObj(storage::ProjectedRow *select
     con_obj.fkMetadata_.fk_refs_.insert(con_obj.fkMetadata_.fk_refs_.begin(), con_ref_ids.begin(), con_ref_ids.end());
     con_obj.fkMetadata_.update_action_ = update_action;
     con_obj.fkMetadata_.delete_action_ = delete_action;
+    con_obj.fkMetadata_.consrcindid_ = static_cast<index_oid_t>(stoi(src_index_string));
+
   } else if (con_obj.contype_ == postgres::ConstraintType::CHECK) {
     // TODO: implement construction support for check constraint
     TERRIER_ASSERT(true, "Should implement construction for check constraint");
@@ -1350,11 +1353,8 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
   TERRIER_ASSERT(result, "verifying a updated tuple slot should always exists in the table");
 
   // verification data structure preparation
-  storage::ProjectionMap update_pr_pm;
-  uint16_t ui = 0;
-  for (size_t i = 0; i < col_oids.size(); i ++) {
-      update_pr_pm[col_oids[i]] = ui++;
-  }
+  storage::ProjectionMap update_pr_pm = table->ProjectionMapForOids(col_oids);
+
   auto table_prm = table->ProjectionMapForOids(table_col_oids);
   // get out all the constraint from the table
   std::vector<PG_Constraint> con_vec = GetConstraintObjs(txn, table_oid);
@@ -1391,14 +1391,14 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
                                "table_col and index_col should have same type");
                 if (affected_col.count(table_col_oid) > 0) {
                     update_ptr = update_pr->AccessForceNotNull(update_pr_pm[table_col_oid]);
-                    CopyData(index_ptr, update_ptr, index_columns[j].Type());
-                    all_col_update_same &= CompPRData(table_ptr, update_ptr, index_columns[j].Type());
+                    CopyData(update_ptr, index_ptr, index_columns[j].Type());
+                    //  all_col_update_same = CompPRData(table_ptr, update_ptr, index_columns[j].Type());
                 } else {
-                    table_ptr = table_pr->AccessForceNotNull(table_prm[table_col_oid]);
-                    CopyData(index_ptr, update_ptr, index_columns[j].Type());
+                    CopyData(table_ptr, index_ptr, index_columns[j].Type());
                 }
             }
             // if all the update data are the saem as original data, then we allow for this constraint
+
             if (all_col_update_same) {
                 delete[] index_buffer;
                 continue;
@@ -1411,6 +1411,7 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
               if (!index_scan_result.empty()) {
                   delete[] index_buffer;
                   delete[] buffer;
+                  txn->SetMustAbort();
                   return false;
               }
           }
@@ -1418,6 +1419,7 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
               if (index_scan_result.empty()) {
                   delete[] index_buffer;
                   delete[] buffer;
+                  txn->SetMustAbort();
                   return false;
               }
           }
@@ -1581,6 +1583,7 @@ constraint_oid_t DatabaseCatalog::CreateFKConstraint(common::ManagedPointer<tran
   std::string concol_str = OidVectorToSpaceSeparatedString<col_oid_t>(src_cols);
   std::string confkcol_str = OidVectorToSpaceSeparatedString<col_oid_t>(sink_cols);
   std::string consrc_index_str = OidVectorToSpaceSeparatedString<index_oid_t>({src_index});
+  // TODO: we temporarily store the src table index in the exclusion op varchar
   FillConstraintPR(constraints_insert_pr, constraint_oid, name, ns, postgres::ConstraintType::FOREIGN_KEY, false, false,
                    true, src_table, sink_index, INVALID_CONSTRAINT_OID, sink_table, update_action, delete_action,
                    postgres::FKMatchType::FULL, true, 0, false, concol_str, confkcol_str,

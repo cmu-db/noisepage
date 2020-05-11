@@ -37,6 +37,7 @@ struct UNIQUEMetadata {
 // the metadata for FK
 using FKMetadata = struct FKMetadata {
   table_oid_t confrelid_;                           // the referenced table oid
+  index_oid_t consrcindid_;
   std::vector<col_oid_t> fk_srcs_;            // the column indcies in the current table for foreign key
   std::vector<col_oid_t> fk_refs_;  // the column indicies in the parent table that are reference for the foreign key
   postgres::FKActionType update_action_;
