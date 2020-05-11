@@ -167,7 +167,7 @@ class DatabaseCatalog {
   template <typename OidType>
   std::vector<OidType> SpaceSeparatedOidToVector(std::string s);
   std::string VarlentoString(const storage::VarlenEntry &entry);
-  bool CompPRData(std::byte *src_pr, std::byte *tar_pr, type::TypeId type);
+  bool CompPRData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type);
   void CopyData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type);
   void CopyColumnData(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr, std::vector<col_oid_t> col_vec,
                       table_oid_t table_oid, index_oid_t index_oid, common::ManagedPointer<storage::index::Index> index);

@@ -31,15 +31,16 @@ void UpdateTranslator::Abort(FunctionBuilder *builder) {
 
 void UpdateTranslator::Consume(FunctionBuilder *builder) {
   DeclareUpdatePR(builder);
+
   if (op_->GetIndexedUpdate()) {
     // For indexed updates, we need to call delete first
     GenTableDelete(builder);
   }
-  GetUpdatePR(builder);
-  FillPRFromChild(builder);
-
-
+    GetUpdatePR(builder);
+    FillPRFromChild(builder);
     GenUpdateVerify(builder);
+    GenUpdateCascade(builder);
+  // Non indexed updates just update.
   if (op_->GetIndexedUpdate()) {
     // Indexed updates re-insert into the table
     GenTableInsert(builder);
@@ -53,11 +54,7 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
     return;
   }
 
-  GenUpdateCascade(builder);
-  // Non indexed updates just update.
   GenTableUpdate(builder);
-
-
 }
 
 void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuilder *builder) {
