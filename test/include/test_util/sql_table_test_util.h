@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -205,7 +206,7 @@ class RandomSqlTableTransaction {
    */
   template <class Random>
   void RandomSelect(Random *generator, byte *buffer,
-          storage::layout_version_t layout_version = storage::layout_version_t(0));
+                    storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   /**
    * Update the schema of the table designated by database_oid and table_oid
@@ -215,8 +216,8 @@ class RandomSqlTableTransaction {
    * @param columns the columns of the new schema under the new version
    * @param new_version the new version of the table we are updating to
    */
-  void UpdateSchema(const catalog::db_oid_t database_oid, const catalog::table_oid_t table_oid,
-          std::vector<catalog::Schema::Column> &columns, storage::layout_version_t new_version);
+  void UpdateSchema(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                    const std::vector<catalog::Schema::Column> &columns, storage::layout_version_t new_version);
 
   /**
    * Add a dummy column to the end of the columns of a random table
@@ -337,13 +338,13 @@ class LargeSqlTableTestObject {
 
  private:
   void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id, byte *buffer = nullptr,
-      storage::layout_version_t layout_version = storage::layout_version_t(0));
+                              storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   template <class Random>
   void PopulateInitialTables(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns, uint32_t num_tuples,
                              bool varlen_allowed, storage::BlockStore *block_store, Random *generator);
 
-//  const catalog::Schema &GetSchema(storage::layout_version_t version) const { return *schemas_.at(version); }
+  //  const catalog::Schema &GetSchema(storage::layout_version_t version) const { return *schemas_.at(version); }
 
   friend class RandomSqlTableTransaction;
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);

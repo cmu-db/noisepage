@@ -372,7 +372,7 @@ class RandomSqlTableTestObject {
     common::WorkerPool thread_pool(num_threads, {});
     auto workload = [&](uint32_t thread_id) {
       for (int i = 0; i < num_updates_per_thread; i++) {
-        int loc = thread_id * num_updates_per_thread + i;
+        int loc = static_cast<int>(thread_id) * num_updates_per_thread + i;
         storage::TupleSlot updated_slot;
         bool res = table_->Update(common::ManagedPointer(new_txns[loc]), new_redos[loc], layout_version, &updated_slot);
         EXPECT_TRUE(res == true);
@@ -790,7 +790,7 @@ TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
           test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
           drop_cols));
     }
-    delete [] buffer_vec[thread_id];
+    delete[] buffer_vec[thread_id];
   }
 
   // update the first half of the tuples except for the first one, under new version, these will migrate

@@ -18,10 +18,10 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
   const uint32_t initial_table_size_ = 100000;
   const uint32_t num_txns_ = 10000;
   const uint32_t num_indexes_ = 5;
-  // num_threads is how many threads to run concurrent operations with, we will use 1 extra thread to update schemas
-  const uint32_t num_threads = 4;
+  // num_threads_ is how many threads to run concurrent operations with, we will use 1 extra thread to update schemas
+  const uint32_t num_threads_ = 4;
   // how many consecutive schema updates (add/drop column) to perform in a single iteration
-  const uint32_t num_schema_updates = 10;
+  const uint32_t num_schema_updates_ = 10;
   std::default_random_engine generator_;
 
   /**
@@ -36,14 +36,14 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
       unlink(terrier::BenchmarkConfig::logfile_path.data());
       // Initialize table and run workload with logging enabled
       auto db_main = terrier::DBMain::Builder()
-          .SetLogFilePath(terrier::BenchmarkConfig::logfile_path.data())
-          .SetUseLogging(true)
-          .SetUseGC(true)
-          .SetUseGCThread(true)
-          .SetUseCatalog(true)
-          .SetRecordBufferSegmentSize(1e6)
-          .SetRecordBufferSegmentReuse(1e6)
-          .Build();
+                         .SetLogFilePath(terrier::BenchmarkConfig::logfile_path.data())
+                         .SetUseLogging(true)
+                         .SetUseGC(true)
+                         .SetUseGCThread(true)
+                         .SetUseCatalog(true)
+                         .SetRecordBufferSegmentSize(1e6)
+                         .SetRecordBufferSegmentReuse(1e6)
+                         .Build();
       auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
       auto log_manager = db_main->GetLogManager();
       auto block_store = db_main->GetStorageLayer()->GetBlockStore();
@@ -57,12 +57,12 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
 
-        for (size_t i = 0; i < num_schema_updates; i++) {
+        for (size_t i = 0; i < num_schema_updates_; i++) {
           if (update_schema) {
-            // use 1 extra thread to update schemas. For fairness, we still use num_threads to perform oltp operations.
-            tested->SimulateOltpAndUpdateSchema(num_txns_, num_threads + 1);
+            // use 1 extra thread to update schemas. For fairness, we still use num_threads_ to perform oltp operations.
+            tested->SimulateOltpAndUpdateSchema(num_txns_, num_threads_ + 1);
           } else {
-            tested->SimulateOltp(num_txns_, num_threads);
+            tested->SimulateOltp(num_txns_, num_threads_);
           }
         }
       }
@@ -86,17 +86,17 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, ReadWriteDeleteSchemaWorkload)(benchmark::State &state) {
-LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-    .SetNumDatabases(1)
-    .SetNumTables(1)
-    .SetMaxColumns(5)
-    .SetInitialTableSize(initial_table_size_)
-    .SetTxnLength(5)
-    .SetInsertUpdateSelectDeleteRatio({0.4, 0.0, 0.4, 0.2})
-    .SetVarlenAllowed(true)
-    .Build();
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({0.4, 0.0, 0.4, 0.2})
+                                              .SetVarlenAllowed(true)
+                                              .Build();
 
-RunBenchmark(&state, config, true);
+  RunBenchmark(&state, config, true);
 }
 
 /**
@@ -104,17 +104,17 @@ RunBenchmark(&state, config, true);
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, InsertHeavySchemaWorkload)(benchmark::State &state) {
-LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-        .SetNumDatabases(1)
-        .SetNumTables(1)
-        .SetMaxColumns(5)
-        .SetInitialTableSize(initial_table_size_)
-        .SetTxnLength(5)
-        .SetInsertUpdateSelectDeleteRatio({0.9, 0.0, 0.1, 0.0})
-        .SetVarlenAllowed(true)
-        .Build();
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({0.9, 0.0, 0.1, 0.0})
+                                              .SetVarlenAllowed(true)
+                                              .Build();
 
-RunBenchmark(&state, config, true);
+  RunBenchmark(&state, config, true);
 }
 
 /**
@@ -122,17 +122,17 @@ RunBenchmark(&state, config, true);
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, ReadWriteWorkload)(benchmark::State &state) {
-LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-    .SetNumDatabases(1)
-    .SetNumTables(1)
-    .SetMaxColumns(5)
-    .SetInitialTableSize(initial_table_size_)
-    .SetTxnLength(5)
-    .SetInsertUpdateSelectDeleteRatio({0.4, 0.0, 0.4, 0.2})
-    .SetVarlenAllowed(true)
-    .Build();
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({0.4, 0.0, 0.4, 0.2})
+                                              .SetVarlenAllowed(true)
+                                              .Build();
 
-RunBenchmark(&state, config, false);
+  RunBenchmark(&state, config, false);
 }
 
 /**
@@ -140,17 +140,17 @@ RunBenchmark(&state, config, false);
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, InsertHeavyWorkload)(benchmark::State &state) {
-LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-        .SetNumDatabases(1)
-        .SetNumTables(1)
-        .SetMaxColumns(5)
-        .SetInitialTableSize(initial_table_size_)
-        .SetTxnLength(5)
-        .SetInsertUpdateSelectDeleteRatio({0.9, 0.0, 0.1, 0.0})
-        .SetVarlenAllowed(true)
-        .Build();
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({0.9, 0.0, 0.1, 0.0})
+                                              .SetVarlenAllowed(true)
+                                              .Build();
 
-RunBenchmark(&state, config, false);
+  RunBenchmark(&state, config, false);
 }
 
 // ----------------------------------------------------------------------------
