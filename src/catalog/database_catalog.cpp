@@ -1431,9 +1431,6 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<tran
                                                      index_oid_t index, const std::vector<col_oid_t> &pk_cols) {
   if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
   const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
-  //  if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
-  std::cerr << "start creating PK\n";
-  //  const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
   // Insert metadata into pg_constraint
   auto *const constraints_insert_redo =
       txn->StageWrite(db_oid_, postgres::CONSTRAINT_TABLE_OID, pg_constraints_all_cols_pri_);

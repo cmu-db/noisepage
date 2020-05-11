@@ -181,30 +181,82 @@ class CatalogAccessor {
    */
   const Schema &GetSchema(table_oid_t table) const;
 
+  /**
+   * Verify the projected row complies with table constraint
+   * @param table corresponding table oid
+   * @param pr the projected row
+   * @return true if pr complies all constraints
+   */
   bool VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr);
 
+  /**
+   * Verify the projected row complies with table constraint
+   * @param table corresponding table oid
+   * @param col_oids the col_oids update applies on
+   * @param pr the projected row
+   * @param tuple_slot the tupleslot location update applies on the table
+   * @return true if pr complies all constraints
+   */
   bool VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
 
+  /**
+   * Perform update cascade if any
+   * @param table corresponding table oid
+   * @param pr the projected row
+   * @param tuple_slot the tupleslot location update applies on the table
+   * @return true if cascade success or no cascade needed
+   */
   bool UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
 
+  /**
+   * Perform delete cascade if any
+   * @param table corresponding table oid
+   * @param pr the projected row
+   * @param tuple_slot the tupleslot location update applies on the table
+   * @return true if cascade success or no cascade needed
+   */
   bool DeleteCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
 
   /**
-   * Given the constraint name and its specification, add it to the catalog
+   * Caller to catalog to create a PK constraint record
    * @param ns is the namespace in which the constraint will exist
    * @param table on which this constraint exists
    * @param name of the constraint
-   * @param schema describing the new constraint
+   * @param index index oid for new constraint
+   * @param pk_cols the constraint columns
    * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
    */
-  // constraint_oid_t CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema
-  // &schema) const;
   constraint_oid_t CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
                                       std::vector<col_oid_t> &pk_cols) const;
+  
+  /**
+   * caller to catalog to create a fk constraint entry for a table
+   * @param ns is the namespace in which the constraint will exist
+   * @param src_table source table constain FK constraint
+   * @param sink_table the table Fk reference to
+   * @param name of the constraint
+   * @param src_index index applying to src columns
+   * @param sink_index index applying to reference columns
+   * @param src_cols Fk constraint columns
+   * @param sink_cols FK reference columns
+   * @param update_action the update action of the FK
+   * @param delete_action the delete action of FK
+   * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
+   */
   constraint_oid_t CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
                                        std::string name, index_oid_t src_index, index_oid_t sink_index, std::vector<col_oid_t> &src_cols,
                                        std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
                                        postgres::FKActionType delete_action) const;
+  
+  /**
+   * Caller to catalog to create a UNIQUE constraint record
+   * @param ns is the namespace in which the constraint will exist
+   * @param table on which this constraint exists
+   * @param name of the constraint
+   * @param index index oid for new constraint
+   * @param unique_cols the constraint columns
+   * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
+   */
   constraint_oid_t CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
                                            std::vector<col_oid_t> &unique_cols) const;
 
