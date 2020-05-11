@@ -252,33 +252,61 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyNameConflict) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNode) {
-  planner::CreateIndexPlanNode::Builder builder;
-  auto create_index_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableOid(CatalogTestUtil::TEST_TABLE_OID)
+    planner::CreateTablePlanNode::Builder createTablebuilder;
+    auto create_table_node = createTablebuilder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+                                .SetTableSchema(std::move(table_schema_))
+                                .SetTableName("foo_table")
+                                .SetBlockStore(block_store_)
+                                .Build();
+    EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
+                common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
+                common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
+
+    auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_table");
+    EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+
+    planner::CreateIndexPlanNode::Builder builder;
+    auto create_index_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+                               .SetTableOid(table_oid)
                                .SetSchema(std::move(index_schema_))
                                .SetIndexName("foo")
                                .Build();
-  EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
-      common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), nullptr));
-  auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
-  EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
-  auto index_ptr = accessor_->GetIndex(index_oid);
-  EXPECT_NE(index_ptr, nullptr);
-  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
+        common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
+        common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+
+    auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+    EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
+    auto index_ptr = accessor_->GetIndex(index_oid);
+    EXPECT_NE(index_ptr, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNodeAbort) {
+  planner::CreateTablePlanNode::Builder createTablebuilder;
+  auto create_table_node = createTablebuilder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo_table")
+      .SetBlockStore(block_store_)
+      .Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
+      common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
+
+  auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_table");
+  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+
   planner::CreateIndexPlanNode::Builder builder;
   auto create_index_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableOid(CatalogTestUtil::TEST_TABLE_OID)
+                               .SetTableOid(table_oid)
                                .SetSchema(std::move(index_schema_))
                                .SetIndexName("foo")
                                .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), nullptr));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   auto index_ptr = accessor_->GetIndex(index_oid);
@@ -288,22 +316,35 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeAbort) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
+  planner::CreateTablePlanNode::Builder createTablebuilder;
+  auto create_table_node = createTablebuilder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo_table")
+      .SetBlockStore(block_store_)
+      .Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
+      common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
+
+  auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_table");
+  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+
   planner::CreateIndexPlanNode::Builder builder;
   auto create_index_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableOid(CatalogTestUtil::TEST_TABLE_OID)
+                               .SetTableOid(table_oid)
                                .SetSchema(std::move(index_schema_))
                                .SetIndexName("foo")
                                .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), nullptr));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   auto index_ptr = accessor_->GetIndex(index_oid);
   EXPECT_NE(index_ptr, nullptr);
   EXPECT_FALSE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), nullptr));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
   txn_manager_->Abort(txn_);
 }
 

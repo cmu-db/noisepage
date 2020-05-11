@@ -1413,7 +1413,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
   /**
    * Whether this create is concurrent
    */
-   bool concurrent_;
+   bool concurrent_ = false;
 };
 
 /**
