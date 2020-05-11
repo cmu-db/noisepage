@@ -1153,12 +1153,6 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
   std::unordered_set<col_oid_t> affected_col;
   for (size_t i = 0; i < con_vec.size(); i++) {
     PG_Constraint constraint = con_vec[i];
-    // due to thr special procedure in update translator, we offload PK and UNIQUE check to index
-    // currently only check for foreign key issue
-    if (constraint.contype_ == postgres::ConstraintType::PRIMARY_KEY ||
-        constraint.contype_ == postgres::ConstraintType::UNIQUE) {
-        continue;
-    }
     // verify if their col is affected by update
     bool col_affected = false;
     affected_col.clear();
@@ -1179,6 +1173,7 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
       const auto &index_columns = index_schema.GetColumns();
       TERRIER_ASSERT(index_columns.size() == constraint.concol_.size(),
                      "index should have same cardinality as table col in constraint");
+//      bool all_col_update_same = true;
       for (size_t j = 0; j < index_columns.size(); j++) {
         col_oid_t table_col_oid = constraint.concol_[j];
         indexkeycol_oid_t index_col_oid = index_columns[j].Oid();
@@ -1190,16 +1185,29 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
         if (affected_col.count(table_col_oid) > 0) {
           update_ptr = update_pr->AccessForceNotNull(update_pr_pm[table_col_oid]);
           CopyData(update_ptr, index_ptr, index_columns[j].Type());
+//          all_col_update_same = CompPRData(table_ptr, update_ptr, index_columns[j].Type());
         } else {
           CopyData(table_ptr, index_ptr, index_columns[j].Type());
         }
       }
+      // if all the update data are the saem as original data, then we allow for this constraint
+
+//      if (all_col_update_same) {
+//          delete[] index_buffer;
+//          continue;
+//      }
       // if the original index_pr and the updated index_pr are the same pass this constraint test
       std::vector<storage::TupleSlot> index_scan_result;
       index->ScanKey(*txn, *index_pr, &index_scan_result);
-      // due to thr special procedure in update translator, we offload PK and UNIQUE check to index
-      // currently only check for foreign key issue
-      if (constraint.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
+      if (constraint.contype_ == postgres::ConstraintType::PRIMARY_KEY ||
+          constraint.contype_ == postgres::ConstraintType::UNIQUE) {
+        if (!index_scan_result.empty()) {
+          delete[] index_buffer;
+          delete[] buffer;
+          txn->SetMustAbort();
+          return false;
+        }
+      } else if (constraint.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
         if (index_scan_result.empty()) {
           delete[] index_buffer;
           delete[] buffer;

@@ -44,6 +44,7 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
   if (op_->GetIndexedUpdate()) {
     // Indexed updates re-insert into the table
     GenTableInsert(builder);
+    GenUpdateVerify(builder);
     // Then they delete and insert into every index.
     // Update into every index
     const auto &indexes = codegen_->Accessor()->GetIndexOids(op_->GetTableOid());
@@ -51,7 +52,7 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
       GenIndexDelete(builder, index_oid);
       GenIndexInsert(builder, index_oid);
     }
-    GenUpdateVerify(builder);
+
     return;
   }
   GenTableUpdate(builder);
