@@ -11,6 +11,7 @@
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_schema.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "execution/exec_defs.h"
@@ -486,14 +487,16 @@ class DatabaseCatalog {
   storage::ProjectionMap pg_class_all_cols_prm_;
   storage::ProjectedRowInitializer get_class_oid_kind_pri_;
   storage::ProjectedRowInitializer set_class_pointer_pri_;
-  storage::ProjectedRowInitializer set_class_schema_pri_;
-  storage::ProjectedRowInitializer set_class_schema_and_version_pri_;
   storage::ProjectedRowInitializer set_class_next_col_oid_pri_;
-  storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
-  storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
-  storage::ProjectedRowInitializer get_class_object_and_schema_pri_;
-  storage::ProjectionMap get_class_object_and_schema_prm_;
-  storage::ProjectionMap set_class_schema_and_version_prm_;
+  storage::ProjectedRowInitializer get_class_version_kind_pri_;
+  storage::ProjectedRowInitializer get_class_kind_ptr_pri_;
+  storage::ProjectionMap get_class_version_kind_prm_;
+  storage::ProjectedRowInitializer set_class_version_pri_;
+
+  storage::SqlTable *schemas_;
+  storage::index::Index *schemas_oid_vers_index_;
+  storage::ProjectedRowInitializer pg_schemas_all_cols_pri_;
+  storage::ProjectionMap pg_schemas_all_cols_prm_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
@@ -698,17 +701,6 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
 
   /**
-   * Sets a table's schema in pg_class
-   * @warning Should only be used by recovery
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @param schema object schema to insert
-   * @return true if succesfull
-   */
-  bool SetTableSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t oid,
-                             const Schema *schema);
-
-  /**
    * Sets an index's schema in pg_class
    * @warning Should only be used by recovery
    * @param txn transaction to query
@@ -754,5 +746,40 @@ class DatabaseCatalog {
    */
   storage::ProjectedRow *GetTableEntry(common::ManagedPointer<transaction::TransactionContext> txn,
                                        catalog::table_oid_t table, byte **buffer_ptr, storage::TupleSlot *slot);
+
+  /**
+   * Add a schema entry into pg_schema
+   * @param txn  txn context to use
+   * @param oid the oid of the entry, i.e. index oid or table oid
+   * @param ptr pointer of the schema
+   * @param layout_version  layout version of the schema
+   * @return true if insertion to pg_schema succeeds
+   */
+  bool AddSchemaEntry(const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid, const void *ptr,
+                      storage::layout_version_t layout_version);
+
+  /**
+   * Get the schema pointers for a range of layout_versions
+   * @param txn transactional context to use
+   * @param oid oid of the table/index
+   * @param version_low lower bound of the version
+   * @param versoin_high upper bound of the version (non-inclusive)
+   * @param slots slots in the pg_schema to be filled
+   * @return schema pointers (index or table)
+   */
+  std::vector<void *> GetSchemaEntries(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                       const uint32_t oid, const storage::layout_version_t version_low,
+                                       const storage::layout_version_t versoin_high,
+                                       std::vector<storage::TupleSlot> *slots);
+
+  /**
+   * Delete all the schema entries with layout version no greater than version_high
+   * @param txn transactional context
+   * @param oid oid of the table / index
+   * @param version_high upper bound of the version (inclusive)
+   * @return schema poineters to be freed
+   */
+  std::vector<void *> DeleteSchemaEntries(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                          const uint32_t oid, const storage::layout_version_t version_high);
 };
 }  // namespace terrier::catalog

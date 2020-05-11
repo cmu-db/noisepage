@@ -13,6 +13,7 @@
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_schema.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
@@ -80,6 +81,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   auto dbc = new DatabaseCatalog(oid, garbage_collector);
 
   dbc->namespaces_ = new storage::SqlTable(block_store, Builder::GetNamespaceTableSchema());
+  dbc->schemas_ = new storage::SqlTable(block_store, Builder::GetSchemaTableSchema());
   dbc->classes_ = new storage::SqlTable(block_store, Builder::GetClassTableSchema());
   dbc->indexes_ = new storage::SqlTable(block_store, Builder::GetIndexTableSchema());
   dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
@@ -99,6 +101,10 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->classes_name_index_ = Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(oid), CLASS_NAME_INDEX_OID);
   dbc->classes_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetClassNamespaceIndexSchema(oid), CLASS_NAMESPACE_INDEX_OID);
+
+  // Indexes on pg_schema
+  dbc->schemas_oid_vers_index_ =
+      Builder::BuildUniqueIndex(Builder::GetSchemaOidIndexSchema(oid), SCHEMA_TABLE_VERSION_INDEX_OID);
 
   // Indexes on pg_index
   dbc->indexes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(oid), INDEX_OID_INDEX_OID);
@@ -185,8 +191,8 @@ Schema Builder::GetClassTableSchema() {
   columns.emplace_back("relkind", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
   columns.back().SetOid(RELKIND_COL_OID);
 
-  columns.emplace_back("schema", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
-  columns.back().SetOid(REL_SCHEMA_COL_OID);
+  // columns.emplace_back("schema", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  // columns.back().SetOid(REL_SCHEMA_COL_OID);
 
   columns.emplace_back("pointer", type::TypeId::BIGINT, true, MakeNull(type::TypeId::BIGINT));
   columns.back().SetOid(REL_PTR_COL_OID);
@@ -196,6 +202,21 @@ Schema Builder::GetClassTableSchema() {
 
   columns.emplace_back("layoutversion", type::TypeId::SMALLINT, true, MakeNull(type::TypeId::SMALLINT));
   columns.back().SetOid(REL_VERS_COL_OID);
+
+  return Schema(columns);
+}
+
+Schema Builder::GetSchemaTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("reloid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(SCH_REL_OID_COL_OID);
+
+  columns.emplace_back("layoutversion", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::SMALLINT));
+  columns.back().SetOid(SCH_VERS_COL_OID);
+
+  columns.emplace_back("schemaptr", type::TypeId::BIGINT, true, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(SCH_PTR_COL_OID);
 
   return Schema(columns);
 }
@@ -377,6 +398,22 @@ IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
   // Primary
   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
+  return schema;
+}
+
+IndexSchema Builder::GetSchemaOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("reloid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, SCHEMA_TABLE_OID, RELOID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  columns.emplace_back("layoutversion", type::TypeId::SMALLINT, false,
+                       parser::ColumnValueExpression(db, SCHEMA_TABLE_OID, REL_VERS_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(2));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
   return schema;
 }
 

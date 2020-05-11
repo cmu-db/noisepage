@@ -64,6 +64,11 @@ class Builder {
   static Schema GetIndexTableSchema();
 
   /**
+   * @return  schema object for the schemas table
+   */
+  static Schema GetSchemaTableSchema();
+
+  /**
    * @return schema object for pg_namespace table
    */
   static Schema GetNamespaceTableSchema();
@@ -184,6 +189,12 @@ class Builder {
    * @return schema object for the index index on pg_constraint
    */
   static IndexSchema GetConstraintIndexIndexSchema(db_oid_t db);
+
+  /**
+   * @param db  oid in which the indexed table exists
+   * @return  schema object for the index on pg_schema
+   */
+  static IndexSchema GetSchemaOidIndexSchema(db_oid_t db);
 
   /**
    * @param db oid in which the indexed table exists

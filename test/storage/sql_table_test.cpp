@@ -327,8 +327,8 @@ class RandomSqlTableTestObject {
 
   template <class Random>
   std::vector<TupleSlot> ConcurrentlyUpdateTuples(std::vector<storage::TupleSlot> slots,
-                                                  const transaction::timestamp_t timestamp,
-                                                  Random *generator, storage::RecordBufferSegmentPool *buffer_pool,
+                                                  const transaction::timestamp_t timestamp, Random *generator,
+                                                  storage::RecordBufferSegmentPool *buffer_pool,
                                                   storage::layout_version_t layout_version, int num_threads) {
     int num_new_updates = slots.size();
 
@@ -378,7 +378,7 @@ class RandomSqlTableTestObject {
         tuple_versions_.insert(accessor, updated_slot);
         accessor->second.push_back({timestamp, new_updated_tuples[loc], layout_version});
 
-        updated_slots_[updated_slots_size + loc]= updated_slot;
+        updated_slots_[updated_slots_size + loc] = updated_slot;
       }
     };
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
@@ -759,9 +759,9 @@ TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
 
   // Scan the table concurrently with the newest version, seeing all the tuples except for the first tuple
   auto workload = [&](uint32_t thread_id) {
-      auto it2 = test_table.GetTable().begin();
-      test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_),
-          &it2, columns_vec[thread_id], new_version);
+    auto it2 = test_table.GetTable().begin();
+    test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it2,
+                               columns_vec[thread_id], new_version);
   };
   MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, scan_threads, workload);
 
@@ -791,21 +791,21 @@ TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
   txn_ts++;
 
   std::vector<storage::TupleSlot> slots_to_update(test_table.InsertedTuples().begin() + 1,
-      test_table.InsertedTuples().begin() + num_inserts / 4 + 1);
+                                                  test_table.InsertedTuples().begin() + num_inserts / 4 + 1);
   int num_updates = slots_to_update.size();
   EXPECT_EQ(slots_to_update.size(), num_inserts / 4);
-  std::vector<storage::TupleSlot> updated_slots = test_table.ConcurrentlyUpdateTuples(slots_to_update, transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_,
-      new_version, num_threads);
+  std::vector<storage::TupleSlot> updated_slots = test_table.ConcurrentlyUpdateTuples(
+      slots_to_update, transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, new_version, num_threads);
   for (int i = 0; i < num_updates; i++) {
     EXPECT_TRUE(slots_to_update[i] != updated_slots[i]);
   }
 
-//  for (uint32_t i = 1; i < num_inserts / 2; i++) {
-//    auto slot = test_table.InsertedTuples()[i];
-//    auto updated_slot =
-//        test_table.UpdateTuple(slot, transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, new_version);
-//    EXPECT_TRUE(slot != updated_slot);
-//  }
+  //  for (uint32_t i = 1; i < num_inserts / 2; i++) {
+  //    auto slot = test_table.InsertedTuples()[i];
+  //    auto updated_slot =
+  //        test_table.UpdateTuple(slot, transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, new_version);
+  //    EXPECT_TRUE(slot != updated_slot);
+  //  }
   EXPECT_EQ(test_table.UpdatedTuples().size(), num_updates);
 }
 
