@@ -130,15 +130,11 @@ class PG_Constraint {
  private:
   // fill the columns that the constraint is effective on: this is for UNIQUE, PK, NOTNULL
   void FillConCol(std::string con_col_str) {
-    if (contype_ == postgres::ConstraintType::PRIMARY_KEY ||
-        contype_ == postgres::ConstraintType::UNIQUE ||
-        contype_ == postgres::ConstraintType::NOTNULL) {
       std::vector<std::string> raw_oid_vec = SplitString(con_col_str, postgres::VARCHAR_ARRAY_DELIMITER);
       concol_.reserve(raw_oid_vec.size());
       for (std::string col_oid : raw_oid_vec) {
         concol_.push_back(static_cast<col_oid_t>(stoi(col_oid)));
       }
-    }
   }
 
   // python style spliting a string into vector according to a delimiting char
