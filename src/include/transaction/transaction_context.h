@@ -31,10 +31,16 @@ namespace terrier::transaction {
  */
 class TransactionContext {
  public:
-  //Temporary lock being used to debug a deadlock. Will be removed before merge to cmu-db/master
+  /**
+   * Temporary lock being used to debug a deadlock. Will be removed before merge to cmu-db/master
+   */
   class DebugLock : public std::shared_mutex {
    public:
 
+    /**
+     * lock in shared mode whie adding debug info
+     * @param txn transaction holding the lock
+     */
     void debug_lock_shared(const common::ManagedPointer<transaction::TransactionContext> &txn) {
       TERRIER_ASSERT(std::count(readers.begin(), readers.end(), txn) == 0, "Locking a lock I already have!");
       readers.push_back(txn);
@@ -42,6 +48,10 @@ class TransactionContext {
       std::shared_mutex::lock_shared();
     }
 
+    /**
+     * unlock in shared mode whie adding debug info
+     * @param txn transaction holding the lock
+     */
     void debug_unlock_shared(const common::ManagedPointer<transaction::TransactionContext> &txn) {
       int UNUSED_ATTRIBUTE cnt = lockers.count(txn);
       TERRIER_ASSERT(std::count(readers.begin(), readers.end(), txn) != 0, "Unlocking when I dont have this!");
@@ -49,6 +59,7 @@ class TransactionContext {
       std::shared_mutex::unlock_shared();
     }
 
+   private:
     std::vector<common::ManagedPointer<transaction::TransactionContext>> readers;
     std::unordered_set<common::ManagedPointer<transaction::TransactionContext>> lockers;
 
@@ -86,8 +97,6 @@ class TransactionContext {
    * @param start the start timestamp of the transaction. Should be unique within the system.
    * @param finish in HyPer parlance this is txn id. Should be larger than all start times and commit times in current
    * MVCC semantics
-   * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
-   * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    */
   TransactionContext(const timestamp_t start, const timestamp_t finish)
       : start_time_(start),

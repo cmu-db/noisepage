@@ -139,6 +139,7 @@ class DatabaseCatalog {
    * Obtain the pointer to the read/write lock for the given table. This must be taken in read mode for
    * any updates to the table contents (e.g. INSERT, DELETE, UPDATE), and in write mode for CREATE INDEX
    *
+   * @param txn the transaction that wants to acquire the table lock
    * @param table to which we want the read/write lock, this must be a valid oid from GetTableOid. Invalid input will
    * trigger an assert
    * @return a pointer to the read/write lock for the given table.
