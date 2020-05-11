@@ -102,7 +102,7 @@ class DDLExecutors {
   static bool DropIndexExecutor(common::ManagedPointer<planner::DropIndexPlanNode> node,
                                 common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
-  /*
+  /**
    * @param node node to executed
    * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise

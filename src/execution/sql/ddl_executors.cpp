@@ -159,7 +159,6 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
 
 bool DDLExecutors::CreateViewExecutor(common::ManagedPointer<planner::CreateViewPlanNode> node,
                                       common::ManagedPointer<catalog::CatalogAccessor> accessor) {
-  // const auto table_oid = accessor->CreateView(node->GetNamespaceOid(), node->GetViewName(), *(node->GetSchema()));
   return true;
 }
 }  // namespace terrier::execution::sql
