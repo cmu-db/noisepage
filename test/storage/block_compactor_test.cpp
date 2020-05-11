@@ -204,22 +204,20 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
   txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto txn3 = txn_manager_->BeginTransaction();
-  std::unique_ptr<execution::exec::ExecutionContext> execCtx =
-      MakeExecCtx(db_oid, txn3, common::ManagedPointer(
-          catalog_->GetAccessor(common::ManagedPointer(txn3),
-              db_oid)
-      )); // Possible error -> Two pointers arent set (last 2 arguments not passed)
+  auto catalog_accessor = catalog_->GetAccessor(common::ManagedPointer(txn3), db_oid);
+  execution::exec::ExecutionContext exec{db_oid,
+                                             common::ManagedPointer<transaction::TransactionContext>(txn3),
+                                             nullptr, nullptr,
+                                             common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
   txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   col_id_t *col_oids = new col_id_t[1];
   col_oids[0] = (col_id_t)1;
   auto block = table_ptr->begin()->GetBlock();
-  execution::exec::ExecutionContext *exec = execCtx.get();
-  auto ns_oid = exec->GetAccessor()->GetDefaultNamespace();
-  std::cout << ns_oid;
 
-// Initialise block compactor and perform compaction
-  storage::BlockCompactor compactor(exec, col_oids, table_name.c_str());
+  // Initialise block compactor and perform compaction
+  storage::BlockCompactor compactor(&exec, col_oids, table_name.c_str());
+  gc.PerformGarbageCollection();
   compactor.PutInQueue(block);
   transaction::DeferredActionManager *deferred_action_manager_ptr = deferred_action_manager.Get();
   transaction::TransactionManager *txn_manager_ptr = txn_manager_.Get();

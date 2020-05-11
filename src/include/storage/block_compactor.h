@@ -59,8 +59,6 @@ class BlockCompactor {
     exec_ = exec;
     col_oids_ = col_oids;
     table_name_ = table_name;
-    auto ns_oid = exec_->GetAccessor()->GetDefaultNamespace();
-    std::cout << ns_oid;
     // tpl code for use in moveTuple. It deletes the tuple from the table and from the index and then inserts the tuple
     // to the table (a specific block) and to the index. It returns true if the delete succeeds (because delete returns
     // false if a concurrent transaction is updating the tuple that is trying to be moved, the only condition where
