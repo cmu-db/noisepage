@@ -185,6 +185,8 @@ class DatabaseCatalog {
   template <typename OidType>
   std::vector<OidType> SpaceSeparatedOidToVector(std::string s);
   std::string VarlentoString(const storage::VarlenEntry &entry);
+  bool CompPRData(std::byte *src_pr, std::byte *tar_pr, type::TypeId type);
+  void CopyData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type);
   void CopyColumnData(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr, std::vector<col_oid_t> col_vec,
                       table_oid_t table_oid, index_oid_t index_oid, common::ManagedPointer<storage::index::Index> index);
   bool VerifyUniquePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -197,7 +199,7 @@ class DatabaseCatalog {
   bool VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                                    storage::ProjectedRow *pr);
   bool VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
-          storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
+          storage::ProjectedRow *update_pr, storage::TupleSlot tuple_slot);
   int FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, db_oid_t db_oid, table_oid_t table,
                  storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr);
   int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
