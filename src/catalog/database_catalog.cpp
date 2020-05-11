@@ -745,6 +745,7 @@ table_oid_t DatabaseCatalog::CreateTable(const common::ManagedPointer<transactio
 
 view_oid_t DatabaseCatalog::CreateView(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                        const std::string &view_name, const Schema &schema) {
+  // TODO(Elena) this is just a preparation for implementing create view
   return INVALID_VIEW_OID;
 }
 

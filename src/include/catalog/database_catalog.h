@@ -102,7 +102,7 @@ class DatabaseCatalog {
    * Create a new view in the catalog.
    * @param txn for the operation
    * @param ns OID of the namespace the view belongs to
-   * @param name of the new view
+   * @param view_name of the new view
    * @param schema columns of the new view
    * @return OID of the new table or INVALID_VIEW_OID if the operation failed
    * @warning This function does not allocate the storage for the view.  The
@@ -110,7 +110,7 @@ class DatabaseCatalog {
    * function call prior to committing.
    */
   view_oid_t CreateView(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
-                            const std::string &view_name, const Schema &schema);
+                        const std::string &view_name, const Schema &schema);
 
   /**
    * Deletes a table and all child objects (i.e columns, indexes, etc.) from
