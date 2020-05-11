@@ -197,7 +197,8 @@ class CatalogAccessor {
    * @param tuple_slot the tupleslot location update applies on the table
    * @return true if pr complies all constraints
    */
-  bool VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
+  bool VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr,
+                                   storage::TupleSlot tuple_slot);
 
   /**
    * Perform update cascade if any
@@ -228,7 +229,7 @@ class CatalogAccessor {
    */
   constraint_oid_t CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
                                       std::vector<col_oid_t> &pk_cols) const;
-  
+
   /**
    * caller to catalog to create a fk constraint entry for a table
    * @param ns is the namespace in which the constraint will exist
@@ -244,10 +245,11 @@ class CatalogAccessor {
    * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
    */
   constraint_oid_t CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
-                                       std::string name, index_oid_t src_index, index_oid_t sink_index, std::vector<col_oid_t> &src_cols,
-                                       std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
+                                       std::string name, index_oid_t src_index, index_oid_t sink_index,
+                                       std::vector<col_oid_t> &src_cols, std::vector<col_oid_t> &sink_cols,
+                                       postgres::FKActionType update_action,
                                        postgres::FKActionType delete_action) const;
-  
+
   /**
    * Caller to catalog to create a UNIQUE constraint record
    * @param ns is the namespace in which the constraint will exist

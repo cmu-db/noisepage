@@ -2315,7 +2315,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
 }
 
 // NOLINTNEXTLINE
-//TEST_F(CompilerTest, SimpleDeleteTest) {
+// TEST_F(CompilerTest, SimpleDeleteTest) {
 //  // DELETE FROM test_1 WHERE colA BETWEEN 495 AND 505
 //  // Then check that the following finds the no tuples:
 //  // SELECT * FROM test_1 WHERE colA BETWEEN 495 AND 505.
@@ -2445,7 +2445,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
 //}
 //
 //// NOLINTNEXTLINE
-//TEST_F(CompilerTest, SimpleUpdateTest) {
+// TEST_F(CompilerTest, SimpleUpdateTest) {
 //  // UPDATE test_1 SET colA = -colA, colB = 500 WHERE colA BETWEEN 495 AND 505
 //  // Then check that the following finds the tuples:
 //  // SELECT * FROM test_1 WHERE colA BETWEEN -505 AND -495.

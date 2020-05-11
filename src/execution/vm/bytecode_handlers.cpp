@@ -234,17 +234,17 @@ void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *st
 }
 
 void OpStorageInterfaceVerifyTableInsertConstraint(bool *result,
-    terrier::execution::sql::StorageInterface *storage_interface) {
+                                                   terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->VerifyTableInsertConstraint();
 }
 
 void OpStorageInterfaceDeleteCascade(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
-                                   terrier::storage::TupleSlot *tuple_slot) {
+                                     terrier::storage::TupleSlot *tuple_slot) {
   *result = storage_interface->DeleteCascade(*tuple_slot);
 }
 
 void OpStorageInterfaceUpdateCascade(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
-                                   terrier::storage::TupleSlot *tuple_slot) {
+                                     terrier::storage::TupleSlot *tuple_slot) {
   *result = storage_interface->UpdateCascade(*tuple_slot);
 }
 

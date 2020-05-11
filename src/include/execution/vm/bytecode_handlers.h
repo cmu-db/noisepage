@@ -21,10 +21,10 @@
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
-#include "planner/plannodes/update_plan_node.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
 #include "metrics/metrics_defs.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "util/time_util.h"
 
 // All VM terrier::bytecode op handlers must use this macro
@@ -1656,10 +1656,10 @@ VM_OP void OpStorageInterfaceVerifyTableInsertConstraint(bool *result,
                                                          terrier::execution::sql::StorageInterface *storage_interface);
 
 VM_OP void OpStorageInterfaceDeleteCascade(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
-                                         terrier::storage::TupleSlot *tuple_slot);
+                                           terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpStorageInterfaceUpdateCascade(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
-                                         terrier::storage::TupleSlot *tuple_slot);
+                                           terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpStorageInterfaceUpdateVerify(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
                                           terrier::storage::TupleSlot *tuple_slot);

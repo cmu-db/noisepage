@@ -36,10 +36,10 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
     // For indexed updates, we need to call delete first
     GenTableDelete(builder);
   }
-    GetUpdatePR(builder);
-    FillPRFromChild(builder);
+  GetUpdatePR(builder);
+  FillPRFromChild(builder);
 
-    GenUpdateCascade(builder);
+  GenUpdateCascade(builder);
   // Non indexed updates just update.
   if (op_->GetIndexedUpdate()) {
     // Indexed updates re-insert into the table
@@ -211,8 +211,8 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::i
 }
 
 void UpdateTranslator::GenUpdateVerify(FunctionBuilder *builder) {
-    auto delete_slot = child_translator_->GetSlot();
-    std::vector<ast::Expr *> update_cascad_args{codegen_->PointerTo(updater_), delete_slot};
+  auto delete_slot = child_translator_->GetSlot();
+  std::vector<ast::Expr *> update_cascad_args{codegen_->PointerTo(updater_), delete_slot};
   auto verify_constraint_call = codegen_->BuiltinCall(ast::Builtin::UpdateVerify, std::move(update_cascad_args));
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, verify_constraint_call);
   builder->StartIfStmt(cond);

@@ -161,15 +161,15 @@ class DatabaseCatalog {
    * @return the visible schema object for the identified table
    */
   const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
-  
+
   /**
-   * convert vector to the string of oids of space separated array 
+   * convert vector to the string of oids of space separated array
    * @param vec the vector of oids
    * @return the string of space separated arrya
    */
   template <typename OidType>
   std::string OidVectorToSpaceSeparatedString(const std::vector<OidType> &vec);
-  
+
   /**
    * reverse to convert a string of space separated array back to its oid vector form
    * @param s string of space separated oids
@@ -177,14 +177,14 @@ class DatabaseCatalog {
    */
   template <typename OidType>
   std::vector<OidType> SpaceSeparatedOidToVector(std::string s);
-  
+
   /**
    * convert the VarlenEntry back to its string form, assume the varlen derives from string
    * @param entry the varlen entry
-   * @return the string 
+   * @return the string
    */
   std::string VarlentoString(const storage::VarlenEntry &entry);
-  
+
   /**
    * Compare the data at some PR location, not mem safe, assume same data type
    * @param src_ptr source starting position
@@ -192,9 +192,9 @@ class DatabaseCatalog {
    * @return true if they are the same
    */
   bool CompPRData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type);
-  
+
   /**
-   * mem copy the same type data from one projected row ofset to another, not mem free 
+   * mem copy the same type data from one projected row ofset to another, not mem free
    * @param src_ptr source starting position
    * @param tar_ptr target position
    * @param type the type of the data to be compared
@@ -216,7 +216,7 @@ class DatabaseCatalog {
   void CopyColumnData(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr,
                       storage::ProjectedRow *index_pr, std::vector<col_oid_t> col_vec, table_oid_t table_oid,
                       index_oid_t index_oid, common::ManagedPointer<storage::index::Index> index);
-  
+
   /**
    * Verify if the data on the projected row update to the tuple_slot table location complies with table PK constraints
    * Helper function for VerifyTableInsertconstraint
@@ -227,7 +227,7 @@ class DatabaseCatalog {
    */
   bool VerifyUniquePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const PG_Constraint &con_obj, storage::ProjectedRow *pr);
-  
+
   /**
    * Verify if the data on the projected row update to the tuple_slot table location complies with table FK constraints
    * Helper function for VerifyTableInsertconstraint
@@ -238,10 +238,10 @@ class DatabaseCatalog {
    */
   bool VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, const PG_Constraint &con_obj,
                           storage::ProjectedRow *pr);
-  
+
   /**
-   * Verify if the data on the projected row update to the tuple_slot table location complies with table CHECK constraints
-   * Helper function for VerifyTableInsertconstraint
+   * Verify if the data on the projected row update to the tuple_slot table location complies with table CHECK
+   * constraints Helper function for VerifyTableInsertconstraint
    * @param con_obj the constraint in PG_Constraint class
    * @return true if constraint check passed
    */
@@ -254,14 +254,14 @@ class DatabaseCatalog {
    * @return true if constraint check passed
    */
   bool VerifyExclusionConstraint(const PG_Constraint &con_obj);
-  
+
   /**
    * convert a pg-constraint full size projected row into PG_constraint data carrier class
    * @param select_pr the projected row
    * @return the filled class
    */
   PG_Constraint PGConstraintPRToObj(storage::ProjectedRow *select_pr);
-  
+
   /**
    * Verify if the data on the projected row insert fits the overall constraint in the table
    * @param txn transaction
@@ -271,7 +271,7 @@ class DatabaseCatalog {
    */
   bool VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
                                    storage::ProjectedRow *pr);
-  
+
   /**
    * Verify if the data on the projected row update fits the overall constraint in the table
    * @param txn transaction
@@ -284,10 +284,10 @@ class DatabaseCatalog {
   bool VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
                                    const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *update_pr,
                                    storage::TupleSlot tuple_slot);
-  
+
   bool FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table,
                  storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr);
-  
+
   /**
    * insert eh PK constraint when creating table according to the definition
    * @param txn transaction
@@ -301,16 +301,16 @@ class DatabaseCatalog {
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t table, const std::string &name, index_oid_t index,
                                       const std::vector<col_oid_t> &pk_cols);
-  
+
   /**
    * insert eh FK constraint when creating table according to the definition
    * @param txn transaction
    * @param ns the namespace_oid
    * @param src_table the source table_oid where declares the FK
-   * @param sink_table the parent table_oid where the FK refers to 
+   * @param sink_table the parent table_oid where the FK refers to
    * @param name the name of the table
    * @param src_index the index that this constraint applies on the srouce table FK columns
-   * @param sink_index the index for the reference columns 
+   * @param sink_index the index for the reference columns
    * @param src_cols the columns from source table that declares FK
    * @param sink_cols the columns of the ref table reference
    * @param update_action FK update CASCADE option
@@ -322,7 +322,7 @@ class DatabaseCatalog {
                                       index_oid_t src_index, index_oid_t sink_index,
                                       const std::vector<col_oid_t> &src_cols, const std::vector<col_oid_t> &sink_cols,
                                       postgres::FKActionType update_action, postgres::FKActionType delete_action);
-  
+
   /**
    * insert the UNIQUE constraint when creating table according to the definition
    * @param txn transaction
@@ -336,7 +336,7 @@ class DatabaseCatalog {
   constraint_oid_t CreateUNIQUEConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                           namespace_oid_t ns, table_oid_t table, const std::string &name,
                                           index_oid_t index, const std::vector<col_oid_t> &unique_cols);
-  
+
   /**
    * for the given constraint creation info, fill the allocated projected row according to pg-constraint schema
    * @param constraints_insert_pr the target projected row
@@ -353,7 +353,7 @@ class DatabaseCatalog {
    * @param foreign_table the FK reference tableOid
    * @param update_action the FK update CASCADE option
    * @param delete_action the FK delete CASCADE option
-   * @param fk_match_type how the Fks are matched 
+   * @param fk_match_type how the Fks are matched
    * @param is_local whether this is local consteaint
    * @param number of inherit count
    * @param non_inheritable whether this is non-inheritable
@@ -377,7 +377,7 @@ class DatabaseCatalog {
   /**
    * Fill the constraint index
    * @param txn transaction
-   * @param tuple_slot the tuple sltp of the table 
+   * @param tuple_slot the tuple sltp of the table
    * @param constraint_oid the constraint id
    * @param name the name of the table
    * @param ns the namespace_oid
@@ -398,7 +398,7 @@ class DatabaseCatalog {
    */
   std::vector<storage::TupleSlot> GetConstraintsTupleSlots(common::ManagedPointer<transaction::TransactionContext> txn,
                                                            table_oid_t table);
-  
+
   /**
    * Get the constraint_oids for a given table
    * @param txn for the operation
@@ -407,7 +407,7 @@ class DatabaseCatalog {
    */
   std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
                                                table_oid_t table);
-  
+
   /**
    * Get the pg_constraint class obj for a given table
    * @param txn for the operation
@@ -416,7 +416,7 @@ class DatabaseCatalog {
    */
   std::vector<PG_Constraint> GetConstraintObjs(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                table_oid_t table);
-  
+
   /**
    * Delete all the constraints for a given table
    * @param txn for the operation
@@ -424,7 +424,7 @@ class DatabaseCatalog {
    * @return true if successfully delete constraints in the table
    */
   bool DeleteConstraints(common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table);
-  
+
   /**
    * Delete a constraint for given a constraint_id
    * @param txn for the operation
@@ -432,7 +432,7 @@ class DatabaseCatalog {
    * @return true if successfully delete constraint
    */
   bool DeleteConstraint(common::ManagedPointer<transaction::TransactionContext> txn, constraint_oid_t constraint);
-  
+
   /**
    * A list of all indexes on the given table
    * @param txn for the operation
