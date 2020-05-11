@@ -17,7 +17,7 @@ constexpr index_oid_t SEQUENCE_OID_INDEX_OID = index_oid_t(92);
  */
 constexpr col_oid_t SEQOID_COL_OID = col_oid_t(1);      // INTEGER (pkey)
 constexpr col_oid_t SEQRELID_COL_OID = col_oid_t(2);    // INTEGER (fkey: pg_class)
-constexpr col_oid_t SEQNEXTVAL_COL_OID = col_oid_t(3);  // INTEGER
+constexpr col_oid_t SEQLASTVAL_COL_OID = col_oid_t(3);  // INTEGER
 
 constexpr col_oid_t SEQTEMPTABLEID_COL_OID = col_oid_t(1);
 constexpr col_oid_t SEQTEMPTABLEVAL_COL_OID = col_oid_t(2);
@@ -25,5 +25,5 @@ constexpr col_oid_t SEQTEMPTABLEVAL_COL_OID = col_oid_t(2);
 constexpr uint8_t NUM_PG_SEQUENCE_COLS = 3;
 
 constexpr std::array<col_oid_t, NUM_PG_SEQUENCE_COLS> PG_SEQUENCE_ALL_COL_OIDS{SEQOID_COL_OID, SEQRELID_COL_OID,
-                                                                               SEQNEXTVAL_COL_OID};
+                                                                               SEQLASTVAL_COL_OID};
 }  // namespace terrier::catalog::postgres

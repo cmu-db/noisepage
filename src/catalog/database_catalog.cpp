@@ -373,7 +373,7 @@ void DatabaseCatalog::BootstrapPRIs() {
   pg_sequence_all_cols_prm_ = sequences_->ProjectionMapForOids(pg_sequence_all_oids);
 
   const std::vector<col_oid_t> delete_sequence_oids{postgres::SEQOID_COL_OID, postgres::SEQRELID_COL_OID,
-                                                    postgres::SEQNEXTVAL_COL_OID};
+                                                    postgres::SEQLASTVAL_COL_OID};
   delete_sequence_pri_ = indexes_->InitializerForProjectedRow(delete_sequence_oids);
   delete_sequence_prm_ = indexes_->ProjectionMapForOids(delete_sequence_oids);
 }
@@ -1450,10 +1450,10 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   sequence_oid_ptr = sequences_insert_pr->AccessForceNotNull(sequence_oid_offset);
   *(reinterpret_cast<sequence_oid_t *>(sequence_oid_ptr)) = sequence_oid;
 
-  // Write nextval into the PR. Default is 0
-  const auto sequence_nextval_offset = pg_sequence_all_cols_prm_[postgres::SEQNEXTVAL_COL_OID];
-  const auto sequence_nextval_ptr = sequences_insert_pr->AccessForceNotNull(sequence_nextval_offset);
-  *(reinterpret_cast<uint32_t *>(sequence_nextval_ptr)) = 0;
+  // Write lastval into the PR. Default is 0
+  const auto sequence_lastval_offset = pg_sequence_all_cols_prm_[postgres::SEQLASTVAL_COL_OID];
+  const auto sequence_lastval_ptr = sequences_insert_pr->AccessForceNotNull(sequence_lastval_offset);
+  *(reinterpret_cast<uint32_t *>(sequence_lastval_ptr)) = 0;
 
   const auto tuple_slot = sequences_->Insert(txn, sequences_insert_redo);
 
