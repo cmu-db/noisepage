@@ -1334,7 +1334,9 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
 bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                                   table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
                                                   storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
-  auto table = GetTable(txn, table_oid);
+    // TODO： we do not know if this needs lock for now, for safety we lock it
+    if (!TryLock(txn)) return false;
+    auto table = GetTable(txn, table_oid);
   const auto table_schema = GetSchema(txn, table_oid);
   std::vector<col_oid_t> table_col_oids;
   table_col_oids.reserve(table_schema.GetColumns().size());
@@ -1348,10 +1350,10 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
   TERRIER_ASSERT(result, "verifying a updated tuple slot should always exists in the table");
 
   // verification data structure preparation
-  std::unordered_set<col_oid_t> update_col_set;
-
-  for (auto col : col_oids) {
-      update_col_set.insert(col);
+  storage::ProjectionMap update_pr_pm;
+  uint16_t ui = 0;
+  for (size_t i = 0; i < col_oids.size(); i ++) {
+      update_pr_pm[col_oids[i]] = ui++;
   }
 
   // get out all the constraint from the table
@@ -1360,8 +1362,6 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
 
       // verify if their col is affected by update
       bool col_affected = false;
-
-
       if (col_affected) {
           // generate the updated index_pr given the con_index table original data and used data
           // if the original index_pr and the updated index_pr are the same pass this constraint test
