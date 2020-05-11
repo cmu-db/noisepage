@@ -332,7 +332,7 @@ TEST_F(DataTableTests, InsertNoWrap) {
 // Test that insertion into a block does not wrap around even in the presence of deleted slots. This makes compaction
 // a lot easier to write.
 // NOLINTNEXTLINE
-TEST_F(DataTableTests, SimpleNumaTest) {
+TEST_F(DataTableTests, DISABLED_SimpleNumaTest) {
   const uint32_t num_iterations = 3;
   const uint16_t max_columns = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
