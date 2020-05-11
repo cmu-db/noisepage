@@ -373,7 +373,7 @@ class LogicalInnerJoinToPhysicalInnerIndexJoin : public Rule {
 };
 
 /**
- * Rule transforms Logical Semi Join to SemiLeftJoin
+ * Rule transforms Logical Semi Join to SemiLeftHashJoin
  */
 class LogicalSemiJoinToPhysicalSemiLeftHashJoin : public Rule {
  public:
