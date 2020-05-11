@@ -63,7 +63,9 @@ bool StorageInterface::UpdateCascade(storage::TupleSlot table_tuple_slot) {
 }
 
 bool StorageInterface::DeleteCascade(storage::TupleSlot table_tuple_slot) {
-  return db_accessor_->DeleteCascade(table_oid_, table_tuple_slot, table_redo_->Delta());
+  int result = db_accessor_->DeleteCascade(exec_ctx_->DBOid(), table_oid_, table_tuple_slot, table_redo_->Delta());
+  exec_ctx_->RowsAffected() += result;
+  return result != 0;
 }
 
 storage::TupleSlot StorageInterface::TableInsert() {
