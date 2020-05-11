@@ -6,13 +6,13 @@
 
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/value.h"
-#include "planner/plannodes/update_plan_node.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_handlers.h"
 #include "execution/vm/module.h"
+#include "planner/plannodes/update_plan_node.h"
 
 namespace terrier::execution::vm {
 
@@ -1721,37 +1721,37 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(StorageInterfaceVerifyTableInsertConstraint) : {
-  auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-  auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-  OpStorageInterfaceVerifyTableInsertConstraint(result, storage_interface);
-  DISPATCH_NEXT();
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    OpStorageInterfaceVerifyTableInsertConstraint(result, storage_interface);
+    DISPATCH_NEXT();
   }
 
   OP(StorageInterfaceDeleteCascade) : {
-  auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-  auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-  auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
-  OpStorageInterfaceDeleteCascade(result, storage_interface, tuple_slot);
-  DISPATCH_NEXT();
+    OpStorageInterfaceDeleteCascade(result, storage_interface, tuple_slot);
+    DISPATCH_NEXT();
   }
 
   OP(StorageInterfaceUpdateCascade) : {
-  auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-  auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-  auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
-  OpStorageInterfaceUpdateCascade(result, storage_interface, tuple_slot);
-  DISPATCH_NEXT();
-}
+    OpStorageInterfaceUpdateCascade(result, storage_interface, tuple_slot);
+    DISPATCH_NEXT();
+  }
 
   OP(StorageInterfaceUpdateVerify) : {
-  auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-  auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-  auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-  OpStorageInterfaceUpdateVerify(result, storage_interface, tuple_slot);
-  DISPATCH_NEXT();
-}
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    OpStorageInterfaceUpdateVerify(result, storage_interface, tuple_slot);
+    DISPATCH_NEXT();
+  }
 
   OP(StorageInterfaceFree) : {
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());

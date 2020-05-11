@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <stdio.h>
 #include "catalog/catalog_accessor.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "common/macros.h"
@@ -154,7 +153,6 @@ bool DDLExecutors::CreatePKConstraintsAndIndices(const common::ManagedPointer<ca
   catalog::constraint_oid_t constraint_oid;
   catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
   if (plan_node->HasPrimaryKey()) {
-    std::cerr << "Enter create PK and Index\n";
     // Create the IndexSchema Columns by referencing the Columns in the canonical table Schema from the Catalog
     std::vector<catalog::IndexSchema::Column> key_cols;
     const auto &primary_key_info = plan_node->GetPrimaryKey();
@@ -171,14 +169,12 @@ bool DDLExecutors::CreatePKConstraintsAndIndices(const common::ManagedPointer<ca
       }
     }
     catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
-    
 
     // Create the index, and use its return value as overall success result
     catalog::index_oid_t index_oid = CreateIndexForConstraints(accessor, plan_node->GetNamespaceOid(),
                                                                primary_key_info.constraint_name_, table, index_schema);
-    std::cerr << "created index\n";
+
     if (index_oid == catalog::INVALID_INDEX_OID) {
-      std::cerr << "created index for constraint failed\n";
       return false;
     }
     const planner::PrimaryKeyInfo &pk_info = plan_node->GetPrimaryKey();
@@ -189,7 +185,7 @@ bool DDLExecutors::CreatePKConstraintsAndIndices(const common::ManagedPointer<ca
     }
     constraint_oid = accessor->CreatePKConstraint(ns, table, pk_info.constraint_name_, index_oid, pk_cols);
     if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
-       std::cerr << "Catalog wasn't able to proceed, txn must now abort\n";
+      std::cerr << "Catalog wasn't able to proceed, txn must now abort\n";
       return false;
     }
   }
@@ -232,8 +228,8 @@ bool DDLExecutors::CreateFKConstraintsAndIndices(const common::ManagedPointer<ca
     }
     catalog::IndexSchema sink_index_schema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
     // Create the index, and use its return value as overall success result
-    catalog::index_oid_t sink_index_oid = CreateIndexForConstraints(accessor, plan_node->GetNamespaceOid(),
-                                                               fk.constraint_name_ + "_sink", sink_table, sink_index_schema);
+    catalog::index_oid_t sink_index_oid = CreateIndexForConstraints(
+        accessor, plan_node->GetNamespaceOid(), fk.constraint_name_ + "_sink", sink_table, sink_index_schema);
     if (sink_index_oid == catalog::INVALID_INDEX_OID) {
       return false;
     }
@@ -252,8 +248,8 @@ bool DDLExecutors::CreateFKConstraintsAndIndices(const common::ManagedPointer<ca
     }
     catalog::IndexSchema src_index_schema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
     // Create the index, and use its return value as overall success result
-    catalog::index_oid_t src_index_oid = CreateIndexForConstraints(accessor, plan_node->GetNamespaceOid(),
-                                                               fk.constraint_name_+"_src", table, src_index_schema);
+    catalog::index_oid_t src_index_oid = CreateIndexForConstraints(
+        accessor, plan_node->GetNamespaceOid(), fk.constraint_name_ + "_src", table, src_index_schema);
     if (src_index_oid == catalog::INVALID_INDEX_OID) {
       return false;
     }
@@ -267,18 +263,17 @@ bool DDLExecutors::CreateFKConstraintsAndIndices(const common::ManagedPointer<ca
     // verify that src and sink col has the same datatype
     TERRIER_ASSERT(src_cols.size() == sink_cols.size(), "FK src col and sink col should be one on one match");
 
-    std::unordered_map<terrier::parser::FKConstrActionType, catalog::postgres::FKActionType>
-        fk_constructuin_action_map{
-            {terrier::parser::FKConstrActionType::INVALID, catalog::postgres::FKActionType::SETINVALID},
-            {terrier::parser::FKConstrActionType::NOACTION, catalog::postgres::FKActionType::NOACT},
-            {terrier::parser::FKConstrActionType::RESTRICT_, catalog::postgres::FKActionType::RESTRICTION},
-            {terrier::parser::FKConstrActionType::CASCADE, catalog::postgres::FKActionType::CASCADE},
-            {terrier::parser::FKConstrActionType::SETNULL, catalog::postgres::FKActionType::SETNULL},
-            {terrier::parser::FKConstrActionType::SETDEFAULT, catalog::postgres::FKActionType::SETDEFAULT}};
+    std::unordered_map<terrier::parser::FKConstrActionType, catalog::postgres::FKActionType> fk_constructuin_action_map{
+        {terrier::parser::FKConstrActionType::INVALID, catalog::postgres::FKActionType::SETINVALID},
+        {terrier::parser::FKConstrActionType::NOACTION, catalog::postgres::FKActionType::NOACT},
+        {terrier::parser::FKConstrActionType::RESTRICT_, catalog::postgres::FKActionType::RESTRICTION},
+        {terrier::parser::FKConstrActionType::CASCADE, catalog::postgres::FKActionType::CASCADE},
+        {terrier::parser::FKConstrActionType::SETNULL, catalog::postgres::FKActionType::SETNULL},
+        {terrier::parser::FKConstrActionType::SETDEFAULT, catalog::postgres::FKActionType::SETDEFAULT}};
     catalog::postgres::FKActionType update_action = fk_constructuin_action_map[fk.upd_action_];
     catalog::postgres::FKActionType delete_action = fk_constructuin_action_map[fk.del_action_];
-    constraint_oid = accessor->CreateFKConstraints(ns, src_table, sink_table, fk.constraint_name_, src_index_oid, sink_index_oid, src_cols,
-                                                   sink_cols, update_action, delete_action);
+    constraint_oid = accessor->CreateFKConstraints(ns, src_table, sink_table, fk.constraint_name_, src_index_oid,
+                                                   sink_index_oid, src_cols, sink_cols, update_action, delete_action);
     if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
       // Catalog wasn't able to proceed, txn must now abort
       return false;

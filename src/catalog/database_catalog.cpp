@@ -1257,6 +1257,9 @@ PG_Constraint DatabaseCatalog::PGConstraintPRToObj(storage::ProjectedRow *select
     auto update_action = *(reinterpret_cast<postgres::FKActionType *>(offset));
     offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONFDELTYPE_COL_OID]);
     auto delete_action = *(reinterpret_cast<postgres::FKActionType *>(offset));
+    // TODO: we temporarily store thr source table index inside the exclusion varchar as string
+    offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONEXCLOP_COL_OID]);
+    auto src_index_string = VarlentoString(*(reinterpret_cast<storage::VarlenEntry *>(offset)));
     std::string con_fkcol_str = VarlentoString(con_fkcol_varlen);
     std::vector<col_oid_t> con_src_ids = SpaceSeparatedOidToVector<col_oid_t>(con_col_str);
     std::vector<col_oid_t> con_ref_ids = SpaceSeparatedOidToVector<col_oid_t>(con_fkcol_str);
@@ -1266,6 +1269,8 @@ PG_Constraint DatabaseCatalog::PGConstraintPRToObj(storage::ProjectedRow *select
     con_obj.fkMetadata_.fk_refs_.insert(con_obj.fkMetadata_.fk_refs_.begin(), con_ref_ids.begin(), con_ref_ids.end());
     con_obj.fkMetadata_.update_action_ = update_action;
     con_obj.fkMetadata_.delete_action_ = delete_action;
+    con_obj.fkMetadata_.consrcindid_ = static_cast<index_oid_t>(stoi(src_index_string));
+
   } else if (con_obj.contype_ == postgres::ConstraintType::CHECK) {
     // TODO: implement construction support for check constraint
     TERRIER_ASSERT(true, "Should implement construction for check constraint");
@@ -1326,7 +1331,9 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
 
 bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                                   table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
-                                                  storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
+                                                  storage::ProjectedRow *update_pr, storage::TupleSlot tuple_slot) {
+  // TODO： we do not know if this needs lock for now, for safety we lock it
+  if (!TryLock(txn)) return false;
   auto table = GetTable(txn, table_oid);
   const auto table_schema = GetSchema(txn, table_oid);
   std::vector<col_oid_t> table_col_oids;
@@ -1341,30 +1348,201 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
   TERRIER_ASSERT(result, "verifying a updated tuple slot should always exists in the table");
 
   // verification data structure preparation
-  std::unordered_set<col_oid_t> update_col_set;
+  storage::ProjectionMap update_pr_pm = table->ProjectionMapForOids(col_oids);
 
-  for (auto col : col_oids) {
-      update_col_set.insert(col);
-  }
-
+  auto table_prm = table->ProjectionMapForOids(table_col_oids);
   // get out all the constraint from the table
   std::vector<PG_Constraint> con_vec = GetConstraintObjs(txn, table_oid);
-  for (size_t i = 0; i < con_vec.size(); i ++) {
-
-      // verify if their col is affected by update
-      bool col_affected = false;
-
-
-      if (col_affected) {
-          // generate the updated index_pr given the con_index table original data and used data
-          // if the original index_pr and the updated index_pr are the same pass this constraint test
-          // if PK or UNIQUE, then search for the index_pr in index, return false if exists (cannot update to an existing)
-          // if FK, then search for the index_pr in the ref_index return false if not exists
+  std::unordered_set<col_oid_t> affected_col;
+  for (size_t i = 0; i < con_vec.size(); i++) {
+    PG_Constraint constraint = con_vec[i];
+    // verify if their col is affected by update
+    bool col_affected = false;
+    affected_col.clear();
+    for (col_oid_t col : constraint.concol_) {
+      if (update_pr_pm.count(col) > 0) {
+        col_affected = true;
+        affected_col.insert(col);
       }
-  }
+    }
+    if (col_affected) {
+      // generate the updated index_pr given the con_index table original data and used data
+      auto index = GetIndex(txn, constraint.conindid_);
+      auto index_schema = GetIndexSchema(txn, constraint.conindid_);
+      const auto index_pri = index->GetProjectedRowInitializer();
+      auto *index_buffer = common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
+      auto *index_pr = index_pri.InitializeRow(index_buffer);
+      auto index_pm = index->GetKeyOidToOffsetMap();
+      const auto &index_columns = index_schema.GetColumns();
+      TERRIER_ASSERT(index_columns.size() == constraint.concol_.size(),
+                     "index should have same cardinality as table col in constraint");
+//      bool all_col_update_same = true;
+      for (size_t j = 0; j < index_columns.size(); j++) {
+        col_oid_t table_col_oid = constraint.concol_[j];
+        indexkeycol_oid_t index_col_oid = index_columns[j].Oid();
+        std::byte *index_ptr, *table_ptr, *update_ptr;
+        index_ptr = index_pr->AccessForceNotNull(index_pm[index_col_oid]);
+        table_ptr = table_pr->AccessForceNotNull(table_prm[table_col_oid]);
+        TERRIER_ASSERT(table_schema.GetColumn(table_col_oid).Type() == index_columns[j].Type(),
+                       "table_col and index_col should have same type");
+        if (affected_col.count(table_col_oid) > 0) {
+          update_ptr = update_pr->AccessForceNotNull(update_pr_pm[table_col_oid]);
+          CopyData(update_ptr, index_ptr, index_columns[j].Type());
+//          all_col_update_same = CompPRData(table_ptr, update_ptr, index_columns[j].Type());
+        } else {
+          CopyData(table_ptr, index_ptr, index_columns[j].Type());
+        }
+      }
+      // if all the update data are the saem as original data, then we allow for this constraint
 
+//      if (all_col_update_same) {
+//          delete[] index_buffer;
+//          continue;
+//      }
+      // if the original index_pr and the updated index_pr are the same pass this constraint test
+      std::vector<storage::TupleSlot> index_scan_result;
+      index->ScanKey(*txn, *index_pr, &index_scan_result);
+      if (constraint.contype_ == postgres::ConstraintType::PRIMARY_KEY ||
+          constraint.contype_ == postgres::ConstraintType::UNIQUE) {
+        if (!index_scan_result.empty()) {
+          delete[] index_buffer;
+          delete[] buffer;
+          txn->SetMustAbort();
+          return false;
+        }
+      } else if (constraint.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
+        if (index_scan_result.empty()) {
+          delete[] index_buffer;
+          delete[] buffer;
+          txn->SetMustAbort();
+          return false;
+        }
+      } else {
+        // TODO: Add support for other type constraint update verification
+        TERRIER_ASSERT(true, "Add support for other type constraint update verification");
+      }
+      delete[] index_buffer;
+    }
+  }
   delete[] buffer;
   return true;
+}
+// bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
+//                                                  table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
+//                                                  storage::ProjectedRow *update_pr, storage::TupleSlot tuple_slot) {
+//    // TODO： we do not know if this needs lock for now, for safety we lock it
+//    if (!TryLock(txn)) return false;
+//    auto table = GetTable(txn, table_oid);
+//    const auto table_schema = GetSchema(txn, table_oid);
+//    std::vector<col_oid_t> table_col_oids;
+//    table_col_oids.reserve(table_schema.GetColumns().size());
+//    for (const auto &col : table_schema.GetColumns()) {
+//        table_col_oids.push_back(col.Oid());
+//    }
+//    auto table_pri = table->InitializerForProjectedRow(table_col_oids);
+//    auto *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+//    auto *table_pr = table_pri.InitializeRow(buffer);
+//    bool result UNUSED_ATTRIBUTE = table->Select(txn, tuple_slot, table_pr);
+//    TERRIER_ASSERT(result, "verifying a updated tuple slot should always exists in the table");
+//
+//    // verification data structure preparation
+//    storage::ProjectionMap update_pr_pm = table->ProjectionMapForOids(col_oids);
+//
+//    auto table_prm = table->ProjectionMapForOids(table_col_oids);
+//    // get out all the constraint from the table
+//    std::vector<PG_Constraint> con_vec = GetConstraintObjs(txn, table_oid);
+//    std::unordered_set<col_oid_t> affected_col;
+//    for (size_t i = 0; i < con_vec.size(); i ++) {
+//        PG_Constraint constraint = con_vec[i];
+//        // verify if their col is affected by update
+//        bool col_affected = false;
+//        affected_col.clear();
+//        for (col_oid_t col : constraint.concol_) {
+//            if (update_pr_pm.count(col) > 0) {
+//                col_affected = true;
+//                affected_col.insert(col);
+//            }
+//        }
+//        if (col_affected) {
+//            // generate the updated index_pr given the con_index table original data and used data
+//            auto index = GetIndex(txn, constraint.conindid_);
+//            auto index_schema = GetIndexSchema(txn, constraint.conindid_);
+//            const auto index_pri = index->GetProjectedRowInitializer();
+//            auto *index_buffer = common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
+//            auto *index_pr = index_pri.InitializeRow(index_buffer);
+//            auto index_pm = index->GetKeyOidToOffsetMap();
+//            const auto &index_columns = index_schema.GetColumns();
+//            TERRIER_ASSERT(index_columns.size() == constraint.concol_.size(), "index should have same cardinality as
+//            table col in constraint"); bool all_col_update_same = true; for (size_t j = 0; j < index_columns.size(); j
+//            ++) {
+//                col_oid_t table_col_oid = constraint.concol_[j];
+//                indexkeycol_oid_t index_col_oid = index_columns[j].Oid();
+//                std::byte *index_ptr, *table_ptr, *update_ptr;
+//                index_ptr = index_pr->AccessForceNotNull(index_pm[index_col_oid]);
+//                table_ptr = table_pr->AccessForceNotNull(table_prm[table_col_oid]);
+//                TERRIER_ASSERT(table_schema.GetColumn(table_col_oid).Type() == index_columns[j].Type(),
+//                               "table_col and index_col should have same type");
+//                if (affected_col.count(table_col_oid) > 0) {
+//                    update_ptr = update_pr->AccessForceNotNull(update_pr_pm[table_col_oid]);
+//                    CopyData(update_ptr, index_ptr, index_columns[j].Type());
+//                    all_col_update_same = CompPRData(table_ptr, update_ptr, index_columns[j].Type());
+//                } else {
+//                    CopyData(table_ptr, index_ptr, index_columns[j].Type());
+//                }
+//            }
+//            // if all the update data are the saem as original data, then we allow for this constraint
+//
+//            if (all_col_update_same) {
+//                delete[] index_buffer;
+//                continue;
+//            }
+//            // if the original index_pr and the updated index_pr are the same pass this constraint test
+//            std::vector<storage::TupleSlot> index_scan_result;
+//            index->ScanKey(*txn, *index_pr, &index_scan_result);
+//            if (constraint.contype_ == postgres::ConstraintType::PRIMARY_KEY ||
+//                constraint.contype_ == postgres::ConstraintType::UNIQUE) {
+//                if (!index_scan_result.empty()) {
+//                    delete[] index_buffer;
+//                    delete[] buffer;
+//                    txn->SetMustAbort();
+//                    return false;
+//                }
+//            }
+//            else if (constraint.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
+//                if (index_scan_result.empty()) {
+//                    delete[] index_buffer;
+//                    delete[] buffer;
+//                    txn->SetMustAbort();
+//                    return false;
+//                }
+//            }
+//            else {
+//                // TODO: Add support for other type constraint update verification
+//                TERRIER_ASSERT(true, "Add support for other type constraint update verification");
+//            }
+//            delete[] index_buffer;
+//        }
+//    }
+//    delete[] buffer;
+//    return true;
+//}
+
+bool DatabaseCatalog::CompPRData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type) {
+  TERRIER_ASSERT(type != type::TypeId::VARBINARY, "Update from external table should not have VARBINARY type");
+  if (type == type::TypeId::VARCHAR) {
+    std::string src_string = VarlentoString(*(reinterpret_cast<storage::VarlenEntry *>(src_ptr)));
+    std::string tar_string = VarlentoString(*(reinterpret_cast<storage::VarlenEntry *>(tar_ptr)));
+    return src_string == tar_string;
+  }
+  return std::memcmp(tar_ptr, src_ptr, type::TypeUtil::GetTypeSize(type)) == 0;
+}
+
+void DatabaseCatalog::CopyData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type) {
+  if (type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY) {
+    *(reinterpret_cast<storage::VarlenEntry *>(tar_ptr)) = *(reinterpret_cast<storage::VarlenEntry *>(src_ptr));
+  } else {
+    std::memcpy(tar_ptr, src_ptr, type::TypeUtil::GetTypeSize(type));
+  }
 }
 
 void DatabaseCatalog::CopyColumnData(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1455,9 +1633,6 @@ constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<tran
                                                      index_oid_t index, const std::vector<col_oid_t> &pk_cols) {
   if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
   const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
-  //  if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
-  std::cerr << "start creating PK\n";
-  //  const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
   // Insert metadata into pg_constraint
   auto *const constraints_insert_redo =
       txn->StageWrite(db_oid_, postgres::CONSTRAINT_TABLE_OID, pg_constraints_all_cols_pri_);
@@ -1498,6 +1673,7 @@ constraint_oid_t DatabaseCatalog::CreateFKConstraint(common::ManagedPointer<tran
   std::string concol_str = OidVectorToSpaceSeparatedString<col_oid_t>(src_cols);
   std::string confkcol_str = OidVectorToSpaceSeparatedString<col_oid_t>(sink_cols);
   std::string consrc_index_str = OidVectorToSpaceSeparatedString<index_oid_t>({src_index});
+  // TODO: we temporarily store the src table index in the exclusion op varchar
   FillConstraintPR(constraints_insert_pr, constraint_oid, name, ns, postgres::ConstraintType::FOREIGN_KEY, false, false,
                    true, src_table, sink_index, INVALID_CONSTRAINT_OID, sink_table, update_action, delete_action,
                    postgres::FKMatchType::FULL, true, 0, false, concol_str, confkcol_str,

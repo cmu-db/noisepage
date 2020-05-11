@@ -86,17 +86,17 @@ bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const 
 
 const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }
 
-
-bool CatalogAccessor::VerifyTableInsertConstraint(table_oid_t table,  storage::ProjectedRow *pr) {
+bool CatalogAccessor::VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr) {
   return dbc_->VerifyTableInsertConstraint(txn_, table, pr);
 }
 
-bool CatalogAccessor::VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
-    return dbc_->VerifyTableUpdateConstraint(txn_, table, col_oids, pr, tuple_slot);
+bool CatalogAccessor::VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids,
+                                                  storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
+  return dbc_->VerifyTableUpdateConstraint(txn_, table, col_oids, pr, tuple_slot);
 }
 
 bool CatalogAccessor::UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
-    return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_UPDATE, pr);
+  return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_UPDATE, pr);
 }
 
 int CatalogAccessor::DeleteCascade(db_oid_t db_oid, table_oid_t table_oid, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
@@ -115,8 +115,8 @@ constraint_oid_t CatalogAccessor::CreateFKConstraints(namespace_oid_t ns, table_
                                                       postgres::FKActionType update_action,
                                                       postgres::FKActionType delete_action) const {
   NormalizeObjectName(&name);
-  return dbc_->CreateFKConstraint(txn_, ns, src_table, sink_table, name, src_index, sink_index, src_cols, sink_cols, update_action,
-                                  delete_action);
+  return dbc_->CreateFKConstraint(txn_, ns, src_table, sink_table, name, src_index, sink_index, src_cols, sink_cols,
+                                  update_action, delete_action);
 }
 constraint_oid_t CatalogAccessor::CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
                                                           index_oid_t index,
