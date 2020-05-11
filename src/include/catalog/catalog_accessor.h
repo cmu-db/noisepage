@@ -216,7 +216,8 @@ class EXPORT CatalogAccessor {
    * @param tuple_slot the tupleslot location update applies on the table
    * @return true if pr complies all constraints
    */
-  bool VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
+  bool VerifyTableUpdateConstraint(table_oid_t table, const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *pr,
+                                   storage::TupleSlot tuple_slot);
 
   /**
    * Perform update cascade if any
@@ -263,8 +264,9 @@ class EXPORT CatalogAccessor {
    * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
    */
   constraint_oid_t CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
-                                       std::string name, index_oid_t src_index, index_oid_t sink_index, std::vector<col_oid_t> &src_cols,
-                                       std::vector<col_oid_t> &sink_cols, postgres::FKActionType update_action,
+                                       std::string name, index_oid_t src_index, index_oid_t sink_index,
+                                       std::vector<col_oid_t> &src_cols, std::vector<col_oid_t> &sink_cols,
+                                       postgres::FKActionType update_action,
                                        postgres::FKActionType delete_action) const;
 
   /**

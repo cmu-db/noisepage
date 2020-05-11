@@ -259,8 +259,8 @@ class DatabaseCatalog {
                           storage::ProjectedRow *pr);
 
   /**
-   * Verify if the data on the projected row update to the tuple_slot table location complies with table CHECK constraints
-   * Helper function for VerifyTableInsertconstraint
+   * Verify if the data on the projected row update to the tuple_slot table location complies with table CHECK
+   * constraints Helper function for VerifyTableInsertconstraint
    * @param con_obj the constraint in PG_Constraint class
    * @return true if constraint check passed
    */

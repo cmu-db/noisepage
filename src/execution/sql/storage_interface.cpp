@@ -1,5 +1,6 @@
 #include "execution/sql/storage_interface.h"
 
+#include <stdio.h>
 #include <algorithm>
 #include <vector>
 
@@ -59,7 +60,7 @@ bool StorageInterface::VerifyTableInsertConstraint() {
 }
 
 bool StorageInterface::UpdateVerify(storage::TupleSlot table_tuple_slot) {
-    return db_accessor_->VerifyTableUpdateConstraint(table_oid_, col_oids_, table_redo_->Delta(), table_tuple_slot);
+  return db_accessor_->VerifyTableUpdateConstraint(table_oid_, col_oids_, table_redo_->Delta(), table_tuple_slot);
 }
 
 bool StorageInterface::UpdateCascade(storage::TupleSlot table_tuple_slot) {
@@ -82,7 +83,7 @@ bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
 
 bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   table_redo_->SetTupleSlot(table_tuple_slot);
-//  UpdateCascade(table_tuple_slot);
+  //  UpdateCascade(table_tuple_slot);
   return table_->Update(exec_ctx_->GetTxn(), table_redo_);
 }
 

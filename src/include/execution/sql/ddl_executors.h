@@ -103,8 +103,6 @@ class DDLExecutors {
                                 common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
  private:
- 
-
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,
                           const std::string &name, catalog::table_oid_t table,
                           const catalog::IndexSchema &input_schema);
@@ -138,8 +136,7 @@ class DDLExecutors {
                                                const common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
                                                const catalog::db_oid_t connection_db);
   static bool CreateExclusionConstraintsAndIndices(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                                   const catalog::Schema &schema,
-                                                   const catalog::table_oid_t table,
+                                                   const catalog::Schema &schema, const catalog::table_oid_t table,
                                                    const common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
                                                    const catalog::db_oid_t connection_db);
   static bool CreateNotNullConstraints(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
