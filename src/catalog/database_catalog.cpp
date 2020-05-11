@@ -1183,8 +1183,6 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
                                "table_col and index_col should have same type");
                 if (affected_col.count(table_col_oid) > 0) {
                     update_ptr = update_pr->AccessForceNotNull(update_pr_pm[table_col_oid]);
-                    uint32_t numtable UNUSED_ATTRIBUTE = *(reinterpret_cast<uint32_t *>(table_ptr));
-                    uint32_t numupdate UNUSED_ATTRIBUTE = *(reinterpret_cast<uint32_t *>(update_ptr));
                     CopyData(update_ptr, index_ptr, index_columns[j].Type());
                     all_col_update_same = CompPRData(table_ptr, update_ptr, index_columns[j].Type());
                 } else {
