@@ -7,6 +7,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.ResultSetMetaData;
 import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 
@@ -23,6 +24,18 @@ public class TestUtility {
         props.setProperty("prepareThreshold", "0"); // suppress switchover to binary protocol
         Connection conn = DriverManager.getConnection(url, props);
         return conn;
+    }
+
+    /**
+    * Check the number of columns against expected value
+    *
+    * @param rs              resultset
+    * @param column_number   expected number of columns
+    */
+    public static void checkNumOfColumns(ResultSet rs, int column_number) throws SQLException {
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnsNumber = rsmd.getColumnCount();
+        assertEquals(columnsNumber, column_number);
     }
 
     /**

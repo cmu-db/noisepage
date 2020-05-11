@@ -113,6 +113,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno = (SELECT MAX(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {2});
         assertNoMoreRows(rs);
@@ -136,6 +137,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno = (SELECT MAX(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {2});
         rs.next();
@@ -161,6 +163,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno != (SELECT MAX(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {1});
         assertNoMoreRows(rs);
@@ -184,6 +187,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno > (SELECT MAX(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {3});
         assertNoMoreRows(rs);
@@ -207,6 +211,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno < (SELECT MAX(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {1});
         assertNoMoreRows(rs);
@@ -230,6 +235,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno >= (SELECT MAX(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {2});
         rs.next();
@@ -255,6 +261,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno <= (SELECT MAX(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {2});
         rs.next();
@@ -280,6 +287,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno = (SELECT AVG(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {2});
         assertNoMoreRows(rs);
@@ -303,6 +311,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno = (SELECT AVG(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {2});
         rs.next();
@@ -329,6 +338,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT sno FROM shipment WHERE pno != (SELECT AVG(pno) FROM part WHERE price = 30);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"sno"}, new int [] {1});
         assertNoMoreRows(rs);
@@ -351,6 +361,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {1});
         assertNoMoreRows(rs);
@@ -372,6 +383,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {1});
         rs.next();
@@ -422,6 +434,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier limit 1);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {1});
         assertNoMoreRows(rs);
@@ -466,6 +479,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE EXISTS (SELECT sno FROM supplier WHERE sno > 1);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {2});
         rs.next();
@@ -489,6 +503,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE shipment.sno = ANY (SELECT sno FROM supplier);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {1});
         rs.next();
@@ -512,6 +527,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier WHERE subdget = qty);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {1});
         assertNoMoreRows(rs);
@@ -535,6 +551,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier WHERE subdget = qty limit 1);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {2});
         assertNoMoreRows(rs);
@@ -556,6 +573,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE sno < (SELECT max(sno) FROM supplier WHERE subdget = qty);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {2});
         assertNoMoreRows(rs);
@@ -577,6 +595,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE sno = (SELECT min(sno) FROM supplier WHERE subdget = qty);";
         rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {2});
         assertNoMoreRows(rs);
@@ -598,27 +617,7 @@ public class NestedQueryTest extends TestUtility {
         stmt.execute(sql);
         String select_SQL = "SELECT pno FROM shipment WHERE sno > (SELECT avg(sno) FROM supplier WHERE subdget = qty);";
         rs = stmt.executeQuery(select_SQL);
-        rs.next();
-        checkIntRow(rs, new String [] {"pno"}, new int [] {1});
-        assertNoMoreRows(rs);
-    }
-
-    /**
-     * Test TypeJA, greater than avg
-     */
-    @Test
-    public void test3TypeJA() throws SQLException {
-        String sql = "INSERT INTO shipment VALUES (2, 2, 2);";
-        Statement stmt = conn.createStatement();
-        stmt.execute(sql);
-        sql = "INSERT INTO shipment VALUES (2, 1, 1);";
-        stmt.execute(sql);
-        sql = "INSERT INTO supplier VALUES (1, 1, 1);";
-        stmt.execute(sql);
-        sql = "INSERT INTO supplier VALUES (2, 1, 1);";
-        stmt.execute(sql);
-        String select_SQL = "SELECT pno FROM shipment WHERE sno > (SELECT avg(sno) FROM supplier WHERE subdget = qty);";
-        rs = stmt.executeQuery(select_SQL);
+        checkNumOfColumns(rs, 1);
         rs.next();
         checkIntRow(rs, new String [] {"pno"}, new int [] {1});
         assertNoMoreRows(rs);

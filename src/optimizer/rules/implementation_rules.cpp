@@ -459,7 +459,7 @@ void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<Ope
   const auto inner_join = input->GetOp().As<LogicalInnerJoin>();
 
   const auto &children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
+  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two children");
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
 
   std::vector<std::unique_ptr<OperatorNode>> child;
