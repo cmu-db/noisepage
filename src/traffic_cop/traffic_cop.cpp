@@ -163,7 +163,7 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
     }
     case network::QueryType::QUERY_CREATE_VIEW: {
       if (execution::sql::DDLExecutors::CreateViewExecutor(
-          physical_plan.CastManagedPointerTo<planner::CreateViewPlanNode>(), connection_ctx->Accessor())) {
+              physical_plan.CastManagedPointerTo<planner::CreateViewPlanNode>(), connection_ctx->Accessor())) {
         out->WriteCommandComplete(query_type, 0);
         return;
       }
