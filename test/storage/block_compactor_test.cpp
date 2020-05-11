@@ -215,8 +215,10 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
   col_oids[0] = (col_id_t)1;
   auto block = table_ptr->begin()->GetBlock();
   execution::exec::ExecutionContext *exec = execCtx.get();
+  auto ns_oid = exec->GetAccessor()->GetDefaultNamespace();
+  std::cout << ns_oid;
 
-  // Initialise block compactor and perform compaction
+// Initialise block compactor and perform compaction
   storage::BlockCompactor compactor(exec, col_oids, table_name.c_str());
   compactor.PutInQueue(block);
   transaction::DeferredActionManager *deferred_action_manager_ptr = deferred_action_manager.Get();

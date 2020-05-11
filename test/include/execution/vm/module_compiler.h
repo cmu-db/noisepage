@@ -27,6 +27,10 @@ class ModuleCompiler {
     sema::Sema type_check(&ctx_);
     type_check.Run(ast);
 
+  if (HasErrors()) {
+	  std::cout << errors_.SerializeErrors();
+  }
+
     return ast;
   }
 

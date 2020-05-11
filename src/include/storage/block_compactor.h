@@ -59,6 +59,8 @@ class BlockCompactor {
     exec_ = exec;
     col_oids_ = col_oids;
     table_name_ = table_name;
+    auto ns_oid = exec_->GetAccessor()->GetDefaultNamespace();
+    std::cout << ns_oid;
     // tpl code for use in moveTuple. It deletes the tuple from the table and from the index and then inserts the tuple
     // to the table (a specific block) and to the index. It returns true if the delete succeeds (because delete returns
     // false if a concurrent transaction is updating the tuple that is trying to be moved, the only condition where
@@ -67,15 +69,17 @@ class BlockCompactor {
     //      cg->table_->InsertInto(common::ManagedPointer(cg->txn_), *record->Delta(), to);
     //      return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
     // @todo: do we need to consider that insertIndex could fail? Do so now.
+    // table_name how to pass a std::string? This is required for StorageInterfaceInitBind
+    // fixed length col_ids array passed : HACK
     auto tpl_code = R"(
-    fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: *uint16, table_name: *uint8) -> bool {
+    fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: [1]uint32) -> bool {
       var storage_interface: StorageInterface
-      //@storageInterfaceInitBind(&storage_interface, execCtx, table_name, col_oids, true)
-      //if (!@tableDelete(&storage_interface, &slot_from)) {
-        //@storageInterfaceFree(&storage_interface)
-        //return false
-      //}
-      //@tableCompactionInsertInto(&storage_interface, &slot_to)
+      @storageInterfaceInitBind(&storage_interface, execCtx, "foo", col_oids, true)
+      if (!@tableDelete(&storage_interface, slot_from)) {
+        @storageInterfaceFree(&storage_interface)
+        return false
+      }
+      @tableCompactionInsertInto(&storage_interface, slot_to)
       return true
     })";
     auto compiler = execution::vm::test::ModuleCompiler();
@@ -133,7 +137,7 @@ class BlockCompactor {
 
   // stores compiled bytecode that can be called with different arguments (look in the blockcompactor constructor for
   // details)
-  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *, const char *)>
+  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)>
       move_tuple_;
 
   // Variables required for calling the MoveTuple builtin
