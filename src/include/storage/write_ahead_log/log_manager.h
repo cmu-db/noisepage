@@ -128,6 +128,11 @@ class LogManager : public common::DedicatedThreadOwner {
     return false;
   }
 
+  /**
+   * Reset all file buffers to a new file path.
+   *
+   * @param log_file_path the new file path for all buffers.
+   */
   void ResetLogFilePath(std::string log_file_path) {
     auto dup = *(disk_log_writer_task_->buffers_);
     disk_log_writer_task_->buffers_->clear();
