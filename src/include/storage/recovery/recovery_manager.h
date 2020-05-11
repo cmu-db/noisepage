@@ -321,6 +321,10 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                                            std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
                                            uint32_t start_idx);
 
+  uint32_t ProcessSpecialCasePGSchemaRecord(transaction::TransactionContext *txn,
+                                            std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
+                                            uint32_t start_idx);
+
   /**
    * Processes a record that modifies pg_proc.
    * @param txn transaction to use to replay the catalog changes

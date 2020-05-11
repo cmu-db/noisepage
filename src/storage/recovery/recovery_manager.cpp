@@ -294,6 +294,11 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                  db_catalog_ptr->procs_name_index_->metadata_.GetSchema());
       break;
     }
+    case (!catalog::postgres::SCHEMA_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->schemas_oid_vers_index_,
+                                 db_catalog_ptr->schemas_oid_vers_index_->metadata_.GetSchema());
+      break;
+    }
 
     default:  // Non-catalog table
       index_objects = db_catalog_ptr->GetIndexes(common::ManagedPointer(txn), table_oid);
@@ -403,6 +408,10 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
     case (!catalog::postgres::PRO_TABLE_OID): {
       return ProcessSpecialCasePGProcRecord(txn, buffered_changes, start_idx);
+    }
+
+    case (!catalog::postgres::SCHEMA_TABLE_OID): {
+      return ProcessSpecialCasePGSchemaRecord(txn, buffered_changes, start_idx);
     }
 
     default:
@@ -568,8 +577,35 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
         return 0;  // No additional logs processed
       }
 
-      case (!catalog::postgres::REL_SCHEMA_COL_OID): {  // Case 2
-        // TODO(Gus): Add support for recovering DDL changes.
+      case (!catalog::postgres::REL_VERS_COL_OID): {  // Case 2
+        // Step 1: replay the redo record
+        ReplayRedoRecord(txn, curr_record);
+
+        // Step 2: update the sqltable
+        std::vector<catalog::col_oid_t> col_oids = {
+            catalog::postgres::RELOID_COL_OID, catalog::postgres::RELKIND_COL_OID, catalog::postgres::REL_VERS_COL_OID};
+        auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
+        auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
+        auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+        auto *pr = pr_init.InitializeRow(buffer);
+        pg_class_ptr->Select(common::ManagedPointer(txn), GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
+        auto class_oid =
+            *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::RELOID_COL_OID])));
+        auto class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
+            pr->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
+        auto layout_version = *(reinterpret_cast<storage::layout_version_t *>(
+            pr->AccessForceNotNull(pr_map[catalog::postgres::REL_VERS_COL_OID])));
+
+        TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE,
+                       "Only tables are having schema updates");
+        auto sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).operator->();
+
+        // Step 3: Get the schema
+        auto schema = db_catalog->GetSchema(common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
+
+        // Step 4: Update the sql table
+        sql_table->UpdateSchema(common::ManagedPointer(txn), schema, layout_version);
+
         return 0;  // No additional logs processed
       }
 
@@ -591,30 +627,22 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
         switch (class_kind) {
           case (catalog::postgres::ClassKind::REGULAR_TABLE): {
-            // Step 2: Query pg_attribute for the columns of the table
-            auto schema_cols =
-                db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(
-                    common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
+            // Step 2: Get the schema which should ahve already been built int he pg_schemas table
+            auto schema = db_catalog->GetSchema(common::ManagedPointer(txn), redo_record->GetTableOid());
 
-            // Step 3: Create and set schema in catalog
-            auto *schema = new catalog::Schema(std::move(schema_cols));
-            bool result UNUSED_ATTRIBUTE =
-                db_catalog->SetTableSchemaPointer(common::ManagedPointer(txn), catalog::table_oid_t(class_oid), schema);
-            TERRIER_ASSERT(result, "Setting table schema pointer should succeed, entry should be in pg_class already");
-
-            // Step 4: Create and set table pointers in catalog
+            // Step 3: Create and set table pointers in catalog
             storage::SqlTable *sql_table;
             if (class_oid < catalog::START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
               // Use of the -> operator is ok here, since we are the ones who wrapped the table with the ManagedPointer
               sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).operator->();
             } else {
-              sql_table = new SqlTable(block_store_, *schema);
+              sql_table = new SqlTable(block_store_, schema);
             }
-            result =
+            auto result UNUSED_ATTRIBUTE =
                 db_catalog->SetTablePointer(common::ManagedPointer(txn), catalog::table_oid_t(class_oid), sql_table);
             TERRIER_ASSERT(result, "Setting table pointer should succeed, entry should be in pg_class already");
 
-            // Step 5: Update catalog oid
+            // Step 4: Update catalog oid
             db_catalog->UpdateNextOid(class_oid);
 
             delete[] buffer;
@@ -622,61 +650,21 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
           }
 
           case (catalog::postgres::ClassKind::INDEX): {
-            // Step 2: Query pg_attribute for the columns of the index
-            auto index_cols =
-                db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(
-                    common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
+            // Step 2: Get the indexschema from pg_schemas which should have already been created
+            auto index_schema = db_catalog->GetIndexSchema(common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
 
-            // Step 3: Query pg_index for the metadata we need for the index schema
-            auto pg_indexes_index = db_catalog->indexes_oid_index_;
-            pr = pg_indexes_index->GetProjectedRowInitializer().InitializeRow(buffer);
-            *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
-            std::vector<TupleSlot> tuple_slot_result;
-            pg_indexes_index->ScanKey(*txn, *pr, &tuple_slot_result);
-            TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should yield one result");
-
-            // NOLINTNEXTLINE
-            col_oids.clear();
-            col_oids = {catalog::postgres::INDISUNIQUE_COL_OID, catalog::postgres::INDISPRIMARY_COL_OID,
-                        catalog::postgres::INDISEXCLUSION_COL_OID, catalog::postgres::INDIMMEDIATE_COL_OID,
-                        catalog::postgres::IND_TYPE_COL_OID};
-            auto pg_index_pr_init = db_catalog->indexes_->InitializerForProjectedRow(col_oids);
-            auto pg_index_pr_map = db_catalog->indexes_->ProjectionMapForOids(col_oids);
-            delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
-            buffer = common::AllocationUtil::AllocateAligned(pg_index_pr_init.ProjectedRowSize());
-            pr = pg_index_pr_init.InitializeRow(buffer);
-            bool result UNUSED_ATTRIBUTE =
-                db_catalog->indexes_->Select(common::ManagedPointer(txn), tuple_slot_result[0], pr);
-            TERRIER_ASSERT(result, "Select into pg_index should succeed during recovery");
-            bool is_unique = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISUNIQUE_COL_OID])));
-            bool is_primary = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISPRIMARY_COL_OID])));
-            bool is_exclusion = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISEXCLUSION_COL_OID])));
-            bool is_immediate = *(reinterpret_cast<bool *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDIMMEDIATE_COL_OID])));
-            storage::index::IndexType index_type = *(reinterpret_cast<storage::index::IndexType *>(
-                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::IND_TYPE_COL_OID])));
-
-            // Step 4: Create and set IndexSchema in catalog
-            auto *index_schema =
-                new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion, is_immediate);
-            result = db_catalog->SetIndexSchemaPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid),
-                                                       index_schema);
-            TERRIER_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
-
-            // Step 5: Create and set index pointer in catalog
+            // Step 3: set index pointer in catalog
             storage::index::Index *index;
             if (class_oid < catalog::START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
               index = GetCatalogIndex(catalog::index_oid_t(class_oid), db_catalog);
             } else {
-              index = index::IndexBuilder().SetKeySchema(*index_schema).Build();
+              index = index::IndexBuilder().SetKeySchema(index_schema).Build();
             }
-            result = db_catalog->SetIndexPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid), index);
+            auto result UNUSED_ATTRIBUTE =
+                db_catalog->SetIndexPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid), index);
             TERRIER_ASSERT(result, "Setting index pointer should succeed, entry should be in pg_class already");
 
-            // Step 6: Update catalog oid
+            // Step 4: Update catalog oid
             db_catalog->UpdateNextOid(class_oid);
 
             delete[] buffer;
@@ -960,6 +948,101 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     default:
       throw std::runtime_error("This oid does not belong to any catalog index");
   }
+}
+
+uint32_t RecoveryManager::ProcessSpecialCasePGSchemaRecord(
+    terrier::transaction::TransactionContext *txn,
+    std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+    uint32_t start_idx) {
+  auto *curr_record = buffered_changes->at(start_idx).first;
+  if (curr_record->RecordType() == LogRecordType::REDO) {
+    auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
+    TERRIER_ASSERT(IsInsertRecord(redo_record), "Modification to the pg_schema must be either delete or insert");
+    auto db_catalog = GetDatabaseCatalog(txn, redo_record->GetDatabaseOid());
+    auto pg_class_ptr = db_catalog->classes_;
+    // Step 1: Get the class kind and the pointer
+    std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELOID_COL_OID, catalog::postgres::RELKIND_COL_OID,
+                                                catalog::postgres::REL_VERS_COL_OID};
+    auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
+    auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
+    auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+    auto *pr = pr_init.InitializeRow(buffer);
+    pg_class_ptr->Select(common::ManagedPointer(txn), GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
+    auto class_oid =
+        *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::RELOID_COL_OID])));
+    auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
+        pr->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
+    auto layout_version = *(reinterpret_cast<storage::layout_version_t *>(
+        pr->AccessForceNotNull(pr_map[catalog::postgres::REL_VERS_COL_OID])));
+
+    switch (class_kind) {
+      case (catalog::postgres::ClassKind::REGULAR_TABLE): {
+        // Step 2: Need to reconstruct the schema from pg_columns
+        auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(
+            common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
+
+        // Step 3: Create the schema and set it in the schema table
+        auto *schema = new catalog::Schema(std::move(schema_cols));
+        auto result UNUSED_ATTRIBUTE = db_catalog->AddSchemaEntry(
+            common::ManagedPointer(txn),class_oid, schema, layout_version);
+        TERRIER_ASSERT(
+            result,
+            "Setting table schema pointer should succeed, no duplicate adding of schema pointer should have be done");
+        break;
+      }
+      case (catalog::postgres::ClassKind::INDEX): {
+        // Step 2: Query pg_attribute for the columns of the index
+        auto index_cols =
+            db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(
+                common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
+
+        // Step 3: Query pg_index for the metadata we need for the index schema
+        auto pg_indexes_index = db_catalog->indexes_oid_index_;
+        pr = pg_indexes_index->GetProjectedRowInitializer().InitializeRow(buffer);
+        *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
+        std::vector<TupleSlot> tuple_slot_result;
+        pg_indexes_index->ScanKey(*txn, *pr, &tuple_slot_result);
+        TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should yield one result");
+
+        // NOLINTNEXTLINE
+        col_oids.clear();
+        col_oids = {catalog::postgres::INDISUNIQUE_COL_OID, catalog::postgres::INDISPRIMARY_COL_OID,
+                    catalog::postgres::INDISEXCLUSION_COL_OID, catalog::postgres::INDIMMEDIATE_COL_OID,
+                    catalog::postgres::IND_TYPE_COL_OID};
+        auto pg_index_pr_init = db_catalog->indexes_->InitializerForProjectedRow(col_oids);
+        auto pg_index_pr_map = db_catalog->indexes_->ProjectionMapForOids(col_oids);
+        delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
+        buffer = common::AllocationUtil::AllocateAligned(pg_index_pr_init.ProjectedRowSize());
+        pr = pg_index_pr_init.InitializeRow(buffer);
+        bool result UNUSED_ATTRIBUTE =
+            db_catalog->indexes_->Select(common::ManagedPointer(txn), tuple_slot_result[0], pr);
+        TERRIER_ASSERT(result, "Select into pg_index should succeed during recovery");
+        bool is_unique = *(
+            reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISUNIQUE_COL_OID])));
+        bool is_primary = *(reinterpret_cast<bool *>(
+            pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISPRIMARY_COL_OID])));
+        bool is_exclusion = *(reinterpret_cast<bool *>(
+            pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISEXCLUSION_COL_OID])));
+        bool is_immediate = *(reinterpret_cast<bool *>(
+            pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDIMMEDIATE_COL_OID])));
+        storage::index::IndexType index_type = *(reinterpret_cast<storage::index::IndexType *>(
+            pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::IND_TYPE_COL_OID])));
+
+        // Step 4: Create and set IndexSchema in catalog
+        auto *index_schema =
+            new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion, is_immediate);
+
+        result = db_catalog->AddSchemaEntry(common::ManagedPointer(txn), class_oid, index_schema, layout_version);
+        TERRIER_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
+        break;
+      }
+      default:
+        throw std::runtime_error("Only support recovery of regular tables and indexes");
+    }
+  }
+  // Deleting Schema pointers only happen when a table/index is dropped. This will be done when deleting table/index
+  // entries from the pg_class table. So nothing to be done here.
+  return 0;
 }
 
 uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(

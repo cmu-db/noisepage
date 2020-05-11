@@ -303,7 +303,6 @@ void DatabaseCatalog::BootstrapPRIs() {
   const std::vector<col_oid_t> set_class_pointer_oids{postgres::REL_PTR_COL_OID};
   set_class_pointer_pri_ = classes_->InitializerForProjectedRow(set_class_pointer_oids);
 
-
   const std::vector<col_oid_t> set_class_next_col_oid_oids{postgres::REL_NEXTCOLOID_COL_OID};
   set_class_next_col_oid_pri_ = classes_->InitializerForProjectedRow(set_class_next_col_oid_oids);
 
@@ -316,7 +315,6 @@ void DatabaseCatalog::BootstrapPRIs() {
 
   const std::vector<col_oid_t> get_class_kind_ptr_oids{postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID};
   get_class_kind_ptr_pri_ = classes_->InitializerForProjectedRow(get_class_kind_ptr_oids);
-
 
   // pg_schema
   const std::vector<col_oid_t> pg_schema_all_oids{postgres::SCH_REL_OID_COL_OID, postgres::SCH_VERS_COL_OID,
@@ -1032,6 +1030,11 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
       all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
   delete[] buffer_ptr;
 
+  // Insert the new schema pointer
+  if (!AddSchemaEntry(txn, static_cast<uint32_t>(table), new_schema, cur_layout_version + 1)) {
+    return false;
+  }
+
   // Update the class entry
   auto *update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_version_pri_);
   update_redo->SetTupleSlot(tuple_slot);
@@ -1039,11 +1042,6 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
   *(reinterpret_cast<storage::layout_version_t *>(update_pr->AccessForceNotNull(0))) = cur_layout_version + 1;
   auto result UNUSED_ATTRIBUTE = classes_->Update(txn, update_redo);
   TERRIER_ASSERT(result, "Updating layout version should not fail");
-
-  // Insert the new schema pointer
-  if (!AddSchemaEntry(txn, static_cast<uint32_t>(table), new_schema, cur_layout_version + 1)) {
-    return false;
-  }
 
   // Return layout version for updating SqlTable later
   *layout_version_ptr = cur_layout_version + 1;
