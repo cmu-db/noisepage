@@ -55,6 +55,11 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
   return result;
 }
 
+// TODO(schema-change): currently if our update fails, TransactionManager::GCLastUpdateOnAbort and
+// LogSerializerTask::SerializeRecord will report failure, because there is a version mismatch: TransactionManager
+// and LogSerializerTask uses the blocklayout of redo->GetTupleSlot().GetBlock() (note that they do not have access
+// to version), which is the blocklayout of the old version, but redo->delta uses the col_ids of the new version.
+// One possible solution is to add versioning info to RedoRecord, but that would be a major change.
 bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
                       layout_version_t layout_version, TupleSlot *updated_slot) const {
   TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
@@ -114,6 +119,7 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
         }
       }
       delete[] buffer;
+      std::memcpy(redo->Delta()->ColumnIds(), orig_header, sizeof(col_id_t) * redo->Delta()->NumColumns());
     }
   }
   if (!result) {
@@ -345,7 +351,6 @@ bool SqlTable::CreateTable(common::ManagedPointer<const catalog::Schema> schema,
     num_versions_.store(MAX_NUM_VERSIONS);
     return false;
   }
-  std::cout << "begin CreateTable version: " << (int)version << std::endl;
 
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint16_t> attr_sizes;

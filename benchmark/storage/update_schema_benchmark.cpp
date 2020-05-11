@@ -5,8 +5,6 @@
 #include "catalog/catalog_accessor.h"
 #include "common/scoped_timer.h"
 #include "main/db_main.h"
-#include "storage/recovery/disk_log_provider.h"
-#include "storage/recovery/recovery_manager.h"
 #include "storage/storage_defs.h"
 #include "test_util/sql_table_test_util.h"
 
@@ -17,13 +15,17 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
   void TearDown(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
 
-  const uint32_t initial_table_size_ = 10000;
-  const uint32_t num_txns_ = 5;
+  const uint32_t initial_table_size_ = 100000;
+  const uint32_t num_txns_ = 10000;
   const uint32_t num_indexes_ = 5;
+  // num_threads is how many threads to run concurrent operations with, we will use 1 extra thread to update schemas
+  const uint32_t num_threads = 4;
+  // how many consecutive schema updates (add/drop column) to perform in a single iteration
+  const uint32_t num_schema_updates = 10;
   std::default_random_engine generator_;
 
   /**
-   * Runs the recovery benchmark with the provided config
+   * Runs the update schema benchmark with the provided config
    * @param state benchmark state
    * @param config config to use for test object
    */
@@ -51,15 +53,13 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
       auto *tested =
           new LargeSqlTableTestObject(config, txn_manager.Get(), catalog.Get(), block_store.Get(), &generator_);
 
-      int num_threads = 2;
-      int num_schema_updates = 10;
-
       uint64_t elapsed_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
 
-        for (int i = 0; i < num_schema_updates; i++) {
+        for (size_t i = 0; i < num_schema_updates; i++) {
           if (update_schema) {
+            // use 1 extra thread to update schemas. For fairness, we still use num_threads to perform oltp operations.
             tested->SimulateOltpAndUpdateSchema(num_txns_, num_threads + 1);
           } else {
             tested->SimulateOltp(num_txns_, num_threads);
@@ -79,19 +79,20 @@ class UpdateSchemaBenchmark : public benchmark::Fixture {
   }
 };
 
+// TODO(Schema-change): Once we can deal with sql_table::update failing, add concurrent update tests
+
 /**
- * Run a a read-write workload with update schema (5 statements per txn, 50% inserts, 50% select).
+ * Run a read-write-delete workload with update schema (5 statements per txn, 40% inserts, 40% select, 20% delete).
  */
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, ReadWriteUpdateSchemaWorkload)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, ReadWriteDeleteSchemaWorkload)(benchmark::State &state) {
 LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
     .SetNumDatabases(1)
     .SetNumTables(1)
     .SetMaxColumns(5)
     .SetInitialTableSize(initial_table_size_)
     .SetTxnLength(5)
-    .SetInsertUpdateSelectDeleteRatio({0.0, 1.0, 0.0, 0.0})
-//    .SetInsertUpdateSelectDeleteRatio({0.4, 0.2, 0.2, 0.2})
+    .SetInsertUpdateSelectDeleteRatio({0.4, 0.0, 0.4, 0.2})
     .SetVarlenAllowed(true)
     .Build();
 
@@ -99,7 +100,25 @@ RunBenchmark(&state, config, true);
 }
 
 /**
- * Run a a read-write workload without update schema (5 statements per txn, 50% inserts, 50% select).
+ * Run an insert-heavy workload with update schema (5 statements per txn, 90% inserts, 10% select).
+ */
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, InsertHeavySchemaWorkload)(benchmark::State &state) {
+LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+        .SetNumDatabases(1)
+        .SetNumTables(1)
+        .SetMaxColumns(5)
+        .SetInitialTableSize(initial_table_size_)
+        .SetTxnLength(5)
+        .SetInsertUpdateSelectDeleteRatio({0.9, 0.0, 0.1, 0.0})
+        .SetVarlenAllowed(true)
+        .Build();
+
+RunBenchmark(&state, config, true);
+}
+
+/**
+ * Run a read-write-delete workload without update schema (5 statements per txn, 40% inserts, 40% select, 20% delete).
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, ReadWriteWorkload)(benchmark::State &state) {
@@ -109,9 +128,27 @@ LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder(
     .SetMaxColumns(5)
     .SetInitialTableSize(initial_table_size_)
     .SetTxnLength(5)
-    .SetInsertUpdateSelectDeleteRatio({0.5, 0.0, 0.5, 0.0})
+    .SetInsertUpdateSelectDeleteRatio({0.4, 0.0, 0.4, 0.2})
     .SetVarlenAllowed(true)
     .Build();
+
+RunBenchmark(&state, config, false);
+}
+
+/**
+ * Run an insert-heavy workload without update schema (5 statements per txn, 90% inserts, 10% select).
+ */
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(UpdateSchemaBenchmark, InsertHeavyWorkload)(benchmark::State &state) {
+LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+        .SetNumDatabases(1)
+        .SetNumTables(1)
+        .SetMaxColumns(5)
+        .SetInitialTableSize(initial_table_size_)
+        .SetTxnLength(5)
+        .SetInsertUpdateSelectDeleteRatio({0.9, 0.0, 0.1, 0.0})
+        .SetVarlenAllowed(true)
+        .Build();
 
 RunBenchmark(&state, config, false);
 }
@@ -120,12 +157,22 @@ RunBenchmark(&state, config, false);
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(UpdateSchemaBenchmark, ReadWriteUpdateSchemaWorkload)
+BENCHMARK_REGISTER_F(UpdateSchemaBenchmark, ReadWriteDeleteSchemaWorkload)
+->Unit(benchmark::kMillisecond)
+->UseManualTime()
+->MinTime(10);
+
+BENCHMARK_REGISTER_F(UpdateSchemaBenchmark, InsertHeavySchemaWorkload)
 ->Unit(benchmark::kMillisecond)
 ->UseManualTime()
 ->MinTime(10);
 
 BENCHMARK_REGISTER_F(UpdateSchemaBenchmark, ReadWriteWorkload)
+->Unit(benchmark::kMillisecond)
+->UseManualTime()
+->MinTime(10);
+
+BENCHMARK_REGISTER_F(UpdateSchemaBenchmark, InsertHeavyWorkload)
 ->Unit(benchmark::kMillisecond)
 ->UseManualTime()
 ->MinTime(10);

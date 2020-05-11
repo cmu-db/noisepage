@@ -119,7 +119,7 @@ Our current decision is to not do migration on reads, since it might affect thro
 First, we wrote single-threaded unit tests in sql_table_test.cpp that tests schema changes. We test adding and dropping multiple columns in a single schema change, combining multiple schema changes with various SQL table operations (insert/delete/select/scan/update). We also added multithreaded versions of the same tests to test correctness under concurrent threads.
 We also added unit tests to test the correctness of the changes we made to the binder, execution, optimizer, and parser layers. 
 
-We also plan to write benchmarks that performs concurrent ALTER TABLE commands with normal Sqltable queries, both to test the correctness of our changes to the various layers, and to test the throughput with schema changes (under different workoads, read-heavy, update-heavy, etc.).
+We also wrote a update_schema_benchmark that performs consecutive update_schemas along with concurrent normal Sqltable operations, both to test the correctness of our changes to the sqltable layer, and to test the throughput with schema changes (under different workloads, read-write-delete, insert-heavy, etc.).
 
 Finally, as a stretch goal, we can integrate the Pantha Rei Schema Evolution Benchmark, which contains over 4.5 years of schema changes in Wikipedia’s history, and use this real world benchmark to test the throughput and memory usage of our non-blocking schema change implementation.
 

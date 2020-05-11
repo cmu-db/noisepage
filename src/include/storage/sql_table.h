@@ -318,7 +318,7 @@ class SqlTable {
    * @param desired_version the desired schema version
    * @param cached_orig_header original header cached
    * @param size_map columns which have size mismatch
-   * @return whether there are columns in the desired schema version but not in the tuple version.
+   * @return the columns in the desired schema version but not in the tuple version.
    */
   template <class RowType>
   std::vector<std::pair<size_t, catalog::col_oid_t>> AlignHeaderToVersion(RowType *out_buffer,
