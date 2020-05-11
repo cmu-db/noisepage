@@ -195,7 +195,7 @@ TEST_F(RuleRewriteTests, TransitiveClosureRewrite) {
 
 TEST_F(RuleRewriteTests, TransitiveClosureFlippedRewrite) {
   /*
-   * Transitive Closure Test -- full rewrite with flipped ordering (uses equivalent transform)
+   * Transitive Closure Test -- full rewrite with flipped ordering (uses symmetric reordering)
    *   Input expression: (A.B = A.C) AND (A.B = 1)
    *   Expected output: (A.B = 1) AND (1 = A.C)
    */
@@ -223,7 +223,7 @@ TEST_F(RuleRewriteTests, TransitiveClosureFlippedRewrite) {
   delete base;
 
   // Returned expression should be (B = 1) AND (1 = C)
-  //   (equivalent transform switches around order of clauses, then transitive closure rule is applied)
+  //   (symmetric reordering switches around order of clauses, then transitive closure rule is applied)
   EXPECT_EQ(parser::ExpressionType::CONJUNCTION_AND, expr->GetExpressionType());
   EXPECT_EQ(2, expr->GetChildrenSize());
 
@@ -520,7 +520,7 @@ TEST_F(RuleRewriteTests, TransitiveClosureComparisonIntersectionMix) {
    *   Input expression: (A.B = 1) AND ((A.B <= A.C) AND (A.B >= A.C))
    *   Expected output: (A.B = 1) AND (1 = A.C)
    * (comparison intersection applied on right branch, then transitive closure
-   *  applied on remaining expression)
+   *  applied on resulting expression)
    */
   auto timestamp_manager = transaction::TimestampManager();
   auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));

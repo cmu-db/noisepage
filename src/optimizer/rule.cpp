@@ -72,15 +72,15 @@ RuleSet::RuleSet() {
 
   // ===== Query Rewriter Rules ===== //
 
-  // Equivalent Transform related rules (flip AND, OR, EQUAL, NOT_EQUAL)
-  std::vector<std::pair<RuleType, parser::ExpressionType>> equivalent_transform_pairs = {
-      std::make_pair(RuleType::EQUIV_AND, parser::ExpressionType::CONJUNCTION_AND),
-      std::make_pair(RuleType::EQUIV_OR, parser::ExpressionType::CONJUNCTION_OR),
-      std::make_pair(RuleType::EQUIV_COMPARE_EQUAL, parser::ExpressionType::COMPARE_EQUAL),
-      std::make_pair(RuleType::EQUIV_COMPARE_NOT_EQUAL, parser::ExpressionType::COMPARE_NOT_EQUAL)};
+  // Symmetric Reordering related rules (flip AND, OR, EQUAL, NOT_EQUAL)
+  std::vector<std::pair<RuleType, parser::ExpressionType>> symmetric_reordering_pairs = {
+      std::make_pair(RuleType::SYMMETRIC_REORDERING_AND, parser::ExpressionType::CONJUNCTION_AND),
+      std::make_pair(RuleType::SYMMETRIC_REORDERING_OR, parser::ExpressionType::CONJUNCTION_OR),
+      std::make_pair(RuleType::SYMMETRIC_REORDERING_EQUAL, parser::ExpressionType::COMPARE_EQUAL),
+      std::make_pair(RuleType::SYMMETRIC_REORDERING_NOT_EQUAL, parser::ExpressionType::COMPARE_NOT_EQUAL)};
 
-  for (auto &pair : equivalent_transform_pairs) {
-    AddRule(RuleSetName::EQUIVALENT_TRANSFORM, new EquivalentTransform(pair.first, pair.second));
+  for (auto &pair : symmetric_reordering_pairs) {
+    AddRule(RuleSetName::SYMMETRIC_REORDERING, new SymmetricReordering(pair.first, pair.second));
   }
 
   // Additional rewriter rules

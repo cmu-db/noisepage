@@ -49,7 +49,7 @@ void Rewriter::RewriteLoop(group_id_t root_group_id) {
   task_stack->Push(new BottomUpRewrite(root_group_id, root_context.get(), RuleSetName::GENERIC_RULES, false));
 
   // Generate equivalences first
-  auto *equiv_task = new TopDownRewrite(root_group_id, root_context.get(), RuleSetName::EQUIVALENT_TRANSFORM);
+  auto *equiv_task = new TopDownRewrite(root_group_id, root_context.get(), RuleSetName::SYMMETRIC_REORDERING);
   equiv_task->SetReplaceOnTransform(false);  // generate equivalent
   task_stack->Push(equiv_task);
 

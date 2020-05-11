@@ -6,20 +6,20 @@
 namespace terrier::optimizer {
 
 /*
- * Equivalent Transform: When a symmetric operator (==, !=, AND, OR) has two
+ * Symmetric Reordering: When a symmetric operator (==, !=, AND, OR) has two
  *   children, the comparison expression gets its arguments flipped.
  * Examples:
  *   "T.X != 3" ==> "3 != T.X"
  *   "(T.X == 1) AND (T.Y == 2)" ==> "(T.Y == 2) AND (T.X == 1)"
  */
-class EquivalentTransform : public Rule {
+class SymmetricReordering : public Rule {
  public:
   /**
    * Constructor.
    * @param rule the rule type of this rule
    * @param root the symmetric operation this rule works with
    */
-  EquivalentTransform(RuleType rule, parser::ExpressionType root);
+  SymmetricReordering(RuleType rule, parser::ExpressionType root);
 
   /**
    * Returns the type of promise for this rule.

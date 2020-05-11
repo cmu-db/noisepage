@@ -11,10 +11,10 @@ namespace terrier::optimizer {
 
 // ==============================================
 //
-// EquivalentTransform methods
+// SymmetricReordering methods
 //
 // ==============================================
-EquivalentTransform::EquivalentTransform(RuleType rule, parser::ExpressionType root) {
+SymmetricReordering::SymmetricReordering(RuleType rule, parser::ExpressionType root) {
   type_ = rule;
 
   auto *left = new Pattern(parser::ExpressionType::GROUP_MARKER);
@@ -24,23 +24,23 @@ EquivalentTransform::EquivalentTransform(RuleType rule, parser::ExpressionType r
   match_pattern_->AddChild(right);
 }
 
-RulePromise EquivalentTransform::Promise(GroupExpression *gexpr) const {
+RulePromise SymmetricReordering::Promise(GroupExpression *gexpr) const {
   (void)gexpr;
   return RulePromise::UNNEST_PROMISE_HIGH;
 }
 
-bool EquivalentTransform::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+bool SymmetricReordering::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
                                 OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void EquivalentTransform::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+void SymmetricReordering::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
                                     std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                     OptimizationContext *context) const {
   (void)context;
-  TERRIER_ASSERT(input->GetChildren().size() == 2, "Equivalent transform pattern should have 2 children");
+  TERRIER_ASSERT(input->GetChildren().size() == 2, "Symmetric reordering pattern should have 2 children");
 
   // Get children of original, place into copy in reverse order
   std::vector<std::unique_ptr<AbstractOptimizerNode>> new_children;
