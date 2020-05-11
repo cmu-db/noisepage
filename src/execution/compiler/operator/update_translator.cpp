@@ -38,7 +38,7 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
   }
     GetUpdatePR(builder);
     FillPRFromChild(builder);
-    GenUpdateVerify(builder);
+
     GenUpdateCascade(builder);
   // Non indexed updates just update.
   if (op_->GetIndexedUpdate()) {
@@ -51,10 +51,11 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
       GenIndexDelete(builder, index_oid);
       GenIndexInsert(builder, index_oid);
     }
+    GenUpdateVerify(builder);
     return;
   }
-
   GenTableUpdate(builder);
+  GenUpdateVerify(builder);
 }
 
 void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuilder *builder) {
