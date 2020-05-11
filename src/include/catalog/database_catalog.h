@@ -198,8 +198,14 @@ class DatabaseCatalog {
                                    storage::ProjectedRow *pr);
   bool VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
           storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
-  bool FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table,
+  int FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, db_oid_t db_oid, table_oid_t table,
                  storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr);
+  int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
+                                          table_oid_t table_oid, const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> pr_vector);
+  std::vector<storage::TupleSlot> FKScan(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
+                                         const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector);
+  int FKDelete(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
+                                const PG_Constraint &con_obj, std::vector<storage::TupleSlot> fk_slots)
   constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
                                       table_oid_t table, const std::string &name, index_oid_t index,
                                       const std::vector<col_oid_t> &pk_cols);

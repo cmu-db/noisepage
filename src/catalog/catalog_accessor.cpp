@@ -111,8 +111,8 @@ bool CatalogAccessor::UpdateCascade(table_oid_t table, storage::TupleSlot table_
     return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_UPDATE, pr);
 }
 
-bool CatalogAccessor::DeleteCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
-    return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_DELETE, pr);
+int CatalogAccessor::DeleteCascade(db_oid_t db_oid, table_oid_t table_oid, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
+    return dbc_->FKCascade(txn_, db_oid, table_oid, table_tuple_slot, catalog::postgres::FK_DELETE, pr);
 }
 
 constraint_oid_t CatalogAccessor::CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,
