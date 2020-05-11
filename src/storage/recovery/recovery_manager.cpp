@@ -955,6 +955,10 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->procs_name_index_;
     }
 
+    case (!catalog::postgres::SEQUENCE_OID_INDEX_OID): {
+      return db_catalog->sequences_oid_index_;
+    }
+
     default:
       throw std::runtime_error("This oid does not belong to any catalog index");
   }

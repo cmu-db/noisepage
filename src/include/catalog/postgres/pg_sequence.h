@@ -7,9 +7,8 @@
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog::postgres {
-    constexpr table_oid_t SEQUENCE_TABLE_OID = table_oid_t(101);
-    constexpr index_oid_t SEQUENCE_OID_INDEX_OID = index_oid_t(102);
-    constexpr index_oid_t SEQUENCE_NAME_INDEX_OID = index_oid_t(103);
+    constexpr table_oid_t SEQUENCE_TABLE_OID = table_oid_t(91);
+    constexpr index_oid_t SEQUENCE_OID_INDEX_OID = index_oid_t(92);
 
 /*
  * Column names of the form "SEQ[name]_COL_OID" are present in the PostgreSQL

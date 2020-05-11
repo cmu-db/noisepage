@@ -116,12 +116,6 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->types_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(oid), TYPE_NAMESPACE_INDEX_OID);
 
-  // Indexes on pg_sequence
-  dbc->sequences_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetSequenceOidIndexSchema(oid), SEQUENCE_OID_INDEX_OID);
-  //dbc->sequences_name_index_ =
-    //  Builder::BuildUniqueIndex(Builder::GetSequenceNameIndexSchema(oid), SEQUENCE_NAME_INDEX_OID);
-
   // Indexes on pg_constraint
   dbc->constraints_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(oid), CONSTRAINT_OID_INDEX_OID);
@@ -135,6 +129,10 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), CONSTRAINT_INDEX_INDEX_OID);
   dbc->constraints_foreigntable_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
+
+  // Indexes on pg_sequence
+  dbc->sequences_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetSequenceOidIndexSchema(oid), SEQUENCE_OID_INDEX_OID);
 
   // Indexes on pg_language
   dbc->languages_oid_index_ =
