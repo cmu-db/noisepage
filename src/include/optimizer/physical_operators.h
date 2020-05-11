@@ -1424,7 +1424,7 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
   /**
    * Concurrent create
    */
-   bool concurrent_ = false;
+  bool concurrent_ = false;
 };
 
 /**

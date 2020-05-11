@@ -108,7 +108,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     /**
      * Whether the build should be concurrent
      */
-     bool concurrent_ = false;
+    bool concurrent_ = false;
   };
 
  private:

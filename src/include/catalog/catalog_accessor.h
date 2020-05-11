@@ -1,10 +1,10 @@
 #pragma once
 
 #include <algorithm>
+#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
-#include <shared_mutex>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
@@ -379,9 +379,9 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
- /**
-  * @return The transaction that this accessor was initialized with
-  */
+  /**
+   * @return The transaction that this accessor was initialized with
+   */
   common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
 
   /**
@@ -398,7 +398,6 @@ class CatalogAccessor {
         txn_(txn),
         search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
         default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
-
 
  private:
   const common::ManagedPointer<Catalog> catalog_;

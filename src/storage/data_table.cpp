@@ -339,7 +339,8 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
 }
 
 template <class RowType>
-void DataTable::TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer, const std::function<void(VersionChainType)> lambda) const {
+void DataTable::TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer,
+                                     const std::function<void(VersionChainType)> lambda) const {
   TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
@@ -399,10 +400,11 @@ template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
     ProjectedColumns::RowView *const out_buffer) const;
 
-template void DataTable::TraverseVersionChain<ProjectedRow>(const TupleSlot slot,
-    ProjectedRow *const out_buffer, const std::function<void(VersionChainType)> lambda) const;
-template void DataTable::TraverseVersionChain<ProjectedColumns::RowView>(const TupleSlot slot,
-    ProjectedColumns::RowView *const out_buffer, const std::function<void(VersionChainType)> lambda) const;
+template void DataTable::TraverseVersionChain<ProjectedRow>(const TupleSlot slot, ProjectedRow *const out_buffer,
+                                                            const std::function<void(VersionChainType)> lambda) const;
+template void DataTable::TraverseVersionChain<ProjectedColumns::RowView>(
+    const TupleSlot slot, ProjectedColumns::RowView *const out_buffer,
+    const std::function<void(VersionChainType)> lambda) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value

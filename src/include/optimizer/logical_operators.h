@@ -1332,8 +1332,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                        parser::IndexType index_type, bool unique, std::string index_name,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
-                       bool concurrent);
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs, bool concurrent);
 
   /**
    * Copy
@@ -1413,7 +1412,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
   /**
    * Whether this create is concurrent
    */
-   bool concurrent_ = false;
+  bool concurrent_ = false;
 };
 
 /**

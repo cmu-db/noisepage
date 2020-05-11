@@ -167,11 +167,12 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       if (concurrent) {
         connection_ctx->Transaction()->SetMustAbort();
         return {ResultType::ERROR, "ERROR:  CREATE INDEX CONCURRENTLY not implemented"};
-        //TODO
+        // TODO
       } else {
         auto table_oid = create_index_plan->GetTableOid();
         if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
-          return {ResultType::ERROR, "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
+          return {ResultType::ERROR,
+                  "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
         }
         auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
         table_lock->lock();

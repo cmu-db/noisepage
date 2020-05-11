@@ -1,10 +1,10 @@
 #pragma once
 #include <list>
 #include <set>
+#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
-#include <shared_mutex>
 
 #include "catalog/schema.h"
 #include "storage/data_table.h"
@@ -41,7 +41,7 @@ class SqlTable {
   };
 
  public:
-  //TODO(astanesc): replace this with a std::shared_mutex once deadlock is fixed
+  // TODO(astanesc): replace this with a std::shared_mutex once deadlock is fixed
   /**
    * This lock is held by any transaction that has made modifications to the table. If these modifications
    * are UPDATE/INSERT/DELETEs, then the lock is held in read mode. If the modification is a CREATE INDEX, then the
@@ -86,7 +86,8 @@ class SqlTable {
    * @param lambda a function to call at each spot in the delta record chain
    */
   template <class RowType>
-  void TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer, const std::function<void(DataTable::VersionChainType)> lambda) const {
+  void TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer,
+                            const std::function<void(DataTable::VersionChainType)> lambda) const {
     table_.data_table_->TraverseVersionChain(slot, out_buffer, lambda);
   }
 

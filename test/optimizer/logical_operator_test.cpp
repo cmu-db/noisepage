@@ -1135,15 +1135,17 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
       common::ManagedPointer<parser::AbstractExpression>(
           new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9)))};
   auto raw_values_copy = raw_values;
-  Operator op3 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy), false);
+  Operator op3 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::move(raw_values_copy), false);
   EXPECT_EQ(op3.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   auto raw_values_copy2 = raw_values;
-  Operator op4 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy2), false);
+  Operator op4 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::move(raw_values_copy2), false);
   EXPECT_EQ(op4.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_TRUE(op3 == op4);
   EXPECT_EQ(op4.Hash(), op3.Hash());
@@ -1154,8 +1156,9 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
       common::ManagedPointer<parser::AbstractExpression>(
           new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9)))};
   auto raw_values_copy3 = raw_values_2;
-  Operator op10 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                           parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy3), false);
+  Operator op10 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::move(raw_values_copy3), false);
   EXPECT_EQ(op10.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
   EXPECT_FALSE(op3 == op10);
   EXPECT_NE(op10.Hash(), op3.Hash());

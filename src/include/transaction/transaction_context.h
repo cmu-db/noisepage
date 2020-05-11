@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include <shared_mutex>
+#include <vector>
 
 #include "common/macros.h"
 #include "common/managed_pointer.h"
@@ -36,7 +36,6 @@ class TransactionContext {
    */
   class DebugLock : public std::shared_mutex {
    public:
-
     /**
      * lock in shared mode whie adding debug info
      * @param txn transaction holding the lock
@@ -62,7 +61,6 @@ class TransactionContext {
    private:
     std::vector<common::ManagedPointer<transaction::TransactionContext>> readers;
     std::unordered_set<common::ManagedPointer<transaction::TransactionContext>> lockers;
-
   };
 
   /**
@@ -86,7 +84,6 @@ class TransactionContext {
         undo_buffer_(buffer_pool.Get()),
         redo_buffer_(log_manager.Get(), buffer_pool.Get()) {}
 
-
   /**
    * Constructs a new transaction context.
    *
@@ -99,10 +96,7 @@ class TransactionContext {
    * MVCC semantics
    */
   TransactionContext(const timestamp_t start, const timestamp_t finish)
-      : start_time_(start),
-        finish_time_(finish),
-        undo_buffer_(nullptr),
-        redo_buffer_(nullptr, nullptr) {}
+      : start_time_(start), finish_time_(finish), undo_buffer_(nullptr), redo_buffer_(nullptr, nullptr) {}
 
   /**
    * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests
@@ -265,7 +259,7 @@ class TransactionContext {
    */
   void LockIfNotLocked(catalog::table_oid_t table_oid, common::ManagedPointer<std::shared_mutex> table_lock) {
     if (!IsTableLocked(table_oid)) {
-      reinterpret_cast<DebugLock*>(table_lock.Get())->debug_lock_shared(common::ManagedPointer(this));
+      reinterpret_cast<DebugLock *>(table_lock.Get())->debug_lock_shared(common::ManagedPointer(this));
       held_table_oids_.insert(table_oid);
       held_table_locks_.push_back(table_lock);
     }
@@ -277,9 +271,7 @@ class TransactionContext {
    * @param table_oid the oid to check whether this transaction holds a read lock on
    * @return whether or not this transaction holds a read lock for the given table
    */
-  bool IsTableLocked(catalog::table_oid_t table_oid) const {
-    return held_table_oids_.count(table_oid) != 0;
-  }
+  bool IsTableLocked(catalog::table_oid_t table_oid) const { return held_table_oids_.count(table_oid) != 0; }
 
  private:
   friend class storage::GarbageCollector;

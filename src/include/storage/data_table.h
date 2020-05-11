@@ -189,7 +189,8 @@ class DataTable {
    * @param lambda a function to call at each spot in the delta record chain
    */
   template <class RowType>
-  void TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer, const std::function<void(VersionChainType)> lambda) const;
+  void TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer,
+                            const std::function<void(VersionChainType)> lambda) const;
 
   // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
   // save a point of scan and come back to it later?
