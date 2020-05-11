@@ -1432,12 +1432,14 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
   return true;
 }
 
-bool DatabaseCatalog::CompPRData(std::byte *src_pr, std::byte *tar_pr, type::TypeId type) {
-    if (type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY) {
-        *(reinterpret_cast<storage::VarlenEntry *>(tar_pr)) = *(reinterpret_cast<storage::VarlenEntry *>(src_pr));
-    } else {
-        std::memcpy(tar_pr, src_pr, type::TypeUtil::GetTypeSize(type));
+bool DatabaseCatalog::CompPRData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type) {
+    TERRIER_ASSERT(type != type::TypeId::VARBINARY, "Update from external table should not have VARBINARY type");
+    if (type == type::TypeId::VARCHAR ) {
+        std::string src_string = VarlentoString(*(reinterpret_cast<storage::VarlenEntry *>(src_ptr)));
+        std::string tar_string = VarlentoString(*(reinterpret_cast<storage::VarlenEntry *>(tar_ptr)));
+        return src_string == tar_string;
     }
+    return std::memcmp(tar_ptr, src_ptr, type::TypeUtil::GetTypeSize(type)) == 0;
 }
 
 void DatabaseCatalog::CopyData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type) {
