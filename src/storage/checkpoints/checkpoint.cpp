@@ -65,9 +65,9 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
 void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                              catalog::db_oid_t db_oid) {
   // get data table from the queue
-  while (queue.size() > 0) {
+  while (!queue.empty()) {
     queue_latch.lock();
-    if (queue.size() <= 0) {
+    if (queue.empty()) {
       queue_latch.unlock();
       return;
     }

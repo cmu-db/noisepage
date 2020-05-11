@@ -116,7 +116,8 @@ class Checkpoint {
   std::mutex queue_latch;
 
   /**
-   * Write the data of a database to disk in parallel, called by TakeCheckpoint()
+   * Write the data of a database to disk in parallel (a user specified number of thread pulling table oid from a queue),
+   * called by TakeCheckpoint()
    * @param path the path on disk to save the checkpoint
    * @param accessor catalog accessor of the given database
    * @param db_oid the databse to be checkpointed
@@ -126,11 +127,11 @@ class Checkpoint {
                    catalog::db_oid_t db_oid);
 
   /**
- * Filter the logs in original log file to separate logs related to catalog tables to another file
- * @param old_log_path the path of the original log file
- * @param new_log_path the path of the new log file to save the logs related to catalog tables
- * @return None
- */
+   * Filter the logs in original log file to separate logs related to catalog tables to another file
+   * @param old_log_path the path of the original log file
+   * @param new_log_path the path of the new log file to save the logs related to catalog tables
+   * @return None
+   */
   void FilterCatalogLogs(const std::string &old_log_path, const std::string &new_log_path);
 
 
