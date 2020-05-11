@@ -132,14 +132,11 @@ class IndexBuilder {
 
         switch (type) {
           case DataTable::VersionChainType::VISIBLE:
-            printf("Inserting into index");
             index->Insert(txn_, *index_pr, slot);
             break;
           case DataTable::VersionChainType::INVISIBLE:
           case DataTable::VersionChainType::PRE_UPDATE:
-            printf("Inserting into index");
             index->Insert(txn_, *index_pr, slot);
-            printf("Deleting from index");
             index->Delete(txn_, *index_pr, slot);
             break;
           default:

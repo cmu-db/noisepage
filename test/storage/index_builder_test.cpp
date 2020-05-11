@@ -98,11 +98,13 @@ TEST_F(IndexBuilderTests, NullTable) {
 TEST_F(IndexBuilderTests, OneTxnFullTable) {
   auto table_txn = txn_manager_->BeginTransaction();
   auto row_initializer = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1), catalog::col_oid_t(2)});
-  uint32_t NUM_INSERTS = 1000;
+  uint32_t num_inserts = 1000;
   std::vector<uint32_t> keys;
   std::unordered_set<TupleSlot> reference;
-  for (uint32_t i = 0; i < NUM_INSERTS; i++) {
+  for (uint32_t i = 0; i < num_inserts; i++) {
+    // NOLINTNEXTLINE (random is fine for tests)
     uint32_t key = random();
+    // NOLINTNEXTLINE (random is fine for tests)
     uint32_t val = random();
 
     auto redo_record = table_txn->StageWrite(catalog::db_oid_t{1}, catalog::table_oid_t{1}, row_initializer);

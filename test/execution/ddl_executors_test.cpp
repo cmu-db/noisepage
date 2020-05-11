@@ -252,8 +252,8 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyNameConflict) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNode) {
-  planner::CreateTablePlanNode::Builder createTablebuilder;
-  auto create_table_node = createTablebuilder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+  planner::CreateTablePlanNode::Builder create_table_builder;
+  auto create_table_node = create_table_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo_table")
                                .SetBlockStore(block_store_)
@@ -285,8 +285,8 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNode) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNodeAbort) {
-  planner::CreateTablePlanNode::Builder createTablebuilder;
-  auto create_table_node = createTablebuilder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+  planner::CreateTablePlanNode::Builder create_table_builder;
+  auto create_table_node = create_table_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo_table")
                                .SetBlockStore(block_store_)
@@ -316,8 +316,8 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeAbort) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
-  planner::CreateTablePlanNode::Builder createTablebuilder;
-  auto create_table_node = createTablebuilder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+  planner::CreateTablePlanNode::Builder create_table_builder;
+  auto create_table_node = create_table_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo_table")
                                .SetBlockStore(block_store_)
