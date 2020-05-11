@@ -67,12 +67,31 @@ class EXPORT StorageInterface {
    */
   bool TableUpdate(storage::TupleSlot table_tuple_slot);
 
+  /**
+   * Verify if the inserting projected row complies with table constraintas
+   * @return true if complies with all constraints
+   */
   bool VerifyTableInsertConstraint();
 
+  /**
+   * Verify if the updating data complies with table constraints
+   * @param table_tuple_slot tuple slot of the tuple.
+   * @return Whether update complies with constraints
+   */
   bool UpdateVerify(storage::TupleSlot table_tuple_slot);
 
+  /**
+   * cascade updation for a table update, if any
+   * @param table_tuple_slot tuple slot of the tuple.
+   * @return Whether update CASCADE was successful.
+   */
   bool UpdateCascade(storage::TupleSlot table_tuple_slot);
 
+  /**
+   * Perform delete CASCADE action, if any
+   * @param table_tuple_slot tuple slot of the tuple.
+   * @return delete CASCADE was successful
+   */
   bool DeleteCascade(storage::TupleSlot table_tuple_slot);
 
   /**

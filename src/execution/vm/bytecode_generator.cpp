@@ -2153,7 +2153,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
 
   ast::Context *ctx = call->GetType()->GetContext();
   ctx->IsBuiltinFunction(call->GetFuncName(), &builtin);
-  std::cout<<call->GetFuncName().Data()<<std::endl;
   switch (builtin) {
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
@@ -2458,7 +2457,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
     case ast::Builtin::VerifyTableInsertConstraint: {
-      std::cout<<"hit"<<std::endl;
       VisitBuiltinStorageInterfaceCall(call, builtin);
       break;
     }
