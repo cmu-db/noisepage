@@ -1381,7 +1381,6 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
       const auto &index_columns = index_schema.GetColumns();
       TERRIER_ASSERT(index_columns.size() == constraint.concol_.size(),
                      "index should have same cardinality as table col in constraint");
-      //            bool all_col_update_same = true;
       for (size_t j = 0; j < index_columns.size(); j++) {
         col_oid_t table_col_oid = constraint.concol_[j];
         indexkeycol_oid_t index_col_oid = index_columns[j].Oid();
@@ -1393,7 +1392,6 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
         if (affected_col.count(table_col_oid) > 0) {
           update_ptr = update_pr->AccessForceNotNull(update_pr_pm[table_col_oid]);
           CopyData(update_ptr, index_ptr, index_columns[j].Type());
-          //                    all_col_update_same = CompPRData(table_ptr, update_ptr, index_columns[j].Type());
         } else {
           CopyData(table_ptr, index_ptr, index_columns[j].Type());
         }
