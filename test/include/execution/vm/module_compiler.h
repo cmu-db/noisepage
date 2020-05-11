@@ -34,6 +34,12 @@ class ModuleCompiler {
     return ast;
   }
 
+  std::unique_ptr<Module> CompileToModule(const std::string &source, execution::exec::ExecutionContext *exec) {
+	auto *ast = CompileToAst(source);
+    if (HasErrors()) return nullptr;
+    return std::make_unique<Module>(vm::BytecodeGenerator::Compile(ast, exec, "test"));
+  }
+
   std::unique_ptr<Module> CompileToModule(const std::string &source) {
     auto *ast = CompileToAst(source);
     if (HasErrors()) return nullptr;

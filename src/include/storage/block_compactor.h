@@ -83,7 +83,7 @@ class BlockCompactor {
       return true
     })";
     auto compiler = execution::vm::test::ModuleCompiler();
-    auto module = compiler.CompileToModule(tpl_code);
+    auto module = compiler.CompileToModule(tpl_code, exec_);
 
     module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple_);
   }
