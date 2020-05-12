@@ -91,7 +91,7 @@ class TransitiveClosureConstantTransform : public Rule {
                  OptimizationContext *context) const override;
 };
 
-/*
+/**
  * Comparison Intersection: If the same two expressions are being compared in two separate branches of an
  *   AND clause, we can rewrite it into a single comparison depending on what the two comparators are.
  * Examples:
