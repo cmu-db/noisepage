@@ -4,7 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "binder/binder_sherpa.h"
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
@@ -50,16 +49,7 @@ class ConjunctionExpression : public AbstractExpression {
     return expr;
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    sherpa->CheckDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
-
-    for (const auto child : GetChildren()) {
-      sherpa->SetDesiredType(child, type::TypeId::BOOLEAN);
-    }
-
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
 DEFINE_JSON_DECLARATIONS(ConjunctionExpression);

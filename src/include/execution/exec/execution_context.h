@@ -159,13 +159,13 @@ class EXPORT ExecutionContext {
    * Set the execution parameters.
    * @param params The exection parameters.
    */
-  void SetParams(std::vector<type::TransientValue> &&params) { params_ = std::move(params); }
+  void SetParams(common::ManagedPointer<const std::vector<type::TransientValue>> params) { params_ = params; }
 
   /**
    * @param param_idx index of parameter to access
    * @return immutable parameter at provided index
    */
-  const type::TransientValue &GetParam(uint32_t param_idx) const { return params_[param_idx]; }
+  const type::TransientValue &GetParam(uint32_t param_idx) const { return (*params_)[param_idx]; }
 
   /**
    * INSERT, UPDATE, and DELETE queries return a number for the rows affected, so this should be incremented in the root
@@ -190,8 +190,8 @@ class EXPORT ExecutionContext {
   StringAllocator string_allocator_;
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
+  common::ManagedPointer<const std::vector<type::TransientValue>> params_;
   uint8_t execution_mode_;
-  std::vector<type::TransientValue> params_;
   uint64_t rows_affected_ = 0;
 };
 }  // namespace terrier::execution::exec

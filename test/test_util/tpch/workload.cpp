@@ -2,6 +2,7 @@
 
 #include <random>
 
+#include "common/managed_pointer.h"
 #include "execution/exec/execution_context.h"
 #include "execution/execution_util.h"
 #include "execution/table_generator/table_generator.h"
@@ -100,8 +101,8 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
                                                printer, output_schema,
                                                common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
-    auto params = GetQueryParams(query_name);
-    exec_ctx.SetParams(std::move(params));
+    const auto params = GetQueryParams(query_name);
+    exec_ctx.SetParams(common::ManagedPointer(&params));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     // Only execute up to query_num number of queries for this thread in round-robin
     counter = counter == query_num - 1 ? 0 : counter + 1;
