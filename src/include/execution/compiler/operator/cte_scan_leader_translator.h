@@ -54,6 +54,7 @@ class CteScanLeaderTranslator : public OperatorTranslator {
   ast::Expr *GetOutput(uint32_t attr_idx) override {
     // should never reach here
     TERRIER_ASSERT(false, "We should never reach here");
+    return nullptr;
   }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
