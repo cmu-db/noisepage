@@ -347,6 +347,7 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEmptyIntersection) {
 
   for (auto *base : empty_rewrite_expressions) {
     auto expr = rewriter->RewriteExpression(common::ManagedPointer(base));
+    (void)expr;
     delete base;
 
     // Result should be single boolean constant expression (false)
@@ -408,6 +409,8 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionEqualIntersection) {
     auto right_child = expr->GetChildren()[1];
     TERRIER_ASSERT(*left_child == *column_ref_b, "Left child should be A.B");
     TERRIER_ASSERT(*right_child == *column_ref_c, "Right child should be A.C");
+    (void)left_child;
+    (void)right_child;
   }
   delete rewriter;
 
@@ -455,6 +458,8 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionLessThanIntersection) {
     auto right_child = expr->GetChildren()[1];
     TERRIER_ASSERT(*left_child == *column_ref_b, "Left child should be A.B");
     TERRIER_ASSERT(*right_child == *column_ref_c, "Right child should be A.C");
+    (void)left_child;
+    (void)right_child;
   }
   delete rewriter;
 
@@ -502,6 +507,8 @@ TEST_F(RuleRewriteTests, ComparisonIntersectionGreaterThanIntersection) {
     auto right_child = expr->GetChildren()[1];
     TERRIER_ASSERT(*left_child == *column_ref_b, "Left child should be A.B");
     TERRIER_ASSERT(*right_child == *column_ref_c, "Right child should be A.C");
+    (void)left_child;
+    (void)right_child;
   }
   delete rewriter;
 
