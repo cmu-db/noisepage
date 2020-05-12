@@ -75,7 +75,6 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python ../script/testing/junit/run_junit.py'
                     }
                     post {
                         cleanup {
