@@ -2030,6 +2030,11 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    */
   const std::string &GetTableAlias() const { return table_alias_; }
 
+  /**
+   * GetExpressions
+   * Get the list of child expression for this Cte node
+   * @return vector of child expressions
+   */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetExpressions() { return child_expressions_; }
 
  private:

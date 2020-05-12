@@ -328,6 +328,7 @@ class SelectStatement : public SQLStatement {
    * @param group_by group by condition
    * @param order_by order by condition
    * @param limit limit condition
+   * @param with accompanying cte query
    */
   SelectStatement(std::vector<common::ManagedPointer<AbstractExpression>> select, bool select_distinct,
                   std::unique_ptr<TableRef> from, common::ManagedPointer<AbstractExpression> where,

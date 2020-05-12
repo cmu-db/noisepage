@@ -11,6 +11,11 @@ class AstNode;
  */
 class AstPrettyPrint {
  public:
+  /**
+   * @param os the output target
+   * @param node the AstNode to dump
+   * @return builder object
+   */
   static void Dump(std::ostream &os, AstNode *node);
 };
 
