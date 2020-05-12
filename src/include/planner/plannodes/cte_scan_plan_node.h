@@ -37,7 +37,7 @@ class CteScanPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param output_schema output schema for plan node
+     * @param table_output_schema output schema for plan node
      * @return builder object
      */
     Builder &SetTableOutputSchema(std::unique_ptr<OutputSchema> table_output_schema) {
@@ -93,8 +93,15 @@ class CteScanPlanNode : public AbstractPlanNode {
 
   void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
+  /**
+   * @return True is this node is assigned the CTE leader node and will
+   * populate the temporary table
+   */
   bool IsLeader() const { return is_leader_; }
 
+  /**
+   * Assign's this node as the leader CTE scan node
+   */
   void SetLeader() { is_leader_ = true; }
 
   /**
@@ -113,8 +120,9 @@ class CteScanPlanNode : public AbstractPlanNode {
   //===--------------------------------------------------------------------===//
 
   /**
-   * output schema for the node. The output schema contains information on columns of the output of the plan
+   * Output schema for the node. The output schema contains information on columns of the output of the plan
    * node operator
+   * @param schema output schema for plan node
    */
   void SetTableOutputSchema(std::unique_ptr<OutputSchema> schema) {
     // TODO(preetang): Test for memory leak
@@ -122,7 +130,9 @@ class CteScanPlanNode : public AbstractPlanNode {
   }
 
  private:
+  // Boolean to indicate whether this plan node is leader or not
   bool is_leader_;
+  // Output table schema for CTE scan
   std::unique_ptr<OutputSchema> table_output_schema_;
 };
 

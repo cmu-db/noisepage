@@ -438,7 +438,7 @@ class CodeGen {
   ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::Identifier col_oids);
 
   /**
-   * Call @tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
+   * Call tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
    * @param tvi The identifier of table vector iterator
    * @param cte_scan_iterator The identifier of cte scan iterator
    * @param col_oids The identifier of the array of column oids to read.
@@ -593,8 +593,10 @@ class CodeGen {
    */
   ast::Expr *ZeroArgCall(ast::Builtin builtin);
 
-  /*Return the identifier for a cte scan iterator in tpl generated
-   * */
+  /**
+   * Return the identifier for a cte scan iterator in tpl generated
+   * @return identifier for a cte scan iterator in tpl generated
+   */
   ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_; }
 
  private:
