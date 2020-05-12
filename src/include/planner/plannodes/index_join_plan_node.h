@@ -156,12 +156,21 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
+  /**
+   * @return the scan type
+   */
   IndexScanType GetScanType() const { return scan_type_; }
 
+  /**
+   * @return the lower bound index columns
+   */
   const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetLoIndexColumns() const {
     return lo_index_cols_;
   }
 
+  /**
+   * @return the upper bound index columns
+   */
   const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetHiIndexColumns() const {
     return hi_index_cols_;
   }

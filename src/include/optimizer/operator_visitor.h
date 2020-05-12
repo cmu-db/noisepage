@@ -62,7 +62,7 @@ class OperatorVisitor {
 
   /**
    * Visit a InnerNLJoin operator
-   * @param inner_join operator
+   * @param index_join operator
    */
   virtual void Visit(const InnerIndexJoin *index_join) {}
 

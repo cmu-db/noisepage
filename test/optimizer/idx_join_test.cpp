@@ -38,7 +38,7 @@ struct IdxJoinTest : public TerrierTest {
     std::vector<type::TransientValue> params;
     tcop_->BeginTransaction(common::ManagedPointer(&context_));
     auto parse = tcop_->ParseQuery(sql, common::ManagedPointer(&context_));
-    auto stmt = network::Statement(std::move(parse));
+    auto stmt = network::Statement(std::move(sql), std::move(parse));
     auto result = tcop_->BindQuery(common::ManagedPointer(&context_), common::ManagedPointer(&stmt),
                                    common::ManagedPointer(&params));
     TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
@@ -50,9 +50,10 @@ struct IdxJoinTest : public TerrierTest {
     } else {
       network::WriteQueue queue;
       auto pwriter = network::PostgresPacketWriter(common::ManagedPointer(&queue));
-      auto portal = network::Portal(common::ManagedPointer(&stmt), std::move(plan));
-      result = tcop_->CodegenAndRunPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
-                                                common::ManagedPointer(&portal));
+      auto portal = network::Portal(common::ManagedPointer(&stmt));
+      stmt.SetPhysicalPlan(std::move(plan));
+      result = tcop_->CodegenPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
+                                          common::ManagedPointer(&portal));
       TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
     }
 
