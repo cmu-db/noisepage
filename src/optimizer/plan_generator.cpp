@@ -502,6 +502,7 @@ void PlanGenerator::Visit(const InnerIndexJoin *op) {
   auto type = op->GetScanType();
   planner::IndexJoinPlanNode::Builder builder;
   builder.SetOutputSchema(std::move(proj_schema))
+      .SetJoinType(planner::LogicalJoinType::INNER)
       .SetJoinPredicate(common::ManagedPointer(join_predicate))
       .SetIndexOid(op->GetIndexOID())
       .SetTableOid(op->GetTableOID())
