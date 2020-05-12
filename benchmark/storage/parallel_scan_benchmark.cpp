@@ -40,7 +40,6 @@ namespace terrier {
 class ParalleScanBenchmark : public benchmark::Fixture {};
 
 BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &state) {  // NOLINT
-  // Below is the Working Version
   uint32_t num_row = 10000000;
   LoggersUtil::Initialize();
   auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
