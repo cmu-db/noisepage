@@ -162,11 +162,10 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   // Parallel scan is tested using 1, 2, 4, 8 ... number of threads
   // until it reaches the number of cores on the machine
   for (uint32_t i = 1; i <= num_cores; i *= 2) {
-
     thread_state_container.Reset(sizeof(Counter),  // The type of each thread state structure
-                                init_count,       // The thread state initialization function
-                                nullptr,          // The thread state destruction function
-                                nullptr);         // Context passed to init/destroy functions
+                                 init_count,       // The thread state initialization function
+                                 nullptr,          // The thread state destruction function
+                                 nullptr);         // Context passed to init/destroy functions
     auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
     TableVectorIterator::ParallelScan(static_cast<uint32_t>(table_oid),                           // ID of table to scan
                                       col_oids,                                                   // col oid array

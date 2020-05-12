@@ -101,16 +101,14 @@ class ScanTask {
 };
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
-                                       void *query_state, const ScanFn scan_fn, exec::ExecutionContext *exec_ctx,
-                                       uint32_t num_threads) {
+bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
+                                       const ScanFn scan_fn, exec::ExecutionContext *exec_ctx, uint32_t num_threads) {
   // Lookup table
   common::ManagedPointer<storage::SqlTable> table =
       exec_ctx->GetAccessor()->GetTable(static_cast<catalog::table_oid_t>(table_oid));
   if (table == nullptr) {
     return false;
   }
-
 
   if (num_threads == 0) {
     // Get the number of cores

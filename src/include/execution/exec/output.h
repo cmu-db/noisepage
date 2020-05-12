@@ -44,18 +44,15 @@ class EXPORT OutputBuffer {
    * @param callback upper layer callback
    */
   explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size, OutputCallback callback)
-      : memory_pool_(memory_pool),
-        tuple_size_(tuple_size),
-        id_(0),
-        callback_(std::move(callback)) {
-          max_thread_ = std::thread::hardware_concurrency();
-          if (max_thread_ == 0) {
-            // Single thread if fail to get the number of cores
-            max_thread_ = 1;
-          }
-          num_tuples_ = reinterpret_cast<uint32_t *>(
-          memory_pool->AllocateAligned(max_thread_ * sizeof(uint32_t), alignof(uint32_t), true));
-        }
+      : memory_pool_(memory_pool), tuple_size_(tuple_size), id_(0), callback_(std::move(callback)) {
+    max_thread_ = std::thread::hardware_concurrency();
+    if (max_thread_ == 0) {
+      // Single thread if fail to get the number of cores
+      max_thread_ = 1;
+    }
+    num_tuples_ = reinterpret_cast<uint32_t *>(
+        memory_pool->AllocateAligned(max_thread_ * sizeof(uint32_t), alignof(uint32_t), true));
+  }
 
   /**
    * Insert the corresponding buffer of a thread to the map if not created yet

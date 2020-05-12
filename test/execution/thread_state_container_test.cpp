@@ -76,7 +76,7 @@ TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   MemoryPool memory(nullptr);
   ThreadStateContainer container((common::ManagedPointer<MemoryPool>(&memory)));
 
-//
+  //
   // Test: Create thread local state that adds to a contextually provided
   //       counter on construction, and decrements upon destruction. Try
   //       resetting the container multiple times. After all is said and done,
