@@ -193,6 +193,33 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
+  // Pipeline Units
+  auto pipeline = executable.GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 2);
+
+  bool build_feature = false, seq_feature = false, idx_feature = false;
+  auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
+  EXPECT_EQ(pipe0_vec.size(), 3);
+  for (auto &feature : pipe0_vec) {
+    switch (feature.GetExecutionOperatingUnitType()) {
+      case brain::ExecutionOperatingUnitType::SORT_BUILD:
+        build_feature = true;
+        break;
+      case brain::ExecutionOperatingUnitType::SEQ_SCAN:
+        seq_feature = true;
+        break;
+      case brain::ExecutionOperatingUnitType::IDX_SCAN:
+        idx_feature = true;
+        break;
+      default:
+        break;
+    }
+  }
+
+  EXPECT_TRUE(build_feature && seq_feature && idx_feature);
+  auto pipe1_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  EXPECT_EQ(pipe1_vec[0].GetExecutionOperatingUnitType(), brain::ExecutionOperatingUnitType::SORT_ITERATE);
+
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 

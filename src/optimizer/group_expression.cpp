@@ -22,11 +22,10 @@ void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
 
       // Insert
       lowest_cost_table_[output_properties] = std::make_tuple(cost, input_properties_list);
-    } else {
-      delete output_properties;
     }
 
     // Cleanup any memory allocations by contract
+    delete output_properties;
     for (auto prop : pending_deletion) {
       delete prop;
     }

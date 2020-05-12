@@ -133,7 +133,7 @@ void InputColumnDeriver::Visit(const Aggregate *op) { AggregateHelper(op); }
 void InputColumnDeriver::Visit(const InnerIndexJoin *op) {
   ExprSet input_cols_set;
   for (auto &join_keys : op->GetJoinKeys()) {
-    // Get all Tuple/Aggregate expressions from left keys
+    // Get all Tuple/Aggregate expressions from join keys
     for (auto join_key : join_keys.second) {
       if (join_key != nullptr) {
         parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, join_key);
@@ -176,7 +176,7 @@ void InputColumnDeriver::Visit(const InnerIndexJoin *op) {
       TERRIER_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
     }
 
-    // Pick the build or probe side depending on the table
+    // Pick the probe if alias matches
     std::string tv_table_name = tv_expr->GetTableName();
     TERRIER_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
     if (probe_table_aliases.count(tv_table_name) != 0U) {

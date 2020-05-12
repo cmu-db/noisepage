@@ -491,7 +491,6 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(common::ManagedPointer<
   idx_scan_transform.Transform(common::ManagedPointer(new_child), &transform, context);
 
   for (const auto &idx_op : transform) {
-    // IndexJoinTranslator will only translate the inner index as Exact
     auto idx_scan = idx_op->GetOp().As<IndexScan>();
     TERRIER_ASSERT(idx_scan != nullptr, "Transformation should have produced an IndexScan");
 
