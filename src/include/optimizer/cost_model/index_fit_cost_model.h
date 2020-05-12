@@ -61,12 +61,8 @@ class IndexFitCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const IndexScan *op) override {
     // Get the table schema
     // This heuristic is not really good --- it merely picks the index based on
-    // how many of those index's keys are set (op->GetBounds()) and the particular
-    // size of the index.
-    auto tbl_schema = accessor_->GetSchema(op->GetTableOID());
-    auto schema_size = tbl_schema.GetColumns().size();
-    if (schema_size < op->GetBounds().size()) output_cost_ = 0.f;
-    else output_cost_ = static_cast<double>(schema_size - op->GetBounds().size());
+    // how many of those index's keys are set (op->GetBounds())
+    output_cost_ = SCAN_COST - op->GetBounds().size();
   }
 
   /**
@@ -94,12 +90,8 @@ class IndexFitCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const InnerIndexJoin *op) override {
     // Get the table schema
     // This heuristic is not really good --- it merely picks the index based on
-    // how many of those index's keys are set (op->GetBounds()) and the particular
-    // size of the index.
-    auto tbl_schema = accessor_->GetSchema(op->GetTableOID());
-    auto schema_size = tbl_schema.GetColumns().size();
-    if (schema_size < op->GetJoinKeys().size()) output_cost_ = 0.f;
-    else output_cost_ = static_cast<double>(schema_size - op->GetJoinKeys().size());
+    // how many of those index's keys are set (op->GetBounds())
+    output_cost_ = NLJOIN_COST - op->GetJoinKeys().size();
   }
 
   /**

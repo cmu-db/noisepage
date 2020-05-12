@@ -16,16 +16,17 @@ void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
     lowest_cost_table_.insert(std::make_pair(output_properties, std::make_tuple(cost, input_properties_list)));
   } else {
     // Only insert if the cost is lower than the existing cost
-    std::vector<PropertySet *> &pending_deletion = input_properties_list;
+    std::vector<PropertySet *> pending_deletion = input_properties_list;
     if (std::get<0>(it->second) > cost) {
       pending_deletion = std::get<1>(it->second);
 
       // Insert
       lowest_cost_table_[output_properties] = std::make_tuple(cost, input_properties_list);
+    } else {
+      delete output_properties;
     }
 
     // Cleanup any memory allocations by contract
-    delete output_properties;
     for (auto prop : pending_deletion) {
       delete prop;
     }
