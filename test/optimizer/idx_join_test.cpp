@@ -54,6 +54,9 @@ struct IdxJoinTest : public TerrierTest {
       stmt.SetPhysicalPlan(std::move(plan));
       result = tcop_->CodegenPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
                                           common::ManagedPointer(&portal));
+      TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Codegen should have succeeded");
+      result = tcop_->RunExecutableQuery(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
+                                         common::ManagedPointer(&portal));
       TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
     }
 
