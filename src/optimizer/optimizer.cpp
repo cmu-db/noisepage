@@ -77,7 +77,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
     if (plan->GetChildren().empty()) {
       // Set cte schema
       auto cte_scan_plan_node_set = reinterpret_cast<planner::CteScanPlanNode *>(plan.Get());
-      cte_scan_plan_node_set->SetTableOutputSchema(std::move(context_->GetCTESchema()->Copy()));
+      cte_scan_plan_node_set->SetTableOutputSchema(context_->GetCTESchema()->Copy());
 
       if (*leader == nullptr) {
         *leader = plan;

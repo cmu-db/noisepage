@@ -187,7 +187,8 @@ std::unique_ptr<SelectStatement> SelectStatement::Copy() {
         union_select_->select_, union_select_->select_distinct_, union_select_->from_->Copy(), union_select_->where_,
         union_select_->group_by_ == nullptr ? nullptr : union_select_->group_by_->Copy(),
         union_select_->order_by_ == nullptr ? nullptr : union_select_->order_by_->Copy(),
-        union_select_->limit_ == nullptr ? nullptr : union_select_->limit_->Copy(), union_select_->with_table_->Copy());
+        union_select_->limit_ == nullptr ? nullptr : union_select_->limit_->Copy(),
+        union_select_->with_table_ == nullptr ? nullptr : union_select_->with_table_->Copy());
     select->SetUnionSelect(std::move(union_copy));
   }
   return select;
