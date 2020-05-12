@@ -71,12 +71,17 @@ class BlockCompactor {
     // fixed length col_ids array passed : HACK
     tpl_code_ = R"(
     fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: [1]uint32) -> bool {
+      col_oids[0] = 1
       var storage_interface: StorageInterface
       @storageInterfaceInitBind(&storage_interface, execCtx, "foo", col_oids, true)
+
+      var table_projected_row = @getTablePR(&storage_interface)
+
       if (!@tableDelete(&storage_interface, slot_from)) {
         @storageInterfaceFree(&storage_interface)
         return false
       }
+
       @tableCompactionInsertInto(&storage_interface, slot_to)
       return true
     })";

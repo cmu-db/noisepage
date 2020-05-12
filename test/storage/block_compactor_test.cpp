@@ -197,6 +197,10 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   table_ptr->Delete(common::ManagedPointer(txn2), tuple_slot_0);
   txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  // Perform Garbage Collection multiple times so that the slots are deallocated
+  gc_->PerformGarbageCollection();
+  gc_->PerformGarbageCollection();
+
   // Begin T3, create an execution context and a block compactor, move the tuple from the 2nd -> 1st slot, and commit
   auto txn3 = txn_manager_->BeginTransaction();
   auto catalog_accessor = catalog_->GetAccessor(common::ManagedPointer(txn3), db_oid);
