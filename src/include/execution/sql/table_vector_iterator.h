@@ -47,6 +47,11 @@ class EXPORT TableVectorIterator {
    */
   bool Init();
 
+  /**
+   * Initialize the temp table, returning true if the initialization succeeded
+   * @param cte_table the CTE table to initialize
+   * @return True if the initialization succeeded; false otherwise
+   */
   bool InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table);
 
   /**
