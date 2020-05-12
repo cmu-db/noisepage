@@ -224,7 +224,6 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   EXPECT_EQ(pipe1_vec[0].GetExecutionOperatingUnitType(), brain::ExecutionOperatingUnitType::SORT_ITERATE);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  TERRIER_ASSERT(0, "shit");
 }
 
 // NOLINTNEXTLINE
