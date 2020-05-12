@@ -236,6 +236,16 @@ class DatabaseCatalog {
                        storage::index::Index *index_ptr);
 
   /**
+   * Update the schema pointer of a tupleslot, this is only used for recovery when an entry of invalid pointer was
+   * inserted, and needs to be updated since memory addresses changes after recovery.
+   * @param txn transactional context to be used
+   * @param slot Tupleslot to update the pointer
+   * @param ptr pointer to the schema
+   * @return true if successful update
+   */
+  bool SetSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, const storage::TupleSlot slot,
+                        const void *ptr);
+  /**
    * Obtain the pointer to the index
    * @param txn transaction to use
    * @param index to which we want a pointer

@@ -195,19 +195,19 @@ class RandomSqlTableTestObject {
   template <class Random>
   void ConcurrentInsertRandomTuples(const transaction::timestamp_t timestamp, Random *generator,
                                     storage::RecordBufferSegmentPool *buffer_pool,
-                                    storage::layout_version_t layout_version, int num_threads,
-                                    int num_inserts_per_thread,
+                                    storage::layout_version_t layout_version, uint32_t num_threads,
+                                    uint32_t num_inserts_per_thread,
                                     common::ManagedPointer<transaction::TransactionContext> update_schema_txn = nullptr,
                                     std::unique_ptr<catalog::Schema> updated_schema = nullptr,
                                     const storage::layout_version_t updated_layout_version = 0) {
-    int num_new_tuples = num_threads * num_inserts_per_thread;
-    int inserted_slots_size = inserted_slots_.size();
+    uint32_t num_new_tuples = num_threads * num_inserts_per_thread;
+    uint32_t inserted_slots_size = inserted_slots_.size();
     inserted_slots_.resize(inserted_slots_size + num_new_tuples);
 
     std::vector<transaction::TransactionContext *> new_txns;
     std::vector<storage::RedoRecord *> new_redos;
 
-    for (int i = 0; i < num_new_tuples; i++) {
+    for (size_t i = 0; i < num_new_tuples; i++) {
       // generate a txn with an UndoRecord to populate on Insert
       auto *txn =
           new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
@@ -238,7 +238,7 @@ class RandomSqlTableTestObject {
       if (update_schema_txn != nullptr && thread_id == num_threads) {
         UpdateSchema(update_schema_txn, std::move(updated_schema), updated_layout_version);
       } else {
-        for (int i = 0; i < num_inserts_per_thread; i++) {
+        for (size_t i = 0; i < num_inserts_per_thread; i++) {
           int loc = static_cast<int>(thread_id) * num_inserts_per_thread + i;
           auto insert_redo = new_redos[loc];
           storage::TupleSlot slot = table_->Insert(common::ManagedPointer(new_txns[loc]), insert_redo, layout_version);
@@ -641,7 +641,7 @@ TEST_F(SqlTableTests, ConcurrentInsertSelect) {
   EXPECT_EQ(2 * total_inserts, test_table.NumTxns());
 
   // Compares selected tuples with expected tuples
-  for (int i = 0; i < total_inserts; i++) {
+  for (size_t i = 0; i < total_inserts; i++) {
     const auto &inserted_tuple = test_table.InsertedTuples()[i];
     auto ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
 

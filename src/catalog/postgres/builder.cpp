@@ -405,11 +405,11 @@ IndexSchema Builder::GetSchemaOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("reloid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, SCHEMA_TABLE_OID, RELOID_COL_OID));
+                       parser::ColumnValueExpression(db, SCHEMA_TABLE_OID, SCH_REL_OID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   columns.emplace_back("layoutversion", type::TypeId::SMALLINT, false,
-                       parser::ColumnValueExpression(db, SCHEMA_TABLE_OID, REL_VERS_COL_OID));
+                       parser::ColumnValueExpression(db, SCHEMA_TABLE_OID, SCH_VERS_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary

@@ -86,6 +86,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog::postgres::Builder::GetConstraintTableSchema();
     catalog_table_schemas_[catalog::postgres::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
     catalog_table_schemas_[catalog::postgres::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
+    catalog_table_schemas_[catalog::postgres::SCHEMA_TABLE_OID] = catalog::postgres::Builder::GetSchemaTableSchema();
   }
 
   /**
@@ -242,13 +243,16 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * NYS = Not yet supported
    * Returns whether a delete or redo record is a special case catalog record. The special cases we consider are:
    *   1. Insert into pg_database (creating a database)
-   *   2. Updates into pg_class (updating a pointer, updating a schema (NYS), update to next col_oid)
-   *   3. Delete into pg_database (renaming a database, drop a database)
-   *   4. Delete into pg_class (renaming a table/index, drop a table/index)
-   *   5. Delete into pg_index (cascading delete from drop index)
-   *   6. Delete into pg_attribute (drop column (NYS) / cascading delete from drop table)
-   *   7. Insert into pg_proc
-   *   8. Updates into pg_proc
+   *   2. Insert into pg_schemas (creating table/updating schema, need to reconstruct schemas)
+   *   3. Insert into pg_proc
+   *   4. Updates into pg_class (updating a pointer, updating a schema, update to next col_oid)
+   *   5. Update into pg_schemas (updating schema pointers, which changed across recovery)
+   *   6. Updates into pg_proc
+   *   7. Delete into pg_database (renaming a database, drop a database)
+   *   8. Delete into pg_class (renaming a table/index, drop a table/index)
+   *   9. Delete into pg_index (cascading delete from drop index)
+   *   10. Delete into pg_attribute (drop column (NYS) / cascading delete from drop table)
+   *   11. Delete into pg_schemas (dropping tables, need to explictly free the pointers)
    * @param record log record we want to determine if its a special case
    * @return true if log record is a special case catalog record, false otherwise
    */
@@ -259,22 +263,25 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     if (record->RecordType() == LogRecordType::REDO) {
       auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
       if (IsInsertRecord(redo_record)) {
-        // Case 1
+        // Case 1, 2,3
         return redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
+               redo_record->GetTableOid() == catalog::postgres::SCHEMA_TABLE_OID ||
                redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID;
       }
 
-      // Case 2
+      // Case 4, 5, 6
       return redo_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
-             redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID;
+             redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID ||
+             redo_record->GetTableOid() == catalog::postgres::SCHEMA_TABLE_OID;
     }
 
-    // Case 3, 4, 5, and 6
+    // Case 7 - 11
     auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
     return delete_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
            delete_record->GetTableOid() == catalog::postgres::INDEX_TABLE_OID ||
-           delete_record->GetTableOid() == catalog::postgres::COLUMN_TABLE_OID;
+           delete_record->GetTableOid() == catalog::postgres::COLUMN_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::postgres::SCHEMA_TABLE_OID;
   }
 
   /**

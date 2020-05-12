@@ -341,6 +341,8 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       const auto &col = schema.GetColumn(col_idx);
       auto index_col_oid = col.Oid();
       const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
+      TERRIER_ASSERT(pr_map.find(table_col_oid) != pr_map.end(),
+                     "Index referring to oid not in the table. Check IndexSchema construction definition.");
       if (table_pr->IsNull(pr_map[table_col_oid])) {
         index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
       } else {
@@ -628,7 +630,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
         switch (class_kind) {
           case (catalog::postgres::ClassKind::REGULAR_TABLE): {
             // Step 2: Get the schema which should ahve already been built int he pg_schemas table
-            auto schema = db_catalog->GetSchema(common::ManagedPointer(txn), redo_record->GetTableOid());
+            auto &schema = db_catalog->GetSchema(common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
 
             // Step 3: Create and set table pointers in catalog
             storage::SqlTable *sql_table;
@@ -651,7 +653,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
           case (catalog::postgres::ClassKind::INDEX): {
             // Step 2: Get the indexschema from pg_schemas which should have already been created
-            auto index_schema = db_catalog->GetIndexSchema(common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
+            auto index_schema =
+                db_catalog->GetIndexSchema(common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
 
             // Step 3: set index pointer in catalog
             storage::index::Index *index;
@@ -696,7 +699,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   // Step 1: Determine the object oid and type that is being deleted
   auto db_catalog_ptr = GetDatabaseCatalog(txn, delete_record->GetDatabaseOid());
   storage::SqlTable *pg_class = db_catalog_ptr->classes_;
-  std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELOID_COL_OID, catalog::postgres::RELKIND_COL_OID};
+  std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELOID_COL_OID, catalog::postgres::RELKIND_COL_OID,
+                                              catalog::postgres::REL_VERS_COL_OID};
   auto pr_init = pg_class->InitializerForProjectedRow(col_oids);
   auto pr_map = pg_class->ProjectionMapForOids(col_oids);
   auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
@@ -705,6 +709,9 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::RELOID_COL_OID])));
   auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
       pr->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
+  auto layout_version = *(reinterpret_cast<storage::layout_version_t *>(
+      pr->AccessForceNotNull(pr_map[catalog::postgres::REL_VERS_COL_OID])));
+
   delete[] buffer;
 
   // Step 2: We need to handle the case where we are just renaming a table, in this case we don't wan't to delete
@@ -768,10 +775,14 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   switch (class_kind) {
     case (catalog::postgres::ClassKind::REGULAR_TABLE): {
       result = db_catalog_ptr->DeleteTable(common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
+      auto pointers = db_catalog_ptr->DeleteSchemaEntries(common::ManagedPointer(txn), class_oid, layout_version);
+      for (auto *ptr : pointers) delete reinterpret_cast<catalog::Schema *>(ptr);
       break;
     }
     case (catalog::postgres::ClassKind::INDEX): {
       result = db_catalog_ptr->DeleteIndex(common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
+      auto pointers = db_catalog_ptr->DeleteSchemaEntries(common::ManagedPointer(txn), class_oid, layout_version);
+      for (auto *ptr : pointers) delete reinterpret_cast<catalog::IndexSchema *>(ptr);
       break;
     }
 
@@ -825,6 +836,10 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
     }
     case (!catalog::postgres::LANGUAGE_TABLE_OID): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->languages_);
+      break;
+    }
+    case (!catalog::postgres::SCHEMA_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->schemas_);
       break;
     }
     case (!catalog::postgres::PRO_TABLE_OID): {
@@ -945,6 +960,9 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->procs_name_index_;
     }
 
+    case (!catalog::postgres::SCHEMA_TABLE_VERSION_INDEX_OID): {
+      return db_catalog->schemas_oid_vers_index_;
+    }
     default:
       throw std::runtime_error("This oid does not belong to any catalog index");
   }
@@ -957,46 +975,75 @@ uint32_t RecoveryManager::ProcessSpecialCasePGSchemaRecord(
   auto *curr_record = buffered_changes->at(start_idx).first;
   if (curr_record->RecordType() == LogRecordType::REDO) {
     auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-    TERRIER_ASSERT(IsInsertRecord(redo_record), "Modification to the pg_schema must be either delete or insert");
+
+    // Update to the pg_schema should not have anything to redo (update was part of the insert redo process).
+    if (!IsInsertRecord(redo_record)) return 0;
+
     auto db_catalog = GetDatabaseCatalog(txn, redo_record->GetDatabaseOid());
     auto pg_class_ptr = db_catalog->classes_;
-    // Step 1: Get the class kind and the pointer
-    std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELOID_COL_OID, catalog::postgres::RELKIND_COL_OID,
-                                                catalog::postgres::REL_VERS_COL_OID};
+    // Step 1: Get the inserted table_oid
+    auto delta_pr = redo_record->Delta();
+    auto insert_schema_pri = db_catalog->pg_schemas_all_cols_pri_;
+    auto insert_schema_prm = db_catalog->pg_schemas_all_cols_prm_;
+    auto class_oid = *(reinterpret_cast<const uint32_t *>(
+        delta_pr->AccessWithNullCheck(insert_schema_prm[catalog::postgres::SCH_REL_OID_COL_OID])));
+
+    // Step 2: replay the insertion log with an invalid schema pointer
+    auto old_slot = redo_record->GetTupleSlot();
+    ReplayRedoRecord(txn, curr_record);
+    auto new_slot = GetTupleSlotMapping(old_slot);
+
+    // Step 3: query the class_oid to get the class kind
+    auto class_init = db_catalog->classes_oid_index_->GetProjectedRowInitializer();
+    auto *index_buffer = common::AllocationUtil::AllocateAligned(class_init.ProjectedRowSize());
+    auto *index_pr = class_init.InitializeRow(index_buffer);
+    *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = class_oid;
+    std::vector<storage::TupleSlot> index_results;
+    db_catalog->classes_oid_index_->ScanKey(*txn, *index_pr, &index_results);
+
+    delete[] index_buffer;
+    TERRIER_ASSERT(index_results.size() == 1,
+                   "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that "
+                   "function was "
+                   "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't "
+                   "make sense.");
+
+    // Step 3.5: select from pg_classes with the index results
+    std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELKIND_COL_OID};
     auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
     auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
     auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
     auto *pr = pr_init.InitializeRow(buffer);
-    pg_class_ptr->Select(common::ManagedPointer(txn), GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
-    auto class_oid =
-        *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::RELOID_COL_OID])));
+
+    pg_class_ptr->Select(common::ManagedPointer(txn), index_results[0], pr);
     auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
         pr->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
-    auto layout_version = *(reinterpret_cast<storage::layout_version_t *>(
-        pr->AccessForceNotNull(pr_map[catalog::postgres::REL_VERS_COL_OID])));
 
     switch (class_kind) {
       case (catalog::postgres::ClassKind::REGULAR_TABLE): {
-        // Step 2: Need to reconstruct the schema from pg_columns
+        // Step 4: Need to reconstruct the schema from pg_columns
         auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(
             common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
 
-        // Step 3: Create the schema and set it in the schema table
+        // Step 5: Create the schema and set it in the schema table
         auto *schema = new catalog::Schema(std::move(schema_cols));
-        auto result UNUSED_ATTRIBUTE = db_catalog->AddSchemaEntry(
-            common::ManagedPointer(txn),class_oid, schema, layout_version);
+        auto result UNUSED_ATTRIBUTE = db_catalog->SetSchemaPointer(common::ManagedPointer(txn), new_slot, schema);
         TERRIER_ASSERT(
             result,
             "Setting table schema pointer should succeed, no duplicate adding of schema pointer should have be done");
+
+        auto &cur_schema UNUSED_ATTRIBUTE =
+            db_catalog->GetSchema(common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
+
         break;
       }
       case (catalog::postgres::ClassKind::INDEX): {
-        // Step 2: Query pg_attribute for the columns of the index
+        // Step 4: Query pg_attribute for the columns of the index
         auto index_cols =
             db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(
                 common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
 
-        // Step 3: Query pg_index for the metadata we need for the index schema
+        // Step 5: Query pg_index for the metadata we need for the index schema
         auto pg_indexes_index = db_catalog->indexes_oid_index_;
         pr = pg_indexes_index->GetProjectedRowInitializer().InitializeRow(buffer);
         *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
@@ -1028,11 +1075,11 @@ uint32_t RecoveryManager::ProcessSpecialCasePGSchemaRecord(
         storage::index::IndexType index_type = *(reinterpret_cast<storage::index::IndexType *>(
             pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::IND_TYPE_COL_OID])));
 
-        // Step 4: Create and set IndexSchema in catalog
+        // Step 6: Create and set IndexSchema in catalog
         auto *index_schema =
             new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion, is_immediate);
 
-        result = db_catalog->AddSchemaEntry(common::ManagedPointer(txn), class_oid, index_schema, layout_version);
+        result = db_catalog->SetSchemaPointer(common::ManagedPointer(txn), new_slot, index_schema);
         TERRIER_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
         break;
       }

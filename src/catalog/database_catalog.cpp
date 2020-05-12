@@ -92,6 +92,19 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = SetIndexPointer(txn, postgres::CLASS_NAMESPACE_INDEX_OID, classes_namespace_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
+  // pg_schema and associated indexes
+  retval = CreateTableEntry(txn, postgres::SCHEMA_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_schema",
+                            postgres::Builder::GetSchemaTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, postgres::SCHEMA_TABLE_OID, schemas_);
+
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::SCHEMA_TABLE_OID,
+                            postgres::SCHEMA_TABLE_VERSION_INDEX_OID, "pg_schema_oid_index",
+                            postgres::Builder::GetSchemaOidIndexSchema(db_oid_));
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::SCHEMA_TABLE_VERSION_INDEX_OID, schemas_oid_vers_index_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
   // pg_index and associated indexes
   retval = CreateTableEntry(txn, postgres::INDEX_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_index",
                             postgres::Builder::GetIndexTableSchema());
@@ -1257,6 +1270,19 @@ bool DatabaseCatalog::SetIndexSchemaPointer(const common::ManagedPointer<transac
   return AddSchemaEntry(txn, static_cast<uint32_t>(oid), schema, 0);
 }
 
+bool DatabaseCatalog::SetSchemaPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                       const storage::TupleSlot slot, const void *ptr) {
+  auto pri_init = schemas_->InitializerForProjectedRow({postgres::SCH_PTR_COL_OID});
+
+  auto *update_redo = txn->StageWrite(db_oid_, postgres::SCHEMA_TABLE_OID, pri_init);
+  update_redo->SetTupleSlot(slot);
+  auto *update_pr = update_redo->Delta();
+
+  *(reinterpret_cast<const void **>(update_pr->AccessForceNotNull(0))) = ptr;
+
+  return schemas_->Update(txn, update_redo);
+}
+
 template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
@@ -2159,8 +2185,16 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
-  auto ptr = *(reinterpret_cast<void **>(select_pr->AccessForceNotNull(0)));
+  void *ptr;
+
+  auto *const ptr_ptr = reinterpret_cast<void *const *const>(select_pr->AccessWithNullCheck(0));
   auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1)));
+
+  if (ptr_ptr == nullptr) {
+    ptr = nullptr;
+  } else {
+    ptr = *ptr_ptr;
+  }
 
   delete[] buffer;
   return {ptr, kind};
