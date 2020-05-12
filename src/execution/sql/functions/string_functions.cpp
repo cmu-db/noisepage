@@ -345,6 +345,7 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
       }
     }
   }
+  txn_manager->Commit(mini_txn_context, transaction::TransactionUtil::EmptyCallback, nullptr);
   throw terrier::CATALOG_EXCEPTION("Nextval has never been called in this session");
 }
 
