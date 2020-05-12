@@ -3,29 +3,29 @@
 #include <utility>
 #include <vector>
 
-#include "execution/sql/value.h"
 #include "execution/compiler/output_checker.h"
-#include "execution/vm/module.h"
 #include "execution/exec/execution_context.h"
 #include "execution/executable_query.h"
+#include "execution/sql/value.h"
+#include "execution/vm/module.h"
 #include "main/db_main.h"
 #include "network/connection_context.h"
-#include "network/postgres/statement.h"
-#include "network/postgres/portal.h"
 #include "network/network_io_utils.h"
+#include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
-#include "traffic_cop/traffic_cop_defs.h"
-#include "parser/postgresparser.h"
+#include "network/postgres/statement.h"
 #include "optimizer/binding.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/optimizer.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/pattern.h"
-#include "optimizer/optimizer.h"
-#include "optimizer/cost_model/index_fit_cost_model.h"
-#include "planner/plannodes/index_scan_plan_node.h"
+#include "parser/postgresparser.h"
 #include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/index_scan_plan_node.h"
+#include "traffic_cop/traffic_cop_defs.h"
 
 #include "test_util/test_harness.h"
 
@@ -39,7 +39,8 @@ struct IdxJoinTest : public TerrierTest {
     tcop_->BeginTransaction(common::ManagedPointer(&context_));
     auto parse = tcop_->ParseQuery(sql, common::ManagedPointer(&context_));
     auto stmt = network::Statement(std::move(parse));
-    auto result = tcop_->BindQuery(common::ManagedPointer(&context_), common::ManagedPointer(&stmt), common::ManagedPointer(&params));
+    auto result = tcop_->BindQuery(common::ManagedPointer(&context_), common::ManagedPointer(&stmt),
+                                   common::ManagedPointer(&params));
     TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
 
     auto plan = tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult());
@@ -50,8 +51,7 @@ struct IdxJoinTest : public TerrierTest {
       network::WriteQueue queue;
       auto pwriter = network::PostgresPacketWriter(common::ManagedPointer(&queue));
       auto portal = network::Portal(common::ManagedPointer(&stmt), std::move(plan));
-      result = tcop_->CodegenAndRunPhysicalPlan(common::ManagedPointer(&context_),
-                                                common::ManagedPointer(&pwriter),
+      result = tcop_->CodegenAndRunPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
                                                 common::ManagedPointer(&portal));
       TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
     }
@@ -59,21 +59,21 @@ struct IdxJoinTest : public TerrierTest {
     tcop_->EndTransaction(common::ManagedPointer(&context_), network::QueryType::QUERY_COMMIT);
   }
 
-  void SetUp() override { 
+  void SetUp() override {
     TerrierTest::SetUp();
 
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
 
     db_main_ = terrier::DBMain::Builder()
-      .SetUseGC(true)
-      .SetSettingsParameterMap(std::move(param_map))
-      .SetUseSettingsManager(true)
-      .SetUseCatalog(true)
-      .SetUseStatsStorage(true)
-      .SetUseTrafficCop(true)
-      .SetUseExecution(true)
-      .Build();
+                   .SetUseGC(true)
+                   .SetSettingsParameterMap(std::move(param_map))
+                   .SetUseSettingsManager(true)
+                   .SetUseCatalog(true)
+                   .SetUseStatsStorage(true)
+                   .SetUseTrafficCop(true)
+                   .SetUseExecution(true)
+                   .Build();
 
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
@@ -121,9 +121,10 @@ struct IdxJoinTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
-  auto sql = "SELECT foo.col1, foo.col2, foo.col3, bar.col1, bar.col2, bar.col3 "
-             "FROM foo, bar WHERE foo.col1 = bar.col1 "
-             "ORDER BY foo.col1, bar.col1, foo.col2, bar.col2, foo.col3, bar.col3";
+  auto sql =
+      "SELECT foo.col1, foo.col2, foo.col3, bar.col1, bar.col2, bar.col3 "
+      "FROM foo, bar WHERE foo.col1 = bar.col1 "
+      "ORDER BY foo.col1, bar.col1, foo.col2, bar.col2, foo.col3, bar.col3";
 
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
@@ -132,7 +133,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
 
-  auto cost_model = std::make_unique<optimizer::IndexFitCostModel>();
+  auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
       common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
       db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
@@ -140,7 +141,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
   EXPECT_EQ(out_plan->GetChild(0)->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::INDEXNLJOIN);
-  auto idx_join = reinterpret_cast<const planner::IndexJoinPlanNode*>(out_plan->GetChild(0)->GetChild(0));
+  auto idx_join = reinterpret_cast<const planner::IndexJoinPlanNode *>(out_plan->GetChild(0)->GetChild(0));
   EXPECT_EQ(idx_join->GetHiIndexColumns().size(), 1);
 
   EXPECT_EQ(out_plan->GetChild(0)->GetChild(0)->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
@@ -157,7 +158,8 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
     auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
     auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
     auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ || bar_col2->is_null_ || bar_col3->is_null_);
+    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
+                 bar_col2->is_null_ || bar_col3->is_null_);
 
     ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 10000));
     ASSERT_EQ(foo_col1->val_, bar_col1->val_);
@@ -183,7 +185,8 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(), common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor));
 
   // Run & Check
   auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
@@ -195,9 +198,10 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
 
 // NOLINTNEXTLINE
 TEST_F(IdxJoinTest, MultiPredicateJoin) {
-  auto sql = "SELECT foo.col1, foo.col2, foo.col3, bar.col1, bar.col2, bar.col3 "
-             "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 "
-             "ORDER BY foo.col1, bar.col1, foo.col2, bar.col2, foo.col3, bar.col3";
+  auto sql =
+      "SELECT foo.col1, foo.col2, foo.col3, bar.col1, bar.col2, bar.col3 "
+      "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 "
+      "ORDER BY foo.col1, bar.col1, foo.col2, bar.col2, foo.col3, bar.col3";
 
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
@@ -206,7 +210,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
 
-  auto cost_model = std::make_unique<optimizer::IndexFitCostModel>();
+  auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
       common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
       db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
@@ -214,7 +218,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
   EXPECT_EQ(out_plan->GetChild(0)->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::INDEXNLJOIN);
-  auto idx_join = reinterpret_cast<const planner::IndexJoinPlanNode*>(out_plan->GetChild(0)->GetChild(0));
+  auto idx_join = reinterpret_cast<const planner::IndexJoinPlanNode *>(out_plan->GetChild(0)->GetChild(0));
   EXPECT_EQ(idx_join->GetHiIndexColumns().size(), 2);
 
   EXPECT_EQ(out_plan->GetChild(0)->GetChild(0)->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
@@ -231,7 +235,8 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
     auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
     auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
     auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ || bar_col2->is_null_ || bar_col3->is_null_);
+    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
+                 bar_col2->is_null_ || bar_col3->is_null_);
 
     ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 1000));
     ASSERT_EQ(foo_col1->val_, bar_col1->val_);
@@ -258,7 +263,8 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(), common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor));
 
   // Run & Check
   auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
@@ -270,9 +276,10 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
 
 // NOLINTNEXTLINE
 TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
-  auto sql = "SELECT foo.col1, foo.col2, foo.col3, bar.col1, bar.col2, bar.col3 "
-             "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 and bar.col3 = 301 "
-             "ORDER BY foo.col1, bar.col1, foo.col2, bar.col2, foo.col3, bar.col3";
+  auto sql =
+      "SELECT foo.col1, foo.col2, foo.col3, bar.col1, bar.col2, bar.col3 "
+      "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 and bar.col3 = 301 "
+      "ORDER BY foo.col1, bar.col1, foo.col2, bar.col2, foo.col3, bar.col3";
 
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
@@ -281,7 +288,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
 
-  auto cost_model = std::make_unique<optimizer::IndexFitCostModel>();
+  auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
       common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
       db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
@@ -289,7 +296,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
   EXPECT_EQ(out_plan->GetChild(0)->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::INDEXNLJOIN);
-  auto idx_join = reinterpret_cast<const planner::IndexJoinPlanNode*>(out_plan->GetChild(0)->GetChild(0));
+  auto idx_join = reinterpret_cast<const planner::IndexJoinPlanNode *>(out_plan->GetChild(0)->GetChild(0));
   EXPECT_EQ(idx_join->GetHiIndexColumns().size(), 3);
 
   EXPECT_EQ(out_plan->GetChild(0)->GetChild(0)->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
@@ -306,7 +313,8 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
     auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
     auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
     auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ || bar_col2->is_null_ || bar_col3->is_null_);
+    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
+                 bar_col2->is_null_ || bar_col3->is_null_);
 
     ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 100));
     ASSERT_EQ(foo_col1->val_, bar_col1->val_);
@@ -332,7 +340,8 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(), common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor));
 
   // Run & Check
   auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
@@ -344,9 +353,10 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
 
 // NOLINTNEXTLINE
 TEST_F(IdxJoinTest, FooOnlyScan) {
-  auto sql = "SELECT foo.col1, foo.col2, foo.col3 "
-             "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 "
-             "ORDER BY foo.col1, foo.col2, foo.col3";
+  auto sql =
+      "SELECT foo.col1, foo.col2, foo.col3 "
+      "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 "
+      "ORDER BY foo.col1, foo.col2, foo.col3";
 
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
@@ -355,7 +365,7 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
 
-  auto cost_model = std::make_unique<optimizer::IndexFitCostModel>();
+  auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
       common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
       db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
@@ -393,7 +403,8 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(), common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor));
 
   // Run & Check
   auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
@@ -405,9 +416,10 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
 
 // NOLINTNEXTLINE
 TEST_F(IdxJoinTest, BarOnlyScan) {
-  auto sql = "SELECT bar.col1, bar.col2, bar.col3 "
-             "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 "
-             "ORDER BY bar.col1, bar.col2, bar.col3";
+  auto sql =
+      "SELECT bar.col1, bar.col2, bar.col3 "
+      "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 "
+      "ORDER BY bar.col1, bar.col2, bar.col3";
 
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
@@ -416,7 +428,7 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
 
-  auto cost_model = std::make_unique<optimizer::IndexFitCostModel>();
+  auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
       common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
       db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
@@ -454,7 +466,8 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(), common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor));
 
   // Run & Check
   auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
@@ -466,9 +479,10 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
 
 // NOLINTNEXTLINE
 TEST_F(IdxJoinTest, IndexToIndexJoin) {
-  auto sql = "SELECT foo.col1, foo.col2, foo.col3, bar.col1, bar.col2, bar.col3 "
-             "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 and foo.col2 = 12 and bar.col3 = 302 "
-             "ORDER BY foo.col1, bar.col1, foo.col2, bar.col2, foo.col3, bar.col3";
+  auto sql =
+      "SELECT foo.col1, foo.col2, foo.col3, bar.col1, bar.col2, bar.col3 "
+      "FROM foo, bar WHERE foo.col1 = bar.col1 and foo.col2 = bar.col2 and foo.col2 = 12 and bar.col3 = 302 "
+      "ORDER BY foo.col1, bar.col1, foo.col2, bar.col2, foo.col3, bar.col3";
 
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
@@ -477,7 +491,7 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
 
-  auto cost_model = std::make_unique<optimizer::IndexFitCostModel>();
+  auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
       common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid_,
       db_main_->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
@@ -485,11 +499,11 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
   EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
   EXPECT_EQ(out_plan->GetChild(0)->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::INDEXNLJOIN);
-  auto idx_join = reinterpret_cast<const planner::IndexJoinPlanNode*>(out_plan->GetChild(0)->GetChild(0));
+  auto idx_join = reinterpret_cast<const planner::IndexJoinPlanNode *>(out_plan->GetChild(0)->GetChild(0));
   EXPECT_EQ(idx_join->GetHiIndexColumns().size(), 3);
 
   EXPECT_EQ(out_plan->GetChild(0)->GetChild(0)->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
-  auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode*>(idx_join->GetChild(0));
+  auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(idx_join->GetChild(0));
   EXPECT_EQ(idx_scan->GetLoIndexColumns().size(), 1);
 
   uint32_t num_output_rows{0};
@@ -504,7 +518,8 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
     auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
     auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
     auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ || bar_col2->is_null_ || bar_col3->is_null_);
+    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
+                 bar_col2->is_null_ || bar_col3->is_null_);
 
     ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 10));
     ASSERT_EQ(foo_col1->val_, bar_col1->val_);
@@ -527,7 +542,8 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(), common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor));
 
   // Run & Check
   auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));

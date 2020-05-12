@@ -490,12 +490,9 @@ class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
    * @param join_predicates predicates for join
    * @return an InnerIndexJoin operator
    */
-  static Operator Make(
-      catalog::table_oid_t tbl_oid,
-      catalog::index_oid_t idx_oid,
-      planner::IndexScanType scan_type,
-      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
-      std::vector<AnnotatedExpression> join_predicates);
+  static Operator Make(catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
+                       std::vector<AnnotatedExpression> join_predicates);
 
   /**
    * Copy

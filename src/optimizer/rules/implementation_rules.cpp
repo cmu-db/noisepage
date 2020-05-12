@@ -143,7 +143,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorNod
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
-      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, allow_cves_, &scan_type, &bounds)) {
+      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, allow_cves_, &scan_type,
+                                                 &bounds)) {
         auto op =
             std::make_unique<OperatorNode>(IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds),
                                                            is_update, scan_type, std::move(bounds)),
@@ -446,7 +447,7 @@ LogicalInnerJoinToPhysicalInnerIndexJoin::LogicalInnerJoinToPhysicalInnerIndexJo
 }
 
 bool LogicalInnerJoinToPhysicalInnerIndexJoin::Check(common::ManagedPointer<OperatorNode> plan,
-                                                  OptimizationContext *context) const {
+                                                     OptimizationContext *context) const {
   (void)context;
   (void)plan;
   UNUSED_ATTRIBUTE const auto join = plan->GetOp().As<LogicalInnerJoin>();
@@ -464,8 +465,8 @@ bool LogicalInnerJoinToPhysicalInnerIndexJoin::Check(common::ManagedPointer<Oper
 }
 
 void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(common::ManagedPointer<OperatorNode> input,
-                                                      std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                                      UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                                         std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
   // first build an expression representing hash join
   const auto inner_join = input->GetOp().As<LogicalInnerJoin>();
   const auto &children = input->GetChildren();
@@ -480,16 +481,16 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(common::ManagedPointer<
 
   std::vector<std::unique_ptr<OperatorNode>> empty;
   auto new_child = std::make_unique<OperatorNode>(
-      LogicalGet::Make(r_child->GetDatabaseOid(), r_child->GetNamespaceOid(),
-                       r_child->GetTableOid(), join_preds,
-                       r_child->GetTableAlias(), r_child->GetIsForUpdate()), std::move(empty));
+      LogicalGet::Make(r_child->GetDatabaseOid(), r_child->GetNamespaceOid(), r_child->GetTableOid(), join_preds,
+                       r_child->GetTableAlias(), r_child->GetIsForUpdate()),
+      std::move(empty));
 
   std::vector<std::unique_ptr<OperatorNode>> transform;
   LogicalGetToPhysicalIndexScan idx_scan_transform;
   idx_scan_transform.SetAllowCVEs(true);
   idx_scan_transform.Transform(common::ManagedPointer(new_child), &transform, context);
 
-  for (const auto &idx_op: transform) {
+  for (const auto &idx_op : transform) {
     // IndexJoinTranslator will only translate the inner index as Exact
     auto idx_scan = idx_op->GetOp().As<IndexScan>();
     TERRIER_ASSERT(idx_scan != nullptr, "Transformation should have produced an IndexScan");
@@ -499,8 +500,9 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(common::ManagedPointer<
       child.emplace_back(children[0]->Copy());
 
       auto result = std::make_unique<OperatorNode>(
-          InnerIndexJoin::Make(idx_scan->GetTableOID(), idx_scan->GetIndexOID(),
-                               idx_scan->GetIndexScanType(), idx_scan->GetBounds(), join_preds), std::move(child));
+          InnerIndexJoin::Make(idx_scan->GetTableOID(), idx_scan->GetIndexOID(), idx_scan->GetIndexScanType(),
+                               idx_scan->GetBounds(), join_preds),
+          std::move(child));
       transformed->emplace_back(std::move(result));
     }
   }

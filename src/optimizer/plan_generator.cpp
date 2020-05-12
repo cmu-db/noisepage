@@ -35,10 +35,10 @@
 #include "planner/plannodes/drop_view_plan_node.h"
 #include "planner/plannodes/export_external_file_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
-#include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/projection_plan_node.h"
@@ -502,11 +502,11 @@ void PlanGenerator::Visit(const InnerIndexJoin *op) {
   auto type = op->GetScanType();
   planner::IndexJoinPlanNode::Builder builder;
   builder.SetOutputSchema(std::move(proj_schema))
-         .SetJoinPredicate(common::ManagedPointer(join_predicate))
-         .SetIndexOid(op->GetIndexOID())
-         .SetTableOid(op->GetTableOID())
-         .SetScanType(op->GetScanType())
-         .AddChild(std::move(children_plans_[0]));
+      .SetJoinPredicate(common::ManagedPointer(join_predicate))
+      .SetIndexOid(op->GetIndexOID())
+      .SetTableOid(op->GetTableOID())
+      .SetScanType(op->GetScanType())
+      .AddChild(std::move(children_plans_[0]));
 
   for (auto bound : op->GetJoinKeys()) {
     if (type == planner::IndexScanType::Exact) {

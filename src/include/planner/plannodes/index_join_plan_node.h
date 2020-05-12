@@ -39,11 +39,9 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      * @return plan node
      */
     std::unique_ptr<IndexJoinPlanNode> Build() {
-      return std::unique_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(std::move(children_), std::move(output_schema_),
-                                                                      join_type_, join_predicate_, index_oid_,
-                                                                      table_oid_, scan_type_,
-                                                                      std::move(lo_index_cols_),
-                                                                      std::move(hi_index_cols_)));
+      return std::unique_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(
+          std::move(children_), std::move(output_schema_), join_type_, join_predicate_, index_oid_, table_oid_,
+          scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_)));
     }
 
     /**
@@ -115,8 +113,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
                     common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
                     catalog::table_oid_t table_oid, IndexScanType scan_type,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_cols,
-                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols
-                    )
+                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
         index_oid_(index_oid),
         table_oid_(table_oid),

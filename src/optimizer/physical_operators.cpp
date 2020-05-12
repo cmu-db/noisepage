@@ -275,9 +275,7 @@ common::hash_t Limit::Hash() const {
 BaseOperatorNodeContents *InnerIndexJoin::Copy() const { return new InnerIndexJoin(*this); }
 
 Operator InnerIndexJoin::Make(
-    catalog::table_oid_t tbl_oid,
-    catalog::index_oid_t idx_oid,
-    planner::IndexScanType scan_type,
+    catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
     std::vector<AnnotatedExpression> join_predicates) {
   auto join = std::make_unique<InnerIndexJoin>();
@@ -296,16 +294,18 @@ common::hash_t InnerIndexJoin::Hash() const {
   hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(scan_type_));
 
   std::vector<catalog::indexkeycol_oid_t> cols;
-  for (auto &join_key: join_keys_) {
+  for (auto &join_key : join_keys_) {
     cols.push_back(join_key.first);
   }
 
   std::sort(cols.begin(), cols.end());
-  for (auto & col : cols) {
+  for (auto &col : cols) {
     hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(col));
     for (auto &expr : join_keys_.find(col)->second) {
-      if (expr == nullptr) hash = common::HashUtil::SumHashes(hash, 0);
-      else hash = common::HashUtil::SumHashes(hash, expr->Hash());
+      if (expr == nullptr)
+        hash = common::HashUtil::SumHashes(hash, 0);
+      else
+        hash = common::HashUtil::SumHashes(hash, expr->Hash());
     }
   }
 
@@ -338,8 +338,7 @@ bool InnerIndexJoin::operator==(const BaseOperatorNodeContents &r) {
     if (expr.size() != other.size()) return false;
     for (size_t i = 0; i < expr.size(); i++) {
       if (expr[i] == nullptr && other[i] == nullptr) continue;
-      if ((expr[i] != nullptr && other[i] == nullptr) ||
-          (expr[i] == nullptr && other[i] != nullptr)) return false;
+      if ((expr[i] != nullptr && other[i] == nullptr) || (expr[i] == nullptr && other[i] != nullptr)) return false;
       if (*(expr[i]) != *(other[i])) return false;
     }
   }
