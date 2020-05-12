@@ -9,8 +9,10 @@
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
+#include "execution/util/timer.h"
 
 namespace terrier::execution::sql::test {
+
 class CTEScanTest : public SqlBasedTest {
   void SetUp() override {
     // Create the test tables
@@ -56,7 +58,7 @@ TEST_F(CTEScanTest, CTEInitTest) {
     EXPECT_EQ(map_iterator->second, oid_to_iid[map_iterator->first]);
     map_iterator++;
   }
-  delete cte_table;
+  delete cte_scan;
 }
 
 TEST_F(CTEScanTest, CTEInsertTest) {
