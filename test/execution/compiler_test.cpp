@@ -2499,8 +2499,7 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
     auto col3 = static_cast<sql::Integer *>(vals[2]);
     auto col4 = static_cast<sql::Integer *>(vals[3]);
     auto col5 = static_cast<sql::Integer *>(vals[4]);
-    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_
-    || col4->is_null_ || col5->is_null_);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_ || col4->is_null_ || col5->is_null_);
     // Check col1 value is >=0 and < 10
     ASSERT_LT(col1->val_, 10);
     ASSERT_GT(col1->val_, -1);
