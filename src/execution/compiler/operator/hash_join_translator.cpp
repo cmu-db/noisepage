@@ -241,7 +241,7 @@ void HashJoinRightTranslator::InitializeHelperFunctions(util::RegionVector<ast::
     // Use the previous tuple's name and type
     auto prev_tuple = child_translator_->GetMaterializedTuple();
     TERRIER_ASSERT(prev_tuple.first != nullptr && prev_tuple.second != nullptr, "Materialize should have output");
-    ast::Expr *prev_type_ptr = codegen_->PointerType(*prev_tuple.second);
+    ast::Expr *prev_type_ptr = codegen_->PointerType(*prev_tuple.second); // NOLINT
     param2 = codegen_->MakeField(*prev_tuple.first, prev_type_ptr);
   } else {
     // Use the newly declared probe type.
@@ -325,8 +325,8 @@ void HashJoinRightTranslator::GenProbeLoop(FunctionBuilder *builder) {
     // If the child is a materializer, directly use its tuple as a probe.
     auto child_tuple = child_translator_->GetMaterializedTuple();
     TERRIER_ASSERT(child_tuple.first != nullptr && child_tuple.second != nullptr, "Materialize should have output");
-    has_next_args.emplace_back(is_child_ptr_ ? codegen_->MakeExpr(*child_tuple.first)
-                                             : codegen_->PointerTo(*child_tuple.first));
+    has_next_args.emplace_back(is_child_ptr_ ? codegen_->MakeExpr(*child_tuple.first)    // NOLINT
+                                             : codegen_->PointerTo(*child_tuple.first)); // NOLINT
   } else {
     // Otherwise use the constructed probe row.
     has_next_args.emplace_back(codegen_->PointerTo(probe_row_));
