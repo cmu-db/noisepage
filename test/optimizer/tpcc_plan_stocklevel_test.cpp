@@ -3,8 +3,8 @@
 
 #include "parser/expression/derived_value_expression.h"
 #include "planner/plannodes/aggregate_plan_node.h"
-#include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
 
