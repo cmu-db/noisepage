@@ -10,6 +10,10 @@
 
 namespace terrier::optimizer {
 
+/**
+ * The syntax-based query rewriter. Takes an abstract expression and rewrites
+ *   it based on the rules in its rule set.
+ */
 class Rewriter {
  public:
   /**
@@ -29,6 +33,9 @@ class Rewriter {
    */
   void Reset(transaction::TransactionContext *txn);
 
+  /**
+   * Shouldn't be able to copy/move the rewriter
+   */
   DISALLOW_COPY_AND_MOVE(Rewriter);
 
   /**
@@ -60,7 +67,7 @@ class Rewriter {
   common::ManagedPointer<parser::AbstractExpression> RebuildExpression(group_id_t root_group);
 
   /**
-   * Performs a single rewrite pass on the epxression
+   * Performs a single rewrite pass on the expression
    * @param root_group_id GroupID of the group to start rewriting from
    */
   void RewriteLoop(group_id_t root_group_id);

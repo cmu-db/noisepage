@@ -401,10 +401,26 @@ class RewriteTask : public OptimizerTask {
   void Execute() override { TERRIER_ASSERT(false, "RewriteTask::execute invoked directly and not in subclass"); }
 
  protected:
+  /**
+   * @return the set of unique child group IDs with respect to this current group ID.
+   */
   std::set<group_id_t> GetUniqueChildGroupIDs();
+
+  /**
+   * Optimizes the current group based on the rewrite rules.
+   * @param replace_on_match whether we should replace the group expression upon matching
+   * @return true if the optimization succeeded and we should try another pass, false otherwise
+   */
   bool OptimizeCurrentGroup(bool replace_on_match);
 
+  /**
+   * The group ID of the group we're looking at
+   */
   group_id_t group_id_;
+
+  /**
+   * The name of the rule set whose rules we're using for this rewrite
+   */
   RuleSetName rule_set_name_;
 };
 

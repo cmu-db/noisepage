@@ -9,7 +9,7 @@
 
 namespace terrier::optimizer {
 
-/*
+/**
  * Symmetric Reordering: When a symmetric operator (==, !=, AND, OR) has two
  *   children, the comparison expression gets its arguments flipped.
  * Examples:
@@ -51,7 +51,7 @@ class SymmetricReordering : public Rule {
                  OptimizationContext *context) const override;
 };
 
-/*
+/**
  * Transitive Closure Constant Transform: When the same tuple value reference is
  *   compared against a constant and another tuple value reference, we can
  *   rewrite one of the tuple value expressions as that constant.

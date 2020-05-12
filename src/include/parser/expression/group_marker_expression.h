@@ -60,6 +60,9 @@ class GroupMarkerExpression : public AbstractExpression {
   }
 
  protected:
+  /**
+   * The group ID for this group marker
+   */
   optimizer::group_id_t group_id_;
 };
 
