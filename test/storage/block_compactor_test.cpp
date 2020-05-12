@@ -197,6 +197,7 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
   db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn2), db_oid);
   table_ptr = db_catalog->GetTable(common::ManagedPointer(txn2), table_oid);
 
+
   num_records = 0;
   for (auto it = table_ptr->begin(); it != table_ptr->end(); it++) {
     if (num_records == 2) break;
@@ -207,15 +208,14 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
 
   txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  gc_->PerformGarbageCollection();
+
   auto txn3 = txn_manager_->BeginTransaction();
   auto catalog_accessor = catalog_->GetAccessor(common::ManagedPointer(txn3), db_oid);
   execution::exec::ExecutionContext exec{db_oid,
                                              common::ManagedPointer<transaction::TransactionContext>(txn3),
                                              nullptr, nullptr,
                                              common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
-  txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  gc_->PerformGarbageCollection();
 
   col_id_t *col_oids = new col_id_t[1];
   col_oids[0] = (col_id_t)1;
@@ -227,6 +227,7 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
   transaction::DeferredActionManager *deferred_action_manager_ptr = deferred_action_manager_.Get();
   transaction::TransactionManager *txn_manager_ptr = txn_manager_.Get();
   compactor.ProcessCompactionQueue(deferred_action_manager_ptr, txn_manager_ptr);
+  // txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Check for correctness of compaction
   auto txn4 = txn_manager_->BeginTransaction();
@@ -235,11 +236,14 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
   auto *read_row = initializer.InitializeRow(buffer);
 
   // 2, 3, 4 will be moved to the beginning of the block
-  for (uint32_t i = 0; i < 3; i++) {
+  for (uint32_t i = 2; i < 5; i++) {
     storage::TupleSlot slot(block, i);
     bool visible = table_ptr->Select(common::ManagedPointer(txn4), slot, read_row);
     EXPECT_TRUE(visible);  // Should be filled after compaction
+    auto content = read_row->Get<uint32_t,false>(0, nullptr);
+    EXPECT_EQ(*content, i);
   }
+  txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 }  // namespace terrier::storage

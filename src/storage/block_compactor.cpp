@@ -24,7 +24,7 @@ void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *
         // more sophisticated. Compacting more blocks together frees up more memory per compaction run,
         // but makes the compaction transaction larger, which can have performance impact on the rest
         // of the system. As it currently stands, no memory is freed from this one-block-per-group scheme.
-        CompactionGroup cg(txn_manager->BeginTransaction(), block->data_table_);
+        CompactionGroup cg(exec_->GetTxn().Get(), block->data_table_);
         // TODO(Tianyu): Additionally, frozen blocks can still have empty slots within them. To make sure
         // these memory are not gone forever, we still need to periodically shuffle tuples around within
         // frozen blocks. Although code can be reused for doing the compaction, some logic needs to be
@@ -78,8 +78,8 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
   for (auto &entry : cg->blocks_to_compact_) {
     RawBlock *block = entry.first;
     std::vector<uint32_t> &empty_slots = entry.second;
-    TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(),
-                   "The block should be full to stop inserts from coming in");
+    //TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(),
+    //               "The block should be full to stop inserts from coming in");
 
     // We will loop through each block and figure out if we are safe to proceed with compaction and identify
     // any gaps
