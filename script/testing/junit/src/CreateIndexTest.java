@@ -222,7 +222,7 @@ public class CreateIndexTest extends TestUtility {
                     }
 
                     if(i2 == 0) {
-                        Thread.sleep(30); //TODO (Kunal): Check if this is right
+                        Thread.sleep(30);
                         conn2.rollback();
                     } else {
                         conn2.commit();
@@ -244,11 +244,11 @@ public class CreateIndexTest extends TestUtility {
             rs.next();
             checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
         }
-        for (int i = 0; i < num_rows * NUM_EXTRA_THREADS; i++) {
+        for (int i = 0; i < num_rows; i++) {
             rs.next();
             checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 100});
         }
-        for (int i = 0; i < num_rows; i++) {
+        for (int i = 0; i < num_rows * (NUM_EXTRA_THREADS-1); i++) {
             rs.next();
             checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {7, 8, 200});
         }
