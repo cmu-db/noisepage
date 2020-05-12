@@ -40,7 +40,7 @@ class BlockCompactorTests : public TerrierTest {
   common::ManagedPointer<storage::GarbageCollector> gc_;
 
   void SetUp() override {
-    // Unlink log file incase one exists from previous test iteration
+    // Unlink log file in case one exists from previous test iteration
     unlink(LOG_FILE_NAME);
 
     db_main_ = terrier::DBMain::Builder()
@@ -154,7 +154,84 @@ class BlockCompactorTests : public TerrierTest {
 
 };
 
-TEST_F(BlockCompactorTests, SimpleCompactionTest) {
+TEST_F(BlockCompactorTests, MoveTupleTest) {
+  std::string database_name = "testdb";
+  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  std::string table_name = "foo";
+
+  // Begin T0, create database, create table foo, and commit
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn0, catalog_, database_name);
+  auto db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn0), db_oid);
+  auto table_oid = CreateTable(txn0, db_catalog, namespace_oid, table_name);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Begin T1, insert two tuples into table foo, and commit
+  auto txn1 = txn_manager_->BeginTransaction();
+  db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn1), db_oid);
+  auto table_ptr = db_catalog->GetTable(common::ManagedPointer(txn1), table_oid);
+  const auto &schema = db_catalog->GetSchema(common::ManagedPointer(txn1), table_oid);
+  EXPECT_EQ(1, schema.GetColumns().size());
+  EXPECT_EQ(type::TypeId::INTEGER, schema.GetColumn(0).Type());
+  // inserting
+  TupleSlot tuple_slot_0;
+  TupleSlot tuple_slot_1;
+
+  for (int32_t i = 0; i < 2; i++) {
+    auto initializer = table_ptr->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
+    auto *redo_record = txn1->StageWrite(db_oid, table_oid, initializer);
+    *reinterpret_cast<int32_t *>(redo_record->Delta()->AccessForceNotNull(0)) = i;
+    if (i == 0) {
+      tuple_slot_0 = table_ptr->Insert(common::ManagedPointer(txn1), redo_record);
+    } else {
+      tuple_slot_1 = table_ptr->Insert(common::ManagedPointer(txn1), redo_record);
+    }
+  }
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Begin T2, delete one tuple from table foo (the first one), and commit
+  auto txn2 = txn_manager_->BeginTransaction();
+  db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn2), db_oid);
+  table_ptr = db_catalog->GetTable(common::ManagedPointer(txn2), table_oid);
+  txn2->StageDelete(db_oid, table_oid, tuple_slot_0);
+  table_ptr->Delete(common::ManagedPointer(txn2), tuple_slot_0);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Begin T3, create an execution context and a block compactor, move the tuple from the 2nd -> 1st slot, and commit
+  auto txn3 = txn_manager_->BeginTransaction();
+  auto catalog_accessor = catalog_->GetAccessor(common::ManagedPointer(txn3), db_oid);
+  execution::exec::ExecutionContext exec{db_oid,
+                                       common::ManagedPointer<transaction::TransactionContext>(txn3),
+                                       nullptr, nullptr,
+                                       common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
+
+  col_id_t *col_oids = new col_id_t[1];
+  col_oids[0] = (col_id_t)1;
+  storage::BlockCompactor compactor(&exec, col_oids, table_name.c_str());
+  auto block = tuple_slot_1.GetBlock();
+  EXPECT_EQ(tuple_slot_0.GetBlock(), tuple_slot_1.GetBlock());
+  compactor.MoveTupleTest(block, tuple_slot_1, tuple_slot_0);
+  txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Begin T4, check for correctness of compaction, and commit
+  auto txn4 = txn_manager_->BeginTransaction();
+  auto initializer = table_ptr->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
+  byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto *read_row = initializer.InitializeRow(buffer);
+
+  // the 1st slot will have a tuple
+  bool visible = table_ptr->Select(common::ManagedPointer(txn4), tuple_slot_0, read_row);
+  EXPECT_TRUE(visible);  // Should be filled after compaction
+  auto content = read_row->Get<uint32_t,false>(0, nullptr);
+  EXPECT_EQ(*content, 1);
+  // the 2nd slot will not have a tuple
+  visible = table_ptr->Select(common::ManagedPointer(txn4), tuple_slot_1, read_row);
+  EXPECT_FALSE(visible);  // Should not be filled after compaction
+
+  txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+TEST_F(BlockCompactorTests, DISABLED_SimpleCompactionTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";

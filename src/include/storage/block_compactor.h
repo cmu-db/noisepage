@@ -88,6 +88,8 @@ class BlockCompactor {
 
   FAKED_IN_TEST ~BlockCompactor() = default;
 
+  bool MoveTupleTest(RawBlock* block, TupleSlot from, TupleSlot to);
+
   /**
    * Processes the compaction queue and mark processed blocks as cold if successful. The compaction can fail due
    * to live versions or contention. There will be a brief window where user transactions writing to the block

@@ -189,6 +189,12 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   return move_tuple_(exec_, &from, &to, col_oids_);
 }
 
+bool BlockCompactor::MoveTupleTest(RawBlock* block, TupleSlot from, TupleSlot to) {
+  const TupleAccessStrategy &accessor = block->data_table_->accessor_;
+  accessor.Reallocate(to);
+  return move_tuple_(exec_, &from, &to, col_oids_);
+}
+
 bool BlockCompactor::CheckForVersionsAndGaps(const TupleAccessStrategy &accessor, RawBlock *block) {
   const BlockLayout &layout = accessor.GetBlockLayout();
 
