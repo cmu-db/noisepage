@@ -8,6 +8,9 @@
 
 namespace terrier::execution::sql {
 
+/**
+ * An iterator over a CTE Temp table's data
+ */
 class CteScanIterator {
  public:
   /**

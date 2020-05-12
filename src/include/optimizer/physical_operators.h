@@ -2096,6 +2096,11 @@ class Analyze : public OperatorNodeContents<Analyze> {
  */
 class CteScan : public OperatorNodeContents<CteScan> {
  public:
+  /**
+   * @param child_expressions The child expressions to setup this CteScan node
+   * @param table_alias Alias of the CTE table
+   * @return
+   */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
                        std::string table_alias);
 
@@ -2108,6 +2113,10 @@ class CteScan : public OperatorNodeContents<CteScan> {
   bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
+  /**
+   * Get the list of child expression for this CteScan node
+   * @return vector of child expressions
+   */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> GetChildExpressions() const {
     return child_expressions_;
   }

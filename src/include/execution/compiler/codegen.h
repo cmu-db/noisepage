@@ -587,7 +587,7 @@ class CodeGen {
                                                 ast::Identifier worker_name);
 
   /**
-   * Call @tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
+   * Call tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
    * @param tvi The identifier of table vector iterator
    * @param cte_scan_iterator The identifier of cte scan iterator
    * @param col_oids The identifier of the array of column oids to read.
@@ -1391,8 +1391,10 @@ class CodeGen {
     return std::move(pipeline_operating_units_);
   }
 
-  /*Return the identifier for a cte scan iterator in tpl generated
-   * */
+  /**
+   * Return the identifier for a cte scan iterator in tpl generated
+   * @return identifier for a cte scan iterator in tpl generated
+   */
   ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_; }
 
  private:
