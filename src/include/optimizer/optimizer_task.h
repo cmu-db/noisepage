@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <set>
 
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property_set.h"

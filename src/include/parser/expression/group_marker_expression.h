@@ -1,6 +1,10 @@
 
 #pragma once
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "optimizer/group_expression.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -26,7 +30,7 @@ class GroupMarkerExpression : public AbstractExpression {
    * @param group_id the Group ID that this marker represents
    */
   explicit GroupMarkerExpression(optimizer::group_id_t group_id)
-      : AbstractExpression(ExpressionType::GROUP_MARKER, type::TypeId::INVALID, {}), group_id_(group_id){};
+      : AbstractExpression(ExpressionType::GROUP_MARKER, type::TypeId::INVALID, {}), group_id_(group_id) {}
 
   /**
    * Constructor with children.

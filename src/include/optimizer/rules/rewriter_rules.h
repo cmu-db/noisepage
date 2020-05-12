@@ -1,3 +1,7 @@
+
+#include <memory>
+#include <vector>
+
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/optimization_context.h"

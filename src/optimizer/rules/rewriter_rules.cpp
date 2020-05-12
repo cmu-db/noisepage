@@ -276,9 +276,8 @@ void ComparisonIntersection::Transform(common::ManagedPointer<AbstractOptimizerN
           common::ManagedPointer<AbstractOptimizerNodeContents>(transformed_expr_contents), std::move(new_children),
           txn);
       transformed->push_back(std::move(transformed_expr_node));
-    }
-    // Case where intersection of comparisons is empty set (result is "FALSE")
-    else {
+    } else {
+      // Case where intersection of comparisons is empty set (result is "FALSE")
       auto false_value = type::TransientValueFactory::GetBoolean(false);
       auto *transformed_expr = new parser::ConstantValueExpression(false_value);
       if (txn != nullptr) {
