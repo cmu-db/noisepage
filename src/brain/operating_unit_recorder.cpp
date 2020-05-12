@@ -331,10 +331,13 @@ void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
     cols.insert(pair.first);
   }
 
-  // TODO(wz2): Use a real value for this after plan node have cardinalities
-  // Scale since these arithemtic features are done for every tuple of child
-  size_t child_num_rows = 1;
-  RecordArithmeticFeatures(plan, child_num_rows);
+  // Above operations are done once per tuple in the child
+  RecordArithmeticFeatures(c_plan, 1);
+
+  // Computes against OutputSchema/Join predicate which will
+  // use the rows/cardinalities of what the HJ plan produces
+  VisitAbstractJoinPlanNode(plan);
+  RecordArithmeticFeatures(plan, 1);
 
   // Vector of indexkeycol_oid_t columns
   std::vector<catalog::indexkeycol_oid_t> col_vec;
@@ -342,7 +345,9 @@ void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
     col_vec.push_back(col);
   }
 
-  // Record as an IndexScan with scaling
+  // Record as an IndexScan with scaling against the number of tuples in the child
+  // TODO(wz2): Get number of tuples output by child
+  auto child_num_rows = 1;
   size_t num_keys = col_vec.size();
   size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec);
   AggregateFeatures(brain::ExecutionOperatingUnitType::IDX_SCAN, key_size, num_keys, plan, child_num_rows);
