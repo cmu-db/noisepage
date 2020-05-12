@@ -2426,6 +2426,37 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
                     .Build();
   }
 
+  // Compile and Run
+  // 10 rows should be outputted because of the WHERE clause
+  // The joined cols should be equal
+  // The 4th column is the sum of the 1nd and 3rd columns
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{10};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_ || col4->is_null_);
+    // Check col1 value is >=0 and < 10
+    ASSERT_LT(col1->val_, 10);
+    ASSERT_GT(col1->val_, -1);
+    // Check col3 value is >=0 and < 10
+    ASSERT_LT(col3->val_, 10);
+    ASSERT_GT(col3->val_, -1);
+    // Check join cols
+    ASSERT_EQ(col1->val_, col2->val_);
+    // Check that col4 = col1 + col3
+    ASSERT_EQ(col4->val_, col1->val_ + col3->val_);
+    // Check the number of output row
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+  GenericChecker checker(row_checker, correcteness_fn);
 
   // Make Exec Ctx
   OutputStore store{&checker, hash_join->GetOutputSchema().Get()};
@@ -2602,9 +2633,39 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
                   .Build();
   }
 
-  // Dummy checkers
-  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {};
-  CorrectnessFn correcteness_fn = []() {};
+  // Compile and Run
+  // 10 rows should be outputted because of the WHERE clause
+  // The joined cols should be equal
+  // The 4th column is the sum of the 1nd and 3rd columns
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{10};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    auto col5 = static_cast<sql::Integer *>(vals[4]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_
+    || col4->is_null_ || col5->is_null_);
+    // Check col1 value is >=0 and < 10
+    ASSERT_LT(col1->val_, 10);
+    ASSERT_GT(col1->val_, -1);
+    // Check col3 value is >=0 and < 10
+    ASSERT_LT(col3->val_, 10);
+    ASSERT_GT(col3->val_, -1);
+    // Check join cols
+    ASSERT_EQ(col1->val_, col2->val_);
+    ASSERT_EQ(col1->val_, col5->val_);
+    // Check that col4 = col1 + col3
+    ASSERT_EQ(col4->val_, col1->val_ + col3->val_);
+    // Check the number of output row
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Make Exec Ctx
@@ -2622,7 +2683,8 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
   // With t as (SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2);
-  // Select t.col1, t.col2, t1.col1 FROM t HASHJOIN (SELECT t1.col1, t1.col2 FROM test1) as t1
+  // Select t.col1, t.col2, t1.col2 FROM t HASHJOIN (SELECT test1.col1, test1.col2 FROM test1) as t1
+  // WHERE t.col1 = t1.col1;
   // Get accessor
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -2711,7 +2773,7 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
     seq_scan_out_2.AddOutput("colA", col1);
     seq_scan_out_2.AddOutput("colB", col2);
     auto schema = seq_scan_out_2.MakeSchema();
-    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(10));
 
     // Build
     planner::SeqScanPlanNode::Builder builder;
@@ -2732,29 +2794,49 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
     auto t1_col1 = cte_scan_out.GetOutput("colA");
     auto t1_col2 = cte_scan_out.GetOutput("colB");
     // t2.col2
-    auto t2_col2 = seq_scan_out_2.GetOutput("colB");
+    auto t2_col1 = seq_scan_out_2.GetOutput("colA");
     // Output Schema
     hash_join_out.AddOutput("t1.col1", t1_col1);
     hash_join_out.AddOutput("t1.col2", t1_col2);
-    hash_join_out.AddOutput("t2.col2", t2_col2);
+    hash_join_out.AddOutput("t2.col1", t2_col1);
     auto schema = hash_join_out.MakeSchema();
     // Predicate
-    auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col2);
+    auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join = builder.AddChild(std::move(cte_scan))
                     .AddChild(std::move(seq_scan_2))
                     .SetOutputSchema(std::move(schema))
                     .AddLeftHashKey(t1_col1)
-                    .AddRightHashKey(t2_col2)
+                    .AddRightHashKey(t2_col1)
                     .SetJoinType(planner::LogicalJoinType::INNER)
                     .SetJoinPredicate(predicate)
                     .Build();
   }
 
-  // Dummy checkers
-  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {};
-  CorrectnessFn correcteness_fn = []() {};
+  // Compile and Run
+  // 10 rows should be outputted because of the WHERE clause
+  // The joined cols should be equal
+  // The 3rd column is the same as 1st column
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{10};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_);
+    // Check col1 value is >=0 and < 10
+    ASSERT_LT(col1->val_, 10);
+    ASSERT_GT(col1->val_, -1);
+    // Check join cols
+    ASSERT_EQ(col1->val_, col3->val_);
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Make Exec Ctx
