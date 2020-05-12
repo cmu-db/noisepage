@@ -11,51 +11,50 @@ std::string CastKindToInt(CastKind x) {
     // Conversion of a 32-bit integer into a non-nullable SQL Integer value
     case CastKind::IntToSqlInt:
       return "IntToSqlInt";
-
-      // Conversion of a 32-bit integer into a non-nullable SQL Decimal value
+    // Conversion of a 32-bit integer into a non-nullable SQL Decimal value
     case CastKind::IntToSqlDecimal:
       return "IntToSqlDecimal";
 
-      // Conversion of a SQL boolean value (potentially nullable) into a primitive
-      // boolean value
+    // Conversion of a SQL boolean value (potentially nullable) into a primitive
+    // boolean value
     case CastKind::SqlBoolToBool:
       return "SqlBoolToBool";
 
-      // Conversion of a primitive boolean into a SQL boolean
+    // Conversion of a primitive boolean into a SQL boolean
     case CastKind::BoolToSqlBool:
       return "BoolToSqlBool";
 
-      // A cast between integral types (i.e., 8-bit, 16-bit, 32-bit, or 64-bit
-      // numbers), excluding to boolean! Boils down to a bitcast, a truncation:
-      // a sign-extension, or a zero-extension. The same as in C/C++.
+    // A cast between integral types (i.e., 8-bit, 16-bit, 32-bit, or 64-bit
+    // numbers), excluding to boolean! Boils down to a bitcast, a truncation:
+    // a sign-extension, or a zero-extension. The same as in C/C++.
     case CastKind::IntegralCast:
       return "IntegralCast";
 
-      // An integer to float cast. Only allows widening.
+    // An integer to float cast. Only allows widening.
     case CastKind::IntToFloat:
       return "IntToFloat";
 
-      // A float to integer cast. Only allows widening.
+    // A float to integer cast. Only allows widening.
     case CastKind::FloatToInt:
       return "FloatToInt";
 
-      // A simple bit cast reinterpretation
+    // A simple bit cast reinterpretation
     case CastKind::BitCast:
       return "BitCast";
 
-      // 64 bit float To Sql Real
+    // 64 bit float To Sql Real
     case CastKind::FloatToSqlReal:
       return "FloatToSqlReal";
 
-      // Conversion of a SQL timestamp value (potentially nullable) into a primitive timestamp value
+    // Conversion of a SQL timestamp value (potentially nullable) into a primitive timestamp value
     case CastKind::SqlTimestampToTimestamp:
       return "SqlTimestampToTimestamp";
 
-      // Conversion of a primitive timestamp valueinto a SQL timestamp
+    // Conversion of a primitive timestamp valueinto a SQL timestamp
     case CastKind::TimestampToSqlTimestamp:
       return "TimestampToSqlTimestamp";
 
-      // Convert a SQL integer into a SQL real
+    // Convert a SQL integer into a SQL real
     case CastKind::SqlIntToSqlReal:
       return "SqlIntToSqlReal";
     default:
