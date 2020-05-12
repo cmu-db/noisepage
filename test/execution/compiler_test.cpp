@@ -1994,9 +1994,23 @@ TEST_F(CompilerTest, CTEBasicTest) {
                    .SetLeader(true)
                    .Build();
   }
-  // Dummy checkers
-  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {};
-  CorrectnessFn correcteness_fn = []() {};
+
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{10};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    ASSERT_FALSE(col1->is_null_);
+    // Check col1 value is >=0 and < 10
+    ASSERT_LT(col1->val_, 10);
+    ASSERT_GT(col1->val_, -1);
+
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Create exec ctx
@@ -2114,9 +2128,36 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
                   .Build();
   }
 
-  // Dummy checkers
-  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {};
-  CorrectnessFn correcteness_fn = []() {};
+  // Compile and Run
+  // 10 rows should be outputted because of the WHERE clause
+  // The joined cols should be equal
+  // The 4th column is the sum of the 1nd and 3rd columns
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{10};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_ || col4->is_null_);
+    // Check col1 value is >=0 and < 10
+    ASSERT_LT(col1->val_, 10);
+    ASSERT_GT(col1->val_, -1);
+    // Check col3 value is >=0 and < 10
+    ASSERT_LT(col3->val_, 10);
+    ASSERT_GT(col3->val_, -1);
+    // Check join cols
+    ASSERT_EQ(col1->val_, col2->val_);
+    // Check that col4 = col1 + col3
+    ASSERT_EQ(col4->val_, col1->val_ + col3->val_);
+    // Check the number of output row
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Make Exec Ctx
@@ -2237,10 +2278,7 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
                     .SetJoinPredicate(predicate)
                     .Build();
   }
-  // Dummy checkers
-  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {};
-  CorrectnessFn correcteness_fn = []() {};
-  GenericChecker checker(row_checker, correcteness_fn);
+
 
   // Make Exec Ctx
   OutputStore store{&checker, hash_join->GetOutputSchema().Get()};
