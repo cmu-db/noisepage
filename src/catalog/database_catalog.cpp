@@ -1364,12 +1364,6 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
   std::unordered_set<col_oid_t> affected_col;
   for (size_t i = 0; i < con_vec.size(); i++) {
     PG_Constraint constraint = con_vec[i];
-    // due to thr special procedure in update translator, we offload PK and UNIQUE check to index
-    // currently only check for foreign key issue
-    if (constraint.contype_ == postgres::ConstraintType::PRIMARY_KEY ||
-        constraint.contype_ == postgres::ConstraintType::UNIQUE) {
-        continue;
-    }
     // verify if their col is affected by update
     bool col_affected = false;
     affected_col.clear();
@@ -1411,10 +1405,13 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
       if (constraint.contype_ == postgres::ConstraintType::PRIMARY_KEY ||
           constraint.contype_ == postgres::ConstraintType::UNIQUE) {
         if (!index_scan_result.empty()) {
-          delete[] index_buffer;
-          delete[] buffer;
-          txn->SetMustAbort();
-          return false;
+            TERRIER_ASSERT(index_scan_result.size() == 1, "UNIQUE PK should have only one scan result");
+            if (index_scan_result[0] != tuple_slot) {
+                delete[] index_buffer;
+                delete[] buffer;
+                txn->SetMustAbort();
+                return false;
+            }
         }
       } else if (constraint.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
         if (index_scan_result.empty()) {
