@@ -32,10 +32,12 @@ class BlockCompactorTests : public TerrierTest {
   // Original Components
   std::unique_ptr<DBMain> db_main_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager;
+  common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+  common::ManagedPointer<transaction::TimestampManager> timestamp_manager_;
   common::ManagedPointer<storage::LogManager> log_manager_;
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
+  common::ManagedPointer<storage::GarbageCollector> gc_;
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
@@ -49,10 +51,12 @@ class BlockCompactorTests : public TerrierTest {
                    .SetUseCatalog(true)
                    .Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
-    deferred_action_manager = db_main_->GetTransactionLayer()->GetDeferredActionManager();
+    deferred_action_manager_ = db_main_->GetTransactionLayer()->GetDeferredActionManager();
+    timestamp_manager_ = db_main_->GetTransactionLayer()->GetTimestampManager();
     log_manager_ = db_main_->GetLogManager();
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    gc_ = db_main_->GetStorageLayer()->GetGarbageCollector();
   }
 
   void TearDown() override {
@@ -211,15 +215,16 @@ TEST_F(BlockCompactorTests, SimpleCompactionTest) {
                                              common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
   txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  gc_->PerformGarbageCollection();
+
   col_id_t *col_oids = new col_id_t[1];
   col_oids[0] = (col_id_t)1;
   auto block = table_ptr->begin()->GetBlock();
 
   // Initialise block compactor and perform compaction
   storage::BlockCompactor compactor(&exec, col_oids, table_name.c_str());
-  gc.PerformGarbageCollection();
   compactor.PutInQueue(block);
-  transaction::DeferredActionManager *deferred_action_manager_ptr = deferred_action_manager.Get();
+  transaction::DeferredActionManager *deferred_action_manager_ptr = deferred_action_manager_.Get();
   transaction::TransactionManager *txn_manager_ptr = txn_manager_.Get();
   compactor.ProcessCompactionQueue(deferred_action_manager_ptr, txn_manager_ptr);
 
