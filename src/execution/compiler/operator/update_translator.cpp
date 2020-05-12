@@ -42,8 +42,6 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
   GenUpdateCascade(builder);
   // Non indexed updates just update.
   if (op_->GetIndexedUpdate()) {
-      std::cerr << "here!!!!!!!\n";
-
     // Indexed updates re-insert into the table
     GenTableInsert(builder);
     GenUpdateVerify(builder);
