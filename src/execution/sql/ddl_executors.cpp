@@ -179,12 +179,10 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
   // Map to indicate the changes to columns
   std::unordered_map<std::string, std::vector<ChangeType>> change_map;
   // Get the current schema
-  if (update_schema == nullptr) {
-    const auto &schema = accessor->GetSchema(table_oid);
-    const auto &cols = schema.GetColumns();
-    // NOLINTNEXTLINE
-    update_schema.reset(new catalog::Schema(cols));
-  }
+  const auto &schema = accessor->GetSchema(table_oid);
+  const auto &cols = schema.GetColumns();
+  // NOLINTNEXTLINE
+  update_schema.reset(new catalog::Schema(cols));
 
   for (const auto &cmd : cmds) {
     switch (cmd->GetType()) {
@@ -203,15 +201,17 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
   // All the commands execute OK
 
   // Some commands modify the schema, so update the schema
-  if (update_schema != nullptr) {
-    // The catalog will own the Schema
-    auto new_schema = update_schema.release();
-    storage::layout_version_t new_version;
-    if (accessor->UpdateSchema(table_oid, new_schema, &new_version, change_map)) {
-      // WARNING: Update the underlying sql_table, the update is not transactional
-      sql_table->UpdateSchema(accessor->GetTransactionContext(), accessor->GetSchema(table_oid), new_version);
-    }
+  TERRIER_ASSERT(update_schema != nullptr, "update schema is not null");
+  // The catalog will own the Schema
+  auto new_schema = update_schema.release();
+  storage::layout_version_t new_version;
+  if (accessor->UpdateSchema(table_oid, new_schema, &new_version, change_map)) {
+    // WARNING: Update the underlying sql_table, the update is not transactional
+    sql_table->UpdateSchema(accessor->GetTransactionContext(), accessor->GetSchema(table_oid), new_version);
+  } else {
+    return false;
   }
+
   return true;
 }
 }  // namespace terrier::execution::sql

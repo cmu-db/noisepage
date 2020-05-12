@@ -159,7 +159,7 @@ class SqlTable {
    */
   bool UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn, const catalog::Schema &schema,
                     const layout_version_t layout_version = layout_version_t{0}) {
-    TERRIER_ASSERT(layout_version == num_of_versions_, "Input version should be strictly larger than all versions");
+    TERRIER_ASSERT(layout_version >= num_versions_, "Input version should be strictly larger than all versions");
     return CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), layout_version);
   }
 
@@ -180,7 +180,7 @@ class SqlTable {
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator end() const {
     TERRIER_ASSERT(!tables_.empty(), "sqltable should have at least one underlying datatable");
-    return tables_[num_of_versions_ - 1].data_table_->end();
+    return tables_[num_versions_ - 1].data_table_->end();
   }  // NOLINT for STL name compability
 
   /**
@@ -256,7 +256,7 @@ class SqlTable {
    * @return the column oid to id map of a layout_version
    */
   const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t layout_version) const {
-    TERRIER_ASSERT(layout_version < num_of_versions_, "Version does not exist.");
+    TERRIER_ASSERT(layout_version < num_versions_, "Version does not exist.");
     return tables_.at(layout_version).column_oid_to_id_map_;
   }
 
@@ -265,7 +265,7 @@ class SqlTable {
    * @return the column id to oid map of a layout_version
    */
   const ColumnIdToOidMap &GetColumnIdToOidMap(layout_version_t layout_version) const {
-    TERRIER_ASSERT(layout_version < MAX_NUM_OF_VERSIONS && tables_[layout_version].data_table_ != nullptr,
+    TERRIER_ASSERT(layout_version < MAX_NUM_VERSIONS && tables_[layout_version].data_table_ != nullptr,
                    "Version does not exist.");
     return tables_.at(layout_version).column_id_to_oid_map_;
   }
@@ -277,7 +277,7 @@ class SqlTable {
    * @return
    */
   const BlockLayout &GetBlockLayout(layout_version_t layout_version = layout_version_t{0}) {
-    TERRIER_ASSERT(layout_version < MAX_NUM_OF_VERSIONS && tables_[layout_version].data_table_ != nullptr,
+    TERRIER_ASSERT(layout_version < MAX_NUM_VERSIONS && tables_[layout_version].data_table_ != nullptr,
                    "Version does not exist.");
     return tables_.at(layout_version).layout_;
   }
@@ -296,11 +296,11 @@ class SqlTable {
   //  when layout version is not monotonically increasing from 0;
   //  for example, when we implement garbage collecting empty old datatable, or when we collapse versions
   //  We could potentially used ordered map for traversing data table that are less or equal to curr version
-  // Vector of tables with fixed size of MAX_NUM_OF_VERSIONS
+  // Vector of tables with fixed size of MAX_NUM_VERSIONS
   //  We could later see if a unbounded concurrent vector greatly a affect the performance
   std::vector<DataTableVersion> tables_;
 
-  std::atomic<uint8_t> num_of_versions_ = 0;
+  std::atomic<uint8_t> num_versions_ = 0;
 
   // Should only be used by database catalog accessing pg tables!
   void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -318,7 +318,7 @@ class SqlTable {
    * @param desired_version the desired schema version
    * @param cached_orig_header original header cached
    * @param size_map columns which have size mismatch
-   * @return whether there are columns in the desired schema version but not in the tuple version.
+   * @return the columns in the desired schema version but not in the tuple version.
    */
   template <class RowType>
   std::vector<std::pair<size_t, catalog::col_oid_t>> AlignHeaderToVersion(RowType *out_buffer,

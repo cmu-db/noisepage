@@ -94,17 +94,19 @@ ALTER TABLE commands are parsed, binded and optimized just like other commands t
 
 Within Sqltable, we can either use a ordered concurrent map of version number to datatable, or use a vector of datatables (index i of vector corresponds to datatable with version number i) augmented with locks.  
 
-We decided to use a fixed-size vector, where the datatable with version i is stored in the i-th position of the vector. We use a MAX_NUM_OF_VERSIONS as the size of the vector, which is the max allowed number of versions for a single datatable.
+We decided to use a fixed-size vector, where the datatable with version i is stored in the i-th position of the vector. We use a MAX_NUM_VERSIONS as the size of the vector, which is the max allowed number of versions for a single datatable.
 
 We use a fixed-size vector because of low synchronization overhead: there is no need for locking the vector since different versions access different indices. Also, we need not make a special case for tables with a single version, because accessing an index in the vector is as fast as reading a pointer. Using a vector is thus much faster than a concurrent map.
 
-One potential issue with fixed-size vector is dealing with datatables with more than MAX_NUM_OF_VERSIONS. This should be extremely rare if we set MAX_NUM_OF_VERSIONS, since schema changes generally don't happen too often on a datatable. When we support GC of stale versions, we can implement recycling segments of the vector with stale versions, and adding offset to allow using this vector in a cyclic fashion,
+One potential issue with fixed-size vector is dealing with datatables with more than MAX_NUM_VERSIONS. This should be extremely rare if we set MAX_NUM_VERSIONS, since schema changes generally don't happen too often on a datatable. When we support GC of stale versions, we can implement recycling segments of the vector with stale versions, and adding offset to allow using this vector in a cyclic fashion,
 
 #### When to perform background migration and GC of old versions?
 
 When we are sure that no transactions will ever access the schema version represented by an old datatable(inferring from low_watermark of transaction timestamps), we can safely GC the outdated datatable. However, since we do lazy migration, if most tuples in a datatable is not updated after a schema change, they will still be in the outdated datatable, and we can read and access them from the outdated datatable. In this case, it might be quite expensive to GC the outdated datatable, since we need to first migrate all its tuples to newer datatables. It seems that doing background migrations conservatively is good for read-heavy workloads, and doing background migrations aggresively might be good for update-heavy workloads interleaved with schema changes.  
 
 Our current decision is to use a threshold to decide whether to do background migration: once the amount of tuples in an outdated datatable drops below the threshold, we start a background thread to migrate its tuples and GC the datatable when we're done.
+
+Currently background migration has not been implemented.
 
 #### Should we do migration on reads?
 
@@ -117,7 +119,7 @@ Our current decision is to not do migration on reads, since it might affect thro
 First, we wrote single-threaded unit tests in sql_table_test.cpp that tests schema changes. We test adding and dropping multiple columns in a single schema change, combining multiple schema changes with various SQL table operations (insert/delete/select/scan/update). We also added multithreaded versions of the same tests to test correctness under concurrent threads.
 We also added unit tests to test the correctness of the changes we made to the binder, execution, optimizer, and parser layers. 
 
-We also plan to write benchmarks that performs concurrent ALTER TABLE commands with normal Sqltable queries, both to test the correctness of our changes to the various layers, and to test the throughput with schema changes (under different workoads, read-heavy, update-heavy, etc.).
+We also wrote a update_schema_benchmark that performs consecutive update_schemas along with concurrent normal Sqltable operations, both to test the correctness of our changes to the sqltable layer, and to test the throughput with schema changes (under different workloads, read-write-delete, insert-heavy, etc.).
 
 Finally, as a stretch goal, we can integrate the Pantha Rei Schema Evolution Benchmark, which contains over 4.5 years of schema changes in Wikipedia’s history, and use this real world benchmark to test the throughput and memory usage of our non-blocking schema change implementation.
 
@@ -126,8 +128,11 @@ Finally, as a stretch goal, we can integrate the Pantha Rei Schema Evolution Ben
 One potential problem is we are unsure how adding versions and multiple datatables will influence logging and recovery. We can revisit this after the recovery group merges their changes.
 
 ## Future Work
-1. Can support more types of ALTER TABLE SQL commands. Current we have separate classes for each type of ALTER TABLE, which might need to be compacted if there are a dozen types of ALTER TABLE.
-2. For scanning tuples in a table to check if a type change is allowed, we can use TPL.
-3. Support unsafe schema changes, which includes updating type, nullable, or default value status of columns.
-4. One optimization is to precompile the tuple transformations. The code for different tuple transformations are mostly similar, except that the types of columns are different. Therefore, we can add code to the codegen layer to precompile the tuple transformation logic for different column types. This may speed up tuple transformations.
+1. Can support more types of ALTER TABLE SQL commands such as change type and change default value. Currently we only support add and drop column. 
+2. Current we have separate classes for each type of ALTER TABLE, which might need to be compacted if there are a dozen types of ALTER TABLE.
+3. Support background migration of tuples, and GC of unused schema versions.
+4. For scanning tuples in a table to check if a type change is allowed, we can use TPL.
+5. Support unsafe schema changes, which includes updating type, nullable, or default value status of columns.
+6. One optimization is to precompile the tuple transformations. The code for different tuple transformations are mostly similar, except that the types of columns are different. Therefore, we can add code to the codegen layer to precompile the tuple transformation logic for different column types. This may speed up tuple transformations.
+7. In the future, we might want to get rid of the sqltable layer all together, so schema change logic should be moved to the execution layer.
 

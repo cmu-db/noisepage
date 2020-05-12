@@ -148,6 +148,9 @@ class RandomSqlTableTestObject {
     for (auto &it : buffers_) {
       delete[] it.second;
     }
+    for (auto &buffer : concurrent_buffers_) {
+      delete[] buffer;
+    }
     for (auto &txn : txns_) {
       txn->redo_buffer_.Finalize(false);
     }
@@ -235,7 +238,7 @@ class RandomSqlTableTestObject {
     common::WorkerPool thread_pool(total_threads, {});
 
     auto workload = [&](uint32_t thread_id) {
-      if (update_schema_txn != nullptr && thread_id == num_threads) {
+      if (update_schema_txn != nullptr && static_cast<int>(thread_id) == num_threads) {
         UpdateSchema(update_schema_txn, std::move(updated_schema), updated_layout_version);
       } else {
         for (size_t i = 0; i < num_inserts_per_thread; i++) {
@@ -369,7 +372,7 @@ class RandomSqlTableTestObject {
     common::WorkerPool thread_pool(num_threads, {});
     auto workload = [&](uint32_t thread_id) {
       for (int i = 0; i < num_updates_per_thread; i++) {
-        int loc = thread_id * num_updates_per_thread + i;
+        int loc = static_cast<int>(thread_id) * num_updates_per_thread + i;
         storage::TupleSlot updated_slot;
         bool res = table_->Update(common::ManagedPointer(new_txns[loc]), new_redos[loc], layout_version, &updated_slot);
         EXPECT_TRUE(res == true);
@@ -460,12 +463,14 @@ class RandomSqlTableTestObject {
 
     std::vector<storage::ProjectedRow *> rows;
     std::vector<transaction::TransactionContext *> new_txns;
+
     for (int i = 0; i < num_slots; i++) {
       auto *txn =
           new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
       txns_.emplace_back(txn);
       auto pri = pris_.at(layout_version);
       auto buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
+      concurrent_buffers_.push_back(buffer);
       storage::ProjectedRow *select_row = pri.InitializeRow(buffer);
       rows.push_back(select_row);
       new_txns.push_back(txn);
@@ -577,6 +582,7 @@ class RandomSqlTableTestObject {
   double null_bias_;
   std::unordered_map<storage::layout_version_t, storage::ProjectedRowInitializer> pris_;
   std::unordered_map<storage::layout_version_t, byte *> buffers_;
+  std::vector<byte *> concurrent_buffers_;
   std::vector<common::ManagedPointer<storage::RedoRecord>> redos_;
   std::vector<std::unique_ptr<transaction::TransactionContext>> txns_;
   std::vector<storage::TupleSlot> inserted_slots_;
@@ -784,7 +790,7 @@ TEST_F(SqlTableTests, ConcurrentOperationsWithSchemaChange) {
           test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
           drop_cols));
     }
-    delete buffer_vec[thread_id];
+    delete[] buffer_vec[thread_id];
   }
 
   // update the first half of the tuples except for the first one, under new version, these will migrate

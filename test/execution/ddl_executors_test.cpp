@@ -18,6 +18,7 @@
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "test_util/catalog_test_util.h"
+#include "test_util/multithread_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -408,6 +409,122 @@ TEST_F(DDLExecutorsTests, AlterTablePlanNode) {
   for (auto const &c : cols) {
     EXPECT_NE(c.Oid(), col_id);
     EXPECT_NE(c.Name(), "new_column");
+  }
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+// NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, ConcurrentAlterTablePlanNode) {
+  // Create table
+  planner::CreateTablePlanNode::Builder builder;
+  catalog::Schema original_schema(table_schema_->GetColumns());
+  auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+                               .SetTableSchema(std::move(table_schema_))
+                               .SetTableName("foo")
+                               .SetBlockStore(block_store_)
+                               .Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
+      common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
+  auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+  auto table_ptr = accessor_->GetTable(table_oid);
+  EXPECT_NE(table_ptr, nullptr);
+  EXPECT_EQ(accessor_->GetColumns(table_oid).size(), original_schema.GetColumns().size());
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  std::vector<std::unique_ptr<catalog::CatalogAccessor>> accessors;
+  std::vector<std::unique_ptr<planner::AlterPlanNode>> alter_table_nodes;
+  std::vector<transaction::TransactionContext *> txns;
+  planner::AlterPlanNode::Builder alter_builder;
+  // run 3 update schema transactions concurrently
+  int num_threads = 3;
+
+  auto default_val = parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(15712));
+  std::vector<std::string> col_names{"new_column1", "new_column2", "new_column3"};
+  std::vector<catalog::Schema::Column> cols;
+
+  // each thread tries to adds a new column to the original schema
+  for (int i = 0; i < num_threads; i++) {
+    txn_ = txn_manager_->BeginTransaction();
+    accessors.push_back(catalog_->GetAccessor(common::ManagedPointer(txn_), db_));
+    txns.push_back(txn_);
+
+    catalog::Schema::Column col(col_names[i], type::TypeId::INTEGER, false, default_val);
+    cols.push_back(col);
+
+    std::vector<std::unique_ptr<planner::AlterCmdBase>> cmds;
+    auto add_cmd = std::make_unique<planner::AlterPlanNode::AddColumnCmd>(std::move(col), nullptr, nullptr, nullptr);
+    cmds.push_back(std::move(add_cmd));
+    alter_table_nodes.push_back(alter_builder.SetTableOid(table_oid)
+                                    .SetCommands(std::move(cmds))
+                                    .SetColumnOIDs({catalog::INVALID_COLUMN_OID})
+                                    .Build());
+  }
+
+  int orig_value = -1;
+  std::atomic<int> thread_that_succeeds = orig_value;
+
+  common::WorkerPool thread_pool(num_threads, {});
+
+  // concurrent perform altertable with several transactions, each adding a column. Note that only one transaction will
+  // succeed while the others will fail
+  auto workload = [&](uint32_t thread_id) {
+    bool res = execution::sql::DDLExecutors::AlterTableExecutor(
+        common::ManagedPointer<planner::AlterPlanNode>(alter_table_nodes[thread_id]),
+        common::ManagedPointer<catalog::CatalogAccessor>(accessors[thread_id]));
+    if (res) thread_that_succeeds.compare_exchange_strong(orig_value, thread_id);
+  };
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+
+  std::string new_col_name = col_names[thread_that_succeeds];
+  EXPECT_TRUE(thread_that_succeeds != orig_value);
+
+  catalog::Schema::Column new_col;
+
+  for (int i = 0; i < num_threads; i++) {
+    if (i != thread_that_succeeds) {
+      EXPECT_EQ(accessors[i]->GetColumns(table_oid).size(), original_schema.GetColumns().size());
+      auto &cur_schema = accessors[i]->GetSchema(table_oid);
+      EXPECT_EQ(cur_schema.GetColumns().size(), original_schema.GetColumns().size());
+      txn_manager_->Abort(txns[i]);
+    } else {
+      EXPECT_EQ(accessors[i]->GetColumns(table_oid).size(), original_schema.GetColumns().size() + 1);
+      auto &cur_schema = accessors[i]->GetSchema(table_oid);
+      EXPECT_EQ(cur_schema.GetColumns().size(), original_schema.GetColumns().size() + 1);
+      EXPECT_NO_THROW(cur_schema.GetColumn(col_names[i]));
+      new_col = cur_schema.GetColumn(col_names[i]);
+      EXPECT_FALSE(new_col.Nullable());
+      auto stored_default_val = new_col.StoredExpression();
+      EXPECT_EQ(stored_default_val->GetReturnValueType(), type::TypeId::INTEGER);
+      auto val = stored_default_val.CastManagedPointerTo<const parser::ConstantValueExpression>()->GetValue();
+      EXPECT_EQ(type::TransientValuePeeker::PeekInteger(val), 15712);
+      txn_manager_->Commit(txns[i], transaction::TransactionUtil::EmptyCallback, nullptr);
+    }
+  }
+
+  // Drop the column added by the successful transaction
+  txn_ = txn_manager_->BeginTransaction();
+  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
+
+  std::vector<std::unique_ptr<planner::AlterCmdBase>> cmds2;
+  auto col_id = new_col.Oid();
+  EXPECT_NE(col_id, catalog::INVALID_COLUMN_OID);
+  auto drop_cmd = std::make_unique<planner::AlterPlanNode::DropColumnCmd>(new_col_name, false, false, col_id);
+  cmds2.push_back(std::move(drop_cmd));
+  auto alter_table_node_2 =
+      alter_builder.SetTableOid(table_oid).SetCommands(std::move(cmds2)).SetColumnOIDs({col_id}).Build();
+
+  EXPECT_TRUE(execution::sql::DDLExecutors::AlterTableExecutor(
+      common::ManagedPointer<planner::AlterPlanNode>(alter_table_node_2),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+  EXPECT_EQ(accessor_->GetColumns(table_oid).size(), original_schema.GetColumns().size());
+  auto schema_after_drop = accessor_->GetSchema(table_oid);
+  EXPECT_EQ(schema_after_drop.GetColumns().size(), original_schema.GetColumns().size());
+
+  for (auto const &c : schema_after_drop.GetColumns()) {
+    EXPECT_NE(c.Oid(), col_id);
+    EXPECT_NE(c.Name(), new_col_name);
   }
   txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
