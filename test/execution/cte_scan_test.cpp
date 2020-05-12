@@ -26,7 +26,7 @@ class CTEScanTest : public SqlBasedTest {
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 
-TEST_F(CTEScanTest, DISABLED_CTEInitTest) {
+TEST_F(CTEScanTest, CTEInitTest) {
   // Check the mapping of col_oids to the col_ids in the constructed table
 
   uint32_t cte_table_col_type[4] = {5, 4, 3, 9};  // {BIGINT, INTEGER, SMALLINT, VARCHAR}
@@ -56,6 +56,7 @@ TEST_F(CTEScanTest, DISABLED_CTEInitTest) {
     EXPECT_EQ(map_iterator->second, oid_to_iid[map_iterator->first]);
     map_iterator++;
   }
+  delete cte_table;
 }
 
 TEST_F(CTEScanTest, CTEInsertTest) {
