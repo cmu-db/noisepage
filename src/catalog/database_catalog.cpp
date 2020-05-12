@@ -1173,7 +1173,7 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
       const auto &index_columns = index_schema.GetColumns();
       TERRIER_ASSERT(index_columns.size() == constraint.concol_.size(),
                      "index should have same cardinality as table col in constraint");
-//      bool all_col_update_same = true;
+
       for (size_t j = 0; j < index_columns.size(); j++) {
         col_oid_t table_col_oid = constraint.concol_[j];
         indexkeycol_oid_t index_col_oid = index_columns[j].Oid();
@@ -1202,10 +1202,13 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
       if (constraint.contype_ == postgres::ConstraintType::PRIMARY_KEY ||
           constraint.contype_ == postgres::ConstraintType::UNIQUE) {
         if (!index_scan_result.empty()) {
-          delete[] index_buffer;
-          delete[] buffer;
-          txn->SetMustAbort();
-          return false;
+            TERRIER_ASSERT(index_scan_result.size() == 1, "UNIQUE PK should have only one scan result");
+            if (index_scan_result[0] != tuple_slot) {
+                delete[] index_buffer;
+                delete[] buffer;
+                txn->SetMustAbort();
+                return false;
+            }
         }
       } else if (constraint.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
         if (index_scan_result.empty()) {
