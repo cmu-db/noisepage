@@ -104,7 +104,7 @@ class EXPORT OutputBuffer {
   std::atomic<int> id_;
   OutputCallback callback_;
   uint32_t *num_tuples_;
-  int max_thread_;
+  uint32_t max_thread_;
   tbb::concurrent_unordered_map<std::thread::id, std::pair<int, byte *>, std::hash<std::thread::id> > buffer_map_;
   common::SpinLatch latch_;
 };
