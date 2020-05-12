@@ -69,7 +69,7 @@ class BlockCompactor {
     // @todo: do we need to consider that insertIndex could fail? Do so now.
     // table_name how to pass a std::string? This is required for StorageInterfaceInitBind
     // fixed length col_ids array passed : HACK
-    auto tpl_code = R"(
+    tpl_code_ = R"(
     fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: [1]uint32) -> bool {
       var storage_interface: StorageInterface
       @storageInterfaceInitBind(&storage_interface, execCtx, "foo", col_oids, true)
@@ -80,10 +80,6 @@ class BlockCompactor {
       @tableCompactionInsertInto(&storage_interface, slot_to)
       return true
     })";
-    auto compiler = execution::vm::test::ModuleCompiler();
-    auto module = compiler.CompileToModule(tpl_code, exec_);
-
-    module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple_);
   }
 
   FAKED_IN_TEST ~BlockCompactor() = default;
@@ -135,10 +131,8 @@ class BlockCompactor {
 
   std::queue<RawBlock *> compaction_queue_;
 
-  // stores compiled bytecode that can be called with different arguments (look in the blockcompactor constructor for
-  // details)
-  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)>
-      move_tuple_;
+  // stores the TPL code that needs to be run in order to perform the compaction
+  std::string tpl_code_;
 
   // Variables required for calling the MoveTuple builtin
   execution::exec::ExecutionContext *exec_;

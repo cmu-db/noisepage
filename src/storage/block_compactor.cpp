@@ -186,12 +186,15 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // This operation cannot fail since a logically deleted slot can only be reclaimed by the compaction thread
   accessor.Reallocate(to);
 
-  return move_tuple_(exec_, &from, &to, col_oids_);
+  return MoveTupleTest(nullptr, from, to);
 }
 
 bool BlockCompactor::MoveTupleTest(RawBlock* block, TupleSlot from, TupleSlot to) {
-  const TupleAccessStrategy &accessor = block->data_table_->accessor_;
-  accessor.Reallocate(to);
+  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)>
+      move_tuple_;
+  auto compiler = execution::vm::test::ModuleCompiler();
+  auto module = compiler.CompileToModule(tpl_code_, exec_);
+  module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple_);
   return move_tuple_(exec_, &from, &to, col_oids_);
 }
 
