@@ -2865,9 +2865,24 @@ TEST_F(CompilerTest, ComplexAggregateWithCteQueryTest) {
                .Build();
   }
 
-  // Dummy checkers
-  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {};
-  CorrectnessFn correcteness_fn = []() {};
+  // Compile and Run
+  // 10 rows should be outputted because of the WHERE clause
+  // The 2nd column is the same as 1st column
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{10};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    // Check join cols
+    ASSERT_EQ(col1->val_, col2->val_);
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Make Exec Ctx
