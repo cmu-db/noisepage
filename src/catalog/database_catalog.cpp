@@ -1283,7 +1283,7 @@ PG_Constraint DatabaseCatalog::PGConstraintPRToObj(storage::ProjectedRow *select
     // TODO: implement construction support for check constraint
     TERRIER_ASSERT(true, "Should implement construction for check constraint");
   } else if (con_obj.contype_ == postgres::ConstraintType::EXCLUSION) {
-    // TODO: implement construction support for exclusion constraint
+    // TODO(exclusion constraint): implement construction support for exclusion constraint
     TERRIER_ASSERT(true, "Should implement construction for exclusion constraint");
   }
   return con_obj;
@@ -1291,7 +1291,6 @@ PG_Constraint DatabaseCatalog::PGConstraintPRToObj(storage::ProjectedRow *select
 
 bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                                   table_oid_t table, storage::ProjectedRow *pr) {
-  // TODO: We do not know if this needs a lock or not
   if (!TryLock(txn)) return false;
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_constraints_all_cols_pri_.ProjectedRowSize());
   auto con_pri = constraints_table_index_->GetProjectedRowInitializer();
@@ -1320,10 +1319,10 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
     } else if (con_obj.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
       verify_res = VerifyFKConstraint(txn, con_obj, pr);
     } else if (con_obj.contype_ == postgres::ConstraintType::CHECK) {
-      // TODO: implement support for check constraint
+      // TODO(check constraint): implement support for check constraint
       verify_res = VerifyCheckConstraint(con_obj);
     } else if (con_obj.contype_ == postgres::ConstraintType::EXCLUSION) {
-      // TODO: implement support for exclusion constraint
+      // TODO(exclusion constraint): implement support for exclusion constraint
       verify_res = VerifyExclusionConstraint(con_obj);
     }
 
@@ -1340,7 +1339,6 @@ bool DatabaseCatalog::VerifyTableInsertConstraint(common::ManagedPointer<transac
 bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
                                                   table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
                                                   storage::ProjectedRow *update_pr, storage::TupleSlot tuple_slot) {
-  // TODO： we do not know if this needs lock for now, for safety we lock it
   if (!TryLock(txn)) return false;
   auto table = GetTable(txn, table_oid);
   const auto table_schema = GetSchema(txn, table_oid);
