@@ -99,7 +99,7 @@ class EXPORT TableVectorIterator {
    * @param exec_ctx Current execution context
    */
   static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state, ScanFn scan_fn,
-                           exec::ExecutionContext *exec_ctx, unsigned int num_threads = 0);
+                           exec::ExecutionContext *exec_ctx, uint32_t num_threads = 0);
 
  private:
   exec::ExecutionContext *exec_ctx_;
