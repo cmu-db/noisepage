@@ -203,7 +203,10 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   auto accessor = ctx->GetAccessor();
   std::string_view s_v = str.StringView();
   std::string s(s_v.data(), s_v.size());
-  auto mini_txn = ctx->Get_mini_txn();
+
+  auto txn_manager = ctx->GetTransactionManager();
+  auto mini_txn_context = txn_manager->BeginTransaction();
+  auto mini_txn = common::ManagedPointer<transaction::TransactionContext>(mini_txn_context);
 
   auto sequence_oid = accessor->GetSequenceOid(s);
   if (sequence_oid == catalog::INVALID_SEQUENCE_OID) {
@@ -286,12 +289,14 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
     if (seq_oid_ptrs[0] == sequence_oid) {
         temp_insert_redo->SetTupleSlot(*prev_table_iter);
         temp_table->Update(mini_txn, temp_insert_redo);
+        txn_manager->Commit(mini_txn_context, transaction::TransactionUtil::EmptyCallback, nullptr);
         return;
     }
     prev_table_iter = table_iter;
   }
 
   temp_table->Insert(mini_txn, temp_insert_redo);
+  txn_manager->Commit(mini_txn_context, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
@@ -303,7 +308,11 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
     auto temp_table_oid = ctx->GetTempTable();
     auto temp_table = accessor->GetTable(temp_table_oid).Get();
     auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
-    auto mini_txn = ctx->Get_mini_txn();
+
+    auto txn_manager = ctx->GetTransactionManager();
+    auto mini_txn_context = txn_manager->BeginTransaction();
+    auto mini_txn = common::ManagedPointer<transaction::TransactionContext>(mini_txn_context);
+
 
     // Sequence table only have two colums right now
     const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
@@ -328,6 +337,7 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
             if (seq_oid_ptrs[i] == sequence_oid) {
                 result->val_ = seq_value_ptrs[i];
                 result->is_null_ = str.is_null_;
+                txn_manager->Commit(mini_txn_context, transaction::TransactionUtil::EmptyCallback, nullptr);
                 return;
             }
         }

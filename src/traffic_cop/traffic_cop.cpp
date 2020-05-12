@@ -324,12 +324,10 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
-  auto mini_txn = txn_manager_->BeginTransaction();
-
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor(), connection_ctx->GetTempNamespaceOid(), connection_ctx->GetTempTable()
-      , common::ManagedPointer<transaction::TransactionContext>(mini_txn));
+      , txn_manager_);
 
   exec_ctx->SetParams(portal->Parameters());
 
@@ -338,7 +336,6 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   // builtin function currval will throw exception.
   try {
     exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-    txn_manager_->Commit(mini_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }catch (Exception& exception) {
       return {ResultType::ERROR, "Query failed. " + std::string(exception.what())};
   }
