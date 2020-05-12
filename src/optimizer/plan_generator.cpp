@@ -1002,7 +1002,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
 
     auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
     output_plan_ = planner::CteScanPlanNode::Builder()
-                       .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
+                       .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
                        .SetTableOutputSchema(std::move(cte_scan_out))
                        .AddChild(std::move(output_plan_))
                        .Build();
@@ -1018,7 +1018,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     }
 
     output_plan_ = planner::CteScanPlanNode::Builder()
-                       .SetOutputSchema(std::move(std::make_unique<planner::OutputSchema>(std::move(columns))))
+                       .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
                        .Build();
   }
 }
