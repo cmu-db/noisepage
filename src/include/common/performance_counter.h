@@ -2,7 +2,7 @@
 
 #include <atomic>
 #include <string>
-#include "common/json.h"
+#include "common/json_header.h"
 
 namespace terrier::common {
 
@@ -83,31 +83,6 @@ class PerformanceCounter {
 #define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
   void Decrement##MemberName(MemberType x) { return MemberName.store(static_cast<MemberType>(MemberName.load() - x)); }
 
-/*
- * Performance counter functions.
- * These macros add new functionality.
- * Please maintain alphabetical A-Z order.
- */
-/**
- * This macro loads ClassName.MemberName from the JSON object.
- *
- * Assumed in scope:
- *  json &j
- */
-#define PC_FN_JSON_FROM(MemberType, MemberName) MemberName.store(j.at("Counters").at(#MemberName).get<MemberType>());
-
-/**
- * This macro writes ClassName.MemberName into the JSON object.
- *
- * Assumed in scope:
- *  json output
- */
-#define PC_FN_JSON_TO(MemberType, MemberName) output["Counters"][#MemberName] = MemberName.load();
-
-/**
- * This macro zeroes out ClassName.MemberName.
- */
-#define PC_FN_ZERO(MemberType, MemberName) MemberName.store(0);
 #else
 #define PC_HELPER_DEFINE_MEMBERS(MemberType, MemberName)
 #define PC_HELPER_DEFINE_GET(MemberType, MemberName) \
@@ -118,9 +93,6 @@ class PerformanceCounter {
   void Increment##MemberName(MemberType x) {}
 #define PC_HELPER_DEFINE_DECREMENT(MemberType, MemberName) \
   void Decrement##MemberName(MemberType x) {}
-#define PC_FN_JSON_FROM(MemberType, MemberName)
-#define PC_FN_JSON_TO(MemberType, MemberName)
-#define PC_FN_ZERO(MemberType, MemberName)
 #endif  // NDEBUG
 
 /*
@@ -164,7 +136,7 @@ class PerformanceCounter {
  *
  * Note that every class member is wrapped in std::atomic.
  */
-#define DEFINE_PERFORMANCE_CLASS(ClassName, MemberList)                                        \
+#define DEFINE_PERFORMANCE_CLASS_HEADER(ClassName, MemberList)                                 \
   class ClassName : public terrier::common::PerformanceCounter {                               \
    private:                                                                                    \
     std::string name = #ClassName;                                                             \
@@ -179,19 +151,13 @@ class PerformanceCounter {
     std::string GetName() override { return name; }                                            \
     void SetName(const std::string &name) override { this->name = name; }                      \
                                                                                                \
-    nlohmann::json ToJson() const override {                                                   \
-      nlohmann::json output;                                                                   \
-      output["CounterName"] = #ClassName;                                                      \
-      MemberList(PC_FN_JSON_TO);                                                               \
-      return output;                                                                           \
-    };                                                                                         \
-    void FromJson(const nlohmann::json &j) override { MemberList(PC_FN_JSON_FROM); };          \
-                                                                                               \
-    void ZeroCounters() { MemberList(PC_FN_ZERO) }                                             \
+    nlohmann::json ToJson() const override;                                                    \
+    void FromJson(const nlohmann::json &j) override;                                           \
+    void ZeroCounters();                                                                       \
   };                                                                                           \
                                                                                                \
-  inline void to_json(nlohmann::json &j, const ClassName &c) { j = c.ToJson(); }  /* NOLINT */ \
-  inline void from_json(const nlohmann::json &j, ClassName &c) { c.FromJson(j); } /* NOLINT */
+  void to_json(nlohmann::json &j, const ClassName &c); /* NOLINT */                            \
+  void from_json(const nlohmann::json &j, ClassName &c); /* NOLINT */
 
 // note: this is a rare correct usage of inline in modern C++
 // If you include a header file in multiple translation units, the multiple definitions conflict

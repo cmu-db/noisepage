@@ -1,5 +1,5 @@
 #include "parser/expression/constant_value_expression.h"
-#include "common/json_header.h"
+#include "common/json.h"
 
 namespace terrier::parser {
 

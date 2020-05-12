@@ -1,4 +1,5 @@
-#include "common/performance_counter.h"
+#include "common/performance_counter_test.h"
+#include "common/performance_counter_body.h"
 #include <functional>
 #include <random>
 #include <vector>
@@ -8,22 +9,7 @@
 
 namespace terrier {
 
-// clang-format off
-/**
- * A simple dummy cache object with four differently typed attributes:
- *   uint64_t NumInsert
- *   uint32_t NumHit
- *   uint16_t NumFailure
- *   uint8_t NumUser
- */
-#define CACHE_MEMBERS(f) \
-  f(uint64_t, NumInsert) \
-  f(uint32_t, NumHit) \
-  f(uint16_t, NumFailure) \
-  f(uint8_t, NumUser)
-// clang-format on
-
-DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
+DEFINE_PERFORMANCE_CLASS_BODY(CacheCounter, CACHE_MEMBERS)
 
 /**
  * Helper class for testing the four attributes of a CacheCounter.

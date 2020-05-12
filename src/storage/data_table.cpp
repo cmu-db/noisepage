@@ -6,8 +6,11 @@
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
+#include "common/performance_counter_body.h"
 
 namespace terrier::storage {
+
+DEFINE_PERFORMANCE_CLASS_BODY(DataTableCounter, DataTableCounterMembers);
 
 DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)

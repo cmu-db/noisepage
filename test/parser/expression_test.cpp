@@ -25,6 +25,7 @@
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
+#include "nlohmann/json.hpp"
 
 namespace terrier::parser::expression {
 
