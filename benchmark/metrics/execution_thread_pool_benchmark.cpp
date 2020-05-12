@@ -75,7 +75,7 @@ class ExecutionThreadPoolBenchmark : public benchmark::Fixture {
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids = GetOneCPUPerRegion();
 
-    TERRIER_ASSERT(cpu_ids.size() == storage::RawBlock::GetNumNumaRegions(),
+    TERRIER_ASSERT(cpu_ids.size() == static_cast<uint32_t>(storage::RawBlock::GetNumNumaRegions()),
                    "should actually get right number of regions");
 
     for (uint32_t i = 0; i < static_cast<uint32_t>(storage::RawBlock::GetNumNumaRegions()); i++) {
