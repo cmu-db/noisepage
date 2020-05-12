@@ -103,12 +103,10 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
       exec_ctx_.get(), 1, !table_oid1, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
 
-  // TODO(Gautam): StorageInterface for the CTE's
   auto cte_table_oid = static_cast<catalog::table_oid_t>(100003);
   std::vector<catalog::col_oid_t> cte_table_col_oids(col_oids.data(),
                                                      col_oids.data() + static_cast<uint32_t>(col_oids.size()));
 
-  // TODO(Gautam): Check if the materialized tuple can be used to make the schema
   // Using the store that was used in the set up
   auto child_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid0);
   auto cte_table = new storage::SqlTable(BlockStore(), child_schema);
@@ -137,7 +135,6 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
   }
 
   // Try to fetch the inserted values.
-  // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
   TableVectorIterator table_iter(exec_ctx_.get(), !cte_table_oid, col_oids.data(),
                                  static_cast<uint32_t>(col_oids.size()));
   table_iter.InitTempTable(common::ManagedPointer(cte_table));
@@ -152,6 +149,29 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
     pci->Reset();
   }
   EXPECT_EQ(num_tuples, (hi_match - lo_match) + 1);
+
+  // We are deferring it in both commit and abort because we need to delete the temp table regardless of transaction
+  // outcome. We use deferred actions to guarantee memory safety with the garbage collector.
+
+  exec_ctx_->GetTxn()->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction([=]() {
+      deferred_action_manager->RegisterDeferredAction([=]() {
+        // Defer an action upon commit to delete the table. Delete table will need a double deferral because there could
+        // be transactions not yet unlinked by the GC that depend on the table
+        delete cte_table;
+      });
+    });
+  });
+
+  exec_ctx_->GetTxn()->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction([=]() {
+      deferred_action_manager->RegisterDeferredAction([=]() {
+        // Defer an action upon abort to delete the table. Delete table will need a double deferral because there could
+        // be transactions not yet unlinked by the GC that depend on the table
+        delete cte_table;
+      });
+    });
+  });
 }
 
 // NOLINTNEXTLINE
