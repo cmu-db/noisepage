@@ -203,7 +203,6 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
 
   bool build_feature = false, seq_feature = false, idx_feature = false;
   auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  EXPECT_EQ(pipe0_vec.size(), 3);
   for (auto &feature : pipe0_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
       case brain::ExecutionOperatingUnitType::SORT_BUILD:
@@ -225,6 +224,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   EXPECT_EQ(pipe1_vec[0].GetExecutionOperatingUnitType(), brain::ExecutionOperatingUnitType::SORT_ITERATE);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  TERRIER_ASSERT(0, "shit");
 }
 
 // NOLINTNEXTLINE

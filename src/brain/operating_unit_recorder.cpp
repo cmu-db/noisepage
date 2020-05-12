@@ -341,8 +341,9 @@ void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
 
   // Vector of indexkeycol_oid_t columns
   std::vector<catalog::indexkeycol_oid_t> col_vec;
+  col_vec.reserve(cols.size());
   for (auto &col : cols) {
-    col_vec.push_back(col);
+    col_vec.emplace_back(col);
   }
 
   // Record as an IndexScan with scaling against the number of tuples in the child

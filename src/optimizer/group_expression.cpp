@@ -9,7 +9,7 @@
 namespace terrier::optimizer {
 
 void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
-                                        std::vector<PropertySet *> input_properties_list, double cost) {
+                                        const std::vector<PropertySet *> &input_properties_list, double cost) {
   auto it = lowest_cost_table_.find(output_properties);
   if (it == lowest_cost_table_.end()) {
     // No other cost to compare against

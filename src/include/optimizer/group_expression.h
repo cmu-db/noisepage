@@ -109,7 +109,8 @@ class GroupExpression {
    * @param input_properties_list Vector of children input properties required
    * @param cost Cost
    */
-  void SetLocalHashTable(PropertySet *output_properties, std::vector<PropertySet *> input_properties_list, double cost);
+  void SetLocalHashTable(PropertySet *output_properties, const std::vector<PropertySet *> &input_properties_list,
+                         double cost);
 
   /**
    * Hashes GroupExpression

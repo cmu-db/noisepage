@@ -494,7 +494,7 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(common::ManagedPointer<
     auto idx_scan = idx_op->GetOp().As<IndexScan>();
     TERRIER_ASSERT(idx_scan != nullptr, "Transformation should have produced an IndexScan");
 
-    if (idx_scan->GetBounds().size() > 0) {
+    if (!idx_scan->GetBounds().empty()) {
       std::vector<std::unique_ptr<OperatorNode>> child;
       child.emplace_back(children[0]->Copy());
 
