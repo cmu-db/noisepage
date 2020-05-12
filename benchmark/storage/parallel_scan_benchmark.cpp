@@ -90,8 +90,8 @@ BENCHMARK_DEFINE_F(ParalleScanBenchmark, TableVectorParallel)(benchmark::State &
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       execution::sql::TableVectorIterator::ParallelScan(static_cast<uint32_t>(table_oid),  // ID of table to scan
-                                                        col_oids,  // Query state to pass to scan threads
-                                                        2,         // Container for thread states
+                                                        col_oids,  // array of column oids
+                                                        2,         // num_col_oids
                                                         nullptr,   // Query state
                                                         scanner,   // Scan function
                                                         exe_ctx.get());
