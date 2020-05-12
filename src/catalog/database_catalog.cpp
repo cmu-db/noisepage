@@ -1395,23 +1395,26 @@ bool DatabaseCatalog::VerifyTableUpdateConstraint(common::ManagedPointer<transac
         if (affected_col.count(table_col_oid) > 0) {
           update_ptr = update_pr->AccessForceNotNull(update_pr_pm[table_col_oid]);
           CopyData(update_ptr, index_ptr, index_columns[j].Type());
+          //          all_col_update_same = CompPRData(table_ptr, update_ptr, index_columns[j].Type());
         } else {
           CopyData(table_ptr, index_ptr, index_columns[j].Type());
         }
       }
+
       // if the original index_pr and the updated index_pr are the same pass this constraint test
       std::vector<storage::TupleSlot> index_scan_result;
       index->ScanKey(*txn, *index_pr, &index_scan_result);
       if (constraint.contype_ == postgres::ConstraintType::PRIMARY_KEY ||
           constraint.contype_ == postgres::ConstraintType::UNIQUE) {
+        // if all the update data are the saem as original data, then we allow for this constraint
         if (!index_scan_result.empty()) {
-            TERRIER_ASSERT(index_scan_result.size() == 1, "UNIQUE PK should have only one scan result");
-            if (index_scan_result[0] != tuple_slot) {
-                delete[] index_buffer;
-                delete[] buffer;
-                txn->SetMustAbort();
-                return false;
-            }
+          TERRIER_ASSERT(index_scan_result.size() == 1, "UNIQUE PK should have only one scan result");
+          if (index_scan_result[0] != tuple_slot) {
+            delete[] index_buffer;
+            delete[] buffer;
+            txn->SetMustAbort();
+            return false;
+          }
         }
       } else if (constraint.contype_ == postgres::ConstraintType::FOREIGN_KEY) {
         if (index_scan_result.empty()) {
