@@ -47,5 +47,6 @@ fun main(execCtx: *ExecutionContext) -> int64 {
     @pciReset(pci)
   }
   @tableIterClose(&tvi)
+  @cteScanFree(&cte_scan_iterator)
   return ret
 }
