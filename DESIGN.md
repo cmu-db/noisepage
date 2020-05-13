@@ -19,7 +19,7 @@ The overall pipeline is as follows:
    * Storing Checkpoint:
    * Logs -> Filtered Catalog Logs -> Save to Disk
    * Data Tables -> Compressed Cold Data -> Serialized Arrow Format -> Save to Disk
-   * ------------------------------------------------------------
+   * -----------------------------------------------------------------------------------------------------------------
    * Recovering Checkpoint:
    * Catalog Logs -> Log Recovery -> Catalog
    * Arrow Format -> Raw Blocks -> Data Tables
