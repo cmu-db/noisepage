@@ -1703,10 +1703,12 @@ void DatabaseCatalog::FillConstraintPR(storage::ProjectedRow *constraints_insert
   *(reinterpret_cast<storage::VarlenEntry *>(conexclu_ptr)) = conexclu_varlen;
 
   const auto conbin_offset = pg_constraints_all_cols_prm_[postgres::CONBIN_COL_OID];
-  if (conbin == nullptr) {
-    constraints_insert_pr->SetNull(conbin_offset);
-  } else {
     auto *const conbin_ptr = constraints_insert_pr->AccessForceNotNull(conbin_offset);
+
+  if (conbin == nullptr) {
+//    constraints_insert_pr->SetNull(conbin_offset);
+      *(reinterpret_cast<size_t *>(conbin_ptr)) = postgres::CONBIN_INVALID_PTR;
+  } else {
     *(reinterpret_cast<planner::AbstractPlanNode **>(conbin_ptr)) = conbin;
   }
 }
