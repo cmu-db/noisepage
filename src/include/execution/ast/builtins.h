@@ -224,6 +224,7 @@ namespace terrier::execution::ast {
   F(TableAllocateSlot, tableAllocateSlot)                                             \
   F(TableInsert, tableInsert)                                           \
   F(TableCompactionInsertInto, tableCompactionInsertInto)               \
+  F(TableCompactionCopyTupleSlot, tableCompactionCopyTupleSlot)         \
   F(TableDelete, tableDelete)                                           \
   F(TableUpdate, tableUpdate)                                           \
   F(GetIndexPR, getIndexPR)                                             \

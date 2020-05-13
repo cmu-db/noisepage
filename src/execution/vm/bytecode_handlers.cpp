@@ -224,6 +224,12 @@ void OpStorageInterfaceTableCompactionInsertInto(terrier::execution::sql::Storag
   storage_interface->TableCompactionInsertInto(*tuple_slot);
 }
 
+void OpStorageInterfaceTableCompactionCopyTupleSlot(terrier::execution::sql::StorageInterface *storage_interface,
+                                                 terrier::storage::TupleSlot *tuple_slot_from,
+                                                 terrier::storage::TupleSlot *tuple_slot_to) {
+  storage_interface->TableCompactionCopyTupleSlot(*tuple_slot_from, *tuple_slot_to);
+}
+
 void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
                                   terrier::execution::sql::StorageInterface *storage_interface, uint32_t index_oid) {
   *pr_result = storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid));

@@ -1955,6 +1955,12 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       Emitter()->Emit(Bytecode::StorageInterfaceTableCompactionInsertInto, storage_interface, tuple_slot);
       break;
     }
+    case ast::Builtin::TableCompactionCopyTupleSlot: {
+      LocalVar tuple_slot_from = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar tuple_slot_to = VisitExpressionForRValue(call->Arguments()[2]);
+      Emitter()->Emit(Bytecode::StorageInterfaceTableCompactionCopyTupleSlot, storage_interface, tuple_slot_from, tuple_slot_to);
+      break;
+    }
     case ast::Builtin::TableDelete: {
       LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
@@ -2325,6 +2331,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::TableAllocateSlot:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableCompactionInsertInto:
+    case ast::Builtin::TableCompactionCopyTupleSlot:
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
     case ast::Builtin::GetIndexPR:

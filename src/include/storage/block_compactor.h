@@ -75,14 +75,13 @@ class BlockCompactor {
       var storage_interface: StorageInterface
       @storageInterfaceInitBind(&storage_interface, execCtx, "foo", col_oids, true)
 
-      var table_projected_row = @getTablePR(&storage_interface)
+      @tableCompactionCopyTupleSlot(&storage_interface, slot_from, slot_to)
 
       if (!@tableDelete(&storage_interface, slot_from)) {
         @storageInterfaceFree(&storage_interface)
         return false
       }
 
-      @tableCompactionInsertInto(&storage_interface, slot_to)
       return true
     })";
   }

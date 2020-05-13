@@ -2103,6 +2103,31 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::TableCompactionCopyTupleSlot: {
+      // The Built-in has three arguments:
+      // 1) pointer to the storage interface
+      // 2) pointer to the tuple slot where the contents will be moved from
+      // 3) pointer to the tuple slot where the contents will be moved to
+      if (!CheckArgCount(call, 3)) {
+        return;
+      }
+
+      // The second argument is a tuple slot. If it is not, report that it is not.
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
+      // The third argument is a tuple slot. If it is not, report that it is not.
+      if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
+
+      // Set the return type as Nil (which is TPL's equivalent for void return types)
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::TableDelete: {
       if (!CheckArgCount(call, 2)) {
         return;
@@ -2609,6 +2634,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::TableAllocateSlot:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableCompactionInsertInto:
+    case ast::Builtin::TableCompactionCopyTupleSlot:
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
     case ast::Builtin::GetIndexPR:

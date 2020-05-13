@@ -214,7 +214,8 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   storage::BlockCompactor compactor(&exec, col_oids, table_name.c_str());
   auto block = tuple_slot_1.GetBlock();
   EXPECT_EQ(tuple_slot_0.GetBlock(), tuple_slot_1.GetBlock());
-  compactor.MoveTupleTest(block, tuple_slot_1, tuple_slot_0);
+  bool moveSucceeds = compactor.MoveTupleTest(block, tuple_slot_1, tuple_slot_0);
+  EXPECT_TRUE(moveSucceeds);
   txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Begin T4, check for correctness of compaction, and commit
@@ -230,7 +231,9 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   EXPECT_EQ(*content, 1);
   // the 2nd slot will not have a tuple
   visible = table_ptr->Select(common::ManagedPointer(txn4), tuple_slot_1, read_row);
+  content = read_row->Get<uint32_t,false>(0, nullptr);
   EXPECT_FALSE(visible);  // Should not be filled after compaction
+  EXPECT_NE(*content, 1);
 
   txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);
 }

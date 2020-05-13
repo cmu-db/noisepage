@@ -60,6 +60,13 @@ void StorageInterface::TableCompactionInsertInto(storage::TupleSlot table_tuple_
   return table_->CompactionInsertInto(exec_ctx_->GetTxn(), table_redo_, table_tuple_slot);
 }
 
+void StorageInterface::TableCompactionCopyTupleSlot(storage::TupleSlot tuple_slot_from, storage::TupleSlot tuple_slot_to) {
+  storage::ProjectedRow *pr_buffer = StorageInterface::GetTablePR();
+  table_->Select(exec_ctx_->GetTxn(), tuple_slot_from, pr_buffer);
+  table_redo_->SetTupleSlot(tuple_slot_to);
+  return table_->CompactionInsertInto(exec_ctx_->GetTxn(), table_redo_, tuple_slot_to);
+}
+
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
   exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
   auto txn = exec_ctx_->GetTxn();
