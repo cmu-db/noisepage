@@ -63,7 +63,7 @@ void StorageInterface::TableCompactionInsertInto(storage::TupleSlot table_tuple_
 void StorageInterface::TableCompactionCopyTupleSlot(storage::TupleSlot tuple_slot_from, storage::TupleSlot tuple_slot_to) {
   storage::ProjectedRow *pr_buffer = StorageInterface::GetTablePR();
   table_->Select(exec_ctx_->GetTxn(), tuple_slot_from, pr_buffer);
-  table_redo_->SetTupleSlot(tuple_slot_to);
+  table_redo_->SetTupleSlot(tuple_slot_from);
   return table_->CompactionInsertInto(exec_ctx_->GetTxn(), table_redo_, tuple_slot_to);
 }
 

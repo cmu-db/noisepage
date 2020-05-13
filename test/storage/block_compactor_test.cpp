@@ -233,7 +233,6 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   visible = table_ptr->Select(common::ManagedPointer(txn4), tuple_slot_1, read_row);
   content = read_row->Get<uint32_t,false>(0, nullptr);
   EXPECT_FALSE(visible);  // Should not be filled after compaction
-  EXPECT_NE(*content, 1);
 
   txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
