@@ -1,6 +1,8 @@
 #pragma once
 // Following the postgres 12 documentation pg_constraint
 // https://www.postgresql.org/docs/12/catalog-pg-constraint.html
+// It pays some price in performance and expandability in order to follow the schema in this code base, but
+// that is where we were required to implement
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
 #include "storage/projected_row.h"

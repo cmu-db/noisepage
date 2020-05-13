@@ -208,10 +208,34 @@ bool DDLExecutors::CreateFKConstraintsAndIndices(const common::ManagedPointer<ca
   for (const auto &fk : fks) {
     src_cols.clear();
     sink_cols.clear();
+
+    // verify that source and sink col should be one on one match
+    if (fk.foreign_key_sources_.size() != fk.foreign_key_sinks_.size()) {
+      return false;
+    }
     sink_table = accessor->GetTableOid(fk.sink_table_name_);
     const terrier::catalog::Schema &sink_schema = accessor->GetSchema(sink_table);
+    // verify that source and sink col have matching datatype
+    // TODO: this seemed to be verified during binding phase and does not need to check during runtime
+    //    for (uint32_t i = 0; i < fk.foreign_key_sources_.size(); i ++) {
+    //        auto sink_col = sink_schema.GetColumn(fk.foreign_key_sinks_[i]);
+    //        auto src_col = schema.GetColumn(fk.foreign_key_sources_[i]);
+    //        if (sink_col.Type() != src_col.Type()) {
+    //            return false;
+    //        }
+    //    }
     src_cols.reserve(fk.foreign_key_sources_.size());
     sink_cols.reserve(fk.foreign_key_sinks_.size());
+    for (const auto &col_name : fk.foreign_key_sinks_) {
+      sink_cols.push_back(sink_schema.GetColumn(col_name).Oid());
+    }
+    // Verify that the sink columns for the table should either be UNIQUE col or PK col
+    if (!accessor->VerifyFKRefCol(sink_table, sink_cols)) {
+      return false;
+    }
+    for (const auto &col_name : fk.foreign_key_sources_) {
+      src_cols.push_back(schema.GetColumn(col_name).Oid());
+    }
     // create a index for the foreign key sink table col combinations
     std::vector<catalog::IndexSchema::Column> key_cols;
     // create index for the reference table
@@ -254,12 +278,6 @@ bool DDLExecutors::CreateFKConstraintsAndIndices(const common::ManagedPointer<ca
       return false;
     }
 
-    for (const auto &col_name : fk.foreign_key_sources_) {
-      src_cols.push_back(schema.GetColumn(col_name).Oid());
-    }
-    for (const auto &col_name : fk.foreign_key_sinks_) {
-      sink_cols.push_back(sink_schema.GetColumn(col_name).Oid());
-    }
     // verify that src and sink col has the same datatype
     TERRIER_ASSERT(src_cols.size() == sink_cols.size(), "FK src col and sink col should be one on one match");
 

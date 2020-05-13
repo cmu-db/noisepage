@@ -205,6 +205,16 @@ class DatabaseCatalog {
   std::string VarlentoString(const storage::VarlenEntry &entry);
 
   /**
+   * Verify that the cols in the table can be FK reference: they are either PK or UNIQUE
+   * @param txn transaction
+   * @param sink_table reference table id
+   * @param sink_cols reference columns
+   * @return true if cols satisfied
+   */
+  bool VerifyFKRefCol(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t sink_table,
+                      const std::vector<col_oid_t> &sink_cols);
+
+  /**
    * Compare the data at some PR location, not mem safe, assume same data type
    * @param src_ptr source starting position
    * @param tar_ptr target position
