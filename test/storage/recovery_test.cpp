@@ -804,7 +804,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
                                               .SetNumDatabases(1)
                                               .SetNumTables(5)
                                               .SetMaxColumns(5)
-                                              .SetInitialTableSize(100000)
+                                              .SetInitialTableSize(1000)
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({0.5, 0.3, 0.2, 0})
                                               .SetVarlenAllowed(true)
@@ -813,7 +813,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
 
   // Run workload
-  tested->SimulateOltp(100000, 1);
+  tested->SimulateOltp(1000, 1);
+  log_manager_->ForceFlush();
 
   // Create directory
   mkdir(ckpt_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
@@ -961,6 +962,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
 
   // Run workload
   tested->SimulateOltp(2, 1);
+  log_manager_->ForceFlush();
 
   // Create directory
   mkdir(ckpt_path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
@@ -976,7 +978,7 @@ TEST_F(RecoveryTests, CheckpointLoopTest) {
   thread_pool_.Startup();
 
   auto loop = CheckpointBackgroundLoop(ckpt_path, db, LOG_FILE_NAME, num_threads, &thread_pool_, &ckpt);
-  loop.StartBackgroundLoop(2, 100);
+  loop.StartBackgroundLoop(10, 100);
   std::this_thread::sleep_for(std::chrono::seconds(2));
   loop.EndBackgroundLoop();
   // TODO(xuanxuan): check if the file is deleted, uncomment later

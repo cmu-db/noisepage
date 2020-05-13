@@ -23,7 +23,7 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
 
   const uint32_t initial_table_size_ = 1000000;
-  const uint32_t num_txns_ = 100000;
+  const uint32_t num_txns_ = 0;
   const uint32_t num_indexes_ = 5;
   std::default_random_engine generator_;
 
@@ -71,13 +71,12 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
         db = database.first;
       }
       // initalize threads for checkpoint
-      uint32_t num_threads = 4u;
-      common::WorkerPool thread_pool_{num_threads, {}};
+      common::WorkerPool thread_pool_{BenchmarkConfig::num_threads, {}};
       thread_pool_.Startup();
       // take checkpoint
       unlink(secondary_log_file.c_str());
       storage::Checkpoint ckpt(catalog, txn_manager, deferred_action_manager, gc, log_manager);
-      ckpt.TakeCheckpoint(ckpt_path, db, terrier::BenchmarkConfig::logfile_path.data(), num_threads, &thread_pool_);
+      ckpt.TakeCheckpoint(ckpt_path, db, terrier::BenchmarkConfig::logfile_path.data(), BenchmarkConfig::num_threads, &thread_pool_);
 
       // Start a new components with logging disabled, we don't want to log the log replaying
       auto recovery_db_main = DBMain::Builder()
@@ -140,15 +139,15 @@ BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, ReadWriteWorkload)(benchmark::St
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, HighStress)(benchmark::State &state) {
-  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-          .SetNumDatabases(1)
-          .SetNumTables(1)
-          .SetMaxColumns(1)
-          .SetInitialTableSize(initial_table_size_)
-          .SetTxnLength(5)
-          .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
-          .SetVarlenAllowed(false)
-          .Build();
+LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+        .SetNumDatabases(1)
+        .SetNumTables(1)
+        .SetMaxColumns(1)
+        .SetInitialTableSize(initial_table_size_)
+        .SetTxnLength(5)
+        .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
+        .SetVarlenAllowed(false)
+        .Build();
 
   RunBenchmark(&state, config);
 }

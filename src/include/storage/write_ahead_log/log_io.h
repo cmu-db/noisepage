@@ -137,7 +137,7 @@ class BufferedLogWriter {
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
  private:
-  friend class LogManager;
+  friend class LogManager; // access the out_ file descriptor
 
   int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
@@ -200,7 +200,7 @@ class BufferedLogReader {
   }
 
  private:
-  friend class Checkpoint;
+  friend class Checkpoint; // access read_head_
 
   int in_;  // or -1 if closed
   uint32_t read_head_ = 0, filled_size_ = 0;

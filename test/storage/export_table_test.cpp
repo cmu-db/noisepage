@@ -259,7 +259,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
   storage::ArrowSerializer arrow_serializer(table);
-  arrow_serializer.ExportTable(EXPORT_TABLE_NAME, &column_types);
+  arrow_serializer.ExportTable(EXPORT_TABLE_NAME, &column_types, true);
   EXPECT_EQ(system((std::string("python3 ") + PYSCRIPT_NAME).c_str()), 0);
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
@@ -328,7 +328,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
   storage::ArrowSerializer arrow_serializer(table);
-  arrow_serializer.ExportTable(EXPORT_TABLE_NAME, &column_types);
+  arrow_serializer.ExportTable(EXPORT_TABLE_NAME, &column_types, true);
   EXPECT_EQ(system((std::string("python3 ") + PYSCRIPT_NAME).c_str()), 0);
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);

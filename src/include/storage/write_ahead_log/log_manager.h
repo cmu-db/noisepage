@@ -40,7 +40,7 @@ namespace terrier::storage {
  * were just persisted.
  */
 class LogManager : public common::DedicatedThreadOwner {
-  friend class Checkpoint;
+  friend class Checkpoint; // access log_serializer_task_ to get latch
 
  public:
   /**
@@ -128,10 +128,20 @@ class LogManager : public common::DedicatedThreadOwner {
     return false;
   }
 
+  /**
+   * Reset all file buffers to a new file path.
+   *
+   * @param log_file_path the new file path for all buffers.
+   */
   void ResetLogFilePath(std::string log_file_path) {
-    for (auto buffer : *(disk_log_writer_task_->buffers_)) {
-      PosixIoWrappers::Close( buffer.out_);
-      buffer.out_ = PosixIoWrappers::Open(log_file_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    auto dup = *(disk_log_writer_task_->buffers_);
+    disk_log_writer_task_->buffers_->clear();
+
+    for (auto buffer : dup) {
+      buffer.FlushBuffer();
+      buffer.Close();
+      buffer.out_ = PosixIoWrappers::Open(log_file_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR);
+      disk_log_writer_task_->buffers_->push_back(buffer);
     }
   }
 

@@ -21,7 +21,7 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
   // get db catalog accessor
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(static_cast<common::ManagedPointer<transaction::TransactionContext>>(txn), db);
-  std::unordered_set<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
+  std::vector<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
 
   // lock the log_serializer buffer to prevent further logging
   common::ManagedPointer<LogSerializerTask> log_serializer_task = log_manager_->log_serializer_task_;
@@ -29,21 +29,21 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
 
   // copy all data tables to serialize later
   for (const auto &oid : table_oids) {
-    // copy data table
+    // record data tables waiting for checkpoint
     common::ManagedPointer<storage::SqlTable> curr_sql_table = accessor->GetTable(oid);
     storage::DataTable *curr_data_table = curr_sql_table->table_.data_table_;
     queue.emplace_back(oid, curr_data_table);
   }
+
   std::string tmp = "_catalog";
   std::string catalog_file = std::string(cur_log_file) + tmp; //catalog file: test.log_catalog
   log_serializer_task->flush_queue_latch_.Unlock();
 
-  // filter catalog logs to catalog file
+  // filter catalog logs to catalog file and delete the old log file
   FilterCatalogLogs(cur_log_file, catalog_file);
   remove(cur_log_file);
 
   // create empty log file for other logs
-  std::ofstream new_log_file(cur_log_file, std::ios::in | std::ios::app);
   log_manager_->ResetLogFilePath(cur_log_file);
 
   auto workload = [&](uint32_t worker_id) {
@@ -56,7 +56,7 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
   thread_pool_->WaitUntilAllFinished();
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   if (queue.size() > 0) {
-    // the table oid that failed to be backup
+    // return false if fail to back any tables in the database
     return false;
   }
   return true;
@@ -64,9 +64,10 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
 
 void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                              catalog::db_oid_t db_oid) {
-  while (queue.size() > 0) {
+  // get data table from the queue
+  while (!queue.empty()) {
     queue_latch.lock();
-    if (queue.size() <= 0) {
+    if (queue.empty()) {
       queue_latch.unlock();
       return;
     }
@@ -75,9 +76,9 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     queue.erase(queue.begin());
     queue_latch.unlock();
 
-    // get daga table
     std::string out_file = path + GenFileName(db_oid, curr_table_oid);
 
+    // initialize col_type in block arrow_metadata
     const BlockLayout &layout = data_table->GetBlockLayout();
     std::vector<type::TypeId> column_types;
     column_types.resize(layout.NumColumns());
@@ -108,6 +109,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     storage::ArrowSerializer arrow_serializer(*data_table);
     arrow_serializer.ExportTable(out_file, &column_types, false);
 
+    // reset blocks to HOT for future txn
     for (RawBlock *block : data_table->blocks_) {
       block->controller_.GetBlockState()->store(BlockState::HOT);
     }
@@ -119,7 +121,6 @@ void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::s
   std::ofstream outfile(new_log_path, std::ios::out | std::ios::binary | std::ios::app);
   std::ifstream infile(old_log_path, std::ios::in | std::ios::binary);
 
-
   while (true) {
     auto pos = log_provider.in_.read_head_;
     auto pair = log_provider.GetNextRecord();
@@ -128,29 +129,28 @@ void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::s
     // If we have exhausted all the logs, break from the loop
     if (log_record == nullptr) break;
     auto cur_pos = log_provider.in_.read_head_;
-//    record_size = log_record->Size();
+
+    // calculate size of current log record
     uint32_t size = cur_pos - pos;
     if (cur_pos < pos) size = (cur_pos + common::Constants::LOG_BUFFER_SIZE) - pos;
     auto buf = new char[size];
 
+    // read log one-by-one from the old log file and write it to the new file if catalog-related
     if (log_record->RecordType() == LogRecordType::ABORT || log_record->RecordType() == LogRecordType::COMMIT) {
       infile.read(reinterpret_cast<char *>(buf), size);
       outfile.write(reinterpret_cast<char *>(buf), size);
-//      o << "A/C " << log_record->Size()<<std::endl;
     } else {
       if (log_record->RecordType() == LogRecordType::REDO) {
         auto *record_body = log_record->GetUnderlyingRecordBodyAs<RedoRecord>();
         infile.read(reinterpret_cast<char *>(buf), size);
         if ((uint32_t)(record_body->GetTableOid()) < catalog::START_OID) {
           outfile.write(reinterpret_cast<char *>(buf), size);
-//          o << "REDO " << record_body->GetDatabaseOid() << ' ' << log_record->Size()<<' '<<record_body->GetTableOid()<<std::endl;
         }
       } else if (log_record->RecordType() == LogRecordType::DELETE) {
         auto *record_body = log_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
         infile.read(reinterpret_cast<char *>(buf), size);
         if ((uint32_t)(record_body->GetTableOid()) < catalog::START_OID) {
           outfile.write(reinterpret_cast<char *>(buf), size);
-//          o << "DELETE " << record_body->GetDatabaseOid() << ' ' << record_body->GetTableOid() <<' '<< log_record->Size()<<std::endl;
         }
       }
     }
@@ -159,7 +159,6 @@ void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::s
 
   infile.close();
   outfile.close();
-//  o.close();
 
 }
 

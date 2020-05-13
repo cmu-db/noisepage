@@ -175,6 +175,6 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   return catalog_->GetBlockStore();
 }
 
-std::unordered_set<table_oid_t> &CatalogAccessor::GetAllTableOids() { return dbc_->GetTableOidsFromDBC(); }
+std::vector<table_oid_t> CatalogAccessor::GetAllTableOids() { return dbc_->GetAllTableOids(txn_); }
 
 }  // namespace terrier::catalog

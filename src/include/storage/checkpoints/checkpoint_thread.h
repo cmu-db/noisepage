@@ -23,13 +23,15 @@ class CheckpointBackgroundLoop {
         checkpoint_(checkpoint) {}
 
   void BackgroundLoop(const int64_t interval, const int64_t num_checkpoints) {
+    std::unique_lock<std::mutex> lck(mtx);
+
     for (uint32_t i = 0; i < num_checkpoints; i++) {
       if (stop) break;
       STORAGE_LOG_INFO("Taking Checkpoint: ", i);
       checkpoint_->TakeCheckpoint(path_, db_, cur_log_file_, num_threads_,
                                   thread_pool_);
       STORAGE_LOG_INFO("Finish Checkpoint: ", i);
-      std::this_thread::sleep_for(std::chrono::seconds(interval));
+      cv.wait_for(lck, std::chrono::seconds(interval));
     }
   }
 
@@ -40,6 +42,7 @@ class CheckpointBackgroundLoop {
 
   void EndBackgroundLoop() {
     stop = true;
+    cv.notify_all();
     t.join();
   }
 
@@ -52,6 +55,9 @@ class CheckpointBackgroundLoop {
   Checkpoint *checkpoint_;
   std::atomic<bool> stop = false;
   std::thread t;
+
+  std::mutex mtx;
+  std::condition_variable cv;
 };
 
 }  // namespace terrier::storage

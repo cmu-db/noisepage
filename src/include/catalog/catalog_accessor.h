@@ -338,9 +338,10 @@ class CatalogAccessor {
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
   /**
-   * @return All table oids
+   * Returns all table_oid for user tables by calling GetAllTableOids(txn) in database_catalog.
+   * @return vector of all user table oids
    */
-  std::unordered_set<table_oid_t> &GetAllTableOids();
+  std::vector<table_oid_t> GetAllTableOids();
 
   /**
    * Instantiates a new accessor into the catalog for the given database.
