@@ -1494,10 +1494,12 @@ void DatabaseCatalog::FillConstraintPR(storage::ProjectedRow *constraints_insert
   *(reinterpret_cast<storage::VarlenEntry *>(conexclu_ptr)) = conexclu_varlen;
 
   const auto conbin_offset = pg_constraints_all_cols_prm_[postgres::CONBIN_COL_OID];
-  if (conbin == nullptr) {
-    constraints_insert_pr->SetNull(conbin_offset);
-  } else {
     auto *const conbin_ptr = constraints_insert_pr->AccessForceNotNull(conbin_offset);
+
+  if (conbin == nullptr) {
+//    constraints_insert_pr->SetNull(conbin_offset);
+      *(reinterpret_cast<size_t *>(conbin_ptr)) = postgres::CONBIN_INVALID_PTR;
+  } else {
     *(reinterpret_cast<planner::AbstractPlanNode **>(conbin_ptr)) = conbin;
   }
 }
@@ -2170,20 +2172,24 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
 
   // pg_constraint (expressions)
   // TODO(check constraint): We need a way to distinguish whether this is a CHECK sontraint that holds expr
-  //   const std::vector<col_oid_t> pg_constraint_oids{postgres::CONBIN_COL_OID};
-  //   pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, 100);
-  //   pc = pci.Initialize(buffer);
-  //
-  //   auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
-  //
-  //   table_iter = constraints_->begin();
-  //   while (table_iter != constraints_->end()) {
-  //     constraints_->Scan(txn, &table_iter, pc);
-  //
-  //     for (uint i = 0; i < pc->NumTuples(); i++) {
-  //         expressions.emplace_back(exprs[i]);
-  //     }
-  //   }
+     const std::vector<col_oid_t> pg_constraint_oids{postgres::CONBIN_COL_OID};
+     pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, 100);
+     pc = pci.Initialize(buffer);
+
+//     auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
+    auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
+     table_iter = constraints_->begin();
+     while (table_iter != constraints_->end()) {
+       constraints_->Scan(txn, &table_iter, pc);
+
+       for (uint i = 0; i < pc->NumTuples(); i++) {
+           size_t e = (reinterpret_cast<size_t>(exprs[i]));
+           if (e != postgres::CONBIN_INVALID_PTR) {
+               expressions.emplace_back(exprs[i]);
+           }
+
+       }
+     }
 
   auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
                    table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},

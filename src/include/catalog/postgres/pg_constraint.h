@@ -109,5 +109,5 @@ const char FK_DELETE = 'd';
 // the delimiter for making oid array into varchar for storage
 const char VARCHAR_ARRAY_DELIMITER = ' ';
 const std::string VARCHAR_ARRAY_DELIMITER_STRING = " ";
-
+const size_t CONBIN_INVALID_PTR = 0;
 }  // namespace terrier::catalog::postgres
