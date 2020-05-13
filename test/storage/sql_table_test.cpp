@@ -234,15 +234,15 @@ class RandomSqlTableTestObject {
       new_redos.push_back(insert_redo);
     }
 
-    int total_threads = num_threads + (update_schema_txn != nullptr);
+    auto total_threads = num_threads + (update_schema_txn != nullptr);
     common::WorkerPool thread_pool(total_threads, {});
 
     auto workload = [&](uint32_t thread_id) {
-      if (update_schema_txn != nullptr && static_cast<int>(thread_id) == num_threads) {
+      if (update_schema_txn != nullptr && thread_id == num_threads) {
         UpdateSchema(update_schema_txn, std::move(updated_schema), updated_layout_version);
       } else {
         for (size_t i = 0; i < num_inserts_per_thread; i++) {
-          int loc = static_cast<int>(thread_id) * num_inserts_per_thread + i;
+          auto loc = thread_id * num_inserts_per_thread + i;
           auto insert_redo = new_redos[loc];
           storage::TupleSlot slot = table_->Insert(common::ManagedPointer(new_txns[loc]), insert_redo, layout_version);
           inserted_slots_[inserted_slots_size + loc] = slot;
