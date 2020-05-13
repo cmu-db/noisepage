@@ -96,7 +96,8 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
       curr_pipeline->Add(std::move(top_translator));
       return;
     }
-    case terrier::planner::PlanNodeType::HASHJOIN: {
+    case terrier::planner::PlanNodeType::HASHJOIN:
+    case terrier::planner::PlanNodeType::ANALYZE: {
       // The hash join splits also splits in a "build" side (called left) and an "iterate" side (called right).
       auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_);
       auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_);

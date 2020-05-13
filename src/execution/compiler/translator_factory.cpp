@@ -15,6 +15,7 @@
 #include "execution/compiler/expression/star_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
+#include "execution/compiler/operator/analyze_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
@@ -108,6 +109,9 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateLeftTranslator(
     case terrier::planner::PlanNodeType::NESTLOOP:
       return std::make_unique<NestedLoopLeftTranslator>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
                                                         codegen);
+    case terrier::planner::PlanNodeType::ANALYZE:
+      return std::unique_ptr<AnalyzeBottomTranslator>(
+          AnalyzeBottomTranslator::Create(static_cast<const planner::AnalyzePlanNode *>(op), codegen));
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
@@ -122,6 +126,8 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRightTranslator(
     case terrier::planner::PlanNodeType::NESTLOOP:
       return std::make_unique<NestedLoopRightTranslator>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
                                                          codegen, left);
+    case terrier::planner::PlanNodeType::ANALYZE:
+      return std::make_unique<AnalyzeTopTranslator>(static_cast<const planner::AnalyzePlanNode *>(op), codegen, left);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
