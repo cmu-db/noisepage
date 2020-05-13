@@ -62,7 +62,7 @@ class EXPORT OutputBuffer {
     if (buffer_map_.find(id) == buffer_map_.end()) {
       byte *tuples =
           reinterpret_cast<byte *>(memory_pool_->AllocateAligned(BATCH_SIZE * tuple_size_, alignof(uint64_t), true));
-      int index = id_;
+      uint32_t index = id_;
       id_++;
       TERRIER_ASSERT(index < max_thread_, "Thread id is larger than MAX_THREAD_SIZE");
       buffer_map_.insert(std::make_pair(id, std::make_pair(index, tuples)));
@@ -101,7 +101,7 @@ class EXPORT OutputBuffer {
  private:
   sql::MemoryPool *memory_pool_;
   uint32_t tuple_size_;
-  std::atomic<int> id_;
+  std::atomic<uint32_t> id_;
   OutputCallback callback_;
   uint32_t *num_tuples_;
   uint32_t max_thread_;
