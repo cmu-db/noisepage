@@ -519,8 +519,7 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
       if (plan_feature_type_ == ExecutionOperatingUnitType::OUTPUT) {
         TERRIER_ASSERT(translator->GetChildTranslator(), "OUTPUT should have child translator");
         auto child_type = translator->GetChildTranslator()->GetFeatureType();
-        if (child_type == ExecutionOperatingUnitType::INSERT ||
-            child_type == ExecutionOperatingUnitType::UPDATE ||
+        if (child_type == ExecutionOperatingUnitType::INSERT || child_type == ExecutionOperatingUnitType::UPDATE ||
             child_type == ExecutionOperatingUnitType::DELETE) {
           // For insert/update/delete, there actually is no real output happening.
           // So, skip the Output operator

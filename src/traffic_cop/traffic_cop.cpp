@@ -22,7 +22,6 @@
 #include "network/postgres/statement.h"
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
-#include "optimizer/cost_model/index_fit_cost_model.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
@@ -131,7 +130,7 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
 
   return TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), query,
                                   connection_ctx->GetDatabaseOid(), stats_storage_,
-                                  std::make_unique<optimizer::IndexFitCostModel>(), optimizer_timeout_);
+                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
 }
 
 TrafficCopResult TrafficCop::ExecuteCreateStatement(

@@ -427,17 +427,17 @@ static void GenInsertArguments(benchmark::internal::Benchmark *b) {
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : num_rows) {
-        if (type == type::TypeId::INTEGER) b->Args({col, 0, col, row});
-        else if (type == type::TypeId::DECIMAL) b->Args({0, col, col, row});
+        if (type == type::TypeId::INTEGER)
+          b->Args({col, 0, col, row});
+        else if (type == type::TypeId::DECIMAL)
+          b->Args({0, col, col, row});
       }
     }
   }
 }
 
 static void GenInsertMixedArguments(benchmark::internal::Benchmark *b) {
-  std::vector<std::pair<uint32_t, uint32_t>> mixed_dist = {
-    {1, 14}, {3, 12}, {5, 10}, {7, 8}, {9, 6}, {11, 4}, {13, 2}
-  };
+  std::vector<std::pair<uint32_t, uint32_t>> mixed_dist = {{1, 14}, {3, 12}, {5, 10}, {7, 8}, {9, 6}, {11, 4}, {13, 2}};
 
   auto num_rows = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000};
   for (auto mixed : mixed_dist) {
@@ -471,8 +471,10 @@ static void GenUpdateDeleteArguments(benchmark::internal::Benchmark *b) {
         cars.push_back(row);
 
         for (auto car : cars) {
-          if (type == type::TypeId::INTEGER) b->Args({col, 0, 15, 0, row, car});
-          else if (type == type::TypeId::DECIMAL) b->Args({0, col, 0, 15, row, car});
+          if (type == type::TypeId::INTEGER)
+            b->Args({col, 0, 15, 0, row, car});
+          else if (type == type::TypeId::DECIMAL)
+            b->Args({0, col, 0, 15, row, car});
         }
       }
     }
@@ -993,7 +995,8 @@ void MiniRunners::ExecuteInsert(benchmark::State &state) {
   for (auto _ : state) {
     // Create temporary table schema
     std::vector<catalog::Schema::Column> cols;
-    std::vector<std::pair<type::TypeId, int64_t>> info = {{type::TypeId::INTEGER, num_ints}, {type::TypeId::DECIMAL, num_decimals}};
+    std::vector<std::pair<type::TypeId, int64_t>> info = {{type::TypeId::INTEGER, num_ints},
+                                                          {type::TypeId::DECIMAL, num_decimals}};
     int col_no = 1;
     for (auto &i : info) {
       for (auto j = 1; j <= i.second; j++) {
@@ -1118,7 +1121,9 @@ void MiniRunners::ExecuteUpdate(benchmark::State &state) {
     // - Iterating over entire table for the slot
     // - Cost of "merging" updates with the undo/redos
     std::stringstream query;
-    query << "UPDATE " << ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car) << " SET ";
+    query << "UPDATE "
+          << ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car)
+          << " SET ";
 
     auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
     auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL);
@@ -1203,7 +1208,8 @@ void MiniRunners::ExecuteDelete(benchmark::State &state) {
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     std::stringstream query;
-    query << "DELETE FROM " << ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
+    query << "DELETE FROM "
+          << ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
 
     uint64_t elapsed_ms;
     {
@@ -1505,8 +1511,7 @@ void RunBenchmarkSequence(void) {
   // SEQ4: Aggregate
   // SEQ5: Insert, Update, Delete
   std::vector<std::vector<std::string>> filters = {
-      {"SEQ0"}, {"SEQ1_0", "SEQ1_1", "SEQ1_2"}, {"SEQ2"}, {"SEQ3"}, {"SEQ4"}, {"SEQ5_0", "SEQ5_1"}
-  };
+      {"SEQ0"}, {"SEQ1_0", "SEQ1_1", "SEQ1_2"}, {"SEQ2"}, {"SEQ3"}, {"SEQ4"}, {"SEQ5_0", "SEQ5_1"}};
 
   char buffer[32];
   const char *argv[2];
