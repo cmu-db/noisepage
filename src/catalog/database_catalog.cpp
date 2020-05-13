@@ -998,6 +998,53 @@ std::string DatabaseCatalog::VarlentoString(const storage::VarlenEntry &entry) {
   return std::string(reinterpret_cast<const char *const>(entry.Content()), entry.Size());
 }
 
+bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::TransactionContext> txn,
+                                     table_oid_t sink_table, const std::vector<col_oid_t> &sink_cols) {
+  // the algorithm is relatively expensive which is O(n^2) where n is the number of constraint this table have
+  if (!TryLock(txn)) return false;
+  // get all constraints for table
+  std::vector<PG_Constraint> con_vec = GetConstraintObjs(txn, sink_table);
+  std::unordered_set<col_oid_t> sink_set;
+  for (col_oid_t sink : sink_cols) {
+    sink_set.emplace(sink);
+  }
+  // for every PK/UNIQUE constraint from starting
+  for (uint32_t start = 0; start < con_vec.size(); start++) {
+    if (con_vec[start].contype_ == postgres::ConstraintType::PRIMARY_KEY ||
+        con_vec[start].contype_ == postgres::ConstraintType::UNIQUE) {
+      std::unordered_set<col_oid_t> covered_set;
+      // Ensure that the constraints are non-overlaping conbim=nation that holds all the keys for the sink_col
+      // that is for each constraint to be considered:
+      // for each col in that constraint
+      // the col cannot be previously covered
+      // the col should fall in sink_set
+      // use a valid bool to track this
+      for (uint32_t cur = start; cur < con_vec.size(); cur++) {
+        std::vector<col_oid_t> cols = con_vec[cur].concol_;
+        std::vector<col_oid_t> extend_set;
+        bool valid = true;
+        for (auto col : cols) {
+          if (covered_set.count(col) > 0 || sink_set.count(col) == 0) {
+            valid = false;
+            break;
+          }
+          TERRIER_ASSERT(sink_set.count(col) == 1, "conditional for validity does not work");
+          extend_set.emplace_back(col);
+        }
+        if (valid) {
+          for (auto c : extend_set) {
+            covered_set.emplace(c);
+          }
+        }
+      }
+      if (covered_set.size() == sink_set.size()) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // recursively find child and make cascade update if satisfied
 bool DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table,
                                 storage::TupleSlot table_tuple_slot, const char cascade_type,
@@ -1494,11 +1541,11 @@ void DatabaseCatalog::FillConstraintPR(storage::ProjectedRow *constraints_insert
   *(reinterpret_cast<storage::VarlenEntry *>(conexclu_ptr)) = conexclu_varlen;
 
   const auto conbin_offset = pg_constraints_all_cols_prm_[postgres::CONBIN_COL_OID];
-    auto *const conbin_ptr = constraints_insert_pr->AccessForceNotNull(conbin_offset);
+  auto *const conbin_ptr = constraints_insert_pr->AccessForceNotNull(conbin_offset);
 
   if (conbin == nullptr) {
-//    constraints_insert_pr->SetNull(conbin_offset);
-      *(reinterpret_cast<size_t *>(conbin_ptr)) = postgres::CONBIN_INVALID_PTR;
+    //    constraints_insert_pr->SetNull(conbin_offset);
+    *(reinterpret_cast<size_t *>(conbin_ptr)) = postgres::CONBIN_INVALID_PTR;
   } else {
     *(reinterpret_cast<planner::AbstractPlanNode **>(conbin_ptr)) = conbin;
   }
@@ -2172,24 +2219,23 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
 
   // pg_constraint (expressions)
   // TODO(check constraint): We need a way to distinguish whether this is a CHECK sontraint that holds expr
-     const std::vector<col_oid_t> pg_constraint_oids{postgres::CONBIN_COL_OID};
-     pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, 100);
-     pc = pci.Initialize(buffer);
+  const std::vector<col_oid_t> pg_constraint_oids{postgres::CONBIN_COL_OID};
+  pci = constraints_->InitializerForProjectedColumns(pg_constraint_oids, 100);
+  pc = pci.Initialize(buffer);
 
-//     auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
-    auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
-     table_iter = constraints_->begin();
-     while (table_iter != constraints_->end()) {
-       constraints_->Scan(txn, &table_iter, pc);
+  //     auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
+  auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
+  table_iter = constraints_->begin();
+  while (table_iter != constraints_->end()) {
+    constraints_->Scan(txn, &table_iter, pc);
 
-       for (uint i = 0; i < pc->NumTuples(); i++) {
-           size_t e = (reinterpret_cast<size_t>(exprs[i]));
-           if (e != postgres::CONBIN_INVALID_PTR) {
-               expressions.emplace_back(exprs[i]);
-           }
-
-       }
-     }
+    for (uint i = 0; i < pc->NumTuples(); i++) {
+      size_t e = (reinterpret_cast<size_t>(exprs[i]));
+      if (e != postgres::CONBIN_INVALID_PTR) {
+        expressions.emplace_back(exprs[i]);
+      }
+    }
+  }
 
   auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
                    table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
