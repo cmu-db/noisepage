@@ -953,12 +953,15 @@ void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<OperatorN
                                                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                 UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto logical_op = input->GetOp().As<LogicalAnalyze>();
-  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAnalyze should have 0 children");
+  TERRIER_ASSERT(input->GetChildren().size() == 2, "LogicalAnalyze should have 2 children");
+
+  std::vector<std::unique_ptr<OperatorNode>> children;
+  children.emplace_back(input->GetChildren()[0]->Copy());
+  children.emplace_back(input->GetChildren()[1]->Copy());
 
   auto op = std::make_unique<OperatorNode>(
       Analyze::Make(logical_op->GetDatabaseOid(), logical_op->GetTableOid(), logical_op->GetColumns()),
-      std::vector<std::unique_ptr<OperatorNode>>());
-
+      std::move(children));
   transformed->emplace_back(std::move(op));
 }
 

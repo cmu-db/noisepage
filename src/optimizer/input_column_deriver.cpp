@@ -2,6 +2,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/postgres/pg_statistic.h"
 #include "optimizer/input_column_deriver.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_node.h"
@@ -162,6 +163,35 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
 }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) { Passdown(); }
+
+// TODO(khg): stop registering so many pointers for cleanup
+void InputColumnDeriver::Visit(const Analyze *op) {
+  const auto db_oid = op->GetDatabaseOid();
+  const auto table_oid = op->GetTableOid();
+
+  // Backing array for some expressions we're about to allocate
+  auto *owned_col_exprs = new std::vector<std::unique_ptr<parser::AbstractExpression>>;
+  txn_->RegisterCommitAction([=]() { delete owned_col_exprs; });
+  txn_->RegisterAbortAction([=]() { delete owned_col_exprs; });
+
+  // Create expressions for table scan
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> scan_col_exprs;
+  for (const auto &col_oid : op->GetColumns()) {
+    const auto &expr =
+        owned_col_exprs->emplace_back(std::make_unique<parser::ColumnValueExpression>(db_oid, table_oid, col_oid));
+    scan_col_exprs.emplace_back(common::ManagedPointer(expr.get()));
+  }
+
+  // Create expressions for pg_statistic table update
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> stat_col_exprs;
+  for (const auto &col_oid : catalog::postgres::PG_STATISTIC_ALL_COL_OIDS) {
+    const auto &expr = owned_col_exprs->emplace_back(
+        std::make_unique<parser::ColumnValueExpression>(db_oid, catalog::postgres::STATISTIC_TABLE_OID, col_oid));
+    stat_col_exprs.emplace_back(common::ManagedPointer(expr.get()));
+  }
+
+  output_input_cols_ = std::make_pair(PT1{}, PT2{std::move(scan_col_exprs), std::move(stat_col_exprs)});
+}
 
 void InputColumnDeriver::InputBaseTableColumns(const std::string &alias, catalog::db_oid_t db,
                                                catalog::table_oid_t tbl) {

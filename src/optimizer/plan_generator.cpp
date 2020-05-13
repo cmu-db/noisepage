@@ -884,10 +884,13 @@ void PlanGenerator::Visit(const DropView *drop_view) {
 }
 
 void PlanGenerator::Visit(const Analyze *analyze) {
+  TERRIER_ASSERT(children_plans_.size() == 2, "Analyze must have 2 child plans");
   output_plan_ = planner::AnalyzePlanNode::Builder()
                      .SetDatabaseOid(analyze->GetDatabaseOid())
                      .SetTableOid(analyze->GetTableOid())
                      .SetColumnOIDs(analyze->GetColumns())
+                     .AddChild(std::move(children_plans_[0]))
+                     .AddChild(std::move(children_plans_[1]))
                      .Build();
 }
 
