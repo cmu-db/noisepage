@@ -14,6 +14,16 @@ New files/folder:
 
 ## Architectural Design
 Our implementation is divided into three sections: checkpoint formatting, creating checkpoints and recovery.
+The overall pipeline is as follows:
+```
+   * Storing Checkpoint:
+   * Logs -> Filtered Catalog Logs -> Save to Disk
+   * Data Tables -> Compressed Cold Data -> Serialized Arrow Format -> Save to Disk
+   * ------------------------------------------------------------
+   * Recovering Checkpoint:
+   * Catalog Logs -> Log Recovery -> Catalog
+   * Arrow Format -> Raw Blocks -> Data Tables
+```
 
 ### Checkpoint Formatting
 We are still debating on whether to use the internal Arrow format or our own recovery format. The Arrow format would be defined in arrow_serializer, which is being used to dump tables for data analysis.
