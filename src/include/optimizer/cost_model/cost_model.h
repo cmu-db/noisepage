@@ -88,9 +88,9 @@ class CostModel : public AbstractCostModel {
    * @param op operator
    */
   void Visit(UNUSED_ATTRIBUTE const NLJoin *op) override {
-    // this is the overall cost algorithm for now; will add initial cost optimization later
     double outer_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
     double inner_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
+    auto total_row_count = memo_->GetGroupByID(gexpr_->GetGroupID())->GetNumRows();
 
     // automatically set row counts to 1 if given counts aren't valid
     if (outer_rows <= 0) {
@@ -126,7 +126,7 @@ class CostModel : public AbstractCostModel {
     total_cpu_cost_per_tuple = GetCPUCostForQuals(const_cast<std::vector<AnnotatedExpression> &&>(op->GetJoinPredicates())) + tuple_cpu_cost;
 
     // calculate total cpu cost for all tuples
-    output_cost_ = num_tuples * total_cpu_cost_per_tuple + rows * tuple_cpu_cost + outer_rows * tuple_cpu_cost;;
+    output_cost_ = num_tuples * total_cpu_cost_per_tuple + outer_rows + tuple_cpu_cost * total_row_count;
   }
 
   /**
@@ -135,52 +135,62 @@ class CostModel : public AbstractCostModel {
    */
   void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override {
     // get num rows for both tables that are being joined
+    // left child cols should be inserted in the hash table, while right is hashed to check for equality
     double left_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
     double right_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
     auto total_row_count = memo_->GetGroupByID(gexpr_->GetGroupID())->GetNumRows();
 
-    // assumes left child is what gets inserted in hash table
-    double left_frac_null = 0.0;
-    double left_num_distinct = 0.0;
-    double avg_freq = 0.0;
+    auto left_table_name = op->GetLeftKeys()[0].CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName();
+
+    double frac_null;
+    double num_distinct;
+    double avg_freq;
 
     // overall saved estimations
-    auto left_bucket_size_frac = 1.0;
-    auto left_mcv_freq = 1.0;
+    auto bucket_size_frac = 1.0;
+    auto mcv_freq = 1.0;
 
     for (const auto &pred : op->GetJoinPredicates()) {
       // current estimated stats on left table
       double curr_bucket_size_frac;
       double curr_mcv_freq;
 
-      // estimate # of buckets for each ht: cardinality * 2 (mock real hash table which aims for load factor of 0.5)
-      // using the stats of the column referred to in the join predicate
-      auto left_child = pred.GetExpr()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
-      auto left_col_name = left_child->GetFullName();
-      auto left_col_stats = memo_->GetGroupByID(gexpr_->GetGroupID())->GetStats(left_col_name);
-      double buckets = left_col_stats->GetCardinality() * 2;
+      auto curr_left_child = pred.GetExpr()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+      auto curr_right_child = pred.GetExpr()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+      auto curr_left_table_name = curr_left_child->GetTableName();
+      auto curr_right_table_name = curr_right_child->GetTableName();
 
-      curr_mcv_freq = left_col_stats->GetCommonFreqs()[0];
-      left_num_distinct = left_col_stats->GetCardinality();
-      left_frac_null = left_col_stats->GetFracNull();
-      avg_freq = (1.0 - left_frac_null) / left_num_distinct;
+      common::ManagedPointer<ColumnStats> col_stats;
+      if (curr_left_table_name == left_table_name) {
+        col_stats = stats_storage_->GetTableStats(curr_left_child->GetDatabaseOid(), curr_left_child->GetTableOid())->GetColumnStats(curr_left_child->GetColumnOid());
+      } else {
+        col_stats = stats_storage_->GetTableStats(curr_right_child->GetDatabaseOid(), curr_right_child->GetTableOid())->GetColumnStats(curr_right_child->GetColumnOid());
+      }
+
+      // using the stats of the column referred to in the join predicate
+      // estimate # of buckets for each ht: cardinality * 2 (mock real hash table which aims for load factor of 0.5)
+      double buckets = col_stats->GetCardinality() * 2;
+      curr_mcv_freq = col_stats->GetCommonFreqs()[0];
+      num_distinct = col_stats->GetCardinality();
+      frac_null = col_stats->GetFracNull();
+      avg_freq = (1.0 - frac_null) / num_distinct;
 
       // get ratio of col rows with restrict clauses applied over all possible rows (w/o restrictions)
       auto overall_col_ratio = total_row_count / std::max(left_rows, right_rows);
 
       if (total_row_count > 0) {
-        left_num_distinct *= overall_col_ratio;
-        if (left_num_distinct < 1.0) {
-          left_num_distinct = 1.0;
+        num_distinct *= overall_col_ratio;
+        if (num_distinct < 1.0) {
+          num_distinct = 1.0;
         } else {
-          left_num_distinct = uint32_t(left_num_distinct);
+          num_distinct = uint32_t(num_distinct);
         }
       }
 
-      if (left_num_distinct > buckets) {
+      if (num_distinct > buckets) {
         curr_bucket_size_frac = 1.0 / buckets;
       } else {
-        curr_bucket_size_frac = 1.0 / left_num_distinct;
+        curr_bucket_size_frac = 1.0 / num_distinct;
       }
 
       if (avg_freq > 0.0 && curr_mcv_freq > avg_freq) {
@@ -193,18 +203,18 @@ class CostModel : public AbstractCostModel {
         curr_bucket_size_frac = 1.0;
       }
 
-      if (left_bucket_size_frac > curr_bucket_size_frac) {
-        left_bucket_size_frac = curr_bucket_size_frac;
+      if (bucket_size_frac > curr_bucket_size_frac) {
+        bucket_size_frac = curr_bucket_size_frac;
       }
 
-      if (left_mcv_freq > curr_mcv_freq) {
-        left_mcv_freq = curr_mcv_freq;
+      if (mcv_freq > curr_mcv_freq) {
+        mcv_freq = curr_mcv_freq;
       }
     }
 
     auto hash_cost = GetCPUCostForQuals(const_cast<std::vector<AnnotatedExpression> &&>(op->GetJoinPredicates()));
 
-    auto row_est = right_rows * left_bucket_size_frac * 0.5;
+    auto row_est = right_rows * bucket_size_frac * 0.5;
     if (row_est < 1.0) {
       row_est = 1.0;
     } else {
@@ -350,13 +360,13 @@ class CostModel : public AbstractCostModel {
    * CPU cost to materialize a tuple
    * TODO(viv): change later to be evaluated per instantiation via a benchmark
    */
-  double tuple_cpu_cost = 1.f;
+  double tuple_cpu_cost = 2.f;
 
   /**
    * Cost to execute an operator
    * TODO(viv): find a better constant for op cost (?)
    */
-  double op_cpu_cost = 1.f;
+  double op_cpu_cost = 2.f;
 
   /**
    * Computed output cost
