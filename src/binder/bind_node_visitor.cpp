@@ -637,7 +637,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
     throw BINDER_EXCEPTION("Procedure not registered");
   }
 
+  auto udf_context = catalog_accessor_->GetUDFContext(proc_oid);
+
   expr->SetProcOid(proc_oid);
+  expr->SetReturnValueType(udf_context->GetFunctionReturnType());
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::OperatorExpression> expr) {

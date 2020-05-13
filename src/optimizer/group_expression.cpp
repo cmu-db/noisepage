@@ -9,14 +9,14 @@
 namespace terrier::optimizer {
 
 void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
-                                        std::vector<PropertySet *> input_properties_list, double cost) {
+                                        const std::vector<PropertySet *> &input_properties_list, double cost) {
   auto it = lowest_cost_table_.find(output_properties);
   if (it == lowest_cost_table_.end()) {
     // No other cost to compare against
     lowest_cost_table_.insert(std::make_pair(output_properties, std::make_tuple(cost, input_properties_list)));
   } else {
     // Only insert if the cost is lower than the existing cost
-    std::vector<PropertySet *> &pending_deletion = input_properties_list;
+    std::vector<PropertySet *> pending_deletion = input_properties_list;
     if (std::get<0>(it->second) > cost) {
       pending_deletion = std::get<1>(it->second);
 

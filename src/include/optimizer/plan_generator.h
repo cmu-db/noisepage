@@ -107,6 +107,12 @@ class PlanGenerator : public OperatorVisitor {
   void Visit(const Limit *op) override;
 
   /**
+   * Visitor function for a InnerIndexJoin operator
+   * @param op InnerIndexJoin operator being visited
+   */
+  void Visit(const InnerIndexJoin *op) override;
+
+  /**
    * Visitor function for a InnerNLJoin operator
    * @param op InnerNLJoin operator being visited
    */

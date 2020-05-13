@@ -32,7 +32,8 @@ class ForcedCostModel : public AbstractCostModel {
    * @param memo Memo object containing all relevant groups
    * @param gexpr GroupExpression to calculate cost for
    */
-  double CalculateCost(transaction::TransactionContext *txn, UNUSED_ATTRIBUTE catalog::CatalogAccessor *accessor, Memo *memo, GroupExpression *gexpr) override {
+  double CalculateCost(transaction::TransactionContext *txn, UNUSED_ATTRIBUTE catalog::CatalogAccessor *accessor,
+                       Memo *memo, GroupExpression *gexpr) override {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;

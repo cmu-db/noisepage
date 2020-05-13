@@ -168,3 +168,11 @@ SETTING_bool(
     true,
     terrier::settings::Callbacks::MetricsPipeline
 )
+
+SETTING_bool(
+    use_query_cache,
+    "Extended Query protocol caches physical plans and generated code after first execution. Warning: bugs with DDL changes.",
+    true,
+    false,
+    terrier::settings::Callbacks::NoOp
+)

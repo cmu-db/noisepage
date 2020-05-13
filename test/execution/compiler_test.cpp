@@ -2152,10 +2152,12 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid1)
                      .SetTableOid(table_oid1)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
                      .SetOutputSchema(std::move(schema))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(predicate)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .Build();
   }
   // Compile and Run
@@ -2202,8 +2204,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::IDXJOIN,
-      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OUTPUT};
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::IDX_SCAN,
+      brain::ExecutionOperatingUnitType::SEQ_SCAN};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
@@ -2266,8 +2268,11 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid2)
                      .SetTableOid(table_oid2)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetOutputSchema(std::move(schema))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(nullptr)
@@ -2313,8 +2318,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::IDXJOIN, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OUTPUT};
+      brain::ExecutionOperatingUnitType::IDX_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+      brain::ExecutionOperatingUnitType::SEQ_SCAN};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 

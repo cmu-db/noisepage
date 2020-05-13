@@ -99,13 +99,14 @@ class IndexUtil {
    * @param tbl_oid OID of the table
    * @param index_oid OID of an index to check
    * @param predicates List of predicates
+   * @param allow_cves Allow CVEs
    * @param scan_type IndexScanType to utilize
    * @param bounds Relevant bounds for the index scan
    * @returns Whether index can be used
    */
   static bool SatisfiesPredicateWithIndex(
       catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
-      const std::vector<AnnotatedExpression> &predicates, planner::IndexScanType *scan_type,
+      const std::vector<AnnotatedExpression> &predicates, bool allow_cves, planner::IndexScanType *scan_type,
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
     auto &index_schema = accessor->GetIndexSchema(index_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
@@ -123,25 +124,27 @@ class IndexUtil {
     std::unordered_set<catalog::col_oid_t> mapped_set;
     for (auto col : mapped_cols) mapped_set.insert(col);
 
-    return CheckPredicates(index_schema, lookup, mapped_set, predicates, scan_type, bounds);
+    return CheckPredicates(index_schema, tbl_oid, lookup, mapped_set, predicates, allow_cves, scan_type, bounds);
   }
 
  private:
   /**
    * Check whether predicate can take part in index computation
    * @param schema Index Schema
+   * @param tbl_oid Table OID
    * @param lookup map from col_oid_t to indexkeycol_oid_t
    * @param mapped_cols col_oid_t from index schema's indexkeycol_oid_t
    * @param predicates Set of predicates to attempt to satisfy
+   * @param allow_cves Allow ColumnValueExpressions
    * @param idx_scan_type IndexScanType to utilize
    * @param bounds Relevant bounds for the index scan
    * @returns Whether predicate can be utilized
    */
   static bool CheckPredicates(
-      const catalog::IndexSchema &schema,
+      const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid,
       const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
       const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
-      planner::IndexScanType *idx_scan_type,
+      bool allow_cves, planner::IndexScanType *idx_scan_type,
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
     // TODO(wz2): Eventually consider supporting concatenating/shrinking ranges
     // Right now, this implementation only allows at most 1 range for an indexed column.
@@ -180,6 +183,17 @@ class IndexUtil {
             tv_expr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
             idx_expr = expr->GetChild(0);
             type = parser::ExpressionUtil::ReverseComparisonExpressionType(type);
+          } else if (allow_cves &&
+                     (ltype == parser::ExpressionType::COLUMN_VALUE && rtype == parser::ExpressionType::COLUMN_VALUE)) {
+            auto lexpr = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+            auto rexpr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+            if (lexpr->GetTableOid() == tbl_oid) {
+              tv_expr = lexpr;
+              idx_expr = expr->GetChild(1);
+            } else {
+              tv_expr = rexpr;
+              idx_expr = expr->GetChild(0);
+            }
           } else {
             // By derivation, all of these predicates should be CONJUNCTIVE_AND
             // so, we let the scan_predicate() handle evaluating the truthfulness.
@@ -188,24 +202,18 @@ class IndexUtil {
 
           auto col_oid = tv_expr->GetColumnOid();
           if (mapped_cols.find(col_oid) != mapped_cols.end()) {
-            // Try to insert into open_highs/open_lows depending on the comparison.
-            // Under iteration 1, if a bound already exists, then this fails.
-            // Revert to sequential scan
             auto idxkey = lookup.find(col_oid)->second;
-            bool ins_success = true;
             if (type == parser::ExpressionType::COMPARE_EQUAL) {
               // Exact is simulated as open high of idx_expr and open low of idx_expr
-              ins_success = ins_success && open_highs.insert(std::make_pair(idxkey, idx_expr)).second;
-              ins_success = ins_success && open_lows.insert(std::make_pair(idxkey, idx_expr)).second;
+              open_highs[idxkey] = idx_expr;
+              open_lows[idxkey] = idx_expr;
             } else if (type == parser::ExpressionType::COMPARE_LESS_THAN ||
                        type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
-              ins_success = open_lows.insert(std::make_pair(idxkey, idx_expr)).second;
+              open_lows[idxkey] = idx_expr;
             } else if (type == parser::ExpressionType::COMPARE_GREATER_THAN ||
                        type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO) {
-              ins_success = open_highs.insert(std::make_pair(idxkey, idx_expr)).second;
+              open_highs[idxkey] = idx_expr;
             }
-
-            if (!ins_success) return false;
           }
           break;
         }

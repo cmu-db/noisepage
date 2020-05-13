@@ -349,10 +349,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
           auto extended_prop_set = output_prop->Copy();
           extended_prop_set->AddProperty(prop->Copy());
           cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
-              context_->GetOptimizerContext()->GetTxn(),
-              context_->GetOptimizerContext()->GetCatalogAccessor(),
-              &context_->GetOptimizerContext()->GetMemo(),
-              memo_enforced_expr);
+              context_->GetOptimizerContext()->GetTxn(), context_->GetOptimizerContext()->GetCatalogAccessor(),
+              &context_->GetOptimizerContext()->GetMemo(), memo_enforced_expr);
 
           // Update hash tables for group and group expression
           memo_enforced_expr->SetLocalHashTable(extended_prop_set, {pre_output_prop_set}, cur_total_cost_);
