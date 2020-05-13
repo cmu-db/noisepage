@@ -67,7 +67,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
 
  private:
   friend class LogManager;
-  friend class Checkpoint; // access the flush_queue_latch_
+  friend class Checkpoint;  // access the flush_queue_latch_
   // Flag to signal task to run or stop
   bool run_task_;
   // Interval for serialization

@@ -12,7 +12,7 @@ namespace terrier::storage {
  * BufferedLogReader.
  */
 class DiskLogProvider : public AbstractLogProvider {
-  friend class Checkpoint; // access read_head_
+  friend class Checkpoint;  // access read_head_
  public:
   /**
    * @param log_file_path path to log file to read logs from

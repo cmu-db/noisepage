@@ -163,12 +163,12 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
           TERRIER_ASSERT(offsets_length - 1 == insert_head || offsets_length == 0,
                          "offsets length should be num_records+1");
           for (auto j = 0u; j < offsets_length - 1; j++) {
-            // TODO: need to replace with the proper memory allocation
+            // TODO(Tianlei): need to replace with the proper memory allocation
             uint64_t size = offsets_array[j + 1] - offsets_array[j];
             byte *varlen = common::AllocationUtil::AllocateAligned(size);
             uint32_t length = offsets_array[j + 1] - offsets_array[j];
             memcpy(varlen, values_array + offsets_array[j], length);
-            // TODO: need to make sure the reclaim option works out
+            // TODO(Tianlei): need to make sure the reclaim option works out
             if (length > VarlenEntry::InlineThreshold()) {
               *(reinterpret_cast<VarlenEntry *>(column_start) + j) = VarlenEntry::Create(varlen, length, true);
             } else {
@@ -189,7 +189,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       if (block->GetInsertHead() != layout.NumSlots()) {
         break;
       }
-      data_table->insertion_head_ ++;
+      data_table->insertion_head_++;
     }
 
     // update indexes
