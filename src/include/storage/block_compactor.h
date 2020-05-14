@@ -85,7 +85,7 @@ class BlockCompactor {
 
   FAKED_IN_TEST ~BlockCompactor() = default;
 
-  bool MoveTupleTPL(execution::exec::ExecutionContext *exec,TupleSlot from, TupleSlot to, col_id_t *col_oids);
+  bool MoveTupleTPL(execution::exec::ExecutionContext *exec, TupleSlot from, TupleSlot to, col_id_t *col_oids);
 
   /**
    * Processes the compaction queue and mark processed blocks as cold if successful. The compaction can fail due
@@ -134,6 +134,5 @@ class BlockCompactor {
 
   // stores the TPL code that needs to be run in order to perform the compaction
   std::string tpl_code_;
-
 };
 }  // namespace terrier::storage

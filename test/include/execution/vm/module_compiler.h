@@ -27,15 +27,15 @@ class ModuleCompiler {
     sema::Sema type_check(&ctx_);
     type_check.Run(ast);
 
-  if (HasErrors()) {
-	  std::cout << errors_.SerializeErrors();
-  }
+    if (HasErrors()) {
+      std::cout << errors_.SerializeErrors();
+    }
 
     return ast;
   }
 
   std::unique_ptr<Module> CompileToModule(const std::string &source, execution::exec::ExecutionContext *exec) {
-	auto *ast = CompileToAst(source);
+    auto *ast = CompileToAst(source);
     if (HasErrors()) return nullptr;
     return std::make_unique<Module>(vm::BytecodeGenerator::Compile(ast, exec, "test"));
   }

@@ -2066,7 +2066,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
     }
     case ast::Builtin::TableAllocateSlot: {
       // TableAllocateSlot has only 1 argument: Pointer to the storage interface
-      if(!CheckArgCount(call, 1)) {
+      if (!CheckArgCount(call, 1)) {
         return;
       }
 

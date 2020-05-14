@@ -213,7 +213,6 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
 // TODO (abhijithanilkumar): This function is probably only useful to test the TPL code for
 // CompactionInsertInto. Is there an alternate way to do this?
 TupleSlot DataTable::AllocateSlot() {
-
   TupleSlot result;
   auto block = insertion_head_;
   while (true) {
@@ -255,8 +254,7 @@ TupleSlot DataTable::AllocateSlot() {
 }
 
 void DataTable::CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn,
-                            const ProjectedRow &redo, TupleSlot dest) {
-
+                                     const ProjectedRow &redo, TupleSlot dest) {
   // Reallocate the slot if it had been deallocated
   if (!accessor_.Allocated(dest)) {
     accessor_.Reallocate(dest);

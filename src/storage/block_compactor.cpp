@@ -78,7 +78,7 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
   for (auto &entry : cg->blocks_to_compact_) {
     RawBlock *block = entry.first;
     std::vector<uint32_t> &empty_slots = entry.second;
-    //TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(),
+    // TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(),
     //               "The block should be full to stop inserts from coming in");
 
     // We will loop through each block and figure out if we are safe to proceed with compaction and identify
@@ -193,9 +193,9 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
 }
 
-bool BlockCompactor::MoveTupleTPL(execution::exec::ExecutionContext *exec, TupleSlot from, TupleSlot to, col_id_t *col_oids) {
-  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)>
-      move_tuple_;
+bool BlockCompactor::MoveTupleTPL(execution::exec::ExecutionContext *exec, TupleSlot from, TupleSlot to,
+                                  col_id_t *col_oids) {
+  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)> move_tuple_;
   auto compiler = execution::vm::test::ModuleCompiler();
   auto module = compiler.CompileToModule(tpl_code_, exec);
   module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple_);

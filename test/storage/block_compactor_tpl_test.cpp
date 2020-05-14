@@ -3,10 +3,10 @@
 #include <memory>
 #include <vector>
 
-#include "execution/exec/execution_context.h"
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "common/hash_util.h"
+#include "execution/exec/execution_context.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "storage/index/index_builder.h"
@@ -143,15 +143,12 @@ class BlockCompactorTests : public TerrierTest {
   }
 
   std::unique_ptr<execution::exec::ExecutionContext> MakeExecCtx(
-      catalog::db_oid_t test_db_oid,
-      transaction::TransactionContext *test_txn,
-      common::ManagedPointer<catalog::CatalogAccessor> accessor,
-      execution::exec::OutputCallback &&callback = nullptr,
+      catalog::db_oid_t test_db_oid, transaction::TransactionContext *test_txn,
+      common::ManagedPointer<catalog::CatalogAccessor> accessor, execution::exec::OutputCallback &&callback = nullptr,
       const planner::OutputSchema *schema = nullptr) {
-    return std::make_unique<execution::exec::ExecutionContext>(test_db_oid, common::ManagedPointer(test_txn), callback, schema,
-                                                    common::ManagedPointer(accessor));
+    return std::make_unique<execution::exec::ExecutionContext>(test_db_oid, common::ManagedPointer(test_txn), callback,
+                                                               schema, common::ManagedPointer(accessor));
   }
-
 };
 
 // This test verifies the working of MoveTuple built-in. It inserts a couple of tuples, deletes one of them,
@@ -207,10 +204,8 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   // Begin T3, create an execution context and a block compactor, move the tuple from the 2nd -> 1st slot, and commit
   auto txn3 = txn_manager_->BeginTransaction();
   auto catalog_accessor = catalog_->GetAccessor(common::ManagedPointer(txn3), db_oid);
-  execution::exec::ExecutionContext exec{db_oid,
-                                       common::ManagedPointer<transaction::TransactionContext>(txn3),
-                                       nullptr, nullptr,
-                                       common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
+  execution::exec::ExecutionContext exec{db_oid, common::ManagedPointer<transaction::TransactionContext>(txn3), nullptr,
+                                         nullptr, common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
 
   col_id_t *col_oids = new col_id_t[1];
   col_oids[0] = (col_id_t)1;
@@ -229,11 +224,11 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   // the 1st slot will have a tuple
   bool visible = table_ptr->Select(common::ManagedPointer(txn4), tuple_slot_0, read_row);
   EXPECT_TRUE(visible);  // Should be filled after compaction
-  auto content = read_row->Get<uint32_t,false>(0, nullptr);
+  auto content = read_row->Get<uint32_t, false>(0, nullptr);
   EXPECT_EQ(*content, 1);
   // the 2nd slot will not have a tuple
   visible = table_ptr->Select(common::ManagedPointer(txn4), tuple_slot_1, read_row);
-  content = read_row->Get<uint32_t,false>(0, nullptr);
+  content = read_row->Get<uint32_t, false>(0, nullptr);
   EXPECT_FALSE(visible);  // Should not be filled after compaction
 
   txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -283,7 +278,6 @@ TEST_F(BlockCompactorTests, DISABLED_SimpleCompactionTest) {
   db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn2), db_oid);
   table_ptr = db_catalog->GetTable(common::ManagedPointer(txn2), table_oid);
 
-
   num_records = 0;
   for (auto it = table_ptr->begin(); it != table_ptr->end(); it++) {
     if (num_records == 2) break;
@@ -298,10 +292,8 @@ TEST_F(BlockCompactorTests, DISABLED_SimpleCompactionTest) {
 
   auto txn3 = txn_manager_->BeginTransaction();
   auto catalog_accessor = catalog_->GetAccessor(common::ManagedPointer(txn3), db_oid);
-  execution::exec::ExecutionContext exec{db_oid,
-                                             common::ManagedPointer<transaction::TransactionContext>(txn3),
-                                             nullptr, nullptr,
-                                             common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
+  execution::exec::ExecutionContext exec{db_oid, common::ManagedPointer<transaction::TransactionContext>(txn3), nullptr,
+                                         nullptr, common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
 
   col_id_t *col_oids = new col_id_t[1];
   col_oids[0] = (col_id_t)1;
@@ -326,7 +318,7 @@ TEST_F(BlockCompactorTests, DISABLED_SimpleCompactionTest) {
     storage::TupleSlot slot(block, i);
     bool visible = table_ptr->Select(common::ManagedPointer(txn4), slot, read_row);
     EXPECT_TRUE(visible);  // Should be filled after compaction
-    auto content = read_row->Get<uint32_t,false>(0, nullptr);
+    auto content = read_row->Get<uint32_t, false>(0, nullptr);
     EXPECT_EQ(*content, i);
   }
   txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);

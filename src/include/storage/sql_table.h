@@ -129,7 +129,7 @@ class SqlTable {
    * @param TupleSlot that the tuple was inserted into.
    */
   void CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
-                 const TupleSlot dest) const {
+                            const TupleSlot dest) const {
     table_.data_table_->CompactionInsertInto(txn, *(redo->Delta()), dest);
     redo->SetTupleSlot(dest);
   }
@@ -231,7 +231,7 @@ class SqlTable {
   friend class terrier::RandomSqlTableTransaction;
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
-  friend class BlockCompactorTests; // For accessing layout, table in block compactor tests
+  friend class BlockCompactorTests;  // For accessing layout, table in block compactor tests
 
   const common::ManagedPointer<BlockStore>
       block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.

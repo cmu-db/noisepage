@@ -39,8 +39,8 @@ class ProjectedRowDeepEqualHash {
       storage::col_id_t id = tuple->ColumnIds()[i];
       if (field == nullptr) continue;
       size_t field_hash = layout_.IsVarlen(id)
-                          ? storage::VarlenContentHasher()(*reinterpret_cast<storage::VarlenEntry *>(field))
-                          : common::HashUtil::HashBytes(field, layout_.AttrSize(id));
+                              ? storage::VarlenContentHasher()(*reinterpret_cast<storage::VarlenEntry *>(field))
+                              : common::HashUtil::HashBytes(field, layout_.AttrSize(id));
       result = common::HashUtil::CombineHashes(result, field_hash);
     }
     return result;
@@ -53,7 +53,7 @@ class ProjectedRowDeepEqualHash {
 // Nothing says two randomly generated rows cannot be equal to each other. We thus have to account for this
 // using a frequency count instead of just a set.
 using TupleMultiSet =
-std::unordered_map<storage::ProjectedRow *, uint32_t, ProjectedRowDeepEqualHash, ProjectedRowDeepEqual>;
+    std::unordered_map<storage::ProjectedRow *, uint32_t, ProjectedRowDeepEqualHash, ProjectedRowDeepEqual>;
 
 struct BlockCompactorTest : public ::terrier::TerrierTest {
   storage::BlockStore block_store_{5000, 5000};
@@ -84,7 +84,7 @@ TEST_F(BlockCompactorTest, CompactionTest) {
     storage::TupleAccessStrategy accessor(layout);
     // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
     storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
-    storage::layout_version_t(0));
+                             storage::layout_version_t(0));
     storage::RawBlock *block = block_store_.Get();
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
@@ -168,7 +168,7 @@ TEST_F(BlockCompactorTest, GatherTest) {
     storage::TupleAccessStrategy accessor(layout);
     // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
     storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
-    storage::layout_version_t(0));
+                             storage::layout_version_t(0));
     storage::RawBlock *block = block_store_.Get();
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
@@ -275,7 +275,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     storage::TupleAccessStrategy accessor(layout);
     // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
     storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
-    storage::layout_version_t(0));
+                             storage::layout_version_t(0));
     storage::RawBlock *block = block_store_.Get();
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
