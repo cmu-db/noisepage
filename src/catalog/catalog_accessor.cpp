@@ -99,7 +99,7 @@ bool CatalogAccessor::VerifyTableUpdateConstraint(table_oid_t table, const std::
   return dbc_->VerifyTableUpdateConstraint(txn_, table, col_oids, pr, tuple_slot);
 }
 
-bool CatalogAccessor::UpdateCascade(db_oid_t db_oid, table_oid_t table, const std::vector<col_oid_t> &col_oids,
+int CatalogAccessor::UpdateCascade(db_oid_t db_oid, table_oid_t table, const std::vector<col_oid_t> &col_oids,
                                     storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
   return dbc_->FKCascade(txn_, db_oid, table, col_oids, tuple_slot, catalog::postgres::FK_UPDATE, pr);
 }
