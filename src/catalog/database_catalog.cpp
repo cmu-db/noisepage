@@ -372,9 +372,10 @@ void DatabaseCatalog::BootstrapPRIs() {
   pg_sequence_all_cols_pri_ = sequences_->InitializerForProjectedRow(pg_sequence_all_oids);
   pg_sequence_all_cols_prm_ = sequences_->ProjectionMapForOids(pg_sequence_all_oids);
 
-  const std::vector<col_oid_t> delete_sequence_oids{postgres::SEQOID_COL_OID, postgres::SEQRELID_COL_OID};
-  delete_sequence_pri_ = indexes_->InitializerForProjectedRow(delete_sequence_oids);
-  delete_sequence_prm_ = indexes_->ProjectionMapForOids(delete_sequence_oids);
+  const std::vector<col_oid_t> delete_sequence_oids{postgres::PG_SEQUENCE_ALL_COL_OIDS.cbegin(),
+                                                    postgres::PG_SEQUENCE_ALL_COL_OIDS.cend()};
+  delete_sequence_pri_ = sequences_->InitializerForProjectedRow(delete_sequence_oids);
+  delete_sequence_prm_ = sequences_->ProjectionMapForOids(delete_sequence_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
