@@ -86,22 +86,7 @@ class Checkpoint {
    * @param delimiter that separates the string
    * @return vector of strings
    */
-  static const std::vector<std::string> StringSplit(const std::string &s, const char &delimiter) {
-    std::string buff{""};
-    std::vector<std::string> str_vec;
-
-    for (auto c : s) {
-      if (c != delimiter)
-        buff += c;
-      else if (c == delimiter && buff != "") {
-        str_vec.push_back(buff);
-        buff = "";
-      }
-    }
-    if (buff != "") str_vec.push_back(buff);
-
-    return str_vec;
-  }
+  static const std::vector<std::string> StringSplit(const std::string &s, const char &delimiter);
 
  private:
   // Catalog to fetch table pointers
@@ -119,7 +104,7 @@ class Checkpoint {
    * Write the data of a database to disk in parallel, called by TakeCheckpoint()
    * @param path the path on disk to save the checkpoint
    * @param accessor catalog accessor of the given database
-   * @param db_oid the databse to be checkpointed
+   * @param db_oid the database to be checkpointed
    * @return None
    */
   void WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,

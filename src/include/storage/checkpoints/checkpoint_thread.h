@@ -25,7 +25,7 @@ class CheckpointBackgroundLoop {
   void BackgroundLoop(const int64_t interval, const int64_t num_checkpoints) {
     std::unique_lock<std::mutex> lck(mtx);
 
-    for (uint32_t i = 0; i < num_checkpoints; i++) {
+    for (uint64_t i = 0; i < num_checkpoints; i++) {
       if (stop) break;
       STORAGE_LOG_INFO("Taking Checkpoint: ", i);
       checkpoint_->TakeCheckpoint(path_, db_, cur_log_file_, num_threads_,
@@ -37,13 +37,12 @@ class CheckpointBackgroundLoop {
 
   // Epoch is number of seconds to wait
   void StartBackgroundLoop(const int64_t interval, const int64_t num_checkpoints){
-    t = std::thread(&CheckpointBackgroundLoop::BackgroundLoop, this, interval, num_checkpoints);
+    thread_pool_->SubmitTask([this, interval, num_checkpoints]{BackgroundLoop(interval, num_checkpoints);});
   }
 
   void EndBackgroundLoop() {
     stop = true;
     cv.notify_all();
-    t.join();
   }
 
  private:
@@ -54,8 +53,6 @@ class CheckpointBackgroundLoop {
   common::WorkerPool *thread_pool_;
   Checkpoint *checkpoint_;
   std::atomic<bool> stop = false;
-  std::thread t;
-
   std::mutex mtx;
   std::condition_variable cv;
 };

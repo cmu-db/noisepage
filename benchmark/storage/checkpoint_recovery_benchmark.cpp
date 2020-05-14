@@ -12,7 +12,7 @@
 #include "storage/checkpoints/checkpoint.h"
 
 namespace terrier {
-
+// Adapted from benchmarks in recovery_benchmark.cpp. They are exactly the same benchmarks.
 class CheckpointRecoveryBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {

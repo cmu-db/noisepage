@@ -57,7 +57,7 @@ class ArrowSerializer {
    * @param file_name the file that the table will be exported to
    * @param col_types since in the data table level, we don't know the type of each column. We need to use this
    *        parameter that is provided to get the types of columns.
-   * @param set to true if locks on tables need to be held appropriately, and false if no lock needs to be held.
+   * @param lock set to true if locks on tables need to be held appropriately, and false if no lock needs to be held.
    */
   void ExportTable(const std::string &file_name, std::vector<terrier::type::TypeId> *col_types, bool lock);
 
