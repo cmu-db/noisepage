@@ -301,7 +301,7 @@ class DatabaseCatalog {
   std::vector<storage::TupleSlot> FKScan(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
                                          const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector);
   int FKDelete(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
-                                const PG_Constraint &con_obj, std::vector<storage::TupleSlot> fk_slots)
+                                const PG_Constraint &con_obj, std::vector<storage::TupleSlot> fk_slots);
 
   /**
    * insert eh PK constraint when creating table according to the definition

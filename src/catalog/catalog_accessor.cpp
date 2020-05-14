@@ -100,7 +100,7 @@ bool CatalogAccessor::VerifyTableUpdateConstraint(table_oid_t table, const std::
 }
 
 bool CatalogAccessor::UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
-  return dbc_->FKCascade(txn_, table, table_tuple_slot, catalog::postgres::FK_UPDATE, pr);
+  return true;
 }
 
 int CatalogAccessor::DeleteCascade(db_oid_t db_oid, table_oid_t table_oid, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
