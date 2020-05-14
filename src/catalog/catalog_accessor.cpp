@@ -86,6 +86,10 @@ bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const 
 
 const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }
 
+bool CatalogAccessor::VerifyFKRefCol(table_oid_t sink_table, const std::vector<col_oid_t> &sink_cols) {
+  return dbc_->VerifyFKRefCol(txn_, sink_table, sink_cols);
+}
+
 bool CatalogAccessor::VerifyTableInsertConstraint(table_oid_t table, storage::ProjectedRow *pr) {
   return dbc_->VerifyTableInsertConstraint(txn_, table, pr);
 }

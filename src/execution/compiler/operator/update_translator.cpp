@@ -52,7 +52,6 @@ void UpdateTranslator::Consume(FunctionBuilder *builder) {
       GenIndexDelete(builder, index_oid);
       GenIndexInsert(builder, index_oid);
     }
-
     return;
   }
   GenTableUpdate(builder);

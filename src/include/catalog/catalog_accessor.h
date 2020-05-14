@@ -182,6 +182,14 @@ class CatalogAccessor {
   const Schema &GetSchema(table_oid_t table) const;
 
   /**
+   * Verify that the cols in the table can be FK reference: they are either PK or UNIQUE
+   * @param sink_table reference table id
+   * @param sink_cols reference columns
+   * @return true if cols satisfied
+   */
+  bool VerifyFKRefCol(table_oid_t sink_table, const std::vector<col_oid_t> &sink_cols);
+
+  /**
    * Verify the projected row complies with table constraint
    * @param table corresponding table oid
    * @param pr the projected row
