@@ -221,12 +221,6 @@ static bool PeekValue(const type::TransientValue &transient_val, byte *value_out
     }
     case type::TypeId::DATE: {
       // TODO(Schema-Change): find a way to handle it without codegen
-      //      auto val = type::TransientValuePeeker::PeekDate(transient_val);
-      //      auto ymd = util::TimeConvertor::YMDFromDate(val);
-      //      auto year = static_cast<int32_t>(ymd.year());
-      //      auto month = static_cast<uint32_t>(ymd.month());
-      //      auto day = static_cast<uint32_t>(ymd.day());
-      //      return DateToSql(year, month, day);
       break;
     }
     case type::TypeId::TIMESTAMP: {

@@ -41,7 +41,6 @@ nlohmann::json AlterPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
   j["table_oid"] = table_oid_;
   j["column_oids"] = column_oids_;
-  // j["cmds"] = cmds_;
   return j;
 }
 
@@ -51,7 +50,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AlterPlanNode::FromJson
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   column_oids_ = j.at("column_oids").get<std::vector<catalog::col_oid_t>>();
-  // cmds_ = j.at("cmds").get<std::vector<AlterCmdBase>>();
   return exprs;
 }
 }  // namespace terrier::planner
