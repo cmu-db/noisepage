@@ -231,46 +231,46 @@ class DatabaseCatalog {
    * Verify if the data on the projected row update to the tuple_slot table location complies with table PK constraints
    * Helper function for VerifyTableInsertconstraint
    * @param txn transaction
-   * @param con_obj the constraint in PG_Constraint class
+   * @param con_obj the constraint in PGConstraint class
    * @param pr the projected row
    * @return true if constraint check passed
    */
   bool VerifyUniquePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
-                                const PG_Constraint &con_obj, storage::ProjectedRow *pr);
+                                const PGConstraint &con_obj, storage::ProjectedRow *pr);
 
   /**
    * Verify if the data on the projected row update to the tuple_slot table location complies with table FK constraints
    * Helper function for VerifyTableInsertconstraint
    * @param txn transaction
-   * @param con_obj the constraint in PG_Constraint class
+   * @param con_obj the constraint in PGConstraint class
    * @param pr the projected row
    * @return true if constraint check passed
    */
-  bool VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, const PG_Constraint &con_obj,
+  bool VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, const PGConstraint &con_obj,
                           storage::ProjectedRow *pr);
 
   /**
    * Verify if the data on the projected row update to the tuple_slot table location complies with table CHECK
    * constraints Helper function for VerifyTableInsertconstraint
-   * @param con_obj the constraint in PG_Constraint class
+   * @param con_obj the constraint in PGConstraint class
    * @return true if constraint check passed
    */
-  bool VerifyCheckConstraint(const PG_Constraint &con_obj);
+  bool VerifyCheckConstraint(const PGConstraint &con_obj);
 
   /**
    * Verify if the data on the projected row update to the tuple_slot table location complies with table EXCLUSION
    * Helper function for VerifyTableInsertconstraint
-   * @param con_obj the constraint in PG_Constraint class
+   * @param con_obj the constraint in PGConstraint class
    * @return true if constraint check passed
    */
-  bool VerifyExclusionConstraint(const PG_Constraint &con_obj);
+  bool VerifyExclusionConstraint(const PGConstraint &con_obj);
 
   /**
    * convert a pg-constraint full size projected row into PG_constraint data carrier class
    * @param select_pr the projected row
    * @return the filled class
    */
-  PG_Constraint PGConstraintPRToObj(storage::ProjectedRow *select_pr);
+  PGConstraint PGConstraintPRToObj(storage::ProjectedRow *select_pr);
 
   /**
    * Verify if the data on the projected row insert fits the overall constraint in the table
@@ -296,7 +296,7 @@ class DatabaseCatalog {
                                    storage::TupleSlot tuple_slot);
 
   bool FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table,
-                 storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr);
+                 storage::TupleSlot table_tuple_slot, char cascade_type, storage::ProjectedRow *pr);
 
   /**
    * insert eh PK constraint when creating table according to the definition
@@ -397,7 +397,7 @@ class DatabaseCatalog {
    * @return true if successfully filled
    */
   bool PropagateConstraintIndex(common::ManagedPointer<transaction::TransactionContext> txn,
-                                const storage::TupleSlot tuple_slot, constraint_oid_t constraint_oid,
+                                const storage::TupleSlot &tuple_slot, constraint_oid_t constraint_oid,
                                 const std::string &name, namespace_oid_t ns, index_oid_t index, table_oid_t table,
                                 table_oid_t foreign_table);
   /**
@@ -424,8 +424,8 @@ class DatabaseCatalog {
    * @param table table_oid requesting
    * @return vector of cpg-constraint obj for all of the constraints that apply to this table
    */
-  std::vector<PG_Constraint> GetConstraintObjs(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                               table_oid_t table);
+  std::vector<PGConstraint> GetConstraintObjs(common::ManagedPointer<transaction::TransactionContext> txn,
+                                              table_oid_t table);
 
   /**
    * Delete all the constraints for a given table
@@ -433,7 +433,7 @@ class DatabaseCatalog {
    * @param table table_oid requesting
    * @return true if successfully delete constraints in the table
    */
-  bool DeleteConstraints(common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table);
+  bool DeleteConstraints(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
   /**
    * Delete a constraint for given a constraint_id
