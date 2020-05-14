@@ -45,6 +45,10 @@ class EXPORT OutputBuffer {
    */
   explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size, OutputCallback callback)
       : memory_pool_(memory_pool), tuple_size_(tuple_size), id_(0), callback_(std::move(callback)) {
+    // max_thread_ should always match to the max number of threads that can be dispatched by ParallelScan in
+    // TableVectorIterator right now the value is set to the number of cores available since ParallelScan will dispatch
+    // exactly same number of threads to perform scan. If thread poll is used later, then the max_thread_ should be
+    // modified to equal the max available thread in the thread pool.
     max_thread_ = std::thread::hardware_concurrency();
     if (max_thread_ == 0) {
       // Single thread if fail to get the number of cores
@@ -64,7 +68,7 @@ class EXPORT OutputBuffer {
           reinterpret_cast<byte *>(memory_pool_->AllocateAligned(BATCH_SIZE * tuple_size_, alignof(uint64_t), true));
       uint32_t index = id_;
       id_++;
-      TERRIER_ASSERT(index < max_thread_, "Thread id is larger than MAX_THREAD_SIZE");
+      TERRIER_ASSERT(index < max_thread_, "Thread id is larger than max_thread_");
       buffer_map_.insert(std::make_pair(id, std::make_pair(index, tuples)));
     }
   }
@@ -101,11 +105,16 @@ class EXPORT OutputBuffer {
  private:
   sql::MemoryPool *memory_pool_;
   uint32_t tuple_size_;
+  // counter to assign integer thread id
   std::atomic<uint32_t> id_;
   OutputCallback callback_;
+  // Pointer to the array of counter, where each element count the number of slot in used for its partition
   uint32_t *num_tuples_;
+  // max number of thread that will write to the output buffer concurrently
   uint32_t max_thread_;
+  // map each unique thread id to the index of it's counter and the pointer to it's buffer
   tbb::concurrent_unordered_map<std::thread::id, std::pair<int, byte *>, std::hash<std::thread::id> > buffer_map_;
+  // latch to protect the callback function, because some of callbacks that is in use for now are not thread safe.
   common::SpinLatch latch_;
 };
 
