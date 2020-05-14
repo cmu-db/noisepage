@@ -111,7 +111,9 @@ bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::Cre
 bool DDLExecutors::CreateSequenceExecutor(const common::ManagedPointer<planner::CreateSequencePlanNode> node,
                                           const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   // Request permission from the Catalog to see if this a valid sequence name
-  return accessor->CreateSequence(node->GetNamespaceOid(), node->GetSequenceName()) != catalog::INVALID_SEQUENCE_OID;
+  return accessor->CreateSequence(node->GetNamespaceOid(), node->GetSequenceName(), node->GetSequenceStart(),
+                                  node->GetSequenceIncrement(), node->GetSequenceMax(), node->GetSequenceMin(),
+                                  node->GetSequenceCycle()) != catalog::INVALID_SEQUENCE_OID;
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
@@ -148,7 +150,7 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
 bool DDLExecutors::DropSequenceExecutor(const common::ManagedPointer<planner::DropSequencePlanNode> node,
                                         const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   const bool result = accessor->DropSequence(node->GetSequenceOid());
-  // TODO(zianke): CASCADE?
+  // TODO(Matt): CASCADE?
   return result;
 }
 

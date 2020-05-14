@@ -805,7 +805,9 @@ void LogicalCreateSequenceToPhysicalCreateSequence::Transform(common::ManagedPoi
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateSequence should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      CreateSequence::Make(ct_op->GetDatabaseOid(), ct_op->GetNamespaceOid(), ct_op->GetSequenceName()),
+      CreateSequence::Make(ct_op->GetDatabaseOid(), ct_op->GetNamespaceOid(), ct_op->GetSequenceName(),
+                           ct_op->GetSequenceStart(), ct_op->GetSequenceIncrement(), ct_op->GetSequenceMax(),
+                           ct_op->GetSequenceMin(), ct_op->GetSequenceCycle()),
       std::vector<std::unique_ptr<OperatorNode>>());
 
   transformed->emplace_back(std::move(op));

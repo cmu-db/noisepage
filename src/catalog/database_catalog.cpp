@@ -13,8 +13,8 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
-#include "catalog/postgres/pg_sequence.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_sequence.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
@@ -213,14 +213,14 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
 
   // pg_sequence and associated indexes
   retval = CreateTableEntry(txn, postgres::SEQUENCE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_sequence",
-                              postgres::Builder::GetSequenceTableSchema());
+                            postgres::Builder::GetSequenceTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::SEQUENCE_TABLE_OID, sequences_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::SEQUENCE_TABLE_OID,
-                              postgres::SEQUENCE_OID_INDEX_OID, "pg_sequences_oid_index",
-                              postgres::Builder::GetSequenceOidIndexSchema(db_oid_));
+                            postgres::SEQUENCE_OID_INDEX_OID, "pg_sequences_oid_index",
+                            postgres::Builder::GetSequenceOidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::SEQUENCE_OID_INDEX_OID, sequences_oid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
@@ -367,12 +367,12 @@ void DatabaseCatalog::BootstrapPRIs() {
   pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
   // pg_sequence
   const std::vector<col_oid_t> pg_sequence_all_oids{postgres::PG_SEQUENCE_ALL_COL_OIDS.cbegin(),
-                                              postgres::PG_SEQUENCE_ALL_COL_OIDS.cend()};
+                                                    postgres::PG_SEQUENCE_ALL_COL_OIDS.cend()};
   pg_sequence_all_cols_pri_ = sequences_->InitializerForProjectedRow(pg_sequence_all_oids);
   pg_sequence_all_cols_prm_ = sequences_->ProjectionMapForOids(pg_sequence_all_oids);
 
-
-  const std::vector<col_oid_t> delete_sequence_oids{postgres::SEQOID_COL_OID, postgres::SEQRELID_COL_OID, postgres::SEQNEXTVAL_COL_OID};
+  const std::vector<col_oid_t> delete_sequence_oids{postgres::SEQOID_COL_OID, postgres::SEQRELID_COL_OID,
+                                                    postgres::SEQNEXTVAL_COL_OID};
   delete_sequence_pri_ = indexes_->InitializerForProjectedRow(delete_sequence_oids);
   delete_sequence_prm_ = indexes_->ProjectionMapForOids(delete_sequence_oids);
 }
@@ -1353,15 +1353,19 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
 }
 
 sequence_oid_t DatabaseCatalog::CreateSequence(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                               const namespace_oid_t ns_oid, const std::string &name) {
+                                               const namespace_oid_t ns_oid, const std::string &name, int64_t seqstart,
+                                               int64_t seqincrement, int64_t seqmax, int64_t seqmin, bool seqcycle) {
   if (!TryLock(txn)) return INVALID_SEQUENCE_OID;
   const sequence_oid_t sequence_oid = static_cast<sequence_oid_t>(next_oid_++);
-  return CreateSequence(txn, ns_oid, sequence_oid, name) ? sequence_oid : INVALID_SEQUENCE_OID;
+  return CreateSequence(txn, ns_oid, sequence_oid, name, seqstart, seqincrement, seqmax, seqmin, seqcycle)
+             ? sequence_oid
+             : INVALID_SEQUENCE_OID;
 }
 
 bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn,
-                                     const namespace_oid_t ns_oid, sequence_oid_t sequence_oid,
-                                     const std::string &name) {
+                                     const namespace_oid_t ns_oid, sequence_oid_t sequence_oid, const std::string &name,
+                                     int64_t seqstart, int64_t seqincrement, int64_t seqmax, int64_t seqmin,
+                                     bool seqcycle) {
   // First, insert into pg_class
   auto *const class_insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
   auto *const class_insert_pr = class_insert_redo->Delta();
@@ -1555,15 +1559,15 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   TERRIER_ASSERT(sequence == *(reinterpret_cast<const sequence_oid_t *const>(
-          table_pr->AccessForceNotNull(delete_sequence_prm_[postgres::SEQRELID_COL_OID]))),
-                   "sequence oid from pg_sequence did not match what was found by the index scan from the argument.");
+                                 table_pr->AccessForceNotNull(delete_sequence_prm_[postgres::SEQRELID_COL_OID]))),
+                 "sequence oid from pg_sequence did not match what was found by the index scan from the argument.");
 
   // Delete from pg_sequence table
   txn->StageDelete(db_oid_, postgres::SEQUENCE_TABLE_OID, index_results[0]);
   result = sequences_->Delete(txn, index_results[0]);
-  TERRIER_ASSERT(
-          result,
-          "Delete from pg_sequence should always succeed as write-write conflicts are detected during delete from pg_class");
+  TERRIER_ASSERT(result,
+                 "Delete from pg_sequence should always succeed as write-write conflicts are detected during delete "
+                 "from pg_class");
 
   // Delete from sequences_oid_index
   index_pr = sequence_oid_pr.InitializeRow(buffer);
@@ -1585,7 +1589,6 @@ sequence_oid_t DatabaseCatalog::GetSequenceOid(const common::ManagedPointer<tran
   }
   return sequence_oid_t(oid_pair.first);
 }
-
 
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<parser::AbstractExpression *> expressions;
@@ -2034,7 +2037,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   BOOTSTRAP_TRIG_FN("sin", postgres::SIN_PRO_OID, execution::ast::Builtin::Sin)
 
   // sinh
-  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID,execution::ast::Builtin::Sinh)
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID, execution::ast::Builtin::Sinh)
 
   // tan
   BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
@@ -2050,15 +2053,23 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // lower
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+
+  // length
   CreateProcedure(txn, postgres::LENGTH_PRO_OID, "length", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "", true);
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "",
+                  true);
+
+  // nextval
   CreateProcedure(txn, postgres::NEXTVAL_PRO_OID, "nextval", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "", true);
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "",
+                  true);
 
+  // currval
   CreateProcedure(txn, postgres::CURRVAL_PRO_OID, "currval", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "", true);
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, integer_type, "",
+                  true);
 
-    // TODO(tanujnay112): no op codes for lower and upper yet
+  // TODO(tanujnay112): no op codes for lower and upper yet
 
   BootstrapProcContexts(txn);
 }
@@ -2105,17 +2116,17 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   txn->RegisterAbortAction([=]() { delete udf_context; });
 
   udf_context = new execution::udf::UDFContext("length", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
-                                                 execution::ast::Builtin::Length, true);
+                                               execution::ast::Builtin::Length, true);
   SetProcCtxPtr(txn, postgres::LENGTH_PRO_OID, udf_context);
   txn->RegisterAbortAction([=]() { delete udf_context; });
 
   udf_context = new execution::udf::UDFContext("nextval", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
-                                                 execution::ast::Builtin::Nextval, true);
+                                               execution::ast::Builtin::Nextval, true);
   SetProcCtxPtr(txn, postgres::NEXTVAL_PRO_OID, udf_context);
   txn->RegisterAbortAction([=]() { delete udf_context; });
 
   udf_context = new execution::udf::UDFContext("currval", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
-                                                 execution::ast::Builtin::Currval, true);
+                                               execution::ast::Builtin::Currval, true);
   SetProcCtxPtr(txn, postgres::CURRVAL_PRO_OID, udf_context);
   txn->RegisterAbortAction([=]() { delete udf_context; });
 }
@@ -2263,7 +2274,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns_oid;
   if (!classes_name_index_->InsertUnique(txn, *index_pr, tuple_slot)) {
-      STORAGE_LOG_ERROR("InsertUnique classes_name_index_ error");
+    STORAGE_LOG_ERROR("InsertUnique classes_name_index_ error");
     // There was a name conflict and we need to abort.  Free the buffer and
     // return INVALID_TABLE_OID to indicate the database was not created.
     delete[] index_buffer;
@@ -2811,7 +2822,7 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
-  //if (!TryLock(txn)) return INVALID_PROC_OID;
+  // if (!TryLock(txn)) return INVALID_PROC_OID;
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 

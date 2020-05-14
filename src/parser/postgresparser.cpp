@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <limits>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -1452,10 +1453,115 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(Pa
   auto table_info = std::make_unique<TableInfo>("", schema_name, database_name);
 
   auto sequence_name = root->sequence_->relname_ == nullptr ? "" : root->sequence_->relname_;
-  // TODO(zianke): Placeholder, to be changed to real metadata
-  auto sequence_increment = 1;
+  int64_t sequence_start, sequence_increment, sequence_max, sequence_min;
+  bool sequence_cycle;
 
-  auto result = std::make_unique<CreateStatement>(std::move(table_info), sequence_name, sequence_increment);
+  DefElem *start_value = nullptr;
+  DefElem *increment_by = nullptr;
+  DefElem *max_value = nullptr;
+  DefElem *min_value = nullptr;
+  DefElem *is_cycled = nullptr;
+
+  if (root->options_ != nullptr) {
+    for (ListCell *cell = root->options_->head; cell != nullptr; cell = cell->next) {
+      auto def_elem = reinterpret_cast<DefElem *>(cell->data.ptr_value);
+      if (strcmp(def_elem->defname_, "increment") == 0) {
+        if (increment_by) {
+          throw PARSER_EXCEPTION("conflicting or redundant options");
+        }
+        increment_by = def_elem;
+      } else if (strcmp(def_elem->defname_, "start") == 0) {
+        if (start_value) {
+          throw PARSER_EXCEPTION("conflicting or redundant options");
+        }
+        start_value = def_elem;
+      } else if (strcmp(def_elem->defname_, "maxvalue") == 0) {
+        if (max_value) {
+          throw PARSER_EXCEPTION("conflicting or redundant options");
+        }
+        max_value = def_elem;
+      } else if (strcmp(def_elem->defname_, "minvalue") == 0) {
+        if (min_value) {
+          throw PARSER_EXCEPTION("conflicting or redundant options");
+        }
+        min_value = def_elem;
+      } else if (strcmp(def_elem->defname_, "cycle") == 0) {
+        if (is_cycled) {
+          throw PARSER_EXCEPTION("conflicting or redundant options");
+        }
+        is_cycled = def_elem;
+      } else {
+        PARSER_LOG_DEBUG("CreateSequenceTransform: Parameter {} not supported", def_elem->defname_);
+        throw NOT_IMPLEMENTED_EXCEPTION("CreateSequenceTransform error");
+      }
+    }
+  }
+
+  /* INCREMENT BY */
+  if (increment_by != nullptr) {
+    sequence_increment = (int64_t) reinterpret_cast<value *>(increment_by->arg_)->val_.ival_;
+    if (sequence_increment == 0) {
+      throw PARSER_EXCEPTION("INCREMENT must not be zero");
+    }
+  } else {
+    sequence_increment = 1;
+  }
+
+  /* CYCLE */
+  if (is_cycled != nullptr) {
+    sequence_cycle = (bool)reinterpret_cast<value *>(is_cycled->arg_)->val_.ival_;
+  } else {
+    sequence_cycle = false;
+  }
+
+  /* MAXVALUE (null arg means NO MAXVALUE) */
+  if (max_value != nullptr && max_value->arg_) {
+    sequence_max = (int64_t) reinterpret_cast<value *>(max_value->arg_)->val_.ival_;
+  } else if (sequence_increment > 0) {
+    /* ascending seq */
+    sequence_max = std::numeric_limits<int64_t>::max();
+  } else {
+    /* descending seq */
+    sequence_max = -1;
+  }
+
+  /* MINVALUE (null arg means NO MINVALUE) */
+  if (min_value != nullptr && min_value->arg_) {
+    sequence_min = (int64_t) reinterpret_cast<value *>(min_value->arg_)->val_.ival_;
+  } else if (sequence_increment < 0) {
+    /* descending seq */
+    sequence_min = std::numeric_limits<int64_t>::min();
+  } else {
+    /* ascending seq */
+    sequence_min = 1;
+  }
+
+  /* crosscheck min/max */
+  if (sequence_min >= sequence_max) {
+    throw PARSER_EXCEPTION("MINVALUE must be less than MAXVALUE");
+  }
+
+  /* START WITH */
+  if (start_value != nullptr) {
+    sequence_start = (int64_t) reinterpret_cast<value *>(start_value->arg_)->val_.ival_;
+  } else if (sequence_increment > 0) {
+    /* ascending seq */
+    sequence_start = sequence_min;
+  } else {
+    /* descending seq */
+    sequence_start = sequence_max;
+  }
+
+  /* crosscheck START */
+  if (sequence_start < sequence_min) {
+    throw PARSER_EXCEPTION("START value cannot be less than MINVALUE");
+  }
+  if (sequence_start > sequence_max) {
+    throw PARSER_EXCEPTION("START value cannot be greater than MAXVALUE");
+  }
+
+  auto result = std::make_unique<CreateStatement>(std::move(table_info), sequence_name, sequence_start,
+                                                  sequence_increment, sequence_max, sequence_min, sequence_cycle);
   return result;
 }
 

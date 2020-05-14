@@ -283,9 +283,15 @@ class CatalogAccessor {
    * Given the sequence name and its specification, add it to the catalog
    * @param ns is the namespace in which the sequence will exist
    * @param name of the sequence
+   * @param seqstart start value of the sequence
+   * @param seqincrement increment value of the sequence
+   * @param seqmax maximum value of the sequence
+   * @param seqmin minimum value of the sequence
+   * @param seqcycle whether the sequence cycles
    * @return OID for the sequence, INVALID_SEQUENCE_OID if the operation failed
    */
-  sequence_oid_t CreateSequence(namespace_oid_t ns, std::string name) const;
+  sequence_oid_t CreateSequence(namespace_oid_t ns, std::string name, int64_t seqstart, int64_t seqincrement,
+                                int64_t seqmax, int64_t seqmin, bool seqcycle) const;
 
   /**
    * Drop the corresponding sequence from the catalog.

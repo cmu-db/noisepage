@@ -847,6 +847,11 @@ void PlanGenerator::Visit(const CreateSequence *create_sequence) {
                      .SetDatabaseOid(create_sequence->GetDatabaseOid())
                      .SetNamespaceOid(create_sequence->GetNamespaceOid())
                      .SetSequenceName(create_sequence->GetSequenceName())
+                     .SetSequenceStart(create_sequence->GetSequenceStart())
+                     .SetSequenceIncrement(create_sequence->GetSequenceIncrement())
+                     .SetSequenceMax(create_sequence->GetSequenceMax())
+                     .SetSequenceMin(create_sequence->GetSequenceMin())
+                     .SetSequenceCycle(create_sequence->GetSequenceCycle())
                      .Build();
 }
 

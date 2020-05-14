@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
@@ -1635,7 +1636,8 @@ class LogicalCreateSequence : public OperatorNodeContents<LogicalCreateSequence>
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       std::string sequence_name);
+                       std::string sequence_name, int64_t sequence_start, int64_t sequence_increment,
+                       int64_t sequence_max, int64_t sequence_min, bool sequence_cycle);
 
   /**
    * Copy
@@ -1661,6 +1663,31 @@ class LogicalCreateSequence : public OperatorNodeContents<LogicalCreateSequence>
    */
   std::string GetSequenceName() const { return sequence_name_; }
 
+  /**
+   * @return start value of the sequence
+   */
+  int64_t GetSequenceStart() const { return sequence_start_; }
+
+  /**
+   * @return increment value of the sequence
+   */
+  int64_t GetSequenceIncrement() const { return sequence_increment_; }
+
+  /**
+   * @return maximum value of the sequence
+   */
+  int64_t GetSequenceMax() const { return sequence_max_; }
+
+  /**
+   * @return minimum value of the sequence
+   */
+  int64_t GetSequenceMin() const { return sequence_min_; }
+
+  /**
+   * @return whether the sequence cycles
+   */
+  bool GetSequenceCycle() const { return sequence_cycle_; }
+
  private:
   /**
    * OID of the database
@@ -1676,6 +1703,26 @@ class LogicalCreateSequence : public OperatorNodeContents<LogicalCreateSequence>
    * Name of the sequence
    */
   std::string sequence_name_;
+  /**
+   * Start value of the sequence
+   */
+  int64_t sequence_start_;
+  /**
+   * Increment value of the sequence
+   */
+  int64_t sequence_increment_;
+  /**
+   * Maximum value of the sequence
+   */
+  int64_t sequence_max_;
+  /**
+   * Minimum value of the sequence
+   */
+  int64_t sequence_min_;
+  /**
+   * Whether the sequence cycles
+   */
+  bool sequence_cycle_;
 };
 
 /**

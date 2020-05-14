@@ -1006,11 +1006,17 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalCreateSequence::Copy() const { return new LogicalCreateSequence(*this); }
 
 Operator LogicalCreateSequence::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                     std::string sequence_name) {
+                                     std::string sequence_name, int64_t sequence_start, int64_t sequence_increment,
+                                     int64_t sequence_max, int64_t sequence_min, bool sequence_cycle) {
   auto op = std::make_unique<LogicalCreateSequence>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->sequence_name_ = std::move(sequence_name);
+  op->sequence_start_ = sequence_start;
+  op->sequence_increment_ = sequence_increment;
+  op->sequence_max_ = sequence_max;
+  op->sequence_min_ = sequence_min;
+  op->sequence_cycle_ = sequence_cycle;
   return Operator(std::move(op));
 }
 
@@ -1019,6 +1025,11 @@ common::hash_t LogicalCreateSequence::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_start_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_increment_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_max_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_min_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_start_));
   return hash;
 }
 
@@ -1027,7 +1038,12 @@ bool LogicalCreateSequence::operator==(const BaseOperatorNodeContents &r) {
   const LogicalCreateSequence &node = *dynamic_cast<const LogicalCreateSequence *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
-  return sequence_name_ == node.sequence_name_;
+  if (sequence_name_ != node.sequence_name_) return false;
+  if (sequence_start_ != node.sequence_start_) return false;
+  if (sequence_increment_ != node.sequence_increment_) return false;
+  if (sequence_max_ != node.sequence_max_) return false;
+  if (sequence_min_ != node.sequence_min_) return false;
+  return sequence_cycle_ == node.sequence_cycle_;
 }
 
 //===--------------------------------------------------------------------===//

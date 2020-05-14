@@ -11,8 +11,8 @@
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_proc.h"
-#include "catalog/postgres/pg_type.h"
 #include "catalog/postgres/pg_sequence.h"
+#include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "execution/udf/udf_context.h"
 #include "storage/index/index.h"
@@ -255,10 +255,16 @@ class DatabaseCatalog {
    * @param txn for the operation
    * @param ns_oid  OID of the namespace under which the sequence will fall
    * @param name of the new sequence
+   * @param seqstart start value of the sequence
+   * @param seqincrement increment value of the sequence
+   * @param seqmax maximum value of the sequence
+   * @param seqmin minimum value of the sequence
+   * @param seqcycle whether the sequence cycles
    * @return OID of the new sequence or INVALID_SEQUENCE_OID if creation failed
    */
   sequence_oid_t CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
-                                const std::string &name);
+                                const std::string &name, int64_t seqstart, int64_t seqincrement, int64_t seqmax,
+                                int64_t seqmin, bool seqcycle);
 
   /**
    * Helper method to create sequence entries into pg_class and pg_sequence.
@@ -266,10 +272,16 @@ class DatabaseCatalog {
    * @param ns_oid  OID of the namespace under which the sequence will fall
    * @param sequence_oid OID for the sequence to create
    * @param name name of the new sequence
+   * @param seqstart start value of the sequence
+   * @param seqincrement increment value of the sequence
+   * @param seqmax maximum value of the sequence
+   * @param seqmin minimum value of the sequence
+   * @param seqcycle whether the sequence cycles
    * @return true if creation succeeded, false otherwise
    */
   bool CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
-                      sequence_oid_t sequence_oid, const std::string &name);
+                      sequence_oid_t sequence_oid, const std::string &name, int64_t seqstart, int64_t seqincrement,
+                      int64_t seqmax, int64_t seqmin, bool seqcycle);
 
   /**
    * Delete a sequence.
@@ -278,7 +290,6 @@ class DatabaseCatalog {
    * @return true if the deletion succeeded, otherwise false.
    */
   bool DeleteSequence(common::ManagedPointer<transaction::TransactionContext> txn, sequence_oid_t sequence);
-
 
   /**
    * Resolve an sequence name to its OID
@@ -526,7 +537,6 @@ class DatabaseCatalog {
 
   storage::SqlTable *sequences_;
   storage::index::Index *sequences_oid_index_;
-  //storage::index::Index *sequences_name_index_;
   storage::ProjectedRowInitializer pg_sequence_all_cols_pri_;
   storage::ProjectionMap pg_sequence_all_cols_prm_;
   storage::ProjectedRowInitializer delete_sequence_pri_;

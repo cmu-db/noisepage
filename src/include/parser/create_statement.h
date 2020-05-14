@@ -454,12 +454,22 @@ class CreateStatement : public TableRefStatement {
    * CREATE SEQUENCE
    * @param table_info table information
    * @param sequence_name sequence name
+   * @param sequence_start start value of the sequence
+   * @param sequence_increment increment value of the sequence
+   * @param sequence_max maximum value of the sequence
+   * @param sequence_min minimum value of the sequence
+   * @param sequence_cycle whether the sequence cycles
    */
-   // TODO(zianke): Add other sequence metadata
-  CreateStatement(std::unique_ptr<TableInfo> table_info, std::string sequence_name, int sequence_increment)
+  CreateStatement(std::unique_ptr<TableInfo> table_info, std::string sequence_name, int64_t sequence_start,
+                  int64_t sequence_increment, int64_t sequence_max, int64_t sequence_min, bool sequence_cycle)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kSequence),
-        sequence_name_(std::move(sequence_name)) {}
+        sequence_name_(std::move(sequence_name)),
+        sequence_start_(sequence_start),
+        sequence_increment_(sequence_increment),
+        sequence_max_(sequence_max),
+        sequence_min_(sequence_min),
+        sequence_cycle_(sequence_cycle) {}
 
   /**
    * CREATE VIEW
@@ -535,6 +545,21 @@ class CreateStatement : public TableRefStatement {
   /** @return sequence name for [CREATE SEQUENCE] */
   std::string GetSequenceName() { return sequence_name_; }
 
+  /** @return sequence start for [CREATE SEQUENCE] */
+  int64_t GetSequenceStart() { return sequence_start_; }
+
+  /** @return sequence increment for [CREATE SEQUENCE] */
+  int64_t GetSequenceIncrement() { return sequence_increment_; }
+
+  /** @return sequence max for [CREATE SEQUENCE] */
+  int64_t GetSequenceMax() { return sequence_max_; }
+
+  /** @return sequence min for [CREATE SEQUENCE] */
+  int64_t GetSequenceMin() { return sequence_min_; }
+
+  /** @return sequence cycle for [CREATE SEQUENCE] */
+  bool GetSequenceCycle() { return sequence_cycle_; }
+
   /** @return view name for [CREATE VIEW] */
   std::string GetViewName() { return view_name_; }
 
@@ -568,6 +593,11 @@ class CreateStatement : public TableRefStatement {
 
   // CREATE SEQUENCE
   const std::string sequence_name_;
+  const int64_t sequence_start_ = 0;
+  const int64_t sequence_increment_ = 0;
+  const int64_t sequence_max_ = 0;
+  const int64_t sequence_min_ = 0;
+  const bool sequence_cycle_ = false;
 
   // CREATE VIEW
   const std::string view_name_;
