@@ -257,7 +257,7 @@ class EXPORT CatalogAccessor {
    * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
    */
   constraint_oid_t CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
-                                      std::vector<col_oid_t> &pk_cols) const;
+                                      const std::vector<col_oid_t> &pk_cols) const;
 
   /**
    * caller to catalog to create a fk constraint entry for a table
@@ -275,7 +275,7 @@ class EXPORT CatalogAccessor {
    */
   constraint_oid_t CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
                                        std::string name, index_oid_t src_index, index_oid_t sink_index,
-                                       std::vector<col_oid_t> &src_cols, std::vector<col_oid_t> &sink_cols,
+                                       const std::vector<col_oid_t> &src_cols, const std::vector<col_oid_t> &sink_cols,
                                        postgres::FKActionType update_action,
                                        postgres::FKActionType delete_action) const;
 
@@ -289,7 +289,7 @@ class EXPORT CatalogAccessor {
    * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
    */
   constraint_oid_t CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name, index_oid_t index,
-                                           std::vector<col_oid_t> &unique_cols) const;
+                                           const std::vector<col_oid_t> &unique_cols) const;
 
   /**
    * A list of all constraints on this table
@@ -297,6 +297,13 @@ class EXPORT CatalogAccessor {
    * @return vector of OIDs for all of the constraints that apply to this table
    */
   std::vector<constraint_oid_t> GetConstraints(table_oid_t table) const;
+
+  /**
+   * Get the constraint objects given a table
+   * @param table being queried, this must be a valid oid from GetTableOid. Invalid input will trigger an assert
+   * @return vector of pg_constraint objects
+   */
+  std::vector<PGConstraint> GetConstraintObjs(table_oid_t table) const;
 
   /**
    * A list of all indexes on the given table

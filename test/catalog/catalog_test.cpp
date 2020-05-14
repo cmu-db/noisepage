@@ -9,6 +9,7 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
+#include "catalog/constraint.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "execution/functions/function_context.h"
 #include "main/db_main.h"
@@ -19,6 +20,7 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier {
 

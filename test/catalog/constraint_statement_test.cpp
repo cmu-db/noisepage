@@ -67,7 +67,7 @@ TEST_F(ConstraintStatementTest, BasicTableCreationTest) {
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
     std::cerr << "pass insert test\n";
     pqxx::result r2 = txn1.exec("SELECT * FROM pg_constraint;");
-    EXPECT_EQ(r2.size(), 1);
+    EXPECT_EQ(r2.size(), 1) << "This is a test !!!!!\n";
     std::cerr << "pass select test 1\n";
     pqxx::result r = txn1.exec("SELECT * FROM TableA;");
     EXPECT_EQ(r.size(), 1);
@@ -81,7 +81,7 @@ TEST_F(ConstraintStatementTest, BasicTableCreationTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ConstraintStatementTest, FKCreationRestriction) {
+TEST_F(ConstraintStatementTest, FKCreationRestrictionSuccess) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -102,15 +102,15 @@ TEST_F(ConstraintStatementTest, FKCreationRestriction) {
   }
 }
 
-TEST_F(ConstraintStatementTest, FKCreationRestrictionFalse1) {
+TEST_F(ConstraintStatementTest, FKCreationReferenceNoneUnique) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
-    std::cerr << "FKCreationRestrictionFalse1\n";
+    std::cerr << "FKCreationReferenceNoneUnique\n";
     pqxx::work txn1(connection);
     txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, name TEXT UNIQUE);");
     txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk1 INT, fk2 TEXT REFERENCES TableA (data));");
-    std::cerr << "till end\n";
+    EXPECT_TRUE(false);  // expect creation raise error, should never reach here
     txn1.commit();
     connection.disconnect();
   } catch (const std::exception &e) {
@@ -119,18 +119,18 @@ TEST_F(ConstraintStatementTest, FKCreationRestrictionFalse1) {
   }
 }
 
-TEST_F(ConstraintStatementTest, FKCreationRestrictionFalse2) {
+TEST_F(ConstraintStatementTest, FKCreationIncludingNoneUnique) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
 
-    std::cerr << "FKCreationRestrictionFalse2\n";
+    std::cerr << "FKCreationIncludingNoneUnique\n";
     pqxx::work txn1(connection);
     txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, name TEXT UNIQUE);");
     txn1.exec(
         "CREATE TABLE TableC (id INT PRIMARY KEY, fk1 INT, fk2 TEXT, FOREIGN KEY (fk1, fk2) REFERENCES TableA (data, "
         "name));");
-    std::cerr << "till end\n";
+    EXPECT_TRUE(false);
     txn1.commit();
     connection.disconnect();
   } catch (const std::exception &e) {
@@ -139,12 +139,12 @@ TEST_F(ConstraintStatementTest, FKCreationRestrictionFalse2) {
   }
 }
 
-TEST_F(ConstraintStatementTest, FKCreationRestrictionFalse3) {
+TEST_F(ConstraintStatementTest, FKCreationDisjointUniquePKConstraint) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
 
-    std::cerr << "FKCreationRestrictionFalse3\n";
+    std::cerr << "FKCreationDisjointUniquePKConstraint\n";
     pqxx::work txn1(connection);
     txn1.exec(
         "CREATE TABLE TableA (id INT, data1 INT, data2 INT, data3 INT, data4 INT, data5 INT UNIQUE, PRIMARY KEY(id, "
@@ -152,7 +152,7 @@ TEST_F(ConstraintStatementTest, FKCreationRestrictionFalse3) {
     txn1.exec(
         "CREATE TABLE TableC (id INT PRIMARY KEY, fk1 INT, fk2 INT, FOREIGN KEY (fk1, fk2) REFERENCES TableA (id, "
         "data5));");
-    std::cerr << "till end\n";
+    EXPECT_TRUE(false);
     txn1.commit();
     connection.disconnect();
   } catch (const std::exception &e) {
@@ -192,7 +192,7 @@ TEST_F(ConstraintStatementTest, FKCreationTypeMismatch) {
     pqxx::work txn1(connection);
     txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, name TEXT UNIQUE);");
     txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk1 INT REFERENCES TableA(name));");
-    std::cerr << "till end\n";
+    EXPECT_TRUE(false);
     txn1.commit();
     connection.disconnect();
   } catch (const std::exception &e) {
@@ -517,10 +517,8 @@ TEST_F(ConstraintStatementTest, VerifyUpdateFKTest2) {
     pqxx::result r = txn1.exec("SELECT * FROM TableA");
     EXPECT_EQ(r.size(), 2);
 
-    // txn1.exec("UPDATE TableA SET data = 2, name = 'abc' WHERE id = 1;");
-    // txn1.exec("UPDATE TableB SET fk1 = 2 WHERE id = 1;");
     txn1.exec("UPDATE TableB SET fk1 = 3 WHERE id = 1;");
-    // txn1.exec("UPDATE TableC SET fk2 = 'abc' WHERE id = 1;");
+    EXPECT_TRUE(false);
     std::cerr << "till end\n";
     txn1.commit();
     connection.disconnect();
@@ -548,7 +546,6 @@ TEST_F(ConstraintStatementTest, VerifyUpdateFKTest3) {
 
     txn1.exec("UPDATE TableA SET data = 2, name = 'abcd' WHERE id = 1;");
     txn1.exec("UPDATE TableB SET fk1 = 2 WHERE id = 1;");
-    //     txn1.exec("UPDATE TableC SET id = 2, fk2 = 'abcd' WHERE id = 1;");
     std::cerr << "till end\n";
     txn1.commit();
     connection.disconnect();
@@ -572,6 +569,7 @@ TEST_F(ConstraintStatementTest, VerifyUpdateUNIQUETest) {
 
     txn1.exec("UPDATE TableA SET data = 4 WHERE id = 1;");
     txn1.exec("UPDATE TableA SET id = 2 WHERE id = 1;");
+    EXPECT_TRUE(false);
     std::cerr << "till end\n";
     txn1.commit();
     connection.disconnect();
@@ -598,6 +596,31 @@ TEST_F(ConstraintStatementTest, VerifyUpdateFKTestComplex) {
     EXPECT_EQ(r.size(), 2);
 
     txn1.exec("UPDATE TableA SET data = 2 WHERE id = 1;");
+    std::cerr << "till end\n";
+    txn1.commit();
+    connection.disconnect();
+  } catch (const std::exception &e) {
+    EXPECT_TRUE(false);
+    std::cerr << e.what();
+  }
+}
+
+TEST_F(ConstraintStatementTest, VerifyDelete) {
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+    txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, data2 INT);");
+    txn1.exec("INSERT INTO TableA VALUES (1, 3, 2);");
+    txn1.exec("UPDATE TableA SET data1 = 4, data2 = 4 WHERE id = 1;");
+    txn1.exec("INSERT INTO TableA VALUES (2, 4, 4);");
+    pqxx::result r = txn1.exec("SELECT * FROM TableA;");
+    EXPECT_EQ(r.size(), 2);
+
+    txn1.exec("DELETE FROM TableA WHERE data1 = 4;");
+    r = txn1.exec("SELECT * FROM TableA;");
+    EXPECT_EQ(r.size(), 0);
     std::cerr << "till end\n";
     txn1.commit();
     connection.disconnect();

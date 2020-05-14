@@ -122,14 +122,14 @@ int CatalogAccessor::DeleteCascade(db_oid_t db_oid, table_oid_t table, const std
 }
 
 constraint_oid_t CatalogAccessor::CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,
-                                                     index_oid_t index, std::vector<col_oid_t> &pk_cols) const {
+                                                     index_oid_t index, const std::vector<col_oid_t> &pk_cols) const {
   NormalizeObjectName(&name);
   return dbc_->CreatePKConstraint(txn_, ns, table, name, index, pk_cols);
 }
 constraint_oid_t CatalogAccessor::CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
                                                       std::string name, index_oid_t src_index, index_oid_t sink_index,
-                                                      std::vector<col_oid_t> &src_cols,
-                                                      std::vector<col_oid_t> &sink_cols,
+                                                      const std::vector<col_oid_t> &src_cols,
+                                                      const std::vector<col_oid_t> &sink_cols,
                                                       postgres::FKActionType update_action,
                                                       postgres::FKActionType delete_action) const {
   NormalizeObjectName(&name);
@@ -138,13 +138,17 @@ constraint_oid_t CatalogAccessor::CreateFKConstraints(namespace_oid_t ns, table_
 }
 constraint_oid_t CatalogAccessor::CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
                                                           index_oid_t index,
-                                                          std::vector<col_oid_t> &unique_cols) const {
+                                                          const std::vector<col_oid_t> &unique_cols) const {
   NormalizeObjectName(&name);
   return dbc_->CreateUNIQUEConstraint(txn_, ns, table, name, index, unique_cols);
 }
 
 std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table) const {
   return dbc_->GetConstraints(txn_, table);
+}
+
+std::vector<PGConstraint> CatalogAccessor::GetConstraintObjs(table_oid_t table) const {
+  return dbc_->GetConstraintObjs(txn_, table);
 }
 
 std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {

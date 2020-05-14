@@ -1,6 +1,5 @@
 #include "execution/sql/storage_interface.h"
 
-#include <stdio.h>
 #include <algorithm>
 #include <vector>
 
