@@ -1393,17 +1393,19 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   auto *const kind_ptr = class_insert_pr->AccessForceNotNull(kind_offset);
   *(reinterpret_cast<postgres::ClassKind *>(kind_ptr)) = postgres::ClassKind::SEQUENCE;
 
-  // Set schema to NULL because sequences don't need schema
-  const auto index_schema_ptr_offset = pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID];
-  class_insert_pr->SetNull(index_schema_ptr_offset);
+  // Sequences don't need schema pointer. Set to a dummy value to pass non-nullptr assertion
+  const auto schema_ptr_offset = pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID];
+  auto *schema_ptr = class_insert_pr->AccessForceNotNull(schema_ptr_offset);
+  *(reinterpret_cast<int64_t *>(schema_ptr)) = -1;
 
   // Set next_col_oid to NULL because sequences don't need col_oid
   const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
   class_insert_pr->SetNull(next_col_oid_offset);
 
-  // Set sequence_ptr to NULL because it gets set by execution layer after instantiation
-  const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
-  class_insert_pr->SetNull(index_ptr_offset);
+  // Sequences don't need sequence pointer. Set to a dummy value to pass non-nullptr assertion
+  const auto sequence_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
+  auto *sequence_ptr = class_insert_pr->AccessForceNotNull(sequence_ptr_offset);
+  *(reinterpret_cast<int64_t *>(sequence_ptr)) = -1;
 
   // Insert into pg_class table
   const auto class_tuple_slot = classes_->Insert(txn, class_insert_redo);
@@ -1490,9 +1492,6 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
                                      sequence_oid_t sequence) {
   if (!TryLock(txn)) return false;
   bool result;
-  // TODO(zianke): We should respect foreign key relations and attempt to delete the sequence's columns first
-  // auto result = DeleteColumns<SequenceSchema::Column, sequence_oid_t>(txn, sequence);
-  // if (!result) return false;
 
   // Initialize PRs for pg_class
   const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
@@ -1534,12 +1533,6 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID])));
   const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAME_COL_OID])));
-
-  // TODO(zianke): schema_ptr and sequence_ptr currently empty
-  // auto *const schema_ptr = *(reinterpret_cast<const IndexSchema *const *const>(
-  //      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID])));
-  // auto *const sequence_ptr = *(reinterpret_cast<storage::index::Index *const *const>(
-  //      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID])));
 
   const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
@@ -1587,8 +1580,6 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
   *(reinterpret_cast<sequence_oid_t *const>(index_pr->AccessForceNotNull(0))) = sequence;
   sequences_relid_index_->Delete(txn, *index_pr, index_results[0]);
 
-  // delete schema_ptr;
-  // delete sequence_ptr;
   delete[] buffer;
   return true;
 }
@@ -1632,8 +1623,8 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     classes_->Scan(txn, &table_iter, pc);
     for (uint i = 0; i < pc->NumTuples(); i++) {
       // TODO(zianke): Temporarily remove TERRIER_ASSERT
-      // TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
-      // TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
+      TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
+      TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
           table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
