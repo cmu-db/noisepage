@@ -955,8 +955,8 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->procs_name_index_;
     }
 
-    case (!catalog::postgres::SEQUENCE_OID_INDEX_OID): {
-      return db_catalog->sequences_oid_index_;
+    case (!catalog::postgres::SEQUENCE_RELID_INDEX_OID): {
+      return db_catalog->sequences_relid_index_;
     }
 
     default:

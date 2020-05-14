@@ -536,7 +536,7 @@ class DatabaseCatalog {
   storage::ProjectionMap delete_columns_prm_;
 
   storage::SqlTable *sequences_;
-  storage::index::Index *sequences_oid_index_;
+  storage::index::Index *sequences_relid_index_;
   storage::ProjectedRowInitializer pg_sequence_all_cols_pri_;
   storage::ProjectionMap pg_sequence_all_cols_prm_;
   storage::ProjectedRowInitializer delete_sequence_pri_;

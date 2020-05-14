@@ -214,7 +214,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   }
 
   // Using pg_sequence_index to get corresponding sequence tuple
-  auto pg_sequence_index = accessor->GetIndex(catalog::postgres::SEQUENCE_OID_INDEX_OID);
+  auto pg_sequence_index = accessor->GetIndex(catalog::postgres::SEQUENCE_RELID_INDEX_OID);
   auto pg_sequence_index_pri = pg_sequence_index->GetProjectedRowInitializer();
   byte *const pg_index_buffer = common::AllocationUtil::AllocateAligned(pg_sequence_index_pri.ProjectedRowSize());
   auto pg_index_pr = pg_sequence_index_pri.InitializeRow(pg_index_buffer);

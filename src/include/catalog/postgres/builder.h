@@ -169,7 +169,7 @@ class Builder {
    * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_constraint
    */
-  static IndexSchema GetSequenceOidIndexSchema(db_oid_t db);
+  static IndexSchema GetSequenceRelidIndexSchema(db_oid_t db);
 
   /**
    * @param db oid in which the indexed table exists

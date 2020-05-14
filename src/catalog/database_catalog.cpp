@@ -266,10 +266,10 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::SEQUENCE_TABLE_OID,
-                            postgres::SEQUENCE_OID_INDEX_OID, "pg_sequence_oid_index",
-                            postgres::Builder::GetSequenceOidIndexSchema(db_oid_));
+                            postgres::SEQUENCE_RELID_INDEX_OID, "pg_sequence_seqrelid_index",
+                            postgres::Builder::GetSequenceRelidIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::SEQUENCE_OID_INDEX_OID, sequences_oid_index_);
+  retval = SetIndexPointer(txn, postgres::SEQUENCE_RELID_INDEX_OID, sequences_relid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
@@ -1473,14 +1473,14 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
 
   const auto tuple_slot = sequences_->Insert(txn, sequences_insert_redo);
 
-  // Next: Insert into oid index
-  auto oid_pri = sequences_oid_index_->GetProjectedRowInitializer();
-  byte *const buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
-  index_pr = oid_pri.InitializeRow(buffer);
+  // Next: Insert into relid index
+  auto relid_pri = sequences_relid_index_->GetProjectedRowInitializer();
+  byte *const buffer = common::AllocationUtil::AllocateAligned(relid_pri.ProjectedRowSize());
+  index_pr = relid_pri.InitializeRow(buffer);
 
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<sequence_oid_t *>(index_pr->AccessForceNotNull(0))) = sequence_oid;
-  const bool UNUSED_ATTRIBUTE sequence_result = sequences_oid_index_->InsertUnique(txn, *index_pr, tuple_slot);
+  const bool UNUSED_ATTRIBUTE sequence_result = sequences_relid_index_->InsertUnique(txn, *index_pr, tuple_slot);
   TERRIER_ASSERT(sequence_result, "Assigned sequence OID failed to be unique.");
 
   return true;
@@ -1561,13 +1561,12 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
   *(reinterpret_cast<namespace_oid_t *const>(index_pr->AccessForceNotNull(0))) = ns_oid;
   classes_namespace_index_->Delete(txn, *index_pr, index_results[0]);
 
-  // TODO(zianke): Next we need to delete from pg_sequence
   // Now we need to delete from pg_sequence and its indexes
-  const auto sequence_oid_pr = sequences_oid_index_->GetProjectedRowInitializer();
+  const auto sequence_oid_pr = sequences_relid_index_->GetProjectedRowInitializer();
   index_results.clear();
   key_pr = sequence_oid_pr.InitializeRow(buffer);
   *(reinterpret_cast<sequence_oid_t *>(key_pr->AccessForceNotNull(0))) = sequence;
-  sequences_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  sequences_relid_index_->ScanKey(*txn, *key_pr, &index_results);
   table_pr = delete_sequence_pri_.InitializeRow(buffer);
   result = sequences_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
@@ -1586,7 +1585,7 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
   // Delete from sequences_oid_index
   index_pr = sequence_oid_pr.InitializeRow(buffer);
   *(reinterpret_cast<sequence_oid_t *const>(index_pr->AccessForceNotNull(0))) = sequence;
-  sequences_oid_index_->Delete(txn, *index_pr, index_results[0]);
+  sequences_relid_index_->Delete(txn, *index_pr, index_results[0]);
 
   // delete schema_ptr;
   // delete sequence_ptr;

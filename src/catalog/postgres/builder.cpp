@@ -131,8 +131,8 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
 
   // Indexes on pg_sequence
-  dbc->sequences_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetSequenceOidIndexSchema(oid), SEQUENCE_OID_INDEX_OID);
+  dbc->sequences_relid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetSequenceRelidIndexSchema(oid), SEQUENCE_RELID_INDEX_OID);
 
   // Indexes on pg_language
   dbc->languages_oid_index_ =
@@ -205,9 +205,6 @@ Schema Builder::GetClassTableSchema() {
 
 Schema Builder::GetSequenceTableSchema() {
   std::vector<Schema::Column> columns;
-
-  columns.emplace_back("seqoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(SEQOID_COL_OID);
 
   columns.emplace_back("seqrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(SEQRELID_COL_OID);
@@ -558,11 +555,11 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
   return schema;
 }
 
-IndexSchema Builder::GetSequenceOidIndexSchema(db_oid_t db) {
+IndexSchema Builder::GetSequenceRelidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("seqoid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, SEQUENCE_TABLE_OID, SEQOID_COL_OID));
+  columns.emplace_back("seqrelid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, SEQUENCE_TABLE_OID, SEQRELID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -570,19 +567,6 @@ IndexSchema Builder::GetSequenceOidIndexSchema(db_oid_t db) {
 
   return schema;
 }
-
-/*IndexSchema Builder::GetSequenceNameIndexSchema(db_oid_t db) {
-    std::vector<IndexSchema::Column> columns;
-
-    columns.emplace_back("seqname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                         parser::ColumnValueExpression(db, SEQUENCE_TABLE_OID, SEQNAME_COL_OID));
-    columns.back().SetOid(indexkeycol_oid_t(2));
-
-    // Unique, not primary
-    IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
-
-    return schema;
-}*/
 
 IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
