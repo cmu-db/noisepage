@@ -12,7 +12,7 @@ void TableStats::UpdateNumRows(size_t new_num_rows) {
   num_rows_ = new_num_rows;
   for (auto &col_to_stats_pair : column_stats_) {
     auto &col_stats_ptr = col_to_stats_pair.second;
-    col_stats_ptr->GetNumRows() = new_num_rows;
+    col_stats_ptr->SetNumRows(new_num_rows);
   }
 }
 

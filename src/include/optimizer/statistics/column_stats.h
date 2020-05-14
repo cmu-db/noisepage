@@ -47,6 +47,18 @@ class ColumnStats {
   ColumnStats() = default;
 
   /**
+   * Gets the database oid of the column
+   * @return the database oid
+   */
+  catalog::db_oid_t GetDatabaseID() const { return database_id_; }
+
+  /**
+   * Gets the table oid of the column
+   * @return the table oid
+   */
+  catalog::table_oid_t GetTableID() const { return table_id_; }
+
+  /**
    * Gets the column oid of the column
    * @return the column oid
    */
@@ -56,7 +68,7 @@ class ColumnStats {
    * Gets the number of rows in the column
    * @return the number of rows
    */
-  size_t &GetNumRows() { return this->num_rows_; }
+  size_t GetNumRows() { return this->num_rows_; }
 
   /**
    * Sets the number of rows int he column
@@ -68,7 +80,13 @@ class ColumnStats {
    * Gets the cardinality of the column
    * @return the cardinality
    */
-  double &GetCardinality() { return this->cardinality_; }
+  double GetCardinality() { return this->cardinality_; }
+
+  /**
+   * Gets the fraction of null vals
+   * @return fraction of null vals
+   */
+  double GetFracNull() const { return frac_null_; }
 
   /**
    * Gets the histogram bounds

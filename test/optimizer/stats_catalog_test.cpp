@@ -192,8 +192,7 @@ TEST_F(StatsCatalogTests, StatisticTest) {
     for (catalog::col_oid_t col_oid : col_oids) {
       auto col_stats = table_stats->GetColumnStats(col_oid);
 
-      // TODO(khg): no way to get frac_null_ out of a ColumnStats?
-      // EXPECT_EQ(col_stats->GetFracNull(), 0.123);
+      EXPECT_EQ(col_stats->GetFracNull(), 0.123);
       EXPECT_EQ(col_stats->GetCardinality(), 4.56);
       EXPECT_EQ(col_stats->GetNumRows(), 15721);
     }
@@ -365,8 +364,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
     const auto &col = schema.GetColumn("col1");
     auto col_stats = table_stats->GetColumnStats(col.Oid());
 
-    // TODO(khg): no way to get frac_null_ out of a ColumnStats?
-    // EXPECT_EQ(col_stats->GetFracNull(), 0.123);
+    EXPECT_EQ(col_stats->GetFracNull(), 0.123);
     EXPECT_EQ(col_stats->GetCardinality(), 10.0);
     EXPECT_EQ(col_stats->GetNumRows(), 1000);
 
