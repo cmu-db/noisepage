@@ -46,4 +46,4 @@ std::unique_ptr<Schema> Schema::DeserializeSchema(const nlohmann::json &j) {
 DEFINE_JSON_BODY_DECLARATIONS(Schema::Column);
 DEFINE_JSON_BODY_DECLARATIONS(Schema);
 
-} // namespace terrier::catalog
+}  // namespace terrier::catalog

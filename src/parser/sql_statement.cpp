@@ -34,4 +34,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> SQLStatement::FromJson(
 
 DEFINE_JSON_BODY_DECLARATIONS(SQLStatement);
 
-} // namespace terrier::parser
+}  // namespace terrier::parser

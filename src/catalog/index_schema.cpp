@@ -59,4 +59,4 @@ std::unique_ptr<IndexSchema> IndexSchema::DeserializeSchema(const nlohmann::json
 DEFINE_JSON_BODY_DECLARATIONS(IndexSchema::Column);
 DEFINE_JSON_BODY_DECLARATIONS(IndexSchema);
 
-}
+}  // namespace terrier::catalog

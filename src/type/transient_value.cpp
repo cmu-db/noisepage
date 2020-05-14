@@ -29,4 +29,4 @@ void TransientValue::FromJson(const nlohmann::json &j) {
 
 DEFINE_JSON_BODY_DECLARATIONS(TransientValue);
 
-} // namespace terrier::type
+}  // namespace terrier::type

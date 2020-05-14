@@ -18,4 +18,4 @@ namespace terrier {
 // clang-format on
 
 DEFINE_PERFORMANCE_CLASS_HEADER(CacheCounter, CACHE_MEMBERS)
-}
+}  // namespace terrier

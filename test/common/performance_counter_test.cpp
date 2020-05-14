@@ -1,9 +1,11 @@
 #include "common/performance_counter_test.h"
-#include "common/performance_counter_body.h"
+
 #include <functional>
 #include <random>
 #include <vector>
+
 #include "common/json.h"
+#include "common/performance_counter_body.h"
 #include "gtest/gtest.h"
 #include "test_util/random_test_util.h"
 

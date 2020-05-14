@@ -5,4 +5,4 @@ namespace terrier::network {
 
 STRONG_TYPEDEF_BODY(connection_id_t, uint16_t);
 
-} // namespace terrier::network
+}  // namespace terrier::network

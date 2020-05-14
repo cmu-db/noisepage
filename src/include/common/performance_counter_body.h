@@ -46,8 +46,8 @@
       output["CounterName"] = #ClassName;                                                                 \
       MemberList(PC_FN_JSON_TO);                                                                          \
       return output;                                                                                      \
-  };                                                                                                      \
-  void ClassName::FromJson(const nlohmann::json &j) { MemberList(PC_FN_JSON_FROM); };                     \
+  }                                                                                                       \
+  void ClassName::FromJson(const nlohmann::json &j) { MemberList(PC_FN_JSON_FROM); }                      \
                                                                                                           \
   void ClassName::ZeroCounters() { MemberList(PC_FN_ZERO) }                                               \
   void to_json(nlohmann::json &j, const ClassName &c) { j = c.ToJson(); }  /* NOLINT */                   \

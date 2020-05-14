@@ -17,4 +17,4 @@ STRONG_TYPEDEF_BODY(date_t, uint32_t);
  */
 STRONG_TYPEDEF_BODY(timestamp_t, uint64_t);
 
-} // namespace terrier::type
+}  // namespace terrier::type

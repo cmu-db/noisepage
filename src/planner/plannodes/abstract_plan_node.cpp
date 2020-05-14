@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -34,7 +35,6 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "common/json.h"
 
 namespace terrier::planner {
 

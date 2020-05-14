@@ -18,4 +18,4 @@ STRONG_TYPEDEF_BODY(trigger_oid_t, uint32_t);
 STRONG_TYPEDEF_BODY(type_oid_t, uint32_t);
 STRONG_TYPEDEF_BODY(view_oid_t, uint32_t);
 
-} // namespace terrier::catalog
+}  // namespace terrier::catalog

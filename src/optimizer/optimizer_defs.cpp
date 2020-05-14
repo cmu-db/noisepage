@@ -8,4 +8,4 @@ namespace terrier::optimizer {
  */
 STRONG_TYPEDEF_BODY(group_id_t, int32_t);
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

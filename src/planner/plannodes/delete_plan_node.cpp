@@ -1,9 +1,10 @@
 #include "planner/plannodes/delete_plan_node.h"
-#include "common/json.h"
 
 #include <memory>
 #include <utility>
 #include <vector>
+
+#include "common/json.h"
 
 namespace terrier::planner {
 

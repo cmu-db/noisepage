@@ -33,4 +33,4 @@ void ColumnStats::FromJson(const nlohmann::json &j) {
 
 DEFINE_JSON_BODY_DECLARATIONS(ColumnStats);
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

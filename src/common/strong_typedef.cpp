@@ -48,4 +48,4 @@ template class StrongTypeAlias<terrier::transaction::tags::timestamp_t_typedef_t
 template class StrongTypeAlias<terrier::type::tags::date_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<terrier::type::tags::timestamp_t_typedef_tag, uint64_t>;
 
-} // namespace terrier::common
+}  // namespace terrier::common
