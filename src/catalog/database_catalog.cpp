@@ -2821,7 +2821,6 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
-  // if (!TryLock(txn)) return INVALID_PROC_OID;
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
