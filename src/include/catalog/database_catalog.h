@@ -295,11 +295,12 @@ class DatabaseCatalog {
                                    const std::vector<col_oid_t> &col_oids, storage::ProjectedRow *update_pr,
                                    storage::TupleSlot tuple_slot);
   int FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, db_oid_t db_oid, table_oid_t table,
-                 storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr);
+                const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr);
   int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
                                           table_oid_t table_oid, const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> pr_vector);
   std::vector<storage::TupleSlot> FKScan(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
-                                         const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector);
+                                         const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector,
+                                         std::vector<col_oid_t> affected_col_ref, std::vector<col_oid_t> affected_col_src);
   int FKDelete(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
                                 const PG_Constraint &con_obj, std::vector<storage::TupleSlot> fk_slots);
 
