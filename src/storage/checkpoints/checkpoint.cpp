@@ -162,21 +162,4 @@ void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::s
   outfile.close();
 }
 
-const std::vector<std::string> Checkpoint::StringSplit(const std::string &s, const char &delimiter) {
-  std::string buff{""};
-  std::vector<std::string> str_vec;
-
-  for (auto c : s) {
-    if (c != delimiter)
-      buff += c;
-    else if (c == delimiter && buff != "") {
-      str_vec.push_back(buff);
-      buff = "";
-    }
-  }
-  if (buff != "") str_vec.push_back(buff);
-
-  return str_vec;
-}
-
 }  // namespace terrier::storage
