@@ -262,6 +262,9 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
     // cases, we can check whether it is the case here to do the pruning
   }
 
+  // We need at least one pair of output/input properties for the below loop to execute, even if they're empty sets
+  TERRIER_ASSERT(!output_input_properties_.empty(), "output_input_properties_ cannot be empty");
+
   // Loop over (output prop, input props) pair for the GroupExpression being optimized
   // (1) Cost children (if needed); or pick the best child expression (in terms of cost)
   // (2) Enforce any missing properties as required
@@ -278,6 +281,9 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
           context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(), group_expr_);
     }
+
+    TERRIER_ASSERT(input_props.size() == group_expr_->GetChildrenGroupsSize(),
+                   "Number of input props should match number of child groups");
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];

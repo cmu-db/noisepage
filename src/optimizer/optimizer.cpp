@@ -68,6 +68,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
     PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols) {
   Group *group = context_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
+  TERRIER_ASSERT(gexpr != nullptr, "There should be at least one best expression");
 
   OPTIMIZER_LOG_TRACE("Choosing best plan for group {0} with op {1}", gexpr->GetGroupID(),
                       gexpr->Op().GetName().c_str());
