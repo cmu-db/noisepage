@@ -119,9 +119,8 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
     if (current_insert_idx >= blocks_.size()) {
       block = NewBlock();
       current_insert_idx = blocks_.Insert(block);
-    } else {
+    } else
       block = const_cast<RawBlock *>(blocks_.LookUp(current_insert_idx));
-    }
 
     if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block
