@@ -1404,34 +1404,53 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
   delete when_2;
 }
 
-/*
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalCreateSequenceTest) {
   //===--------------------------------------------------------------------===//
   // LogicalCreateSequence
   //===--------------------------------------------------------------------===//
-  Operator op1 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1");
+  Operator op1 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATESEQUENCE);
   EXPECT_EQ(op1.GetName(), "LogicalCreateSequence");
   EXPECT_EQ(op1.As<LogicalCreateSequence>()->GetSequenceName(), "Sequence_1");
 
-  Operator op2 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1");
+  Operator op2 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 = LogicalCreateSequence::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "Sequence_1");
+  Operator op3 = LogicalCreateSequence::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "Sequence_1");
+  Operator op4 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "Sequence_1", 4, 2, 10, 3, true);
   EXPECT_FALSE(op4 == op1);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  Operator op5 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_2");
+  Operator op5 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_2", 4, 2, 10, 3, true);
   EXPECT_FALSE(op5 == op1);
   EXPECT_NE(op1.Hash(), op5.Hash());
-}*/
+
+  Operator op6 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 5, 2, 10, 3, true);
+  EXPECT_FALSE(op6 == op1);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 3, 10, 3, true);
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 20, 3, true);
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+
+  Operator op9 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 2, true);
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+
+  Operator op10 = LogicalCreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, false);
+  EXPECT_FALSE(op1 == op10);
+  EXPECT_NE(op1.Hash(), op10.Hash());
+}
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalCreateViewTest) {
@@ -1530,7 +1549,6 @@ TEST(OperatorTests, LogicalDropIndexTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
 
-/*
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalDropSequenceTest) {
   //===--------------------------------------------------------------------===//
@@ -1549,7 +1567,7 @@ TEST(OperatorTests, LogicalDropSequenceTest) {
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
   EXPECT_NE(op1.Hash(), op3.Hash());
-}*/
+}
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalDropNamespaceTest) {

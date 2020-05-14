@@ -259,20 +259,19 @@ TEST_F(CatalogTests, NamespaceTest) {
  * Create and delete a sequence
  */
 // NOLINTNEXTLINE
-/*
 TEST_F(CatalogTests, SequenceTest) {
   // Create a sequence and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
-  auto sequence_oid = accessor->CreateSequence(accessor->GetDefaultNamespace(), "test_sequence");
+  auto sequence_oid = accessor->CreateSequence(accessor->GetDefaultNamespace(), "test_sequence", 4, 2, 10, 3, true);
   EXPECT_NE(sequence_oid, catalog::INVALID_SEQUENCE_OID);
   VerifyCatalogTables(*accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
-  sequence_oid = accessor->CreateSequence(accessor->GetDefaultNamespace(), "test_sequence");
+  sequence_oid = accessor->CreateSequence(accessor->GetDefaultNamespace(), "test_sequence", 4, 2, 10, 3, true);
   EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
 
@@ -294,7 +293,6 @@ TEST_F(CatalogTests, SequenceTest) {
   EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);
   txn_manager_->Abort(txn);
 }
- */
 
 /*
  * Create and delete a user table.

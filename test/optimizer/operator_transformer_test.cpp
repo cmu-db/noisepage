@@ -141,12 +141,12 @@ class OperatorTransformerTest : public TerrierTest {
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
 
-    /*// create sequence
+    // create sequence
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
-    sequence_oid_ = accessor_->CreateSequence(accessor_->GetDefaultNamespace(), "seq");
+    sequence_oid_ = accessor_->CreateSequence(accessor_->GetDefaultNamespace(), "seq", 4, 2, 10, 3, true);
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-    accessor_.reset(nullptr);*/
+    accessor_.reset(nullptr);
   }
 
   void SetUp() override {
@@ -1495,9 +1495,8 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
 }
 
 // NOLINTNEXTLINE
-/*
 TEST_F(OperatorTransformerTest, CreateSequenceTest) {
-  std::string create_sql = "CREATE SEQUENCE seq_a;";
+  std::string create_sql = "CREATE SEQUENCE seq_a INCREMENT BY 2 MINVALUE 3 MAXVALUE 10 START WITH 4 CYCLE;";
   std::string ref = R"({"Op":"LogicalCreateSequence",})";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
@@ -1516,6 +1515,11 @@ TEST_F(OperatorTransformerTest, CreateSequenceTest) {
   EXPECT_EQ(logical_create->GetSequenceName(), "seq_a");
   EXPECT_EQ(logical_create->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(logical_create->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(logical_create->GetSequenceStart(), 4);
+  EXPECT_EQ(logical_create->GetSequenceIncrement(), 2);
+  EXPECT_EQ(logical_create->GetSequenceMax(), 10);
+  EXPECT_EQ(logical_create->GetSequenceMin(), 3);
+  EXPECT_EQ(logical_create->GetSequenceCycle(), true);
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
@@ -1533,6 +1537,11 @@ TEST_F(OperatorTransformerTest, CreateSequenceTest) {
   EXPECT_EQ(ct->GetSequenceName(), "seq_a");
   EXPECT_EQ(ct->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(ct->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(ct->GetSequenceStart(), 4);
+  EXPECT_EQ(ct->GetSequenceIncrement(), 2);
+  EXPECT_EQ(ct->GetSequenceMax(), 10);
+  EXPECT_EQ(ct->GetSequenceMin(), 3);
+  EXPECT_EQ(ct->GetSequenceCycle(), true);
 
   optimizer::PlanGenerator plan_generator{};
   optimizer::PropertySet property_set{};
@@ -1549,7 +1558,12 @@ TEST_F(OperatorTransformerTest, CreateSequenceTest) {
   EXPECT_EQ(ctpn->GetSequenceName(), "seq_a");
   EXPECT_EQ(ctpn->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(ctpn->GetDatabaseOid(), db_oid_);
-}*/
+  EXPECT_EQ(ctpn->GetSequenceStart(), 4);
+  EXPECT_EQ(ctpn->GetSequenceIncrement(), 2);
+  EXPECT_EQ(ctpn->GetSequenceMax(), 10);
+  EXPECT_EQ(ctpn->GetSequenceMin(), 3);
+  EXPECT_EQ(ctpn->GetSequenceCycle(), true);
+}
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DropDatabaseTest) {
@@ -1700,7 +1714,6 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   EXPECT_EQ(dipn->GetIndexOid(), a_index_oid_);
 }
 
-/*
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DropSequenceTest) {
   std::string drop_sql = "DROP SEQUENCE seq;";
@@ -1748,7 +1761,7 @@ TEST_F(OperatorTransformerTest, DropSequenceTest) {
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_SEQUENCE);
   auto dspn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropSequencePlanNode>();
   EXPECT_EQ(dspn->GetSequenceOid(), sequence_oid_);
-}*/
+}
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
