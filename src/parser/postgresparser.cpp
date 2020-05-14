@@ -1497,7 +1497,7 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(Pa
     }
   }
 
-  /* INCREMENT BY */
+  // INCREMENT BY
   if (increment_by != nullptr) {
     sequence_increment = (int64_t) reinterpret_cast<value *>(increment_by->arg_)->val_.ival_;
     if (sequence_increment == 0) {
@@ -1507,52 +1507,52 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(Pa
     sequence_increment = 1;
   }
 
-  /* CYCLE */
+  // CYCLE
   if (is_cycled != nullptr) {
     sequence_cycle = (bool)reinterpret_cast<value *>(is_cycled->arg_)->val_.ival_;
   } else {
     sequence_cycle = false;
   }
 
-  /* MAXVALUE (null arg means NO MAXVALUE) */
+  // MAXVALUE (null arg means NO MAXVALUE)
   if (max_value != nullptr && max_value->arg_) {
     sequence_max = (int64_t) reinterpret_cast<value *>(max_value->arg_)->val_.ival_;
   } else if (sequence_increment > 0) {
-    /* ascending seq */
+    // Ascending sequence
     sequence_max = std::numeric_limits<int64_t>::max();
   } else {
-    /* descending seq */
+    // Descending sequence
     sequence_max = -1;
   }
 
-  /* MINVALUE (null arg means NO MINVALUE) */
+  // MINVALUE (null arg means NO MINVALUE)
   if (min_value != nullptr && min_value->arg_) {
     sequence_min = (int64_t) reinterpret_cast<value *>(min_value->arg_)->val_.ival_;
   } else if (sequence_increment < 0) {
-    /* descending seq */
+    // Descending sequence
     sequence_min = std::numeric_limits<int64_t>::min();
   } else {
-    /* ascending seq */
+    // Ascending sequence
     sequence_min = 1;
   }
 
-  /* crosscheck min/max */
+  // Crosscheck min/max
   if (sequence_min >= sequence_max) {
     throw PARSER_EXCEPTION("MINVALUE must be less than MAXVALUE");
   }
 
-  /* START WITH */
+  // START WITH
   if (start_value != nullptr) {
     sequence_start = (int64_t) reinterpret_cast<value *>(start_value->arg_)->val_.ival_;
   } else if (sequence_increment > 0) {
-    /* ascending seq */
+    // Ascending sequence
     sequence_start = sequence_min;
   } else {
-    /* descending seq */
+    // Descending sequence
     sequence_start = sequence_max;
   }
 
-  /* crosscheck START */
+  // Crosscheck START
   if (sequence_start < sequence_min) {
     throw PARSER_EXCEPTION("START value cannot be less than MINVALUE");
   }

@@ -1445,10 +1445,11 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, class_tuple_slot);
   TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
 
-  // TODO(zianke): Next, insert sequence metadata into pg_sequence
+  // Next, insert sequence metadata into pg_sequence
 
   auto *const sequences_insert_redo = txn->StageWrite(db_oid_, postgres::SEQUENCE_TABLE_OID, pg_sequence_all_cols_pri_);
   auto *const sequences_insert_pr = sequences_insert_redo->Delta();
+
   // Write the sequence_oid into the PR
   sequence_oid_offset = pg_sequence_all_cols_prm_[postgres::SEQRELID_COL_OID];
   sequence_oid_ptr = sequences_insert_pr->AccessForceNotNull(sequence_oid_offset);
@@ -1458,12 +1459,25 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   const auto sequence_lastval_offset = pg_sequence_all_cols_prm_[postgres::SEQLASTVAL_COL_OID];
   sequences_insert_pr->SetNull(sequence_lastval_offset);
 
+  // Write sequence parameters into the PR
+  *(reinterpret_cast<int64_t *>(
+      sequences_insert_pr->AccessForceNotNull(pg_sequence_all_cols_prm_[postgres::SEQSTART_COL_OID]))) = seqstart;
+  *(reinterpret_cast<int64_t *>(sequences_insert_pr->AccessForceNotNull(
+      pg_sequence_all_cols_prm_[postgres::SEQINCREMENT_COL_OID]))) = seqincrement;
+  *(reinterpret_cast<int64_t *>(
+      sequences_insert_pr->AccessForceNotNull(pg_sequence_all_cols_prm_[postgres::SEQMAX_COL_OID]))) = seqmax;
+  *(reinterpret_cast<int64_t *>(
+      sequences_insert_pr->AccessForceNotNull(pg_sequence_all_cols_prm_[postgres::SEQMIN_COL_OID]))) = seqmin;
+  *(reinterpret_cast<bool *>(
+      sequences_insert_pr->AccessForceNotNull(pg_sequence_all_cols_prm_[postgres::SEQCYCLE_COL_OID]))) = seqcycle;
+
   const auto tuple_slot = sequences_->Insert(txn, sequences_insert_redo);
 
   // Next: Insert into oid index
   auto oid_pri = sequences_oid_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
   index_pr = oid_pri.InitializeRow(buffer);
+
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<sequence_oid_t *>(index_pr->AccessForceNotNull(0))) = sequence_oid;
   const bool UNUSED_ATTRIBUTE sequence_result = sequences_oid_index_->InsertUnique(txn, *index_pr, tuple_slot);

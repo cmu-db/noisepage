@@ -247,15 +247,53 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
                                                  sequence_projection_map.at(sequence_columns_oids[i]));
   }
 
-  // Read sequence value, if nullptr then set to 0
+  // Read sequence parameters
+  auto seq_start = *reinterpret_cast<int64_t *>(tuple_access_strategy.AccessWithoutNullCheck(
+      index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(catalog::postgres::SEQSTART_COL_OID)]));
+  auto seq_increment = *reinterpret_cast<int64_t *>(tuple_access_strategy.AccessWithoutNullCheck(
+      index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(catalog::postgres::SEQINCREMENT_COL_OID)]));
+  auto seq_max = *reinterpret_cast<int64_t *>(tuple_access_strategy.AccessWithoutNullCheck(
+      index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(catalog::postgres::SEQMAX_COL_OID)]));
+  auto seq_min = *reinterpret_cast<int64_t *>(tuple_access_strategy.AccessWithoutNullCheck(
+      index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(catalog::postgres::SEQMIN_COL_OID)]));
+  auto seq_cycle = *reinterpret_cast<bool *>(tuple_access_strategy.AccessWithoutNullCheck(
+      index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(catalog::postgres::SEQCYCLE_COL_OID)]));
+
+  // Read sequence value, if nullptr then set to start value and skip increment
+  int64_t seq_val;
   auto seq_val_ptr = reinterpret_cast<int64_t *>(tuple_access_strategy.AccessWithNullCheck(
       index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(catalog::postgres::SEQLASTVAL_COL_OID)]));
-  int64_t seq_val = seq_val_ptr == nullptr ? 0 : *seq_val_ptr;
+  if (seq_val_ptr == nullptr) {
+    seq_val = seq_start;
+  } else {
+    seq_val = *seq_val_ptr;
+    // Increment sequence
+    if (seq_increment > 0) {
+      // Ascending sequence
+      if ((seq_max >= 0 && seq_val > seq_max - seq_increment) || (seq_max < 0 && seq_val + seq_increment > seq_max)) {
+        if (!seq_cycle) {
+          throw terrier::CATALOG_EXCEPTION("Reached maximum value of sequence");
+        }
+        seq_val = seq_min;
+      } else {
+        seq_val += seq_increment;
+      }
+    } else {
+      // Descending sequence
+      if ((seq_min < 0 && seq_val < seq_min - seq_increment) || (seq_min >= 0 && seq_val + seq_increment < seq_min)) {
+        if (!seq_cycle) {
+          throw terrier::CATALOG_EXCEPTION("Reached minimum value of sequence");
+        }
+        seq_val = seq_max;
+      } else {
+        seq_val += seq_increment;
+      }
+    }
+  }
 
   // Update sequence value
-  seq_val += 1;
-  auto *sequence_nextval_ptr =
-      sequence_update_redo->Delta()->AccessForceNotNull(sequence_projection_map.at(catalog::postgres::SEQLASTVAL_COL_OID));
+  auto *sequence_nextval_ptr = sequence_update_redo->Delta()->AccessForceNotNull(
+      sequence_projection_map.at(catalog::postgres::SEQLASTVAL_COL_OID));
   *(reinterpret_cast<int64_t *>(sequence_nextval_ptr)) = seq_val;
 
   sequence_update_redo->SetTupleSlot(index_scan_result[0]);
