@@ -47,7 +47,7 @@ class SqlTable {
    * are UPDATE/INSERT/DELETEs, then the lock is held in read mode. If the modification is a CREATE INDEX, then the
    * lock is held in write mode.
    */
-  transaction::TransactionContext::DebugLock modify_lock_;
+  std::shared_mutex modify_lock_;
 
   /**
    * Constructs a new SqlTable with the given Schema, using the given BlockStore as the source

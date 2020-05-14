@@ -177,8 +177,21 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       }
       auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
       table_lock->lock();
+      auto *populate_txn = txn_manager_->BeginTransaction();
       bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
-          physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor());
+          physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
+          common::ManagedPointer(populate_txn));
+      if (populate_txn->MustAbort()) {
+        txn_manager_->Abort(populate_txn);
+      } else {
+        // Set up a blocking callback. Will be invoked when we can tell the client that commit is complete.
+        std::promise<bool> promise;
+        auto future = promise.get_future();
+        TERRIER_ASSERT(future.valid(), "future must be valid for synchronization to work.");
+        txn_manager_->Commit(populate_txn, CommitCallback, &promise);
+        future.wait();
+        TERRIER_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
+      }
       table_lock->unlock();
       if (result) {
         return {ResultType::COMPLETE, 0};
