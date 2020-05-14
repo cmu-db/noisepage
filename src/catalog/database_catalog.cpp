@@ -1109,6 +1109,9 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
     affected_row += FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, table_prs);
   }
   affected_row += FKDelete(txn, db_oid, table_oid, con_obj, table_scan_results);
+
+  //TODO: delete table_buffer
+
   delete[] buffer;
   return affected_row;
 
