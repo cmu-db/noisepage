@@ -2785,7 +2785,7 @@ std::vector<void *> DatabaseCatalog::GetSchemaEntries(common::ManagedPointer<tra
   // Select the pointers to free
   auto *schema_pr = pg_schemas_all_cols_pri_.InitializeRow(buffer);
   for (const auto tuple : *slots) {
-    auto success = schemas_->Select(txn, tuple, schema_pr);
+    auto success UNUSED_ATTRIBUTE = schemas_->Select(txn, tuple, schema_pr);
     TERRIER_ASSERT(success, "Select must succeed if the index gave a visible tupleslot");
     auto *ptr_ptr = (reinterpret_cast<void *const *>(
         schema_pr->AccessWithNullCheck(pg_schemas_all_cols_prm_[postgres::SCH_PTR_COL_OID])));
