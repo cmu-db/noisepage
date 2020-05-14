@@ -13,7 +13,8 @@ New files/folder:
    - storage/checkpoint/*
 
 ## Architectural Design
-Our implementation is divided into three sections: checkpoint formatting, creating checkpoints and recovery.
+We split the recovery process into two parts: catalog recovery and user table recovery. Since catalog table recovery requires specific order on execution of transactions, we considered it might be simpler to simply redo the logs on catalog tables. Therefore, our overall design remains the log based recovery mechanism for catalog tables, and only takes checkpoints of user defined tables. This design makes use of the high performance of checkpoint as user defined tables grow larger, and at the same time reduces the underlying design difficulty of checkpointing catalog tables.
+
 The overall pipeline is as follows:
 ```
    * Storing Checkpoint:
@@ -25,9 +26,9 @@ The overall pipeline is as follows:
    * Arrow Format -> Raw Blocks -> Data Tables
 ```
 
-### Checkpoint Formatting
-We are still debating on whether to use the internal Arrow format or our own recovery format. The Arrow format would be defined in arrow_serializer, which is being used to dump tables for data analysis.
-Currently, our checkpoint has the following header format, followed by data table content:
+### Checkpoint
+We decided to make use of the current ArrowSerializer to serialize data tables into arrow format files on disk. Specific file format is clarified in the ArrowSerializer class. Arrow serializer requires each block to be compacted and contain updated arrow metadata. Therefore, we pass each block through BlockCompactor before creating a checkpoint.
+
 ```
    * -----------------------------------------------------------------------------------------------------------------
    * | data_table *(64) | padding (16) | layout_version (16) | insert_head (32) |        control_block (64)          |
@@ -37,39 +38,27 @@ Currently, our checkpoint has the following header format, followed by data tabl
    *
 ```
 
-### Creating Checkpoints
-We plan to take checkpoints on an epoch-based rule. Checkpoints will be taken in intervals by scanning through every table. For each data table, we write its content specified by the format mentioned above into a single file. Therefore, a single checkpoint would contain a series of data table files. Eventually, we will write all these data table files into a single file to avoid exploding the filesystem.
+A major design challenge is to maintain the consistency between checkpoint and the remaining log. To solve this problem, we grab a lock on LogSerializerTask before taking a checkpoint, so no further log can be written during the time a checkpoint is being taken. We then compact the blocks in each table, release the lock, and then take the checkpoint based on our copies of the data tables.
+
+Before we release the lock on LogManager, we delete all previous logs on user-defined data tables. We currently perform the pruning by reading all logs, and delete the portion on user-defined tables. 
+
+We take checkpoints on an epoch-based rule. Checkpoints will be taken in intervals by scanning through every table. For each data table, we write its content specified by the format mentioned above into a single file. Therefore, a single checkpoint would contain a series of data table files. Eventually, we will write all these data table files into a single file to avoid exploding the filesystem.
 
 ### Recovery
-Recovery consists of three steps:
-The first step is to recover the catalog. This is a tricky step as the catalog information is also contained in the data table files. We are still developing ideas for recovering the catalog. Currently, we use the existing log recovery for restoring the catalog.
-The second step is to recover all the data tables. The files are interpreted and dumped directly into the DataTables. For var-length datas, we reconstruct new pointers to the var-length content and replace the deprecated pointers.
-The third step is to recover the index. One solution would be to re-insert all the tuples into the index one by one and rebuild the index from the start. The other solution would be to store the primary index as well, so we can load the index directly. This approach, however, requires careful handling with pointers.
-
-
-## Design Rationale
-On a high level, we seperate the recovery of catalog tables from recovery from data tables. For catalog information and catalog table data and indices, we make use of the existing write-ahead logs to recover those portions. For all other user created data tables, we recover the content of the data tables with our checkpoint mechanism. This approach simplifies the implementation of checkpointing to stay in the scope of user-defined data-table. It also provides us with the assumption that catalog tables are fully recovered before we recover from the checkpoint. We believe this approach will still take the advantage of using checkpoint, since in a larger database the majority of data that requires recovery will lie within user defined data tables.
-
-Another major design decision we made is to deploy our own file format instead of using the existing arrow serializer. The reasoning is that we believe the current arrow format includes a lot of unnecessary information not needed for recovery. As we already performed all catalog recovery through the existing recovery from logging, recovery of the data tables’ content will require very little metadata about table columns. Therefore, we have created our own file format for this part.
-
-Finally, we design the recovery of table index to be performed in a tuple by tuple fashion. After we recover the table content, we iterate over each tuple available in the data table, and update the corresponding table index as an insert operation. We believe this approach makes full use of the efficiency of our checkpoints by eliminating the cost of performing deletes on indexes, and at the same time minimizes the design cost of hard coding updates into table indexes.
+The first step is to recover the catalog using the existing log utility. Since all remaining log records in the log file are on catalog tables, we will directly execute the log with the existing recovery utility. The second step is to recover user-defined data tables. We implemented an arrow file deserializer to deserialize checkpoint files taken using ArrowSerializer, and add the blocks into existing data tables created in our first step. The third step is to recover the indexes for each table. We perform re-insert all the tuples into the index one by one and rebuild the index from the start, as is done in recovery manager. 
 
 ## Testing Plan
-Currently, we only provide a single test case for our checkpointing approach. It involves creating a data table, performing some basic transactions, taking checkpoints and recovering from the checkpoint. We eventually compare the recovered table with the original table to examine the correctness of our implementation.
+Currently, we provide a test case for our checkpointing approach. It involves creating a data table, performing some basic transactions, taking checkpoints and recovering from the checkpoint. We eventually compare the recovered table with the original table to examine the correctness of our implementation.
 
-In the final stage, the recovery framework should work for all existing test cases in recovery_test.cpp, with a checkpoint taken before shutting down the system and previous log deleted.
-
-We will eventually rely on recovery_benchmark.cpp to compare the performance of our approach to the existing one.
-
+We have another test case on the epoch-based checkpointing mechanism, where we force the test to sleep for a fixed period of time, and check for the existence and correctness of a checkpoint.
 
 ## Trade-offs and Potential Problems
-For the checkpoint part, the current design creates several threads and lets one thread write the data for exactly one table to disk. To inform the recovery stage the corresponding table for each file, the filename format db_oid-table_oid is used. Considering catalog table recovery is a separated process from current user table recovery, the order of the tables is not recorded. This design simplifies the implementation of multithreading in this phase, but may introduce two potential problems. First, the catalog table may need to be recovered from the checkpoint in some situations. The database has to recover the catalog table before recovering any other tables. This requires the checkpoints to record the order of table data files. Also, if the order of files is recorded in the filename or in any other data structures, traversing all the files to find the one for the catalog table increases the total recovery time when doing the recovery. 
+Firstly, as mentioned previously, we perform checkpoints with no copy of any table, and convert all blocks back to hot blocks after checkpoints. Another approach is to make a deep copy of all data tables, during the time we hold the LogManager’s lock, so we can perform checkpointing based on the deep copies after the lock is released. This alternative approach will result in higher memory consumption, but reduce the time of locking.
 
-Current recovery mechanism recovers data tables directly from the checkpoints without touching the sql tables related to them. Also, the checkpoint class accesses the data table directly from a given sql table. It is possible that later, one sql table can have multiple data tables related to it. Thus, the checkpoint and recovery mechanism may need to be modified to handle the recovery of sql tables as well in the future. 
-
-Finally, current checkpoints record the content field of each block in a data table for the convenience of software engineering, which includes repeated block headers. If given many giant tables, the redundant headers might consume relatively large space on the disk. 
-
+Another tradeoff is that we currently prune the log files by reading the original log files, and filtering out all records on catalog tables. This approach is inefficient in that it requires massive reads of logs from the memory. An alternative approach could be creating two separate log streams, one for catalog tables and one for user tables. This will be a lot more efficient since we can directly delete the existing user log record at the time a checkpoint is taken. However, this approach requires massive changes into the current infrastructure (involving 500-800 lines of changes into >10 different files). 
 
 ## Future Work
-As mentioned in the previous section, the current design of checkpoints taking creates one file for each table with the filename db_oid-table_oid. Future work can modify the write_to_disk function in current checkpoint class to record all the tables in one large file, which ensures the order correctness of the tables to be recovered. Also, in the current design of checkpoints taking, each table is processed by one thread. People can consider a better multithreading plan such as allowing threads which finish early to process a part of work from those process large tables to reduce the total time for taking checkpoints. 
+As is mentioned above, `ArrowSerializer` assumes blocks to be fully compacted so it can be converted into arrow format, meaning it requires the Block Compactor to move all blocks to the front with no empty slots. The block compactor now requires the block to be full to be compacted. This requirement may not be met when taking checkpoints because blocks in user tables are very likely to be not full at the time of checkpoint taking. Also, the index handling in the current block compactor is not implemented yet, which may cause errors in ArrowSeiralizer with delete transaction.Thus, in our current test case, we only include transactions with no deletes to ensure the blocks are compact by themselves. Future collaboration with people modifying the block compactor is needed to resolve these issues. 
+
+Another potential improvement is on the parallelization schema when taking a checkpoint. Currently, we use a naive multithreading where a specific number of threads pull tables from a shared queue. Threads continue to process the next table until no tables remain on the queue. Later work could use a more efficient way for threads to collaboratively process one table if any large table is discovered.  
 
