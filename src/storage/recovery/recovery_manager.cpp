@@ -292,6 +292,11 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                  db_catalog_ptr->procs_name_index_->metadata_.GetSchema());
       break;
     }
+    case (!catalog::postgres::SEQUENCE_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->sequences_relid_index_,
+                                 db_catalog_ptr->sequences_relid_index_->metadata_.GetSchema());
+      break;
+    }
 
     default:  // Non-catalog table
       index_objects = db_catalog_ptr->GetIndexes(common::ManagedPointer(txn), table_oid);

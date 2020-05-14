@@ -87,6 +87,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog::postgres::Builder::GetConstraintTableSchema();
     catalog_table_schemas_[catalog::postgres::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
     catalog_table_schemas_[catalog::postgres::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
+    catalog_table_schemas_[catalog::postgres::SEQUENCE_TABLE_OID] =
+        catalog::postgres::Builder::GetSequenceTableSchema();
   }
 
   /**
