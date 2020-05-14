@@ -299,22 +299,24 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   sequence_update_redo->SetTupleSlot(index_scan_result[0]);
   sequence_table->Update(mini_txn, sequence_update_redo);
 
-  // Update or insert nextval into temp_table with mini_txn
+  // Update or insert sequence value into temp_table with mini_txn
   auto temp_table_oid = ctx->GetTempTable();
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
-  auto temp_columns = accessor->GetSchema(temp_table_oid).GetColumns();
 
-  // Sequence table only have two colums right now
-  const std::vector<catalog::col_oid_t> temp_colums_oids{temp_columns[0].Oid(), temp_columns[1].Oid()};
+  // Sequence table only have two columns right now
+  const std::vector<catalog::col_oid_t> temp_colums_oids{catalog::postgres::SEQTEMPTABLEID_COL_OID,
+                                                         catalog::postgres::SEQTEMPTABLEVAL_COL_OID};
   auto temp_pri = temp_table->InitializerForProjectedRow(temp_colums_oids);
   auto *const temp_insert_redo = mini_txn->StageWrite(ctx->DBOid(), temp_table_oid, temp_pri);
   auto *const temp_insert_pr = temp_insert_redo->Delta();
   auto const temp_projection_map = temp_table->ProjectionMapForOids(temp_colums_oids);
   // First column is session id
-  auto *first_col_oid_ptr = temp_insert_pr->AccessForceNotNull(temp_projection_map.at(temp_colums_oids[0]));
+  auto *first_col_oid_ptr =
+      temp_insert_pr->AccessForceNotNull(temp_projection_map.at(catalog::postgres::SEQTEMPTABLEID_COL_OID));
   *(reinterpret_cast<catalog::sequence_oid_t *>(first_col_oid_ptr)) = sequence_oid;
-  // Second colum is last next val
-  auto *second_col_oid_ptr = temp_insert_pr->AccessForceNotNull(temp_projection_map.at(temp_colums_oids[1]));
+  // Second column is the new sequence value
+  auto *second_col_oid_ptr =
+      temp_insert_pr->AccessForceNotNull(temp_projection_map.at(catalog::postgres::SEQTEMPTABLEVAL_COL_OID));
   *(reinterpret_cast<int64_t *>(second_col_oid_ptr)) = seq_val;
 
   result->is_null_ = str.is_null_;
@@ -325,8 +327,8 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
   auto pc = pci.Initialize(buffer);
 
-  auto seq_oid_ptrs =
-      reinterpret_cast<catalog::sequence_oid_t *>(pc->ColumnStart(temp_projection_map.at(temp_colums_oids[0])));
+  auto seq_oid_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(
+      pc->ColumnStart(temp_projection_map.at(catalog::postgres::SEQTEMPTABLEID_COL_OID)));
 
   std::vector<catalog::sequence_oid_t> db_cats;
   auto table_iter = temp_table->begin();
