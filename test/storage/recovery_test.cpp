@@ -830,7 +830,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   thread_pool_.Startup();
 
   ckpt.TakeCheckpoint(ckpt_path, db, LOG_FILE_NAME, num_threads, &thread_pool_);
-  //tested->SimulateOltp(2, 1);
+  // tested->SimulateOltp(2, 1);
 
   // TODO(xuanxuan): check if the file is deleted, uncomment later
   //  std::ifstream ifile(LOG_FILE_NAME);
@@ -883,7 +883,6 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   recovery_manager2.StartRecovery();
   recovery_manager2.WaitForRecoveryToFinish();
    */
-
 
   // Check we recovered all the original tables
   for (auto &database : tested->GetTables()) {

@@ -39,8 +39,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     /**
      * @param recovery_manager pointer to recovery manager who initialized task
      */
-    explicit RecoveryTask(RecoveryManager *recovery_manager)
-        : recovery_manager_(recovery_manager) {}
+    explicit RecoveryTask(RecoveryManager *recovery_manager) : recovery_manager_(recovery_manager) {}
 
     /**
      * Runs the recovery task. Our task only calls Recover on the log manager.
@@ -95,8 +94,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   void StartRecovery() {
     TERRIER_ASSERT(recovery_task_ == nullptr, "Recovery already started");
-    recovery_task_ = thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */,
-                                                                             this /* task arg */);
+    recovery_task_ =
+        thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
   }
 
   /**

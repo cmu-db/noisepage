@@ -5,11 +5,11 @@
 #include "catalog/catalog_accessor.h"
 #include "common/scoped_timer.h"
 #include "main/db_main.h"
+#include "storage/checkpoints/checkpoint.h"
 #include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/storage_defs.h"
 #include "test_util/sql_table_test_util.h"
-#include "storage/checkpoints/checkpoint.h"
 
 namespace terrier {
 // Adapted from benchmarks in recovery_benchmark.cpp. They are exactly the same benchmarks.
@@ -76,7 +76,8 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
       // take checkpoint
       unlink(secondary_log_file.c_str());
       storage::Checkpoint ckpt(catalog, txn_manager, deferred_action_manager, gc, log_manager);
-      ckpt.TakeCheckpoint(ckpt_path, db, terrier::BenchmarkConfig::logfile_path.data(), BenchmarkConfig::num_threads, &thread_pool_);
+      ckpt.TakeCheckpoint(ckpt_path, db, terrier::BenchmarkConfig::logfile_path.data(), BenchmarkConfig::num_threads,
+                          &thread_pool_);
 
       // Start a new components with logging disabled, we don't want to log the log replaying
       auto recovery_db_main = DBMain::Builder()
@@ -122,14 +123,14 @@ class CheckpointRecoveryBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, ReadWriteWorkload)(benchmark::State &state) {
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-          .SetNumDatabases(1)
-          .SetNumTables(1)
-          .SetMaxColumns(5)
-          .SetInitialTableSize(initial_table_size_)
-          .SetTxnLength(5)
-          .SetInsertUpdateSelectDeleteRatio({0.5, 0.0, 0.5, 0.0})
-          .SetVarlenAllowed(true)
-          .Build();
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({0.5, 0.0, 0.5, 0.0})
+                                              .SetVarlenAllowed(true)
+                                              .Build();
 
   RunBenchmark(&state, config);
 }
@@ -139,15 +140,15 @@ BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, ReadWriteWorkload)(benchmark::St
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CheckpointRecoveryBenchmark, HighStress)(benchmark::State &state) {
-LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-        .SetNumDatabases(1)
-        .SetNumTables(1)
-        .SetMaxColumns(1)
-        .SetInitialTableSize(initial_table_size_)
-        .SetTxnLength(5)
-        .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
-        .SetVarlenAllowed(false)
-        .Build();
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(1)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
+                                              .SetVarlenAllowed(false)
+                                              .Build();
 
   RunBenchmark(&state, config);
 }

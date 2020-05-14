@@ -1,10 +1,10 @@
 #include "storage/checkpoints/checkpoint.h"
 #include <common/worker_pool.h>
+#include <dirent.h>
 #include <storage/block_compactor.h>
 #include <storage/recovery/disk_log_provider.h>
 #include <fstream>
 #include "common/constants.h"
-#include <dirent.h>
 
 namespace terrier::storage {
 
@@ -37,7 +37,7 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
   }
 
   std::string tmp = "_catalog";
-  std::string catalog_file = std::string(cur_log_file) + tmp; //catalog file: test.log_catalog
+  std::string catalog_file = std::string(cur_log_file) + tmp;  // catalog file: test.log_catalog
   log_serializer_task->flush_queue_latch_.Unlock();
 
   // filter catalog logs to catalog file and delete the old log file
@@ -66,9 +66,9 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db, c
 void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                              catalog::db_oid_t db_oid) {
   // get data table from the queue
-  while (queue.size() > 0) {
+  while (!queue.empty()) {
     queue_latch.lock();
-    if (queue.size() <= 0) {
+    if (queue.empty()) {
       queue_latch.unlock();
       return;
     }
@@ -160,7 +160,6 @@ void Checkpoint::FilterCatalogLogs(const std::string &old_log_path, const std::s
 
   infile.close();
   outfile.close();
-
 }
 
 const std::vector<std::string> Checkpoint::StringSplit(const std::string &s, const char &delimiter) {

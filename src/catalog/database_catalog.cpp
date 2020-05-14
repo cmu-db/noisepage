@@ -891,7 +891,8 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(
   return std::make_pair(oid, kind);
 }
 
-std::vector<table_oid_t> DatabaseCatalog::GetAllTableOids(const common::ManagedPointer<transaction::TransactionContext> txn){
+std::vector<table_oid_t> DatabaseCatalog::GetAllTableOids(
+    const common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<table_oid_t> result_vec;
   const auto name_pri = classes_name_index_->GetProjectedRowInitializer();
 
@@ -901,7 +902,7 @@ std::vector<table_oid_t> DatabaseCatalog::GetAllTableOids(const common::ManagedP
   std::vector<storage::TupleSlot> slots;
   pr = get_class_oid_kind_pri_.InitializeRow(buffer);
   // iterate the sql table to get all user table oids
-  for (auto start = classes_->begin(); start != classes_->end(); start ++) {
+  for (auto start = classes_->begin(); start != classes_->end(); start++) {
     const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, *start, pr);
     table_oid_t oid = *(reinterpret_cast<const table_oid_t *const>(pr->AccessForceNotNull(0)));
     if ((uint32_t)oid >= catalog::START_OID) {

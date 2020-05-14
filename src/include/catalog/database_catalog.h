@@ -680,6 +680,5 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
-
 };
 }  // namespace terrier::catalog

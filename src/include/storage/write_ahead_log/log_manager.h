@@ -40,7 +40,7 @@ namespace terrier::storage {
  * were just persisted.
  */
 class LogManager : public common::DedicatedThreadOwner {
-  friend class Checkpoint; // access log_serializer_task_ to get latch
+  friend class Checkpoint;  // access log_serializer_task_ to get latch
 
  public:
   /**

@@ -3,8 +3,12 @@
 #include <catalog/catalog.h>
 #include <common/managed_pointer.h>
 #include <stdio.h>
-#include <mutex>
+#include <memory>
+#include <mutex>  // NOLINT
 #include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
@@ -74,7 +78,8 @@ class Checkpoint {
    * @param tb_oid the oid of the table
    * @return a file name in the format db_oid-tb_oid.txt
    */
-  static void GenOidFromFileName(std::string file_name, catalog::db_oid_t &db_oid, catalog::table_oid_t &tb_oid) {
+  static void GenOidFromFileName(const std::string &file_name, catalog::db_oid_t &db_oid,
+          catalog::table_oid_t &tb_oid) {
     auto sep_ind = file_name.find("-");
     db_oid = (catalog::db_oid_t)std::stoi(file_name.substr(0, sep_ind));
     tb_oid = (catalog::table_oid_t)std::stoi(file_name.substr(sep_ind + 1, file_name.length()));
@@ -101,7 +106,8 @@ class Checkpoint {
   std::mutex queue_latch;
 
   /**
-   * Write the data of a database to disk in parallel, called by TakeCheckpoint()
+   * Write the data of a database to disk in parallel (a user specified number of thread pulling table oid from a
+   * queue), called by TakeCheckpoint()
    * @param path the path on disk to save the checkpoint
    * @param accessor catalog accessor of the given database
    * @param db_oid the database to be checkpointed
@@ -111,14 +117,12 @@ class Checkpoint {
                    catalog::db_oid_t db_oid);
 
   /**
- * Filter the logs in original log file to separate logs related to catalog tables to another file
- * @param old_log_path the path of the original log file
- * @param new_log_path the path of the new log file to save the logs related to catalog tables
- * @return None
- */
+   * Filter the logs in original log file to separate logs related to catalog tables to another file
+   * @param old_log_path the path of the original log file
+   * @param new_log_path the path of the new log file to save the logs related to catalog tables
+   * @return None
+   */
   void FilterCatalogLogs(const std::string &old_log_path, const std::string &new_log_path);
-
-
-  };  // class checkpoint
+};  // class checkpoint
 
 }  // namespace terrier::storage

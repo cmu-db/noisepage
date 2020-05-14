@@ -147,7 +147,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
         auto col_id = column_ids[i];
         common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
         byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
-        auto s = (*record_buffers)[cur_buffer_index++]->length();
+        size_t s = (*record_buffers)[cur_buffer_index++]->length();
         TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap),
                        "bitmap length should match");
         ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap), s);
@@ -163,12 +163,12 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
           TERRIER_ASSERT(offsets_length - 1 == insert_head || offsets_length == 0,
                          "offsets length should be num_records+1");
           for (auto j = 0u; j < offsets_length - 1; j++) {
-            // TODO: need to replace with the proper memory allocation
+            // TODO(Tianlei): need to replace with the proper memory allocation
             uint64_t size = offsets_array[j + 1] - offsets_array[j];
             byte *varlen = common::AllocationUtil::AllocateAligned(size);
             uint32_t length = offsets_array[j + 1] - offsets_array[j];
             memcpy(varlen, values_array + offsets_array[j], length);
-            // TODO: need to make sure the reclaim option works out
+            // TODO(Tianlei): need to make sure the reclaim option works out
             if (length > VarlenEntry::InlineThreshold()) {
               *(reinterpret_cast<VarlenEntry *>(column_start) + j) = VarlenEntry::Create(varlen, length, true);
             } else {
@@ -189,7 +189,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       if (block->GetInsertHead() != layout.NumSlots()) {
         break;
       }
-      data_table->insertion_head_ ++;
+      data_table->insertion_head_++;
     }
 
     // update indexes
@@ -295,7 +295,7 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     // Insert will always succeed
     auto new_tuple_slot = sql_table_ptr->Insert(common::ManagedPointer(txn), staged_record);
     UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), sql_table_ptr,
-                         new_tuple_slot, staged_record->Delta(), true /* inser */);
+                         new_tuple_slot, staged_record->Delta(), true /* insert */);
     TERRIER_ASSERT(staged_record->GetTupleSlot() == new_tuple_slot,
                    "Insert should update redo record with new tuple slot");
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
