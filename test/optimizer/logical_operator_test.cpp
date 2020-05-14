@@ -435,6 +435,46 @@ TEST(OperatorTests, LogicalGetTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCteScanTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCteScan
+  //===--------------------------------------------------------------------===//
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  Operator logical_cte_1 =
+      LogicalCteScan::Make("cte_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+  Operator logical_cte_2 =
+      LogicalCteScan::Make("cte_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2});
+  Operator logical_cte_3 =
+      LogicalCteScan::Make("cte_2", std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+
+  EXPECT_EQ(logical_cte_1.GetType(), OpType::LOGICALCTESCAN);
+  EXPECT_EQ(logical_cte_3.GetType(), OpType::LOGICALCTESCAN);
+  EXPECT_EQ(logical_cte_1.GetName(), "LogicalCteScan");
+  EXPECT_EQ(logical_cte_1.As<LogicalCteScan>()->GetExpressions(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+  EXPECT_EQ(logical_cte_3.As<LogicalCteScan>()->GetExpressions(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+  EXPECT_TRUE(logical_cte_1 == logical_cte_2);
+  EXPECT_FALSE(logical_cte_1 == logical_cte_3);
+  EXPECT_EQ(logical_cte_1.Hash(), logical_cte_2.Hash());
+  EXPECT_NE(logical_cte_1.Hash(), logical_cte_3.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
+}
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, LogicalExternalFileGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalExternalFileGet
