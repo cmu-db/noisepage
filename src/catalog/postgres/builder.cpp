@@ -191,8 +191,8 @@ Schema Builder::GetClassTableSchema() {
   columns.emplace_back("relkind", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
   columns.back().SetOid(RELKIND_COL_OID);
 
-  // columns.emplace_back("schema", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
-  // columns.back().SetOid(REL_SCHEMA_COL_OID);
+  columns.emplace_back("schema", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(REL_SCHEMA_COL_OID);
 
   columns.emplace_back("pointer", type::TypeId::BIGINT, true, MakeNull(type::TypeId::BIGINT));
   columns.back().SetOid(REL_PTR_COL_OID);
@@ -413,7 +413,7 @@ IndexSchema Builder::GetSchemaOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
   return schema;
 }
 

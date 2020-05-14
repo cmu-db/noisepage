@@ -238,15 +238,15 @@ class DatabaseCatalog {
                        storage::index::Index *index_ptr);
 
   /**
-   * Update the schema pointer of a tupleslot, this is only used for recovery when an entry of invalid pointer was
-   * inserted, and needs to be updated since memory addresses changes after recovery.
+   * Update the schema pointer of a tupleslot in pg_schemas, this is only used for recovery when an entry of invalid
+   * pointer was inserted, and needs to be updated since memory addresses changes after recovery.
    * @param txn transactional context to be used
    * @param slot Tupleslot to update the pointer
    * @param ptr pointer to the schema
    * @return true if successful update
    */
-  bool SetSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, storage::TupleSlot slot,
-                        const void *ptr);
+  bool SetPGSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, storage::TupleSlot slot,
+                          const void *ptr);
   /**
    * Obtain the pointer to the index
    * @param txn transaction to use
@@ -410,11 +410,10 @@ class DatabaseCatalog {
   /**
    * Get the layout version of the table
    * @param txn txn to use
-   * @param table_oid  oid of the table
+   * @param oid  oid of the table / index
    * @return the layout version
    */
-  storage::layout_version_t GetLayoutVersion(common::ManagedPointer<transaction::TransactionContext> txn,
-                                             table_oid_t table_oid);
+  storage::layout_version_t GetLayoutVersion(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
 
  private:
   // TODO(tanujnay112) Add support for other parameters
@@ -502,10 +501,12 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer get_class_oid_kind_pri_;
   storage::ProjectedRowInitializer set_class_pointer_pri_;
   storage::ProjectedRowInitializer set_class_next_col_oid_pri_;
-  storage::ProjectedRowInitializer get_class_version_kind_pri_;
+  storage::ProjectedRowInitializer get_class_version_kind_schema_pri_;
   storage::ProjectedRowInitializer get_class_kind_ptr_pri_;
-  storage::ProjectionMap get_class_version_kind_prm_;
-  storage::ProjectedRowInitializer set_class_version_pri_;
+  storage::ProjectionMap get_class_version_kind_schema_prm_;
+  storage::ProjectedRowInitializer set_class_version_schema_pri_;
+  storage::ProjectionMap set_class_version_schema_prm_;
+  storage::ProjectedRowInitializer set_class_schema_pri_;
 
   storage::SqlTable *schemas_;
   storage::index::Index *schemas_oid_vers_index_;
@@ -726,6 +727,16 @@ class DatabaseCatalog {
                              const IndexSchema *schema);
 
   /**
+   * Sets an table's schema in pg_class
+   * @warning Should only be used by recovery
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param schema object schema to insert
+   * @return true if succesfull
+   */
+  bool SetTableSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t oid,
+                             const Schema *schema);
+  /**
    * Inserts a provided pointer into a given pg_class column. Can be used for class object and schema pointers
    * Helper method since SetIndexPointer/SetTablePointer and SetIndexSchemaPointer/SetTableSchemaPointer
    * are basically indentical outside of input types
@@ -751,15 +762,15 @@ class DatabaseCatalog {
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 
   /**
-   * Convenient function that gets the class entry associated with a given table oid.
+   * Convenient function that gets the pg_class entry associated with a given oid.
    * @param txn transactional context
-   * @param table  table_oid to look up
+   * @param oid  table_oid/index oid to look up
    * @param buffer_ptr pointer to buffer that backs up the projectedrow
    * @param slot tuple slot that associated with the table oid in classes_
    * @return projectedrow contains the information of the table
    */
-  storage::ProjectedRow *GetPGClassTableEntry(common::ManagedPointer<transaction::TransactionContext> txn,
-                                              catalog::table_oid_t table, byte **buffer_ptr, storage::TupleSlot *slot);
+  storage::ProjectedRow *GetPGClassTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                                              byte **buffer_ptr, storage::TupleSlot *slot);
 
   /**
    * Add a schema entry into pg_schema
@@ -776,14 +787,12 @@ class DatabaseCatalog {
    * Get the schema pointers for a range of layout_versions
    * @param txn transactional context to use
    * @param oid oid of the table/index
-   * @param version_low lower bound of the version
-   * @param versoin_high upper bound of the version (non-inclusive)
-   * @param slots slots in the pg_schema to be filled
+   * @param layout_version  version to retrieve
+   * @param slot slot in the pg_schema to be filled
    * @return schema pointers (index or table)
    */
-  std::vector<void *> GetSchemaEntries(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
-                                       storage::layout_version_t version_low, storage::layout_version_t version_high,
-                                       std::vector<storage::TupleSlot> *slots);
+  void *GetSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                       storage::layout_version_t layout_version, storage::TupleSlot *slot);
 
   /**
    * Delete all the schema entries with layout version no greater than version_high

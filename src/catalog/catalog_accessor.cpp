@@ -105,7 +105,7 @@ std::vector<Schema::Column> CatalogAccessor::GetColumns(table_oid_t table) {
 }
 
 storage::layout_version_t CatalogAccessor::GetLayoutVersion(table_oid_t table) const {
-  return dbc_->GetLayoutVersion(txn_, table);
+  return dbc_->GetLayoutVersion(txn_, static_cast<uint32_t>(table));
 }
 
 index_oid_t CatalogAccessor::GetIndexOid(std::string name) const {

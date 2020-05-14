@@ -87,6 +87,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     catalog_table_schemas_[catalog::postgres::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
     catalog_table_schemas_[catalog::postgres::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
     catalog_table_schemas_[catalog::postgres::SCHEMA_TABLE_OID] = catalog::postgres::Builder::GetSchemaTableSchema();
+    catalog_table_schemas_[catalog::postgres::LANGUAGE_TABLE_OID] =
+        catalog::postgres::Builder::GetLanguageTableSchema();
+    catalog_table_schemas_[catalog::postgres::PRO_TABLE_OID] = catalog::postgres::Builder::GetProcTableSchema();
   }
 
   /**
