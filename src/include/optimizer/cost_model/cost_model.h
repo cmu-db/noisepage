@@ -84,13 +84,19 @@ class CostModel : public AbstractCostModel {
   }
 
   /**
-   * Visit a NLJoin operator
+   * Visit a NLJoin operator. This mostly computes the CPU cost(s) involved along with the
+   * initial estimates made in the initial cost model.
    * @param op operator
    */
   void Visit(UNUSED_ATTRIBUTE const NLJoin *op) override {
     double outer_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
     double inner_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
     auto total_row_count = memo_->GetGroupByID(gexpr_->GetGroupID())->GetNumRows();
+
+    double init_cost = 0.0;
+    if (outer_rows > 1) {
+      init_cost += outer_rows * memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetCostLB();
+    }
 
     // automatically set row counts to 1 if given counts aren't valid
     if (outer_rows <= 0) {
@@ -99,13 +105,6 @@ class CostModel : public AbstractCostModel {
 
     if (inner_rows <= 0) {
       inner_rows = 1;
-    }
-
-    double rows = outer_rows; // set default cardinality for now
-
-    // set cardinality based on type of nl join
-    if (op->GetJoinType() == PhysicalJoinType::INNER) {
-      rows = memo_->GetGroupByID(gexpr_->GetGroupID())->GetNumRows();
     }
 
     double num_tuples;
@@ -126,7 +125,7 @@ class CostModel : public AbstractCostModel {
     total_cpu_cost_per_tuple = GetCPUCostForQuals(const_cast<std::vector<AnnotatedExpression> &&>(op->GetJoinPredicates())) + tuple_cpu_cost;
 
     // calculate total cpu cost for all tuples
-    output_cost_ = num_tuples * total_cpu_cost_per_tuple + outer_rows + tuple_cpu_cost * total_row_count;
+    output_cost_ = init_cost + num_tuples * total_cpu_cost_per_tuple + tuple_cpu_cost * total_row_count;
   }
 
   /**
@@ -139,6 +138,11 @@ class CostModel : public AbstractCostModel {
     double left_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
     double right_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
     auto total_row_count = memo_->GetGroupByID(gexpr_->GetGroupID())->GetNumRows();
+
+    double init_cost = 0.0;
+    init_cost += memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetCostLB();
+    init_cost += (op_cpu_cost * op->GetJoinPredicates().size() + tuple_cpu_cost) * right_rows;
+    init_cost += op_cpu_cost * op->GetJoinPredicates().size() * left_rows;
 
     auto left_table_name = op->GetLeftKeys()[0].CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName();
 
@@ -221,7 +225,7 @@ class CostModel : public AbstractCostModel {
       row_est = uint32_t(row_est);
     }
 
-    output_cost_ = hash_cost * left_rows * row_est * 0.5 + tuple_cpu_cost * total_row_count;
+    output_cost_ = init_cost + hash_cost * left_rows * row_est * 0.5 + tuple_cpu_cost * total_row_count;
   }
 
   /**

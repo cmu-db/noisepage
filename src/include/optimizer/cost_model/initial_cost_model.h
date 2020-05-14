@@ -7,6 +7,7 @@
 
 namespace terrier::optimizer {
 
+// This cost model calculates the lower bound cost of the given GroupExpression
 class InitialCostModel : public AbstractCostModel {
  public:
   /**
@@ -59,18 +60,39 @@ class InitialCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const Limit *op) override { output_cost_ = 0.f; }
 
   /**
-   * Visit a NLJoin operator
+   * Visit a NLJoin operator.
    * @param op operator
    */
   void Visit(UNUSED_ATTRIBUTE const NLJoin *op) override {
-    
+    double outer_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
+    double inner_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
+
+    double total_cost = 0.0;
+
+    // computes cost of scanning the entire inner rel per outer row
+    if (outer_rows > 1) {
+      total_cost += outer_rows * memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetCostLB();
+    }
+
+    output_cost_ = total_cost;
   }
 
   /**
    * Visit a InnerHashJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = 1.f; }
+  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override {
+    double outer_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
+    double inner_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
+
+    double total_cost = 0.0;
+
+    total_cost += memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetCostLB();
+    total_cost += (op_cpu_cost * op->GetJoinPredicates().size() + tuple_cpu_cost) * inner_rows;
+    total_cost += op_cpu_cost * op->GetJoinPredicates().size() * outer_rows;
+
+    output_cost_ = total_cost;
+  }
 
   /**
    * Visit a LeftHashJoin operator
@@ -147,6 +169,18 @@ class InitialCostModel : public AbstractCostModel {
    * Transaction Context
    */
   transaction::TransactionContext *txn_;
+
+  /**
+   * CPU cost to materialize a tuple
+   * TODO(viv): change later to be evaluated per instantiation via a benchmark
+   */
+  double tuple_cpu_cost = 2.f;
+
+  /**
+   * Cost to execute an operator
+   * TODO(viv): find a better constant for op cost (?)
+   */
+  double op_cpu_cost = 2.f;
 
   /**
    * Computed output cost
