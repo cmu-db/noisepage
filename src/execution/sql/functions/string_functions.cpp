@@ -228,8 +228,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   auto const pg_index_datatable = index_scan_result[0].GetBlock()->data_table_;
   storage::BlockLayout layout = pg_index_datatable->GetBlockLayout();
   storage::TupleAccessStrategy tuple_access_strategy(layout);
-  auto seq_val = reinterpret_cast<uint32_t *>(
-      tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[2]));
+
 
   // Write to redo log, and update in sqltable
   auto sequence_table_oid = accessor->GetTableOid("pg_sequence");
@@ -244,7 +243,9 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 
   for (uint16_t i = 0; i < 2; i++)
     storage::StorageUtil::CopyAttrIntoProjection(tuple_access_strategy, index_scan_result[0],
-                                                 sequence_update_redo->Delta(), i);
+                                                 sequence_update_redo->Delta(), sequence_projection_map.at(sequence_columns_oids[i]));
+  auto seq_val = reinterpret_cast<int64_t *>(
+          tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(sequence_columns_oids[2])]));
   auto *sequence_nextval_ptr =
       sequence_update_redo->Delta()->AccessForceNotNull(sequence_projection_map.at(sequence_columns_oids[2]));
   *(reinterpret_cast<int64_t *>(sequence_nextval_ptr)) = *seq_val + 1;
@@ -327,7 +328,7 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
 
   auto seq_oid_ptrs =
       reinterpret_cast<catalog::sequence_oid_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[0])));
-  auto seq_value_ptrs = reinterpret_cast<uint32_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[1])));
+  auto seq_value_ptrs = reinterpret_cast<int64_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[1])));
 
   std::vector<catalog::sequence_oid_t> db_cats;
   auto table_iter = temp_table->begin();

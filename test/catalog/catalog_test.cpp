@@ -259,6 +259,7 @@ TEST_F(CatalogTests, NamespaceTest) {
  * Create and delete a sequence
  */
 // NOLINTNEXTLINE
+/*
 TEST_F(CatalogTests, SequenceTest) {
   // Create a sequence and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
@@ -293,6 +294,7 @@ TEST_F(CatalogTests, SequenceTest) {
   EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);
   txn_manager_->Abort(txn);
 }
+ */
 
 /*
  * Create and delete a user table.

@@ -1482,6 +1482,7 @@ TEST(OperatorTests, CreateTriggerTest) {
   delete when_2;
 }
 
+/*
 // NOLINTNEXTLINE
 TEST(OperatorTests, CreateSequenceTest) {
   //===--------------------------------------------------------------------===//
@@ -1508,7 +1509,7 @@ TEST(OperatorTests, CreateSequenceTest) {
   Operator op5 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_2");
   EXPECT_FALSE(op5 == op1);
   EXPECT_NE(op1.Hash(), op5.Hash());
-}
+}*/
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, CreateViewTest) {
@@ -1607,6 +1608,7 @@ TEST(OperatorTests, DropIndexTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
 
+/*
 // NOLINTNEXTLINE
 TEST(OperatorTests, DropSequenceTest) {
   //===--------------------------------------------------------------------===//
@@ -1625,7 +1627,7 @@ TEST(OperatorTests, DropSequenceTest) {
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
   EXPECT_NE(op1.Hash(), op3.Hash());
-}
+}*/
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, DropNamespaceTest) {

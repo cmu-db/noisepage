@@ -212,7 +212,7 @@ Schema Builder::GetSequenceTableSchema() {
   columns.emplace_back("seqrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(SEQRELID_COL_OID);
 
-  columns.emplace_back("seqlastval", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("seqlastval", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
   columns.back().SetOid(SEQLASTVAL_COL_OID);
 
   return Schema(columns);
@@ -224,7 +224,7 @@ Schema Builder::GetSequenceTempTableSchema() {
   columns.emplace_back("sequence_oid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(SEQTEMPTABLEID_COL_OID);
 
-  columns.emplace_back("last_nextval", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("last_nextval", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
   columns.back().SetOid(SEQTEMPTABLEVAL_COL_OID);
 
   return Schema(columns);

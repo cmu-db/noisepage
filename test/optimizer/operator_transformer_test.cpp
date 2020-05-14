@@ -141,12 +141,12 @@ class OperatorTransformerTest : public TerrierTest {
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
 
-    // create sequence
+    /*// create sequence
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
     sequence_oid_ = accessor_->CreateSequence(accessor_->GetDefaultNamespace(), "seq");
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-    accessor_.reset(nullptr);
+    accessor_.reset(nullptr);*/
   }
 
   void SetUp() override {
@@ -1495,6 +1495,7 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
 }
 
 // NOLINTNEXTLINE
+/*
 TEST_F(OperatorTransformerTest, CreateSequenceTest) {
   std::string create_sql = "CREATE SEQUENCE seq_a;";
   std::string ref = R"({"Op":"LogicalCreateSequence",})";
@@ -1548,7 +1549,7 @@ TEST_F(OperatorTransformerTest, CreateSequenceTest) {
   EXPECT_EQ(ctpn->GetSequenceName(), "seq_a");
   EXPECT_EQ(ctpn->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(ctpn->GetDatabaseOid(), db_oid_);
-}
+}*/
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DropDatabaseTest) {
@@ -1699,6 +1700,7 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   EXPECT_EQ(dipn->GetIndexOid(), a_index_oid_);
 }
 
+/*
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DropSequenceTest) {
   std::string drop_sql = "DROP SEQUENCE seq;";
@@ -1746,7 +1748,7 @@ TEST_F(OperatorTransformerTest, DropSequenceTest) {
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_SEQUENCE);
   auto dspn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropSequencePlanNode>();
   EXPECT_EQ(dspn->GetSequenceOid(), sequence_oid_);
-}
+}*/
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
