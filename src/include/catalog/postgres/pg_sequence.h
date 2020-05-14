@@ -17,10 +17,10 @@ constexpr index_oid_t SEQUENCE_OID_INDEX_OID = index_oid_t(92);
  */
 constexpr col_oid_t SEQOID_COL_OID = col_oid_t(1);      // INTEGER (pkey)
 constexpr col_oid_t SEQRELID_COL_OID = col_oid_t(2);    // INTEGER (fkey: pg_class)
-constexpr col_oid_t SEQLASTVAL_COL_OID = col_oid_t(3);  // INTEGER
+constexpr col_oid_t SEQLASTVAL_COL_OID = col_oid_t(3);  // BIGINT
 
-constexpr col_oid_t SEQTEMPTABLEID_COL_OID = col_oid_t(1);
-constexpr col_oid_t SEQTEMPTABLEVAL_COL_OID = col_oid_t(2);
+constexpr col_oid_t SEQTEMPTABLEID_COL_OID = col_oid_t(1);   // INTEGER
+constexpr col_oid_t SEQTEMPTABLEVAL_COL_OID = col_oid_t(2);  // BIGINT
 
 constexpr uint8_t NUM_PG_SEQUENCE_COLS = 3;
 
