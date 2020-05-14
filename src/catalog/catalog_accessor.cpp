@@ -79,9 +79,10 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
   return dbc_->GetTable(txn_, table);
 }
 
-bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version,
+bool CatalogAccessor::UpdateSchema(table_oid_t table, std::unique_ptr<Schema> new_schema,
+                                   const common::ManagedPointer<storage::layout_version_t> layout_version,
                                    const execution::ChangeMap &change_map) const {
-  return dbc_->UpdateSchema(txn_, table, new_schema, layout_version, change_map);
+  return dbc_->UpdateSchema(txn_, table, std::move(new_schema), layout_version, change_map);
 }
 
 const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }

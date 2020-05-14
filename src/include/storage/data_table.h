@@ -283,14 +283,8 @@ class DataTable {
   template <class RowType>
   bool SelectIntoBuffer(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
                         RowType *out_buffer, const AttrSizeMap *size_map = nullptr) const;
-  template <class RowType>
-  bool SelectAllVersionsIntoBuffer(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
-                                   RowType *out_buffer, uint8_t count, bool *version_left,
-                                   const AttrSizeMap *size_map = nullptr) const;
 
-  void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
-                            ProjectedColumns *out_buffer) const;
-
+  // Insert a PR into the tupleslot
   void InsertInto(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
                   TupleSlot dest);
   // Atomically read out the version pointer value.

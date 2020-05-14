@@ -1,12 +1,14 @@
 #pragma once
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/catalog.h"
 #include "gtest/gtest.h"
 #include "storage/garbage_collector.h"
+#include "storage/projected_row.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
@@ -170,18 +172,20 @@ class RandomSqlTableTransaction {
    *
    * @tparam Random the type of random generator to use
    * @param generator the random generator to use
+   * @param layout_version the version of table to do insert on
    */
   template <class Random>
-  void RandomInsert(Random *generator);
+  void RandomInsert(Random *generator, storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   /**
    * Randomly updates a tuple, using the given generator as source of randomness.
    *
    * @tparam Random the type of random generator to use
    * @param generator the random generator to use
+   * @param layout_version the version of table to do insert on
    */
   template <class Random>
-  void RandomUpdate(Random *generator);
+  void RandomUpdate(Random *generator, storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   /**
    * Randomly deletes a tuple, using the given generator as source of randomness.
@@ -197,9 +201,41 @@ class RandomSqlTableTransaction {
    *
    * @tparam Random the type of random generator to use
    * @param generator the random generator to use
+   * @param buffer the buffer to initialize row with
+   * @param layout_version the version of table to do insert on
    */
   template <class Random>
-  void RandomSelect(Random *generator);
+  void RandomSelect(Random *generator, byte *buffer,
+                    storage::layout_version_t layout_version = storage::layout_version_t(0));
+
+  /**
+   * Update the schema of the table designated by database_oid and table_oid
+   *
+   * @param database_oid oid of the target database of this schema update
+   * @param table_oid oid of the target table of this schema update
+   * @param columns the columns of the new schema under the new version
+   * @param new_version the new version of the table we are updating to
+   */
+  void UpdateSchema(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                    const std::vector<catalog::Schema::Column> &columns, storage::layout_version_t new_version);
+
+  /**
+   * Add a dummy column to the end of the columns of a random table
+   * @tparam Random the type of random generator to use
+   * @param generator the random generator to use
+   * @param layout_version the current version, the new schema created by AddColumn will be layout_version + 1
+   */
+  template <class Random>
+  void AddColumn(Random *generator, storage::layout_version_t layout_version);
+
+  /**
+   * Drop the last column from the columns of a random table
+   * @tparam Random the type of random generator to use
+   * @param generator the random generator to use
+   * @param layout_version the current version, the new schema created by DropColumn will be layout_version + 1
+   */
+  template <class Random>
+  void DropColumn(Random *generator, storage::layout_version_t layout_version);
 
   /**
    * Finish the simulation of this transaction. The underlying transaction will either commit or abort.
@@ -230,15 +266,18 @@ class LargeSqlTableTestObject {
    * Holds meta data for tables created by test object
    */
   struct SqlTableMetadata {
-    // Column oids for this table. We cache them to generate random updates. They never change because we don't make ddl
-    // changes
-    std::vector<catalog::col_oid_t> col_oids_;
+    // Column oids for each version of this table. We cache them to generate random updates
+    std::vector<std::vector<catalog::col_oid_t>> col_oids_;
+    // ProjectedRowInitializer for each version of this table
+    std::vector<storage::ProjectedRowInitializer> pris_;
     // Tuple slots inserted into this sql table
     std::vector<storage::TupleSlot> inserted_tuples_;
     // Latch to protect inserted tuples to allow for concurrent transactions
     common::SpinLatch inserted_tuples_latch_;
-    // Buffer for select queries. Not thread safe, but since we aren't doing bookkeeping, it doesn't matter
-    byte *buffer_;
+    // for single-threaded select queries. Not thread safe, but since we aren't doing bookkeeping, it doesn't matter
+    byte *singlethread_buffer_;
+    // Maps each version of the table to its schema
+    std::unordered_map<storage::layout_version_t, std::unique_ptr<catalog::Schema>> schemas_;
   };
 
  public:
@@ -249,6 +288,7 @@ class LargeSqlTableTestObject {
    * @param catalog catalog to use for test object
    * @param block_store block store for table creation
    * @param generator the random generator to use for the test
+   * @param num_threads the max number of threads that concurrently does oltp transactions
    */
   LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config, transaction::TransactionManager *txn_manager,
                           catalog::Catalog *catalog, storage::BlockStore *block_store,
@@ -257,6 +297,20 @@ class LargeSqlTableTestObject {
    * Destructs a LargeSqlTableTestObject
    */
   ~LargeSqlTableTestObject();
+
+  /**
+   * Simulate an oltp workload with concurrent schema updates, running the specified number of total transactions while
+   * allowing the specified number of transactions to run concurrently. There will be exactly 1 thread that
+   * performs a schema update U (add column or drop column, depending on latest_layout_version_) that creates a new
+   * version with latest_layout_version_ + 1. All other threads will perform insert/delete/update/select with
+   * latest_layout_version_. Upon exiting this function, latest_layout_version_ is incremented, so the next time
+   * this function is called, insert/delete/update/select will be on the version just created by U.
+   *
+   * @param num_transactions total number of transactions to run
+   * @param num_concurrent_txns number of transactions allowed to run concurrently
+   * @return number of aborted transactions
+   */
+  uint64_t SimulateOltpAndUpdateSchema(uint32_t num_transactions, uint32_t num_concurrent_txns);
 
   /**
    * Simulate an oltp workload, running the specified number of total transactions while allowing the specified number
@@ -283,11 +337,14 @@ class LargeSqlTableTestObject {
   }
 
  private:
-  void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id);
+  void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id, byte *buffer = nullptr,
+                              storage::layout_version_t layout_version = storage::layout_version_t(0));
 
   template <class Random>
   void PopulateInitialTables(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns, uint32_t num_tuples,
                              bool varlen_allowed, storage::BlockStore *block_store, Random *generator);
+
+  //  const catalog::Schema &GetSchema(storage::layout_version_t version) const { return *schemas_.at(version); }
 
   friend class RandomSqlTableTransaction;
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
@@ -298,11 +355,16 @@ class LargeSqlTableTestObject {
   catalog::Catalog *catalog_;
   transaction::TransactionContext *initial_txn_;
   uint64_t abort_count_ = 0;
-  // So we can easily get a random database and table oid
+  // So we can easily get a random database oid
   std::vector<catalog::db_oid_t> database_oids_;
   std::unordered_map<catalog::db_oid_t, std::vector<catalog::table_oid_t>> table_oids_;
 
   // Maps database and table oids to struct holding testing metadata for each table
   std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, SqlTableMetadata *>> tables_;
+
+  // the latest layout version used by transactions
+  int latest_layout_version_ = 0;
+  // Buffers allocated by this test object, will free them in the destructor
+  std::vector<byte *> buffers_to_free_;
 };
 }  // namespace terrier

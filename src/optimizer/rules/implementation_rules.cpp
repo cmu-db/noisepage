@@ -985,10 +985,9 @@ void LogicalAlterToPhysicalAlter::Transform(common::ManagedPointer<OperatorNode>
   auto logical_op = input->GetOp().As<LogicalAlter>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAlter should have 0 children");
 
-  auto op =
-      std::make_unique<OperatorNode>(AlterTable::Make(logical_op->GetTableOid(), std::move(logical_op->GetCommands()),
-                                                      std::move(logical_op->GetColOids())),
-                                     std::vector<std::unique_ptr<OperatorNode>>());
+  auto op = std::make_unique<OperatorNode>(
+      AlterTable::Make(logical_op->GetTableOid(), std::move(logical_op->GetCommands()), logical_op->GetColOids()),
+      std::vector<std::unique_ptr<OperatorNode>>());
 
   transformed->emplace_back(std::move(op));
 }
