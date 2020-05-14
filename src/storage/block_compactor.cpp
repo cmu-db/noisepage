@@ -24,7 +24,7 @@ void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *
         // more sophisticated. Compacting more blocks together frees up more memory per compaction run,
         // but makes the compaction transaction larger, which can have performance impact on the rest
         // of the system. As it currently stands, no memory is freed from this one-block-per-group scheme.
-        CompactionGroup cg(exec_->GetTxn().Get(), block->data_table_);
+        CompactionGroup cg(txn_manager->BeginTransaction(), block->data_table_);
         // TODO(Tianyu): Additionally, frozen blocks can still have empty slots within them. To make sure
         // these memory are not gone forever, we still need to periodically shuffle tuples around within
         // frozen blocks. Although code can be reused for doing the compaction, some logic needs to be
@@ -186,16 +186,20 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // This operation cannot fail since a logically deleted slot can only be reclaimed by the compaction thread
   accessor.Reallocate(to);
 
-  return MoveTupleTest(nullptr, from, to);
+  cg->table_->InsertInto(common::ManagedPointer(cg->txn_), *record->Delta(), to);
+
+  // The delete can fail if a concurrent transaction is updating said tuple. We will have to abort if this is
+  // the case.
+  return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
 }
 
-bool BlockCompactor::MoveTupleTest(RawBlock* block, TupleSlot from, TupleSlot to) {
+bool BlockCompactor::MoveTupleTPL(execution::exec::ExecutionContext *exec, TupleSlot from, TupleSlot to, col_id_t *col_oids) {
   std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)>
       move_tuple_;
   auto compiler = execution::vm::test::ModuleCompiler();
-  auto module = compiler.CompileToModule(tpl_code_, exec_);
+  auto module = compiler.CompileToModule(tpl_code_, exec);
   module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple_);
-  return move_tuple_(exec_, &from, &to, col_oids_);
+  return move_tuple_(exec, &from, &to, col_oids);
 }
 
 bool BlockCompactor::CheckForVersionsAndGaps(const TupleAccessStrategy &accessor, RawBlock *block) {

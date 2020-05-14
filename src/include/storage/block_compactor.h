@@ -54,11 +54,7 @@ class BlockCompactor {
   };
 
  public:
-  BlockCompactor(execution::exec::ExecutionContext *exec, col_id_t *col_oids, const char *table_name) {
-    // Init data members for movetuple builtin
-    exec_ = exec;
-    col_oids_ = col_oids;
-    table_name_ = table_name;
+  BlockCompactor() {
     // tpl code for use in moveTuple. It deletes the tuple from the table and from the index and then inserts the tuple
     // to the table (a specific block) and to the index. It returns true if the delete succeeds (because delete returns
     // false if a concurrent transaction is updating the tuple that is trying to be moved, the only condition where
@@ -71,6 +67,7 @@ class BlockCompactor {
     // fixed length col_ids array passed : HACK
     tpl_code_ = R"(
     fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: [1]uint32) -> bool {
+      // HACK: The function storageInterfaceInitBind expects an array, cannot accept a pointer
       col_oids[0] = 1
       var storage_interface: StorageInterface
       @storageInterfaceInitBind(&storage_interface, execCtx, "foo", col_oids, true)
@@ -88,7 +85,7 @@ class BlockCompactor {
 
   FAKED_IN_TEST ~BlockCompactor() = default;
 
-  bool MoveTupleTest(RawBlock* block, TupleSlot from, TupleSlot to);
+  bool MoveTupleTPL(execution::exec::ExecutionContext *exec,TupleSlot from, TupleSlot to, col_id_t *col_oids);
 
   /**
    * Processes the compaction queue and mark processed blocks as cold if successful. The compaction can fail due
@@ -138,9 +135,5 @@ class BlockCompactor {
   // stores the TPL code that needs to be run in order to perform the compaction
   std::string tpl_code_;
 
-  // Variables required for calling the MoveTuple builtin
-  execution::exec::ExecutionContext *exec_;
-  col_id_t *col_oids_;
-  const char *table_name_;
 };
 }  // namespace terrier::storage

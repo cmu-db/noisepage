@@ -217,25 +217,6 @@ class DataTable {
                             TupleSlot dest);
 
   /**
-   * Creates a new block for compaction. When the block is created, the BlockStatus is set to FREEZING to prevent
-   * any other transaction from accessing it.
-   * @return block that has been newly created
-   */
-  RawBlock *CreateCompactedBlock();
-
-  /**
-   * Inserts a tuple, as given in the redo into the specified block. Normally, we do not allow insertion into a
-   * block while it is freezing. This function is used to specifically insert into a block while compaction process
-   * is happening. The FREEZING status flag ensures that no other transaction operates on the same block.
-   * @param txn the calling transaction
-   * @param redo after-image of the inserted tuple
-   * @param block the block to which the tuple should be inserted into
-   * @return true if successful, false otherwise
-   */
-  bool InsertIntoFreezingBlock(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
-                               RawBlock *block);
-
-  /**
    * Deletes the given TupleSlot, this will call StageDelete on the provided txn to generate the RedoRecord for delete.
    * The rest of the behavior follows Update's behavior.
    * @param txn the calling transaction
