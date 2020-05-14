@@ -1,5 +1,7 @@
-#include "storage/block_compactor.h"
-
+/*
+ * TODO(vilasb): Contents of this file will eventually replace the block_compactor_test.cpp file when the block
+ * compactor is completely compatible with the execution engine.
+ */
 #include <memory>
 #include <vector>
 
@@ -9,6 +11,7 @@
 #include "execution/exec/execution_context.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
+#include "storage/block_compactor.h"
 #include "storage/index/index_builder.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/sql_table.h"
@@ -21,8 +24,6 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
-
-#define LOG_FILE_NAME "./test.log"
 
 namespace terrier::storage {
 class BlockCompactorTests : public TerrierTest {
@@ -40,16 +41,8 @@ class BlockCompactorTests : public TerrierTest {
   common::ManagedPointer<storage::GarbageCollector> gc_;
 
   void SetUp() override {
-    // Unlink log file in case one exists from previous test iteration
-    unlink(LOG_FILE_NAME);
-
-    db_main_ = terrier::DBMain::Builder()
-                   .SetLogFilePath(LOG_FILE_NAME)
-                   .SetUseLogging(true)
-                   .SetUseGC(true)
-                   .SetUseGCThread(true)
-                   .SetUseCatalog(true)
-                   .Build();
+    db_main_ =
+        terrier::DBMain::Builder().SetUseLogging(true).SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     deferred_action_manager_ = db_main_->GetTransactionLayer()->GetDeferredActionManager();
     timestamp_manager_ = db_main_->GetTransactionLayer()->GetTimestampManager();
@@ -57,11 +50,6 @@ class BlockCompactorTests : public TerrierTest {
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     gc_ = db_main_->GetStorageLayer()->GetGarbageCollector();
-  }
-
-  void TearDown() override {
-    // Delete log file
-    unlink(LOG_FILE_NAME);
   }
 
   catalog::IndexSchema DummyIndexSchema() {
@@ -207,12 +195,12 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   execution::exec::ExecutionContext exec{db_oid, common::ManagedPointer<transaction::TransactionContext>(txn3), nullptr,
                                          nullptr, common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
 
-  col_id_t *col_oids = new col_id_t[1];
-  col_oids[0] = (col_id_t)1;
+  auto col_oids = new col_id_t[1];
+  col_oids[0] = static_cast<col_id_t>(1);
   storage::BlockCompactor compactor;
   EXPECT_EQ(tuple_slot_0.GetBlock(), tuple_slot_1.GetBlock());
-  bool moveSucceeds = compactor.MoveTupleTPL(&exec, tuple_slot_1, tuple_slot_0, col_oids);
-  EXPECT_TRUE(moveSucceeds);
+  bool move_succeeds = compactor.MoveTupleTPL(&exec, tuple_slot_1, tuple_slot_0, col_oids);
+  EXPECT_TRUE(move_succeeds);
   txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Begin T4, check for correctness of compaction, and commit
@@ -228,7 +216,6 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   EXPECT_EQ(*content, 1);
   // the 2nd slot will not have a tuple
   visible = table_ptr->Select(common::ManagedPointer(txn4), tuple_slot_1, read_row);
-  content = read_row->Get<uint32_t, false>(0, nullptr);
   EXPECT_FALSE(visible);  // Should not be filled after compaction
 
   txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -295,8 +282,8 @@ TEST_F(BlockCompactorTests, DISABLED_SimpleCompactionTest) {
   execution::exec::ExecutionContext exec{db_oid, common::ManagedPointer<transaction::TransactionContext>(txn3), nullptr,
                                          nullptr, common::ManagedPointer<catalog::CatalogAccessor>(catalog_accessor)};
 
-  col_id_t *col_oids = new col_id_t[1];
-  col_oids[0] = (col_id_t)1;
+  auto col_oids = new col_id_t[1];
+  col_oids[0] = static_cast<col_id_t>(1);
   auto block = table_ptr->begin()->GetBlock();
 
   // Initialise block compactor and perform compaction
@@ -305,7 +292,6 @@ TEST_F(BlockCompactorTests, DISABLED_SimpleCompactionTest) {
   transaction::DeferredActionManager *deferred_action_manager_ptr = deferred_action_manager_.Get();
   transaction::TransactionManager *txn_manager_ptr = txn_manager_.Get();
   compactor.ProcessCompactionQueue(deferred_action_manager_ptr, txn_manager_ptr);
-  // txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Check for correctness of compaction
   auto txn4 = txn_manager_->BeginTransaction();

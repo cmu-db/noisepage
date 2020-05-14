@@ -195,11 +195,11 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
 
 bool BlockCompactor::MoveTupleTPL(execution::exec::ExecutionContext *exec, TupleSlot from, TupleSlot to,
                                   col_id_t *col_oids) {
-  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)> move_tuple_;
+  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)> move_tuple;
   auto compiler = execution::vm::test::ModuleCompiler();
   auto module = compiler.CompileToModule(tpl_code_, exec);
-  module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple_);
-  return move_tuple_(exec, &from, &to, col_oids);
+  module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple);
+  return move_tuple(exec, &from, &to, col_oids);
 }
 
 bool BlockCompactor::CheckForVersionsAndGaps(const TupleAccessStrategy &accessor, RawBlock *block) {

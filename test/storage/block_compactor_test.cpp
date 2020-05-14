@@ -1,10 +1,13 @@
+/*
+ * TODO(vilasb): This file will eventually be replaced by the contents of block_compactor_tpl_test.cpp when the
+ * block compactor is completely compatible with the execution engine. The current version of this file tests block
+ * compactor functionality by directly interacting with the data table without going through the execution engine.
+ */
 #include "storage/block_compactor.h"
 
 #include <unordered_map>
-#include <vector>
 
 #include "common/hash_util.h"
-#include "storage/block_access_controller.h"
 #include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
@@ -379,6 +382,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
 
     gc.PerformGarbageCollection();
     gc.PerformGarbageCollection();  // Second call to deallocate.
+
     // Deallocate all the leftover gathered varlens
     // No need to gather the ones still in the block because they are presumably all gathered
     for (storage::col_id_t col_id : layout.AllColumns())

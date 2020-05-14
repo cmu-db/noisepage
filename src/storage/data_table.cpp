@@ -210,7 +210,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   return result;
 }
 
-// TODO (abhijithanilkumar): This function is probably only useful to test the TPL code for
+// TODO(abhijithanilkumar): This function is probably only useful to test the TPL code for
 // CompactionInsertInto. Is there an alternate way to do this?
 TupleSlot DataTable::AllocateSlot() {
   TupleSlot result;

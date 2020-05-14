@@ -96,7 +96,7 @@ class SqlTable {
    * @return the allocated TupleSlot
    */
   TupleSlot AllocateSlot() {
-    // TODO (abhijithanilkumar): This function is probably only useful to test the TPL code for
+    // TODO(abhijithanilkumar): This function is probably only useful to test the TPL code for
     // CompactionInsertInto. Is there an alternate way to do this?
     return table_.data_table_->AllocateSlot();
   }
