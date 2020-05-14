@@ -21,13 +21,9 @@ class AlterTableCmdExecutor {
   AlterTableCmdExecutor() = delete;
 
   /**
-   * Record the changes to a specific column
-   */
-
-  /**
    *
    * @param cmd  AddColumn Command
-   * @param schema Schema to accumulate changes
+   * @param cols columns to accumulate changes
    * @param change_map to record the changes to schema
    * @return whether add column is successful
    */

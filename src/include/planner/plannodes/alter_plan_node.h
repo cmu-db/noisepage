@@ -75,6 +75,9 @@ class AlterCmdBase {
  */
 class AlterPlanNode : public AbstractPlanNode {
  public:
+  /**
+   * Add Column Command
+   */
   class AddColumnCmd : public AlterCmdBase {
    public:
     AddColumnCmd() = default;

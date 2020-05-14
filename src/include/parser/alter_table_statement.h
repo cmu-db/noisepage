@@ -23,6 +23,9 @@ class AlterTableStatement : public TableRefStatement {
    */
   enum class AlterType { AddColumn, DropColumn, ColumnDefault, AlterColumnType };
 
+  /**
+   * Represents a single action for the ALTER TABLE
+   */
   class AlterTableCmd {
    public:
     /**
