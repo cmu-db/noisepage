@@ -613,12 +613,12 @@ TEST_F(ConstraintStatementTest, VerifyDelete) {
     pqxx::work txn1(connection);
     txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, data2 INT);");
     txn1.exec("INSERT INTO TableA VALUES (1, 3, 2);");
-    txn1.exec("UPDATE TableA SET data1 = 4, data2 = 4 WHERE id = 1;");
+    txn1.exec("UPDATE TableA SET data = 4, data2 = 4 WHERE id = 1;");
     txn1.exec("INSERT INTO TableA VALUES (2, 4, 4);");
     pqxx::result r = txn1.exec("SELECT * FROM TableA;");
     EXPECT_EQ(r.size(), 2);
 
-    txn1.exec("DELETE FROM TableA WHERE data1 = 4;");
+    txn1.exec("DELETE FROM TableA WHERE data = 4;");
     r = txn1.exec("SELECT * FROM TableA;");
     EXPECT_EQ(r.size(), 0);
     std::cerr << "till end\n";
