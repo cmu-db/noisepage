@@ -315,7 +315,13 @@ class DatabaseCatalog {
                                    storage::TupleSlot tuple_slot);
 
   int FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, db_oid_t db_oid, table_oid_t table,
-                const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
+                  const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
+  int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
+                                          table_oid_t table_oid, const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> pr_vector);
+  std::vector<storage::TupleSlot> FKScan(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
+                                         const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector);
+  int FKDelete(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
+                                const PG_Constraint &con_obj, std::vector<storage::TupleSlot> fk_slots);
 
   /**
    * insert eh PK constraint when creating table according to the definition
