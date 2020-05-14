@@ -23,6 +23,14 @@ void StrongTypeAlias<Tag, IntType>::FromJson(const nlohmann::json &j) {
   val_ = j.get<IntType>();
 }
 
+/*
+ * Explicit template instantiations - this exists, because the above template functions
+ * need to exist inside a cpp file, in order to prevent using the json library in too many
+ * header files. Normally, you cannot define template functions in the cpp file, but by
+ * explicitly declaring the template class here - you can.
+ *
+ */
+
 template class StrongTypeAlias<terrier::optimizer::tags::group_id_t_typedef_tag, int32_t>;
 template class StrongTypeAlias<terrier::catalog::tags::col_oid_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<terrier::catalog::tags::constraint_oid_t_typedef_tag, uint32_t>;

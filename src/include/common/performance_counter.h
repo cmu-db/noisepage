@@ -135,6 +135,12 @@ class PerformanceCounter {
  * We need a function call so that we can compile this out in release mode.
  *
  * Note that every class member is wrapped in std::atomic.
+ *
+ * If you want to use this macro you need to include this file and use
+ * DEFINE_PERFORMANCE_CLASS_HEADER in the .h file. Then in the corresponding .cpp
+ * file, you need to include "common/performance_counter_body.h" and use
+ * DEFINE_PERFORMANCE_CLASS_BODY with the same arguements.
+ *
  */
 #define DEFINE_PERFORMANCE_CLASS_HEADER(ClassName, MemberList)                                 \
   class ClassName : public terrier::common::PerformanceCounter {                               \
@@ -156,9 +162,6 @@ class PerformanceCounter {
     void ZeroCounters();                                                                       \
   };                                                                                           \
                                                                                                \
-  void to_json(nlohmann::json &j, const ClassName &c); /* NOLINT */                            \
-  void from_json(const nlohmann::json &j, ClassName &c); /* NOLINT */
+  void to_json(nlohmann::json &j, const ClassName &c);  /* NOLINT */                           \
+  void from_json(const nlohmann::json &j, ClassName &c);  /* NOLINT */
 
-// note: this is a rare correct usage of inline in modern C++
-// If you include a header file in multiple translation units, the multiple definitions conflict
-// and you get linker errors. We mark it inline so that the compiler figures it out.

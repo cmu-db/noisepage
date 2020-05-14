@@ -46,6 +46,12 @@ namespace terrier::common {
  * int result = !foo(a(42), b(10));
  *
  * This works with all types of ints.
+ *
+ * In order to use this macro, you need to use STRONG_TYPEDEF_HEADER in the .h file, then
+ * include common/strong_typedef_body.h in the corresponding .cpp file and use
+ * STRONG_TYPEDEF_BODY with the same arguements. Finally, you need to add an explicit instantation
+ * of the template in common/strong_typedef.cpp.
+ *
  */
 #define STRONG_TYPEDEF_HEADER(name, underlying_type)                                          \
   namespace tags {                                                                            \

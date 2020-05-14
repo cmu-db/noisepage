@@ -40,6 +40,13 @@
 #define PC_FN_ZERO(MemberType, MemberName)
 #endif  // NDEBUG
 
+/*
+ * If you want to use this macro, you need to include "common/performance_counter.h" and use
+ * DEFINE_PERFORMANCE_CLASS_HEADER in the .h file. Then you need to include this file in the .cpp
+ * file and use DEFINE_PERFORMANCE_CLASS_BODY with the same arguements.
+ *
+ */
+
 #define DEFINE_PERFORMANCE_CLASS_BODY(ClassName, MemberList)                                              \
   nlohmann::json ClassName::ToJson() const {                                                              \
       nlohmann::json output;                                                                              \
@@ -52,7 +59,3 @@
   void ClassName::ZeroCounters() { MemberList(PC_FN_ZERO) }                                               \
   void to_json(nlohmann::json &j, const ClassName &c) { j = c.ToJson(); }  /* NOLINT */                   \
   void from_json(const nlohmann::json &j, ClassName &c) { c.FromJson(j); } /* NOLINT */
-
-// note: this is a rare correct usage of inline in modern C++
-// If you include a header file in multiple translation units, the multiple definitions conflict
-// and you get linker errors. We mark it inline so that the compiler figures it out.

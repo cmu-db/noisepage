@@ -8,6 +8,11 @@ namespace terrier::common {
 // TODO(WAN): I think we should be using the adt_serializable, not this hack..
 /**
  * Convenience alias for a JSON object from the nlohmann::json library.
+ *
+ * In order to use the following macro, you need to include this file and use
+ * DEFINE_JSON_HEADER_DECLARATIONS in the .h file, and then need to include common/json.h
+ * and use DEFINE_JSON_BODY_DECLARATIONS in the .cpp file with the same argument.
+ *
  */
 using json = nlohmann::json;
 
