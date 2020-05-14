@@ -4,6 +4,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "catalog/schema.h"
@@ -214,6 +215,11 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   const std::vector<catalog::index_oid_t> &GetIndexOids() const { return index_oids_; }
 
+  /**
+   * Populates the given set with all of the tables that this plan will perform modifications for (e.g. UPDATE, INSERT
+   * or DELETE)
+   * @param tables the set to populate
+   */
   void GetModifiedTables(common::ManagedPointer<std::unordered_set<catalog::table_oid_t>> tables) const override {
     tables->insert(table_oid_);
   }

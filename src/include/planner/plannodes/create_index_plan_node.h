@@ -108,7 +108,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     /**
      * Whether the build should be concurrent
      */
-     bool concurrent_;
+    bool concurrent_ = false;
   };
 
  private:
@@ -189,7 +189,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   catalog::table_oid_t table_oid_;
   std::string index_name_;
   std::unique_ptr<catalog::IndexSchema> schema_;
-  bool concurrent_;
+  bool concurrent_ = false;
 };
 
 DEFINE_JSON_DECLARATIONS(CreateIndexPlanNode);

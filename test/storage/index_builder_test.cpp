@@ -83,7 +83,6 @@ class IndexBuilderTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(IndexBuilderTests, NullTable) {
-
   auto index = (IndexBuilder().SetKeySchema(index_schema_).Build());
 
   auto txn = txn_manager_->BeginTransaction();
@@ -99,11 +98,13 @@ TEST_F(IndexBuilderTests, NullTable) {
 TEST_F(IndexBuilderTests, OneTxnFullTable) {
   auto table_txn = txn_manager_->BeginTransaction();
   auto row_initializer = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1), catalog::col_oid_t(2)});
-  uint32_t NUM_INSERTS = 1000;
+  uint32_t num_inserts = 1000;
   std::vector<uint32_t> keys;
   std::unordered_set<TupleSlot> reference;
-  for(uint32_t i = 0; i < NUM_INSERTS; i++) {
+  for (uint32_t i = 0; i < num_inserts; i++) {
+    // NOLINTNEXTLINE (random is fine for tests)
     uint32_t key = random();
+    // NOLINTNEXTLINE (random is fine for tests)
     uint32_t val = random();
 
     auto redo_record = table_txn->StageWrite(catalog::db_oid_t{1}, catalog::table_oid_t{1}, row_initializer);
@@ -119,10 +120,12 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   auto index_build_txn = txn_manager_->BeginTransaction();
 
-  auto index_builder = IndexBuilder().SetKeySchema(index_schema_).SetSqlTableAndTransactionContext(common::ManagedPointer(sql_table_), common::ManagedPointer(index_build_txn));
+  auto index_builder = IndexBuilder()
+                           .SetKeySchema(index_schema_)
+                           .SetSqlTableAndTransactionContext(common::ManagedPointer(sql_table_),
+                                                             common::ManagedPointer(index_build_txn));
   auto index = index_builder.Build();
   index_builder.BulkInsert(index);
-
 
   txn_manager_->Commit(index_build_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -131,7 +134,7 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
   index->ScanAscending(*index_scan_txn, storage::index::ScanType::OpenBoth, 1, nullptr, nullptr, 0, &values);
 
   std::unordered_set<TupleSlot> result;
-  for(TupleSlot t : values) {
+  for (TupleSlot t : values) {
     result.insert(t);
   }
 
@@ -139,4 +142,4 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   txn_manager_->Commit(index_scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
-}
+}  // namespace terrier::storage::index

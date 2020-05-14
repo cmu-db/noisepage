@@ -72,10 +72,12 @@ class IndexBuilder {
     return *this;
   }
 
- /**
-  * @param sql_table, transaction context
-  * @return the builder object
-  */
+  /**
+   * Set the SQL table and transaction context for this index builder to allow it to perform bulk inserts
+   * @param sql_table the table this index is being built on
+   * @param txn the transaction to use when inserting into the table
+   * @return the builder object
+   */
   IndexBuilder &SetSqlTableAndTransactionContext(common::ManagedPointer<storage::SqlTable> sql_table,
                                                  const common::ManagedPointer<transaction::TransactionContext> txn) {
     TERRIER_ASSERT((sql_table == nullptr && txn == nullptr) || (sql_table != nullptr && txn != nullptr),
@@ -84,11 +86,11 @@ class IndexBuilder {
     txn_ = txn;
     return *this;
   }
- /**
-  *
-  * @param newly created index
-  * @return index with all the keys inserted
-  */
+
+  /**
+   * Insert everything in the table this index is made on into the index
+   * @param index newly created index
+   */
   void BulkInsert(Index *index) const {
     const auto index_pr_initializer = index->GetProjectedRowInitializer();
 
@@ -110,10 +112,11 @@ class IndexBuilder {
     for (auto it = sql_table_->begin(); it != sql_table_->end(); ++it) {
       const TupleSlot slot = *it;
 
-      sql_table_->TraverseVersionChain(slot, table_pr, [&, this](auto type){
+      sql_table_->TraverseVersionChain(slot, table_pr, [&, this](auto type) {
         // Insert into the index
         auto num_index_cols = key_schema_.GetColumns().size();
-        TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
+        TERRIER_ASSERT(num_index_cols == indexed_attributes.size(),
+                       "Only support index keys that are a single column oid");
         for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
           const auto &col = key_schema_.GetColumn(col_idx);
           auto index_col_oid = col.Oid();
@@ -129,14 +132,11 @@ class IndexBuilder {
 
         switch (type) {
           case DataTable::VersionChainType::VISIBLE:
-            printf("Inserting into index");
             index->Insert(txn_, *index_pr, slot);
             break;
           case DataTable::VersionChainType::INVISIBLE:
           case DataTable::VersionChainType::PRE_UPDATE:
-            printf("Inserting into index");
             index->Insert(txn_, *index_pr, slot);
-            printf("Deleting from index");
             index->Delete(txn_, *index_pr, slot);
             break;
           default:
@@ -150,7 +150,6 @@ class IndexBuilder {
   }
 
  private:
-
   Index *BuildBwTreeIntsKey(IndexMetadata metadata) const {
     metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
     const auto key_size = metadata.KeySize();

@@ -3,8 +3,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <mutex>
-#include <condition_variable>
 
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"

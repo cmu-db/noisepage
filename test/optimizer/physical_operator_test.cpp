@@ -1211,7 +1211,7 @@ TEST(OperatorTests, CreateIndexTest) {
       storage::index::IndexType::BWTREE, true, true, true, true);
 
   Operator op1 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema));
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema), false);
 
   EXPECT_EQ(op1.GetType(), OpType::CREATEINDEX);
   EXPECT_EQ(op1.GetName(), "CreateIndex");
@@ -1230,8 +1230,8 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op2 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_2));
+  Operator op2 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1",
+                                   std::move(idx_schema_2), false);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -1240,8 +1240,8 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op3 =
-      CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1", std::move(idx_schema_3));
+  Operator op3 = CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1",
+                                   std::move(idx_schema_3), false);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1250,8 +1250,8 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op4 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2", std::move(idx_schema_4));
+  Operator op4 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2",
+                                   std::move(idx_schema_4), false);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
@@ -1260,8 +1260,8 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_1", type::TypeId::INTEGER, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op5 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5));
+  Operator op5 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1",
+                                   std::move(idx_schema_5), false);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
@@ -1272,8 +1272,8 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_2", type::TypeId::TINYINT, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op6 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_6));
+  Operator op6 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1",
+                                   std::move(idx_schema_6), false);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 }

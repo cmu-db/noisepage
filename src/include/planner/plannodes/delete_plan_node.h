@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "parser/delete_statement.h"
@@ -128,6 +129,11 @@ class DeletePlanNode : public AbstractPlanNode {
   /** @return the type of this plan node */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DELETE; }
 
+  /**
+   * Populates the given set with all of the tables that this plan will perform modifications for (e.g. UPDATE, INSERT
+   * or DELETE)
+   * @param tables the set to populate
+   */
   void GetModifiedTables(common::ManagedPointer<std::unordered_set<catalog::table_oid_t>> tables) const override {
     tables->insert(table_oid_);
   }

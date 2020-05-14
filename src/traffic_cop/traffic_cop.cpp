@@ -167,20 +167,21 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       if (concurrent) {
         connection_ctx->Transaction()->SetMustAbort();
         return {ResultType::ERROR, "ERROR:  CREATE INDEX CONCURRENTLY not implemented"};
-        //TODO
-      } else {
-        auto table_oid = create_index_plan->GetTableOid();
-        if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
-          return {ResultType::ERROR, "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
-        }
-        auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
-        table_lock->lock();
-        bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
-            physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor());
-        table_lock->unlock();
-        if (result) {
-          return {ResultType::COMPLETE, 0};
-        }
+        // TODO(add_index): Implement this
+      }
+
+      auto table_oid = create_index_plan->GetTableOid();
+      if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
+        return {ResultType::ERROR,
+                "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
+      }
+      auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
+      table_lock->lock();
+      bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
+          physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor());
+      table_lock->unlock();
+      if (result) {
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }

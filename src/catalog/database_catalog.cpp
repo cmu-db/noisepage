@@ -936,9 +936,9 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
   return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
 }
 
-common::ManagedPointer<std::shared_mutex> DatabaseCatalog::GetTableLock(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                       table_oid_t table) {
-  return common::ManagedPointer(reinterpret_cast<std::shared_mutex*>(&(GetTable(txn, table)->modify_mutex_)));
+common::ManagedPointer<std::shared_mutex> DatabaseCatalog::GetTableLock(
+    common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
+  return common::ManagedPointer(reinterpret_cast<std::shared_mutex *>(&(GetTable(txn, table)->modify_lock_)));
 }
 
 bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1001,9 +1001,10 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = indexes_->Select(common::ManagedPointer(&fake_txn), slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
-    if (!only_live || *(reinterpret_cast<bool *>(select_pr->AccessForceNotNull(
-        get_live_indexes_prm_[postgres::INDISLIVE_COL_OID])))) {
-      index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDOID_COL_OID]))));
+    if (!only_live || *(reinterpret_cast<bool *>(
+                          select_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDISLIVE_COL_OID])))) {
+      index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(
+          select_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDOID_COL_OID]))));
     }
   }
 
@@ -1021,7 +1022,7 @@ index_oid_t DatabaseCatalog::CreateIndex(const common::ManagedPointer<transactio
 }
 
 bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                  index_oid_t index) {
+                                   index_oid_t index) {
   if (!TryLock(txn)) return false;
   const auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
 
@@ -2183,26 +2184,6 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   col.SetOid(ColOid(col_oid));
   return col;
 }
-
-bool DatabaseCatalog::TransferLock(common::ManagedPointer<transaction::TransactionContext> from, common::ManagedPointer<transaction::TransactionContext> to) {
-  bool locked = TryLock(from);
-  if(!locked) {
-    return false;
-  }
-  const transaction::timestamp_t txn_id = to->FinishTime();
-  auto current_val = write_lock_.load();
-
-  if (write_lock_.compare_exchange_strong(current_val, txn_id)) {
-    // acquired the lock
-    auto *const write_lock = &write_lock_;
-    to->RegisterCommitAction([=]() -> void { write_lock->store(to->FinishTime()); });
-    to->RegisterAbortAction([=]() -> void { write_lock->store(current_val); });
-    return true;
-  }
-
-  return false;
-}
-
 
 bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto current_val = write_lock_.load();
