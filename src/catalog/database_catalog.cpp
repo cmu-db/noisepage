@@ -1482,7 +1482,7 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
 
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<sequence_oid_t *>(index_pr->AccessForceNotNull(0))) = sequence_oid;
-  const bool UNUSED_ATTRIBUTE sequence_result = sequences_relid_index_->InsertUnique(txn, *index_pr, tuple_slot);
+  const auto sequence_result UNUSED_ATTRIBUTE = sequences_relid_index_->InsertUnique(txn, *index_pr, tuple_slot);
   TERRIER_ASSERT(sequence_result, "Assigned sequence OID failed to be unique.");
 
   return true;
@@ -1491,7 +1491,6 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
 bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::TransactionContext> txn,
                                      sequence_oid_t sequence) {
   if (!TryLock(txn)) return false;
-  bool result;
 
   // Initialize PRs for pg_class
   const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
@@ -1514,14 +1513,13 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
-  result = classes_->Select(txn, index_results[0], table_pr);
+  auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
   txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
-  result = classes_->Delete(txn, index_results[0]);
-  if (!result) {
-    // write-write conflict. Someone beat us to this operation.
+  if (!classes_->Delete(txn, index_results[0])) {
+    // Someone else has a write-lock. Free the buffer and return false to indicate failure
     delete[] buffer;
     return false;
   }
@@ -1570,10 +1568,11 @@ bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::T
 
   // Delete from pg_sequence table
   txn->StageDelete(db_oid_, postgres::SEQUENCE_TABLE_OID, index_results[0]);
-  result = sequences_->Delete(txn, index_results[0]);
-  TERRIER_ASSERT(result,
-                 "Delete from pg_sequence should always succeed as write-write conflicts are detected during delete "
-                 "from pg_class");
+  if (!sequences_->Delete(txn, index_results[0])) {
+    // Someone else has a write-lock. Free the buffer and return false to indicate failure
+    delete[] buffer;
+    return false;
+  }
 
   // Delete from sequences_oid_index
   index_pr = sequence_oid_pr.InitializeRow(buffer);
@@ -1622,7 +1621,6 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   while (table_iter != classes_->end()) {
     classes_->Scan(txn, &table_iter, pc);
     for (uint i = 0; i < pc->NumTuples(); i++) {
-      // TODO(zianke): Temporarily remove TERRIER_ASSERT
       TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
       TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
@@ -1635,7 +1633,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
         case postgres::ClassKind::SEQUENCE:
-          // TODO(zianke): Destructor of sequence
+          // No destructor for sequence
           break;
         default:
           throw std::runtime_error("Unimplemented destructor needed");
@@ -2278,7 +2276,6 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns_oid;
   if (!classes_name_index_->InsertUnique(txn, *index_pr, tuple_slot)) {
-    STORAGE_LOG_ERROR("InsertUnique classes_name_index_ error");
     // There was a name conflict and we need to abort.  Free the buffer and
     // return INVALID_TABLE_OID to indicate the database was not created.
     delete[] index_buffer;
@@ -2297,9 +2294,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   col_oid_t curr_col_oid(1);
   for (auto &col : schema.GetColumns()) {
     auto success = CreateColumn(txn, table_oid, curr_col_oid++, col);
-    if (!success) {
-      return false;
-    }
+    if (!success) return false;
   }
 
   std::vector<Schema::Column> cols = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table_oid);
