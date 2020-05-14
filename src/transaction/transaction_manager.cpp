@@ -112,7 +112,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   // Unlock all table locks this transaction may hold
   for (auto table_lock : txn->held_table_locks_) {
     reinterpret_cast<TransactionContext::DebugLock *>(table_lock.Get())
-        ->debug_unlock_shared(common::ManagedPointer(txn));
+        ->debug_unlock_shared(txn);
     // table_lock->unlock_shared();
   }
   txn->held_table_locks_.clear();
@@ -182,7 +182,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Unlock all table locks this transaction may hold
   for (auto table_lock : txn->held_table_locks_) {
     reinterpret_cast<TransactionContext::DebugLock *>(table_lock.Get())
-        ->debug_unlock_shared(common::ManagedPointer(txn));
+        ->debug_unlock_shared(txn);
     // table_lock->unlock_shared();
   }
 

@@ -66,7 +66,8 @@ class DDLExecutors {
    * @return true if operation succeeded, false otherwise
    */
   static bool CreateIndexExecutor(common::ManagedPointer<planner::CreateIndexPlanNode> node,
-                                  common::ManagedPointer<catalog::CatalogAccessor> accessor);
+                                  common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                  common::ManagedPointer<transaction::TransactionContext> populate_txn);
 
   /**
    * @param node node to executed
@@ -104,7 +105,8 @@ class DDLExecutors {
 
  private:
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,
-                          const std::string &name, catalog::table_oid_t table, const catalog::IndexSchema &input_schema,
-                          bool concurrent);
+                          const std::string &name, catalog::table_oid_t table,
+                          const catalog::IndexSchema &input_schema, bool concurrent,
+                          common::ManagedPointer<transaction::TransactionContext> populate_txn);
 };
 }  // namespace terrier::execution::sql

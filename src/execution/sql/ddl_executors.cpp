@@ -68,8 +68,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
 
     // Create the index, and use its return value as overall success result
-    result = result && CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid,
-                                   index_schema, false);
+    result = result &&
+             CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema, false, nullptr);
   }
 
   for (const auto &unique_constraint : node->GetUniqueConstraints()) {
@@ -91,7 +91,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
-                                   index_schema, false);
+                                   index_schema, false, nullptr);
   }
 
   // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
@@ -101,9 +101,10 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 }
 
 bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::CreateIndexPlanNode> node,
-                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
-  return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(), *(node->GetSchema()),
-                     node->GetConcurrent());
+                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                       common::ManagedPointer<transaction::TransactionContext> populate_txn) {
+  return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
+                     *(node->GetSchema()), node->GetConcurrent(), populate_txn);
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
@@ -140,10 +141,7 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
 bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                const catalog::namespace_oid_t ns, const std::string &name,
                                const catalog::table_oid_t table, const catalog::IndexSchema &input_schema,
-                               bool concurrent) {
-  TERRIER_ASSERT(!concurrent,
-                 "Concurrent is not implemented yet, and this should for now be caught in the traffic cop");
-
+                               bool concurrent, common::ManagedPointer<transaction::TransactionContext> populate_txn) {
   // Request permission from the Catalog to see if this a valid namespace and table name
   const auto index_oid = accessor->CreateIndex(ns, table, name, input_schema);
   if (index_oid == catalog::INVALID_INDEX_OID) {
@@ -157,16 +155,23 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
 
-  index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), accessor->GetTransactionContext());
+  if (concurrent) {
+    TERRIER_ASSERT(false, "Should not have concurrency yet");
+  } else {
+    // If no populate txn, index does not need to be populated
+    if (populate_txn != nullptr) {
+      index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), populate_txn);
 
-  bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
-  TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+      bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
+      TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
 
-  // Now, populate the index
-  index_builder.BulkInsert(index);
+      // Now, populate the index
+      index_builder.BulkInsert(index);
+    }
 
-  // Communicate to readers that the index is live
-  accessor->SetIndexLive(index_oid);
+    // Communicate to readers that the index is live
+    accessor->SetIndexLive(index_oid);
+  }
   return true;
 }
 }  // namespace terrier::execution::sql

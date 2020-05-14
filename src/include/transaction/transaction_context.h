@@ -42,19 +42,25 @@ class TransactionContext {
      * @param txn transaction holding the lock
      */
     // NOLINTNEXTLINE
-    void debug_lock_shared(const common::ManagedPointer<transaction::TransactionContext> &txn) {
+    void debug_lock_shared(transaction::TransactionContext *txn) {
       TERRIER_ASSERT(std::count(readers_.begin(), readers_.end(), txn) == 0, "Locking a lock I already have!");
       readers_.push_back(txn);
       lockers_.insert(txn);
+      txn->RegisterCommitAction([this, txn]() {
+        TERRIER_ASSERT(std::count(txn->held_table_locks_.begin(), txn->held_table_locks_.end(), this) == 1, "Lock should be held");
+      });
+      txn->RegisterAbortAction([this, txn]() {
+        TERRIER_ASSERT(std::count(txn->held_table_locks_.begin(), txn->held_table_locks_.end(), this) == 1, "Lock should be held");
+      });
       std::shared_mutex::lock_shared();
     }
 
     /**
-     * unlock in shared mode whie adding debug info
+     * unlock in shared mode while adding debug info
      * @param txn transaction holding the lock
      */
     // NOLINTNEXTLINE
-    void debug_unlock_shared(const common::ManagedPointer<transaction::TransactionContext> &txn) {
+    void debug_unlock_shared(const transaction::TransactionContext *txn) {
       int UNUSED_ATTRIBUTE cnt = lockers_.count(txn);
       TERRIER_ASSERT(std::count(readers_.begin(), readers_.end(), txn) != 0, "Unlocking when I dont have this!");
       readers_.erase(std::find(readers_.begin(), readers_.end(), txn));
@@ -62,8 +68,8 @@ class TransactionContext {
     }
 
    private:
-    std::vector<common::ManagedPointer<transaction::TransactionContext>> readers_;
-    std::unordered_set<common::ManagedPointer<transaction::TransactionContext>> lockers_;
+    std::vector<transaction::TransactionContext*> readers_;
+    std::unordered_set<transaction::TransactionContext*> lockers_;
   };
 
   /**
@@ -262,7 +268,7 @@ class TransactionContext {
    */
   void LockIfNotLocked(catalog::table_oid_t table_oid, common::ManagedPointer<std::shared_mutex> table_lock) {
     if (!IsTableLocked(table_oid)) {
-      reinterpret_cast<DebugLock *>(table_lock.Get())->debug_lock_shared(common::ManagedPointer(this));
+      reinterpret_cast<DebugLock *>(table_lock.Get())->debug_lock_shared(this);
       held_table_oids_.insert(table_oid);
       held_table_locks_.push_back(table_lock);
     }
