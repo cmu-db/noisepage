@@ -1012,12 +1012,14 @@ uint32_t RecoveryManager::ProcessSpecialCasePGSchemaRecord(
     std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELKIND_COL_OID};
     auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
     auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
-    auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize() * 2);
+    auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
     auto *pr = pr_init.InitializeRow(buffer);
 
     pg_class_ptr->Select(common::ManagedPointer(txn), index_results[0], pr);
     auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
         pr->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
+
+    delete[] buffer;
 
     switch (class_kind) {
       case (catalog::postgres::ClassKind::REGULAR_TABLE): {
@@ -1045,7 +1047,9 @@ uint32_t RecoveryManager::ProcessSpecialCasePGSchemaRecord(
 
         // Step 5: Query pg_index for the metadata we need for the index schema
         auto pg_indexes_index = db_catalog->indexes_oid_index_;
-        pr = pg_indexes_index->GetProjectedRowInitializer().InitializeRow(buffer);
+        auto pg_index_pri = pg_indexes_index->GetProjectedRowInitializer();
+        buffer = common::AllocationUtil::AllocateAligned(pg_index_pri.ProjectedRowSize());
+        pr = pg_index_pri.InitializeRow(buffer);
         *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
         std::vector<TupleSlot> tuple_slot_result;
         pg_indexes_index->ScanKey(*txn, *pr, &tuple_slot_result);
@@ -1081,6 +1085,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGSchemaRecord(
 
         result = db_catalog->SetSchemaPointer(common::ManagedPointer(txn), new_slot, index_schema);
         TERRIER_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
+        delete[] buffer;
         break;
       }
       default:

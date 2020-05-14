@@ -96,15 +96,15 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->namespaces_name_index_ =
       Builder::BuildUniqueIndex(Builder::GetNamespaceNameIndexSchema(oid), NAMESPACE_NAME_INDEX_OID);
 
+  // Indexes on pg_schema
+  dbc->schemas_oid_vers_index_ =
+      Builder::BuildUniqueIndex(Builder::GetSchemaOidIndexSchema(oid), SCHEMA_TABLE_VERSION_INDEX_OID);
+
   // Indexes on pg_class
   dbc->classes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetClassOidIndexSchema(oid), CLASS_OID_INDEX_OID);
   dbc->classes_name_index_ = Builder::BuildUniqueIndex(Builder::GetClassNameIndexSchema(oid), CLASS_NAME_INDEX_OID);
   dbc->classes_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetClassNamespaceIndexSchema(oid), CLASS_NAMESPACE_INDEX_OID);
-
-  // Indexes on pg_schema
-  dbc->schemas_oid_vers_index_ =
-      Builder::BuildUniqueIndex(Builder::GetSchemaOidIndexSchema(oid), SCHEMA_TABLE_VERSION_INDEX_OID);
 
   // Indexes on pg_index
   dbc->indexes_oid_index_ = Builder::BuildUniqueIndex(Builder::GetIndexOidIndexSchema(oid), INDEX_OID_INDEX_OID);

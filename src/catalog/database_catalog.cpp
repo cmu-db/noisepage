@@ -321,7 +321,7 @@ void DatabaseCatalog::BootstrapPRIs() {
   set_class_next_col_oid_pri_ = classes_->InitializerForProjectedRow(set_class_next_col_oid_oids);
 
   const std::vector<col_oid_t> get_class_version_kind_oids{postgres::REL_VERS_COL_OID, postgres::RELKIND_COL_OID,
-                                                           postgres::RELOID_COL_OID};
+                                                           postgres::RELOID_COL_OID, postgres::REL_PTR_COL_OID};
   get_class_version_kind_pri_ = classes_->InitializerForProjectedRow(get_class_version_kind_oids);
   get_class_version_kind_prm_ = classes_->ProjectionMapForOids(get_class_version_kind_oids);
 
