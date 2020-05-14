@@ -1029,7 +1029,7 @@ common::hash_t LogicalCreateSequence::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_increment_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_max_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_min_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_start_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_cycle_));
   return hash;
 }
 
