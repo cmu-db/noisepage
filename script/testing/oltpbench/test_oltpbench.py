@@ -22,6 +22,8 @@ class TestOLTPBench(TestServer):
             self.args.get("scalefactor", constants.OLTP_DEFAULT_SCALEFACTOR))
         self.terminals = int(
             self.args.get("terminals", constants.OLTP_DEFAULT_TERMINALS))
+        self.loader_threads = int(
+            self.args.get("loader_threads", constants.OLTP_DEFAULT_LOADER_THREADS))
         self.time = int(
             self.args.get("client_time", constants.OLTP_DEFAULT_TIME))
         self.weights = str(self.args.get("weights"))
@@ -132,6 +134,16 @@ class TestOLTPBench(TestServer):
             work.find("rate").text = str(constants.OLTP_DEFAULT_RATE)
             work.find("weights").text = str(self.weights)
 
+        # Loader Threads
+        # The sample config files usually do not contain this parameter, so we may
+        # have to insert it into the XML tree
+        if root.find("loaderThreads") is None:
+            loaderThreads = ElementTree.Element("loaderThreads")
+            loaderThreads.text = str(self.loader_threads)
+            root.insert(1, loaderThreads)
+        else:
+            root.find("loaderThreads").text = str(self.loader_threads)
+        
         xml.write(self.xml_config)
 
     def validate_result(self):

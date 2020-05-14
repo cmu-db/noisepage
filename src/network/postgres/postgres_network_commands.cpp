@@ -71,9 +71,11 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
                  "caught at the protocol interpreter Process() level.");
 
-  const auto query = in_.ReadString();
+  auto query_text = in_.ReadString();
 
-  auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection));
+  auto parse_result = t_cop->ParseQuery(query_text, connection);
+
+  const auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result));
 
   // Parsing a SimpleQuery clears the unnamed statement and portal
   postgres_interpreter->CloseStatement("");
@@ -194,11 +196,12 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     return Transition::PROCEED;
   }
 
-  const auto query = in_.ReadString();
-
+  auto query_text = in_.ReadString();
+  auto parse_result = t_cop->ParseQuery(query_text, connection);
   auto param_types = PostgresPacketUtil::ReadParamTypes(common::ManagedPointer(&in_));
 
-  auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection), std::move(param_types));
+  auto statement =
+      std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result), std::move(param_types));
 
   // Extended Query protocol doesn't allow for more than one statement per query string
   if (!statement->Valid() || statement->ParseResult()->NumStatements() > 1) {
@@ -216,7 +219,8 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  const auto fingerprint_result = pg_query_fingerprint(query.c_str());
+  const auto fingerprint_result = pg_query_fingerprint(statement->GetQueryText().c_str());
+
   auto cached_statement = postgres_interpreter->LookupStatementInCache(fingerprint_result.hexdigest);
   if (cached_statement == nullptr) {
     // Not in the cache, add to cache

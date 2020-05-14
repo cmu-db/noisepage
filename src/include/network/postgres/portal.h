@@ -21,7 +21,8 @@ namespace terrier::network {
 class Portal {
  public:
   /**
-   * Constructor that doesnt have params or result_formats, i.e. Simple Query protocol
+   * Constructor that doesnt have params or result_formats, i.e. Simple Query protocol. We default the output format to
+   * text for Simple Query protocol per the spec.
    * @param statement statement that this Portal refers to
    */
   explicit Portal(const common::ManagedPointer<Statement> statement) : Portal(statement, {}, {FieldFormat::text}) {}
