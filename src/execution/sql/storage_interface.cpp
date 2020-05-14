@@ -64,11 +64,11 @@ bool StorageInterface::UpdateVerify(storage::TupleSlot table_tuple_slot) {
 }
 
 bool StorageInterface::UpdateCascade(storage::TupleSlot table_tuple_slot) {
-  return db_accessor_->UpdateCascade(table_oid_, table_tuple_slot, table_redo_->Delta());
+  return db_accessor_->UpdateCascade(exec_ctx_->DBOid(), table_oid_, col_oids_, table_redo_->Delta(), table_tuple_slot);
 }
 
 bool StorageInterface::DeleteCascade(storage::TupleSlot table_tuple_slot) {
-  int result = db_accessor_->DeleteCascade(exec_ctx_->DBOid(), table_oid_, table_tuple_slot, table_redo_->Delta());
+  int result = db_accessor_->DeleteCascade(exec_ctx_->DBOid(), table_oid_, col_oids_, table_redo_->Delta(), table_tuple_slot);
   exec_ctx_->RowsAffected() += result;
   return result != 0;
 }

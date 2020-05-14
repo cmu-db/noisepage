@@ -234,7 +234,8 @@ class EXPORT CatalogAccessor {
    * @param tuple_slot the tupleslot location update applies on the table
    * @return true if cascade success or no cascade needed
    */
-  bool UpdateCascade(table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
+  int UpdateCascade(db_oid_t db_oid, table_oid_t table, const std::vector<col_oid_t> &col_oids,
+                    storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
 
   /**
    * Perform delete cascade if any
@@ -243,7 +244,8 @@ class EXPORT CatalogAccessor {
    * @param tuple_slot the tupleslot location update applies on the table
    * @return true if cascade success or no cascade needed
    */
-  int DeleteCascade(db_oid_t db_oit, table_oid_t table, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
+  int DeleteCascade(db_oid_t db_oid, table_oid_t table, const std::vector<col_oid_t> &col_oids,
+                    storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
 
   /**
    * Caller to catalog to create a PK constraint record

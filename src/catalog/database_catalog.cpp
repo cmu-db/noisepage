@@ -1054,49 +1054,63 @@ bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::Transac
 
 // recursively find child and make cascade update if satisfied
 int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
-                                storage::TupleSlot table_tuple_slot, const char cascade_type,
+                               const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot, const char cascade_type,
                                 storage::ProjectedRow *pr) {
   int affected_row = 0;
-  if (cascade_type == catalog::postgres::FK_DELETE) {
-    // check if tuple is in the table
-    auto table = GetTable(txn, table_oid);
-    const auto table_schema = GetSchema(txn, table_oid);
-    std::vector<col_oid_t> table_col_oids;
-    table_col_oids.reserve(table_schema.GetColumns().size());
-    for (const auto &col : table_schema.GetColumns()) {
-      table_col_oids.push_back(col.Oid());
-    }
-    auto table_pri = table->InitializerForProjectedRow(table_col_oids);
-    auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
-    auto *table_pr = table_pri.InitializeRow(table_buffer);
-    bool result UNUSED_ATTRIBUTE = table->Select(txn, table_tuple_slot, table_pr);
-    std::vector<storage::ProjectedRow *> table_prs;
-    table_prs.push_back(table_pr);
+  // check if tuple is in the table
+  auto table = GetTable(txn, table_oid);
+  const auto table_schema = GetSchema(txn, table_oid);
+  std::vector<col_oid_t> table_col_oids;
+  table_col_oids.reserve(table_schema.GetColumns().size());
+  for (const auto &col : table_schema.GetColumns()) {
+    table_col_oids.push_back(col.Oid());
+  }
+  auto table_pri = table->InitializerForProjectedRow(table_col_oids);
+  auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  auto *table_pr = table_pri.InitializeRow(table_buffer);
+  bool result UNUSED_ATTRIBUTE = table->Select(txn, table_tuple_slot, table_pr);
+  std::vector<storage::ProjectedRow *> table_prs;
+  table_prs.push_back(table_pr);
 
+  // get all child table constraint
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pg_constraints_all_cols_pri_.ProjectedRowSize());
+  auto con_pri = constraints_foreigntable_index_->GetProjectedRowInitializer();
+  auto *key_pr = con_pri.InitializeRow(buffer);
+  auto *const con_table_oid_ptr = key_pr->AccessForceNotNull(0);
+  *(reinterpret_cast<table_oid_t *>(con_table_oid_ptr)) = table_oid;
+  std::vector<storage::TupleSlot> index_scan_results;
+  constraints_foreigntable_index_->ScanKey(*txn, *key_pr, &index_scan_results);
 
-    // get all child table constraint
-    auto *const buffer = common::AllocationUtil::AllocateAligned(pg_constraints_all_cols_pri_.ProjectedRowSize());
-    auto con_pri = constraints_foreigntable_index_->GetProjectedRowInitializer();
-    auto *key_pr = con_pri.InitializeRow(buffer);
-    auto *const con_table_oid_ptr = key_pr->AccessForceNotNull(0);
-    *(reinterpret_cast<table_oid_t *>(con_table_oid_ptr)) = table_oid;
-    std::vector<storage::TupleSlot> index_scan_results;
-    constraints_foreigntable_index_->ScanKey(*txn, *key_pr, &index_scan_results);
-
-    auto *select_pr = pg_constraints_all_cols_pri_.InitializeRow(buffer);
-    std::vector<PG_Constraint> constraints;
-    constraints.reserve(index_scan_results.size());
+  auto *select_pr = pg_constraints_all_cols_pri_.InitializeRow(buffer);
+  std::vector<PG_Constraint> constraints;
+  constraints.reserve(index_scan_results.size());
     for (auto &slot : index_scan_results) {
       const auto select_result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
       TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
       PG_Constraint con_obj = PGConstraintPRToObj(select_pr);
-      affected_row += FKCascadeRecursive(txn,db_oid, table_oid, con_obj, table_prs);
+      if (cascade_type == catalog::postgres::FK_UPDATE) {
+        bool affected = false;
+        std::vector<col_oid_t> affected_col_ref;
+        std::vector<col_oid_t> affected_col_src;
+        for (auto &col_oid: col_oids) {
+          auto search_affected_col = std::find(con_obj.fkMetadata_.fk_refs_.begin(), con_obj.fkMetadata_.fk_refs_.end(), col_oid);
+          if (search_affected_col != con_obj.fkMetadata_.fk_refs_.end()) {
+            // child's ref column == updated column
+            affected = true;
+            affected_col_ref.push_back(col_oid);
+            int src_col_pos = search_affected_col - con_obj.fkMetadata_.fk_refs_.begin();
+            affected_col_src.pusb_back(con_obj.fkMetadata_.fk_srcs_[src_col_pos]);
+          }
+        }
+        if (affected == true) {
+          affected_row += UpdateCascadeRecursive(txn,db_oid, table_oid, con_obj, table_prs, affected_col_ref, affected_col_src);
+        }
+      } else if (cascade_type == catalog::postgres::FK_DELETE) {
+        affected_row += FKCascadeRecursive(txn,db_oid, table_oid, con_obj, table_prs);
+      }
     }
     delete[] table_buffer;
     delete[] buffer;
-
-  }
-
 
 
   return affected_row;
@@ -1105,11 +1119,92 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
 }
 
 
+
+
+int DatabaseCatalog::UpdateCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
+                                        table_oid_t table_oid, const PG_Constraint &con_obj,
+                                        std::vector<storage::ProjectedRow *> pr_vector,
+                                        std::vector<col_oid_t> affected_col_ref, std::vector<col_oid_t> affected_col_src) {
+  int affected_row = 0;
+
+  std::vector<storage::TupleSlot> table_scan_results = FKScan(txn, table_oid, con_obj, pr_vector, affected_col_ref, affected_col_src);
+  // current table doesn't contain target fk
+  if (table_scan_results.empty()) {
+    return 0;
+  }
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pg_constraints_all_cols_pri_.ProjectedRowSize());
+  auto con_pri = constraints_foreigntable_index_->GetProjectedRowInitializer();
+  auto *key_pr = con_pri.InitializeRow(buffer);
+  auto *const con_table_oid_ptr = key_pr->AccessForceNotNull(0);
+  *(reinterpret_cast<table_oid_t *>(con_table_oid_ptr)) = table_oid;
+  std::vector<storage::TupleSlot> index_scan_results;
+  constraints_foreigntable_index_->ScanKey(*txn, *key_pr, &index_scan_results);
+  // current table is not being referenced
+  if (index_scan_results.empty()) {
+    affected_row = FKUpdate(txn, db_oid, table_oid, con_obj, table_scan_results);
+    delete[] buffer;
+    return affected_row;
+  }
+
+  // table prs
+  auto table = GetTable(txn, table_oid);
+  const auto table_schema = GetSchema(txn, table_oid);
+  std::vector<col_oid_t> table_col_oids;
+  table_col_oids.reserve(table_schema.GetColumns().size());
+  for (const auto &col : table_schema.GetColumns()) {
+    table_col_oids.push_back(col.Oid());
+  }
+  std::vector<storage::ProjectedRow *> table_prs;
+  for (auto &slot : table_scan_results) {
+    auto table_pri = table->InitializerForProjectedRow(table_col_oids);
+    auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+    auto *table_pr = table_pri.InitializeRow(table_buffer);
+    bool result UNUSED_ATTRIBUTE = table->Select(txn, slot, table_pr);
+    table_prs.push_back(table_pr);
+  }
+
+  auto *select_pr = pg_constraints_all_cols_pri_.InitializeRow(buffer);
+  std::vector<PG_Constraint> constraints;
+  constraints.reserve(index_scan_results.size());
+  for (auto &slot : index_scan_results) {
+    const auto select_result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
+    TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
+    PG_Constraint child_con_obj = PGConstraintPRToObj(select_pr);
+      bool affected = false;
+      std::vector<col_oid_t> affected_ref;
+      std::vector<col_oid_t> affected_src;
+      for (auto &col_oid: affected_col_ref) {
+        auto search_affected_col = std::find(child_con_obj.fkMetadata_.fk_refs_.begin(), child_con_obj.fkMetadata_.fk_refs_.end(), col_oid);
+        if (search_affected_col != child_con_obj.fkMetadata_.fk_refs_.end()) {
+          // child's ref column == updated column
+          affected = true;
+          affected_ref.push_back(col_oid);
+          int src_col_pos = search_affected_col - child_con_obj.fkMetadata_.fk_refs_.begin();
+          affected_src.pusb_back(child_con_obj.fkMetadata_.fk_srcs_[src_col_pos]);
+        }
+      }
+      if (affected == true) {
+        affected_row += UpdateCascadeRecursive(txn,db_oid, table_oid, child_con_obj, table_prs, affected_ref, affected_src);
+      }
+
+  }
+
+  affected_row += FKUpdate(txn, db_oid, table_oid, con_obj, table_scan_results);
+  delete[] buffer;
+  return affected_row;
+
+
+}
+
+
+
+
 int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
                                          table_oid_t table_oid, const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> pr_vector) {
   int affected_row = 0;
-
-  std::vector<storage::TupleSlot> table_scan_results = FKScan(txn, table_oid, con_obj, pr_vector);
+  auto src_index = con_obj.fkMetadata_.consrcindid_;
+  auto ref_index = con_obj.fkMetadata_.confrelid_;
+  std::vector<storage::TupleSlot> table_scan_results = FKScan(txn, table_oid, con_obj, pr_vector, ref_index, src_index);
   // current table doesn't contain target fk
   if (table_scan_results.empty()) {
     return 0;
@@ -1137,13 +1232,14 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
     table_col_oids.push_back(col.Oid());
   }
   std::vector<storage::ProjectedRow *> table_prs;
-  for (auto &slot : index_scan_results) {
+  for (auto &slot : table_scan_results) {
     auto table_pri = table->InitializerForProjectedRow(table_col_oids);
     auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
     auto *table_pr = table_pri.InitializeRow(table_buffer);
     bool result UNUSED_ATTRIBUTE = table->Select(txn, slot, table_pr);
     table_prs.push_back(table_pr);
   }
+
 
 
   auto *select_pr = pg_constraints_all_cols_pri_.InitializeRow(buffer);
@@ -1167,12 +1263,13 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
 }
 
 std::vector<storage::TupleSlot> DatabaseCatalog::FKScan(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
-                                       const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector) {
+                                       const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector,
+                                       std::vector<col_oid_t> affected_col_ref, std::vector<col_oid_t> affected_col_src ) {
   // scan for all possible rows
   std::vector<storage::TupleSlot> index_scan_results;
   for (auto &ref_pr : ref_pr_vector) {
-    auto src_index = con_obj.fkMetadata_.consrcindid_;
-    auto ref_table = con_obj.fkMetadata_.confrelid_;
+    auto src_index = affected_col_src;
+    auto ref_table = affected_col_ref;
     common::ManagedPointer<storage::index::Index> src_table_index = GetIndex(txn, src_index);
     auto src_index_pri = src_table_index->GetProjectedRowInitializer();
     auto *const buffer = common::AllocationUtil::AllocateAligned(src_index_pri.ProjectedRowSize());
