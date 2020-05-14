@@ -55,6 +55,10 @@ class BlockCompactor {
   };
 
  public:
+  /*
+   * Constructor used to initialise the tpl_code to be compiled. This must be created using code generation in the future.
+   * This constructor might also have arguments in the future to get table name, col_ids etc.
+   */
   BlockCompactor() {
     // tpl code for use in moveTuple. It deletes the tuple from the table and from the index and then inserts the tuple
     // to the table (a specific block) and to the index. It returns true if the delete succeeds (because delete returns
