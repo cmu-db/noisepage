@@ -348,8 +348,6 @@ class SqlTable {
                                       layout_version_t layout_version = layout_version_t{0}) const;
 
   /**
-   * @warning This function is expensive to call and should be used with caution and sparingly.
-   * (TODO: no longer expensive?)
    * Returns the col oid for the given col id
    * @param col_id given col id
    * @return col oid for the provided col id

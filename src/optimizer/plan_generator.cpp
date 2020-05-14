@@ -949,6 +949,7 @@ void PlanGenerator::Visit(const AlterTable *alter) {
         cmds.push_back(std::move(drop_col_cmd));
       } break;
       default:
+        // the other types of alter table commands are not implemented
         TERRIER_ASSERT(false, "Not implemented");
     }
   }
