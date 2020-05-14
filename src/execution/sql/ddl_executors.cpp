@@ -68,8 +68,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
 
     // Create the index, and use its return value as overall success result
-    result = result &&
-             CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema, false, nullptr);
+    result = result && CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid,
+                                   index_schema, false, nullptr);
   }
 
   for (const auto &unique_constraint : node->GetUniqueConstraints()) {
@@ -103,8 +103,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::CreateIndexPlanNode> node,
                                        const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                        common::ManagedPointer<transaction::TransactionContext> populate_txn) {
-  return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
-                     *(node->GetSchema()), node->GetConcurrent(), populate_txn);
+  return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(), *(node->GetSchema()),
+                     node->GetConcurrent(), populate_txn);
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,

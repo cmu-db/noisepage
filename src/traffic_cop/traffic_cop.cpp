@@ -46,7 +46,6 @@ void TrafficCop::BeginTransaction(const common::ManagedPointer<network::Connecti
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
                  "Invalid ConnectionContext state, already in a transaction.");
   const auto txn = txn_manager_->BeginTransaction();
-  printf("Begining transaction: %p\n", txn);
   connection_ctx->SetTransaction(common::ManagedPointer(txn));
   connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid()));
 }
@@ -56,7 +55,6 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_COMMIT || query_type == network::QueryType::QUERY_ROLLBACK,
                  "EndTransaction called with invalid QueryType.");
   const auto txn = connection_ctx->Transaction();
-  printf("Ending transaction: %p\n", txn.Get());
   if (query_type == network::QueryType::QUERY_COMMIT) {
     TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Invalid ConnectionContext state, not in a transaction that can be committed.");
@@ -99,7 +97,6 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       break;
     }
     case network::QueryType::QUERY_COMMIT: {
-      printf("Query committed\n");
       if (!explicit_txn_block) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
         break;
@@ -113,7 +110,6 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       break;
     }
     case network::QueryType::QUERY_ROLLBACK: {
-      printf("Query aborted\n");
       if (!explicit_txn_block) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
         break;
@@ -176,12 +172,11 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
 
       auto table_oid = create_index_plan->GetTableOid();
       if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
-        return {ResultType::ERROR, "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
+        return {ResultType::ERROR,
+                "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
       }
       auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
-      printf("Locking the table lock in write mode\n");
       table_lock->lock();
-      printf("Successfully locked in write mode\n");
       auto *populate_txn = txn_manager_->BeginTransaction();
       bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
           physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),

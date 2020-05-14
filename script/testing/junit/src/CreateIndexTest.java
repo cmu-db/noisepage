@@ -15,7 +15,7 @@ import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings("ALL")
 public class CreateIndexTest extends TestUtility {
-    private static final int NUM_EXTRA_THREADS = 3;
+    private static final int NUM_EXTRA_THREADS = 2;
 
     private Connection conn;
     private Connection[] thread_conn = new Connection[NUM_EXTRA_THREADS];

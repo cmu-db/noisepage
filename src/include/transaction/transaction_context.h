@@ -33,46 +33,6 @@ namespace terrier::transaction {
 class TransactionContext {
  public:
   /**
-   * Temporary lock being used to debug a deadlock. Will be removed before merge to cmu-db/master
-   */
-  class DebugLock : public std::shared_mutex {
-   public:
-    /**
-     * lock in shared mode whie adding debug info
-     * @param txn transaction holding the lock
-     */
-    // NOLINTNEXTLINE
-    void debug_lock_shared(transaction::TransactionContext *txn) {
-      TERRIER_ASSERT(std::count(readers_.begin(), readers_.end(), txn) == 0, "Locking a lock I already have!");
-      readers_.push_back(txn);
-      lockers_.insert(txn);
-      txn->RegisterCommitAction([this, txn]() {
-        TERRIER_ASSERT(std::count(txn->held_table_locks_.begin(), txn->held_table_locks_.end(), this) == 1, "Lock should be held");
-      });
-      txn->RegisterAbortAction([this, txn]() {
-        TERRIER_ASSERT(std::count(txn->held_table_locks_.begin(), txn->held_table_locks_.end(), this) == 1, "Lock should be held");
-      });
-      std::shared_mutex::lock_shared();
-    }
-
-    /**
-     * unlock in shared mode while adding debug info
-     * @param txn transaction holding the lock
-     */
-    // NOLINTNEXTLINE
-    void debug_unlock_shared(const transaction::TransactionContext *txn) {
-      int UNUSED_ATTRIBUTE cnt = lockers_.count(txn);
-      TERRIER_ASSERT(std::count(readers_.begin(), readers_.end(), txn) != 0, "Unlocking when I dont have this!");
-      readers_.erase(std::find(readers_.begin(), readers_.end(), txn));
-      std::shared_mutex::unlock_shared();
-    }
-
-   private:
-    std::vector<transaction::TransactionContext*> readers_;
-    std::unordered_set<transaction::TransactionContext*> lockers_;
-  };
-
-  /**
    * Constructs a new transaction context.
    *
    * @warning In the src/ folder this should only be called in TransactionManager::BeginTransaction to adhere to MVCC
@@ -268,7 +228,7 @@ class TransactionContext {
    */
   void LockIfNotLocked(catalog::table_oid_t table_oid, common::ManagedPointer<std::shared_mutex> table_lock) {
     if (!IsTableLocked(table_oid)) {
-      reinterpret_cast<DebugLock *>(table_lock.Get())->debug_lock_shared(this);
+      table_lock->lock_shared();
       held_table_oids_.insert(table_oid);
       held_table_locks_.push_back(table_lock);
     }
