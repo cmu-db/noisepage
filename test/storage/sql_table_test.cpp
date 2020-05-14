@@ -440,7 +440,7 @@ class RandomSqlTableTestObject {
 
   TupleVersion GetReferenceVersionedTuple(const storage::TupleSlot slot, const transaction::timestamp_t timestamp) {
     tuple_versions_accessor_ accessor;
-    bool found = tuple_versions_.find(accessor, slot);
+    bool found UNUSED_ATTRIBUTE = tuple_versions_.find(accessor, slot);
     TERRIER_ASSERT(found, "slot must be within tuple_versions_");
     auto &versions = accessor->second;
 
