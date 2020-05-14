@@ -215,6 +215,21 @@ Schema Builder::GetSequenceTableSchema() {
   columns.emplace_back("seqlastval", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
   columns.back().SetOid(SEQLASTVAL_COL_OID);
 
+  columns.emplace_back("seqstart", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(SEQSTART_COL_OID);
+
+  columns.emplace_back("seqincrement", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(SEQINCREMENT_COL_OID);
+
+  columns.emplace_back("seqmax", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(SEQMAX_COL_OID);
+
+  columns.emplace_back("seqmin", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(SEQMIN_COL_OID);
+
+  columns.emplace_back("seqcycle", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(SEQCYCLE_COL_OID);
+
   return Schema(columns);
 }
 
