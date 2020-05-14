@@ -110,6 +110,9 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
     case ExpressionType::AGGREGATE_COUNT: {
       return short_str ? "COUNT" : "AGGREGATE_COUNT";
     }
+    case ExpressionType::AGGREGATE_COUNT_STAR: {
+      return short_str ? "COUNT_STAR" : "AGGREGATE_COUNT_STAR";
+    }
     case ExpressionType::AGGREGATE_SUM: {
       return short_str ? "SUM" : "AGGREGATE_SUM";
     }

@@ -57,6 +57,7 @@ class OperatingUnitUtil {
     auto type = DeriveComputation(expr);
     switch (expr->GetExpressionType()) {
       case parser::ExpressionType::AGGREGATE_COUNT:
+      case parser::ExpressionType::AGGREGATE_COUNT_STAR:
         return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS);
       case parser::ExpressionType::AGGREGATE_SUM:
       case parser::ExpressionType::AGGREGATE_AVG:

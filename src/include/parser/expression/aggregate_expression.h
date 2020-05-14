@@ -71,6 +71,7 @@ class AggregateExpression : public AbstractExpression {
     auto expr_type = this->GetExpressionType();
     switch (expr_type) {
       case ExpressionType::AGGREGATE_COUNT:
+      case ExpressionType::AGGREGATE_COUNT_STAR:
         this->SetReturnValueType(type::TypeId::INTEGER);
         break;
         // keep the type of the base

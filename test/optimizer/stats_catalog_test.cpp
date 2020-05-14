@@ -289,7 +289,13 @@ struct IdxJoinTest : public TerrierTest {
         for (int z = 31; z <= 40; z++) {
           std::stringstream query;
           query << "INSERT INTO foo VALUES (";
-          query << i << "," << j << "," << z << ")";
+          // Insert NULL into col1 0.3 * 0.5 = 0.15 of the time
+          if (j % 3 == 0 && z % 2 == 1) {
+            query << "NULL,";
+          } else {
+            query << i << ",";
+          }
+          query << j << "," << z << ")";
           ExecuteSQL(query.str(), network::QueryType::QUERY_INSERT);
         }
 
@@ -364,7 +370,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
     const auto &col = schema.GetColumn("col1");
     auto col_stats = table_stats->GetColumnStats(col.Oid());
 
-    EXPECT_EQ(col_stats->GetFracNull(), 0.123);
+    EXPECT_EQ(col_stats->GetFracNull(), 0.15);
     EXPECT_EQ(col_stats->GetCardinality(), 10.0);
     EXPECT_EQ(col_stats->GetNumRows(), 1000);
 

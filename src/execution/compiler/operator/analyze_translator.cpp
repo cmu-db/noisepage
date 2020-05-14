@@ -25,16 +25,18 @@ std::unique_ptr<planner::AggregatePlanNode> AnalyzeBottomTranslator::MakeAggrega
   planner::AggregatePlanNode::Builder builder;
   std::vector<std::unique_ptr<parser::AbstractExpression>> child_exprs;
 
-  // COUNT(1), i.e. total number of rows
-  child_exprs.emplace_back(
-      std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetInteger(1)));
+  // Get column expressions from the table scan's output schema (constructed in InputColumnDeriver)
+  const auto &columns = op->GetChild(0)->GetOutputSchema()->GetColumns();
+  TERRIER_ASSERT(!columns.empty(), "Need at least one column to aggregate");
+
+  // COUNT(*), i.e. total number of rows
+  // We need a DVE as the child of the aggregate expression, so pick the first output column
+  child_exprs.emplace_back(std::make_unique<parser::DerivedValueExpression>(columns[0].GetType(), 0, 0));
   const auto &count_const_expr = owned_exprs->emplace_back(std::make_unique<parser::AggregateExpression>(
-      parser::ExpressionType::AGGREGATE_COUNT, std::move(child_exprs), true));
+      parser::ExpressionType::AGGREGATE_COUNT_STAR, std::move(child_exprs), false));
   builder.AddAggregateTerm(common::ManagedPointer(static_cast<parser::AggregateExpression *>(count_const_expr.get())));
 
   // Construct aggregates for all column values
-  // Get column expressions from the table scan's output schema (constructed in InputColumnDeriver)
-  const auto &columns = op->GetChild(0)->GetOutputSchema()->GetColumns();
   for (size_t i = 0; i < columns.size(); i++) {
     const auto &output_col = columns[i];
     const auto dve = parser::DerivedValueExpression(output_col.GetType(), 0, static_cast<int>(i));

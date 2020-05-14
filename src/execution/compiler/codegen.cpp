@@ -525,6 +525,8 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, type::TypeId 
   switch (agg_type) {
     case parser::ExpressionType::AGGREGATE_COUNT:
       return BuiltinType(ast::BuiltinType::Kind::CountAggregate);
+    case parser::ExpressionType::AGGREGATE_COUNT_STAR:
+      return BuiltinType(ast::BuiltinType::Kind::CountStarAggregate);
     case parser::ExpressionType::AGGREGATE_AVG:
       AGGTYPE(AvgAggregate, ret_type);
     case parser::ExpressionType::AGGREGATE_MIN:
