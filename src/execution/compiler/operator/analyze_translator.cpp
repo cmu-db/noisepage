@@ -7,6 +7,7 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/translator_factory.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
 #include "planner/plannodes/analyze_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -18,6 +19,7 @@ AnalyzeBottomTranslator::AnalyzeBottomTranslator(const planner::AnalyzePlanNode 
       agg_plan_node_(MakeAggregatePlanNode(op_, &owned_exprs_)),
       helper_(codegen_, agg_plan_node_.get()) {}
 
+// TODO(khg): It seems like this kind of code belongs in plan_generator.cpp, not here
 std::unique_ptr<planner::AggregatePlanNode> AnalyzeBottomTranslator::MakeAggregatePlanNode(
     const planner::AnalyzePlanNode *op, std::vector<std::unique_ptr<parser::AbstractExpression>> *owned_exprs) {
   planner::AggregatePlanNode::Builder builder;
@@ -32,20 +34,21 @@ std::unique_ptr<planner::AggregatePlanNode> AnalyzeBottomTranslator::MakeAggrega
 
   // Construct aggregates for all column values
   // Get column expressions from the table scan's output schema (constructed in InputColumnDeriver)
-  const auto output_schema = op->GetChild(0)->GetOutputSchema();
-  for (const auto &output_col : output_schema->GetColumns()) {
-    const auto col_expr = output_col.GetExpr();
+  const auto &columns = op->GetChild(0)->GetOutputSchema()->GetColumns();
+  for (size_t i = 0; i < columns.size(); i++) {
+    const auto &output_col = columns[i];
+    const auto dve = parser::DerivedValueExpression(output_col.GetType(), 0, static_cast<int>(i));
 
     // COUNT(col), i.e. non-null entries
     child_exprs = std::vector<std::unique_ptr<parser::AbstractExpression>>();
-    child_exprs.emplace_back(col_expr->Copy());
+    child_exprs.emplace_back(dve.Copy());
     const auto &count_expr = owned_exprs->emplace_back(std::make_unique<parser::AggregateExpression>(
         parser::ExpressionType::AGGREGATE_COUNT, std::move(child_exprs), false));
     builder.AddAggregateTerm(common::ManagedPointer(static_cast<parser::AggregateExpression *>(count_expr.get())));
 
     // COUNT(DISTINCT col)
     child_exprs = std::vector<std::unique_ptr<parser::AbstractExpression>>();
-    child_exprs.emplace_back(col_expr->Copy());
+    child_exprs.emplace_back(dve.Copy());
     const auto &distinct_count_expr = owned_exprs->emplace_back(std::make_unique<parser::AggregateExpression>(
         parser::ExpressionType::AGGREGATE_COUNT, std::move(child_exprs), true));
     builder.AddAggregateTerm(
@@ -185,6 +188,10 @@ void AnalyzeTopTranslator::GetUpdatePR(terrier::execution::compiler::FunctionBui
 void AnalyzeTopTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) {
   const std::vector<catalog::col_oid_t> &col_oids = op_->GetColumnOids();
 
+  // To make things floating-point, just add a REAL value.
+  // Sema::CheckArithmeticOperands will propagate the REAL-ness of the computation
+  auto *zero_real = codegen_->OneArgCall(ast::Builtin::FloatToSql, codegen_->FloatLiteral(0.0));
+
   // Get aggregate results
   // TODO(khg): This only gets results for the first column. Figure out how to handle the others.
   ast::Expr *count_rows = bottom_->GetOutput(0);
@@ -195,13 +202,15 @@ void AnalyzeTopTranslator::FillPRFromChild(terrier::execution::compiler::Functio
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     ast::Expr *clause_expr;
     switch (!table_col_oid) {
-      case !catalog::postgres::STANULLFRAC_COL_OID:
-        clause_expr =
-            codegen_->BinaryOp(parsing::Token::Type::SLASH,
-                               codegen_->BinaryOp(parsing::Token::Type::MINUS, count_rows, count_non_null), count_rows);
+      case !catalog::postgres::STANULLFRAC_COL_OID: {
+        // Calculate the fraction of rows that is null
+        auto *numerator = codegen_->BinaryOp(parsing::Token::Type::MINUS, count_rows, count_non_null);
+        auto *denominator = codegen_->BinaryOp(parsing::Token::Type::PLUS, count_rows, zero_real);
+        clause_expr = codegen_->BinaryOp(parsing::Token::Type::SLASH, numerator, denominator);
         break;
+      }
       case !catalog::postgres::STADISTINCT_COL_OID:
-        clause_expr = count_distinct;
+        clause_expr = codegen_->BinaryOp(parsing::Token::Type::PLUS, count_distinct, zero_real);
         break;
       case !catalog::postgres::STA_NUMROWS_COL_OID:
         clause_expr = count_rows;
