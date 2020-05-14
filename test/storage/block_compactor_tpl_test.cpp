@@ -219,6 +219,8 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
   EXPECT_FALSE(visible);  // Should not be filled after compaction
 
   txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete[] col_oids;
+  free(buffer);
 }
 
 // NOLINTNEXTLINE

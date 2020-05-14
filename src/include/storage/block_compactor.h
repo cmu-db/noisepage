@@ -84,6 +84,7 @@ class BlockCompactor {
         return false
       }
 
+      @storageInterfaceFree(&storage_interface)
       return true
     })";
   }
