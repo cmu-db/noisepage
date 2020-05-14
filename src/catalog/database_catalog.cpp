@@ -211,20 +211,6 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  // pg_sequence and associated indexes
-  retval = CreateTableEntry(txn, postgres::SEQUENCE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_sequence",
-                            postgres::Builder::GetSequenceTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetTablePointer(txn, postgres::SEQUENCE_TABLE_OID, sequences_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
-
-  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::SEQUENCE_TABLE_OID,
-                            postgres::SEQUENCE_OID_INDEX_OID, "pg_sequences_oid_index",
-                            postgres::Builder::GetSequenceOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, postgres::SEQUENCE_OID_INDEX_OID, sequences_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
-
   // pg_language and associated indexes
   retval = CreateTableEntry(txn, postgres::LANGUAGE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_language",
                             postgres::Builder::GetLanguageTableSchema());
@@ -271,6 +257,20 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   BootstrapProcs(txn);
+
+  // pg_sequence and associated indexes
+  retval = CreateTableEntry(txn, postgres::SEQUENCE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_sequence",
+                            postgres::Builder::GetSequenceTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, postgres::SEQUENCE_TABLE_OID, sequences_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::SEQUENCE_TABLE_OID,
+                            postgres::SEQUENCE_OID_INDEX_OID, "pg_sequence_oid_index",
+                            postgres::Builder::GetSequenceOidIndexSchema(db_oid_));
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::SEQUENCE_OID_INDEX_OID, sequences_oid_index_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
@@ -365,14 +365,14 @@ void DatabaseCatalog::BootstrapPRIs() {
 
   const std::vector<col_oid_t> set_pg_proc_ptr_oids{postgres::PRO_CTX_PTR_COL_OID};
   pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
+
   // pg_sequence
   const std::vector<col_oid_t> pg_sequence_all_oids{postgres::PG_SEQUENCE_ALL_COL_OIDS.cbegin(),
                                                     postgres::PG_SEQUENCE_ALL_COL_OIDS.cend()};
   pg_sequence_all_cols_pri_ = sequences_->InitializerForProjectedRow(pg_sequence_all_oids);
   pg_sequence_all_cols_prm_ = sequences_->ProjectionMapForOids(pg_sequence_all_oids);
 
-  const std::vector<col_oid_t> delete_sequence_oids{postgres::SEQOID_COL_OID, postgres::SEQRELID_COL_OID,
-                                                    postgres::SEQNEXTVAL_COL_OID};
+  const std::vector<col_oid_t> delete_sequence_oids{postgres::SEQOID_COL_OID, postgres::SEQRELID_COL_OID};
   delete_sequence_pri_ = indexes_->InitializerForProjectedRow(delete_sequence_oids);
   delete_sequence_prm_ = indexes_->ProjectionMapForOids(delete_sequence_oids);
 }
@@ -1453,10 +1453,10 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   sequence_oid_ptr = sequences_insert_pr->AccessForceNotNull(sequence_oid_offset);
   *(reinterpret_cast<sequence_oid_t *>(sequence_oid_ptr)) = sequence_oid;
 
-  // Write nextval into the PR. Default is 0
-  const auto sequence_nextval_offset = pg_sequence_all_cols_prm_[postgres::SEQNEXTVAL_COL_OID];
-  const auto sequence_nextval_ptr = sequences_insert_pr->AccessForceNotNull(sequence_nextval_offset);
-  *(reinterpret_cast<uint32_t *>(sequence_nextval_ptr)) = 0;
+  // Write lastval into the PR. Default is 0
+  const auto sequence_lastval_offset = pg_sequence_all_cols_prm_[postgres::SEQLASTVAL_COL_OID];
+  const auto sequence_lastval_ptr = sequences_insert_pr->AccessForceNotNull(sequence_lastval_offset);
+  *(reinterpret_cast<uint32_t *>(sequence_lastval_ptr)) = 0;
 
   const auto tuple_slot = sequences_->Insert(txn, sequences_insert_redo);
 

@@ -13,8 +13,8 @@
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
-#include "catalog/postgres/pg_type.h"
 #include "catalog/postgres/pg_sequence.h"
+#include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -116,12 +116,6 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->types_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(oid), TYPE_NAMESPACE_INDEX_OID);
 
-  // Indexes on pg_sequence
-  dbc->sequences_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetSequenceOidIndexSchema(oid), SEQUENCE_OID_INDEX_OID);
-  //dbc->sequences_name_index_ =
-    //  Builder::BuildUniqueIndex(Builder::GetSequenceNameIndexSchema(oid), SEQUENCE_NAME_INDEX_OID);
-
   // Indexes on pg_constraint
   dbc->constraints_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetConstraintOidIndexSchema(oid), CONSTRAINT_OID_INDEX_OID);
@@ -135,6 +129,10 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), CONSTRAINT_INDEX_INDEX_OID);
   dbc->constraints_foreigntable_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
+
+  // Indexes on pg_sequence
+  dbc->sequences_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetSequenceOidIndexSchema(oid), SEQUENCE_OID_INDEX_OID);
 
   // Indexes on pg_language
   dbc->languages_oid_index_ =
@@ -206,30 +204,30 @@ Schema Builder::GetClassTableSchema() {
 }
 
 Schema Builder::GetSequenceTableSchema() {
-    std::vector<Schema::Column> columns;
+  std::vector<Schema::Column> columns;
 
-    columns.emplace_back("seqoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-    columns.back().SetOid(SEQOID_COL_OID);
+  columns.emplace_back("seqoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(SEQOID_COL_OID);
 
-    columns.emplace_back("seqrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-    columns.back().SetOid(SEQRELID_COL_OID);
+  columns.emplace_back("seqrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(SEQRELID_COL_OID);
 
-    columns.emplace_back("seqnextval", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-    columns.back().SetOid(SEQNEXTVAL_COL_OID);
+  columns.emplace_back("seqlastval", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(SEQLASTVAL_COL_OID);
 
-    return Schema(columns);
+  return Schema(columns);
 }
 
 Schema Builder::GetSequenceTempTableSchema() {
-    std::vector<Schema::Column> columns;
+  std::vector<Schema::Column> columns;
 
-    columns.emplace_back("sequence_oid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-    columns.back().SetOid(SEQTEMPTABLEID_COL_OID);
+  columns.emplace_back("sequence_oid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(SEQTEMPTABLEID_COL_OID);
 
-    columns.emplace_back("last_nextval", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-    columns.back().SetOid(SEQTEMPTABLEVAL_COL_OID);
+  columns.emplace_back("last_nextval", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(SEQTEMPTABLEVAL_COL_OID);
 
-    return Schema(columns);
+  return Schema(columns);
 }
 
 Schema Builder::GetConstraintTableSchema() {
@@ -546,16 +544,16 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
 }
 
 IndexSchema Builder::GetSequenceOidIndexSchema(db_oid_t db) {
-    std::vector<IndexSchema::Column> columns;
+  std::vector<IndexSchema::Column> columns;
 
-    columns.emplace_back("seqoid", type::TypeId::INTEGER, false,
-                         parser::ColumnValueExpression(db, SEQUENCE_TABLE_OID, SEQOID_COL_OID));
-    columns.back().SetOid(indexkeycol_oid_t(1));
+  columns.emplace_back("seqoid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, SEQUENCE_TABLE_OID, SEQOID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
 
-    // Primary
-    IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
-    return schema;
+  return schema;
 }
 
 /*IndexSchema Builder::GetSequenceNameIndexSchema(db_oid_t db) {
@@ -678,8 +676,6 @@ IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
 
   return schema;
 }
-
-
 
 Schema Builder::GetProcTableSchema() {
   std::vector<Schema::Column> columns;
