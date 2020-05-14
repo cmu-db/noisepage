@@ -1,3 +1,5 @@
+
+
 #include "catalog/catalog.h"
 
 #include <algorithm>
@@ -6,11 +8,12 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/postgres/pg_constraint.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "catalog/constraint.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/database_catalog.h"
 #include "execution/functions/function_context.h"
 #include "main/db_main.h"
 #include "parser/expression/column_value_expression.h"
