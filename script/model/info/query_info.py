@@ -144,7 +144,7 @@ _Q11_P4 = [(OpUnit.SEQ_SCAN, [80000, 20, 4, 80000]),
            (OpUnit.HASHJOIN_PROBE, [80000, 4, 1, 4000]),
            (OpUnit.OP_DECIMAL_MULTIPLY, [4000, 4, 1, 4000]),
            (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [4000, 4, 1, 4000]),
-           (OpUnit.AGG_BUILD, [4000, 4, 1, 1000]),
+           (OpUnit.AGG_BUILD, [4000, 4, 1, 4000]),
            ]
 
 _Q11_P5 = [(OpUnit.AGG_ITERATE, [4000, 12, 2, 4000]),
@@ -202,28 +202,28 @@ FEATURE_MAP = {"tpch_q1_p1": _Q1_P1,
 
 # Map from query pipeline identifier to the memory adjustment factor
 MEM_ADJUST_MAP = {
-               "tpch_q1_p1": 1.0,
-               "tpch_q1_p2": 1.0,
-               "tpch_q4_p1": 1.0,
-               "tpch_q4_p2": 1.0,
-               "tpch_q4_p3": 1.0,
-               "tpch_q5_p1": 1.0,
-               "tpch_q5_p2": 1.0,
-               "tpch_q5_p3": 1.0,
-               "tpch_q5_p4": 1.0,
-               "tpch_q5_p5": 1.0,
-               "tpch_q5_p6": 1.0,
-               "tpch_q5_p7": 1.0,
-               "tpch_q7_p1": 1.0,
-               "tpch_q7_p2": 1.0,
-               "tpch_q7_p3": 1.0,
-               "tpch_q7_p4": 1.0,
-               "tpch_q7_p5": 1.0,
-               "tpch_q7_p6": 1.0,
-               "tpch_q11_p1": 1.0,
-               "tpch_q11_p2": 1.0,
-               "tpch_q11_p4": 1.0,
-               "tpch_q11_p5": 1.0,
+               "tpch_q1_p1": 1.263,     # payload calc
+               "tpch_q1_p2": 1.375,     # avg (sizeof payload calc based on key and # input)
+               "tpch_q4_p1": 1.283,     # sizeof(JoinRow)/sizeof(Key Payload) with account for 8192 buffer
+               "tpch_q4_p2": 0.545,     # payload calc    
+               "tpch_q4_p3": 0.625,     # avg (sizeof payload calc based on key and # input)
+               "tpch_q5_p1": 1.0,       # payload matches
+               "tpch_q5_p2": 1.736,     # sizeof(JoinRow2/sizeof(Key Payload) with account for 8 buffer
+               "tpch_q5_p3": 1.747,     # sizeof(JoinRow3/sizeof(Key Payload) with account for 4096 buffer
+               "tpch_q5_p4": 1.819,     # sizeof(JoinRow4/sizeof(Key Payload) with account for 32768 buffer
+               "tpch_q5_p5": 1.0,       # --- unfortunate selection of prediction
+               "tpch_q5_p6": 0.636,     # payload calc
+               "tpch_q5_p7": 1.25,      # avg (sizeof payload calc based on key and # input)
+               "tpch_q7_p1": 3.0,       # sizeof(JoinRow1) / sizeof(Key Payload in data)
+               "tpch_q7_p2": 2.167,     # sizeof(JoinRow2) / sizeof(Key Payload in data) account 1200 buffer
+               "tpch_q7_p3": 2.285,     # sizeof(JoinRow3) / sizeof(Key Payload in data) account 16384 buffer
+               "tpch_q7_p4": 1.0,       # --- unfortunate selection of prediction
+               "tpch_q7_p5": 0.5714,    # payload calc
+               "tpch_q7_p6": 0.5556,     # avg (sizeof payload calc based on key and # input)
+               "tpch_q11_p1": 1.0,      # payload matches
+               "tpch_q11_p2": 1.0,      # payload matches
+               "tpch_q11_p4": 1.2,      # --- measurement seems way too large based on payload
+               "tpch_q11_p5": 1,        # avg (sizeof payload calc based on key and # input)
                "tpch_scan_lineitem_p1": 1.0,
                "tpch_scan_orders_p1": 1.0,
                }
