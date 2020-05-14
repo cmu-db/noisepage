@@ -120,32 +120,32 @@ class DDLExecutors {
    * @return true if all constraints created successfully, false is any constraint was not successful, abort
    */
   static bool CreatePKConstraintsAndIndices(common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                            const catalog::Schema &schema,  catalog::table_oid_t table,
+                                            const catalog::Schema &schema, catalog::table_oid_t table,
                                             common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
                                             catalog::db_oid_t connection_db);
-  static bool CreateFKConstraintsAndIndices( common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                            const catalog::Schema &schema,  catalog::table_oid_t table,
-                                             common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
-                                             catalog::db_oid_t connection_db);
-  static bool CreateUniqueConstraintsAndIndices( common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                                const catalog::Schema &schema,  catalog::table_oid_t table,
-                                                 common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
-                                                 catalog::db_oid_t connection_db);
-  static bool CreateCheckConstraintsAndIndices( common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                               const catalog::Schema &schema,  catalog::table_oid_t table,
+  static bool CreateFKConstraintsAndIndices(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                            const catalog::Schema &schema, catalog::table_oid_t table,
+                                            common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
+                                            catalog::db_oid_t connection_db);
+  static bool CreateUniqueConstraintsAndIndices(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                                const catalog::Schema &schema, catalog::table_oid_t table,
                                                 common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
                                                 catalog::db_oid_t connection_db);
-  static bool CreateExclusionConstraintsAndIndices( common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                                   const catalog::Schema &schema,  catalog::table_oid_t table,
-                                                    common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
-                                                    catalog::db_oid_t connection_db);
-  static bool CreateNotNullConstraints( common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                       const catalog::Schema &schema,  catalog::table_oid_t table,
-                                        common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
-                                        catalog::db_oid_t connection_db);
-  static bool CreateTriggerConstraints( common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                       const catalog::Schema &schema,  catalog::table_oid_t table,
-                                        common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
-                                        catalog::db_oid_t connection_db);
+  static bool CreateCheckConstraintsAndIndices(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                               const catalog::Schema &schema, catalog::table_oid_t table,
+                                               common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
+                                               catalog::db_oid_t connection_db);
+  static bool CreateExclusionConstraintsAndIndices(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                                   const catalog::Schema &schema, catalog::table_oid_t table,
+                                                   common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
+                                                   catalog::db_oid_t connection_db);
+  static bool CreateNotNullConstraints(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                       const catalog::Schema &schema, catalog::table_oid_t table,
+                                       common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
+                                       catalog::db_oid_t connection_db);
+  static bool CreateTriggerConstraints(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                       const catalog::Schema &schema, catalog::table_oid_t table,
+                                       common::ManagedPointer<planner::CreateTablePlanNode> plan_node,
+                                       catalog::db_oid_t connection_db);
 };
 }  // namespace terrier::execution::sql

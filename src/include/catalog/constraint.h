@@ -1,14 +1,14 @@
 
 #pragma once
 
+#include <algorithm>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <algorithm>
-#include <functional>
 
 #include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_constraint.h"

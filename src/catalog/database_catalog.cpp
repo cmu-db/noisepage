@@ -1047,8 +1047,7 @@ bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::Transac
 
 // recursively find child and make cascade update if satisfied
 bool DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, table_oid_t table,
-                                storage::TupleSlot table_tuple_slot, char cascade_type,
-                                storage::ProjectedRow *pr) {
+                                storage::TupleSlot table_tuple_slot, char cascade_type, storage::ProjectedRow *pr) {
   // find all the constraints from fk_constraint that set current table as reference
   return true;
 }
