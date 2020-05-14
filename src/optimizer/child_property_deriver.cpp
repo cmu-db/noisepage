@@ -145,6 +145,11 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const ExportExternalFile *op) 
   output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Analyze *op) {
+  // Provide nothing
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{new PropertySet(), new PropertySet()});
+}
+
 void ChildPropertyDeriver::DeriveForJoin() {
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{new PropertySet(), new PropertySet()});
 

@@ -594,10 +594,8 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<p
   // TODO(khg): Fill in all column OIDs when op->GetColumns().empty()
   std::vector<catalog::col_oid_t> columns;
   for (const auto &col : *(op->GetColumns())) columns.emplace_back(schema.GetColumn(col).Oid());
-  auto analyze_expr = std::make_unique<OperatorNode>(
-      LogicalAnalyze::Make(accessor_->GetDatabaseOid(op->GetAnalyzeTable()->GetDatabaseName()), tb_oid,
-                           std::move(columns)),
-      std::vector<std::unique_ptr<OperatorNode>>{});
+  auto analyze_expr = std::make_unique<OperatorNode>(LogicalAnalyze::Make(db_oid_, tb_oid, std::move(columns)),
+                                                     std::vector<std::unique_ptr<OperatorNode>>{});
 
   // Construct left child: rows to scan
   auto table_scan =

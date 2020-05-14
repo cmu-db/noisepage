@@ -941,7 +941,16 @@ void LogicalDropViewToPhysicalDropView::Transform(common::ManagedPointer<Operato
 
 LogicalAnalyzeToPhysicalAnalyze::LogicalAnalyzeToPhysicalAnalyze() {
   type_ = RuleType::ANALYZE_TO_PHYSICAL;
+
+  auto left_child = new Pattern(OpType::LEAF);
+  auto right_child = new Pattern(OpType::LEAF);
+
+  // Initialize a pattern for optimizer to match
   match_pattern_ = new Pattern(OpType::LOGICALANALYZE);
+
+  // Add node - should have two child nodes
+  match_pattern_->AddChild(left_child);
+  match_pattern_->AddChild(right_child);
 }
 
 bool LogicalAnalyzeToPhysicalAnalyze::Check(common::ManagedPointer<OperatorNode> plan,

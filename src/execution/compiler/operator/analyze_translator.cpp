@@ -38,20 +38,22 @@ std::unique_ptr<planner::AggregatePlanNode> AnalyzeBottomTranslator::MakeAggrega
       parser::ExpressionType::AGGREGATE_COUNT, std::move(child_exprs), true));
   builder.AddAggregateTerm(common::ManagedPointer(static_cast<parser::AggregateExpression *>(count_const_expr.get())));
 
-  // Consider all column IDs
-  for (const auto &col_oid : op->GetColumnOids()) {
-    const auto col_expr = parser::ColumnValueExpression(op->GetDatabaseOid(), op->GetTableOid(), col_oid);
+  // Construct aggregates for all column values
+  // Get column expressions from the table scan's output schema (constructed in InputColumnDeriver)
+  const auto output_schema = op->GetChild(0)->GetOutputSchema();
+  for (const auto &output_col : output_schema->GetColumns()) {
+    const auto col_expr = output_col.GetExpr();
 
     // COUNT(col), i.e. non-null entries
     child_exprs = std::vector<std::unique_ptr<parser::AbstractExpression>>();
-    child_exprs.emplace_back(col_expr.Copy());
+    child_exprs.emplace_back(col_expr->Copy());
     const auto &count_expr = owned_exprs->emplace_back(std::make_unique<parser::AggregateExpression>(
         parser::ExpressionType::AGGREGATE_COUNT, std::move(child_exprs), false));
     builder.AddAggregateTerm(common::ManagedPointer(static_cast<parser::AggregateExpression *>(count_expr.get())));
 
     // COUNT(DISTINCT col)
     child_exprs = std::vector<std::unique_ptr<parser::AbstractExpression>>();
-    child_exprs.emplace_back(col_expr.Copy());
+    child_exprs.emplace_back(col_expr->Copy());
     const auto &distinct_count_expr = owned_exprs->emplace_back(std::make_unique<parser::AggregateExpression>(
         parser::ExpressionType::AGGREGATE_COUNT, std::move(child_exprs), true));
     builder.AddAggregateTerm(

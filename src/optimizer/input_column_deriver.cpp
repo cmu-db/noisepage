@@ -175,18 +175,23 @@ void InputColumnDeriver::Visit(const Analyze *op) {
   txn_->RegisterAbortAction([=]() { delete owned_col_exprs; });
 
   // Create expressions for table scan
+  const auto &schema = accessor_->GetSchema(table_oid);
   std::vector<common::ManagedPointer<parser::AbstractExpression>> scan_col_exprs;
   for (const auto &col_oid : op->GetColumns()) {
-    const auto &expr =
-        owned_col_exprs->emplace_back(std::make_unique<parser::ColumnValueExpression>(db_oid, table_oid, col_oid));
+    // TODO(khg): We don't know the table name, does it matter?
+    const auto &col = schema.GetColumn(col_oid);
+    const auto &expr = owned_col_exprs->emplace_back(
+        std::make_unique<parser::ColumnValueExpression>("", col.Name(), db_oid, table_oid, col_oid, col.Type()));
     scan_col_exprs.emplace_back(common::ManagedPointer(expr.get()));
   }
 
   // Create expressions for pg_statistic table update
+  const auto &stat_schema = accessor_->GetSchema(catalog::postgres::STATISTIC_TABLE_OID);
   std::vector<common::ManagedPointer<parser::AbstractExpression>> stat_col_exprs;
   for (const auto &col_oid : catalog::postgres::PG_STATISTIC_ALL_COL_OIDS) {
-    const auto &expr = owned_col_exprs->emplace_back(
-        std::make_unique<parser::ColumnValueExpression>(db_oid, catalog::postgres::STATISTIC_TABLE_OID, col_oid));
+    const auto &col = stat_schema.GetColumn(col_oid);
+    const auto &expr = owned_col_exprs->emplace_back(std::make_unique<parser::ColumnValueExpression>(
+        "pg_statistic", col.Name(), db_oid, catalog::postgres::STATISTIC_TABLE_OID, col_oid, col.Type()));
     stat_col_exprs.emplace_back(common::ManagedPointer(expr.get()));
   }
 

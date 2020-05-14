@@ -183,6 +183,12 @@ class ChildPropertyDeriver : public OperatorVisitor {
   void Visit(const ExportExternalFile *op) override;
 
   /**
+   * Visitor function for Analyze
+   * @param op Analyze operator to visit
+   */
+  void Visit(const Analyze *op) override;
+
+  /**
    * Visit a CreateDatabase operator
    * @param create_database operator
    */
