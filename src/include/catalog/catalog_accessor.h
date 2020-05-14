@@ -341,10 +341,10 @@ class CatalogAccessor {
   common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(proc_oid_t proc_oid);
 
   /**
-   * Gets a udf context object for a given proc if it is null for a valid proc id then the udf context
+   * Gets a functions context object for a given proc if it is null for a valid proc id then the functions context
    * object is reconstructed, put in pg_proc and returned
    * @param proc_oid The proc_oid whose udfcontext object we are returning here
-   * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
+   * @return nullptr if proc_oid is invalid else a valid functions context object for this proc_oid
    */
   common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(proc_oid_t proc_oid);
 

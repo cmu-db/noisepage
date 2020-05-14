@@ -353,11 +353,11 @@ class DatabaseCatalog {
                      const execution::udf::UDFContext *udf_context);
 
   /**
-   * Gets a udf context object for a given proc if it is null for a valid proc id then the udf context
+   * Gets a functions context object for a given proc if it is null for a valid proc id then the functions context
    * object is reconstructed, put in pg_proc and returned
    * @param txn the transaction to use
    * @param proc_oid the proc_oid we are querying here for the context object
-   * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
+   * @return nullptr if proc_oid is invalid else a valid functions context object for this proc_oid
    */
   common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(
       common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
@@ -594,7 +594,7 @@ class DatabaseCatalog {
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
-   * Bootstraps the proc udf contexts in pg_proc
+   * Bootstraps the proc functions contexts in pg_proc
    * @param txn transaction to insert into catalog with
    */
   void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn);
