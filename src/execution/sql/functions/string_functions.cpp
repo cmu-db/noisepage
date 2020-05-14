@@ -1,6 +1,7 @@
 #include "execution/sql/functions/string_functions.h"
 
 #include <algorithm>
+
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_sequence.h"
@@ -229,26 +230,33 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   storage::BlockLayout layout = pg_index_datatable->GetBlockLayout();
   storage::TupleAccessStrategy tuple_access_strategy(layout);
 
-
   // Write to redo log, and update in sqltable
   auto sequence_table_oid = accessor->GetTableOid("pg_sequence");
   TERRIER_ASSERT(sequence_table_oid != catalog::INVALID_TABLE_OID, "Sequence table oid should not be invalid");
   auto sequence_table = accessor->GetTable(sequence_table_oid).Get();
   auto sequence_columns = accessor->GetSchema(sequence_table_oid).GetColumns();
-  const std::vector<catalog::col_oid_t> sequence_columns_oids{sequence_columns[0].Oid(), sequence_columns[1].Oid(),
-                                                              sequence_columns[2].Oid()};
+  const std::vector<catalog::col_oid_t> sequence_columns_oids{catalog::postgres::PG_SEQUENCE_ALL_COL_OIDS.cbegin(),
+                                                              catalog::postgres::PG_SEQUENCE_ALL_COL_OIDS.cend()};
   auto sequence_pri = sequence_table->InitializerForProjectedRow(sequence_columns_oids);
   auto sequence_update_redo = mini_txn->StageWrite(ctx->DBOid(), sequence_table_oid, sequence_pri);
   auto const sequence_projection_map = sequence_table->ProjectionMapForOids(sequence_columns_oids);
 
-  for (uint16_t i = 0; i < 2; i++)
+  for (uint16_t i = 0; i < sequence_update_redo->Delta()->NumColumns(); i++) {
     storage::StorageUtil::CopyAttrIntoProjection(tuple_access_strategy, index_scan_result[0],
-                                                 sequence_update_redo->Delta(), sequence_projection_map.at(sequence_columns_oids[i]));
-  auto seq_val = reinterpret_cast<int64_t *>(
-          tuple_access_strategy.AccessWithoutNullCheck(index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(sequence_columns_oids[2])]));
+                                                 sequence_update_redo->Delta(),
+                                                 sequence_projection_map.at(sequence_columns_oids[i]));
+  }
+
+  // Read sequence value, if nullptr then set to 0
+  auto seq_val_ptr = reinterpret_cast<int64_t *>(tuple_access_strategy.AccessWithNullCheck(
+      index_scan_result[0], layout.AllColumns()[sequence_projection_map.at(catalog::postgres::SEQLASTVAL_COL_OID)]));
+  int64_t seq_val = seq_val_ptr == nullptr ? 0 : *seq_val_ptr;
+
+  // Update sequence value
+  seq_val += 1;
   auto *sequence_nextval_ptr =
-      sequence_update_redo->Delta()->AccessForceNotNull(sequence_projection_map.at(sequence_columns_oids[2]));
-  *(reinterpret_cast<int64_t *>(sequence_nextval_ptr)) = *seq_val + 1;
+      sequence_update_redo->Delta()->AccessForceNotNull(sequence_projection_map.at(catalog::postgres::SEQLASTVAL_COL_OID));
+  *(reinterpret_cast<int64_t *>(sequence_nextval_ptr)) = seq_val;
 
   sequence_update_redo->SetTupleSlot(index_scan_result[0]);
   sequence_table->Update(mini_txn, sequence_update_redo);
@@ -269,10 +277,10 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   *(reinterpret_cast<catalog::sequence_oid_t *>(first_col_oid_ptr)) = sequence_oid;
   // Second colum is last next val
   auto *second_col_oid_ptr = temp_insert_pr->AccessForceNotNull(temp_projection_map.at(temp_colums_oids[1]));
-  *(reinterpret_cast<int64_t *>(second_col_oid_ptr)) = *seq_val;
+  *(reinterpret_cast<int64_t *>(second_col_oid_ptr)) = seq_val;
 
   result->is_null_ = str.is_null_;
-  result->val_ = *seq_val;
+  result->val_ = seq_val;
 
   // Initiate projected columns to hold scan result
   const auto pci = temp_table->InitializerForProjectedColumns(temp_colums_oids, 1);

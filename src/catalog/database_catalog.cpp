@@ -1454,10 +1454,9 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   sequence_oid_ptr = sequences_insert_pr->AccessForceNotNull(sequence_oid_offset);
   *(reinterpret_cast<sequence_oid_t *>(sequence_oid_ptr)) = sequence_oid;
 
-  // Write lastval into the PR. Default is 0
+  // Write lastval into the PR. Default is NULL
   const auto sequence_lastval_offset = pg_sequence_all_cols_prm_[postgres::SEQLASTVAL_COL_OID];
-  const auto sequence_lastval_ptr = sequences_insert_pr->AccessForceNotNull(sequence_lastval_offset);
-  *(reinterpret_cast<int64_t *>(sequence_lastval_ptr)) = 0;
+  sequences_insert_pr->SetNull(sequence_lastval_offset);
 
   const auto tuple_slot = sequences_->Insert(txn, sequences_insert_redo);
 
