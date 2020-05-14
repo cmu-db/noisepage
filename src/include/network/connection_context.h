@@ -38,6 +38,7 @@ class ConnectionContext {
     db_oid_ = catalog::INVALID_DATABASE_OID;
     db_name_.clear();
     temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
+    temp_table_oid_ = catalog::INVALID_TABLE_OID;
     txn_ = nullptr;
     accessor_ = nullptr;
     callback_ = nullptr;
@@ -66,6 +67,11 @@ class ConnectionContext {
   catalog::namespace_oid_t GetTempNamespaceOid() const { return temp_namespace_oid_; }
 
   /**
+   * @return temporary table OID that was generated at connection, or INVALID_TABLE_OID in the event of failure
+   */
+  catalog::table_oid_t GetTempTableOid() { return temp_table_oid_; }
+
+  /**
    * @param db_oid database OID that the connection is using
    * @warning only to be used by the protocol interpreter during startup
    */
@@ -77,6 +83,10 @@ class ConnectionContext {
    */
   void SetTempNamespaceOid(const catalog::namespace_oid_t ns_oid) { temp_namespace_oid_ = ns_oid; }
 
+  /**
+   * @param table_oid temporary table OID that was generated at connection
+   * @warning only to be used by the protocol interpreter during startup
+   */
   void SetTempTableOid(const catalog::table_oid_t table_oid) { temp_table_oid_ = table_oid; }
 
   /**
@@ -168,7 +178,6 @@ class ConnectionContext {
    */
   void *CallbackArg() const { return callback_arg_; }
 
-  catalog::table_oid_t GetTempTable() { return temp_table_oid_; }
  private:
   /**
    * This is a unique identifier (among currently open connections, not over the lifetime of the system) for this
@@ -198,6 +207,11 @@ class ConnectionContext {
   catalog::namespace_oid_t temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
 
   /**
+   * The OID of the temporary table for this connection. Only mutable by the Setter via ConnectionHandle, or Reset
+   */
+  catalog::table_oid_t temp_table_oid_ = catalog::INVALID_TABLE_OID;
+
+  /**
    * In theory the ConnectionContext owns this too, but for legacy reasons (and safety about who can delete them) we
    * don't use unique_ptrs for txns. If that ever changes, then the ConnectionContext should probably own it and
    * transfer ownership to the TransactionManager (via the TrafficCop) at commit or abort.
@@ -216,8 +230,6 @@ class ConnectionContext {
    */
   network::NetworkCallback callback_;
   void *callback_arg_;
-
-  catalog::table_oid_t temp_table_oid_ = catalog::INVALID_TABLE_OID;
 };
 
 }  // namespace terrier::network

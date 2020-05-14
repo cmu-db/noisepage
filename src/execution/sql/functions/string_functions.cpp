@@ -231,10 +231,8 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   storage::TupleAccessStrategy tuple_access_strategy(layout);
 
   // Write to redo log, and update in sqltable
-  auto sequence_table_oid = accessor->GetTableOid("pg_sequence");
-  TERRIER_ASSERT(sequence_table_oid != catalog::INVALID_TABLE_OID, "Sequence table oid should not be invalid");
+  auto sequence_table_oid = catalog::postgres::SEQUENCE_TABLE_OID;
   auto sequence_table = accessor->GetTable(sequence_table_oid).Get();
-  auto sequence_columns = accessor->GetSchema(sequence_table_oid).GetColumns();
   const std::vector<catalog::col_oid_t> sequence_columns_oids{catalog::postgres::PG_SEQUENCE_ALL_COL_OIDS.cbegin(),
                                                               catalog::postgres::PG_SEQUENCE_ALL_COL_OIDS.cend()};
   auto sequence_pri = sequence_table->InitializerForProjectedRow(sequence_columns_oids);
@@ -300,7 +298,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
   sequence_table->Update(mini_txn, sequence_update_redo);
 
   // Update or insert sequence value into temp_table with mini_txn
-  auto temp_table_oid = ctx->GetTempTable();
+  auto temp_table_oid = ctx->GetTempTableOid();
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
 
   // Sequence table only have two columns right now
@@ -357,16 +355,16 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
   std::string s(s_v.data(), s_v.size());
 
   auto sequence_oid = accessor->GetSequenceOid(s);
-  auto temp_table_oid = ctx->GetTempTable();
+  auto temp_table_oid = ctx->GetTempTableOid();
   auto temp_table = accessor->GetTable(temp_table_oid).Get();
-  auto temp_colums = accessor->GetSchema(temp_table_oid).GetColumns();
 
   auto txn_manager = ctx->GetTransactionManager();
   auto mini_txn_context = txn_manager->BeginTransaction();
   auto mini_txn = common::ManagedPointer<transaction::TransactionContext>(mini_txn_context);
 
-  // Sequence table only have two colums right now
-  const std::vector<catalog::col_oid_t> temp_colums_oids{temp_colums[0].Oid(), temp_colums[1].Oid()};
+  // Sequence table only have two columns right now
+  const std::vector<catalog::col_oid_t> temp_colums_oids{catalog::postgres::SEQTEMPTABLEID_COL_OID,
+                                                         catalog::postgres::SEQTEMPTABLEVAL_COL_OID};
   auto const table_projection_map = temp_table->ProjectionMapForOids(temp_colums_oids);
 
   // Initiate projected columns to hold scan result
@@ -374,9 +372,10 @@ void StringFunctions::Currval(exec::ExecutionContext *ctx, Integer *result, cons
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
   auto pc = pci.Initialize(buffer);
 
-  auto seq_oid_ptrs =
-      reinterpret_cast<catalog::sequence_oid_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[0])));
-  auto seq_value_ptrs = reinterpret_cast<int64_t *>(pc->ColumnStart(table_projection_map.at(temp_colums_oids[1])));
+  auto seq_oid_ptrs = reinterpret_cast<catalog::sequence_oid_t *>(
+      pc->ColumnStart(table_projection_map.at(catalog::postgres::SEQTEMPTABLEID_COL_OID)));
+  auto seq_value_ptrs =
+      reinterpret_cast<int64_t *>(pc->ColumnStart(table_projection_map.at(catalog::postgres::SEQTEMPTABLEVAL_COL_OID)));
 
   std::vector<catalog::sequence_oid_t> db_cats;
   auto table_iter = temp_table->begin();

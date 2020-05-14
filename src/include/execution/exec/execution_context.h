@@ -72,13 +72,15 @@ class EXPORT ExecutionContext {
    * @param callback callback function for outputting
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
-   * @param temp_namespace only for udf nextval function to use, otherwise it's just INVALID_NAMESPACE_OID
+   * @param temp_namespace_oid only for sequence functions to use, otherwise it's just INVALID_NAMESPACE_OID
+   * @param temp_table_oid only for sequence functions to use, otherwise it's just INVALID_TABLE_OID
+   * @param txn_manager only for sequence functions to use, otherwise it's just nullptr
    */
-   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
+  ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                   catalog::namespace_oid_t temp_namespace = catalog::INVALID_NAMESPACE_OID,
-                   catalog::table_oid_t temp_table = catalog::INVALID_TABLE_OID,
+                   catalog::namespace_oid_t temp_namespace_oid = catalog::INVALID_NAMESPACE_OID,
+                   catalog::table_oid_t temp_table_oid = catalog::INVALID_TABLE_OID,
                    common::ManagedPointer<transaction::TransactionManager> txn_manager = nullptr)
       : db_oid_(db_oid),
         txn_(txn),
@@ -89,9 +91,9 @@ class EXPORT ExecutionContext {
                                                                    ComputeTupleSize(schema), callback)),
         string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
         accessor_(accessor),
-        temp_namespace_(temp_namespace),
-        temp_table_(temp_table),
-        txn_manager_(txn_manager){}
+        temp_namespace_oid_(temp_namespace_oid),
+        temp_table_oid_(temp_table_oid),
+        txn_manager_(txn_manager) {}
   /**
    * @return the transaction used by this query
    */
@@ -187,20 +189,11 @@ class EXPORT ExecutionContext {
     pipeline_operating_units_ = op;
   }
 
-  //TODO(Adrian): changed
-  catalog::namespace_oid_t GetTempNamespace() {
-    return temp_namespace_;
-  }
+  catalog::namespace_oid_t GetTempNamespaceOid() { return temp_namespace_oid_; }
 
-  catalog::table_oid_t GetTempTable() {
-    return temp_table_;
-  }
+  catalog::table_oid_t GetTempTableOid() { return temp_table_oid_; }
 
-
-  common::ManagedPointer<transaction::TransactionManager> GetTransactionManager() {
-      return txn_manager_;
-  }
-
+  common::ManagedPointer<transaction::TransactionManager> GetTransactionManager() { return txn_manager_; }
 
  private:
   catalog::db_oid_t db_oid_;
@@ -214,10 +207,8 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<const std::vector<type::TransientValue>> params_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
-
-  //TODO(Adrian) : changed
-  catalog::namespace_oid_t temp_namespace_;
-  catalog::table_oid_t temp_table_;
+  catalog::namespace_oid_t temp_namespace_oid_;
+  catalog::table_oid_t temp_table_oid_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 };
 }  // namespace terrier::execution::exec
