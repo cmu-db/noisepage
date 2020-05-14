@@ -1012,7 +1012,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGSchemaRecord(
     std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::RELKIND_COL_OID};
     auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
     auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
-    auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize() * 2);
     auto *pr = pr_init.InitializeRow(buffer);
 
     pg_class_ptr->Select(common::ManagedPointer(txn), index_results[0], pr);
