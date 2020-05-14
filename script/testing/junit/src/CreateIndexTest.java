@@ -322,7 +322,7 @@ public class CreateIndexTest extends TestUtility {
      * Ensures proper MVCC semantics are still met even with the index being created
      */
     @Test
-    public void testMVCC() throws SQLException {
+    public void testMVCC() throws SQLException, InterruptedException {
         String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 102);";
         Statement stmt = conn.createStatement();
         int num_rows = 1000;
@@ -378,5 +378,8 @@ public class CreateIndexTest extends TestUtility {
         }
         assertNoMoreRows(rs);
         conn.commit();
+        for (Thread t : threads) {
+            t.join();
+        }
     }
 }
