@@ -110,8 +110,7 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateLeftTranslator(
       return std::make_unique<NestedLoopLeftTranslator>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
                                                         codegen);
     case terrier::planner::PlanNodeType::ANALYZE:
-      return std::unique_ptr<AnalyzeBottomTranslator>(
-          AnalyzeBottomTranslator::Create(static_cast<const planner::AnalyzePlanNode *>(op), codegen));
+      return std::make_unique<AnalyzeBottomTranslator>(static_cast<const planner::AnalyzePlanNode *>(op), codegen);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }

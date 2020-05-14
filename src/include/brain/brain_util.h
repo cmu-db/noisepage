@@ -48,8 +48,10 @@ class BrainUtil {
         return "OUTPUT";
       case ExecutionOperatingUnitType::LIMIT:
         return "LIMIT";
-      case ExecutionOperatingUnitType::ANALYZE:
-        return "ANALYZE";
+      case ExecutionOperatingUnitType::ANALYZE_BUILD:
+        return "ANALYZE_BUILD";
+      case ExecutionOperatingUnitType::ANALYZE_UPDATE:
+        return "ANALYZE_UPDATE";
       case ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS:
         return "OP_INTEGER_PLUS_OR_MINUS";
       case ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY:

@@ -29,7 +29,8 @@ enum class ExecutionOperatingUnitType : uint32_t {
   OUTPUT,
   LIMIT,
 
-  ANALYZE,
+  ANALYZE_BUILD,
+  ANALYZE_UPDATE,
 
   // Use to demarcate plan and operations
   PLAN_OPS_DELIMITER,

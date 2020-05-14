@@ -6,33 +6,68 @@
 #include "catalog/postgres/pg_statistic.h"
 #include "execution/compiler/operator/aggregate_util.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "execution/compiler/operator/static_aggregate_translator.h"
 #include "planner/plannodes/analyze_plan_node.h"
 
 namespace terrier::execution::compiler {
 
-class AnalyzeBottomTranslator : public StaticAggregateBottomTranslator {
+/**
+ * Bottom translator for Analyze: aggregates values from table scan
+ * TODO(khg): This is essentially a photocopy of StaticAggregateBottomTranslator.
+ *   Originally, I tried to have it inherit from that class instead, but apparently that doesn't work.
+ *   Investigate ways to reduce code duplication.
+ */
+class AnalyzeBottomTranslator : public OperatorTranslator {
  public:
   AnalyzeBottomTranslator() = delete;
 
-  AnalyzeBottomTranslator(const terrier::planner::AnalyzePlanNode *op, CodeGen *codegen,
-                          std::unique_ptr<planner::AggregatePlanNode> &&agg_plan_node,
-                          std::vector<std::unique_ptr<parser::AbstractExpression>> &&owned_exprs);
-
   /**
    * Create a new AnalyzeBottomTranslator
-   * TODO(khg): This hack is only necessary due to the MakeAggregatePlanNode hack.
    * @param op plan node to translate
    * @param codegen code generator
    * @return new translator
    */
-  static std::unique_ptr<AnalyzeBottomTranslator> Create(const terrier::planner::AnalyzePlanNode *op, CodeGen *codegen);
+  AnalyzeBottomTranslator(const terrier::planner::AnalyzePlanNode *op, CodeGen *codegen);
+
+  // Declare aggregates and distinct hash tables.
+  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
+
+  // Declare the values struct and the payload of each distinct aggregate
+  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override;
+
+  // Initialize comparison functions for distinct aggregates.
+  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override;
+
+  // Initialize the aggregates
+  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override;
+
+  // Free Distinct
+  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
+
+  // Pass Through
+  void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); };
+  // Pass Through
+  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
+  void Consume(FunctionBuilder *builder) override;
+
+  // Pass through to the child
+  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
+    return child_translator_->GetOutput(attr_idx);
+  }
+
+  // Return the attribute at idx
+  ast::Expr *GetOutput(uint32_t attr_idx) override {
+    ast::Expr *agg = codegen_->GetStateMemberPtr(helper_.GetAggregate(attr_idx));
+    return codegen_->OneArgCall(ast::Builtin::AggResult, agg);
+  }
+
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   /**
    * Makes a fake AggregatePlanNode that describes the aggregations we want to compute.
-   * This is only to make the AggregateHelper happy. Note that it only uses the GetAggregateTerms() and
-   * the GetGroupByTerms() methods on the plan node passed in.
+   *
+   * TODO(khg): This is only used to pass to AggregateHelper, which is an ugly hack. However, the AggregateHelper
+   *   only really uses the aggregate and group-by expressions from the AggregatePlanNode, so it could be refactored.
    *
    * @param op AnalyzePlanNode containing information about the table and columns to be analyzed
    * @return An AggregatePlanNode containing the necessary aggregations.
@@ -40,18 +75,22 @@ class AnalyzeBottomTranslator : public StaticAggregateBottomTranslator {
   static std::unique_ptr<planner::AggregatePlanNode> MakeAggregatePlanNode(
       const planner::AnalyzePlanNode *op, std::vector<std::unique_ptr<parser::AbstractExpression>> *owned_exprs);
 
-  /** Original Analyze plan node */
-  const planner::AnalyzePlanNode *analyze_plan_node_;
-
-  /** Fake Analyze plan node, passed to StaticAggregateBottomTranslator */
-  const std::unique_ptr<planner::AggregatePlanNode> agg_plan_node_;
+  friend class AnalyzeTopTranslator;
+  const planner::AnalyzePlanNode *op_;
 
   /** Owned aggregation expressions, passed to AggregateHelper */
   std::vector<std::unique_ptr<parser::AbstractExpression>> owned_exprs_;
+
+  /** Fake AggregatePlanNode, passed to AggregateHelper */
+  const std::unique_ptr<planner::AggregatePlanNode> agg_plan_node_;
+
+  /** Helper used to generate aggregate code */
+  AggregateHelper helper_;
 };
 
 /**
- * Analyze Translator
+ * Top translator for Analyze: updates aggregated values in statistics table
+ * This is heavily patterned off of UpdateTranslator.
  */
 class AnalyzeTopTranslator : public OperatorTranslator {
  public:
