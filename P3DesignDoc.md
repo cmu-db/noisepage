@@ -15,7 +15,10 @@ To align with each stage of the development, we formulate our design goal in ter
 
 ##### 100% Goal
 - [x] Implement FOREIGN KEY definition during the create table process
+- [x] Implement PROMARY KEY, UNIQUE checking during data insertion, Update process
 - [x] Implement FOREIGN KEY checking during data insertion, Update process
+- [x] Implement FOREIGN KEY CASCADE during data delete, Update process
+- [x] Implement auto DELETE constraint when deleting table
 - [x] Create associated unit test to ensure the correctness of the implementation
 
 ##### 125% Goal
@@ -89,26 +92,26 @@ constexpr col_oid_t CONBIN_COL_OID = col_oid_t(24);
 ```
 
 Supporting Constraints:
-- [] CHECK (CONTYPE_COL_OID = 'c') - The CHECK constraint to verify the column data is in a specific set.
+- [ ] CHECK (CONTYPE_COL_OID = 'c') - The CHECK constraint to verify the column data is in a specific set.
 - [x] FOREIGN KEY (CONTYPE_COL_OID = 'f') - Associate the data of the column in one table with data in another
 - [x] PRIMARY KEY (CONTYPE_COL_OID = 'p') - The promary key constraint of the table, implies UNIQUE and NOT NULL
 - [x] UNIQUE (CONTYPE_COL_OID = 'u') - Data in the column has to be unique
-- [] TRIGGER (CONTYPE_COL_OID = 't') - Trigger constraint to invoke trigger during insert
-- [] EXCLUSION (CONTYPE_COL_OID = 'e') - Exclusion constraint to exclude some set of data in this column
-- [] NOT NULL (CONTYPE_COL_OID = 'n') - Not NULL Constraint: a single column constraint
+- [ ] TRIGGER (CONTYPE_COL_OID = 't') - Trigger constraint to invoke trigger during insert
+- [ ] EXCLUSION (CONTYPE_COL_OID = 'e') - Exclusion constraint to exclude some set of data in this column
+- [ ] NOT NULL (CONTYPE_COL_OID = 'n') - Not NULL Constraint: a single column constraint
 
 Supporting FKActionType:
-- [] NOACT = 'a',        // no action
-- [] RESTRICTION = 'r',  // restrict
+- [ ] NOACT = 'a',        // no action
+- [ ] RESTRICTION = 'r',  // restrict
 - [x] CASCADE = 'c',      // cascade
-- [] SETNULL = 'n',      // set null
-- [] SETDEFAULT = 'd',   // set default
-- [] SETINVALID = 'i'    // set invalid
+- [ ] SETNULL = 'n',      // set null
+- [ ] SETDEFAULT = 'd',   // set default
+- [ ] SETINVALID = 'i'    // set invalid
 
 Supporting FKMatchType:
 - [x] FULL = 'f',     // fully match when compare
-- [] PARTIAL = 'p',  // partially match when compare
-- [] SIMPLE = 's',   // simple match when compare
+- [ ] PARTIAL = 'p',  // partially match when compare
+- [ ] SIMPLE = 's',   // simple match when compare
 
 ## Design Rationale
 The primary focus is to align with what other postgres APIs such as ph_index and pg_namespace are currently formulated. We want to make sure that their creation, check and modification are positioned under the same files with similar APIs to ensure consistency. At the same time we still want a separate pg_constratin class module to encapsulate the specific constratin checking logic to isolate that from the other modules but can be accessed from the same API call style.
@@ -127,8 +130,8 @@ The original version normalize the pg_constraint table and allow each constraint
 
 ## Future Work
 This would be a TODO list and will keep updating:
-- [] Index created for constraint for foreign key reference table is not automatically propagated. This is another group's project
-- [] More supported action for foreign key verification
-- [] other constraint support such as CHECK, EXCLUSION, NOT NULL, TRIGGER, etc
-- [] pg_operator for check, FK, and exclusion to further comply with postgres design
-- [] some deatiled todo are embedded in code with todo assignee named "pg_constraint"
+- [ ] Index created for constraint for foreign key reference table is not automatically propagated. This is another group's project
+- [ ] More supported action for foreign key verification
+- [ ] other constraint support such as CHECK, EXCLUSION, NOT NULL, TRIGGER, etc
+- [ ] pg_operator for check, FK, and exclusion to further comply with postgres design
+- [ ] some deatiled todo are embedded in code with todo assignee named "pg_constraint"
