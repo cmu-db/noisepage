@@ -17,6 +17,7 @@
 #include "catalog/postgres/pg_schema.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "common/managed_pointer.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -938,7 +939,7 @@ storage::layout_version_t DatabaseCatalog::GetLayoutVersion(common::ManagedPoint
                                                             table_oid_t table_oid) {
   byte *buffer = nullptr;
   storage::TupleSlot tuple_slot;
-  auto all_cols_pr = GetTableEntry(txn, table_oid, &buffer, &tuple_slot);
+  auto all_cols_pr = GetPGClassTableEntry(txn, table_oid, &buffer, &tuple_slot);
   auto layout_version = *(reinterpret_cast<storage::layout_version_t *>(
       all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
   delete[] buffer;
@@ -946,8 +947,8 @@ storage::layout_version_t DatabaseCatalog::GetLayoutVersion(common::ManagedPoint
 }
 
 bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const table_oid_t table, Schema *new_schema,
-                                   storage::layout_version_t *layout_version_ptr,
+                                   const table_oid_t table, std::unique_ptr<Schema> new_schema,
+                                   const common::ManagedPointer<storage::layout_version_t> layout_version_ptr,
                                    const execution::ChangeMap &change_map) {
   if (!TryLock(txn)) return false;
 
@@ -962,7 +963,7 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
           // Get the next col_oid with the table_oid
           byte *buffer_ptr = nullptr;
           storage::TupleSlot tuple_slot;
-          auto all_cols_pr = GetTableEntry(txn, table, &buffer_ptr, &tuple_slot);
+          auto all_cols_pr = GetPGClassTableEntry(txn, table, &buffer_ptr, &tuple_slot);
 
           auto next_oid = *(reinterpret_cast<col_oid_t *>(
               all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID])));
@@ -983,7 +984,8 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
           auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo, storage::layout_version_t(0), &new_slot);
           TERRIER_ASSERT(res, "Updating the next_col_oid should not fail");
           TERRIER_ASSERT(update_redo->GetTupleSlot() == new_slot, "Updating should not move the tuple slot");
-        } break;
+          break;
+        }
         case execution::ChangeType::DropNoCascade: {
           // Get the tuple slot from the index by name
           // Initialize the PRI
@@ -1019,32 +1021,33 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
           delete[] pr_buffer;
           delete[] key_buffer;
           if (!success) return false;
-        } break;
+
+          break;
+        }
         default:
           throw std::runtime_error("Unimplemented alter table type.");
       }
     }
   }
 
-  // Delete the pointer in case of abort
   std::vector<Schema::Column> cols_with_valid_oid = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table);
-  // Free the schema with oids not valid
-  delete new_schema;
-  // Create schema from cols with valid oids
-  new_schema = new Schema(cols_with_valid_oid);
-  txn->RegisterAbortAction([=]() { delete new_schema; });
+
+  // Create schema from cols with valid oids. This pointer will be managed by the pg_schema SqlTable
+  auto new_schema_unmanaged = new Schema(cols_with_valid_oid);
+  // Delete the pointer in case of abort
+  txn->RegisterAbortAction([=]() { delete new_schema_unmanaged; });
 
   // Get the current layout_version
   byte *buffer_ptr = nullptr;
   storage::TupleSlot tuple_slot;
-  auto all_cols_pr = GetTableEntry(txn, table, &buffer_ptr, &tuple_slot);
+  auto all_cols_pr = GetPGClassTableEntry(txn, table, &buffer_ptr, &tuple_slot);
 
   auto cur_layout_version = *(reinterpret_cast<storage::layout_version_t *>(
       all_cols_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
   delete[] buffer_ptr;
 
   // Insert the new schema pointer
-  if (!AddSchemaEntry(txn, static_cast<uint32_t>(table), new_schema, cur_layout_version + 1)) {
+  if (!AddSchemaEntry(txn, static_cast<uint32_t>(table), new_schema_unmanaged, cur_layout_version + 1)) {
     return false;
   }
 
@@ -1271,7 +1274,7 @@ bool DatabaseCatalog::SetIndexSchemaPointer(const common::ManagedPointer<transac
 }
 
 bool DatabaseCatalog::SetSchemaPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                       const storage::TupleSlot slot, const void *ptr) {
+                                       storage::TupleSlot slot, const void *ptr) {
   auto pri_init = schemas_->InitializerForProjectedRow({postgres::SCH_PTR_COL_OID});
 
   auto *update_redo = txn->StageWrite(db_oid_, postgres::SCHEMA_TABLE_OID, pri_init);
@@ -1316,7 +1319,6 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
   auto *update_pr = update_redo->Delta();
   auto *const class_ptr_ptr = update_pr->AccessForceNotNull(0);
   *(reinterpret_cast<const Ptr **>(class_ptr_ptr)) = pointer;
-
   // Finish
   delete[] buffer;
   return classes_->Update(txn, update_redo);
@@ -2232,7 +2234,7 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(
 
   std::vector<storage::TupleSlot> slots;
   auto ptrs = GetSchemaEntries(txn, oid, layout_version, layout_version + 1, &slots);
-  TERRIER_ASSERT(ptrs.size() >= 1, "There should be at least one schema version");
+  TERRIER_ASSERT(!ptrs.empty(), "There should be at least one schema version");
   auto *ptr = ptrs[ptrs.size() - 1];
   TERRIER_ASSERT(ptr != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
 
@@ -2683,9 +2685,9 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
   return ret;
 }
 
-storage::ProjectedRow *DatabaseCatalog::GetTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                                      const catalog::table_oid_t table, byte **buffer_ptr,
-                                                      storage::TupleSlot *slot) {
+storage::ProjectedRow *DatabaseCatalog::GetPGClassTableEntry(
+    common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, byte **buffer_ptr,
+    storage::TupleSlot *slot) {
   auto pri = classes_oid_index_->GetProjectedRowInitializer();
   byte *const idx_buffer = common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize());
   auto pr = pri.InitializeRow(idx_buffer);
@@ -2750,9 +2752,9 @@ bool DatabaseCatalog::DropColumn(common::ManagedPointer<transaction::Transaction
   return true;
 }
 
-std::vector<void *> DatabaseCatalog::GetSchemaEntries(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                                      const uint32_t oid, const storage::layout_version_t version_low,
-                                                      const storage::layout_version_t version_high,
+std::vector<void *> DatabaseCatalog::GetSchemaEntries(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                      uint32_t oid, storage::layout_version_t version_low,
+                                                      storage::layout_version_t version_high,
                                                       std::vector<storage::TupleSlot> *slots) {
   // Read the index
   const auto schema_oid_pri = schemas_oid_vers_index_->GetProjectedRowInitializer();
@@ -2833,8 +2835,8 @@ bool DatabaseCatalog::AddSchemaEntry(const common::ManagedPointer<transaction::T
 }
 
 std::vector<void *> DatabaseCatalog::DeleteSchemaEntries(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const uint32_t oid,
-    const storage::layout_version_t version_high) {
+    const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+    storage::layout_version_t version_high) {
   std::vector<storage::TupleSlot> results;
   auto ptrs = GetSchemaEntries(txn, oid, 0, version_high + 1, &results);
 

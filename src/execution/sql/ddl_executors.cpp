@@ -159,9 +159,6 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   return true;
 }
 
-// TODO(SC): in case any of the commands fail to execute, the entire ALTER TABLE sql should be rolled back
-//  This means updates made by the previous commands (which are already materialized on the catalog tables) need to be
-//  reverted
 bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::AlterPlanNode> node,
                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   const auto &cmds = node->GetCommands();
@@ -173,25 +170,22 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
   // Not a regular table
   if (sql_table == nullptr) return false;
 
-  // Schema to accumulate the changes from various actions
-  std::unique_ptr<catalog::Schema> update_schema(nullptr);
-
   // Map to indicate the changes to columns
   std::unordered_map<std::string, std::vector<ChangeType>> change_map;
   // Get the current schema
   const auto &schema = accessor->GetSchema(table_oid);
-  const auto &cols = schema.GetColumns();
-  // NOLINTNEXTLINE
-  update_schema.reset(new catalog::Schema(cols));
+  auto cols = schema.GetColumns();
 
   for (const auto &cmd : cmds) {
     switch (cmd->GetType()) {
       case parser::AlterTableStatement::AlterType::AddColumn: {
         // Add the column to the schema
-        if (!AlterTableCmdExecutor::AddColumn(cmd, &update_schema, accessor, &change_map)) return false;
+        if (!AlterTableCmdExecutor::AddColumn(cmd, common::ManagedPointer(&cols), common::ManagedPointer(&change_map)))
+          return false;
       } break;
       case parser::AlterTableStatement::AlterType::DropColumn: {
-        if (!AlterTableCmdExecutor::DropColumn(cmd, &update_schema, accessor, &change_map)) return false;
+        if (!AlterTableCmdExecutor::DropColumn(cmd, common::ManagedPointer(&cols), common::ManagedPointer(&change_map)))
+          return false;
       } break;
       default:
         TERRIER_ASSERT(false, "not implemented");
@@ -199,19 +193,14 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
   }
 
   // All the commands execute OK
+  std::unique_ptr<catalog::Schema> update_schema(new catalog::Schema(cols));
 
-  // Some commands modify the schema, so update the schema
-  TERRIER_ASSERT(update_schema != nullptr, "update schema is not null");
-  // The catalog will own the Schema
-  auto new_schema = update_schema.release();
   storage::layout_version_t new_version;
-  if (accessor->UpdateSchema(table_oid, new_schema, &new_version, change_map)) {
-    // WARNING: Update the underlying sql_table, the update is not transactional
-    sql_table->UpdateSchema(accessor->GetTransactionContext(), accessor->GetSchema(table_oid), new_version);
-  } else {
+  if (!accessor->UpdateSchema(table_oid, std::move(update_schema), common::ManagedPointer(&new_version), change_map)) {
     return false;
   }
-
+  // WARNING: Update the underlying sql_table, the update is not transactional
+  sql_table->UpdateSchema(accessor->GetTransactionContext(), accessor->GetSchema(table_oid), new_version);
   return true;
 }
 }  // namespace terrier::execution::sql

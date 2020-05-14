@@ -153,8 +153,10 @@ class DatabaseCatalog {
    * schema object after this call, they should use the GetSchema function to
    * obtain the authoritative schema for this table.
    */
-  bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, Schema *new_schema,
-                    storage::layout_version_t *layout_version_ptr, const execution::ChangeMap &change_map);
+  bool UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table,
+                    std::unique_ptr<Schema> new_schema,
+                    common::ManagedPointer<storage::layout_version_t> layout_version_ptr,
+                    const execution::ChangeMap &change_map);
 
   /**
    * Get the visible schema describing the table.
@@ -243,7 +245,7 @@ class DatabaseCatalog {
    * @param ptr pointer to the schema
    * @return true if successful update
    */
-  bool SetSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, const storage::TupleSlot slot,
+  bool SetSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, storage::TupleSlot slot,
                         const void *ptr);
   /**
    * Obtain the pointer to the index
@@ -396,8 +398,10 @@ class DatabaseCatalog {
   /**
    * Get entries from pg_attribute
    * @tparam Column type of columns
+   * @tparam ClassOid type of class id: index oid or table oid
+   * @tparam ColOid col oid type
    * @param txn txn to use
-   * @param class_oid oid of table or index
+   * @param class_oid oid of the table or index
    * @return the column from pg_attribute
    */
   template <typename Column, typename ClassOid, typename ColOid>
@@ -754,18 +758,18 @@ class DatabaseCatalog {
    * @param slot tuple slot that associated with the table oid in classes_
    * @return projectedrow contains the information of the table
    */
-  storage::ProjectedRow *GetTableEntry(common::ManagedPointer<transaction::TransactionContext> txn,
-                                       catalog::table_oid_t table, byte **buffer_ptr, storage::TupleSlot *slot);
+  storage::ProjectedRow *GetPGClassTableEntry(common::ManagedPointer<transaction::TransactionContext> txn,
+                                              catalog::table_oid_t table, byte **buffer_ptr, storage::TupleSlot *slot);
 
   /**
    * Add a schema entry into pg_schema
    * @param txn  txn context to use
    * @param oid the oid of the entry, i.e. index oid or table oid
-   * @param ptr pointer of the schema
+   * @param new_schema pointer of the schema
    * @param layout_version  layout version of the schema
    * @return true if insertion to pg_schema succeeds
    */
-  bool AddSchemaEntry(const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid, const void *ptr,
+  bool AddSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid, void const *new_schema,
                       storage::layout_version_t layout_version);
 
   /**
@@ -777,9 +781,8 @@ class DatabaseCatalog {
    * @param slots slots in the pg_schema to be filled
    * @return schema pointers (index or table)
    */
-  std::vector<void *> GetSchemaEntries(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                       const uint32_t oid, const storage::layout_version_t version_low,
-                                       const storage::layout_version_t versoin_high,
+  std::vector<void *> GetSchemaEntries(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                                       storage::layout_version_t version_low, storage::layout_version_t version_high,
                                        std::vector<storage::TupleSlot> *slots);
 
   /**
@@ -789,7 +792,7 @@ class DatabaseCatalog {
    * @param version_high upper bound of the version (inclusive)
    * @return schema poineters to be freed
    */
-  std::vector<void *> DeleteSchemaEntries(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                          const uint32_t oid, const storage::layout_version_t version_high);
+  std::vector<void *> DeleteSchemaEntries(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                                          storage::layout_version_t version_high);
 };
 }  // namespace terrier::catalog

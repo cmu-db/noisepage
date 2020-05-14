@@ -2043,7 +2043,7 @@ class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
   /**
    * @return col_oids
    */
-  std::vector<catalog::col_oid_t> &GetColOids() { return col_oids_; }
+  std::vector<catalog::col_oid_t> GetColOids() const { return col_oids_; }
 
  private:
   /**

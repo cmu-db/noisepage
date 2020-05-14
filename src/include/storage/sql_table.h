@@ -256,7 +256,7 @@ class SqlTable {
    * @return the column oid to id map of a layout_version
    */
   const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t layout_version) const {
-    TERRIER_ASSERT(layout_version < num_versions_, "Version does not exist.");
+    TERRIER_ASSERT(layout_version < num_versions_, "Version should exist.");
     return tables_.at(layout_version).column_oid_to_id_map_;
   }
 
@@ -301,12 +301,6 @@ class SqlTable {
   std::vector<DataTableVersion> tables_;
 
   std::atomic<uint8_t> num_versions_ = 0;
-
-  // Should only be used by database catalog accessing pg tables!
-  void ForceScanAllVersions(common::ManagedPointer<transaction::TransactionContext> txn,
-                            DataTable::SlotIterator *start_pos, ProjectedColumns *out_buffer) const {
-    return tables_.at(layout_version_t(0)).data_table_->ForceScanAllVersions(txn, start_pos, out_buffer);
-  }
 
   /**
    * Translates out_buffer from desired version col_ids to tuple version col_ids, by mapping each col_id in out_buffer

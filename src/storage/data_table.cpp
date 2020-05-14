@@ -80,33 +80,6 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
-void DataTable::ForceScanAllVersions(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                     SlotIterator *const start_pos, ProjectedColumns *const out_buffer) const {
-  uint32_t filled = 0;
-  uint8_t version_count = 0;
-
-  while (filled < out_buffer->MaxTuples() && *start_pos != end()) {
-    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
-    const TupleSlot slot = **start_pos;
-
-    bool version_left = false;
-    if (SelectAllVersionsIntoBuffer(txn, slot, &row, version_count, &version_left)) {
-      out_buffer->TupleSlots()[filled] = slot;
-      filled++;
-    }
-    if (!version_left) {
-      ++(*start_pos);
-      version_count = 0;
-    } else {
-      version_count++;
-    }
-  }
-  out_buffer->SetNumTuples(filled);
-}
-
-// TODO(Schema-Change): we will need to go to the next DataTable once we reached the end of current block by either
-// chasing
-//  the pointer to the next datatable, or consulting SqlTable to obtain such information
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
@@ -303,71 +276,6 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
   accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
   return true;
 }
-
-template <class RowType>
-bool DataTable::SelectAllVersionsIntoBuffer(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
-                                            RowType *out_buffer, uint8_t count, bool *version_left,
-                                            const AttrSizeMap *const size_map) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
-  // This cannot be visible if it's already deallocated.
-  if (!accessor_.Allocated(slot)) return false;
-
-  UndoRecord *version_ptr;
-  do {
-    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-    // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
-    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-    // can potentially happen, and chase the version chain before returning anyway,
-    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-      auto col_id = out_buffer->ColumnIds()[i];
-      TERRIER_ASSERT(col_id != VERSION_POINTER_COLUMN_ID, "Output buffer should not read the version pointer column.");
-      // pre-set columns belonging to newer schema to null to facilitate future default value change
-      if (out_buffer->ColumnIds()[i] == IGNORE_COLUMN_ID)
-        StorageUtil::CopyWithNullCheck(nullptr, out_buffer, 0, i);
-      else if (size_map != nullptr && size_map->count(col_id) > 0)
-        StorageUtil::CopyAttrIntoProjectionWithSize(accessor_, slot, out_buffer, i, size_map->at(col_id));
-      else
-        StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
-    }
-  } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
-
-  // Nullptr in version chain means no other versions visible to any transaction alive at this point.
-  // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr) {
-    *version_left = false;
-    return true;
-  }
-
-  uint8_t cur_count = 0;
-  // Apply deltas until we reconstruct a version safe for us to read
-  while (version_ptr != nullptr && cur_count < count) {
-    switch (version_ptr->Type()) {
-      case DeltaRecordType::UPDATE:
-        // Normal delta to be applied. Does not modify the logical delete column.
-        StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
-        break;
-      case DeltaRecordType::INSERT:
-        break;
-      case DeltaRecordType::DELETE:
-        break;
-      default:
-        throw std::runtime_error("unexpected delta record type");
-    }
-    version_ptr = version_ptr->Next();
-    cur_count++;
-  }
-
-  *version_left = version_ptr != nullptr;
-  return true;
-}
-
-template bool DataTable::SelectAllVersionsIntoBuffer<ProjectedRow>(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-    ProjectedRow *const out_buffer, uint8_t count, bool *version_left, const AttrSizeMap *const size_map) const;
-template bool DataTable::SelectAllVersionsIntoBuffer<ProjectedColumns::RowView>(
-    const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-    ProjectedColumns::RowView *const out_buffer, uint8_t count, bool *version_left,
-    const AttrSizeMap *const size_map) const;
 
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,

@@ -35,7 +35,6 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
   }
 
   // the tuple exists in an older version.
-  // TODO(schema-change): handle versions from add and/or drop column only
   col_id_t orig_header[out_buffer->NumColumns()];
   AttrSizeMap size_map;
 
@@ -259,11 +258,6 @@ void SqlTable::FillMissingColumns(RowType *out_buffer,
                                   const std::vector<std::pair<size_t, catalog::col_oid_t>> &missingl_cols,
                                   layout_version_t tuple_version, layout_version_t layout_version) const {
   for (auto &it : missingl_cols) {
-    // TODO(Schema-Change): For now, we only handle constant default values
-    //    const common::ManagedPointer<const parser::AbstractExpression> default_val =
-    //        tables_.at(layout_version).default_value_map_.at(it.second);
-    //    if (default_val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT) continue;
-
     TERRIER_ASSERT(tables_.at(layout_version).default_value_map_.at(it.second)->GetExpressionType() ==
                        parser::ExpressionType::VALUE_CONSTANT,
                    " For now, we only handle constant default values.");

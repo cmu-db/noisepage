@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -175,10 +176,9 @@ class CatalogAccessor {
    * @warning If the caller needs to reference the schema object after this call, they should use the GetSchema function
    * to obtain the authoritative schema for this table.
    */
-  bool UpdateSchema(table_oid_t table, Schema *new_schema, storage::layout_version_t *layout_version,
+  bool UpdateSchema(table_oid_t table, std::unique_ptr<Schema> new_schema,
+                    common::ManagedPointer<storage::layout_version_t> layout_version,
                     const execution::ChangeMap &change_map) const;
-
-  // TODO(XC)
 
   /**
    * Get the visible schema describing the table.
