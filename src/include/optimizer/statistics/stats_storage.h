@@ -96,14 +96,15 @@ class StatsStorage {
   bool DeleteTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id);
 
  private:
-  friend class DefaultCostModelTests;  // needs to allow tests to add table stats to stats storage obj
-
+  friend class CostModelTests;
   /**
    * The following tests check to make sure the protected insert/delete functions work.
    */
   FRIEND_TEST(StatsStorageTests, GetTableStatsTest);
   FRIEND_TEST(StatsStorageTests, InsertTableStatsTest);
   FRIEND_TEST(StatsStorageTests, DeleteTableStatsTest);
+  FRIEND_TEST(CostModelTests, InnerNLJoinOrderTest);
+  FRIEND_TEST(CostModelTests, HashVsNLJoinTest);
 
   /**
    * An unordered map mapping StatsStorageKey objects (database_id and table_id) to
