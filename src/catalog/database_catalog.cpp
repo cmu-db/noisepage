@@ -1048,8 +1048,7 @@ bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::Transac
 // recursively find child and make cascade update if satisfied
 int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
                                table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
-                               storage::TupleSlot table_tuple_slot,
-                               storage::ProjectedRow *pr) {
+                               storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr) {
   if (!TryLock(txn)) return -1;
   int affected_row = 0;
   // check if tuple is in the table
@@ -1086,8 +1085,7 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
     const auto select_result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
     PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
-    affected_row +=
-        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj,  &table_prs);
+    affected_row += FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, &table_prs);
   }
   delete[] table_buffer;
   delete[] constraint_buffer;
@@ -1100,8 +1098,7 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
                                         std::vector<storage::ProjectedRow *> *pr_vector) {
   int affected_row = 0;
 
-  std::vector<storage::TupleSlot> table_scan_results =
-      FKScan(txn, table_oid, con_obj, pr_vector);
+  std::vector<storage::TupleSlot> table_scan_results = FKScan(txn, table_oid, con_obj, pr_vector);
   // current table doesn't contain target fk
   if (table_scan_results.empty()) {
     return 0;
@@ -1132,7 +1129,7 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
   std::vector<byte *> buffer_vector;
 
   std::vector<storage::ProjectedRow *> table_prs;
-  for (auto &slot: table_scan_results) {
+  for (auto &slot : table_scan_results) {
     auto table_pri = table->InitializerForProjectedRow(table_col_oids);
     auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
     auto *table_pr = table_pri.InitializeRow(table_buffer);
@@ -1150,8 +1147,7 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
     TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
     PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
 
-    affected_row +=
-        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, &table_prs);
+    affected_row += FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, &table_prs);
   }
 
   affected_row += FKDelete(txn, db_oid, table_oid, con_obj, &table_scan_results);
@@ -1767,11 +1763,11 @@ bool DatabaseCatalog::PropagateConstraintIndex(common::ManagedPointer<transactio
     if (!name_varlen.IsInlined()) {
       delete[] name_varlen.Content();
     }
-    
+
     return false;
   }
   if (!name_varlen.IsInlined()) {
-      delete[] name_varlen.Content();
+    delete[] name_varlen.Content();
   }
 
   index_pr = con_namespace_index_pr.InitializeRow(index_buffer);
