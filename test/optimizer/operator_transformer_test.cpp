@@ -1936,7 +1936,31 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OperatorTransformerTest, SelectWithTest) {
+TEST_F(OperatorTransformerTest, SelectWithMultipleCteTest) {
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql =
+      "WITH COMPANY as (SELECT A1,A2 FROM A) SELECT * FROM COMPANY AS C1, COMPANY AS C2 WHERE C1.A1 = C2.A1";
+
+  std::string ref =
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalCteScan\",\"Children\":"
+      "[{\"Op\":\"LogicalQueryDerivedGet\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}]},"
+      "{\"Op\":\"LogicalCteScan\",}]}]}";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+}
+
+TEST_F(OperatorTransformerTest, SelectWithSingleCteTest) {
   OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "WITH COMPANY as (SELECT A1,A2 FROM A) SELECT * FROM COMPANY;";
 
