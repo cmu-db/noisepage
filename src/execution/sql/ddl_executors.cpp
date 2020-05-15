@@ -69,7 +69,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid,
-                                   index_schema, false, nullptr);
+                                   index_schema, false, accessor->GetTransactionContext());
   }
 
   for (const auto &unique_constraint : node->GetUniqueConstraints()) {
@@ -91,7 +91,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
-                                   index_schema, false, nullptr);
+                                   index_schema, false, accessor->GetTransactionContext());
   }
 
   // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
