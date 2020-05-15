@@ -26,7 +26,7 @@ public class FunctionsTest extends TestUtility {
     private static final String SQL_CREATE_TABLE =
             "CREATE TABLE data (" +
                     "int_val INT, " +
-                    "double_val DOUBLE," +
+                    "double_val DECIMAL," +
                     "str_i_val VARCHAR(32)," + // Integer as string
                     "str_a_val VARCHAR(32)," + // Alpha string
 //                     "bool_val BOOL," +
@@ -39,7 +39,6 @@ public class FunctionsTest extends TestUtility {
         Statement stmt = conn.createStatement();
         stmt.execute(SQL_DROP_TABLE);
         stmt.execute(SQL_CREATE_TABLE);
-        System.out.println(SQL_CREATE_TABLE);
 
         String sql = "INSERT INTO data (" +
                      "int_val, double_val, str_i_val, str_a_val, " +
@@ -53,7 +52,7 @@ public class FunctionsTest extends TestUtility {
         pstmt.setInt(idx++, 123);
         pstmt.setDouble(idx++, 12.34);
         pstmt.setString(idx++, "123456");
-        pstmt.setString(idx++, "abcdef");
+        pstmt.setString(idx++, "AbCdEf");
 //         pstmt.setBoolean(idx++, true);
         pstmt.setInt(idx++, 0);
 //         pstmt.setBoolean(idx++, false);
@@ -101,20 +100,35 @@ public class FunctionsTest extends TestUtility {
 
     private void checkDoubleFunc(String func_name, String col_name, boolean is_null, Double expected) throws SQLException {
         String sql = String.format("SELECT %s(%s) AS result FROM data WHERE is_null = %s",
-                                   func_name, col_name, Boolean.toString(is_null));
+                                   func_name, col_name, (is_null ? 1 : 0));
                                    
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(sql);
         boolean exists = rs.next();
         assert(exists);
         if (is_null) {
-            
+            checkDoubleRow(rs, new String[]{"result"}, new Double[]{null});
         } else {
-            checkDoubleRow(rs, new String [] {"result"}, new double [] {expected});
+            checkDoubleRow(rs, new String[]{"result"}, new Double[]{expected});
         }
         assertNoMoreRows(rs);
     }
-     
+    
+    private void checkStringFunc(String func_name, String col_name, boolean is_null, String expected) throws SQLException {
+        String sql = String.format("SELECT %s(%s) AS result FROM data WHERE is_null = %s",
+                                   func_name, col_name, (is_null ? 1 : 0));
+        
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+        boolean exists = rs.next();
+        assert(exists);
+        if (is_null) {
+            checkStringRow(rs, new String[]{"result"}, new String[]{null});
+        } else {
+            checkStringRow(rs, new String[]{"result"}, new String[]{expected});
+        }
+        assertNoMoreRows(rs);
+    }
      
     /**
      * Tests usage of trig udf functions
@@ -122,12 +136,27 @@ public class FunctionsTest extends TestUtility {
      */
     @Test
     public void testCos() throws SQLException {
-        checkDoubleFunc("cos", "double_val", false, 0.974);
+        checkDoubleFunc("cos", "double_val", false, 0.974487);
+        checkDoubleFunc("cos", "double_val", true, null);
     }
-    
     @Test
     public void testSin() throws SQLException {
-        checkDoubleFunc("sin", "double_val", false, -0.224);
+        checkDoubleFunc("sin", "double_val", false, -0.224442);
+        checkDoubleFunc("sin", "double_val", true, null);
+    }
+    @Test
+    public void testTan() throws SQLException {
+        checkDoubleFunc("tan", "double_val", false, -0.230318);
+        checkDoubleFunc("tan", "double_val", true, null);
+    }
+    
+    /**
+     * String Functions
+     */
+    @Test
+    public void testLower() throws SQLException {
+        checkStringFunc("lower", "str_a_val", false, "abcdef");
+        checkStringFunc("lower", "str_a_val", true, null);
     }
 
 }
