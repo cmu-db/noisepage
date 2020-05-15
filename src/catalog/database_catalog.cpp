@@ -1769,7 +1769,14 @@ bool DatabaseCatalog::PropagateConstraintIndex(common::ManagedPointer<transactio
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns;
   if (!constraints_name_index_->InsertUnique(txn, *index_pr, tuple_slot)) {
     delete[] index_buffer;
+    if (!name_varlen.IsInlined()) {
+      delete[] name_varlen.Content();
+    }
+    
     return false;
+  }
+  if (!name_varlen.IsInlined()) {
+      delete[] name_varlen.Content();
   }
 
   index_pr = con_namespace_index_pr.InitializeRow(index_buffer);
