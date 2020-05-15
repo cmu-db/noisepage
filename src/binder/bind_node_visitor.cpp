@@ -257,7 +257,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
     case parser::DropStatement::DropType::kSequence:
       ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetSequenceOid(node->GetSequenceName()) == catalog::INVALID_SEQUENCE_OID) {
-          throw BINDER_EXCEPTION("Sequence does not exist");
+        throw BINDER_EXCEPTION("Sequence does not exist");
       }
       break;
     case parser::DropStatement::DropType::kTrigger:

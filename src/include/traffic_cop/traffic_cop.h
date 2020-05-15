@@ -75,8 +75,15 @@ class TrafficCop {
   std::pair<catalog::db_oid_t, catalog::namespace_oid_t> CreateTempNamespace(network::connection_id_t connection_id,
                                                                              const std::string &database_name);
 
-  catalog::table_oid_t CreateTempTable(const catalog::db_oid_t db_oid,
-      const catalog::namespace_oid_t ns_oid, const network::connection_id_t connection_id);
+  /**
+   * Create a temporary table for a connection
+   * @param db_oid the oid of the database the connection is accessing
+   * @param ns_oid the oid of the temporary namespace
+   * @param connection_id the unique connection ID
+   * @return the OID for the temporary table
+   */
+  catalog::table_oid_t CreateTempTable(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
+                                       network::connection_id_t connection_id);
 
   /**
    * Drop the temporary namespace for a connection and all enclosing database objects

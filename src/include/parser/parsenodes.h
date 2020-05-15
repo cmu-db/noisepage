@@ -394,7 +394,7 @@ using CreateSeqStmt = struct CreateSeqStmt {
   NodeTag type_;
   RangeVar *sequence_; /* the sequence to create */
   List *options_;
-  Oid ownerId_;        /* ID of owner, or InvalidOid for default */
+  Oid owner_id_;       /* ID of owner, or InvalidOid for default */
   bool if_not_exists_; /* just do nothing if it already exists? */
 };
 

@@ -388,14 +388,14 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
   return {db_oid, ns_oid};
 }
 
-catalog::table_oid_t TrafficCop::CreateTempTable(const catalog::db_oid_t db_oid, const catalog::namespace_oid_t ns_oid,
-                                                 const network::connection_id_t connection_id) {
+catalog::table_oid_t TrafficCop::CreateTempTable(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid,
+                                                 network::connection_id_t connection_id) {
   auto *const txn = txn_manager_->BeginTransaction();
   const auto schema = catalog::postgres::Builder::GetSequenceTempTableSchema();
 
   const auto table_oid =
       catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)
-          ->CreateTable(ns_oid, std::string(TEMP_TABLE_PREFIX) + std::to_string((uint32_t)ns_oid), schema);
+          ->CreateTable(ns_oid, std::string(TEMP_TABLE_PREFIX) + std::to_string(static_cast<uint32_t>(ns_oid)), schema);
   if (table_oid == catalog::INVALID_TABLE_OID) {
     // Failed to create new table. Could be a concurrent DDL change and worth retrying
     txn_manager_->Abort(txn);

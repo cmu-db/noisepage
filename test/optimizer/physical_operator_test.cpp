@@ -5,8 +5,10 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "gtest/gtest.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/physical_operators.h"
 #include "parser/expression/abstract_expression.h"
@@ -15,8 +17,6 @@
 #include "test_util/storage_test_util.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
-
-#include "gtest/gtest.h"
 
 namespace terrier::optimizer {
 
@@ -1487,45 +1487,55 @@ TEST(OperatorTests, CreateSequenceTest) {
   //===--------------------------------------------------------------------===//
   // CreateSequence
   //===--------------------------------------------------------------------===//
-  Operator op1 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
+  Operator op1 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
 
   EXPECT_EQ(op1.GetType(), OpType::CREATESEQUENCE);
   EXPECT_EQ(op1.GetName(), "CreateSequence");
   EXPECT_EQ(op1.As<CreateSequence>()->GetSequenceName(), "Sequence_1");
 
-  Operator op2 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
+  Operator op2 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 = CreateSequence::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
+  Operator op3 =
+      CreateSequence::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, true);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "Sequence_1", 4, 2, 10, 3, true);
+  Operator op4 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "Sequence_1", 4, 2, 10, 3, true);
   EXPECT_FALSE(op4 == op1);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  Operator op5 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_2", 4, 2, 10, 3, true);
+  Operator op5 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_2", 4, 2, 10, 3, true);
   EXPECT_FALSE(op5 == op1);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 5, 2, 10, 3, true);
+  Operator op6 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 5, 2, 10, 3, true);
   EXPECT_FALSE(op6 == op1);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
-  Operator op7 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 3, 10, 3, true);
+  Operator op7 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 3, 10, 3, true);
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
-  Operator op8 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 20, 3, true);
+  Operator op8 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 20, 3, true);
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
 
-  Operator op9 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 2, true);
+  Operator op9 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 2, true);
   EXPECT_FALSE(op1 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
 
-  Operator op10 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, false);
+  Operator op10 =
+      CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1", 4, 2, 10, 3, false);
   EXPECT_FALSE(op1 == op10);
   EXPECT_NE(op1.Hash(), op10.Hash());
 }

@@ -903,7 +903,7 @@ TEST_F(BinderCorrectnessTest, CreateSequenceTest) {
 
   std::string create_sql = "CREATE SEQUENCE seq_a;";
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
-  //EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr));
 }
 
 // NOLINTNEXTLINE

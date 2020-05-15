@@ -1461,27 +1461,27 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(Pa
     for (ListCell *cell = root->options_->head; cell != nullptr; cell = cell->next) {
       auto def_elem = reinterpret_cast<DefElem *>(cell->data.ptr_value);
       if (strcmp(def_elem->defname_, "increment") == 0) {
-        if (increment_by) {
+        if (increment_by != nullptr) {
           throw PARSER_EXCEPTION("conflicting or redundant options");
         }
         increment_by = def_elem;
       } else if (strcmp(def_elem->defname_, "start") == 0) {
-        if (start_value) {
+        if (start_value != nullptr) {
           throw PARSER_EXCEPTION("conflicting or redundant options");
         }
         start_value = def_elem;
       } else if (strcmp(def_elem->defname_, "maxvalue") == 0) {
-        if (max_value) {
+        if (max_value != nullptr) {
           throw PARSER_EXCEPTION("conflicting or redundant options");
         }
         max_value = def_elem;
       } else if (strcmp(def_elem->defname_, "minvalue") == 0) {
-        if (min_value) {
+        if (min_value != nullptr) {
           throw PARSER_EXCEPTION("conflicting or redundant options");
         }
         min_value = def_elem;
       } else if (strcmp(def_elem->defname_, "cycle") == 0) {
-        if (is_cycled) {
+        if (is_cycled != nullptr) {
           throw PARSER_EXCEPTION("conflicting or redundant options");
         }
         is_cycled = def_elem;
@@ -1494,7 +1494,7 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(Pa
 
   // INCREMENT BY
   if (increment_by != nullptr) {
-    sequence_increment = (int64_t) reinterpret_cast<value *>(increment_by->arg_)->val_.ival_;
+    sequence_increment = static_cast<int64_t>(reinterpret_cast<value *>(increment_by->arg_)->val_.ival_);
     if (sequence_increment == 0) {
       throw PARSER_EXCEPTION("INCREMENT must not be zero");
     }
@@ -1504,14 +1504,14 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(Pa
 
   // CYCLE
   if (is_cycled != nullptr) {
-    sequence_cycle = (bool)reinterpret_cast<value *>(is_cycled->arg_)->val_.ival_;
+    sequence_cycle = static_cast<bool>(reinterpret_cast<value *>(is_cycled->arg_)->val_.ival_);
   } else {
     sequence_cycle = false;
   }
 
   // MAXVALUE (null arg means NO MAXVALUE)
-  if (max_value != nullptr && max_value->arg_) {
-    sequence_max = (int64_t) reinterpret_cast<value *>(max_value->arg_)->val_.ival_;
+  if (max_value != nullptr && max_value->arg_ != nullptr) {
+    sequence_max = static_cast<int64_t>(reinterpret_cast<value *>(max_value->arg_)->val_.ival_);
   } else if (sequence_increment > 0) {
     // Ascending sequence
     sequence_max = std::numeric_limits<int64_t>::max();
@@ -1521,8 +1521,8 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(Pa
   }
 
   // MINVALUE (null arg means NO MINVALUE)
-  if (min_value != nullptr && min_value->arg_) {
-    sequence_min = (int64_t) reinterpret_cast<value *>(min_value->arg_)->val_.ival_;
+  if (min_value != nullptr && min_value->arg_ != nullptr) {
+    sequence_min = static_cast<int64_t>(reinterpret_cast<value *>(min_value->arg_)->val_.ival_);
   } else if (sequence_increment < 0) {
     // Descending sequence
     sequence_min = std::numeric_limits<int64_t>::min();
@@ -1538,7 +1538,7 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(Pa
 
   // START WITH
   if (start_value != nullptr) {
-    sequence_start = (int64_t) reinterpret_cast<value *>(start_value->arg_)->val_.ival_;
+    sequence_start = static_cast<int64_t>(reinterpret_cast<value *>(start_value->arg_)->val_.ival_);
   } else if (sequence_increment > 0) {
     // Ascending sequence
     sequence_start = sequence_min;

@@ -227,7 +227,7 @@ void StringFunctions::Nextval(exec::ExecutionContext *ctx, Integer *result, cons
 
   // Using TupleAccessStrategy to get nextval value
   auto const pg_index_datatable = index_scan_result[0].GetBlock()->data_table_;
-  storage::BlockLayout layout = pg_index_datatable->GetBlockLayout();
+  const storage::BlockLayout &layout = pg_index_datatable->GetBlockLayout();
   storage::TupleAccessStrategy tuple_access_strategy(layout);
 
   // Write to redo log, and update in sqltable

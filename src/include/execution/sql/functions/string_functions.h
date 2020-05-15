@@ -35,7 +35,7 @@ class EXPORT StringFunctions {
   /**
    *  Return nextval of a sequence
    */
-   static void Nextval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
+  static void Nextval(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
 
   /**
    *  Return currval of a sequence

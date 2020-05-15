@@ -67,6 +67,7 @@ class DropStatement : public TableRefStatement {
    * @param table_info table information
    * @param type kTrigger
    * @param sequence_name sequence name
+   * @param sequence_increment sequence increment
    */
   DropStatement(std::unique_ptr<TableInfo> table_info, DropType type, std::string sequence_name, int sequence_increment)
       : TableRefStatement(StatementType::DROP, std::move(table_info)),

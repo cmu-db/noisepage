@@ -1649,6 +1649,11 @@ class CreateSequence : public OperatorNodeContents<CreateSequence> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param sequence_name Name of the sequence
+   * @param sequence_start Start value of the sequence
+   * @param sequence_increment Increment value of the sequence
+   * @param sequence_max Maximum value of the sequence
+   * @param sequence_min Minimum value of the sequence
+   * @param sequence_cycle Whether the sequence cycles
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,

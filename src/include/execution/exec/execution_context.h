@@ -189,10 +189,19 @@ class EXPORT ExecutionContext {
     pipeline_operating_units_ = op;
   }
 
+  /**
+   * @return the temp namespace oid
+   */
   catalog::namespace_oid_t GetTempNamespaceOid() { return temp_namespace_oid_; }
 
+  /**
+   * @return the temp table oid
+   */
   catalog::table_oid_t GetTempTableOid() { return temp_table_oid_; }
 
+  /**
+   * @return the transaction manager
+   */
   common::ManagedPointer<transaction::TransactionManager> GetTransactionManager() { return txn_manager_; }
 
  private:

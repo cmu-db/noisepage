@@ -2258,32 +2258,32 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::Nextval:
     case ast::Builtin::Currval:
     case ast::Builtin::Length: {
-          // check to make sure this function has two arguments
-          if (!CheckArgCount(call, 2)) {
-              return;
-          }
-
-          // checking to see if the first argument is an execution context
-          auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-          if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-              ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-              return;
-          }
-
-          // checking to see if the second argument is a string
-          auto *resolved_type = Resolve(call->Arguments()[1]);
-          if (resolved_type == nullptr) {
-              return;
-          }
-          if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
-              ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
-              return;
-          }
-
-          // this function returns a string
-          sql_type = ast::BuiltinType::Integer;
-          break;
+      // check to make sure this function has two arguments
+      if (!CheckArgCount(call, 2)) {
+        return;
       }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      auto *resolved_type = Resolve(call->Arguments()[1]);
+      if (resolved_type == nullptr) {
+        return;
+      }
+      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::Integer;
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string call!!");
   }
