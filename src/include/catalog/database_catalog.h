@@ -301,12 +301,11 @@ class DatabaseCatalog {
    * @param table_oid the table_oid inserted assume table exists
    * @param col_oids the columns that is being operated
    * @param tuple_slot tupleslot location where the update applies to the table
-   * @param cascade_type the cascade type
    * @param update_pr the projected row carry the data to be updated
    * @return the number of affected row
    */
   int FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, db_oid_t db_oid, table_oid_t table,
-                const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot, const char cascade_type,
+                const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot,
                 storage::ProjectedRow *pr);
 
   /**
@@ -321,7 +320,7 @@ class DatabaseCatalog {
    * @return the number of affected row
    */
   int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
-                         table_oid_t table_oid, const PGConstraint &con_obj, const char cascade_type,
+                         table_oid_t table_oid, const PGConstraint &con_obj,
                          std::vector<storage::ProjectedRow *> pr_vector, std::vector<col_oid_t> parent_col,
                          std::vector<col_oid_t> child_col);
   /**

@@ -218,6 +218,13 @@ class CatalogAccessor {
   int UpdateCascade(db_oid_t db_oid, table_oid_t table, const std::vector<col_oid_t> &col_oids,
                     storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
 
+  /**
+   * Perform delete cascade if any
+   * @param table corresponding table oid
+   * @param pr the projected row
+   * @param tuple_slot the tupleslot location update applies on the table
+   * @return true if cascade success or no cascade needed
+   */
   int DeleteCascade(db_oid_t db_oid, table_oid_t table, const std::vector<col_oid_t> &col_oids,
                     storage::ProjectedRow *pr, storage::TupleSlot tuple_slot);
 
