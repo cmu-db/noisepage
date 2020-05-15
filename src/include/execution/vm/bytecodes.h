@@ -275,68 +275,68 @@ namespace terrier::execution::vm {
   F(CountAggregateAdvance, OperandType::Local, OperandType::Local)                                                    \
   F(CountAggregateMerge, OperandType::Local, OperandType::Local)                                                      \
   F(CountAggregateReset, OperandType::Local)                                                                          \
-  F(CountAggregateGetResult, OperandType::Local, OperandType::Local)                                                  \
+  F(CountAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(CountAggregateFree, OperandType::Local)                                                                           \
   F(CountStarAggregateInit, OperandType::Local)                                                                       \
   F(CountStarAggregateAdvance, OperandType::Local, OperandType::Local)                                                \
   F(CountStarAggregateMerge, OperandType::Local, OperandType::Local)                                                  \
   F(CountStarAggregateReset, OperandType::Local)                                                                      \
-  F(CountStarAggregateGetResult, OperandType::Local, OperandType::Local)                                              \
+  F(CountStarAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(CountStarAggregateFree, OperandType::Local)                                                                       \
   F(IntegerSumAggregateInit, OperandType::Local)                                                                      \
   F(IntegerSumAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
   F(IntegerSumAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
   F(IntegerSumAggregateReset, OperandType::Local)                                                                     \
-  F(IntegerSumAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
+  F(IntegerSumAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(IntegerSumAggregateFree, OperandType::Local)                                                                      \
   F(IntegerMaxAggregateInit, OperandType::Local)                                                                      \
   F(IntegerMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
   F(IntegerMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
   F(IntegerMaxAggregateReset, OperandType::Local)                                                                     \
-  F(IntegerMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
+  F(IntegerMaxAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(IntegerMaxAggregateFree, OperandType::Local)                                                                      \
   F(IntegerMinAggregateInit, OperandType::Local)                                                                      \
   F(IntegerMinAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
   F(IntegerMinAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
   F(IntegerMinAggregateReset, OperandType::Local)                                                                     \
-  F(IntegerMinAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
+  F(IntegerMinAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(IntegerMinAggregateFree, OperandType::Local)                                                                      \
   F(AvgAggregateInit, OperandType::Local)                                                                             \
   F(IntegerAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
   F(RealAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(AvgAggregateMerge, OperandType::Local, OperandType::Local)                                                        \
   F(AvgAggregateReset, OperandType::Local)                                                                            \
-  F(AvgAggregateGetResult, OperandType::Local, OperandType::Local)                                                    \
+  F(AvgAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                                \
   F(AvgAggregateFree, OperandType::Local)                                                                             \
   F(RealSumAggregateInit, OperandType::Local)                                                                         \
   F(RealSumAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(RealSumAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
   F(RealSumAggregateReset, OperandType::Local)                                                                        \
-  F(RealSumAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(RealSumAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(RealSumAggregateFree, OperandType::Local)                                                                         \
   F(RealMaxAggregateInit, OperandType::Local)                                                                         \
   F(RealMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(RealMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
   F(RealMaxAggregateReset, OperandType::Local)                                                                        \
-  F(RealMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(RealMaxAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(RealMaxAggregateFree, OperandType::Local)                                                                         \
   F(RealMinAggregateInit, OperandType::Local)                                                                         \
   F(RealMinAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(RealMinAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
   F(RealMinAggregateReset, OperandType::Local)                                                                        \
-  F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(RealMinAggregateFree, OperandType::Local)                                                                         \
   F(IntegerTopKAggregateInit, OperandType::Local)                                                                     \
   F(IntegerTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                              \
   F(IntegerTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                \
   F(IntegerTopKAggregateReset, OperandType::Local)                                                                    \
-  F(IntegerTopKAggregateGetResult, OperandType::Local, OperandType::Local)                                            \
+  F(IntegerTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   F(IntegerTopKAggregateFree, OperandType::Local)                                                                     \
   F(RealTopKAggregateInit, OperandType::Local)                                                                        \
   F(RealTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                                 \
   F(RealTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                   \
   F(RealTopKAggregateReset, OperandType::Local)                                                                       \
-  F(RealTopKAggregateGetResult, OperandType::Local, OperandType::Local)                                               \
+  F(RealTopKAggregateGetResult, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(RealTopKAggregateFree, OperandType::Local)                                                                        \
                                                                                                                       \
   /* Hash Joins */                                                                                                    \

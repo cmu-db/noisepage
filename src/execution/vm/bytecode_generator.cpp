@@ -1221,11 +1221,12 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
     }
     case ast::Builtin::AggResult: {
       const auto &args = call->Arguments();
-      const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+      const auto agg_kind = args[1]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
       LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
-      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar exec_ctx = VisitExpressionForRValue(args[0]);
+      LocalVar agg = VisitExpressionForRValue(args[1]);
       Bytecode bytecode = OpForAgg<AggOpKind::GetResult>(agg_kind);
-      Emitter()->Emit(bytecode, result, agg);
+      Emitter()->Emit(bytecode, exec_ctx, result, agg);
       break;
     }
     default: {

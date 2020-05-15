@@ -52,8 +52,9 @@ class StaticAggregateBottomTranslator : public OperatorTranslator {
 
   // Return the attribute at idx
   ast::Expr *GetOutput(uint32_t attr_idx) override {
+    ast::Expr *exec_ctx_expr = codegen_->MakeExpr(codegen_->GetExecCtxVar());
     ast::Expr *agg = codegen_->GetStateMemberPtr(helper_.GetAggregate(attr_idx));
-    return codegen_->OneArgCall(ast::Builtin::AggResult, agg);
+    return codegen_->BuiltinCall(ast::Builtin::AggResult, {exec_ctx_expr, agg});
   }
 
   const planner::AbstractPlanNode *Op() override { return op_; }

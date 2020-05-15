@@ -58,8 +58,9 @@ ast::Expr *AggregateBottomTranslator::GetGroupByOutput(uint32_t term_idx) {
 
 ast::Expr *AggregateBottomTranslator::GetAggregateOutput(uint32_t term_idx) {
   auto global_aht = helper_.GetGlobalAHT();
+  ast::Expr *exec_ctx_expr = codegen_->MakeExpr(codegen_->GetExecCtxVar());
   auto agg = codegen_->MemberExpr(global_aht->Entry(), helper_.GetAggregate(term_idx));
-  return codegen_->OneArgCall(ast::Builtin::AggResult, codegen_->PointerTo(agg));
+  return codegen_->BuiltinCall(ast::Builtin::AggResult, {exec_ctx_expr, agg});
 }
 
 ast::Expr *AggregateBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx,

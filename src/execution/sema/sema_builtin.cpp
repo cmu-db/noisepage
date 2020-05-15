@@ -565,16 +565,22 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
       break;
     }
     case ast::Builtin::AggResult: {
-      if (!CheckArgCount(call, 1)) {
+      if (!CheckArgCount(call, 2)) {
         return;
       }
-      // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
+      // First argument must be an execution context
+      const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(args[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+      // Second argument must be a SQL aggregator
+      if (!IsPointerToAggregatorValue(args[1]->GetType())) {
         GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
         return;
       }
       // Set the return type according to the aggregate type.
-      switch (args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind()) {
+      switch (args[1]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind()) {
         case ast::BuiltinType::Kind::CountAggregate:
         case ast::BuiltinType::Kind::CountStarAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
