@@ -253,7 +253,6 @@ docs/_site
 docs/gathered
 _site
 doxygen
-release
 docs/dev
 
 # Config files
