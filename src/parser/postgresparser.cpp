@@ -574,7 +574,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResul
     // normal functions (built-in functions or UDFs)
     func_name = (reinterpret_cast<value *>(root->funcname_->tail->data.ptr_value))->val_.str_;
     std::vector<std::unique_ptr<AbstractExpression>> children;
-    PARSER_LOG_TRACE("FuncCallTransform builtin function");
+
     if (root->args_ != nullptr) {
       for (auto cell = root->args_->head; cell != nullptr; cell = cell->next) {
         auto expr_node = reinterpret_cast<Node *>(cell->data.ptr_value);
@@ -1249,8 +1249,6 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
       }
       default: {
         // TODO(WAN): previous code just ignored it, is this right?
-        // TODO(Adrian): Changed
-        PARSER_LOG_TRACE("Not T_FunctionParameter");
         break;
       }
     }
@@ -1260,9 +1258,6 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
 
   // TODO(WAN): assumption from old code, can only pass one function name for now
   std::string func_name = (reinterpret_cast<value *>(root->funcname_->tail->data.ptr_value)->val_.str_);
-
-  // TODO(Adrian): Changed
-  PARSER_LOG_TRACE("Function name: " + func_name);
 
   std::vector<std::string> func_body;
   AsType as_type = AsType::INVALID;
@@ -1914,7 +1909,6 @@ std::unique_ptr<DropStatement> PostgresParser::DropTriggerTransform(ParseResult 
 std::unique_ptr<DropStatement> PostgresParser::DropSequenceTransform(ParseResult *parse_result, DropStmt *root) {
   auto list = reinterpret_cast<List *>(root->objects_->head->data.ptr_value);
 
-  // TODO(zianke): Not sure if this is complete.
   std::string sequence_name = reinterpret_cast<value *>(list->tail->data.ptr_value)->val_.str_;
   std::string schema_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val_.str_;
 

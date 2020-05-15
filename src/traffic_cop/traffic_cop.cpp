@@ -143,7 +143,8 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
-          query_type == network::QueryType::QUERY_CREATE_VIEW || query_type == network::QueryType::QUERY_CREATE_TRIGGER ||
+          query_type == network::QueryType::QUERY_CREATE_VIEW ||
+          query_type == network::QueryType::QUERY_CREATE_TRIGGER ||
           query_type == network::QueryType::QUERY_CREATE_SEQUENCE,
       "ExecuteCreateStatement called with invalid QueryType.");
   switch (query_type) {
@@ -298,17 +299,22 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     // We've already codegen'd this, move on...
     return {ResultType::COMPLETE, 0};
   }
+
   // TODO(Matt): We should get rid of the need of an OutputWriter to ExecutionContext since we just throw this one away
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
+
   // TODO(Matt): We should get rid of the need of an ExecutionContext to perform codegen since we just throw this one
   // away
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor());
+
   auto exec_query = std::make_unique<execution::ExecutableQuery>(common::ManagedPointer(physical_plan),
                                                                  common::ManagedPointer(exec_ctx));
+
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
+
   return {ResultType::COMPLETE, 0};
 }
 
@@ -326,20 +332,19 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), connection_ctx->GetTempNamespaceOid(), connection_ctx->GetTempTableOid()
-      , txn_manager_);
+      connection_ctx->Accessor(), connection_ctx->GetTempNamespaceOid(), connection_ctx->GetTempTableOid(),
+      txn_manager_);
 
   exec_ctx->SetParams(portal->Parameters());
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  // builtin function currval will throw exception.
+  // Builtin functions will throw exception.
   try {
     exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-  }catch (Exception& exception) {
-      return {ResultType::ERROR, "Query failed. " + std::string(exception.what())};
+  } catch (Exception &exception) {
+    return {ResultType::ERROR, "Query failed. " + std::string(exception.what())};
   }
-
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete
@@ -383,20 +388,19 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
   return {db_oid, ns_oid};
 }
 
-catalog::table_oid_t TrafficCop::CreateTempTable(
-    const catalog::db_oid_t db_oid,  const catalog::namespace_oid_t ns_oid, const network::connection_id_t connection_id) {
+catalog::table_oid_t TrafficCop::CreateTempTable(const catalog::db_oid_t db_oid, const catalog::namespace_oid_t ns_oid,
+                                                 const network::connection_id_t connection_id) {
   auto *const txn = txn_manager_->BeginTransaction();
 
   const catalog::Schema temp_schema = catalog::postgres::Builder::GetSequenceTempTableSchema();
 
-    const auto temp_table_oid =
-            catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->CreateTable(ns_oid,
-                                                                                    "temp_table_" + std::to_string((uint32_t)ns_oid), temp_schema);
+  const auto temp_table_oid =
+      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)
+          ->CreateTable(ns_oid, std::string(TEMP_TABLE_PREFIX) + std::to_string((uint32_t)ns_oid), temp_schema);
 
   if (temp_table_oid == catalog::INVALID_TABLE_OID) {
-    // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
+    // Failed to create new table. Could be a concurrent DDL change and worth retrying
     txn_manager_->Abort(txn);
-    STORAGE_LOG_ERROR("catalog::INVALID_TABLE_OID");
     return catalog::INVALID_TABLE_OID;
   }
 

@@ -136,11 +136,15 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
       // Binding succeeded, optimize to generate a physical plan and then execute
       auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+
       statement->SetPhysicalPlan(std::move(physical_plan));
+
       const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement));
+
       if (query_type == network::QueryType::QUERY_SELECT) {
         out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
       }
+
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
                     postgres_interpreter->ExplicitTransactionBlock());
     } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {

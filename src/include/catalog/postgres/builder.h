@@ -173,12 +173,6 @@ class Builder {
 
   /**
    * @param db oid in which the indexed table exists
-   * @return schema object for the namespace/name index on pg_constraint
-   */
-  //static IndexSchema GetSequenceNameIndexSchema(db_oid_t db);
-
-  /**
-   * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_constraint
    */
   static IndexSchema GetConstraintOidIndexSchema(db_oid_t db);

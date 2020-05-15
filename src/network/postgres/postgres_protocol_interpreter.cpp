@@ -118,29 +118,26 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
     return Transition::TERMINATE;
   }
 
-  catalog::table_oid_t temp_oid;
+  catalog::table_oid_t temp_table_oid;
   sleep_time = INITIAL_BACKOFF_TIME;
   do {
-    temp_oid = t_cop->CreateTempTable(oids.first, oids.second, context->GetConnectionID());
-    if (temp_oid != catalog::INVALID_TABLE_OID) {
-      break;
-    };
+    temp_table_oid = t_cop->CreateTempTable(oids.first, oids.second, context->GetConnectionID());
+    if (temp_table_oid != catalog::INVALID_TABLE_OID) break;
     std::this_thread::sleep_for(std::chrono::milliseconds{sleep_time});
     sleep_time *= BACKOFF_FACTOR;
   } while (sleep_time <= MAX_BACKOFF_TIME);
 
-  if (temp_oid == catalog::INVALID_TABLE_OID) {
-      STORAGE_LOG_ERROR("INVALID !!!");
-      writer.WriteErrorResponse(
-              "ERROR:  Failed to create a temporary table for this connection.");
-      return Transition::TERMINATE;
+  if (temp_table_oid == catalog::INVALID_TABLE_OID) {
+    // Failed to create temporary table. Client should retry.
+    writer.WriteErrorResponse("ERROR:  Failed to create a temporary table for this connection.");
+    return Transition::TERMINATE;
   }
 
   // Temp namespace creation succeeded, stash some metadata about it in the ConnectionContext
   context->SetDatabaseName(std::move(db_name));
   context->SetDatabaseOid(oids.first);
   context->SetTempNamespaceOid(oids.second);
-  context->SetTempTableOid(temp_oid);
+  context->SetTempTableOid(temp_table_oid);
 
   // All done
   writer.WriteStartupResponse();
