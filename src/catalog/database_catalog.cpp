@@ -1055,7 +1055,7 @@ bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::Transac
 // recursively find child and make cascade update if satisfied
 int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
                                table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
-                               storage::TupleSlot table_tuple_slot, const char cascade_type,
+                               storage::TupleSlot table_tuple_slot,
                                storage::ProjectedRow *pr) {
   if (!TryLock(txn)) return false;
   int affected_row = 0;
@@ -1085,11 +1085,6 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
   std::vector<storage::TupleSlot> constraint_scan_results;
   constraints_foreigntable_index_->ScanKey(*txn, *key_pr, &constraint_scan_results);
 
-  std::vector<storage::TupleSlot> update_slots;
-  if (cascade_type == catalog::postgres::FK_UPDATE) {
-    update_slots.push_back(table_tuple_slot);
-  }
-
   auto *select_pr = pg_constraints_all_cols_pri_.InitializeRow(constraint_buffer);
   std::vector<PGConstraint> constraints;
   constraints.reserve(constraint_scan_results.size());
@@ -1099,7 +1094,7 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
     TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
     PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
     affected_row +=
-        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_DELETE, table_prs,
+        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj,  table_prs,
                            child_con_obj.fk_metadata_.fk_refs_, child_con_obj.fk_metadata_.fk_srcs_);
   }
   delete[] table_buffer;
@@ -1109,7 +1104,7 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
 }
 
 int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
-                                        table_oid_t table_oid, const PGConstraint &con_obj, const char cascade_type,
+                                        table_oid_t table_oid, const PGConstraint &con_obj,
                                         std::vector<storage::ProjectedRow *> pr_vector,
                                         std::vector<col_oid_t> parent_col, std::vector<col_oid_t> child_col) {
   int affected_row = 0;
