@@ -85,6 +85,9 @@ class AggregateExpression : public AbstractExpression {
       case ExpressionType::AGGREGATE_AVG:
         this->SetReturnValueType(type::TypeId::DECIMAL);
         break;
+      case ExpressionType::AGGREGATE_TOP_K:
+        this->SetReturnValueType(type::TypeId::VARBINARY);
+        break;
       default:
         throw PARSER_EXCEPTION(
             ("Not a valid aggregation expression type: " + std::to_string(static_cast<int>(expr_type))).c_str());

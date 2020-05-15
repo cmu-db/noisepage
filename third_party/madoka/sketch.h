@@ -148,6 +148,9 @@ class Sketch {
   void load(const char *path, int flags = 0);
   void save(const char *path, int flags = 0) const;
 
+  void deserialize(const void *buf, UInt64 size, int flags = 0);
+  void serialize(void *buf, UInt64 size) const;
+
   UInt64 width() const noexcept {
     return header().width();
   }

@@ -285,6 +285,22 @@ void Sketch::save(const char *path, int flags) const {
   file_.save(path, flags);
 }
 
+void Sketch::deserialize(const void *buf, UInt64 size, int flags) {
+  file_.create(NULL, size, flags);
+  std::memcpy(file_.addr(), buf, size);
+  header_ = static_cast<Header *>(file_.addr());
+  random_ = reinterpret_cast<Random *>(header_ + 1);
+  table_ = reinterpret_cast<UInt64 *>(random_ + 1);
+  check_header();
+}
+
+void Sketch::serialize(void *buf, UInt64 size) const {
+  MADOKA_THROW_IF(file_size() != size);
+  MADOKA_THROW_IF(file_.addr() == NULL);
+  MADOKA_THROW_IF(file_.size() != size);
+  std::memcpy(buf, file_.addr(), file_.size());
+}
+
 UInt64 Sketch::get(const void *key_addr, std::size_t key_size) const noexcept {
   UInt64 cell_ids[3];
   hash(key_addr, key_size, cell_ids);

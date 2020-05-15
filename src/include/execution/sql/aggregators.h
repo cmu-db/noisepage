@@ -285,101 +285,6 @@ class IntegerMaxAggregate {
   bool null_{true};
 };
 
-/*
- * TopKAggregate
- */
-template <typename T>
-class TopKAggregate {
-  using CppType = decltype(T::val_);
-
- public:
-  /**
-   * Constructor.
-   */
-  explicit TopKAggregate(size_t topK) : histogram_(topK, 64), top_k_(topK), index_(0) {}
-
-  /**
-   * This class cannot be copied or moved.
-   */
-  DISALLOW_COPY_AND_MOVE(TopKAggregate);
-
-  /**
-   * Advance the aggregate by the input value @em val.
-   */
-  void Advance(const T &val) {
-    if (val.is_null_) {
-      return;
-    }
-    null_ = false;
-    histogram_.Increment(val.val_, 1);
-  }
-
-  /*
-    @param const reference of a TopK object to be merged
-    Merge a partial top K aggregate into this aggregate.
-  */
-  void Merge(const TopKAggregate &that) {
-    if (that.null_) {
-      return;
-    }
-    null_ = false;
-
-    histogram_.Merge(that.GetHistogram());
-  }
-
-  /**
-   * Reset the aggregate.
-   */
-  void Reset() {
-    null_ = true;
-    histogram_.Clear();
-  }
-
-  /**
-   * Do not call this function when HasResult is False
-   * Return the result of the TopK.
-   */
-  T GetResult() {
-    auto top_k_keys = histogram_.GetSortedTopKeys();
-    index_++;
-    return T(top_k_keys[index_ - 1]);
-  }
-
-  /**
-   * Returns whether there are more elements left
-   */
-  bool HasResult() const {
-    return index_ < std::min(top_k_, histogram_.GetSize());
-  }
-
-  /**
-   * Return the Histogram.
-   */
-  const terrier::optimizer::TopKElements<CppType> &GetHistogram() const { return histogram_; }
-
- private:
-  // Histogram keeping track of the topK elements.
-  terrier::optimizer::TopKElements<CppType> histogram_;
-  bool null_{true};
-  size_t top_k_;
-  size_t index_;
-};
-
-/*
-Integer Top K aggregate
-*/
-class IntegerTopKAggregate : public TopKAggregate<Integer> {
- public:
-  explicit IntegerTopKAggregate(size_t topK) : TopKAggregate<Integer>(topK) {}
-};
-
-/*
-Real Top K aggregate
-*/
-class RealTopKAggregate : public TopKAggregate<Real> {
- public:
-  explicit RealTopKAggregate(size_t topK) : TopKAggregate<Real>(topK) {}
-};
 /**
  * Real Max
  */
@@ -622,5 +527,108 @@ class AvgAggregate {
   double sum_{0.0};
   uint64_t count_{0};
 };
+
+// ---------------------------------------------------------
+// TopK
+// ---------------------------------------------------------
+
+/*
+ * TopKAggregate
+ */
+template <typename T>
+class TopKAggregate {
+  using CppType = decltype(T::val_);
+
+ public:
+  /**
+   * Constructor.
+   * We need to specify a default value of numk, since an AggregateExpression cannot provide one.
+   */
+  TopKAggregate() : TopKAggregate(16) {}
+
+  /**
+   * Constructor.
+   */
+  explicit TopKAggregate(size_t numk) : numk_(numk), is_null_(true), top_k_elements_(numk_, 64) {}
+
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(TopKAggregate);
+
+  /**
+   * Advance the aggregate by the input value @em val.
+   */
+  void Advance(const T &val) {
+    if (val.is_null_) {
+      return;
+    }
+    is_null_ = false;
+    top_k_elements_.Increment(val.val_, 1);
+  }
+
+  /*
+    @param const reference of a TopK object to be merged
+    Merge a partial top K aggregate into this aggregate.
+  */
+  void Merge(const TopKAggregate &that) {
+    if (that.is_null_) {
+      return;
+    }
+    is_null_ = false;
+    top_k_elements_.Merge(that.GetResult());
+  }
+
+  /**
+   * Reset the aggregate.
+   */
+  void Reset() {
+    is_null_ = true;
+    top_k_elements_.Clear();
+  }
+
+  /**
+   * @return the TopKElements struct serialized
+   */
+  StringVal GetSerializedResult(exec::ExecutionContext *ctx) {
+    StringVal result = StringVal::Null();
+    if (!is_null_) {
+      size_t size;
+      const auto data = top_k_elements_.GetSerializedData(&size);
+      char *ptr = StringVal::PreAllocate(&result, ctx->GetStringAllocator(), size);
+      if (ptr != nullptr) {
+        std::memcpy(ptr, data.get(), size);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * @return The aggregated TopKElements object.
+   */
+  const terrier::optimizer::TopKElements<CppType> &GetResult() const { return top_k_elements_; }
+
+ private:
+  /**
+   * Number of most frequent elements to explicitly track.
+   */
+  size_t numk_;
+
+  /** True if the aggregate has not processed any elements yet. */
+  bool is_null_;
+
+  /** Histogram keeping track of the topK elements. */
+  terrier::optimizer::TopKElements<CppType> top_k_elements_;
+};
+
+/**
+ * Integer TopKAggregate
+ */
+class IntegerTopKAggregate : public TopKAggregate<Integer> {};
+
+/**
+ * Real TopKAggregate
+ */
+class RealTopKAggregate : public TopKAggregate<Real> {};
 
 }  // namespace terrier::execution::sql

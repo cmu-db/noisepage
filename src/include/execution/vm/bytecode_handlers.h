@@ -885,7 +885,8 @@ VM_OP_HOT void OpCountAggregateMerge(terrier::execution::sql::CountAggregate *ag
 
 VM_OP_HOT void OpCountAggregateReset(terrier::execution::sql::CountAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpCountAggregateGetResult(terrier::execution::sql::Integer *result,
+VM_OP_HOT void OpCountAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                         terrier::execution::sql::Integer *result,
                                          terrier::execution::sql::CountAggregate *agg) {
   *result = agg->GetCountResult();
 }
@@ -912,7 +913,8 @@ VM_OP_HOT void OpCountStarAggregateMerge(terrier::execution::sql::CountStarAggre
 
 VM_OP_HOT void OpCountStarAggregateReset(terrier::execution::sql::CountStarAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpCountStarAggregateGetResult(terrier::execution::sql::Integer *result,
+VM_OP_HOT void OpCountStarAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                             terrier::execution::sql::Integer *result,
                                              const terrier::execution::sql::CountStarAggregate *agg) {
   *result = agg->GetCountResult();
 }
@@ -941,7 +943,8 @@ VM_OP_HOT void OpIntegerSumAggregateMerge(terrier::execution::sql::IntegerSumAgg
 
 VM_OP_HOT void OpIntegerSumAggregateReset(terrier::execution::sql::IntegerSumAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpIntegerSumAggregateGetResult(terrier::execution::sql::Integer *result,
+VM_OP_HOT void OpIntegerSumAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                              terrier::execution::sql::Integer *result,
                                               const terrier::execution::sql::IntegerSumAggregate *agg) {
   *result = agg->GetResultSum();
 }
@@ -970,7 +973,8 @@ VM_OP_HOT void OpIntegerMaxAggregateMerge(terrier::execution::sql::IntegerMaxAgg
 
 VM_OP_HOT void OpIntegerMaxAggregateReset(terrier::execution::sql::IntegerMaxAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpIntegerMaxAggregateGetResult(terrier::execution::sql::Integer *result,
+VM_OP_HOT void OpIntegerMaxAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                              terrier::execution::sql::Integer *result,
                                               const terrier::execution::sql::IntegerMaxAggregate *agg) {
   *result = agg->GetResultMax();
 }
@@ -999,7 +1003,8 @@ VM_OP_HOT void OpIntegerMinAggregateMerge(terrier::execution::sql::IntegerMinAgg
 
 VM_OP_HOT void OpIntegerMinAggregateReset(terrier::execution::sql::IntegerMinAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpIntegerMinAggregateGetResult(terrier::execution::sql::Integer *result,
+VM_OP_HOT void OpIntegerMinAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                              terrier::execution::sql::Integer *result,
                                               const terrier::execution::sql::IntegerMinAggregate *agg) {
   *result = agg->GetResultMin();
 }
@@ -1028,7 +1033,8 @@ VM_OP_HOT void OpRealSumAggregateMerge(terrier::execution::sql::RealSumAggregate
 
 VM_OP_HOT void OpRealSumAggregateReset(terrier::execution::sql::RealSumAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpRealSumAggregateGetResult(terrier::execution::sql::Real *result,
+VM_OP_HOT void OpRealSumAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                           terrier::execution::sql::Real *result,
                                            const terrier::execution::sql::RealSumAggregate *agg) {
   *result = agg->GetResultSum();
 }
@@ -1055,7 +1061,8 @@ VM_OP_HOT void OpRealMaxAggregateMerge(terrier::execution::sql::RealMaxAggregate
 
 VM_OP_HOT void OpRealMaxAggregateReset(terrier::execution::sql::RealMaxAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpRealMaxAggregateGetResult(terrier::execution::sql::Real *result,
+VM_OP_HOT void OpRealMaxAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                           terrier::execution::sql::Real *result,
                                            const terrier::execution::sql::RealMaxAggregate *agg) {
   *result = agg->GetResultMax();
 }
@@ -1082,7 +1089,8 @@ VM_OP_HOT void OpRealMinAggregateMerge(terrier::execution::sql::RealMinAggregate
 
 VM_OP_HOT void OpRealMinAggregateReset(terrier::execution::sql::RealMinAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpRealMinAggregateGetResult(terrier::execution::sql::Real *result,
+VM_OP_HOT void OpRealMinAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                           terrier::execution::sql::Real *result,
                                            const terrier::execution::sql::RealMinAggregate *agg) {
   *result = agg->GetResultMin();
 }
@@ -1093,8 +1101,8 @@ VM_OP_HOT void OpRealMinAggregateFree(terrier::execution::sql::RealMinAggregate 
 // TopKAggregate(Integer)
 //
 
-VM_OP_HOT void OpIntegerTopKAggregateInit(terrier::execution::sql::IntegerTopKAggregate *agg, size_t topK) {
-  new (agg) terrier::execution::sql::IntegerTopKAggregate(topK);
+VM_OP_HOT void OpIntegerTopKAggregateInit(terrier::execution::sql::IntegerTopKAggregate *agg) {
+  new (agg) terrier::execution::sql::IntegerTopKAggregate();
 }
 
 VM_OP_HOT void OpIntegerTopKAggregateAdvance(terrier::execution::sql::IntegerTopKAggregate *agg,
@@ -1109,26 +1117,22 @@ VM_OP_HOT void OpIntegerTopKAggregateMerge(terrier::execution::sql::IntegerTopKA
 
 VM_OP_HOT void OpIntegerTopKAggregateReset(terrier::execution::sql::IntegerTopKAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpIntegerTopKAggregateGetResult(terrier::execution::sql::Integer *result,
+VM_OP_HOT void OpIntegerTopKAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                               terrier::execution::sql::StringVal *result,
                                                terrier::execution::sql::IntegerTopKAggregate *agg) {
-  *result = agg->GetResult();
+  *result = agg->GetSerializedResult(ctx);
 }
 
 VM_OP_HOT void OpIntegerTopKAggregateFree(terrier::execution::sql::IntegerTopKAggregate *agg) {
   agg->~IntegerTopKAggregate();
 }
 
-VM_OP_HOT void OpIntegerTopKAggregateHasResult(bool *has_result,
-                                               const terrier::execution::sql::IntegerTopKAggregate *agg) {
-  *has_result = agg->HasResult();
-}
-
 //
 // TopKAggregate(Real)
 //
 
-VM_OP_HOT void OpRealTopKAggregateInit(terrier::execution::sql::RealTopKAggregate *agg, size_t topK) {
-  new (agg) terrier::execution::sql::RealTopKAggregate(topK);
+VM_OP_HOT void OpRealTopKAggregateInit(terrier::execution::sql::RealTopKAggregate *agg) {
+  new (agg) terrier::execution::sql::RealTopKAggregate();
 }
 
 VM_OP_HOT void OpRealTopKAggregateAdvance(terrier::execution::sql::RealTopKAggregate *agg,
@@ -1143,16 +1147,13 @@ VM_OP_HOT void OpRealTopKAggregateMerge(terrier::execution::sql::RealTopKAggrega
 
 VM_OP_HOT void OpRealTopKAggregateReset(terrier::execution::sql::RealTopKAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpRealTopKAggregateGetResult(terrier::execution::sql::Real *result,
+VM_OP_HOT void OpRealTopKAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                            terrier::execution::sql::StringVal *result,
                                             terrier::execution::sql::RealTopKAggregate *agg) {
-  *result = agg->GetResult();
+  *result = agg->GetSerializedResult(ctx);
 }
 
 VM_OP_HOT void OpRealTopKAggregateFree(terrier::execution::sql::RealTopKAggregate *agg) { agg->~RealTopKAggregate(); }
-
-VM_OP_HOT void OpRealTopKAggregateHasResult(bool *has_result, const terrier::execution::sql::RealTopKAggregate *agg) {
-  *has_result = agg->HasResult();
-}
 
 //
 // AVG
@@ -1179,7 +1180,8 @@ VM_OP_HOT void OpAvgAggregateMerge(terrier::execution::sql::AvgAggregate *agg_1,
 
 VM_OP_HOT void OpAvgAggregateReset(terrier::execution::sql::AvgAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpAvgAggregateGetResult(terrier::execution::sql::Real *result,
+VM_OP_HOT void OpAvgAggregateGetResult(terrier::execution::exec::ExecutionContext *ctx,
+                                       terrier::execution::sql::Real *result,
                                        const terrier::execution::sql::AvgAggregate *agg) {
   *result = agg->GetResultAvg();
 }

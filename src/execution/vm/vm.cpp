@@ -1124,174 +1124,52 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(CountAggregateInit) : {
-    auto *agg = frame->LocalAt<sql::CountAggregate *>(READ_LOCAL_ID());
-    OpCountAggregateInit(agg);
-    DISPATCH_NEXT();
+#define GEN_AGGREGATE(SQL_TYPE, RES_TYPE, AGG_TYPE)                             \
+  OP(AGG_TYPE##Init) : {                                                        \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##Init(agg);                                                    \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##Advance) : {                                                     \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    auto *val = frame->LocalAt<sql::SQL_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##Advance(agg, val);                                            \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##Merge) : {                                                       \
+    auto *agg_1 = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());             \
+    auto *agg_2 = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());             \
+    Op##AGG_TYPE##Merge(agg_1, agg_2);                                          \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##Reset) : {                                                       \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##Reset(agg);                                                   \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##GetResult) : {                                                   \
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID()); \
+    auto *result = frame->LocalAt<sql::RES_TYPE *>(READ_LOCAL_ID());            \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##GetResult(exec_ctx, result, agg);                             \
+    DISPATCH_NEXT();                                                            \
+  }                                                                             \
+  OP(AGG_TYPE##Free) : {                                                        \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());               \
+    Op##AGG_TYPE##Free(agg);                                                    \
+    DISPATCH_NEXT();                                                            \
   }
 
-  OP(CountAggregateAdvance) : {
-    auto *agg = frame->LocalAt<sql::CountAggregate *>(READ_LOCAL_ID());
-    auto *val = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());
-    OpCountAggregateAdvance(agg, val);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountAggregateMerge) : {
-    auto *agg_1 = frame->LocalAt<sql::CountAggregate *>(READ_LOCAL_ID());
-    auto *agg_2 = frame->LocalAt<sql::CountAggregate *>(READ_LOCAL_ID());
-    OpCountAggregateMerge(agg_1, agg_2);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountAggregateReset) : {
-    auto *agg = frame->LocalAt<sql::CountAggregate *>(READ_LOCAL_ID());
-    OpCountAggregateReset(agg);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountAggregateGetResult) : {
-    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    auto *agg = frame->LocalAt<sql::CountAggregate *>(READ_LOCAL_ID());
-    OpCountAggregateGetResult(result, agg);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountAggregateFree) : {
-    auto *agg = frame->LocalAt<sql::CountAggregate *>(READ_LOCAL_ID());
-    OpCountAggregateFree(agg);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountStarAggregateInit) : {
-    auto *agg = frame->LocalAt<sql::CountStarAggregate *>(READ_LOCAL_ID());
-    OpCountStarAggregateInit(agg);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountStarAggregateAdvance) : {
-    auto *agg = frame->LocalAt<sql::CountStarAggregate *>(READ_LOCAL_ID());
-    auto *val = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());
-    OpCountStarAggregateAdvance(agg, val);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountStarAggregateMerge) : {
-    auto *agg_1 = frame->LocalAt<sql::CountStarAggregate *>(READ_LOCAL_ID());
-    auto *agg_2 = frame->LocalAt<sql::CountStarAggregate *>(READ_LOCAL_ID());
-    OpCountStarAggregateMerge(agg_1, agg_2);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountStarAggregateReset) : {
-    auto *agg = frame->LocalAt<sql::CountStarAggregate *>(READ_LOCAL_ID());
-    OpCountStarAggregateReset(agg);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountStarAggregateGetResult) : {
-    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    auto *agg = frame->LocalAt<sql::CountStarAggregate *>(READ_LOCAL_ID());
-    OpCountStarAggregateGetResult(result, agg);
-    DISPATCH_NEXT();
-  }
-
-  OP(CountStarAggregateFree) : {
-    auto *agg = frame->LocalAt<sql::CountStarAggregate *>(READ_LOCAL_ID());
-    OpCountStarAggregateFree(agg);
-    DISPATCH_NEXT();
-  }
-
-#define GEN_AGGREGATE(SQL_TYPE, AGG_TYPE)                            \
-  OP(AGG_TYPE##Init) : {                                             \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##Init(agg);                                         \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##Advance) : {                                          \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    auto *val = frame->LocalAt<sql::SQL_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##Advance(agg, val);                                 \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##Merge) : {                                            \
-    auto *agg_1 = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());  \
-    auto *agg_2 = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());  \
-    Op##AGG_TYPE##Merge(agg_1, agg_2);                               \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##Reset) : {                                            \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##Reset(agg);                                        \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##GetResult) : {                                        \
-    auto *result = frame->LocalAt<sql::SQL_TYPE *>(READ_LOCAL_ID()); \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##GetResult(result, agg);                            \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##Free) : {                                             \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##Free(agg);                                         \
-    DISPATCH_NEXT();                                                 \
-  }
-
-  GEN_AGGREGATE(Integer, IntegerSumAggregate);
-  GEN_AGGREGATE(Integer, IntegerMaxAggregate);
-  GEN_AGGREGATE(Integer, IntegerMinAggregate);
-  GEN_AGGREGATE(Real, RealSumAggregate);
-  GEN_AGGREGATE(Real, RealMaxAggregate);
-  GEN_AGGREGATE(Real, RealMinAggregate);
-
-#undef Gen_TopK_Aggregate
-
-#define Gen_TopK_Aggregate(SQL_TYPE, AGG_TYPE)                       \
-  OP(AGG_TYPE##Init) : {                                             \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    auto topK = frame->LocalAt<size_t>(READ_LOCAL_ID());             \
-    Op##AGG_TYPE##Init(agg, topK);                                   \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##Advance) : {                                          \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    auto *val = frame->LocalAt<sql::SQL_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##Advance(agg, val);                                 \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##Merge) : {                                            \
-    auto *agg_1 = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());  \
-    auto *agg_2 = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());  \
-    Op##AGG_TYPE##Merge(agg_1, agg_2);                               \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##Reset) : {                                            \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##Reset(agg);                                        \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##GetResult) : {                                        \
-    auto *result = frame->LocalAt<sql::SQL_TYPE *>(READ_LOCAL_ID()); \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##GetResult(result, agg);                            \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##HasResult) : {                                        \
-    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());          \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##HasResult(result, agg);                            \
-    DISPATCH_NEXT();                                                 \
-  }                                                                  \
-  OP(AGG_TYPE##Free) : {                                             \
-    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    Op##AGG_TYPE##Free(agg);                                         \
-    DISPATCH_NEXT();                                                 \
-  }
-
-  Gen_TopK_Aggregate(Integer, IntegerTopKAggregate);
-  Gen_TopK_Aggregate(Real, RealTopKAggregate);
-
-#undef Gen_TopK_Aggregate
+  GEN_AGGREGATE(Val, Integer, CountAggregate);
+  GEN_AGGREGATE(Val, Integer, CountStarAggregate);
+  GEN_AGGREGATE(Integer, Integer, IntegerSumAggregate);
+  GEN_AGGREGATE(Integer, Integer, IntegerMaxAggregate);
+  GEN_AGGREGATE(Integer, Integer, IntegerMinAggregate);
+  GEN_AGGREGATE(Real, Real, RealSumAggregate);
+  GEN_AGGREGATE(Real, Real, RealMaxAggregate);
+  GEN_AGGREGATE(Real, Real, RealMinAggregate);
+  GEN_AGGREGATE(Integer, StringVal, IntegerTopKAggregate);
+  GEN_AGGREGATE(Real, StringVal, RealTopKAggregate);
 
   OP(AvgAggregateInit) : {
     auto *agg = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());
@@ -1327,9 +1205,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(AvgAggregateGetResult) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *result = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
     auto *agg = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());
-    OpAvgAggregateGetResult(result, agg);
+    OpAvgAggregateGetResult(exec_ctx, result, agg);
     DISPATCH_NEXT();
   }
 

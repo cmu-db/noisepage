@@ -94,10 +94,7 @@ TEST_F(AggregatorsTest, TopKInteger) {
   // TopK on empty input should be nothing
   {
     TopKAggregate<Integer> topk(2);
-    std::vector<Integer> result;
-    while (topk.HasResult()) {
-      result.push_back(topk.GetResult());
-    }
+    std::vector<int64_t> result = topk.GetResult().GetSortedTopKeys();
     EXPECT_TRUE(result.empty());
   }
 
@@ -111,13 +108,10 @@ TEST_F(AggregatorsTest, TopKInteger) {
       }
     }
 
-    std::vector<Integer> result;
-    while (topk.HasResult()) {
-      result.push_back(topk.GetResult());
-    }
+    std::vector<int64_t> result = topk.GetResult().GetSortedTopKeys();
     EXPECT_EQ(2, result.size());
-    EXPECT_EQ(8, result[0].val_);
-    EXPECT_EQ(9, result[1].val_);
+    EXPECT_EQ(8, result[0]);
+    EXPECT_EQ(9, result[1]);
   }
 
   // Merging two top k test
@@ -138,13 +132,10 @@ TEST_F(AggregatorsTest, TopKInteger) {
     }
 
     topk.Merge(topksecond);
-    std::vector<Integer> result;
-    while (topk.HasResult()) {
-      result.push_back(topk.GetResult());
-    }
+    std::vector<int64_t> result = topk.GetResult().GetSortedTopKeys();
     EXPECT_EQ(2, result.size());
-    EXPECT_EQ(1, result[0].val_);
-    EXPECT_EQ(0, result[1].val_);
+    EXPECT_EQ(1, result[0]);
+    EXPECT_EQ(0, result[1]);
   }
 }
 
@@ -153,10 +144,7 @@ TEST_F(AggregatorsTest, TopKReal) {
   // TopK on empty input should be nothing
   {
     TopKAggregate<Real> topk(2);
-    std::vector<Real> result;
-    while (topk.HasResult()) {
-      result.push_back(topk.GetResult());
-    }
+    std::vector<double> result = topk.GetResult().GetSortedTopKeys();
     EXPECT_TRUE(result.empty());
   }
 
@@ -170,13 +158,10 @@ TEST_F(AggregatorsTest, TopKReal) {
       }
     }
 
-    std::vector<Real> result;
-    while (topk.HasResult()) {
-      result.push_back(topk.GetResult());
-    }
+    std::vector<double> result = topk.GetResult().GetSortedTopKeys();
     EXPECT_EQ(2, result.size());
-    EXPECT_EQ(static_cast<double>(8), result[0].val_);
-    EXPECT_EQ(static_cast<double>(9), result[1].val_);
+    EXPECT_EQ(static_cast<double>(8), result[0]);
+    EXPECT_EQ(static_cast<double>(9), result[1]);
   }
 
   // Merging two top k test
@@ -197,13 +182,10 @@ TEST_F(AggregatorsTest, TopKReal) {
     }
 
     topk.Merge(topksecond);
-    std::vector<Real> result;
-    while (topk.HasResult()) {
-      result.push_back(topk.GetResult());
-    }
+    std::vector<double> result = topk.GetResult().GetSortedTopKeys();
     EXPECT_EQ(2, result.size());
-    EXPECT_EQ(static_cast<double>(1), result[0].val_);
-    EXPECT_EQ(static_cast<double>(0), result[1].val_);
+    EXPECT_EQ(static_cast<double>(1), result[0]);
+    EXPECT_EQ(static_cast<double>(0), result[1]);
   }
 }
 

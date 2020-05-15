@@ -536,10 +536,10 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
       }
       // First argument to @aggAdvance() must be a SQL aggregator, second must
       // be a SQL value
-      // if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-      //   GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-      //   return;
-      // }
+      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
+        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
+        return;
+      }
       if (!IsPointerToSQLValue(args[1]->GetType())) {
         GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[1]->GetType());
         return;
@@ -576,253 +576,32 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
       // Set the return type according to the aggregate type.
       switch (args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind()) {
         case ast::BuiltinType::Kind::CountAggregate:
-          call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
-          break;
         case ast::BuiltinType::Kind::CountStarAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
           break;
+
         case ast::BuiltinType::Kind::IntegerAvgAggregate:
-          call->SetType(GetBuiltinType(ast::BuiltinType::Real));
-          break;
         case ast::BuiltinType::Kind::IntegerSumAggregate:
-          call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
-          break;
         case ast::BuiltinType::Kind::IntegerMaxAggregate:
-          call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
-          break;
         case ast::BuiltinType::Kind::IntegerMinAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
           break;
+
         case ast::BuiltinType::Kind::RealAvgAggregate:
-          call->SetType(GetBuiltinType(ast::BuiltinType::Real));
-          break;
         case ast::BuiltinType::Kind::RealSumAggregate:
-          call->SetType(GetBuiltinType(ast::BuiltinType::Real));
-          break;
         case ast::BuiltinType::Kind::RealMaxAggregate:
-          call->SetType(GetBuiltinType(ast::BuiltinType::Real));
-          break;
         case ast::BuiltinType::Kind::RealMinAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::Real));
           break;
+
+        case ast::BuiltinType::Kind::IntegerTopKAggregate:
+        case ast::BuiltinType::Kind::RealTopKAggregate:
+          call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
+          break;
+
         default:
           UNREACHABLE("Impossible aggregate type!");
       }
-      break;
-    }
-    default: {
-      UNREACHABLE("Impossible aggregator call");
-    }
-  }
-}
-
-void Sema::CheckBuiltinTopKAggregatorCall(ast::CallExpr *call, ast::Builtin builtin) {
-  const auto &args = call->Arguments();
-  switch (builtin) {
-    case ast::Builtin::IntegerTopKAggInit: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // First argument to @aggInit() must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      // // second and last argument must be a 32-bit number representing the topK
-      if (!args[1]->GetType()->IsIntegerType()) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
-        return;
-      }
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-
-      break;
-    }
-    case ast::Builtin::IntegerTopKAggReset: {
-      // All arguments to @aggInit() or @aggReset() must be SQL aggregators
-      for (uint32_t idx = 0; idx < call->NumArgs(); idx++) {
-        if (!IsPointerToAggregatorValue(args[idx]->GetType())) {
-          GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[idx]->GetType());
-          return;
-        }
-      }
-      // Init returns nil
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::IntegerTopKAggAdvance: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // First argument to @integertopkaggAdvance() must be a SQL aggregator, second must
-      // be a SQL value
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      if (!IsPointerToSQLValue(args[1]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[1]->GetType());
-        return;
-      }
-      // Advance returns nil
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::IntegerTopKAggMerge: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // Both arguments must be SQL aggregators
-      bool arg0_is_agg = IsPointerToAggregatorValue(args[0]->GetType());
-      bool arg1_is_agg = IsPointerToAggregatorValue(args[1]->GetType());
-      if (!arg0_is_agg || !arg1_is_agg) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate,
-                                   (!arg0_is_agg ? args[0]->GetType() : args[1]->GetType()));
-        return;
-      }
-      // Merge returns nil
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::IntegerTopKAggResult: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      // // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      // Set the return type according to the aggregate type.
-      call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
-      break;
-    }
-    case ast::Builtin::IntegerTopKAggHasResult: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      // Set the return type bool.
-      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
-      break;
-    }
-    case ast::Builtin::IntegerTopKAggFree: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      // Set the return type according to the aggregate type.
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::RealTopKAggInit: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // First argument to @aggInit() must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      // second and last argument must be a 32-bit number representing the topK
-      if (!args[2]->GetType()->IsIntegerType()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
-        return;
-      }
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-
-      break;
-    }
-    case ast::Builtin::RealTopKAggReset: {
-      // All arguments to @aggInit() or @aggReset() must be SQL aggregators
-      for (uint32_t idx = 0; idx < call->NumArgs(); idx++) {
-        if (!IsPointerToAggregatorValue(args[idx]->GetType())) {
-          GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[idx]->GetType());
-          return;
-        }
-      }
-      // Init returns nil
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::RealTopKAggAdvance: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // First argument to @realtopkaggAdvance() must be a SQL aggregator, second must
-      // be a SQL value
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      if (!IsPointerToSQLValue(args[1]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[1]->GetType());
-        return;
-      }
-      // Advance returns nil
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::RealTopKAggMerge: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // Both arguments must be SQL aggregators
-      bool arg0_is_agg = IsPointerToAggregatorValue(args[0]->GetType());
-      bool arg1_is_agg = IsPointerToAggregatorValue(args[1]->GetType());
-      if (!arg0_is_agg || !arg1_is_agg) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate,
-                                   (!arg0_is_agg ? args[0]->GetType() : args[1]->GetType()));
-        return;
-      }
-      // Merge returns nil
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::RealTopKAggResult: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      // Set the return type according to the aggregate type.
-      call->SetType(GetBuiltinType(ast::BuiltinType::Real));
-      break;
-    }
-    case ast::Builtin::RealTopKAggHasResult: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      // Set the return type bool.
-      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
-      break;
-    }
-    case ast::Builtin::RealTopKAggFree: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
-      // Set the return type according to the aggregate type.
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     default: {
@@ -2631,23 +2410,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::AggReset:
     case ast::Builtin::AggResult: {
       CheckBuiltinAggregatorCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::IntegerTopKAggInit:
-    case ast::Builtin::IntegerTopKAggAdvance:
-    case ast::Builtin::IntegerTopKAggMerge:
-    case ast::Builtin::IntegerTopKAggReset:
-    case ast::Builtin::IntegerTopKAggHasResult:
-    case ast::Builtin::IntegerTopKAggFree:
-    case ast::Builtin::IntegerTopKAggResult:
-    case ast::Builtin::RealTopKAggInit:
-    case ast::Builtin::RealTopKAggAdvance:
-    case ast::Builtin::RealTopKAggMerge:
-    case ast::Builtin::RealTopKAggReset:
-    case ast::Builtin::RealTopKAggHasResult:
-    case ast::Builtin::RealTopKAggFree:
-    case ast::Builtin::RealTopKAggResult: {
-      CheckBuiltinTopKAggregatorCall(call, builtin);
       break;
     }
     case ast::Builtin::JoinHashTableInit: {

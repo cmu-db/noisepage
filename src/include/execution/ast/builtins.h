@@ -115,20 +115,6 @@ namespace terrier::execution::ast {
   F(AggMerge, aggMerge)                                                 \
   F(AggReset, aggReset)                                                 \
   F(AggResult, aggResult)                                               \
-  F(IntegerTopKAggInit, integertopkaggInit)                             \
-  F(IntegerTopKAggAdvance, integertopkaggAdvance)                       \
-  F(IntegerTopKAggMerge, integertopkaggMerge)                           \
-  F(IntegerTopKAggReset, integertopkaggReset)                           \
-  F(IntegerTopKAggResult, integertopkaggResult)                         \
-  F(IntegerTopKAggFree, integertopkaggFree)                             \
-  F(IntegerTopKAggHasResult, integertopkaggHasResult)                   \
-  F(RealTopKAggInit, realtopkaggInit)                                   \
-  F(RealTopKAggAdvance, realtopkaggAdvance)                             \
-  F(RealTopKAggMerge, realtopkaggMerge)                                 \
-  F(RealTopKAggReset, realtopkaggReset)                                 \
-  F(RealTopKAggResult, realtopkaggResult)                               \
-  F(RealTopKAggFree, realtopkaggFree)                                   \
-  F(RealTopKAggHasResult, realtopkaggHasResult)                         \
                                                                         \
   /* Joins */                                                           \
   F(JoinHashTableInit, joinHTInit)                                      \

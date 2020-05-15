@@ -326,20 +326,18 @@ namespace terrier::execution::vm {
   F(RealMinAggregateReset, OperandType::Local)                                                                        \
   F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealMinAggregateFree, OperandType::Local)                                                                         \
-  F(IntegerTopKAggregateInit, OperandType::Local, OperandType::Local)                                                 \
+  F(IntegerTopKAggregateInit, OperandType::Local)                                                                     \
   F(IntegerTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                              \
   F(IntegerTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                \
   F(IntegerTopKAggregateReset, OperandType::Local)                                                                    \
   F(IntegerTopKAggregateGetResult, OperandType::Local, OperandType::Local)                                            \
   F(IntegerTopKAggregateFree, OperandType::Local)                                                                     \
-  F(IntegerTopKAggregateHasResult, OperandType::Local, OperandType::Local)                                            \
-  F(RealTopKAggregateInit, OperandType::Local, OperandType::Local)                                                    \
+  F(RealTopKAggregateInit, OperandType::Local)                                                                        \
   F(RealTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                                 \
   F(RealTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                   \
   F(RealTopKAggregateReset, OperandType::Local)                                                                       \
   F(RealTopKAggregateGetResult, OperandType::Local, OperandType::Local)                                               \
   F(RealTopKAggregateFree, OperandType::Local)                                                                        \
-  F(RealTopKAggregateHasResult, OperandType::Local, OperandType::Local)                                               \
                                                                                                                       \
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \

@@ -521,20 +521,22 @@ ast::Expr *CodeGen::ArrayAccess(ast::Identifier arr, uint64_t idx) {
       UNREACHABLE("Unsupported aggregate type");              \
   }
 
-ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, type::TypeId ret_type) {
+ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, type::TypeId value_type) {
   switch (agg_type) {
     case parser::ExpressionType::AGGREGATE_COUNT:
       return BuiltinType(ast::BuiltinType::Kind::CountAggregate);
     case parser::ExpressionType::AGGREGATE_COUNT_STAR:
       return BuiltinType(ast::BuiltinType::Kind::CountStarAggregate);
     case parser::ExpressionType::AGGREGATE_AVG:
-      AGGTYPE(AvgAggregate, ret_type);
+      AGGTYPE(AvgAggregate, value_type);
     case parser::ExpressionType::AGGREGATE_MIN:
-      AGGTYPE(MinAggregate, ret_type);
+      AGGTYPE(MinAggregate, value_type);
     case parser::ExpressionType::AGGREGATE_MAX:
-      AGGTYPE(MaxAggregate, ret_type);
+      AGGTYPE(MaxAggregate, value_type);
     case parser::ExpressionType::AGGREGATE_SUM:
-      AGGTYPE(SumAggregate, ret_type);
+      AGGTYPE(SumAggregate, value_type);
+    case parser::ExpressionType::AGGREGATE_TOP_K:
+      AGGTYPE(TopKAggregate, value_type);
     default:
       UNREACHABLE("AggregateType() should only be called with aggregates");
   }

@@ -205,9 +205,11 @@ class CodeGen {
   ast::Expr *BuiltinType(ast::BuiltinType::Kind kind);
 
   /**
+   * @param agg_type The type of aggregation to use.
+   * @param value_type The type of values being aggregated.
    * @return the tpl type corresponding to an aggregate.
    */
-  ast::Expr *AggregateType(terrier::parser::ExpressionType agg_type, terrier::type::TypeId ret_type);
+  ast::Expr *AggregateType(terrier::parser::ExpressionType agg_type, terrier::type::TypeId value_type);
 
   /**
    * @return a pointer type with the given base type (i.e *base_type)

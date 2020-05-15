@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <queue>
 #include <set>
 #include <stack>
@@ -332,6 +333,64 @@ class TopKElements {
     }
 
     return keys;
+  }
+
+  /**
+   * Serializes the TopKElements object into a char array.
+   *
+   * The format contains a header of 32-bit words, the top K elements data, and then the sketch data.
+   * We place the top K elements data first since it may have alignment requirements (whereas the
+   * sketch data does not) and we don't want to think about alignment.
+   *
+   * Header contents:
+   *   Bytes 0-3: entries_size (in bytes, not elements)
+   *   Bytes 4-7: sketch_size (in bytes)
+   *   Bytes 8-11: numk_
+   *   Bytes 12-15: empty padding
+   *
+   * @return A serialized representation of this TopKElements object.
+   */
+  std::unique_ptr<byte[]> GetSerializedData(size_t *size) {
+    const auto &sketch = sketch_->GetSketch();
+
+    // Compute size of each portion
+    constexpr size_t header_size = 4 * sizeof(uint32_t);
+    size_t entries_size = entries_.size() * sizeof(KeyCountPair);
+    size_t sketch_size = sketch.file_size();
+
+    static_assert(header_size % alignof(KeyCountPair) == 0, "Alignment of KeyCountPair is too large");
+    TERRIER_ASSERT(entries_.size() <= std::numeric_limits<uint32_t>::max() &&
+                       sketch_size <= std::numeric_limits<uint32_t>::max() &&
+                       numk_ <= std::numeric_limits<uint32_t>::max(),
+                   "Sizes are too large to fit in 32 bits");
+
+    // Resize backing vector
+    size_t overall_size = header_size + entries_size + sketch_size;
+    auto buffer = std::unique_ptr<byte[]>(common::AllocationUtil::AllocateAligned(overall_size));
+    byte *data = buffer.get();
+
+    // Write serialized header
+    *reinterpret_cast<uint32_t *>(data) = uint32_t(entries_size);
+    *reinterpret_cast<uint32_t *>(data + sizeof(uint32_t)) = uint32_t(sketch_size);
+    *reinterpret_cast<uint32_t *>(data + 2 * sizeof(uint32_t)) = uint32_t(numk_);
+
+    // Serialize top K elements, stored in entries_
+    // Note that we don't care about the ordering of the top K elements. The TopKElements object,
+    // when deserialized, will take care of that.
+    // TODO(khg): KeyCountPair does not match the type of entries_, ???
+    size_t index = 0;
+    for (const KeyCountPair pair : entries_) {
+      byte *offset = data + header_size + index * sizeof(KeyCountPair);
+      *reinterpret_cast<KeyCountPair *>(offset) = pair;
+      index++;
+    }
+
+    // Serialize CountMinSketch
+    sketch.serialize(data + header_size + entries_size, sketch_size);
+
+    // Return buffer by value
+    *size = overall_size;
+    return buffer;
   }
 
   /**
