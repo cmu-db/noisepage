@@ -126,7 +126,7 @@ class SqlTable {
    *
    * @param txn the calling transaction.
    * @param redo after-image of the inserted tuple.
-   * @param TupleSlot that the tuple was inserted into.
+   * @param dest TupleSlot that the tuple was inserted into.
    */
   void CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
                             const TupleSlot dest) const {
