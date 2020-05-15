@@ -17,6 +17,7 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "execution/udf/udf_context.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -664,6 +665,35 @@ class DatabaseCatalog {
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
   /**
+   * Sets the proc context pointer column of proc_oid to udf_context
+   * @param txn transaction to use
+   * @param proc_oid The proc_oid whose pointer column we are setting here
+   * @param udf_context The context object to set to
+   * @return False if the given proc_oid is invalid, True if else
+   */
+  bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+                     const execution::udf::UDFContext *udf_context);
+
+  /**
+   * Gets a udf context object for a given proc if it is null for a valid proc id then the udf context
+   * object is reconstructed, put in pg_proc and returned
+   * @param txn the transaction to use
+   * @param proc_oid the proc_oid we are querying here for the context object
+   * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
+   */
+  common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(
+      common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
+
+  /**
+   * Gets the proc context pointer column of proc_oid to udf_context
+   * @param txn transaction to use
+   * @param proc_oid The proc_oid whose pointer column we are getting here
+   * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
+   */
+  common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(
+      common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
+
+  /**
    * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid
    * @param type internal type
    * @return oid for internal type
@@ -804,6 +834,7 @@ class DatabaseCatalog {
   storage::index::Index *procs_name_index_;
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
   storage::ProjectionMap pg_proc_all_cols_prm_;
+  storage::ProjectedRowInitializer pg_proc_ptr_pri_;
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
@@ -882,10 +913,16 @@ class DatabaseCatalog {
   void BootstrapLanguages(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
-   * Bootstraps the built-in procs found in pg_procs
+   * Bootstraps the built-in procs found in pg_proc
    * @param txn transaction to insert into catalog with
    */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn);
+
+  /**
+   * Bootstraps the proc udf contexts in pg_proc
+   * @param txn transaction to insert into catalog with
+   */
+  void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the

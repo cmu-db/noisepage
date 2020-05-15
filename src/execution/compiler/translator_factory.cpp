@@ -9,6 +9,7 @@
 #include "execution/compiler/expression/conjunction_translator.h"
 #include "execution/compiler/expression/constant_translator.h"
 #include "execution/compiler/expression/derived_value_translator.h"
+#include "execution/compiler/expression/function_translator.h"
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/param_value_translator.h"
 #include "execution/compiler/expression/star_translator.h"
@@ -158,6 +159,9 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTransla
   }
   if (IsStar(type)) {
     return std::make_unique<StarTranslator>(expression, codegen);
+  }
+  if (IsFunction(type)) {
+    return std::make_unique<FunctionTranslator>(expression, codegen);
   }
   UNREACHABLE("Unsupported expression");
 }

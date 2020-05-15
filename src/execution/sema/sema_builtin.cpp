@@ -245,6 +245,26 @@ void Sema::CheckBuiltinFilterCall(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Int64));
 }
 
+void Sema::CheckBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+  auto input_type = call->Arguments()[0]->GetType();
+  // Use a switch since there will be more date functions to come
+  switch (builtin) {
+    case ast::Builtin::ExtractYear: {
+      if (!input_type->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "sql_type");
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported Date Function.");
+  }
+}
+
 void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -1291,9 +1311,12 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto &call_args = call->Arguments();
   switch (builtin) {
     case ast::Builtin::ATan2: {
+      // check to make sure we have the right number of arguments
       if (!CheckArgCount(call, 2)) {
         return;
       }
+
+      // check to make sure the arguments are of the correct type
       if (!call_args[0]->GetType()->IsSpecificBuiltin(real_kind) ||
           !call_args[1]->GetType()->IsSpecificBuiltin(real_kind)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(real_kind));
@@ -1322,7 +1345,7 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
   }
 
-  // Trig functions return real values
+  // Trig functions return real values (important)
   call->SetType(GetBuiltinType(real_kind));
 }
 
@@ -2249,6 +2272,43 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
   call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
 }
 
+void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::BuiltinType::Kind sql_type;
+  switch (builtin) {
+    case ast::Builtin::Lower: {
+      // check to make sure this function has two arguments
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      auto *resolved_type = Resolve(call->Arguments()[1]);
+      if (resolved_type == nullptr) {
+        return;
+      }
+      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented string call!!");
+  }
+
+  call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
+}
+
 void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   ast::Builtin builtin;
   if (!GetContext()->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
@@ -2287,6 +2347,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::TimestampToSqlHMSu:
     case ast::Builtin::SqlToBool: {
       CheckBuiltinSqlConversionCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExtractYear: {
+      CheckBuiltinDateFunctionCall(call, builtin);
       break;
     }
     case ast::Builtin::FilterEq:
@@ -2599,6 +2663,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::GetParamTimestamp:
     case ast::Builtin::GetParamString: {
       CheckBuiltinParamCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::Lower: {
+      CheckBuiltinStringCall(call, builtin);
       break;
     }
     default: {
