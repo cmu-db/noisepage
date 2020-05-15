@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 
 public class SequenceTest extends TestUtility {
@@ -63,23 +64,82 @@ public class SequenceTest extends TestUtility {
      */
 
     /**
-     * Tests usage of sequence
+     * Tests usage of a default sequence
      */
     @Test
-    public void testSequence() throws SQLException {
+    public void testSequenceDefault() throws SQLException {
         String create_SQL = "CREATE SEQUENCE seq;";
         Statement stmt = conn.createStatement();
         stmt.execute(create_SQL);
-        String select_SQL = "SELECT nextval('seq') FROM tbl;";
-        stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery(select_SQL);
-        boolean exists = rs.next();
-        assert(exists);
-        checkIntRow(rs, new String [] {"nextval(VARCHAR)"}, new int [] {1});
-        assertNoMoreRows(rs);
+        String nextval_SQL = "SELECT nextval('seq') FROM tbl;";
+        String currval_SQL = "SELECT currval('seq') FROM tbl;";
+        for (int i = 1; i < 10; i++) {
+            // nextval
+            stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(nextval_SQL);
+            boolean exists = rs.next();
+            assert (exists);
+            checkIntRow(rs, new String[]{"nextval(VARCHAR)"}, new int[]{i});
+            assertNoMoreRows(rs);
+            // currval
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(currval_SQL);
+            exists = rs.next();
+            assert (exists);
+            checkIntRow(rs, new String[]{"currval(VARCHAR)"}, new int[]{i});
+            assertNoMoreRows(rs);
+        }
         String drop_SQL = "DROP SEQUENCE seq;";
         stmt = conn.createStatement();
         stmt.execute(drop_SQL);
     }
 
+    /**
+     * Tests usage of a sequence with parameters
+     */
+    @Test
+    public void testSequenceParameters() throws SQLException {
+        String create_SQL = "CREATE SEQUENCE seq INCREMENT BY -2 MINVALUE -10 MAXVALUE -3 START WITH -4 CYCLE;";
+        Statement stmt = conn.createStatement();
+        stmt.execute(create_SQL);
+        String nextval_SQL = "SELECT nextval('seq') FROM tbl;";
+        String currval_SQL = "SELECT currval('seq') FROM tbl;";
+        // First cycle
+        for (int i = -4; i >= -10; i -= 2) {
+            // nextval
+            stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(nextval_SQL);
+            boolean exists = rs.next();
+            assert (exists);
+            checkIntRow(rs, new String[]{"nextval(VARCHAR)"}, new int[]{i});
+            assertNoMoreRows(rs);
+            // currval
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(currval_SQL);
+            exists = rs.next();
+            assert (exists);
+            checkIntRow(rs, new String[]{"currval(VARCHAR)"}, new int[]{i});
+            assertNoMoreRows(rs);
+        }
+        // Second cycle
+        for (int i = -3; i >= -10; i -= 2) {
+            // nextval
+            stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(nextval_SQL);
+            boolean exists = rs.next();
+            assert (exists);
+            checkIntRow(rs, new String[]{"nextval(VARCHAR)"}, new int[]{i});
+            assertNoMoreRows(rs);
+            // currval
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(currval_SQL);
+            exists = rs.next();
+            assert (exists);
+            checkIntRow(rs, new String[]{"currval(VARCHAR)"}, new int[]{i});
+            assertNoMoreRows(rs);
+        }
+        String drop_SQL = "DROP SEQUENCE seq;";
+        stmt = conn.createStatement();
+        stmt.execute(drop_SQL);
+    }
 }
