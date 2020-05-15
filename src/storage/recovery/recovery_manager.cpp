@@ -846,6 +846,10 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->procs_);
       break;
     }
+    case (!catalog::postgres::SEQUENCE_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->sequences_);
+      break;
+    }
     default:
       table_ptr = db_catalog_ptr->GetTable(common::ManagedPointer(txn), table_oid);
   }
