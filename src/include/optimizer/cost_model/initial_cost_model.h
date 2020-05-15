@@ -188,4 +188,4 @@ class InitialCostModel : public AbstractCostModel {
   double output_cost_ = 0;
 };
 
-}
+}  // namespace terrier::optimizer

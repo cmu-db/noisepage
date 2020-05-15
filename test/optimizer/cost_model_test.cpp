@@ -3,10 +3,10 @@
 #include "gtest/gtest.h"
 #include "optimizer/cost_model/cost_model.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/statistics/histogram.h"
 #include "optimizer/statistics/top_k_elements.h"
-#include "optimizer/optimizer_defs.h"
 
 #include "test_util/test_harness.h"
 
@@ -37,29 +37,27 @@ class CostModelTests : public TerrierTest {
     std::vector<double> a_hist_bounds = a_hist.Uniform();
      */
     /*
-    * @param database_id - database oid of column
-    * @param table_id - table oid of column
-    * @param column_id - column oid of column
+     * @param database_id - database oid of column
+     * @param table_id - table oid of column
+     * @param column_id - column oid of column
      *
-    * @param num_rows - number of rows in column
-    * @param cardinality - cardinality of column
-    * @param frac_null - fraction of null values out of total values in column
+     * @param num_rows - number of rows in column
+     * @param cardinality - cardinality of column
+     * @param frac_null - fraction of null values out of total values in column
      *
-    * @param most_common_vals - list of most common values in the column
-    * @param most_common_freqs - list of the frequencies of the most common values in the column
-    * @param histogram_bounds - the bounds of the histogram of the column e.g. (1.0 - 4.0)
-        * @param is_base_table - indicates whether the column is from a base table
-        */
+     * @param most_common_vals - list of most common values in the column
+     * @param most_common_freqs - list of the frequencies of the most common values in the column
+     * @param histogram_bounds - the bounds of the histogram of the column e.g. (1.0 - 4.0)
+     * @param is_base_table - indicates whether the column is from a base table
+     */
     column_stats_obj_a_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1),
-                                      NUM_ROWS_A, NUM_ROWS_A / 2.0, 0.2, {1, 2, 3}, {5, 5, 5}, {1.0, 5.0}, true);
+                                        NUM_ROWS_A, NUM_ROWS_A / 2.0, 0.2, {1, 2, 3}, {5, 5, 5}, {1.0, 5.0}, true);
     column_stats_obj_b_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(1),
-                                      NUM_ROWS_B, NUM_ROWS_B, 0.0, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
-    table_stats_obj_a_ = TableStats(
-        catalog::db_oid_t(1), catalog::table_oid_t(1), NUM_ROWS_A, true,
-        {column_stats_obj_a_1_});
-    table_stats_obj_b_ = TableStats(
-        catalog::db_oid_t(1), catalog::table_oid_t(2), NUM_ROWS_B, true,
-        {column_stats_obj_b_1_});
+                                        NUM_ROWS_B, NUM_ROWS_B, 0.0, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+    table_stats_obj_a_ =
+        TableStats(catalog::db_oid_t(1), catalog::table_oid_t(1), NUM_ROWS_A, true, {column_stats_obj_a_1_});
+    table_stats_obj_b_ =
+        TableStats(catalog::db_oid_t(1), catalog::table_oid_t(2), NUM_ROWS_B, true, {column_stats_obj_b_1_});
     stats_storage_ = StatsStorage();
     stats_storage_.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1), std::move(table_stats_obj_a_));
     stats_storage_.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2), std::move(table_stats_obj_b_));
@@ -70,8 +68,7 @@ class CostModelTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(CostModelTests, InnerNLJoinOrderTest) {
-  OptimizerContext optimizer_context =
-    OptimizerContext(common::ManagedPointer<AbstractCostModel>(&cost_model_));
+  OptimizerContext optimizer_context = OptimizerContext(common::ManagedPointer<AbstractCostModel>(&cost_model_));
   optimizer_context.SetStatsStorage(&stats_storage_);
   parser::AbstractExpression *expr_b_1 =
       new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
@@ -82,9 +79,9 @@ TEST_F(CostModelTests, InnerNLJoinOrderTest) {
   // child operators: one scans the first table, while the other scans the 2nd table. The join will operate on these two
   // tables.
   Operator seq_scan_a = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                    std::vector<AnnotatedExpression>(), "table", false);
+                                      std::vector<AnnotatedExpression>(), "table", false);
   Operator seq_scan_b = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
-                                    std::vector<AnnotatedExpression>(), "table", false);
+                                      std::vector<AnnotatedExpression>(), "table", false);
   std::vector<std::unique_ptr<OperatorNode>> children_a_first = {};
   children_a_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_a, {})));
   children_a_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_b, {})));
@@ -104,24 +101,24 @@ TEST_F(CostModelTests, InnerNLJoinOrderTest) {
 
   // sets row counts for both tables in the child groups for A first
   optimizer_context.GetMemo()
-        .GetGroupByID(grexp_a_first->GetChildGroupId(0))
-        ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
+      .GetGroupByID(grexp_a_first->GetChildGroupId(0))
+      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
   optimizer_context.GetMemo()
-        .GetGroupByID(grexp_a_first->GetChildGroupId(1))
-        ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
+      .GetGroupByID(grexp_a_first->GetChildGroupId(1))
+      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
 
   // sets row counts for both tables in the child groups for B first
   optimizer_context.GetMemo()
-        .GetGroupByID(grexp_b_first->GetChildGroupId(0))
-        ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
+      .GetGroupByID(grexp_b_first->GetChildGroupId(0))
+      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
   optimizer_context.GetMemo()
-        .GetGroupByID(grexp_b_first->GetChildGroupId(1))
-        ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
+      .GetGroupByID(grexp_b_first->GetChildGroupId(1))
+      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
 
-  auto cost_a_first = cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(),
-      grexp_a_first);
-  auto cost_b_first = cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(),
-      grexp_b_first);
+  auto cost_a_first =
+      cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp_a_first);
+  auto cost_b_first =
+      cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp_b_first);
 
   // since B is much smaller, we expect that the cost of having it as the outer table is smaller
   EXPECT_LT(cost_b_first, cost_a_first);
@@ -132,8 +129,7 @@ TEST_F(CostModelTests, InnerNLJoinOrderTest) {
 }
 
 TEST_F(CostModelTests, HashVsNLJoinTest) {
-  OptimizerContext optimizer_context =
-      OptimizerContext(common::ManagedPointer<AbstractCostModel>(&cost_model_));
+  OptimizerContext optimizer_context = OptimizerContext(common::ManagedPointer<AbstractCostModel>(&cost_model_));
   optimizer_context.SetStatsStorage(&stats_storage_);
   parser::AbstractExpression *expr_b_1 =
       new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
@@ -141,8 +137,8 @@ TEST_F(CostModelTests, HashVsNLJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   Operator inner_nl_join = NLJoin::Make(PhysicalJoinType::INNER, std::vector<AnnotatedExpression>());
   Operator inner_hash_join = InnerHashJoin::Make(std::vector<AnnotatedExpression>(),
-      std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
-      std::vector<common::ManagedPointer<parser::AbstractExpression>>());
+                                                 std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
+                                                 std::vector<common::ManagedPointer<parser::AbstractExpression>>());
   // child operators: one scans the first table, while the other scans the 2nd table. The join will operate on these two
   // tables.
   Operator seq_scan_a = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
@@ -182,10 +178,10 @@ TEST_F(CostModelTests, HashVsNLJoinTest) {
       .GetGroupByID(grexp_hash_join->GetChildGroupId(1))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
 
-  auto cost_nl_join = cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(),
-                                                grexp_nl_join);
-  auto cost_hash_join = cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(),
-                                                grexp_hash_join);
+  auto cost_nl_join =
+      cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp_nl_join);
+  auto cost_hash_join =
+      cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp_hash_join);
 
   EXPECT_LT(cost_hash_join, cost_nl_join);
 

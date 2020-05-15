@@ -73,25 +73,7 @@ class ForcedCostModel : public AbstractCostModel {
    * Visit a InnerNLJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override { output_cost_ = (pick_hash_join_) ? 1.f : 0.f; }
-
-  /**
-   * Visit a LeftNLJoin operator
-   * @param op operator
-   */
-  void Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) override {}
-
-  /**
-   * Visit a RightNLJoin operator
-   * @param op operator
-   */
-  void Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) override {}
-
-  /**
-   * Visit a OuterNLJoin operator
-   * @param op operator
-   */
-  void Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) override {}
+  void Visit(UNUSED_ATTRIBUTE const NLJoin *op) override { output_cost_ = (pick_hash_join_) ? 1.f : 0.f; }
 
   /**
    * Visit a InnerHashJoin operator

@@ -101,7 +101,6 @@ class Group {
 
   /**
    * Gets the cost lower bound
-   * @note currently not set anywhere...
    * @returns lower cost bound
    */
   double GetCostLB() { return cost_lower_bound_; }
