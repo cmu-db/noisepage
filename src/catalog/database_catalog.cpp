@@ -17,6 +17,7 @@
 #include "catalog/postgres/pg_statistic.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "optimizer/statistics/top_k_elements.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -2749,6 +2750,7 @@ std::unique_ptr<optimizer::TableStats> DatabaseCatalog::GetTableStats(
   // Accumulate ColumnStats object for each column
   std::vector<optimizer::ColumnStats> col_stats_list;
   size_t table_num_rows = 0;
+  const auto &table_schema = GetSchema(txn, table_id);
 
   for (const auto &slot : index_results) {
     // Extract attributes from the tuple for the index deletions
@@ -2771,13 +2773,46 @@ std::unique_ptr<optimizer::TableStats> DatabaseCatalog::GetTableStats(
         pr->AccessWithNullCheck(pg_statistic_all_cols_prm_[postgres::STA_NUMROWS_COL_OID]));
     TERRIER_ASSERT(num_rows != nullptr, "num_rows shouldn't be NULL.");
 
+    const auto *const topk_elts = reinterpret_cast<storage::VarlenEntry *>(
+        pr->AccessWithNullCheck(pg_statistic_all_cols_prm_[postgres::STA_TOPKELTS_COL_OID]));
+
     // Update num_rows in table
-    // TODO(khg): could the number of rows in each column differ?
     table_num_rows = static_cast<size_t>(*num_rows);
+
+    // Deserialize TopKElements object into common vals/freqs
+    std::vector<double> most_common_vals;
+    std::vector<double> most_common_freqs;
+
+    if (topk_elts != nullptr) {
+      const auto &col = table_schema.GetColumn(*col_oid);
+      switch (col.Type()) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT: {
+          const auto topk = optimizer::TopKElements<int64_t>::Deserialize(topk_elts->Content(), topk_elts->Size());
+          for (const auto key : topk.GetSortedTopKeys()) {
+            most_common_vals.emplace_back(key);
+            most_common_freqs.emplace_back(topk.EstimateItemCount(key));
+          }
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          const auto topk = optimizer::TopKElements<double>::Deserialize(topk_elts->Content(), topk_elts->Size());
+          for (const auto key : topk.GetSortedTopKeys()) {
+            most_common_vals.emplace_back(key);
+            most_common_freqs.emplace_back(topk.EstimateItemCount(key));
+          }
+          break;
+        }
+        default:
+          UNREACHABLE("topk_elts should only be computed for integer and decimal types");
+      }
+    }
 
     // Create a corresponding ColumnStats object
     col_stats_list.emplace_back(db_oid_, table_id, *col_oid, static_cast<size_t>(*num_rows), *distinct, *nullfrac,
-                                std::vector<double>{}, std::vector<double>{}, std::vector<double>{}, true);
+                                std::move(most_common_vals), std::move(most_common_freqs), std::vector<double>{}, true);
   }
 
   return std::make_unique<optimizer::TableStats>(db_oid_, table_id, table_num_rows, true, col_stats_list);

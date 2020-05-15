@@ -220,8 +220,7 @@ TEST_F(StatsCatalogTests, StatisticTest) {
   }
 }
 
-// Stolen from wz2
-struct IdxJoinTest : public TerrierTest {
+struct AnalyzeColumnsTest : public TerrierTest {
   const uint64_t optimizer_timeout_ = 1000000;
 
   void ExecuteSQL(std::string sql, network::QueryType qtype) {
@@ -320,12 +319,8 @@ struct IdxJoinTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
-  // Begin trace-level logging in the optimizer
-  // TODO(khg): remove
-  terrier::optimizer::optimizer_logger->set_level(spdlog::level::trace);
-  // terrier::execution::execution_logger->set_level(spdlog::level::trace);
-
+TEST_F(AnalyzeColumnsTest, SingleColumnTest) {
+  // Issue an ANALYZE command
   {
     auto sql = "ANALYZE foo (col1)";
 
@@ -359,7 +354,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
-  // Ok, maybe it actually worked? Check the stored stats
+  // Check whether the computed stats are correct
   {
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
@@ -370,9 +365,25 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
     const auto &col = schema.GetColumn("col1");
     auto col_stats = table_stats->GetColumnStats(col.Oid());
 
+    // Check basic stats
     EXPECT_EQ(col_stats->GetFracNull(), 0.15);
     EXPECT_EQ(col_stats->GetCardinality(), 10.0);
     EXPECT_EQ(col_stats->GetNumRows(), 1000);
+
+    // Check common values / freqs
+    const auto &common_values = col_stats->GetCommonVals();
+    const auto &common_freqs = col_stats->GetCommonFreqs();
+    EXPECT_EQ(common_values.size(), common_freqs.size());
+
+    std::map<double, double> common_values_map;
+    for (size_t i = 0; i < common_values.size(); i++) {
+      common_values_map[common_values[i]] = common_freqs[i];
+    }
+
+    for (int i = 1; i <= 10; i++) {
+      EXPECT_EQ(common_values_map.count(i), 1);
+      EXPECT_EQ(common_values_map.at(i), 85.0);
+    }
 
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }

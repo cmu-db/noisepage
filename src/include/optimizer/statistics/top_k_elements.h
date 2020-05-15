@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <queue>
 #include <set>
 #include <stack>
@@ -346,7 +347,7 @@ class TopKElements {
    *   Bytes 0-3: entries_size (in bytes, not elements)
    *   Bytes 4-7: sketch_size (in bytes)
    *   Bytes 8-11: numk_
-   *   Bytes 12-15: empty padding
+   *   Bytes 12-15: total_count_ (from optimizer::CountMinSketch)
    *
    * @return A serialized representation of this TopKElements object.
    */
@@ -361,7 +362,8 @@ class TopKElements {
     static_assert(header_size % alignof(KeyCountPair) == 0, "Alignment of KeyCountPair is too large");
     TERRIER_ASSERT(entries_.size() <= std::numeric_limits<uint32_t>::max() &&
                        sketch_size <= std::numeric_limits<uint32_t>::max() &&
-                       numk_ <= std::numeric_limits<uint32_t>::max(),
+                       numk_ <= std::numeric_limits<uint32_t>::max() &&
+                       sketch_->GetTotalCount() <= std::numeric_limits<uint32_t>::max(),
                    "Sizes are too large to fit in 32 bits");
 
     // Resize backing vector
@@ -373,6 +375,7 @@ class TopKElements {
     *reinterpret_cast<uint32_t *>(data) = uint32_t(entries_size);
     *reinterpret_cast<uint32_t *>(data + sizeof(uint32_t)) = uint32_t(sketch_size);
     *reinterpret_cast<uint32_t *>(data + 2 * sizeof(uint32_t)) = uint32_t(numk_);
+    *reinterpret_cast<uint32_t *>(data + 3 * sizeof(uint32_t)) = uint32_t(sketch_->GetTotalCount());
 
     // Serialize top K elements, stored in entries_
     // Note that we don't care about the ordering of the top K elements. The TopKElements object,
@@ -393,6 +396,38 @@ class TopKElements {
     return buffer;
   }
 
+  static TopKElements<KeyType> Deserialize(const byte *buffer, size_t size) {
+    // Compute header size
+    constexpr size_t header_size = 4 * sizeof(uint32_t);
+    TERRIER_ASSERT(size >= header_size, "Deserialization failed: size is not large enough to hold header");
+
+    // Read header data
+    const auto entries_size = *reinterpret_cast<const uint32_t *>(buffer);
+    const auto sketch_size = *reinterpret_cast<const uint32_t *>(buffer + sizeof(uint32_t));
+    const auto numk = *reinterpret_cast<const uint32_t *>(buffer + 2 * sizeof(uint32_t));
+    const auto total_count = *reinterpret_cast<const uint32_t *>(buffer + 3 * sizeof(uint32_t));
+    TERRIER_ASSERT(size == header_size + entries_size + sketch_size,
+                   "Deserialization failed: size does not match input data");
+    TERRIER_ASSERT(entries_size % sizeof(KeyCountPair) == 0,
+                   "entries_size is invalid: must be a multiple of sizeof(KeyCountPair)");
+
+    // Create new object
+    TopKElements<KeyType> topk{numk};
+    topk.sketch_ = new CountMinSketch<KeyType>(total_count, buffer + header_size + entries_size, sketch_size);
+
+    // Read entries into object
+    size_t num_entries = entries_size / sizeof(KeyCountPair);
+    for (size_t i = 0; i < num_entries; i++) {
+      KeyCountPair pair = *reinterpret_cast<const KeyCountPair *>(buffer + header_size + i * sizeof(KeyCountPair));
+      topk.entries_[pair.first] = pair.second;
+    }
+
+    // Update min key from entries
+    topk.ComputeNewMinKey();
+
+    return topk;
+  }
+
   /**
    * Pretty Print!
    * @param os the output target
@@ -410,6 +445,12 @@ class TopKElements {
   }
 
  private:
+  /**
+   * Private constructor for deserialization only
+   * @param k the number of keys to keep track of in the top-k list
+   */
+  explicit TopKElements(size_t k) : numk_{k}, sketch_{nullptr} { entries_.reserve(numk_); }
+
   /**
    * the K as in "top K"
    */

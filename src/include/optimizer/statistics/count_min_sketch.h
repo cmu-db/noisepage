@@ -41,6 +41,16 @@ class CountMinSketch {
   }
 
   /**
+   * Constructor for deserialization.
+   * @param total_count Total count of elements already processed
+   * @param buf Buffer to deserialize from
+   * @param buf_size Number of bytes in buf
+   */
+  CountMinSketch(size_t total_count, const byte *buf, size_t buf_size) : total_count_{total_count} {
+    sketch_.deserialize(buf, buf_size);
+  }
+
+  /**
    * Increase the count for a key by a given amount.
    * The key does not need to exist in the sketch first.
    * This is a convenience method for those KeyTypes that have the
