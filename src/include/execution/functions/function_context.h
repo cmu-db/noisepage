@@ -9,7 +9,7 @@
 #include "execution/ast/builtins.h"
 #include "type/type_id.h"
 
-namespace terrier::execution::udf {
+namespace terrier::execution::functions {
 
 /**
  * @brief Stores execution and type information about a stored procedure

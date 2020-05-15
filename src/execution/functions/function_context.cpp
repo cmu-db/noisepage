@@ -1,3 +1,3 @@
-#include "execution/udf/udf_context.h"
+#include "execution/functions/function_context.h"
 
-namespace terrier::execution::udf {}  // namespace terrier::execution::functions
+namespace terrier::execution::functions {}  // namespace terrier::execution::functions
