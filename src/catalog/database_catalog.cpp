@@ -1094,8 +1094,7 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
     TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
     PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
     affected_row +=
-        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj,  table_prs,
-                           child_con_obj.fk_metadata_.fk_refs_, child_con_obj.fk_metadata_.fk_srcs_);
+        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj,  &table_prs);
   }
   delete[] table_buffer;
   delete[] constraint_buffer;
@@ -1105,12 +1104,11 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
 
 int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
                                         table_oid_t table_oid, const PGConstraint &con_obj,
-                                        std::vector<storage::ProjectedRow *> pr_vector,
-                                        std::vector<col_oid_t> parent_col, std::vector<col_oid_t> child_col) {
+                                        std::vector<storage::ProjectedRow *> *pr_vector) {
   int affected_row = 0;
 
   std::vector<storage::TupleSlot> table_scan_results =
-      FKScan(txn, table_oid, con_obj, pr_vector, parent_col, child_col);
+      FKScan(txn, table_oid, con_obj, pr_vector);
   // current table doesn't contain target fk
   if (table_scan_results.empty()) {
     return 0;
@@ -1160,11 +1158,10 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
     PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
 
     affected_row +=
-        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_DELETE, table_prs,
-                           child_con_obj.fk_metadata_.fk_refs_, child_con_obj.fk_metadata_.fk_srcs_);
+        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_DELETE, &table_prs);
   }
 
-  affected_row += FKDelete(txn, db_oid, table_oid, con_obj, table_scan_results);
+  affected_row += FKDelete(txn, db_oid, table_oid, con_obj, &table_scan_results);
 
   delete[] buffer;
   for (auto &pointer : buffer_vector) {
@@ -1178,7 +1175,7 @@ std::vector<storage::TupleSlot> DatabaseCatalog::FKScan(common::ManagedPointer<t
                                                         std::vector<storage::ProjectedRow *> *ref_pr_vector) {
   // scan for all possible rows
   std::vector<storage::TupleSlot> index_scan_results;
-  for (auto &ref_pr : ref_pr_vector) {
+  for (auto &ref_pr : *ref_pr_vector) {
     auto src_index = con_obj.fk_metadata_.consrcindid_;
     auto ref_table = con_obj.fk_metadata_.confrelid_;
     common::ManagedPointer<storage::index::Index> src_table_index = GetIndex(txn, src_index);
@@ -1204,7 +1201,7 @@ std::vector<storage::TupleSlot> DatabaseCatalog::FKScan(common::ManagedPointer<t
 
 int DatabaseCatalog::FKDelete(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
                               table_oid_t table_oid, const PGConstraint &con_obj,
-                              std::vector<storage::TupleSlot> fk_slots) {
+                              std::vector<storage::TupleSlot> *fk_slots) {
   int affected_row = 0;
 
   auto table = GetTable(txn, table_oid);
@@ -1216,7 +1213,7 @@ int DatabaseCatalog::FKDelete(common::ManagedPointer<transaction::TransactionCon
   }
 
   // for each row in the child table
-  for (auto &tuple_slot : fk_slots) {
+  for (auto &tuple_slot : *fk_slots) {
     auto table_pri = table->InitializerForProjectedRow(table_col_oids);
     auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
     auto *table_pr = table_pri.InitializeRow(table_buffer);

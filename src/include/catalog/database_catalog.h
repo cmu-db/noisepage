@@ -340,8 +340,7 @@ class DatabaseCatalog {
    */
   int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
                          table_oid_t table_oid, const PGConstraint &con_obj,
-                         std::vector<storage::ProjectedRow *> pr_vector, std::vector<col_oid_t> parent_col,
-                         std::vector<col_oid_t> child_col);
+                         std::vector<storage::ProjectedRow *> *pr_vector);
   /**
    * Scan for the given tuple slot to see if it exists in the child table
    * @param txn transaction
@@ -350,11 +349,11 @@ class DatabaseCatalog {
    * @param ref_pr_vector the vector of projected rows of parent's
    * @param affected_col_ref parent columns to be referenced
    * @param affected_col_src child columns that are referencing
- * @return the vector of tupleslots that matche the input key
- */
-  std::vector<storage::TupleSlot> FKScan(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
-                                                          const PGConstraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector,
-                                                          std::vector<col_oid_t> affected_col_ref, std::vector<col_oid_t> affected_col_src );
+   * @return the vector of tupleslots that matche the input key
+   */
+  std::vector<storage::TupleSlot> FKScan(common::ManagedPointer<transaction::TransactionContext> txn,
+                                         table_oid_t table_oid, const PGConstraint &con_obj,
+                                         std::vector<storage::ProjectedRow *> *ref_pr_vector);
 
   /**
    * Delete tuples from child table and index
@@ -366,7 +365,7 @@ class DatabaseCatalog {
    * @return the number of affected row
    */
   int FKDelete(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
-               const PGConstraint &con_obj, std::vector<storage::TupleSlot> fk_slots);
+               const PGConstraint &con_obj, std::vector<storage::TupleSlot> *fk_slots);
 
   /**
    * insert eh PK constraint when creating table according to the definition
