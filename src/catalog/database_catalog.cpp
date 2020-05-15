@@ -1050,7 +1050,7 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
                                table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
                                storage::TupleSlot table_tuple_slot,
                                storage::ProjectedRow *pr) {
-  if (!TryLock(txn)) return 0;
+  if (!TryLock(txn)) return -1;
   int affected_row = 0;
   // check if tuple is in the table
   auto table = GetTable(txn, table_oid);
@@ -1132,11 +1132,11 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
   std::vector<byte *> buffer_vector;
 
   std::vector<storage::ProjectedRow *> table_prs;
-  for (size_t i = 0; i < table_scan_results.size(); ++i) {
+  for (auto &slot: table_scan_results) {
     auto table_pri = table->InitializerForProjectedRow(table_col_oids);
     auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
     auto *table_pr = table_pri.InitializeRow(table_buffer);
-    bool result UNUSED_ATTRIBUTE = table->Select(txn, table_scan_results[i], table_pr);
+    bool result UNUSED_ATTRIBUTE = table->Select(txn, slot, table_pr);
     table_prs.push_back(table_pr);
     buffer_vector.push_back(table_buffer);
   }
@@ -1226,7 +1226,7 @@ int DatabaseCatalog::FKDelete(common::ManagedPointer<transaction::TransactionCon
       auto index_pri = index->GetProjectedRowInitializer();
       auto *const index_buffer = common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
       auto *key_pr = index_pri.InitializeRow(index_buffer);
-      std::vector<col_oid_t> index_cols = index_schema.GetIndexedColOids();
+      const std::vector<col_oid_t> &index_cols = index_schema.GetIndexedColOids();
       CopyColumnData(txn, table_pr, key_pr, index_cols, table_oid, index_oid, index);
 
       index->Delete(txn, *key_pr, tuple_slot);
