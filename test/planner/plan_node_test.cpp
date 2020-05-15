@@ -1,8 +1,11 @@
+#include <planner/plannodes/alter_plan_node.h>
+
 #include <memory>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/derived_value_expression.h"
@@ -83,6 +86,94 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
                      .Build();
     EXPECT_NE(*plan, *plan3);
     EXPECT_NE(plan->Hash(), plan3->Hash());
+  }
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeTest, AlterPlanTest) {
+  catalog::table_oid_t table_oid(3);
+
+  AlterPlanNode::Builder builder;
+  auto default_val = parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(999));
+  catalog::Schema::Column col("col1", type::TypeId::INTEGER, false, default_val);
+  catalog::Schema::Column col2("col1", type::TypeId::INTEGER, false, default_val);
+  catalog::Schema::Column col3("col3", type::TypeId::INTEGER, false, default_val);
+
+  // test correctness of add_cmd helpers
+  auto add_cmd = std::make_unique<AlterPlanNode::AddColumnCmd>(std::move(col), nullptr, nullptr, nullptr);
+
+  EXPECT_EQ(add_cmd->GetType(), parser::AlterTableStatement::AlterType::AddColumn);
+  EXPECT_EQ(add_cmd->GetColumn(), col);
+
+  // test that the equality check of add column works as intended
+  auto add_cmd2 = std::make_unique<AlterPlanNode::AddColumnCmd>(std::move(col2), nullptr, nullptr, nullptr);
+  EXPECT_EQ(*add_cmd, *add_cmd2);
+  auto add_cmd3 = std::make_unique<AlterPlanNode::AddColumnCmd>(std::move(col3), nullptr, nullptr, nullptr);
+  EXPECT_FALSE(*add_cmd == *add_cmd3);
+
+  // test correctness of drop_cmd helpers
+  auto drop_cmd = std::make_unique<AlterPlanNode::DropColumnCmd>("col", false, false, catalog::INVALID_COLUMN_OID);
+
+  EXPECT_EQ(drop_cmd->GetType(), parser::AlterTableStatement::AlterType::DropColumn);
+  EXPECT_EQ(drop_cmd->IsIfExist(), false);
+  EXPECT_EQ(drop_cmd->IsCascade(), false);
+
+  // test that the equality check of drop column works as intended
+  auto drop_cmd2 = std::make_unique<AlterPlanNode::DropColumnCmd>("col", false, false, catalog::INVALID_COLUMN_OID);
+  EXPECT_EQ(*drop_cmd, *drop_cmd2);
+
+  // Make different variations of the drop column and make sure that they ar enot equal to drop_cmd
+  auto drop_cmd3 = std::make_unique<AlterPlanNode::DropColumnCmd>("col3", false, false, catalog::INVALID_COLUMN_OID);
+  auto drop_cmd4 = std::make_unique<AlterPlanNode::DropColumnCmd>("col", true, false, catalog::INVALID_COLUMN_OID);
+  auto drop_cmd5 = std::make_unique<AlterPlanNode::DropColumnCmd>("col", false, true, catalog::INVALID_COLUMN_OID);
+  auto drop_cmd6 = std::make_unique<AlterPlanNode::DropColumnCmd>("col", false, false, catalog::col_oid_t(777));
+  EXPECT_FALSE(*drop_cmd == *drop_cmd3);
+  EXPECT_FALSE(*drop_cmd == *drop_cmd3);
+  EXPECT_FALSE(*drop_cmd == *drop_cmd4);
+  EXPECT_FALSE(*drop_cmd == *drop_cmd5);
+  EXPECT_FALSE(*drop_cmd == *drop_cmd6);
+
+  // test correctness of AlterPlanNode helpers
+  std::vector<std::unique_ptr<AlterCmdBase>> cmds;
+  cmds.push_back(std::move(add_cmd));
+  auto plan =
+      builder.SetTableOid(table_oid).SetCommands(std::move(cmds)).SetColumnOIDs({catalog::INVALID_COLUMN_OID}).Build();
+
+  EXPECT_TRUE(plan != nullptr);
+  EXPECT_EQ(plan->GetPlanNodeType(), PlanNodeType::ALTER);
+  EXPECT_EQ(plan->GetTableOid(), table_oid);
+  std::vector<catalog::col_oid_t> col_oids{catalog::INVALID_COLUMN_OID};
+  EXPECT_EQ(plan->GetColumnOids(), col_oids);
+
+  for (auto cmd : plan->GetCommands()) {
+    EXPECT_EQ(cmd->GetType(), parser::AlterTableStatement::AlterType::AddColumn);
+  }
+
+  // Make different variations of the plan node and make sure that it is not equal to the original plan
+  for (int i = 0; i < 3; i++) {
+    catalog::table_oid_t other_table_oid = table_oid;
+    std::vector<catalog::col_oid_t> other_col_oids{catalog::INVALID_COLUMN_OID};
+    std::vector<std::unique_ptr<AlterCmdBase>> other_cmds;
+    other_cmds.push_back(std::move(add_cmd2));
+    switch (i) {
+      case 0:
+        other_table_oid = catalog::table_oid_t(777);
+        break;
+      case 1:
+        other_col_oids[0] = catalog::col_oid_t(777);
+        break;
+      case 2:
+        other_cmds[0] = std::move(drop_cmd);
+        break;
+    }
+
+    AlterPlanNode::Builder builder2;
+    auto plan2 = builder2.SetTableOid(other_table_oid)
+                     .SetCommands(std::move(other_cmds))
+                     .SetColumnOIDs(std::move(other_col_oids))
+                     .Build();
+    EXPECT_NE(*plan, *plan2);
+    EXPECT_NE(plan->Hash(), plan2->Hash());
   }
 }
 
