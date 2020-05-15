@@ -1097,35 +1097,8 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
     const auto select_result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
     PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
-    if (cascade_type == catalog::postgres::FK_UPDATE) {
-      bool affected = false;
-      std::vector<col_oid_t> affected_col_ref;
-      std::vector<col_oid_t> affected_col_src;
-      std::vector<byte *> parent_ptrs;
-      for (auto &col_oid: col_oids) {
-        auto search_affected_col = std::find(child_con_obj.fk_metadata_.fk_refs_.begin(), child_con_obj.fk_metadata_.fk_refs_.end(), col_oid);
-        if (search_affected_col != child_con_obj.fk_metadata_.fk_refs_.end()) {
-          // child's ref column == updated column
-          affected = true;
-          affected_col_ref.push_back(col_oid);
-          int src_col_pos = search_affected_col - child_con_obj.fk_metadata_.fk_refs_.begin();
-          affected_col_src.push_back(child_con_obj.fk_metadata_.fk_srcs_[src_col_pos]);
-        }
-      }
-//      if (affected == true) {
-//        auto update_pri = table->InitializerForProjectedRow(col_oids);
-//        auto *const update_buffer = common::AllocationUtil::AllocateAligned(update_pri.ProjectedRowSize());
-//        auto *update_pr = update_pri.InitializeRow(update_buffer);
-//        bool update_result UNUSED_ATTRIBUTE = table->Select(txn, table_tuple_slot, update_pr);
-//        auto update_pr_pm = table->ProjectionMapForOids(affected_col_ref);
-//        for (auto &col_oid: affected_col_ref) {
-//          auto update_ptr = update_pr->AccessForceNotNull(update_pr_pm[table_col_oid]);
-//        }
-//        affected_row += FKCascadeRecursive(txn,db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_UPDATE, table_prs, affected_col_ref, affected_col_src, update_slots);
-//      }
-    } else if (cascade_type == catalog::postgres::FK_DELETE) {
       affected_row += FKCascadeRecursive(txn,db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_DELETE, table_prs, child_con_obj.fk_metadata_.fk_refs_,child_con_obj.fk_metadata_.fk_srcs_);
-    }
+
   }
   delete[] table_buffer;
   delete[] constraint_buffer;
@@ -1202,27 +1175,9 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
     const auto select_result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
     PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
-    if (cascade_type == catalog::postgres::FK_UPDATE) {
-      bool affected = false;
-      std::vector<col_oid_t> affected_col_ref;
-      std::vector<col_oid_t> affected_col_src;
-      for (auto &col_oid: child_col) {
-        auto search_affected_col = std::find(child_con_obj.fk_metadata_.fk_refs_.begin(), child_con_obj.fk_metadata_.fk_refs_.end(), col_oid);
-        if (search_affected_col != child_con_obj.fk_metadata_.fk_refs_.end()) {
-          // child's ref column == updated column
-          affected = true;
-          affected_col_ref.push_back(col_oid);
-          int src_col_pos = search_affected_col - child_con_obj.fk_metadata_.fk_refs_.begin();
-          affected_col_src.push_back(child_con_obj.fk_metadata_.fk_srcs_[src_col_pos]);
-        }
-      }
-      if (affected == true) {
-//        affected_row += FKCascadeRecursive(txn,db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_UPDATE, table_prs, affected_col_ref, affected_col_src);
-      }
-    } else if (cascade_type == catalog::postgres::FK_DELETE) {
 
-      affected_row += FKCascadeRecursive(txn,db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_DELETE, table_prs, child_con_obj.fk_metadata_.fk_refs_,child_con_obj.fk_metadata_.fk_srcs_);
-    }
+    affected_row += FKCascadeRecursive(txn,db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_DELETE, table_prs, child_con_obj.fk_metadata_.fk_refs_,child_con_obj.fk_metadata_.fk_srcs_);
+
 
   }
 
