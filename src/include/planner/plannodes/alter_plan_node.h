@@ -97,7 +97,6 @@ class AlterPlanNode : public AbstractPlanNode {
           con_unique_(std::move(con_unique)),
           con_check_(std::move(con_check)) {}
 
-    // TODO(SC)
     /**
      * @return  serialized AddColumnCmd
      */
@@ -118,7 +117,6 @@ class AlterPlanNode : public AbstractPlanNode {
      */
     const catalog::Schema::Column &GetColumn() const { return col_; }
 
-    // TODO(SC)
     /**
      *  Deserializes an AddColumnCmd
      * @param j serialized json of the AlterCmdBase
@@ -193,7 +191,6 @@ class AlterPlanNode : public AbstractPlanNode {
      * @return  serialized the command
      */
     nlohmann::json ToJson() const override {
-      // TODO(XC)
       nlohmann::json j;
       return j;
     }
@@ -205,7 +202,6 @@ class AlterPlanNode : public AbstractPlanNode {
       return parser::AlterTableStatement::AlterType::DropColumn;
     }
 
-    // TODO(XC)
     /**
      *  Deserializes an AddColumnCmd
      * @param j serialized json of the AlterCmdBase

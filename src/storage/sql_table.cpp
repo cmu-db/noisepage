@@ -8,8 +8,6 @@
 #include "parser/expression/constant_value_expression.h"
 #include "storage/storage_util.h"
 #include "type/transient_value_peeker.h"
-#include "type/type_util.h"
-#include "util/time_util.h"
 
 namespace terrier::storage {
 
@@ -35,16 +33,16 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
   }
 
   // the tuple exists in an older version.
-  col_id_t orig_header[out_buffer->NumColumns()];
+  std::vector<col_id_t> orig_header(out_buffer->NumColumns());
   AttrSizeMap size_map;
 
   auto desired_v = tables_.at(layout_version);
   DataTableVersion tuple_v = tables_.at(tuple_version);
-  auto missing_cols = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &orig_header[0], &size_map);
+  auto missing_cols = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, orig_header.data(), &size_map);
   auto result = tuple_v.data_table_->Select(txn, slot, out_buffer, &size_map);
 
   // copy back the original header
-  std::memcpy(out_buffer->ColumnIds(), orig_header, sizeof(col_id_t) * out_buffer->NumColumns());
+  std::memcpy(out_buffer->ColumnIds(), orig_header.data(), sizeof(col_id_t) * out_buffer->NumColumns());
 
   if (!missing_cols.empty()) {
     // fill in missing columns and default values
@@ -159,7 +157,7 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
     return;
   }
 
-  col_id_t orig_header[out_buffer->NumColumns()];
+  std::vector<col_id_t> orig_header(out_buffer->NumColumns());
   uint32_t filled = 0;
   auto desired_v = tables_.at(layout_version);
 
@@ -168,13 +166,13 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
     auto start_idx = filled;
     auto tuple_v = tables_.at(i);
     AttrSizeMap size_map;
-    auto missing_cols = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &orig_header[0], &size_map);
+    auto missing_cols = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, orig_header.data(), &size_map);
 
     if (i != tuple_version) *start_pos = tuple_v.data_table_->begin();
     tuple_v.data_table_->IncrementalScan(txn, start_pos, out_buffer, filled);
     filled = out_buffer->NumTuples();
     // copy back the original header
-    std::memcpy(out_buffer->ColumnIds(), orig_header, sizeof(col_id_t) * out_buffer->NumColumns());
+    std::memcpy(out_buffer->ColumnIds(), orig_header.data(), sizeof(col_id_t) * out_buffer->NumColumns());
 
     if (!missing_cols.empty()) {
       for (uint32_t idx = start_idx; idx < filled; idx++) {
@@ -183,68 +181,6 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
       }
     }
   }
-}
-
-// return false if it is null
-static bool PeekValue(const type::TransientValue &transient_val, byte *value_output) {
-  // Value output should be zero filled before calling
-  if (transient_val.Null()) {
-    // NullToSql(&expr) produces a NULL of expr's type.
-    return false;
-  }
-
-  switch (transient_val.Type()) {
-    case type::TypeId::BOOLEAN: {
-      auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
-      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
-      break;
-    }
-    case type::TypeId::TINYINT: {
-      auto val = type::TransientValuePeeker::PeekTinyInt(transient_val);
-      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
-      break;
-    }
-    case type::TypeId::SMALLINT: {
-      auto val = type::TransientValuePeeker::PeekSmallInt(transient_val);
-      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
-      break;
-    }
-    case type::TypeId::INTEGER: {
-      auto val = type::TransientValuePeeker::PeekInteger(transient_val);
-      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
-      break;
-    }
-    case type::TypeId::BIGINT: {
-      auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
-      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
-      break;
-    }
-    case type::TypeId::DATE: {
-      // TODO(Schema-Change): find a way to handle it without codegen
-      break;
-    }
-    case type::TypeId::TIMESTAMP: {
-      auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
-      auto julian_usec = util::TimeConvertor::ExtractJulianMicroseconds(val);
-      memcpy(value_output, &julian_usec, type::TypeUtil::GetTypeSize(transient_val.Type()));
-      break;
-    }
-    case type::TypeId::DECIMAL: {
-      auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
-      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
-      break;
-    }
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY: {
-      auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
-      memcpy(value_output, &val, val.size());
-      break;
-    }
-    default:
-      // TODO(Amadou): Add support for these types.
-      TERRIER_ASSERT(false, "Should not peek on given type!");
-  }
-  return true;
 }
 
 template <class RowType>
@@ -272,7 +208,7 @@ void SqlTable::FillMissingColumns(RowType *out_buffer,
       byte output[value_size];
       memset(output, 0, value_size);
 
-      if (PeekValue(default_const, &(output[0]))) {
+      if (type::TransientValuePeeker::PeekValue(default_const, &(output[0]))) {
         StorageUtil::CopyWithNullCheck(output, out_buffer, curr_version.schema_->GetColumn(it.second).AttrSize(),
                                        it.first);
         out_buffer->SetNotNull(it.first);
@@ -429,10 +365,7 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
     inverse_map[col_id] = col_oid;
   }
 
-  // for (uint16_t i = 0; i < col_oids.size(); i++) inverse_map[col_ids[i]] = col_oids[i];
-
   // Populate the projection map with oids using the in-order iterator on std::map
-  // TODO(Schema-Change): Does this actually retain ordering?
   ProjectionMap projection_map;
   uint16_t i = 0;
   for (auto &iter : inverse_map) projection_map[iter.second] = i++;
@@ -441,9 +374,6 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
 }
 
 catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id, layout_version_t layout_version) const {
-  //  const auto oid_to_id = std::find_if(table_.column_map_.cbegin(), table_.column_map_.cend(),
-  //                                      [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });
-  //  return oid_to_id->first;
   return tables_.at(layout_version).column_id_to_oid_map_.at(col_id);
 }
 

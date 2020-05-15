@@ -509,12 +509,10 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<p
   OPTIMIZER_LOG_DEBUG("Transforming Transaction to operators ...");
 }
 
-// TODO(SC)
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::AlterTableStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming AlterTable to operators ...");
   std::unique_ptr<OperatorNode> alter_expr;
 
-  // TODO(SC): what are the things needed? is db_oid needed?
   std::vector<common::ManagedPointer<const parser::AlterTableStatement::AlterTableCmd>> cmd_refs;
   auto &cmds = op->GetAlterTableCmds();
   cmd_refs.reserve(cmds.size());
@@ -522,7 +520,8 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<p
 
   alter_expr = std::make_unique<OperatorNode>(
       LogicalAlter::Make(accessor_->GetTableOid(op->GetTableName()), std::move(cmd_refs), op->GetColOids()),
-      std::vector<std::unique_ptr<OperatorNode>>{});  // TODO(SC): FKs ?
+      std::vector<std::unique_ptr<OperatorNode>>{});
+  // TODO(XC): handle FKs once constrains supported
 
   output_expr_ = std::move(alter_expr);
 }

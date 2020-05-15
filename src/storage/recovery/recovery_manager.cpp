@@ -166,7 +166,6 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
 
     bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(common::ManagedPointer(txn), staged_record);
     TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
-    // TODO(Schema-Change): deal with the case in which tupleslot is migrated
   }
 }
 
@@ -564,7 +563,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
     // Updates to pg_class will happen in the following 3 cases:
     //  1. If we update the next col oid. In this case, we don't need to do anything special, just apply the update
-    //  2. If we update the schema column, we need to check if this a DDL change (add/drop column).
+    //  2. If we update the schema column, we need to check if this a DDL change (add/drop column), and it also might a
+    //  reset of the schema pointer
     //  3. If we update the ptr column, this means we've inserted a new object and we need to recreate the object, and
     //  set the pointer again.
     auto pg_class_ptr = db_catalog->classes_;
@@ -595,7 +595,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             pr->AccessWithNullCheck(pr_map[catalog::postgres::RELKIND_COL_OID])));
 
         if (redo_record_oids.size() > 1) {  // DDL changes: Updated layout_version + schema
-          TERRIER_ASSERT(redo_record_oids.size() == 2, "Updating layout_version and schema");
+          TERRIER_ASSERT(redo_record_oids.size() == 2, "Updating layout_version and schema should have 2 attributes");
           TERRIER_ASSERT(redo_record_oids[1] == catalog::postgres::REL_VERS_COL_OID,
                          "The second oid should be layout version");
           TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE,
@@ -607,7 +607,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
           // Step 3: get the schema pointer
           auto *schema_ptr = reinterpret_cast<catalog::Schema *>(
-              db_catalog->GetSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
+              db_catalog->GetPGSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
 
           // Step 4: Replay the update
           *(reinterpret_cast<catalog::Schema **>(redo_record->Delta()->AccessForceNotNull(0))) = schema_ptr;
@@ -623,7 +623,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             case catalog::postgres::ClassKind::REGULAR_TABLE: {
               // Step 3: update the schema pointer in pg_classes entry
               const auto *schema_ptr = reinterpret_cast<const catalog::Schema *>(
-                  db_catalog->GetSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
+                  db_catalog->GetPGSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
               db_catalog->SetTableSchemaPointer(common::ManagedPointer(txn), catalog::table_oid_t(class_oid),
                                                 schema_ptr);
 
@@ -638,7 +638,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             case catalog::postgres::ClassKind::INDEX: {
               // Step 3: update the schema pointer in pg_classes entry
               const auto *schema_ptr = reinterpret_cast<const catalog::IndexSchema *>(
-                  db_catalog->GetSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
+                  db_catalog->GetPGSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
               db_catalog->SetIndexSchemaPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid),
                                                 schema_ptr);
               break;
@@ -671,7 +671,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             // Step 2: Get the schema which should have already been built in the pg_schemas table
             auto layout_version = db_catalog->GetLayoutVersion(common::ManagedPointer(txn), class_oid);
             const auto *table_schema_ptr = reinterpret_cast<const catalog::Schema *>(
-                db_catalog->GetSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
+                db_catalog->GetPGSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
 
             // Step 3: Create and set table pointers in catalog
             storage::SqlTable *sql_table;
@@ -696,7 +696,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             // Step 2: Get the indexschema from pg_schemas which should have already been created
             auto layout_version = db_catalog->GetLayoutVersion(common::ManagedPointer(txn), class_oid);
             const auto *index_schema_ptr = reinterpret_cast<const catalog::IndexSchema *>(
-                db_catalog->GetSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
+                db_catalog->GetPGSchemaEntry(common::ManagedPointer(txn), class_oid, layout_version, nullptr));
 
             // Step 3: set index pointer in catalog
             storage::index::Index *index;
@@ -817,13 +817,13 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   switch (class_kind) {
     case (catalog::postgres::ClassKind::REGULAR_TABLE): {
       result = db_catalog_ptr->DeleteTable(common::ManagedPointer(txn), catalog::table_oid_t(class_oid));
-      auto pointers = db_catalog_ptr->DeleteSchemaEntries(common::ManagedPointer(txn), class_oid, layout_version);
+      auto pointers = db_catalog_ptr->DeletePGSchemaEntries(common::ManagedPointer(txn), class_oid, layout_version);
       for (auto *ptr : pointers) delete reinterpret_cast<catalog::Schema *>(ptr);
       break;
     }
     case (catalog::postgres::ClassKind::INDEX): {
       result = db_catalog_ptr->DeleteIndex(common::ManagedPointer(txn), catalog::index_oid_t(class_oid));
-      auto pointers = db_catalog_ptr->DeleteSchemaEntries(common::ManagedPointer(txn), class_oid, layout_version);
+      auto pointers = db_catalog_ptr->DeletePGSchemaEntries(common::ManagedPointer(txn), class_oid, layout_version);
       for (auto *ptr : pointers) delete reinterpret_cast<catalog::IndexSchema *>(ptr);
       break;
     }
@@ -1093,7 +1093,6 @@ uint32_t RecoveryManager::ProcessSpecialCasePGSchemaRecord(
         pg_indexes_index->ScanKey(*txn, *pr, &tuple_slot_result);
         TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should yield one result");
 
-        // NOLINTNEXTLINE
         col_oids.clear();
         col_oids = {catalog::postgres::INDISUNIQUE_COL_OID, catalog::postgres::INDISPRIMARY_COL_OID,
                     catalog::postgres::INDISEXCLUSION_COL_OID, catalog::postgres::INDIMMEDIATE_COL_OID,

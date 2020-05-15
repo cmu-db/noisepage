@@ -807,7 +807,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
 
   std::vector<storage::TupleSlot> slots;
-  const auto schema_ptrs = DeleteSchemaEntries(txn, static_cast<uint32_t>(table_oid), layout_version);
+  const auto schema_ptrs = DeletePGSchemaEntries(txn, static_cast<uint32_t>(table_oid), layout_version);
 
   auto *const table_ptr = *(reinterpret_cast<storage::SqlTable *const *const>(
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID])));
@@ -1052,7 +1052,7 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
   delete[] buffer_ptr;
 
   // Insert the new schema pointer
-  if (!AddSchemaEntry(txn, static_cast<uint32_t>(table), new_schema_unmanaged, cur_layout_version + 1)) {
+  if (!AddPGSchemaEntry(txn, static_cast<uint32_t>(table), new_schema_unmanaged, cur_layout_version + 1)) {
     return false;
   }
 
@@ -1182,7 +1182,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   auto layout_version = *(reinterpret_cast<const storage::layout_version_t *>(
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_VERS_COL_OID])));
-  const auto schema_ptrs = DeleteSchemaEntries(txn, static_cast<uint32_t>(index), layout_version);
+  const auto schema_ptrs = DeletePGSchemaEntries(txn, static_cast<uint32_t>(index), layout_version);
 
   auto *const index_ptr = *(reinterpret_cast<storage::index::Index *const *const>(
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID])));
@@ -1510,7 +1510,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
       // Add schema pointers
       auto version_high = versions[i];
       for (auto version = storage::layout_version_t(0); version <= version_high; ++version) {
-        const auto *ptr = GetSchemaEntry(txn, oids[i], version, nullptr);
+        const auto *ptr = GetPGSchemaEntry(txn, oids[i], version, nullptr);
         // Rollbacked pointers no need to free
         if (ptr == nullptr) continue;
         switch (classes[i]) {
@@ -1762,7 +1762,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
   // Add to pg_schema
-  if (!AddSchemaEntry(txn, static_cast<uint32_t>(index_oid), new_schema, 0)) {
+  if (!AddPGSchemaEntry(txn, static_cast<uint32_t>(index_oid), new_schema, 0)) {
     return false;
   }
 
@@ -1773,7 +1773,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   update_redo->SetTupleSlot(class_tuple_slot);
   *reinterpret_cast<IndexSchema **>(update_pr->AccessForceNotNull(0)) = new_schema;
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
-  TERRIER_ASSERT(res, "Updating an uncomitted insert should not fail");
+  TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
 
   return true;
 }
@@ -2167,7 +2167,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
   // Inserting the new schema
-  if (!AddSchemaEntry(txn, static_cast<uint32_t>(table_oid), new_schema, storage::layout_version_t(0))) {
+  if (!AddPGSchemaEntry(txn, static_cast<uint32_t>(table_oid), new_schema, storage::layout_version_t(0))) {
     return false;
   }
 
@@ -2178,7 +2178,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   update_redo->SetTupleSlot(tuple_slot);
   *reinterpret_cast<Schema **>(update_pr->AccessForceNotNull(0)) = new_schema;
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
-  TERRIER_ASSERT(res, "Updating an uncomitted insert should not fail");
+  TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
 
   return true;
 }
@@ -2804,8 +2804,8 @@ bool DatabaseCatalog::DropColumn(common::ManagedPointer<transaction::Transaction
   return true;
 }
 
-void *DatabaseCatalog::GetSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
-                                      storage::layout_version_t layout_version, storage::TupleSlot *slot) {
+void *DatabaseCatalog::GetPGSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                                        storage::layout_version_t layout_version, storage::TupleSlot *slot) {
   // Read the index
   const auto schema_oid_pri = schemas_oid_vers_index_->GetProjectedRowInitializer();
   auto *const buffer = common::AllocationUtil::AllocateAligned(
@@ -2845,8 +2845,8 @@ void *DatabaseCatalog::GetSchemaEntry(common::ManagedPointer<transaction::Transa
   return ptr;
 }
 
-bool DatabaseCatalog::AddSchemaEntry(const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
-                                     const void *new_schema, storage::layout_version_t layout_version) {
+bool DatabaseCatalog::AddPGSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                                       const void *new_schema, storage::layout_version_t layout_version) {
   auto *const insert_schema_redo = txn->StageWrite(db_oid_, postgres::SCHEMA_TABLE_OID, pg_schemas_all_cols_pri_);
   auto *const insert_schema_pr = insert_schema_redo->Delta();
 
@@ -2879,9 +2879,8 @@ bool DatabaseCatalog::AddSchemaEntry(const common::ManagedPointer<transaction::T
   return true;
 }
 
-std::vector<void *> DatabaseCatalog::DeleteSchemaEntries(
-    const common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
-    storage::layout_version_t version_high) {
+std::vector<void *> DatabaseCatalog::DeletePGSchemaEntries(common::ManagedPointer<transaction::TransactionContext> txn,
+                                                           uint32_t oid, storage::layout_version_t version_high) {
   std::vector<storage::TupleSlot> results;
   std::vector<void *> ptrs;
 
@@ -2889,7 +2888,7 @@ std::vector<void *> DatabaseCatalog::DeleteSchemaEntries(
   // since there are only a few versions and getting a range of versions is not the most dominant operations
   for (auto version = storage::layout_version_t(0); version <= version_high; version++) {
     storage::TupleSlot temp_slot;
-    auto schema_ptr = GetSchemaEntry(txn, oid, version, &temp_slot);
+    auto schema_ptr = GetPGSchemaEntry(txn, oid, version, &temp_slot);
     if (schema_ptr != nullptr) {
       ptrs.push_back(schema_ptr);
       results.push_back(temp_slot);
@@ -2901,8 +2900,7 @@ std::vector<void *> DatabaseCatalog::DeleteSchemaEntries(
     txn->StageDelete(db_oid_, postgres::SCHEMA_TABLE_OID, tuple);
     auto result UNUSED_ATTRIBUTE = schemas_->Delete(txn, tuple);
     TERRIER_ASSERT(
-        result,
-        "Deletion on the schema pointer should not fail as no write-write conflict should be caught before hand");
+        result, "Deletion on the schema pointer should not fail as write-write conflict should be caught before hand");
   }
 
   // Delete index entries
@@ -2910,6 +2908,7 @@ std::vector<void *> DatabaseCatalog::DeleteSchemaEntries(
   auto *const key_buffer = common::AllocationUtil::AllocateAligned(schema_oid_pri.ProjectedRowSize());
   for (uint8_t i = 0; i < results.size(); i++) {
     auto *index_pr = schema_oid_pri.InitializeRow(key_buffer);
+    // Oid first since it has a size larger than the layout_version_t
     *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = oid;
     *(reinterpret_cast<storage::layout_version_t *>(index_pr->AccessForceNotNull(1))) = storage::layout_version_t(i);
 

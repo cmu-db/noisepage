@@ -950,7 +950,7 @@ void PlanGenerator::Visit(const AlterTable *alter) {
       } break;
       default:
         // the other types of alter table commands are not implemented
-        TERRIER_ASSERT(false, "Not implemented");
+        TERRIER_ASSERT(false, "only add and drop columns are implemented.");
     }
   }
 

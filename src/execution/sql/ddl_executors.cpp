@@ -189,7 +189,7 @@ bool DDLExecutors::AlterTableExecutor(const common::ManagedPointer<planner::Alte
       } break;
       default:
         // other alter table command types are not implemented
-        TERRIER_ASSERT(false, "not implemented");
+        TERRIER_ASSERT(false, "only adding column and dropping columns are implemented");
     }
   }
 

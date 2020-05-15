@@ -152,7 +152,7 @@ class RandomSqlTableTestObject {
       delete[] buffer;
     }
     for (auto &txn : txns_) {
-      txn->redo_buffer_.Finalize(false);
+      if (txn != nullptr) txn->redo_buffer_.Finalize(false);
     }
   }
 

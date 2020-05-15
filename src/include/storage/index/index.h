@@ -169,6 +169,11 @@ class Index {
    * @return IndexKeyKind selected by the IndexBuilder at index construction
    */
   IndexKeyKind KeyKind() const { return metadata_.KeyKind(); }
+
+  /**
+   * @return IndexSchema of the index
+   */
+  const catalog::IndexSchema &Schema() const { return metadata_.GetSchema(); }
 };
 
 }  // namespace terrier::storage::index

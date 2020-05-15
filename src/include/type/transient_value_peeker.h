@@ -2,6 +2,7 @@
 
 #include "type/transient_value.h"
 #include "type/type_id.h"
+#include "util/time_util.h"
 
 namespace terrier::type {
 
@@ -124,6 +125,73 @@ class TransientValuePeeker {
     uint32_t length = *reinterpret_cast<const uint32_t *>(varchar);
     const auto *ptr = varchar + sizeof(uint32_t);
     return std::string_view(ptr, length);
+  }
+
+  /**
+   * Convienient function that peaks the TransientValue's underlying value
+   * @param transient_val
+   * @param value_output
+   * @return true if not null
+   */
+  static bool PeekValue(const type::TransientValue &transient_val, byte *value_output) {
+    // Value output should be zero filled before calling
+    if (transient_val.Null()) {
+      // NullToSql(&expr) produces a NULL of expr's type.
+      return false;
+    }
+
+    switch (transient_val.Type()) {
+      case type::TypeId::BOOLEAN: {
+        auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
+        memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+        break;
+      }
+      case type::TypeId::TINYINT: {
+        auto val = type::TransientValuePeeker::PeekTinyInt(transient_val);
+        memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+        break;
+      }
+      case type::TypeId::SMALLINT: {
+        auto val = type::TransientValuePeeker::PeekSmallInt(transient_val);
+        memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+        break;
+      }
+      case type::TypeId::INTEGER: {
+        auto val = type::TransientValuePeeker::PeekInteger(transient_val);
+        memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+        break;
+      }
+      case type::TypeId::BIGINT: {
+        auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
+        memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+        break;
+      }
+      case type::TypeId::DATE: {
+        // TODO(Schema-Change): find a way to handle it without codegen
+        break;
+      }
+      case type::TypeId::TIMESTAMP: {
+        auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
+        auto julian_usec = util::TimeConvertor::ExtractJulianMicroseconds(val);
+        memcpy(value_output, &julian_usec, type::TypeUtil::GetTypeSize(transient_val.Type()));
+        break;
+      }
+      case type::TypeId::DECIMAL: {
+        auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
+        memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+        break;
+      }
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY: {
+        auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
+        memcpy(value_output, &val, val.size());
+        break;
+      }
+      default:
+        // TODO(Amadou): Add support for these types.
+        TERRIER_ASSERT(false, "Should not peek on given type!");
+    }
+    return true;
   }
 };
 

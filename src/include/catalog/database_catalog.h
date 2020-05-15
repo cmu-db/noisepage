@@ -716,6 +716,17 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid);
 
   /**
+   * Sets a table's schema in pg_class
+   * @warning Should only be used by recovery
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param schema object schema to insert
+   * @return true if succesfull
+   */
+  bool SetTableSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t oid,
+                             const Schema *schema);
+
+  /**
    * Sets an index's schema in pg_class
    * @warning Should only be used by recovery
    * @param txn transaction to query
@@ -726,16 +737,6 @@ class DatabaseCatalog {
   bool SetIndexSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t oid,
                              const IndexSchema *schema);
 
-  /**
-   * Sets an table's schema in pg_class
-   * @warning Should only be used by recovery
-   * @param txn transaction to query
-   * @param oid oid to object
-   * @param schema object schema to insert
-   * @return true if succesfull
-   */
-  bool SetTableSchemaPointer(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t oid,
-                             const Schema *schema);
   /**
    * Inserts a provided pointer into a given pg_class column. Can be used for class object and schema pointers
    * Helper method since SetIndexPointer/SetTablePointer and SetIndexSchemaPointer/SetTableSchemaPointer
@@ -780,8 +781,8 @@ class DatabaseCatalog {
    * @param layout_version  layout version of the schema
    * @return true if insertion to pg_schema succeeds
    */
-  bool AddSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid, void const *new_schema,
-                      storage::layout_version_t layout_version);
+  bool AddPGSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                        void const *new_schema, storage::layout_version_t layout_version);
 
   /**
    * Get the schema pointers for a range of layout_versions
@@ -791,8 +792,8 @@ class DatabaseCatalog {
    * @param slot slot in the pg_schema to be filled
    * @return schema pointers (index or table)
    */
-  void *GetSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
-                       storage::layout_version_t layout_version, storage::TupleSlot *slot);
+  void *GetPGSchemaEntry(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                         storage::layout_version_t layout_version, storage::TupleSlot *slot);
 
   /**
    * Delete all the schema entries with layout version no greater than version_high
@@ -801,7 +802,7 @@ class DatabaseCatalog {
    * @param version_high upper bound of the version (inclusive)
    * @return schema poineters to be freed
    */
-  std::vector<void *> DeleteSchemaEntries(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
-                                          storage::layout_version_t version_high);
+  std::vector<void *> DeletePGSchemaEntries(common::ManagedPointer<transaction::TransactionContext> txn, uint32_t oid,
+                                            storage::layout_version_t version_high);
 };
 }  // namespace terrier::catalog

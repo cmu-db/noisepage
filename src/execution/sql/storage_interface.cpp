@@ -68,14 +68,16 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   bool res = table_->Update(exec_ctx_->GetTxn(), table_redo_, exec_ctx_->GetAccessor()->GetLayoutVersion(table_oid_),
                             &updated_slot);
 
-  // TODO(Schema-Change): if migration occurs, tupleslot changed, so delete old tupleslot from index and add new
-  // tupleslot to index
+  // If migration happens, updating the index as well by first delete and then insert the index entry
   if (updated_slot != table_tuple_slot) {
     table_redo_->SetTupleSlot(updated_slot);
     if (need_indexes_) {
       IndexDelete(table_tuple_slot);
-      // TODO(Schema-Change): is this insert or insertunique?
-      IndexInsert();
+      if (curr_index_->Schema().Unique()) {
+        res = IndexInsertUnique();
+      } else {
+        res = IndexInsert();
+      }
     }
   }
   return res;

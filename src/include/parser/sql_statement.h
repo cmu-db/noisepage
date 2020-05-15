@@ -398,9 +398,6 @@ struct ColumnDefinition {
       case DataType::BOOLEAN:
         return type::TypeId::BOOLEAN;
 
-        // case ADDRESS:
-        //  return type::Type::ADDRESS;
-
       case DataType::TIMESTAMP:
         return type::TypeId::TIMESTAMP;
 

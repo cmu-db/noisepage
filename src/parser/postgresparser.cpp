@@ -1666,7 +1666,6 @@ std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(ParseResult *pa
 }
 
 // Postgres.AlterTableStmt -> terrier.AlterTableStatement
-// TODO(SC)
 std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseResult *parse_result,
                                                                          AlterTableStmt *root) {
   // Parse Table Info
@@ -1687,11 +1686,12 @@ std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseRe
     std::unique_ptr<ColumnDefinition> col_def;
 
     switch (cmd->subtype_) {
-      case AT_AddColumn:
+      case AT_AddColumn: {
         col_def = ColumnDefTransform(parse_result, reinterpret_cast<ColumnDef *>(cmd->def_)).col_;
         col_name = col_def->GetColumnName();
         cmds.emplace_back(std::move(col_def), std::move(col_name), cmd->missing_ok_);
         break;
+      }
       case AT_ColumnDefault: {
         std::unique_ptr<AbstractExpression> expr;
         if (cmd->def_ != nullptr) {
@@ -1707,25 +1707,22 @@ std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseRe
         cmds.emplace_back(col_name, default_val, cmd->behavior_ == DropBehavior::DROP_CASCADE);
         break;
       }
-      case AT_DropColumn:
+      case AT_DropColumn: {
         col_name = std::string(cmd->name_);
         cmds.emplace_back(col_name, cmd->missing_ok_, cmd->behavior_ == DropBehavior::DROP_CASCADE);
         break;
-      case AT_AlterColumnType:
-        // FIXME(xc): why cmd->def->colname_ might be 0x0 here???
-        // TODO(Ling): should we, for changing type, save only the col_name and the new type in the command .
-        {
-          auto raw_def = reinterpret_cast<ColumnDef *>(cmd->def_);
-          if (raw_def->colname_ == nullptr) raw_def->colname_ = cmd->name_;
-          col_def = ColumnDefTransform(parse_result, raw_def).col_;
-          col_name = col_def->GetColumnName();
-          cmds.emplace_back(std::move(col_def), std::move(col_name));
-        }
+      }
+      case AT_AlterColumnType: {
+        auto raw_def = reinterpret_cast<ColumnDef *>(cmd->def_);
+        if (raw_def->colname_ == nullptr) raw_def->colname_ = cmd->name_;
+        col_def = ColumnDefTransform(parse_result, raw_def).col_;
+        col_name = col_def->GetColumnName();
+        cmds.emplace_back(std::move(col_def), std::move(col_name));
         break;
+      }
       default:
         PARSER_LOG_AND_THROW("AlterTableTransform", "Action type", cmd->subtype_);
     }
-    // TODO(SC) parse name, behaviour, newowner?
   }
   auto result = std::make_unique<AlterTableStatement>(std::move(table_info), std::move(cmds), root->missing_ok_);
   return result;

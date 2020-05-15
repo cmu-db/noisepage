@@ -968,7 +968,6 @@ LogicalAlterToPhysicalAlter::LogicalAlterToPhysicalAlter() {
 }
 
 bool LogicalAlterToPhysicalAlter::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
-  // Checking the oid and the cmd size here?
   auto logical_op = plan->GetOp().As<LogicalAlter>();
 
   if (logical_op->GetCommands().empty()) return false;
