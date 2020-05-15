@@ -1172,13 +1172,17 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
   for (const auto &col : table_schema.GetColumns()) {
     table_col_oids.push_back(col.Oid());
   }
+  std::vector<byte *> buffer_vector;
+
   std::vector<storage::ProjectedRow *> table_prs;
-  for (auto &slot : table_scan_results) {
+  for (size_t i = 0; i < table_scan_results.size(); ++i) {
     auto table_pri = table->InitializerForProjectedRow(table_col_oids);
     auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
     auto *table_pr = table_pri.InitializeRow(table_buffer);
-    bool result UNUSED_ATTRIBUTE = table->Select(txn, slot, table_pr);
+    bool result UNUSED_ATTRIBUTE = table->Select(txn, table_scan_results[i], table_pr);
     table_prs.push_back(table_pr);
+    buffer_vector.push_back(table_buffer);
+
   }
 
 
@@ -1215,39 +1219,17 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
 
   }
 
-  // now update current table
-  if (cascade_type == catalog::postgres::FK_UPDATE) {
-//    auto parent_table = GetTable(txn, con_obj.fkMetadata_.confrelid_);
-//    auto parent_table_pri = parent_table->InitializerForProjectedRow(parent_col);
-//    auto *const parent_buffer = common::AllocationUtil::AllocateAligned(parent_table_pri.ProjectedRowSize());
-//    auto *table_pr = parent_table_pri.InitializeRow(parent_buffer);
-//    bool result UNUSED_ATTRIBUTE = table->Select(txn, tuple_slot, table_pr);
-//    TERRIER_ASSERT(result, "verifying a updated tuple slot should always exists in the table");
-//    // for each update slot
-//    for (auto &slot: table_scan_results) {
-//      auto table_pri = table->InitializerForProjectedRow(child_col);
-//      auto *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
-//      auto *table_pr = table_pri.InitializeRow(buffer);
-//      bool result UNUSED_ATTRIBUTE = table->Select(txn, slot, table_pr);
-//      TERRIER_ASSERT(result, "verifying a updated tuple slot should always exists in the table");
-//      storage::ProjectionMap update_pr_pm = table->ProjectionMapForOids(child_col);
-//      for (size_t j = 0; j < child_col.size(); j++) {
-//        table_ptr = table_pr->AccessForceNotNull(update_pr_pm[child_col[j]]);
-//
-//      }
-//
-//
-//
-//      affected_row += FKUpdate(txn, db_oid, table_oid, con_obj, table_scan_results, update_slots);
-//    }
 
-  } else if (cascade_type == catalog::postgres::FK_DELETE) {
     affected_row += FKDelete(txn, db_oid, table_oid, con_obj, table_scan_results);
-  }
+
 
   //TODO: delete table_buffer
 
   delete[] buffer;
+  for (auto &pointer: buffer_vector) {
+    delete[] pointer;
+
+  }
   return affected_row;
 
 
@@ -1282,54 +1264,54 @@ std::vector<storage::TupleSlot> DatabaseCatalog::FKScan(common::ManagedPointer<t
 
   return index_scan_results;
 }
-int DatabaseCatalog::FKUpdate(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
-                              const PGConstraint &con_obj, std::vector<storage::TupleSlot> fk_slots, std::vector<storage::TupleSlot> update_slot) {
-  int affected_row = 0;
+//int DatabaseCatalog::FKUpdate(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
+//                              const PGConstraint &con_obj, std::vector<storage::TupleSlot> fk_slots, std::vector<storage::TupleSlot> update_slot) {
+//  int affected_row = 0;
+////
+////  auto table = GetTable(txn, table_oid);
+////  const auto table_schema = GetSchema(txn, table_oid);
+////  std::vector<col_oid_t> table_col_oids;
+////  table_col_oids.reserve(table_schema.GetColumns().size());
+////  for (const auto &col : table_schema.GetColumns()) {
+////    table_col_oids.push_back(col.Oid());
+////  }
+////
+////  // for each row in the child table
+////  for (auto &tuple_slot : fk_slots) {
+////    auto table_pri = table->InitializerForProjectedRow(table_col_oids);
+////    auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+////    auto *table_pr = table_pri.InitializeRow(table_buffer);
+////    bool result UNUSED_ATTRIBUTE = table->Select(txn, tuple_slot, table_pr);
+////    TERRIER_ASSERT(result, "verifying a deleted tuple slot should always exists in the table");
+////
+////    // update table
+////    storage::RedoRecord *table_redo_{nullptr};
+////    table_redo_->SetTupleSlot(update_slot);
+////    //  UpdateCascade(table_tuple_slot);
+////    table->Update(txn, table_redo_);
+////    affected_row++;
+////
+////    //delete from index
+////    std::vector<index_oid_t> indices_oid = GetIndexOids(txn, table_oid);
+////    for(auto &index_oid : indices_oid) {
+////      auto index = GetIndex(txn, index_oid);
+////      auto index_schema = GetIndexSchema(txn, index_oid);
+////      auto index_pri = index->GetProjectedRowInitializer();
+////      auto *const index_buffer = common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
+////      auto *key_pr = index_pri.InitializeRow(index_buffer);
+////      std::vector<col_oid_t> index_cols = index_schema.GetIndexedColOids();
+////      CopyColumnData(txn, table_pr, key_pr, index_cols, table_oid, index_oid, index);
+////
+////      index->Delete(txn, *key_pr, tuple_slot);
+////      index->Insert(txn, *key_pr, update_slot);
+////      delete[] index_buffer;
+////    }
+////    delete[] table_buffer;
+////  }
 //
-//  auto table = GetTable(txn, table_oid);
-//  const auto table_schema = GetSchema(txn, table_oid);
-//  std::vector<col_oid_t> table_col_oids;
-//  table_col_oids.reserve(table_schema.GetColumns().size());
-//  for (const auto &col : table_schema.GetColumns()) {
-//    table_col_oids.push_back(col.Oid());
-//  }
+//  return affected_row;
 //
-//  // for each row in the child table
-//  for (auto &tuple_slot : fk_slots) {
-//    auto table_pri = table->InitializerForProjectedRow(table_col_oids);
-//    auto *const table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
-//    auto *table_pr = table_pri.InitializeRow(table_buffer);
-//    bool result UNUSED_ATTRIBUTE = table->Select(txn, tuple_slot, table_pr);
-//    TERRIER_ASSERT(result, "verifying a deleted tuple slot should always exists in the table");
-//
-//    // update table
-//    storage::RedoRecord *table_redo_{nullptr};
-//    table_redo_->SetTupleSlot(update_slot);
-//    //  UpdateCascade(table_tuple_slot);
-//    table->Update(txn, table_redo_);
-//    affected_row++;
-//
-//    //delete from index
-//    std::vector<index_oid_t> indices_oid = GetIndexOids(txn, table_oid);
-//    for(auto &index_oid : indices_oid) {
-//      auto index = GetIndex(txn, index_oid);
-//      auto index_schema = GetIndexSchema(txn, index_oid);
-//      auto index_pri = index->GetProjectedRowInitializer();
-//      auto *const index_buffer = common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
-//      auto *key_pr = index_pri.InitializeRow(index_buffer);
-//      std::vector<col_oid_t> index_cols = index_schema.GetIndexedColOids();
-//      CopyColumnData(txn, table_pr, key_pr, index_cols, table_oid, index_oid, index);
-//
-//      index->Delete(txn, *key_pr, tuple_slot);
-//      index->Insert(txn, *key_pr, update_slot);
-//      delete[] index_buffer;
-//    }
-//    delete[] table_buffer;
-//  }
-
-  return affected_row;
-
-}
+//}
 
 
 
