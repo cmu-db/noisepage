@@ -297,17 +297,26 @@ class DatabaseCatalog {
   /**
  * Perform Delete Cascade given the tuple slot
  * @param txn transaction
-   * @param db_oid the table_oid inserted assume table exists
+   * @param db_oid the db oid for current db
  * @param table_oid the table_oid inserted assume table exists
- * @param col_oids the columns that is being updated
- * @param update_pr the projected row carry the data to be updated
+ * @param col_oids the columns that is being operated
  * @param tuple_slot tupleslot location where the update applies to the table
- * @return true if constraint check passed
+    * @param update_pr the projected row carry the data to be updated
+ * @return the number of affected row
  */
   int FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, db_oid_t db_oid, table_oid_t table,
                 const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot, const char cascade_type, storage::ProjectedRow *pr);
 
-
+  /**
+ * Recursively scan through table to perform FK Cascade
+ * @param txn transaction
+   * @param db_oid the db oid for current db
+ * @param table_oid the table_oid inserted assume table exists
+ * @param con_obj
+ * @param tuple_slot tupleslot location where the update applies to the table
+    * @param update_pr the projected row carry the data to be updated
+ * @return the number of affected row
+ */
   int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
                                           table_oid_t table_oid, const PGConstraint &con_obj, const char cascade_type,
                                           std::vector<storage::ProjectedRow *> pr_vector, std::vector<col_oid_t> parent_col,

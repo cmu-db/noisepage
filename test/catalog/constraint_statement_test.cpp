@@ -55,7 +55,7 @@ class ConstraintStatementTest : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(ConstraintStatementTest, BasicTableCreationTest) {
   try {
-    pqxx::connection connection(fmt::format("host=127.0.0.1 port={15721} user={1} sslmode=disable application_name=psql",
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
 
     std::cerr << "BasicTableCreationTest\n";
