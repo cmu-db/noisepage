@@ -274,7 +274,8 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNode) {
 
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_),
+          accessor_->GetTransactionContext()));
 
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
@@ -306,7 +307,8 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeAbort) {
                                .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_),
+      accessor_->GetTransactionContext()));
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   auto index_ptr = accessor_->GetIndex(index_oid);
@@ -337,14 +339,16 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
                                .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_),
+      accessor_->GetTransactionContext()));
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   auto index_ptr = accessor_->GetIndex(index_oid);
   EXPECT_NE(index_ptr, nullptr);
   EXPECT_FALSE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_),
+      accessor_->GetTransactionContext()));
   txn_manager_->Abort(txn_);
 }
 
