@@ -1116,7 +1116,7 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
   constraints_foreigntable_index_->ScanKey(*txn, *key_pr, &index_scan_results);
   // current table is not being referenced
   if (index_scan_results.empty()) {
-    affected_row = FKDelete(txn, db_oid, table_oid, con_obj, table_scan_results);
+    affected_row = FKDelete(txn, db_oid, table_oid, con_obj, &table_scan_results);
 
     delete[] buffer;
     return affected_row;
@@ -1151,7 +1151,7 @@ int DatabaseCatalog::FKCascadeRecursive(common::ManagedPointer<transaction::Tran
     PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
 
     affected_row +=
-        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, catalog::postgres::FK_DELETE, &table_prs);
+        FKCascadeRecursive(txn, db_oid, child_con_obj.conrelid_, child_con_obj, &table_prs);
   }
 
   affected_row += FKDelete(txn, db_oid, table_oid, con_obj, &table_scan_results);
