@@ -81,6 +81,9 @@ We implemented a DDL executor for the ALTER TABLE command that updates the catal
 We also add a `layout_version` column along side the schema pointer column for each table. 
 Since the catalog tables are transactional, they disallow write-to-write conflict from MVCC. As a result, concurrent schema updates are caught here as one of the updating transactional will abort when trying to modify the catalog table. 
 
+For multiple schema pointers, we created another catalog table called `pg_schema` that stores the schema pointer,the table oid and the layout version for that schema. So when an update schema query is executed, the pg_schema will add one more entry, and it will be responsible for freeing the schema pointer afterwards. 
+This design allows the schema pointer to live beyond the scope of MVCC (so the version chains do not need to free the schema memory). In addition, this design will allow us to query a specific layout later on by consulting the `pg_schema` table, such as selecting from different layout versions at the SQL query. 
+
 #### Getting the layout version
 For each transaction that accesses the SqlTable, it needs to know which layout version it should be looking at. We leverage on the transactional tables in the catalog to translate the correct visible layout version for an in-flight transaction. Transaction will read the catalog tables to retrieve the most recent visible layout version, and use it to access the SqlTable.
 
