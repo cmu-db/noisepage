@@ -423,7 +423,8 @@ namespace terrier::execution::vm {
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceTableAllocateSlot, OperandType::Local, OperandType::Local)                                        \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
-  F(StorageInterfaceTableCompactionInsertInto, OperandType::Local, OperandType::Local)                                          \
+  F(StorageInterfaceTableCompactionInsertInto, OperandType::Local, OperandType::Local)                                \
+  F(StorageInterfaceTableCompactionCopyTupleSlot, OperandType::Local, OperandType::Local, OperandType::Local)         \
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \

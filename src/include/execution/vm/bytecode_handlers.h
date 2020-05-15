@@ -1652,7 +1652,11 @@ VM_OP void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot
                                          terrier::execution::sql::StorageInterface *storage_interface);
 
 VM_OP void OpStorageInterfaceTableCompactionInsertInto(terrier::execution::sql::StorageInterface *storage_interface,
-                                          terrier::storage::TupleSlot *tuple_slot);
+                                                       terrier::storage::TupleSlot *tuple_slot);
+
+VM_OP void OpStorageInterfaceTableCompactionCopyTupleSlot(terrier::execution::sql::StorageInterface *storage_interface,
+                                                          terrier::storage::TupleSlot *tuple_slot_from,
+                                                          terrier::storage::TupleSlot *tuple_slot_to);
 
 VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
                                         terrier::execution::sql::StorageInterface *storage_interface,

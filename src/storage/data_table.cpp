@@ -210,17 +210,9 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   return result;
 }
 
-RawBlock *DataTable::CreateCompactedBlock() {
-  RawBlock *block = NewBlock();
-  // This function is ONLY called during the compaction process, set the status to FREEZING.
-  block->controller_.GetBlockState()->store(BlockState::FREEZING);
-  return block;
-}
-
-// TODO (abhijithanilkumar): This function is probably only useful to test the TPL code for
+// TODO(abhijithanilkumar): This function is probably only useful to test the TPL code for
 // CompactionInsertInto. Is there an alternate way to do this?
 TupleSlot DataTable::AllocateSlot() {
-
   TupleSlot result;
   auto block = insertion_head_;
   while (true) {
@@ -262,8 +254,7 @@ TupleSlot DataTable::AllocateSlot() {
 }
 
 void DataTable::CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn,
-                            const ProjectedRow &redo, TupleSlot dest) {
-
+                                     const ProjectedRow &redo, TupleSlot dest) {
   // Reallocate the slot if it had been deallocated
   if (!accessor_.Allocated(dest)) {
     accessor_.Reallocate(dest);
@@ -271,48 +262,6 @@ void DataTable::CompactionInsertInto(const common::ManagedPointer<transaction::T
 
   // Insert into the slot
   InsertInto(txn, redo, dest);
-}
-
-bool DataTable::InsertIntoFreezingBlock(common::ManagedPointer<transaction::TransactionContext> txn,
-                                        const ProjectedRow &redo, RawBlock *block) {
-  // This function should be called only from the compactor, while the block is FREEZING.
-  TERRIER_ASSERT(block->controller_.GetBlockState()->load() == BlockState::FREEZING,
-                 "InsertIntoFreezingBlock should be called only from the compactor, and the block should be FREEZING.");
-
-  bool status = false;
-  TupleSlot new_slot;
-  // Set block status to busy
-  accessor_.SetBlockBusyStatus(block);
-
-  // Allocate a new TupleSlot
-  if (accessor_.Allocate(block, &new_slot)) {
-    // Logic to insert redo into the new TupleSlot created. Similar to InsertInto function, but we want to
-    // keep the logic separate from normal Inserts as normally, insertion is allowed only for HOT blocks.
-    TERRIER_ASSERT(accessor_.Allocated(new_slot), "destination slot must already be allocated");
-    TERRIER_ASSERT(accessor_.IsNull(new_slot, VERSION_POINTER_COLUMN_ID),
-                   "The slot needs to be logically deleted to every running transaction");
-    // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we
-    // 0 the primary key column
-    UndoRecord *undo = txn->UndoRecordForInsert(this, new_slot);
-    AtomicallyWriteVersionPtr(new_slot, accessor_, undo);
-    // Set the logically deleted bit to present as the undo record is ready
-    accessor_.AccessForceNotNull(new_slot, VERSION_POINTER_COLUMN_ID);
-    // Update in place with the new value.
-    for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-      TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                     "Insert buffer should not change the version pointer column.");
-      StorageUtil::CopyAttrFromProjection(accessor_, new_slot, redo, i);
-    }
-
-    // Insertion is complete at this point
-    data_table_counter_.IncrementNumInsert(1);
-    status = true;
-  }
-
-  // Clear the busy status
-  accessor_.ClearBlockBusyStatus(block);
-
-  return status;
 }
 
 void DataTable::InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,

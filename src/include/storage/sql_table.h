@@ -96,7 +96,7 @@ class SqlTable {
    * @return the allocated TupleSlot
    */
   TupleSlot AllocateSlot() {
-    // TODO (abhijithanilkumar): This function is probably only useful to test the TPL code for
+    // TODO(abhijithanilkumar): This function is probably only useful to test the TPL code for
     // CompactionInsertInto. Is there an alternate way to do this?
     return table_.data_table_->AllocateSlot();
   }
@@ -121,23 +121,6 @@ class SqlTable {
   }
 
   /**
-   * Inserts a tuple into the specified block, this function will ALWAYS be called from the compaction logic and the
-   * block has to be in FREEZING state. To be used to interface with the execution engine and aid in the compaction
-   * process.
-   * @param txn the calling transaction
-   * @param redo after-image of the inserted tuple
-   * @param block the block to which the tuple should be inserted to
-   * @return true if insertion is successful, false otherwise
-   */
-  bool InsertIntoFreezingBlock(const common::ManagedPointer<transaction::TransactionContext> txn,
-                               const ProjectedRow &redo, RawBlock *block) {
-    TERRIER_ASSERT(
-        block->controller_.GetBlockState()->load() == BlockState::FREEZING,
-        "InsertIntoFreezingBlock should be called only from the compactor, and the block should be FREEZING.");
-    return table_.data_table_->InsertIntoFreezingBlock(txn, redo, block);
-  }
-
-  /**
    * Inserts a tuple, as given in the redo, into the tuple slot specified. StageWrite must have been
    * called as well in order for the operation to be logged.
    *
@@ -146,7 +129,7 @@ class SqlTable {
    * @param TupleSlot that the tuple was inserted into.
    */
   void CompactionInsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
-                 const TupleSlot dest) const {
+                            const TupleSlot dest) const {
     table_.data_table_->CompactionInsertInto(txn, *(redo->Delta()), dest);
     redo->SetTupleSlot(dest);
   }
@@ -248,7 +231,7 @@ class SqlTable {
   friend class terrier::RandomSqlTableTransaction;
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
-  friend class BlockCompactorTests; // For accessing layout, table in block compactor tests
+  friend class BlockCompactorTests;  // For accessing layout, table in block compactor tests
 
   const common::ManagedPointer<BlockStore>
       block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.

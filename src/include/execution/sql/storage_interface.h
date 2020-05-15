@@ -30,6 +30,9 @@ class EXPORT StorageInterface {
 
   /**
    * @return The table's projected row.
+   * This returns a newly-initialized projected row (from initializing the class variable table_redo
+   * which is a redo_record). However, the projected row is not set so using the tpl built-in
+   * GetTablePR with this projected row will throw an error because the projected row is a nullpointer.
    */
   terrier::storage::ProjectedRow *GetTablePR();
 
@@ -66,6 +69,22 @@ class EXPORT StorageInterface {
    * @param table_tuple_slot where the tuple will be inserted
    */
   void TableCompactionInsertInto(storage::TupleSlot table_tuple_slot);
+
+  /**
+   * When trying to use TableCompactionInsertInto in the TPL code to move
+   * a tuple's contents between two tuple slots, we found that there were
+   * no existing tpl built-ins that could get the projected row of a particular
+   * tuple slot so that it could be used to set the projected row that would be
+   * inserted. As a preliminary fix, this function (which will be a tpl built-in)
+   * initializes the redo record with the projected row of tuple_slot_from, changes
+   * the tuple slot of the redo record to match the tuple slot of tuple_slot_to, and
+   * inserts the redo_record into the tupleSlot specified by tuple_slot_to
+   * Should only be used by the compaction process (block compactor)
+   * because it uses TableCompactionInsertInto
+   * @param tuple_slot_from the tupleSlot that the projected row should be copied from
+   * @param tuple_slot_to the tupleSlot that the projected row will be inserted into
+   */
+  void TableCompactionCopyTupleSlot(storage::TupleSlot tuple_slot_from, storage::TupleSlot tuple_slot_to);
 
   /**
    * @param index_oid OID of the index to access.

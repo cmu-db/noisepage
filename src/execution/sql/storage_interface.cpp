@@ -47,9 +47,7 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   return index_pr_;
 }
 
-storage::TupleSlot StorageInterface::TableAllocateSlot() {
-  return table_->AllocateSlot();
-}
+storage::TupleSlot StorageInterface::TableAllocateSlot() { return table_->AllocateSlot(); }
 
 storage::TupleSlot StorageInterface::TableInsert() {
   exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
@@ -58,6 +56,14 @@ storage::TupleSlot StorageInterface::TableInsert() {
 
 void StorageInterface::TableCompactionInsertInto(storage::TupleSlot table_tuple_slot) {
   return table_->CompactionInsertInto(exec_ctx_->GetTxn(), table_redo_, table_tuple_slot);
+}
+
+void StorageInterface::TableCompactionCopyTupleSlot(storage::TupleSlot tuple_slot_from,
+                                                    storage::TupleSlot tuple_slot_to) {
+  storage::ProjectedRow *pr_buffer = StorageInterface::GetTablePR();
+  table_->Select(exec_ctx_->GetTxn(), tuple_slot_from, pr_buffer);
+  table_redo_->SetTupleSlot(tuple_slot_from);
+  return table_->CompactionInsertInto(exec_ctx_->GetTxn(), table_redo_, tuple_slot_to);
 }
 
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {

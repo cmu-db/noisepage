@@ -220,8 +220,14 @@ void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
 }
 
 void OpStorageInterfaceTableCompactionInsertInto(terrier::execution::sql::StorageInterface *storage_interface,
-                                             terrier::storage::TupleSlot *tuple_slot) {
+                                                 terrier::storage::TupleSlot *tuple_slot) {
   storage_interface->TableCompactionInsertInto(*tuple_slot);
+}
+
+void OpStorageInterfaceTableCompactionCopyTupleSlot(terrier::execution::sql::StorageInterface *storage_interface,
+                                                    terrier::storage::TupleSlot *tuple_slot_from,
+                                                    terrier::storage::TupleSlot *tuple_slot_to) {
+  storage_interface->TableCompactionCopyTupleSlot(*tuple_slot_from, *tuple_slot_to);
 }
 
 void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,

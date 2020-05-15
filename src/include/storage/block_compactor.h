@@ -1,5 +1,6 @@
 #pragma once
 #include <queue>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -54,11 +55,11 @@ class BlockCompactor {
   };
 
  public:
-  BlockCompactor(execution::exec::ExecutionContext *exec, col_id_t *col_oids, const char *table_name) {
-    // Init data members for movetuple builtin
-    exec_ = exec;
-    col_oids_ = col_oids;
-    table_name_ = table_name;
+  /*
+   * Constructor used to initialise the tpl_code to be compiled. This must be created using code generation in the
+   * future. This constructor might also have arguments in the future to get table name, col_ids etc.
+   */
+  BlockCompactor() {
     // tpl code for use in moveTuple. It deletes the tuple from the table and from the index and then inserts the tuple
     // to the table (a specific block) and to the index. It returns true if the delete succeeds (because delete returns
     // false if a concurrent transaction is updating the tuple that is trying to be moved, the only condition where
@@ -67,24 +68,38 @@ class BlockCompactor {
     //      cg->table_->InsertInto(common::ManagedPointer(cg->txn_), *record->Delta(), to);
     //      return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
     // @todo: do we need to consider that insertIndex could fail? Do so now.
-    auto tpl_code = R"(
-    fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: *uint16, table_name: *uint8) -> bool {
+    // table_name how to pass a std::string? This is required for StorageInterfaceInitBind
+    // fixed length col_ids array passed : HACK
+    tpl_code_ = R"(
+    fun moveTuple(execCtx: *ExecutionContext, slot_from: *TupleSlot, slot_to: *TupleSlot, col_oids: [1]uint32) -> bool {
+      // HACK: The function storageInterfaceInitBind expects an array, cannot accept a pointer
+      col_oids[0] = 1
       var storage_interface: StorageInterface
-      //@storageInterfaceInitBind(&storage_interface, execCtx, table_name, col_oids, true)
-      //if (!@tableDelete(&storage_interface, &slot_from)) {
-        //@storageInterfaceFree(&storage_interface)
-        //return false
-      //}
-      //@tableCompactionInsertInto(&storage_interface, &slot_to)
+      @storageInterfaceInitBind(&storage_interface, execCtx, "foo", col_oids, true)
+
+      @tableCompactionCopyTupleSlot(&storage_interface, slot_from, slot_to)
+
+      if (!@tableDelete(&storage_interface, slot_from)) {
+        @storageInterfaceFree(&storage_interface)
+        return false
+      }
+
+      @storageInterfaceFree(&storage_interface)
       return true
     })";
-    auto compiler = execution::vm::test::ModuleCompiler();
-    auto module = compiler.CompileToModule(tpl_code);
-
-    module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple_);
   }
 
   FAKED_IN_TEST ~BlockCompactor() = default;
+
+  /**
+   *
+   * @param exec Execution context which is passed on to builtin
+   * @param from The tuple slot from which data must be moved
+   * @param to The tuple slot to which data must be moved
+   * @param col_oids column ids used to bind to storage interface in builtin
+   * @return true or false denoting success or failure
+   */
+  bool MoveTupleTPL(execution::exec::ExecutionContext *exec, TupleSlot from, TupleSlot to, col_id_t *col_oids);
 
   /**
    * Processes the compaction queue and mark processed blocks as cold if successful. The compaction can fail due
@@ -131,14 +146,7 @@ class BlockCompactor {
 
   std::queue<RawBlock *> compaction_queue_;
 
-  // stores compiled bytecode that can be called with different arguments (look in the blockcompactor constructor for
-  // details)
-  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *, const char *)>
-      move_tuple_;
-
-  // Variables required for calling the MoveTuple builtin
-  execution::exec::ExecutionContext *exec_;
-  col_id_t *col_oids_;
-  const char *table_name_;
+  // stores the TPL code that needs to be run in order to perform the compaction
+  std::string tpl_code_;
 };
 }  // namespace terrier::storage

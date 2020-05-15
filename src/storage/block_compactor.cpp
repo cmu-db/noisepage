@@ -186,7 +186,20 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // This operation cannot fail since a logically deleted slot can only be reclaimed by the compaction thread
   accessor.Reallocate(to);
 
-  return move_tuple_(exec_, &from, &to, col_oids_, table_name_);
+  cg->table_->InsertInto(common::ManagedPointer(cg->txn_), *record->Delta(), to);
+
+  // The delete can fail if a concurrent transaction is updating said tuple. We will have to abort if this is
+  // the case.
+  return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
+}
+
+bool BlockCompactor::MoveTupleTPL(execution::exec::ExecutionContext *exec, TupleSlot from, TupleSlot to,
+                                  col_id_t *col_oids) {
+  std::function<bool(execution::exec::ExecutionContext *, TupleSlot *, TupleSlot *, col_id_t *)> move_tuple;
+  auto compiler = execution::vm::test::ModuleCompiler();
+  auto module = compiler.CompileToModule(tpl_code_, exec);
+  module->GetFunction("moveTuple", execution::vm::ExecutionMode::Interpret, &move_tuple);
+  return move_tuple(exec, &from, &to, col_oids);
 }
 
 bool BlockCompactor::CheckForVersionsAndGaps(const TupleAccessStrategy &accessor, RawBlock *block) {
