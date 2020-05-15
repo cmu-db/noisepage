@@ -1050,7 +1050,7 @@ int DatabaseCatalog::FKCascade(common::ManagedPointer<transaction::TransactionCo
                                table_oid_t table_oid, const std::vector<col_oid_t> &col_oids,
                                storage::TupleSlot table_tuple_slot,
                                storage::ProjectedRow *pr) {
-  if (!TryLock(txn)) return false;
+  if (!TryLock(txn)) return 0;
   int affected_row = 0;
   // check if tuple is in the table
   auto table = GetTable(txn, table_oid);
