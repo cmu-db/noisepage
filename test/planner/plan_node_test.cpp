@@ -103,7 +103,6 @@ TEST(PlanNodeTest, AlterPlanTest) {
   auto add_cmd = std::make_unique<AlterPlanNode::AddColumnCmd>(std::move(col), nullptr, nullptr, nullptr);
 
   EXPECT_EQ(add_cmd->GetType(), parser::AlterTableStatement::AlterType::AddColumn);
-  EXPECT_EQ(add_cmd->GetColumn(), col);
 
   // test that the equality check of add column works as intended
   auto add_cmd2 = std::make_unique<AlterPlanNode::AddColumnCmd>(std::move(col2), nullptr, nullptr, nullptr);
@@ -122,7 +121,8 @@ TEST(PlanNodeTest, AlterPlanTest) {
   auto drop_cmd2 = std::make_unique<AlterPlanNode::DropColumnCmd>("col", false, false, catalog::INVALID_COLUMN_OID);
   EXPECT_EQ(*drop_cmd, *drop_cmd2);
 
-  // Make different variations of the drop column and make sure that they ar enot equal to drop_cmd
+  // Make different variations of the drop column and make sure that they ar
+  // enot equal to drop_cmd
   auto drop_cmd3 = std::make_unique<AlterPlanNode::DropColumnCmd>("col3", false, false, catalog::INVALID_COLUMN_OID);
   auto drop_cmd4 = std::make_unique<AlterPlanNode::DropColumnCmd>("col", true, false, catalog::INVALID_COLUMN_OID);
   auto drop_cmd5 = std::make_unique<AlterPlanNode::DropColumnCmd>("col", false, true, catalog::INVALID_COLUMN_OID);
@@ -149,7 +149,8 @@ TEST(PlanNodeTest, AlterPlanTest) {
     EXPECT_EQ(cmd->GetType(), parser::AlterTableStatement::AlterType::AddColumn);
   }
 
-  // Make different variations of the plan node and make sure that it is not equal to the original plan
+  // Make different variations of the plan node and make sure that it is not
+  // equal to the original plan
   for (int i = 0; i < 3; i++) {
     catalog::table_oid_t other_table_oid = table_oid;
     std::vector<catalog::col_oid_t> other_col_oids{catalog::INVALID_COLUMN_OID};
@@ -178,8 +179,8 @@ TEST(PlanNodeTest, AlterPlanTest) {
 }
 
 // Test creation of simple two table join.
-// We construct the plan for the following query: SELECT table1.col1 FROM table1, table2 WHERE table1.col1 =
-// table2.col2; NOLINTNEXTLINE
+// We construct the plan for the following query: SELECT table1.col1 FROM
+// table1, table2 WHERE table1.col1 = table2.col2; NOLINTNEXTLINE
 TEST(PlanNodeTest, HashJoinPlanTest) {
   SeqScanPlanNode::Builder seq_scan_builder;
   HashJoinPlanNode::Builder hash_join_builder;
