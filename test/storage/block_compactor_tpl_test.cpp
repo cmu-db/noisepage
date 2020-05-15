@@ -220,7 +220,7 @@ TEST_F(BlockCompactorTests, MoveTupleTest) {
 
   txn_manager_->Commit(txn4, transaction::TransactionUtil::EmptyCallback, nullptr);
   delete[] col_oids;
-  free(buffer);
+  delete[] buffer;
 }
 
 // NOLINTNEXTLINE

@@ -56,8 +56,8 @@ class BlockCompactor {
 
  public:
   /*
-   * Constructor used to initialise the tpl_code to be compiled. This must be created using code generation in the future.
-   * This constructor might also have arguments in the future to get table name, col_ids etc.
+   * Constructor used to initialise the tpl_code to be compiled. This must be created using code generation in the
+   * future. This constructor might also have arguments in the future to get table name, col_ids etc.
    */
   BlockCompactor() {
     // tpl code for use in moveTuple. It deletes the tuple from the table and from the index and then inserts the tuple
@@ -91,6 +91,14 @@ class BlockCompactor {
 
   FAKED_IN_TEST ~BlockCompactor() = default;
 
+  /**
+   *
+   * @param exec Execution context which is passed on to builtin
+   * @param from The tuple slot from which data must be moved
+   * @param to The tuple slot to which data must be moved
+   * @param col_oids column ids used to bind to storage interface in builtin
+   * @return true or false denoting success or failure
+   */
   bool MoveTupleTPL(execution::exec::ExecutionContext *exec, TupleSlot from, TupleSlot to, col_id_t *col_oids);
 
   /**
