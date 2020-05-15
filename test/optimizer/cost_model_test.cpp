@@ -1,4 +1,5 @@
 #include <utility>
+#include <random>
 
 #include "gtest/gtest.h"
 #include "optimizer/cost_model/cost_model.h"
@@ -29,25 +30,33 @@ class CostModelTests : public TerrierTest {
   StatsStorage stats_storage_;
   CostModel cost_model_;
 
+  static constexpr size_t HIST_BINS = 100;
   static constexpr size_t NUM_ROWS_A = 100'000;
   static constexpr size_t NUM_ROWS_B = 5;
   static constexpr size_t NUM_ROWS_C = 200;
   static constexpr size_t NUM_ROWS_D = 200;
-  static constexpr size_t NUM_ROWS_E = 2'000'000;
+  static constexpr size_t NUM_ROWS_E = 200'000;
 
-  void SetUp() override {
-    // TODO(moreshko): generate 100k random values and generate histogram for them.
-    // This is used for A's "statistics", since it is unclear how to mimic histogram bounds "convincingly".
-    /*
-    Histogram<int> a_hist{100};
-    std::default_random_engine generator;
-    std::uniform_int_distribution<int> distribution(1, 100);
-    for (int i = 0; i < NUM_ROWS_A; i++) {
-      auto number = static_cast<int>(distribution(generator));
-      a_hist.Increment(number);
+  /** Boilerplate code to create ColumnStats from a histogram and TopK object.
+   *
+   * Assumes frac_null = 0.0 and cardinality is the same as number of rows.
+   *
+   * @param hist Histogram of values
+   * @param top_k Top k values (also stores their estimated counts)
+   * @param count Total count of elements for this dataset
+   * @return new ColumnStats object for this dataset
+   */
+  static ColumnStats CreateColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id,
+      catalog::col_oid_t col_id, Histogram<int> hist, TopKElements<int> top_k, size_t count) {
+
+    std::vector<double> hist_bounds = hist.Uniform();
+    auto most_common_keys = top_k.GetSortedTopKeys();
+    std::vector<double> most_common_vals = {};
+    std::vector<double> most_common_freqs = {};
+    for (auto key : most_common_keys) {
+      most_common_vals.push_back(static_cast<double>(key));
+      most_common_freqs.push_back(static_cast<double>(top_k.EstimateItemCount(key)));
     }
-    std::vector<double> a_hist_bounds = a_hist.Uniform();
-     */
 
     /* Args to ColumnStats constructor
     * @param database_id - database oid of column
@@ -63,8 +72,39 @@ class CostModelTests : public TerrierTest {
     * @param histogram_bounds - the bounds of the histogram of the column e.g. (1.0 - 4.0)
         * @param is_base_table - indicates whether the column is from a base table
         */
-    column_stats_obj_a_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1),
-                                      NUM_ROWS_A, NUM_ROWS_A / 2.0, 0.2, {1, 2, 3}, {5, 5, 5}, {1.0, 5.0}, true);
+    return ColumnStats(database_id, table_id, col_id, count, count, 0.0, std::move(most_common_vals),
+                                        std::move(most_common_freqs), std::move(hist_bounds), true);
+  }
+
+  void SetUp() override {
+    // generate 100k random values and generate histogram and most common val/freq stats for them.
+    const int k = 10;
+    const int count_min_sketch_width = 100;
+
+    // generate uniform distribution
+    Histogram<int> uniform_hist{HIST_BINS};
+    TopKElements<int> uniform_top_k(k, count_min_sketch_width);
+    std::default_random_engine uniform_generator;
+    std::uniform_int_distribution<int> uniform_distribution(1, 1000);
+    for (unsigned int i = 0; i < NUM_ROWS_A; i++) {
+      int number = static_cast<int>(uniform_distribution(uniform_generator));
+      uniform_hist.Increment(number);
+      uniform_top_k.Increment(number, 1);
+    }
+    // generate gaussian (normal) distribution
+    Histogram<int> normal_hist{HIST_BINS};
+    TopKElements<int> normal_top_k(k, count_min_sketch_width);
+    std::random_device rd;
+    std::mt19937 non_uniform_generator(rd());
+    std::normal_distribution<> norm_distribution(0, 10);
+    for (unsigned int i = 0; i < NUM_ROWS_A; i++) {
+      int number = static_cast<int>(norm_distribution(non_uniform_generator));
+      normal_hist.Increment(number);
+      normal_top_k.Increment(number, 1);
+    }
+
+    column_stats_obj_a_1_ = CreateColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1),
+        uniform_hist, uniform_top_k, NUM_ROWS_A);
     column_stats_obj_b_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(1),
                                       NUM_ROWS_B, NUM_ROWS_B, 0.0, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
     column_stats_obj_c_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(3), catalog::col_oid_t(1),
@@ -371,7 +411,7 @@ TEST_F(CostModelTests, HashVsNlJoinWithPredicateLargeTablesTest) {
                                                  std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
                                                  std::vector<common::ManagedPointer<parser::AbstractExpression>>());
 
-  // child operators for scanning A, E (1mil, 2mil rows respectively) - should use hash join
+  // child operators for scanning A, E (100k, 200k rows respectively) - should use hash join
   Operator seq_scan_c = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(3),
                                       std::vector<AnnotatedExpression>(), "table", false);
   Operator seq_scan_d = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(4),
