@@ -63,6 +63,7 @@ class DDLExecutors {
   /**
    * @param node node to executed
    * @param accessor accessor to use for execution
+   * @param populate_txn A transaction to use for populating the index
    * @return true if operation succeeded, false otherwise
    */
   static bool CreateIndexExecutor(common::ManagedPointer<planner::CreateIndexPlanNode> node,
