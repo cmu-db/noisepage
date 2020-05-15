@@ -1790,12 +1790,13 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 
 void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto func_context = new execution::functions::FunctionContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                                    execution::ast::Builtin::ATan2);
+                                                                execution::ast::Builtin::ATan2);
   txn->RegisterAbortAction([=]() { delete func_context; });
   SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, func_context);
 
-#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                              \
-  func_context = new execution::functions::FunctionContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
+#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                               \
+  func_context =                                                                                                    \
+      new execution::functions::FunctionContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
   SetProcCtxPtr(txn, pro_oid, func_context);                                                                        \
   txn->RegisterAbortAction([=]() { delete func_context; });
 
@@ -1822,7 +1823,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 #undef BOOTSTRAP_TRIG_FN
 
   func_context = new execution::functions::FunctionContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                                               execution::ast::Builtin::Lower, true);
+                                                           execution::ast::Builtin::Lower, true);
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 }
@@ -1847,7 +1848,8 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
 
   delete[] index_buffer;
   auto *const update_redo = txn->StageWrite(db_oid_, postgres::PRO_TABLE_OID, pg_proc_ptr_pri_);
-  *reinterpret_cast<const execution::functions::FunctionContext **>(update_redo->Delta()->AccessForceNotNull(0)) = func_context;
+  *reinterpret_cast<const execution::functions::FunctionContext **>(update_redo->Delta()->AccessForceNotNull(0)) =
+      func_context;
   update_redo->SetTupleSlot(index_results[0]);
   return procs_->Update(txn, update_redo);
 }

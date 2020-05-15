@@ -37,7 +37,7 @@ class FunctionContext {
    * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
    */
   FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
-             ast::Builtin builtin, bool is_exec_ctx_required = false)
+                  ast::Builtin builtin, bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(std::move(args_type)),
