@@ -5,25 +5,15 @@
 #include "optimizer/physical_operators.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-class Memo;
-class GroupExpression;
-
-/**
- * This cost model is meant to just be a trivial cost model. The decisions it makes are as follows
- * Always choose index scan (cost of 0) over sequential scan (cost of 1)
- * Choose NL if left rows is a single record (for single record lookup queries), else choose hash join
- * Choose hash group by over sort group by
- */
-class ForcedCostModel : public AbstractCostModel {
+// This cost model calculates the lower bound cost of the given GroupExpression
+class InitialCostModel : public AbstractCostModel {
  public:
   /**
    * Default constructor
-   * @param pick_hash_join Whether to pick hash join
    */
-  explicit ForcedCostModel(bool pick_hash_join) : pick_hash_join_(pick_hash_join) {}
+  InitialCostModel() = default;
 
   /**
    * Costs a GroupExpression
@@ -70,16 +60,39 @@ class ForcedCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const Limit *op) override { output_cost_ = 0.f; }
 
   /**
-   * Visit a InnerNLJoin operator
+   * Visit a NLJoin operator.
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const NLJoin *op) override { output_cost_ = (pick_hash_join_) ? 1.f : 0.f; }
+  void Visit(UNUSED_ATTRIBUTE const NLJoin *op) override {
+    double outer_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
+    double inner_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
+
+    double total_cost = 0.0;
+
+    // computes cost of scanning the entire inner rel per outer row
+    if (outer_rows > 1) {
+      total_cost += outer_rows * memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetCostLB();
+    }
+
+    output_cost_ = total_cost;
+  }
 
   /**
    * Visit a InnerHashJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = (pick_hash_join_) ? 0.f : 1.f; }
+  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override {
+    double outer_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
+    double inner_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
+
+    double total_cost = 0.0;
+
+    total_cost += memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetCostLB();
+    total_cost += (op_cpu_cost * op->GetJoinPredicates().size() + tuple_cpu_cost) * inner_rows;
+    total_cost += op_cpu_cost * op->GetJoinPredicates().size() * outer_rows;
+
+    output_cost_ = total_cost;
+  }
 
   /**
    * Visit a LeftHashJoin operator
@@ -158,15 +171,21 @@ class ForcedCostModel : public AbstractCostModel {
   transaction::TransactionContext *txn_;
 
   /**
+   * CPU cost to materialize a tuple
+   * TODO(viv): change later to be evaluated per instantiation via a benchmark
+   */
+  double tuple_cpu_cost = 2.f;
+
+  /**
+   * Cost to execute an operator
+   * TODO(viv): find a better constant for op cost (?)
+   */
+  double op_cpu_cost = 2.f;
+
+  /**
    * Computed output cost
    */
   double output_cost_ = 0;
-
-  /**
-   * Should pick hash join
-   */
-  bool pick_hash_join_ = false;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

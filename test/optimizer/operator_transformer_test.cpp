@@ -464,7 +464,7 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
   EXPECT_EQ(ref, info);
 
   // Test LogicalLeftJoin
-  auto logical_left_join = operator_tree_->GetOp().As<optimizer::LogicalLeftJoin>();
+  auto logical_left_join = operator_tree_->GetOp().As<optimizer::LogicalJoin>();
   EXPECT_EQ(parser::ExpressionType::COMPARE_LESS_THAN,
             logical_left_join->GetJoinPredicates()[0].GetExpr()->GetExpressionType());
 
@@ -503,7 +503,7 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
   EXPECT_EQ(ref, info);
 
   // Test LogicalRightJoin
-  auto logical_right_join = operator_tree_->GetOp().As<optimizer::LogicalRightJoin>();
+  auto logical_right_join = operator_tree_->GetOp().As<optimizer::LogicalJoin>();
   EXPECT_EQ(parser::ExpressionType::COMPARE_GREATER_THAN,
             logical_right_join->GetJoinPredicates()[0].GetExpr().Get()->GetExpressionType());
 
@@ -542,7 +542,7 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
   EXPECT_EQ(ref, info);
 
   // Test LogicalInnerJoin
-  auto logical_inner_join = operator_tree_->GetOp().As<optimizer::LogicalInnerJoin>();
+  auto logical_inner_join = operator_tree_->GetOp().As<optimizer::LogicalJoin>();
   EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL,
             logical_inner_join->GetJoinPredicates()[0].GetExpr().Get()->GetExpressionType());
 
@@ -581,7 +581,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
   EXPECT_EQ(ref, info);
 
   // Test LogicalOuterJoin
-  auto logical_outer_join = operator_tree_->GetOp().As<optimizer::LogicalOuterJoin>();
+  auto logical_outer_join = operator_tree_->GetOp().As<optimizer::LogicalJoin>();
   EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL,
             logical_outer_join->GetJoinPredicates()[0].GetExpr().Get()->GetExpressionType());
 
