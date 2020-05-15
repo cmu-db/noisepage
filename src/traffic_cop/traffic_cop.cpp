@@ -391,24 +391,25 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
 catalog::table_oid_t TrafficCop::CreateTempTable(const catalog::db_oid_t db_oid, const catalog::namespace_oid_t ns_oid,
                                                  const network::connection_id_t connection_id) {
   auto *const txn = txn_manager_->BeginTransaction();
+  const auto schema = catalog::postgres::Builder::GetSequenceTempTableSchema();
 
-  const catalog::Schema temp_schema = catalog::postgres::Builder::GetSequenceTempTableSchema();
-
-  const auto temp_table_oid =
+  const auto table_oid =
       catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)
-          ->CreateTable(ns_oid, std::string(TEMP_TABLE_PREFIX) + std::to_string((uint32_t)ns_oid), temp_schema);
-
-  if (temp_table_oid == catalog::INVALID_TABLE_OID) {
+          ->CreateTable(ns_oid, std::string(TEMP_TABLE_PREFIX) + std::to_string((uint32_t)ns_oid), schema);
+  if (table_oid == catalog::INVALID_TABLE_OID) {
     // Failed to create new table. Could be a concurrent DDL change and worth retrying
     txn_manager_->Abort(txn);
     return catalog::INVALID_TABLE_OID;
   }
 
-  auto sequence_temp_table = catalog_->CreateTempTable(temp_schema);
-  catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->SetTablePointer(temp_table_oid, sequence_temp_table);
+  // Instantiate a SqlTable and update the pointer
+  auto *const table = new storage::SqlTable(catalog_->GetBlockStore(), schema);
+  bool result = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->SetTablePointer(table_oid, table);
+  TERRIER_ASSERT(result, "CreateTable succeeded, SetTablePointer must also succeed.");
 
+  // Success
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  return temp_table_oid;
+  return table_oid;
 }
 
 bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog::namespace_oid_t ns_oid) {
