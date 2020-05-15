@@ -362,6 +362,9 @@ Schema Builder::GetStatisticTableSchema() {
   columns.emplace_back("numrows", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(STA_NUMROWS_COL_OID);
 
+  columns.emplace_back("topkelts", type::TypeId::VARBINARY, 4096, true, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(STA_TOPKELTS_COL_OID);
+
   return Schema(columns);
 }
 

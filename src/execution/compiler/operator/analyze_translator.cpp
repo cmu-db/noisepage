@@ -15,7 +15,6 @@ namespace terrier::execution::compiler {
 AnalyzeBottomTranslator::AnalyzeBottomTranslator(const planner::AnalyzePlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD),
       op_(op),
-      owned_exprs_(),
       agg_plan_node_(MakeAggregatePlanNode(op_, &owned_exprs_)),
       helper_(codegen_, agg_plan_node_.get()) {}
 
@@ -56,7 +55,12 @@ std::unique_ptr<planner::AggregatePlanNode> AnalyzeBottomTranslator::MakeAggrega
     builder.AddAggregateTerm(
         common::ManagedPointer(static_cast<parser::AggregateExpression *>(distinct_count_expr.get())));
 
-    // TOOD(khg): add aggregate term for TopKAggregate
+    // TOPK(col)
+    child_exprs = std::vector<std::unique_ptr<parser::AbstractExpression>>();
+    child_exprs.emplace_back(dve.Copy());
+    const auto &top_k_expr = owned_exprs->emplace_back(std::make_unique<parser::AggregateExpression>(
+        parser::ExpressionType::AGGREGATE_TOP_K, std::move(child_exprs), false));
+    builder.AddAggregateTerm(common::ManagedPointer(static_cast<parser::AggregateExpression *>(top_k_expr.get())));
   }
 
   return builder.Build();
@@ -74,7 +78,7 @@ void AnalyzeBottomTranslator::InitializeStateFields(util::RegionVector<ast::Fiel
 }
 
 void AnalyzeBottomTranslator::InitializeStructs(util::RegionVector<ast::Decl *> *decls) {
-  // The values struct contains values that will be aggregated and groubed by.
+  // The values struct contains values that will be aggregated and grouped by.
   helper_.GenValuesStruct(decls);
   // Distinct aggregate each need a hash table.
   helper_.GenAHTStructs(decls);
@@ -188,7 +192,7 @@ void AnalyzeTopTranslator::GetUpdatePR(terrier::execution::compiler::FunctionBui
 }
 
 void AnalyzeTopTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) {
-  const std::vector<catalog::col_oid_t> &col_oids = op_->GetColumnOids();
+  // const std::vector<catalog::col_oid_t> &col_oids = op_->GetColumnOids();
 
   // To make things floating-point, just add a REAL value.
   // Sema::CheckArithmeticOperands will propagate the REAL-ness of the computation
@@ -199,6 +203,7 @@ void AnalyzeTopTranslator::FillPRFromChild(terrier::execution::compiler::Functio
   ast::Expr *count_rows = bottom_->GetOutput(0);
   ast::Expr *count_non_null = bottom_->GetOutput(1);
   ast::Expr *count_distinct = bottom_->GetOutput(2);
+  ast::Expr *topkelts_output = bottom_->GetOutput(3);
 
   for (const auto &table_col_oid : UPDATE_COL_OIDS) {
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
@@ -216,6 +221,9 @@ void AnalyzeTopTranslator::FillPRFromChild(terrier::execution::compiler::Functio
         break;
       case !catalog::postgres::STA_NUMROWS_COL_OID:
         clause_expr = count_rows;
+        break;
+      case !catalog::postgres::STA_TOPKELTS_COL_OID:
+        clause_expr = topkelts_output;
         break;
       default:
         UNREACHABLE("Unknown table_col_oid");

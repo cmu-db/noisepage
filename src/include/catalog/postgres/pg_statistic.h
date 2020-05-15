@@ -21,15 +21,17 @@ constexpr index_oid_t STATISTIC_OID_INDEX_OID = index_oid_t(92);
  * catalog specification and columns of the form "STA_[name]_COL_OID" are
  * terrier-specific additions (generally pointers to internal objects).
  */
-constexpr col_oid_t STARELID_COL_OID = col_oid_t(1);     // INTEGER (fkey: pg_class) [table_oid_t]
-constexpr col_oid_t STAATTNUM_COL_OID = col_oid_t(2);    // INTEGER (fkey: pg_attribute) [col_oid_t]
-constexpr col_oid_t STANULLFRAC_COL_OID = col_oid_t(3);  // DECIMAL
-constexpr col_oid_t STADISTINCT_COL_OID = col_oid_t(4);  // DECIMAL
-constexpr col_oid_t STA_NUMROWS_COL_OID = col_oid_t(5);  // INTEGER
+constexpr col_oid_t STARELID_COL_OID = col_oid_t(1);      // INTEGER (fkey: pg_class) [table_oid_t]
+constexpr col_oid_t STAATTNUM_COL_OID = col_oid_t(2);     // INTEGER (fkey: pg_attribute) [col_oid_t]
+constexpr col_oid_t STANULLFRAC_COL_OID = col_oid_t(3);   // DECIMAL
+constexpr col_oid_t STADISTINCT_COL_OID = col_oid_t(4);   // DECIMAL
+constexpr col_oid_t STA_NUMROWS_COL_OID = col_oid_t(5);   // INTEGER
+constexpr col_oid_t STA_TOPKELTS_COL_OID = col_oid_t(6);  // VARBINARY
 
-constexpr uint8_t NUM_PG_STATISTIC_COLS = 5;
+constexpr uint8_t NUM_PG_STATISTIC_COLS = 6;
 
 constexpr std::array<col_oid_t, NUM_PG_STATISTIC_COLS> PG_STATISTIC_ALL_COL_OIDS = {
-    STARELID_COL_OID, STAATTNUM_COL_OID, STANULLFRAC_COL_OID, STADISTINCT_COL_OID, STA_NUMROWS_COL_OID};
+    STARELID_COL_OID,    STAATTNUM_COL_OID,   STANULLFRAC_COL_OID,
+    STADISTINCT_COL_OID, STA_NUMROWS_COL_OID, STA_TOPKELTS_COL_OID};
 
 }  // namespace terrier::catalog::postgres

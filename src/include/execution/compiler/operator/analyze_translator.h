@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -162,9 +163,9 @@ class AnalyzeTopTranslator : public OperatorTranslator {
   static constexpr catalog::table_oid_t UPDATE_TABLE_OID = catalog::postgres::STATISTIC_TABLE_OID;
 
   // Column OIDs to update
-  static constexpr std::array<catalog::col_oid_t, 3> UPDATE_COL_OIDS{catalog::postgres::STANULLFRAC_COL_OID,
-                                                                     catalog::postgres::STADISTINCT_COL_OID,
-                                                                     catalog::postgres::STA_NUMROWS_COL_OID};
+  static constexpr std::array<catalog::col_oid_t, 4> UPDATE_COL_OIDS{
+      catalog::postgres::STANULLFRAC_COL_OID, catalog::postgres::STADISTINCT_COL_OID,
+      catalog::postgres::STA_NUMROWS_COL_OID, catalog::postgres::STA_TOPKELTS_COL_OID};
 };
 
 }  // namespace terrier::execution::compiler
