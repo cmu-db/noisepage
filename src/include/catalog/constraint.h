@@ -1,7 +1,13 @@
+
+#pragma once
+
+#include <algorithm>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/database_catalog.h"
@@ -44,7 +50,7 @@ using FKMetadata = struct FKMetadata {
   postgres::FKActionType delete_action_;
 };
 
-// TODO: future modification for check support
+// TODO(pg_constraint): future modification for check support
 struct CHECKMetadata {
   col_oid_t check_ref_table_oid_;          // thie referenced table oid
   std::vector<col_oid_t> check_cols_;      // columns where the check apply
@@ -53,7 +59,7 @@ struct CHECKMetadata {
   std::string consrc_;                     // a human-readable representation of the expression
 };
 
-// TODO: future modification for exclusion support
+// TODO(pg_constraint): future modification for exclusion support
 struct EXCLUSIONMetadata {
   col_oid_t exclusion_ref_table_oid_;          // the referenced table oid
   std::vector<col_oid_t> exclusion_cols_;      // columns where the exclusion applies
@@ -82,30 +88,31 @@ CREATE TABLE t1 (
   FOREIGN KEY (b, c) REFERENCES other_table (c1, c2)
 );
  */
-class PG_Constraint {
+class PGConstraint {
  public:
   /**
    * Constructor going from pg_constraint projected row of the  into constraint class instance
    */
-  PG_Constraint(DatabaseCatalog *dbc, constraint_oid_t con_oid, std::string con_name, namespace_oid_t con_namespace_id,
-                postgres::ConstraintType con_type, bool con_deferrable, bool con_deferred, bool con_validated,
-                table_oid_t con_relid, index_oid_t con_index_id, std::string con_col_varchar) {
-    dbc_ = dbc;
-    conoid_ = con_oid;
-    conname_ = con_name;
-    connamespaceid_ = con_namespace_id;
-    contype_ = con_type;
-    condeferrable_ = con_deferrable;
-    condeferred_ = con_deferred;
-    convalidated_ = con_validated;
-    conrelid_ = con_relid;
-    conindid_ = con_index_id;
+  PGConstraint(DatabaseCatalog *dbc, constraint_oid_t con_oid, std::string con_name, namespace_oid_t con_namespace_id,
+               postgres::ConstraintType con_type, bool con_deferrable, bool con_deferred, bool con_validated,
+               table_oid_t con_relid, index_oid_t con_index_id, const std::string &con_col_varchar)
+      : dbc_(dbc),
+        conoid_(con_oid),
+        conname_(std::move(con_name)),
+        connamespaceid_(con_namespace_id),
+        contype_(con_type),
+        condeferrable_(con_deferrable),
+        condeferred_(con_deferred),
+        convalidated_(con_validated),
+        conrelid_(con_relid),
+        conindid_(con_index_id) {
     FillConCol(con_col_varchar);
   }
   void AddCheckConstraintMetaData(constraint_oid_t con_check) {}
   void AddExclusionConstraintMetadata(constraint_oid_t con_exc) {}
 
   friend class DatabaseCatalog;
+  catalog::DatabaseCatalog *dbc_;
   constraint_oid_t conoid_;  // oid of the constraint
   std::string conname_;
   namespace_oid_t connamespaceid_;    /* OID of namespace containing constraint */
@@ -117,8 +124,8 @@ class PG_Constraint {
   table_oid_t conrelid_;          // table this constraint applies to
   index_oid_t conindid_;          /* index supporting this constraint */
   std::vector<col_oid_t> concol_; /* the column id that this index applies to */
-  catalog::DatabaseCatalog *dbc_;
-  FKMetadata fkMetadata_;  // pther metadata depending on the constraint type
+
+  FKMetadata fk_metadata_;  // pther metadata depending on the constraint type
 
   friend class Catalog;
   friend class postgres::Builder;
@@ -126,10 +133,10 @@ class PG_Constraint {
 
  private:
   // fill the columns that the constraint is effective on: this is for UNIQUE, PK, NOTNULL
-  void FillConCol(std::string con_col_str) {
+  void FillConCol(const std::string &con_col_str) {
     std::vector<std::string> raw_oid_vec = SplitString(con_col_str, postgres::VARCHAR_ARRAY_DELIMITER);
     concol_.reserve(raw_oid_vec.size());
-    for (std::string col_oid : raw_oid_vec) {
+    for (std::string &col_oid : raw_oid_vec) {
       concol_.push_back(static_cast<col_oid_t>(stoi(col_oid)));
     }
   }
