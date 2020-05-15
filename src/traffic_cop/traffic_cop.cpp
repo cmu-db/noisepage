@@ -404,7 +404,8 @@ catalog::table_oid_t TrafficCop::CreateTempTable(const catalog::db_oid_t db_oid,
 
   // Instantiate a SqlTable and update the pointer
   auto *const table = new storage::SqlTable(catalog_->GetBlockStore(), schema);
-  bool result = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->SetTablePointer(table_oid, table);
+  const auto result UNUSED_ATTRIBUTE =
+      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)->SetTablePointer(table_oid, table);
   TERRIER_ASSERT(result, "CreateTable succeeded, SetTablePointer must also succeed.");
 
   // Success
