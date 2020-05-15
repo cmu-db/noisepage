@@ -100,13 +100,13 @@ bool CatalogAccessor::VerifyTableUpdateConstraint(table_oid_t table, const std::
 }
 
 int CatalogAccessor::UpdateCascade(db_oid_t db_oid, table_oid_t table, const std::vector<col_oid_t> &col_oids,
-                                    storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
+                                   storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
   return dbc_->FKCascade(txn_, db_oid, table, col_oids, tuple_slot, catalog::postgres::FK_UPDATE, pr);
 }
 
 int CatalogAccessor::DeleteCascade(db_oid_t db_oid, table_oid_t table, const std::vector<col_oid_t> &col_oids,
                                    storage::ProjectedRow *pr, storage::TupleSlot tuple_slot) {
-    return dbc_->FKCascade(txn_, db_oid, table, col_oids, tuple_slot, catalog::postgres::FK_DELETE, pr);
+  return dbc_->FKCascade(txn_, db_oid, table, col_oids, tuple_slot, catalog::postgres::FK_DELETE, pr);
 }
 
 constraint_oid_t CatalogAccessor::CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,

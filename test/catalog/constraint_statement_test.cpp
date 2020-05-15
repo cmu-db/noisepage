@@ -630,7 +630,7 @@ TEST_F(ConstraintStatementTest, VerifyDelete) {
   }
 }
 //
-//TEST_F(ConstraintStatementTest, UpdateCascadeSimple) {
+// TEST_F(ConstraintStatementTest, UpdateCascadeSimple) {
 //  try {
 //    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
 //                                            port_, catalog::DEFAULT_DATABASE));
@@ -660,7 +660,7 @@ TEST_F(ConstraintStatementTest, VerifyDelete) {
 //  }
 //}
 //
-//TEST_F(ConstraintStatementTest, UpdateCascadeRecursive) {
+// TEST_F(ConstraintStatementTest, UpdateCascadeRecursive) {
 //  try {
 //    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
 //                                            port_, catalog::DEFAULT_DATABASE));
@@ -668,14 +668,14 @@ TEST_F(ConstraintStatementTest, VerifyDelete) {
 //    pqxx::work txn1(connection);
 //    txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT UNIQUE, name TEXT UNIQUE);");
 //    txn1.exec(
-//        "CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT UNIQUE, FOREIGN KEY (fk1) references TableA(data) ON UPDATE "
-//        "CASCADE ON DELETE CASCADE);");
+//        "CREATE TABLE TableB (id INT PRIMARY KEY, fk1 INT UNIQUE, FOREIGN KEY (fk1) references TableA(data) ON UPDATE
+//        " "CASCADE ON DELETE CASCADE);");
 //    txn1.exec(
-//        "CREATE TABLE TableC (id INT PRIMARY KEY, fk2 INT, FOREIGN KEY (fk2) references TableB(fk1) ON UPDATE CASCADE "
-//        "ON DELETE CASCADE);");
+//        "CREATE TABLE TableC (id INT PRIMARY KEY, fk2 INT, FOREIGN KEY (fk2) references TableB(fk1) ON UPDATE CASCADE
+//        " "ON DELETE CASCADE);");
 //    txn1.exec(
-//        "CREATE TABLE TableD (id INT PRIMARY KEY, fk3 INT, FOREIGN KEY (fk3) references TableB(fk1) ON UPDATE CASCADE "
-//        "ON DELETE CASCADE);");
+//        "CREATE TABLE TableD (id INT PRIMARY KEY, fk3 INT, FOREIGN KEY (fk3) references TableB(fk1) ON UPDATE CASCADE
+//        " "ON DELETE CASCADE);");
 //    txn1.exec("INSERT INTO TableA (id, data, name) VALUES (1, 2, 'abcd');");
 //    txn1.exec("INSERT INTO TableB VALUES (1, 2);");
 //    txn1.exec("INSERT INTO TableC VALUES (1, 2);");

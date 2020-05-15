@@ -36,7 +36,6 @@ void DeleteTranslator::Consume(FunctionBuilder *builder) {
   for (auto &index_oid : indexes) {
     GenIndexDelete(builder, index_oid);
   }
-
 }
 
 void DeleteTranslator::DeclareDeleter(terrier::execution::compiler::FunctionBuilder *builder) {
