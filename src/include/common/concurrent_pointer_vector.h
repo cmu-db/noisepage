@@ -60,6 +60,7 @@ class ConcurrentPointerVector {
         common::SharedLatch::ScopedSharedLatch l(&array_pointer_latch_);
         old_array = array_;
         for (i = 0; i < capacity_ && i < first_not_readable_index_; i++) {
+          TERRIER_ASSERT(GetReadability(array_, i), "array_[0:first_not_readable_index_] should be readable");
           new_array[i] = array_[i];
         }
       }
