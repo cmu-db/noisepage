@@ -218,6 +218,7 @@ class DatabaseCatalog {
    * Compare the data at some PR location, not mem safe, assume same data type
    * @param src_ptr source starting position
    * @param tar_ptr target position
+   * @param type type
    * @return true if they are the same
    */
   bool CompPRData(std::byte *src_ptr, std::byte *tar_ptr, type::TypeId type);
@@ -238,7 +239,7 @@ class DatabaseCatalog {
    * @param table_pr table projected row
    * @param index_pr index projected row
    * @param col_vec the table's column that is the same as the ones in the index
-   * @table_oid the table_oid
+   * @param table_oid the table_oid
    * @param index_oid the index Oid
    * @param index the index pointer
    */
@@ -315,17 +316,16 @@ class DatabaseCatalog {
                                    storage::TupleSlot tuple_slot);
   /**
    * Perform Delete Cascade given the tuple slot
-   * @param txn transaction
+   * @param txn_ transaction
    * @param db_oid the db oid for current db
-   * @param table_oid the table_oid inserted assume table exists
+   * @param table the table_oid inserted assume table exists
    * @param col_oids the columns that is being operated
-   * @param tuple_slot tupleslot location where the update applies to the table
-   * @param update_pr the projected row carry the data to be updated
+   * @param table_tuple_slot tupleslot location where the update applies to the table
+   * @param pr the projected row carry the data to be updated
    * @return the number of affected row
    */
   int FKCascade(common::ManagedPointer<transaction::TransactionContext> txn_, db_oid_t db_oid, table_oid_t table,
-                const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot,
-                storage::ProjectedRow *pr);
+                const std::vector<col_oid_t> &col_oids, storage::TupleSlot table_tuple_slot, storage::ProjectedRow *pr);
 
   /**
    * Recursively scan through table to perform FK Cascade
@@ -334,8 +334,6 @@ class DatabaseCatalog {
    * @param table_oid the table_oid inserted assume table exists
    * @param con_obj constraint object of current table
    * @param pr_vector the vector of projected rows of parent's
-   * @param parent_col parent columns to be referenced
-   * @param child_col child columns that are referencing
    * @return the number of affected row
    */
   int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
@@ -347,8 +345,6 @@ class DatabaseCatalog {
    * @param table_oid the table_oid inserted assume table exists
    * @param con_obj constraint object of current table
    * @param ref_pr_vector the vector of projected rows of parent's
-   * @param affected_col_ref parent columns to be referenced
-   * @param affected_col_src child columns that are referencing
    * @return the vector of tupleslots that matche the input key
    */
   std::vector<storage::TupleSlot> FKScan(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -434,7 +430,7 @@ class DatabaseCatalog {
    * @param delete_action the FK delete CASCADE option
    * @param fk_match_type how the Fks are matched
    * @param is_local whether this is local consteaint
-   * @param number of inherit count
+   * @param inherit_count number of inherit count
    * @param non_inheritable whether this is non-inheritable
    * @param con_cols the columns that this constraints on
    * @param fk_cols the FK reference cols
@@ -442,7 +438,7 @@ class DatabaseCatalog {
    * @param pk_pk_eq_op the fk, pk equal operator id
    * @param fk_fk_eq_op the FK, FK key equal operators ids
    * @param exclu_op the exclusopn operator ids
-   * @conbin the Abstract plan Node use for check op
+   * @param conbin the Abstract plan Node use for check op
    */
   void FillConstraintPR(storage::ProjectedRow *constraints_insert_pr, constraint_oid_t constraint_oid,
                         const std::string &name, namespace_oid_t ns, postgres::ConstraintType con_type, bool deferrable,

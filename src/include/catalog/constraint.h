@@ -28,17 +28,7 @@ namespace terrier::catalog {
 
 // A UNION of metadata structure for each of the constraints
 // stored in the pg_constraint class instances
-using PGConstraintMetadata = union PGConstraintMetadata {
-  struct UNIQUEMetadata;
-  struct FKMetadata;
-  struct CHECKMetadata;
-  struct EXCLUSIONMetadata;
-};
-
-// the metadata for unique constraints
-struct UNIQUEMetadata {
-  std::vector<col_oid_t> unique_cols_;  // columns where the uniqueness apply
-};
+using PGConstraintMetadata = union PGConstraintMetadata { struct FKMetadata; };
 
 // the metadata for FK
 using FKMetadata = struct FKMetadata {
@@ -48,22 +38,6 @@ using FKMetadata = struct FKMetadata {
   std::vector<col_oid_t> fk_refs_;  // the column indicies in the parent table that are reference for the foreign key
   postgres::FKActionType update_action_;
   postgres::FKActionType delete_action_;
-};
-
-// TODO(pg_constraint): future modification for check support
-struct CHECKMetadata {
-  col_oid_t check_ref_table_oid_;          // thie referenced table oid
-  std::vector<col_oid_t> check_cols_;      // columns where the check apply
-  std::vector<col_oid_t> check_ref_cols_;  // columns where the check reference for checking
-  size_t conbin_;                          // an internal representation of the expression, pg_node_tree
-  std::string consrc_;                     // a human-readable representation of the expression
-};
-
-// TODO(pg_constraint): future modification for exclusion support
-struct EXCLUSIONMetadata {
-  col_oid_t exclusion_ref_table_oid_;          // the referenced table oid
-  std::vector<col_oid_t> exclusion_cols_;      // columns where the exclusion applies
-  std::vector<col_oid_t> exclusion_ref_cols_;  // columns where the exclusion references
 };
 
 /**
@@ -108,24 +82,32 @@ class PGConstraint {
         conindid_(con_index_id) {
     FillConCol(con_col_varchar);
   }
-  void AddCheckConstraintMetaData(constraint_oid_t con_check) {}
-  void AddExclusionConstraintMetadata(constraint_oid_t con_exc) {}
 
   friend class DatabaseCatalog;
+  /// pointer to the catalog
   catalog::DatabaseCatalog *dbc_;
-  constraint_oid_t conoid_;  // oid of the constraint
+  /// oid of the constraint
+  constraint_oid_t conoid_;
+  /// constraint name
   std::string conname_;
-  namespace_oid_t connamespaceid_;    /* OID of namespace containing constraint */
-  postgres::ConstraintType contype_;  // type of the constraint
-
-  bool condeferrable_;            /* deferrable constraint? */
-  bool condeferred_;              /* deferred by default? */
-  bool convalidated_;             /* Has the constraint been validated? Currently, can only be false for foreign keys */
-  table_oid_t conrelid_;          // table this constraint applies to
-  index_oid_t conindid_;          /* index supporting this constraint */
-  std::vector<col_oid_t> concol_; /* the column id that this index applies to */
-
-  FKMetadata fk_metadata_;  // pther metadata depending on the constraint type
+  /// OID of namespace containing constraint
+  namespace_oid_t connamespaceid_;
+  /// type of the constraint
+  postgres::ConstraintType contype_;
+  /// deferrable constraint?
+  bool condeferrable_;
+  /// deferred by default?
+  bool condeferred_;
+  /// Has the constraint been validated? Currently, can only be false for foreign keys
+  bool convalidated_;
+  /// table this constraint applies to
+  table_oid_t conrelid_;
+  /// index supporting this constraint
+  index_oid_t conindid_;
+  /// the column id that this index applies to
+  std::vector<col_oid_t> concol_;
+  /// pther metadata depending on the constraint type
+  FKMetadata fk_metadata_;
 
   friend class Catalog;
   friend class postgres::Builder;

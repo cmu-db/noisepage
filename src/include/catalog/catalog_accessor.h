@@ -229,7 +229,9 @@ class EXPORT CatalogAccessor {
 
   /**
    * Perform update cascade if any
+   * @param db_oid corresponding db oid
    * @param table corresponding table oid
+   * @param col_oids column oids
    * @param pr the projected row
    * @param tuple_slot the tupleslot location update applies on the table
    * @return true if cascade success or no cascade needed
@@ -239,7 +241,9 @@ class EXPORT CatalogAccessor {
 
   /**
    * Perform delete cascade if any
+   * @param db_oid corresponding db oid
    * @param table corresponding table oid
+   * @param col_oids column oids
    * @param pr the projected row
    * @param tuple_slot the tupleslot location update applies on the table
    * @return true if cascade success or no cascade needed
