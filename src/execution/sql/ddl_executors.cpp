@@ -69,7 +69,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid,
-                                   index_schema, false, accessor->GetTransactionContext());
+                                   index_schema, false, nullptr);
   }
 
   for (const auto &unique_constraint : node->GetUniqueConstraints()) {
@@ -91,7 +91,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
-                                   index_schema, false, accessor->GetTransactionContext());
+                                   index_schema, false, nullptr);
   }
 
   // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
@@ -155,15 +155,15 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
 
+  bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
+  TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+
   if (concurrent) {
     TERRIER_ASSERT(false, "Should not have concurrency yet");
   } else {
     // If no populate txn, index does not need to be populated
     if (populate_txn != nullptr) {
       index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), populate_txn);
-
-      bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
-      TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
 
       // Now, populate the index
       index_builder.BulkInsert(index);

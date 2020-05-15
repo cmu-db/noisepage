@@ -340,7 +340,7 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_),
-      common::ManagedPointer<transaction::TransactionContext>(txn_)));
+      nullptr));
 
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
@@ -349,7 +349,7 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
   EXPECT_FALSE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_),
-      common::ManagedPointer<transaction::TransactionContext>(txn_)));
+      nullptr));
   txn_manager_->Abort(txn_);
 }
 

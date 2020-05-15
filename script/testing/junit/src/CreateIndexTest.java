@@ -113,7 +113,7 @@ public class CreateIndexTest extends TestUtility {
     public void testWriteBlocking() throws SQLException, InterruptedException {
         String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100);";
         Statement stmt = conn.createStatement();
-        int num_rows = 1500;
+        int num_rows = 500;
         for (int i = 0; i < num_rows; i++) {
             stmt.execute(sql);
         }
@@ -315,71 +315,5 @@ public class CreateIndexTest extends TestUtility {
             checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {7, 8, 200});
         }
         assertNoMoreRows(rs);
-    }
-
-
-    /**
-     * Ensures proper MVCC semantics are still met even with the index being created
-     */
-    @Test
-    public void testMVCC() throws SQLException, InterruptedException {
-        String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 102);";
-        Statement stmt = conn.createStatement();
-        int num_rows = 1000;
-        for (int i = 0; i < num_rows; i++) { stmt.execute(sql); }
-
-        conn.setAutoCommit(false);
-        Statement select = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl where c2 > 0 ORDER BY c2 ASC");
-        for (int i = 0; i < num_rows; i++) {
-            rs.next();
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
-        }
-
-        for (int i = 0; i < num_rows; i++) {
-            rs.next();
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 102});
-        }
-        assertNoMoreRows(rs);
-
-        Thread[] threads = new Thread[NUM_EXTRA_THREADS];
-        for (int i = 0; i < NUM_EXTRA_THREADS; i++) {
-            final Connection conn2 = thread_conn[i];
-            final int i2  = i;
-            threads[i] = new Thread(() -> {
-                try {
-                    Statement stmt2 = conn2.createStatement();
-                    for (int j = 0; j < num_rows; j++) {
-                        stmt2.execute("INSERT INTO tbl VALUES (3, 4, 200);");
-                    }
-                } catch(SQLException e) {
-                    DumpSQLException(e);
-                    Assert.fail();
-                }
-            });
-            threads[i].start();
-        }
-
-        Connection indexConn = makeDefaultConnection();
-        indexConn.setAutoCommit(true);
-        indexConn.createStatement().execute("CREATE INDEX tbl_ind on tbl (c2)");
-        indexConn.close();
-
-        rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC;");
-
-        for (int i = 0; i < num_rows; i++) {
-            rs.next();
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
-        }
-
-        for (int i = 0; i < num_rows; i++) {
-            rs.next();
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 102});
-        }
-        assertNoMoreRows(rs);
-        conn.commit();
-        for (Thread t : threads) {
-            t.join();
-        }
     }
 }
