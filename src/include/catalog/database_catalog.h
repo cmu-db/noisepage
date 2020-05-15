@@ -331,17 +331,41 @@ class DatabaseCatalog {
  * @param txn transaction
    * @param db_oid the db oid for current db
  * @param table_oid the table_oid inserted assume table exists
- * @param con_obj
- * @param tuple_slot tupleslot location where the update applies to the table
-    * @param update_pr the projected row carry the data to be updated
+ * @param con_obj constraint object of current table
+   * @param pr_vector the vector of projected rows of parent's
+   * @param parent_col parent columns to be referenced
+   * @param child_col child columns that are referencing
  * @return the number of affected row
  */
   int FKCascadeRecursive(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid,
-                                          table_oid_t table_oid, const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> pr_vector);
+                                          table_oid_t table_oid, const PGConstraint &con_obj, const char cascade_type,
+                                          std::vector<storage::ProjectedRow *> pr_vector, std::vector<col_oid_t> parent_col,
+                                          std::vector<col_oid_t> child_col);
+  /**
+ * Scan for the given tuple slot to see if it exists in the child table
+ * @param txn transaction
+ * @param table_oid the table_oid inserted assume table exists
+ * @param con_obj constraint object of current table
+   * @param ref_pr_vector the vector of projected rows of parent's
+   * @param affected_col_ref parent columns to be referenced
+   * @param affected_col_src child columns that are referencing
+ * @return the vector of tupleslots that matche the input key
+ */
   std::vector<storage::TupleSlot> FKScan(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
-                                         const PG_Constraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector);
+                                                          const PGConstraint &con_obj, std::vector<storage::ProjectedRow *> ref_pr_vector,
+                                                          std::vector<col_oid_t> affected_col_ref, std::vector<col_oid_t> affected_col_src );
+
+  /**
+ * Delete tuples from child table and index
+ * @param txn transaction
+   * @param db_oid the db oid for current db
+ * @param table_oid the table_oid inserted assume table exists
+ * @param con_obj constraint object of current table
+   * @param fk_slots the tuple slots to be deleted
+ * @return the number of affected row
+ */
   int FKDelete(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db_oid, table_oid_t table_oid,
-                                const PG_Constraint &con_obj, std::vector<storage::TupleSlot> fk_slots);
+                                const PGConstraint &con_obj, std::vector<storage::TupleSlot> fk_slots);
 
   /**
    * insert eh PK constraint when creating table according to the definition
