@@ -193,22 +193,6 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
     EXPECT_FALSE(ret.is_null_);                 \
     EXPECT_DOUBLE_EQ(C_FUNC(input), ret.val_);  \
   }
-#define CHECK_HANDLES_INTNULL(TPL_FUNC, C_FUNC) \
-  {                                                \
-    Real arg(input);                            \
-    Integer ret(0);                              \
-    ArithmeticFunctions::TPL_FUNC(&ret, arg);   \
-    EXPECT_FALSE(ret.is_null_);                 \
-    EXPECT_DOUBLE_EQ(C_FUNC(input), ret.val_);  \
-  }
-#define CHECK_HANDLES_INTNONNULL(TPL_FUNC, C_FUNC) \
-  {                                                \
-    Real arg(input);                            \
-    Integer ret(0);                              \
-    ArithmeticFunctions::TPL_FUNC(&ret, arg);   \
-    EXPECT_FALSE(ret.is_null_);                 \
-    EXPECT_DOUBLE_EQ(C_FUNC(input), ret.val_);  \
-  }
 #define CHECK_SQL_FUNC(TPL_FUNC, C_FUNC) \
   CHECK_HANDLES_NULL(TPL_FUNC, C_FUNC)   \
   CHECK_HANDLES_NONNULL(TPL_FUNC, C_FUNC)
@@ -222,8 +206,7 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
     CHECK_SQL_FUNC(Cosh, std::cosh);
     CHECK_SQL_FUNC(Tanh, std::tanh);
     CHECK_SQL_FUNC(Sinh, std::sinh);
-    CHECK_HANDLES_INTNONNULL(Round, std::round);
-    CHECK_HANDLES_INTNULL(Round, std::round);
+    CHECK_SQL_FUNC(Round, std::round);
   }
 
   for (const auto input : arc_inputs) {

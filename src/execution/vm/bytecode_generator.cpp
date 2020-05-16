@@ -1707,7 +1707,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::RoundUpTo: {
-      Emitter()->Emit(Bytecode::RoundUpTo, dest, src);
+      Emitter()->Emit(Bytecode::RoundUpTo, dest, src, VisitExpressionForRValue(call->Arguments()[1]));
       break;
     }
     default: {
