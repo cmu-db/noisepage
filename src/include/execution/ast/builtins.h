@@ -274,6 +274,8 @@ namespace terrier::execution::ast {
   F(Log2, log2)                                                         \
   F(Sqrt, sqrt)                                                         \
   F(Cbrt, cbrt)                                                         \
+  F(Round, round)                                                       \
+  F(RoundUpTo, roundUpTo)                                               \
                                                                         \
   /* EXP */                                                             \
   F(Exp, exp)                                                           \

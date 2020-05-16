@@ -2005,10 +2005,16 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   UNARY_REAL_MATH_OP(Sign);
   UNARY_REAL_MATH_OP(Radians);
   UNARY_REAL_MATH_OP(Degrees);
-  UNARY_REAL_MATH_OP(Round);
   BINARY_REAL_MATH_OP(Atan2);
   BINARY_REAL_MATH_OP(Log);
   BINARY_REAL_MATH_OP(Pow);
+
+  OP(Round) : {
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *v = frame->LocalAt<const sql::Real *>(READ_LOCAL_ID());
+    OpRound(result, v);
+    DISPATCH_NEXT();
+  }
 
   OP(RoundUpTo) : {
     auto *result = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());

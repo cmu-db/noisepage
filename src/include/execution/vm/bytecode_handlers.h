@@ -1407,7 +1407,7 @@ VM_OP_WARM void OpDegrees(terrier::execution::sql::Real *result, const terrier::
   terrier::execution::sql::ArithmeticFunctions::Degrees(result, *v);
 }
 
-VM_OP_WARM void OpRound(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v) {
+VM_OP_WARM void OpRound(terrier::execution::sql::Integer *result, const terrier::execution::sql::Real *v) {
   terrier::execution::sql::ArithmeticFunctions::Round(result, *v);
 }
 

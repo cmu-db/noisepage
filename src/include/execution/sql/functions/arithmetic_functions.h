@@ -222,7 +222,7 @@ class EXPORT ArithmeticFunctions {
   /**
    * Round to nearest
    */
-  static void Round(Real *result, const Real &v);
+  static void Round(Integer *result, const Real &v);
 
   /**
    * Rounding with scale
@@ -338,6 +338,14 @@ inline void ArithmeticFunctions::Atan2(Real *result, const Real &a, const Real &
     return;
   }
   *result = Real(terrier::execution::sql::Atan2<double>{}(a.val_, b.val_));
+}
+
+inline void ArithmeticFunctions::Round(Integer *result, const Real &v) {
+  if (v.is_null_) {
+    *result = Integer::Null();
+    return;
+  }
+  *result = Integer(v.val_ + ((v.val_ < 0) ? -0.5 : 0.5));
 }
 
 inline void ArithmeticFunctions::RoundUpTo(Real *result, const Real &v, const Integer &scale) {
