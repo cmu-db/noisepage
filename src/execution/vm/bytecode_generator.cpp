@@ -1677,6 +1677,23 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
   GetExecutionResult()->SetDestination(dest.ValueOf());
 }
 
+void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->GetType()->GetContext();
+  LocalVar dest, src;
+
+  if (call->Arguments()[0]->GetType()->IsIntegerType() || call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+    dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+    src = VisitExpressionForRValue(call->Arguments()[0]);
+    Emitter()->Emit(Bytecode::AbsInteger, dest, src);
+  } else {
+    dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+    src = VisitExpressionForRValue(call->Arguments()[0]);
+    Emitter()->Emit(Bytecode::AbsReal, dest, src);
+  }
+
+  ExecutionResult()->SetDestination(dest.ValueOf());
+}
+
 void BytecodeGenerator::VisitBuiltinSizeOfCall(ast::CallExpr *call) {
   ast::Type *target_type = call->Arguments()[0]->GetType();
   LocalVar size_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
@@ -2413,6 +2430,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Sin:
     case ast::Builtin::Tan: {
       VisitBuiltinTrigCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::Abs: {
+      VisitBuiltinArithmeticCall(call, builtin);
       break;
     }
     case ast::Builtin::PRSetBool:

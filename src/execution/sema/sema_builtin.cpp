@@ -1486,6 +1486,16 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
       break;
     }
+    case ast::Builtin::Abs: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      if (!call_args[0]->GetType()->IsArithmetic()) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(real_kind));
+        return;
+      }
+      break;
+    }
     default: {
       UNREACHABLE("Impossible math trig function call");
     }
@@ -2956,7 +2966,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Cos:
     case ast::Builtin::Cot:
     case ast::Builtin::Sin:
-    case ast::Builtin::Tan: {
+    case ast::Builtin::Tan:
+    case ast::Builtin::Abs: {
       CheckMathTrigCall(call, builtin);
       break;
     }

@@ -36,6 +36,10 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
     result = Integer(0);
     ArithmeticFunctions::IntDiv(&result, a, b, &div_by_zero);
     EXPECT_TRUE(result.is_null_);
+
+    result = Integer(0);
+    ArithmeticFunctions::Abs(&result, a);
+    EXPECT_TRUE(result.is_null_);
   }
 
   // Proper
@@ -62,6 +66,19 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
     ArithmeticFunctions::IntDiv(&result, a, b, &div_by_zero);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(aval / bval, result.val_);
+
+    result = Integer(0);
+    ArithmeticFunctions::Abs(&result, a);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval, result.val_);
+
+    const auto cval = -4, dval = 4;
+    Integer c(cval), d(dval);
+
+    result = Integer(0);
+    ArithmeticFunctions::Abs(&result, c);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(dval, result.val_);
   }
 
   // Overflow
@@ -119,6 +136,10 @@ TEST_F(ArithmeticFunctionsTests, RealValue) {
     result = Real(0.0);
     ArithmeticFunctions::Div(&result, a, b, &div_by_zero);
     EXPECT_TRUE(result.is_null_);
+
+    result = Real(0.0);
+    ArithmeticFunctions::Abs(&result, a);
+    EXPECT_TRUE(result.is_null_);
   }
 
   // Proper
@@ -145,6 +166,19 @@ TEST_F(ArithmeticFunctionsTests, RealValue) {
     ArithmeticFunctions::Div(&result, a, b, &div_by_zero);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(aval / bval, result.val_);
+
+    result = Real(0.0);
+    ArithmeticFunctions::Abs(&result, a);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval, result.val_);
+
+    const auto cval = -4.8, dval = 4.8;
+    Real c(cval);
+
+    result = Real(0.0);
+    ArithmeticFunctions::Abs(&result, c);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(dval, result.val_);
   }
 }
 
