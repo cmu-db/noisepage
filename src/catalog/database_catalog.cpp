@@ -1805,6 +1805,9 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // log2
   BOOTSTRAP_TRIG_FN("log2", postgres::LOG2_PRO_OID, execution::ast::Builtin::Log2)
 
+  // mod
+  BOOSTRAP_TRIG_FN("mod", postgres::MOD_PRO_OID, execution::ast::Builtin::Mod)
+
 #undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
@@ -1961,6 +1964,12 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   func_context = new execution::functions::FunctionContext("version", type::TypeId::VARCHAR, {},
                                                            execution::ast::Builtin::Version, true);
   SetProcCtxPtr(txn, postgres::VERSION_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // need to consider reals too. in other parts of the code, mod is for reals, intmod is for ints just as a note
+  func_context = new execution::functions::FunctionContext("mod", type::TypeId::INTEGER, {type::TypeId::INTEGER, type::TypeId::DECIMAL},
+                                                           execution::ast::Builtin::Mod, true);
+  SetProcCtxPtr(txn, postgres::MOD_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext(
