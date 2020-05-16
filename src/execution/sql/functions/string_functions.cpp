@@ -464,7 +464,6 @@ void StringFunctions::Md5Sum(exec::ExecutionContext *ctx, StringVal *result, con
   auto source = src.c_str();
   for (unsigned int i = 0; i < src.size(); i++) {
     ptr[i] = source[i];
-    std::cout << ptr[i];
   }
 }
 
