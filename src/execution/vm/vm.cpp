@@ -270,7 +270,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   DO_GEN_ARITHMETIC_OP(Sub, false, type) \
   DO_GEN_ARITHMETIC_OP(Mul, false, type) \
   DO_GEN_ARITHMETIC_OP(Div, true, type)  \
-  DO_GEN_ARITHMETIC_OP(Rem, true, type)
+  DO_GEN_ARITHMETIC_OP(Rem, true, type)  \
+  // TODO: check if Mod belongs here
+  DO_GEN_ARITHMETIC_OP(Mod, true, type)
 
   ALL_NUMERIC_TYPES(GEN_ARITHMETIC_OP)
 #undef GEN_ARITHMETIC_OP

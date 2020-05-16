@@ -259,3 +259,10 @@ void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { 
 void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 
 }  //
+
+// -------------------------------------------------------------------
+// Arithmetic?
+// -------------------------------------------------------------------
+void OpMod(terrier::execution::sql::ComputeMod *computeMod) {
+  computeMod->Mod();
+}
