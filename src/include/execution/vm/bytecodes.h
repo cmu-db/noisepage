@@ -582,12 +582,14 @@ namespace terrier::execution::vm {
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
   F(Like, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
   F(Lower, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
-  F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
+  F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(Repeat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(Reverse, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(Right, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  F(RPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
+  F(RPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(RTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(RTrim, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
