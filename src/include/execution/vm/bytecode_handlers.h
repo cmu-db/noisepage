@@ -697,7 +697,7 @@ VM_OP_HOT void OpDivInteger(terrier::execution::sql::Integer *const result,
   terrier::execution::sql::ArithmeticFunctions::IntDiv(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpRemInteger(terrier::execution::sql::Integer *const result,
+VM_OP_HOT void OpModInteger(terrier::execution::sql::Integer *const result,
                             const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
   UNUSED_ATTRIBUTE bool div_by_zero = false;
@@ -725,7 +725,7 @@ VM_OP_HOT void OpDivReal(terrier::execution::sql::Real *const result, const terr
   terrier::execution::sql::ArithmeticFunctions::Div(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpRemReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
+VM_OP_HOT void OpModReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
                          const terrier::execution::sql::Real *const right) {
   UNUSED_ATTRIBUTE bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::Mod(result, *left, *right, &div_by_zero);

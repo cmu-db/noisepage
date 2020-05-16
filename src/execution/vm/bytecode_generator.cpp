@@ -2899,7 +2899,7 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
       break;
     }
     case parsing::Token::Type::PERCENT: {
-      bytecode = (is_integer_math ? Bytecode::RemInteger : Bytecode::RemReal);
+      bytecode = (is_integer_math ? Bytecode::ModInteger : Bytecode::ModReal);
       break;
     }
     default: {

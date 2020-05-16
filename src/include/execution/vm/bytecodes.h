@@ -295,12 +295,12 @@ namespace terrier::execution::vm {
   F(SubInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(MulInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(RemInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(ModInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(RemReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(ModReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
