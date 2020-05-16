@@ -294,6 +294,7 @@ namespace terrier::execution::ast {
   F(Left, left)                                                         \
   F(Right, right)                                                       \
   F(Reverse, reverse)                                                   \
+  F(Repeat, repeat)                                                     \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \

@@ -1847,6 +1847,10 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::RIGHT_PRO_OID, "right", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
                   {}, str_type, "", true);
+  // repeat
+  CreateProcedure(txn, postgres::REPEAT_PRO_OID, "repeat", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
+                  {}, str_type, "", true);
 
   // date_part
   CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
@@ -1939,6 +1943,12 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                                                            {type::TypeId::VARCHAR, type::TypeId::INTEGER},
                                                            execution::ast::Builtin::Right, true);
   SetProcCtxPtr(txn, postgres::RIGHT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("repeat", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Repeat, true);
+  SetProcCtxPtr(txn, postgres::REPEAT_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext(

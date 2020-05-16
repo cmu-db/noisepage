@@ -2420,7 +2420,8 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::Left:
-    case ast::Builtin::Right: {
+    case ast::Builtin::Right:
+    case ast::Builtin::Repeat: {
       // check to make sure this function has three arguments
       if (!CheckArgCount(call, 3)) {
         return;
@@ -2993,7 +2994,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Substring:
     case ast::Builtin::Reverse:
     case ast::Builtin::Right:
-    case ast::Builtin::Left: {
+    case ast::Builtin::Left:
+    case ast::Builtin::Repeat: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
