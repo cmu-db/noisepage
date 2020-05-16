@@ -121,6 +121,12 @@ class LogicalGetToPhysicalIndexScan : public Rule {
 
   /**
    * Set whether to allow CVEs when checking whether an index can be used
+   *
+   * This is primarily intended for use by the IndexJoin where a predicate
+   * of the form (col1 == col2) has a plausible use. If transforming a
+   * normal table scan to an index scan, predicates of form (col1 compare col2)
+   * are ignored in determining the high/low key bounds.
+   *
    * @param allow Whether to allow CVEs
    */
   void SetAllowCVEs(bool allow) { allow_cves_ = allow; }
