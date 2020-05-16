@@ -1529,7 +1529,6 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       break;
     }
-
     case ast::Builtin::IntMod: {
       if (!CheckArgCount(call, 2)) {
         return;
