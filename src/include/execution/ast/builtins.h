@@ -303,6 +303,7 @@ namespace terrier::execution::ast {
   F(Position, position)                                                 \
   F(ASCII, ascii)                                                       \
   F(Length, length)                                                     \
+  F(Md5Sum, md5)                                                        \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \

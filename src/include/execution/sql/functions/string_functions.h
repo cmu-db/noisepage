@@ -101,5 +101,8 @@ class StringFunctions {
 
   /** Compute CHR(code). */
   static void Chr(StringVal *result, exec::ExecutionContext *ctx, const Integer &code);
+
+  /** Compute MD5(str). */
+  static void Md5Sum(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
 };
 }  // namespace terrier::execution::sql

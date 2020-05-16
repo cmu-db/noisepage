@@ -2278,6 +2278,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(Md5Sum) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpMd5Sum(exec_ctx, result, input);
+    DISPATCH_NEXT();
+  }
+
   // Impossible
   UNREACHABLE("Impossible to reach end of interpreter loop. Bad code!");
 }  // NOLINT(readability/fn_size)

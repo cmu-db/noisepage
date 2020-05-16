@@ -46,6 +46,10 @@ list(APPEND TERRIER_SRCS ${LIBCOUNT_SOURCES})
 file(GLOB_RECURSE IPS4O_SOURCES ${PROJECT_SOURCE_DIR}/third_party/ips4o/*.hpp)
 list(APPEND TERRIER_SRCS ${IPS4O_SOURCES})
 
+# md5
+file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/md5/*.h)
+list(APPEND TERRIER_SRCS ${MD5_SOURCES})
+
 # xbyak: used for interpretation in execution
 file(GLOB_RECURSE XBYAK_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.h)
 list(APPEND TERRIER_SRCS ${XBYAK_SOURCES})
@@ -57,6 +61,7 @@ list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
 # libcuckoo
 file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcuckoo/*.hh)
 list(APPEND TERRIER_SRCS ${LIBCUCKOO_SOURCES})
+
 
 ###############################################
 # Terrier library
