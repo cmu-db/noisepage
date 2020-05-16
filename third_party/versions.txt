@@ -48,6 +48,12 @@ GBENCHMARK_VERSION=1.4.1
 # commit hash: e2f4695899e831171ecd2e780078474712ea61d3
 # commit hash date: 8 Oct 2019
 
+# md5
+# url: https://github.com/CommanderBubble/MD5
+# release: master
+# commit hash: 552ad5a446a6b22c21e8c7856cfe967e10d5b364
+# commit hash date: 18 Apr 2015
+
 # libcuckoo
 # url: https://github.com/efficient/libcuckoo.git
 # branch: master
