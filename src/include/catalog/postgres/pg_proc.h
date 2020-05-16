@@ -83,5 +83,4 @@ constexpr proc_oid_t COSH_PRO_OID = proc_oid_t(127);
 constexpr proc_oid_t SINH_PRO_OID = proc_oid_t(128);
 constexpr proc_oid_t TANH_PRO_OID = proc_oid_t(129);
 
-
 }  // namespace terrier::catalog::postgres
