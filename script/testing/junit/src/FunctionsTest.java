@@ -129,6 +129,22 @@ public class FunctionsTest extends TestUtility {
         }
         assertNoMoreRows(rs);
     }
+
+    private void checkLeftRightFunc(String func_name, String col_name, int length, boolean is_null, String expected) throws SQLException {
+        String sql = String.format("SELECT %s(%s, %d) AS result FROM data WHERE is_null = %s",
+                                   func_name, col_name, length, (is_null ? 1 : 0));
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+        boolean exists = rs.next();
+        assert(exists);
+        if (is_null) {
+            checkStringRow(rs, new String[]{"result"}, new String[]{null});
+        } else {
+            checkStringRow(rs, new String[]{"result"}, new String[]{expected});
+        }
+        assertNoMoreRows(rs);
+    }
      
     /**
      * Tests usage of trig udf functions
@@ -163,6 +179,24 @@ public class FunctionsTest extends TestUtility {
     public void testUpper() throws SQLException {
         checkStringFunc("upper", "str_a_val", false, "ABCDEF");
         checkStringFunc("upper", "str_a_val", true, null);
+    }
+
+    @Test
+    public void testReverse() throws SQLException {
+        checkStringFunc("reverse", "str_a_val", false, "fEdCbA");
+        checkStringFunc("reverse", "str_a_val", true, null);
+    }
+
+    @Test
+    public void testLeft() throws SQLException {
+        checkLeftRightFunc("left", "str_a_val", 3, false, "AbC");
+        checkLeftRightFunc("left", "str_a_val", 3, true, null);
+    }
+
+    @Test
+    public void testRight() throws SQLException {
+        checkLeftRightFunc("right", "str_a_val", 3, false, "dEf");
+        checkLeftRightFunc("right", "str_a_val", 3, true, null);
     }
 
 }
