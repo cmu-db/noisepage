@@ -68,6 +68,7 @@ constexpr proc_oid_t ATAN_PRO_OID = proc_oid_t(87);
 constexpr proc_oid_t COS_PRO_OID = proc_oid_t(88);
 constexpr proc_oid_t SIN_PRO_OID = proc_oid_t(89);
 constexpr proc_oid_t MOD_PRO_OID = proc_oid_t(108);
+constexpr proc_oid_t INTMOD_PRO_OID = proc_oid_t(142);
 
 // TODO(tanujnay112) This overflows into the next internal oid range and will continue to do so
 constexpr proc_oid_t TAN_PRO_OID = proc_oid_t(90);
