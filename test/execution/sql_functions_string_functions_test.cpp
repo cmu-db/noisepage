@@ -312,6 +312,34 @@ TEST_F(StringFunctionsTests, Rpad) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, Length) {
+  // Nulls
+  {
+    auto x = StringVal::Null();
+    auto result = Integer(0);
+
+    StringFunctions::Length(Ctx(), &result, x);
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // Zero length
+  {
+    auto x = StringVal("");
+    auto result = Integer(0);
+
+    StringFunctions::Length(Ctx(), &result, x);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(0, result.val_);
+  }
+
+  auto x = StringVal("test");
+  auto result = Integer(0);
+  StringFunctions::Length(Ctx(), &result, x);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_EQ(4, result.val_);
+}
+
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Lower) {
   // Nulls
   {
