@@ -404,8 +404,8 @@ void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const 
     return;
   }
 
-  auto *str_content = str.Content();
-  *result = Integer(int(str_content[0]));
+  auto str_view = str.StringView();
+  *result = Integer(static_cast<int>(str_view.front()));
 }
 
 }  // namespace terrier::execution::sql
