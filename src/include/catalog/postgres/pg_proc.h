@@ -104,4 +104,5 @@ constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(903);
 constexpr proc_oid_t POW_PRO_OID = proc_oid_t(94);
 constexpr proc_oid_t MD5_PRO_OID = proc_oid_t(103);
 
+constexpr proc_oid_t INITCAP_PRO_OID = proc_oid_t(102);
 }  // namespace terrier::catalog::postgres

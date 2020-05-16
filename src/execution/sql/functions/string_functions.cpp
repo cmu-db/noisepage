@@ -474,4 +474,30 @@ void Md5Sum(exec::ExecutionContext* ctx, StringVal* result, const StringVal& str
   //std::cout << result << std::endl;
 }
 
+void StringFunctions::InitCap(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+  if (str.is_null_) {
+    *result = StringVal::Null();
+    return;
+  }
+
+  if (str.len_ == 0) {
+    *result = str;
+    return;
+  }
+
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len_);
+  if (UNLIKELY(ptr == nullptr)) {
+    // Allocation failed
+    return;
+  }
+
+  auto *src = str.Content();
+  bool upper = src[0] == ' ';
+  ptr[0] = static_cast<char>(std::toupper(src[0]));
+  for (uint32_t i = 0; i < str.len_; i++) {
+    ptr[i] = upper ? static_cast<char>(std::toupper(src[i])) : src[i];
+    upper = src[i] == ' ';
+  }
+}
+
 }  // namespace terrier::execution::sql

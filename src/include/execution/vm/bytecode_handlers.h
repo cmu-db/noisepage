@@ -1583,6 +1583,11 @@ VM_OP_WARM void OpMd5Sum(terrier::execution::exec::ExecutionContext *ctx, terrie
   terrier::execution::sql::StringFunctions::Md5Sum(ctx, result, *str);
 }
 
+VM_OP_WARM void OpInitCap(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                        const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::InitCap(ctx, result, *str);
+}
+
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------

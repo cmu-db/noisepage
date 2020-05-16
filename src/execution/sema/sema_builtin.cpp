@@ -3117,7 +3117,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Version:
     case ast::Builtin::Position:
     case ast::Builtin::Length:
-    case ast::Builtin::Md5Sum: {
+    case ast::Builtin::Md5Sum:
+    case ast::Builtin::InitCap: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }

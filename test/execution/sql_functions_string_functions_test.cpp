@@ -674,4 +674,42 @@ TEST_F(StringFunctionsTests, CharLength) {
   EXPECT_EQ(9, result.val_);
 }
 
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, InitCap) {
+  // Nulls
+  {
+    auto x = StringVal::Null();
+    auto result = StringVal("");
+
+    StringFunctions::Upper(Ctx(), &result, x);
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // simple
+  auto x = StringVal("simple test");
+  auto result = StringVal("");
+  StringFunctions::InitCap(Ctx(), &result, x);
+  EXPECT_TRUE(StringVal("Simple Test") == result);
+
+  // one word
+  x = StringVal("zyh");
+  StringFunctions::InitCap(Ctx(), &result, x);
+  EXPECT_TRUE(StringVal("Zyh") == result);
+
+  // spaces
+  x = StringVal("  test  ");
+  StringFunctions::InitCap(Ctx(), &result, x);
+  EXPECT_TRUE(StringVal("  Test  ") == result);
+
+  // special char
+  x = StringVal("3imple 7est");
+  StringFunctions::InitCap(Ctx(), &result, x);
+  EXPECT_TRUE(StringVal("3imple 7est") == result);
+
+  // complex
+  x = StringVal("a 3imple   7est  simple t  ");
+  StringFunctions::InitCap(Ctx(), &result, x);
+  EXPECT_TRUE(StringVal("A 3imple   7est  Simple T  ") == result);
+}
+
 }  // namespace terrier::execution::sql::test
