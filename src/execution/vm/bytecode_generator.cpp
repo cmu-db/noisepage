@@ -1681,7 +1681,8 @@ void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Bui
   ast::Context *ctx = call->GetType()->GetContext();
   LocalVar dest, src;
 
-  if (call->Arguments()[0]->GetType()->IsIntegerType() || call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+  if (call->Arguments()[0]->GetType()->IsIntegerType() ||
+      call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
     dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
     src = VisitExpressionForRValue(call->Arguments()[0]);
     Emitter()->Emit(Bytecode::AbsInteger, dest, src);

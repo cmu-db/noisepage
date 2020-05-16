@@ -1070,7 +1070,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();                                      \
   }
 
-ALL_NUMERIC_TYPES(GEN_ABS_OP)
+  ALL_NUMERIC_TYPES(GEN_ABS_OP)
 #undef GEN_ABS_OP
 
   OP(ValIsNull) : {
