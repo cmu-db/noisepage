@@ -27,7 +27,7 @@ void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, con
 
 void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                                 const Integer &pos, const Integer &len) {
-  if (str.is_null_ || pos.is_null_ || len.is_null_) {
+  if (str.is_null_ || pos.is_null_ || len.is_null_ || pos.val_ > str.len_) {
     *result = StringVal::Null();
     return;
   }
@@ -44,7 +44,7 @@ void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
   }
 
   // If the length is 0 return empty string
-  if (str_len == 0) {
+  if (str_len == 0 || pos.val_ < 0) {
     *result = StringVal("");
     return;
   }

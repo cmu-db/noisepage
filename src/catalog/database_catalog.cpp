@@ -1895,6 +1895,10 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   func_context = new execution::functions::FunctionContext("starts_with", type::TypeId::BOOLEAN,
                                                            {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+  func_context = new execution::functions::FunctionContext("substr", type::TypeId::VARCHAR, {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Substring, true);
+  SetProcCtxPtr(txn, postgres::SUBSTR_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
                                                            execution::ast::Builtin::StartsWith, true);
   SetProcCtxPtr(txn, postgres::STARTSWITH_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
