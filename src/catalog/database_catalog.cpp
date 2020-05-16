@@ -1806,7 +1806,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   BOOTSTRAP_TRIG_FN("log2", postgres::LOG2_PRO_OID, execution::ast::Builtin::Log2)
 
   // mod
-  BOOSTRAP_TRIG_FN("mod", postgres::MOD_PRO_OID, execution::ast::Builtin::Mod)
+  BOOTSTRAP_TRIG_FN("mod", postgres::MOD_PRO_OID, execution::ast::Builtin::Mod)
 
 #undef BOOTSTRAP_TRIG_FN
 

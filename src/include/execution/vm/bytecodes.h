@@ -302,8 +302,8 @@ namespace terrier::execution::vm {
   F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(RemReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   /* SQL binary operation without operator */                                                                         \
-  F(Mod, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \                                                                  \
-  F(IntMod, OperandType::Local, OperandType::Local, OperandType::Local)                                               \    
+  F(Mod, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
+  F(IntMod, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
