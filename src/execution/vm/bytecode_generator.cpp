@@ -2175,6 +2175,7 @@ void BytecodeGenerator::VisitBuiltinArithCall(ast::CallExpr *call, ast::Builtin 
   LocalVar second_input = VisitExpressionForRValue(call->Arguements()[2]);
   LocalVar ret = ExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
+	case ast::Builtin::IntMod:
     case ast::Builtin::Mod: {
       Emitter()->Emit(Bytecode::Lower, exec_ctx, ret, first_input, second_input);
       break;
@@ -2541,6 +2542,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinStringCall(call, builtin);
       break;
     }
+    case ast::Builtin::IntMod:
     case ast::Builtin::Mod: {
       VisitBuiltinArithCall(call, builtin);
       break;
