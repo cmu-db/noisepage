@@ -1426,6 +1426,12 @@ VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::exec
   terrier::execution::sql::ArithmeticFunctions::Pow(result, *base, *val);
 }
 
+VM_OP_WARM void OpMod(terrier::execution::sql::Real *result, const terrier::execution::sql::Real &a,
+                      const terrier::execution::sql::Real &b) {
+  bool div_by_zero = false;
+  terrier::execution::sql::ArithmeticFunctions::Mod(result, a, b, &div_by_zero);
+}
+
 // ---------------------------------------------------------
 // Null/Not Null predicates
 // ---------------------------------------------------------
