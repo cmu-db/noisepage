@@ -70,6 +70,14 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
+     * Sets the index size
+     */
+    Builder &SetIndexSize(uint64_t index_size) {
+      index_size_ = index_size;
+      return *this;
+    }
+
+    /**
      * Sets the index cols.
      */
     Builder &AddIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
@@ -110,7 +118,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
       return std::unique_ptr<IndexScanPlanNode>(new IndexScanPlanNode(
           std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_), is_for_update_,
           database_oid_, namespace_oid_, index_oid_, table_oid_, scan_type_, std::move(lo_index_cols_),
-          std::move(hi_index_cols_), scan_limit_));
+          std::move(hi_index_cols_), scan_limit_, index_size_));
     }
 
    private:
@@ -121,6 +129,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
     uint32_t scan_limit_{0};
+    uint64_t index_size_{0};
   };
 
  private:
@@ -137,6 +146,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param lo_index_cols lower bound of the scan (or exact key when scan type = Exact).
    * @param hi_index_cols upper bound of the scan
    * @param scan_limit limit of the scan if any
+   * @param index_size number of tuples in index
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema,
@@ -146,7 +156,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     catalog::table_oid_t table_oid, IndexScanType scan_type,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
-                    uint32_t scan_limit)
+                    uint32_t scan_limit, uint64_t index_size)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
                              namespace_oid),
         scan_type_(scan_type),
@@ -155,7 +165,8 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
         column_oids_(column_oids),
         lo_index_cols_(std::move(lo_index_cols)),
         hi_index_cols_(std::move(hi_index_cols)),
-        scan_limit_(scan_limit) {}
+        scan_limit_(scan_limit),
+        index_size_(index_size) {}
 
  public:
   /**
@@ -212,6 +223,11 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   uint32_t ScanLimit() const { return scan_limit_; }
 
   /**
+   * @return index size
+   */
+  uint64_t GetIndexSize() const { return index_size_; }
+
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
@@ -235,6 +251,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
   uint32_t scan_limit_;
+  uint64_t index_size_;
 };
 
 DEFINE_JSON_DECLARATIONS(IndexScanPlanNode)

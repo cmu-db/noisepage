@@ -96,6 +96,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
 void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
   TERRIER_ASSERT(tpl_module_ != nullptr, "Trying to run a module that failed to compile.");
   exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
+  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
 
   // Run the main function
   if (!tpl_module_->GetFunction("main", mode, &main_)) {
