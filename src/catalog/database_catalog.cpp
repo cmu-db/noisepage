@@ -1816,6 +1816,12 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // log2
   BOOTSTRAP_TRIG_FN("log2", postgres::LOG2_PRO_OID, execution::ast::Builtin::Log2)
 
+  // sqrt
+  BOOTSTRAP_TRIG_FN("sqrt", postgres::SQRT_PRO_OID, execution::ast::Builtin::Sqrt)
+
+  // cbrt
+  BOOTSTRAP_TRIG_FN("cbrt", postgres::CBRT_PRO_OID, execution::ast::Builtin::Cbrt)
+
 #undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
@@ -1936,6 +1942,12 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   // log2
   BOOTSTRAP_TRIG_FN("log2", postgres::LOG2_PRO_OID, execution::ast::Builtin::Log2)
+
+  // sqrt
+  BOOTSTRAP_TRIG_FN("sqrt", postgres::SQRT_PRO_OID, execution::ast::Builtin::Sqrt)
+
+  // cbrt
+  BOOTSTRAP_TRIG_FN("cbrt", postgres::CBRT_PRO_OID, execution::ast::Builtin::Cbrt)
 
 #undef BOOTSTRAP_TRIG_FN
   func_context = new execution::functions::FunctionContext("exp", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},

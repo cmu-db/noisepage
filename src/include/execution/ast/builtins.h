@@ -272,6 +272,8 @@ namespace terrier::execution::ast {
   F(Truncate, truncate)                                                 \
   F(Log10, log10)                                                       \
   F(Log2, log2)                                                         \
+  F(Sqrt, sqrt)                                                         \
+  F(Cbrt, cbrt)                                                         \
                                                                         \
   /* EXP */                                                             \
   F(Exp, exp)                                                           \
