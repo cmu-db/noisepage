@@ -1871,6 +1871,11 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 
+  // pow
+  CreateProcedure(txn, postgres::POW_PRO_OID, "pow", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
+                  dec_type, "", true);
+
   // version
   CreateProcedure(txn, postgres::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
@@ -1984,6 +1989,12 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, func_context);
 
   txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // pow
+  func_context = new execution::functions::FunctionContext("pow", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                                                execution::ast::Builtin::Pow);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+  SetProcCtxPtr(txn, postgres::POW_PRO_OID, func_context);
 
   func_context = new execution::functions::FunctionContext("chr", type::TypeId::VARCHAR, {type::TypeId::INTEGER},
                                                            execution::ast::Builtin::Chr, true);

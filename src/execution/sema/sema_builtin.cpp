@@ -1458,7 +1458,8 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
 
   const auto &call_args = call->Arguments();
   switch (builtin) {
-    case ast::Builtin::ATan2: {
+    case ast::Builtin::ATan2:
+    case ast::Builtin::Pow: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -3049,7 +3050,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Sqrt:
     case ast::Builtin::Cbrt:
     case ast::Builtin::Round:
-    case ast::Builtin::Round2: {
+    case ast::Builtin::Round2:
+    case ast::Builtin::Pow: {
       CheckMathTrigCall(call, builtin);
       break;
     }

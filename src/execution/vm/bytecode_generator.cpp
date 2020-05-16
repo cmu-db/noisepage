@@ -1710,6 +1710,10 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       GetEmitter()->Emit(Bytecode::Round2, dest, src, VisitExpressionForRValue(call->Arguments()[1]));
       break;
     }
+    case ast::Builtin::Pow: {
+      Emitter()->Emit(Bytecode::Pow, dest, src);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible trigonometric bytecode");
     }
@@ -2478,7 +2482,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Sqrt:
     case ast::Builtin::Cbrt:
     case ast::Builtin::Round:
-    case ast::Builtin::Round2: {
+    case ast::Builtin::Round2:
+    case ast::Builtin::Pow: {
       VisitBuiltinTrigCall(call, builtin);
       break;
     }

@@ -308,8 +308,9 @@ namespace terrier::execution::ast {
   F(Chr, chr)                                                           \
   F(CharLength, charLength)                                             \
                                                                         \
-  /* Math functions */                                                  \
+  /* Arithmetic functions */                                                  \
   F(Mod, mod)                                                           \
+  F(Pow, pow)                                                           \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \
