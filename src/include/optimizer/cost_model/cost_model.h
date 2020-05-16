@@ -159,7 +159,7 @@ class CostModel : public AbstractCostModel {
     init_cost += (op_cpu_cost * op->GetJoinPredicates().size() + tuple_cpu_cost) * right_rows;
     init_cost += op_cpu_cost * op->GetJoinPredicates().size() * left_rows;
 
-    auto left_table_name = op->GetLeftKeys()[0].CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName();
+    auto left_table_oid = op->GetLeftKeys()[0].CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableOid();
 
     double frac_null;
     double num_distinct;
@@ -176,11 +176,10 @@ class CostModel : public AbstractCostModel {
 
       auto curr_left_child = pred.GetExpr()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
       auto curr_right_child = pred.GetExpr()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
-      auto curr_left_table_name = curr_left_child->GetTableName();
-      auto curr_right_table_name = curr_right_child->GetTableName();
+      auto curr_left_table_oid = curr_left_child->GetTableOid();
 
       common::ManagedPointer<ColumnStats> col_stats;
-      if (curr_left_table_name == left_table_name) {
+      if (curr_left_table_oid == left_table_oid) {
         col_stats = stats_storage_->GetTableStats(curr_left_child->GetDatabaseOid(), curr_left_child->GetTableOid())
                         ->GetColumnStats(curr_left_child->GetColumnOid());
       } else {
