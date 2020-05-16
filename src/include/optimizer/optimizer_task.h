@@ -4,8 +4,10 @@
 #include <utility>
 #include <vector>
 
+#include "optimizer/cost_model/initial_cost_model.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property_set.h"
+
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier {
@@ -313,6 +315,11 @@ class OptimizeExpressionCostWithEnforcedProperty : public OptimizerTask {
    * GroupExpression to optimize
    */
   GroupExpression *group_expr_;
+
+  /**
+   * Initial cost model
+   */
+  InitialCostModel *initial_cost_model_;
 
   /**
    * Current total cost

@@ -25,7 +25,7 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::
     bool already_explored = group_expr->HasRuleExplored(rule);
 
     // This check exists only as an "early" reject. As is evident, we do not check
-    // the full patern here. Checking the full pattern happens when actually trying to
+    // the full pattern here. Checking the full pattern happens when actually trying to
     // apply the rule (via a GroupExprBindingIterator).
     bool child_pattern_mismatch =
         group_expr->GetChildrenGroupsSize() != rule->GetMatchPattern()->GetChildPatternsSize();
@@ -246,7 +246,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
     // 1. We can init input cost using non-zero value for pruning
     // 2. We can calculate the current operator cost if we have maintain
     //    logical properties in group (e.g. stats, schema, cardinality)
-    cur_total_cost_ = 0;
+    cur_total_cost_ = initial_cost_model_->CalculateCost(context_->GetOptimizerContext()->GetTxn(),
+                                                         &context_->GetOptimizerContext()->GetMemo(), group_expr_);
 
     // Pruning
     if (cur_total_cost_ > context_->GetCostUpperBound()) return;

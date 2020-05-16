@@ -13,181 +13,130 @@
 namespace terrier::optimizer {
 class CostModelTests : public TerrierTest {
  protected:
-  ColumnStats column_stats_obj_a_1_;
-  ColumnStats column_stats_obj_b_1_;
-  TableStats table_stats_obj_a_;
-  TableStats table_stats_obj_b_;
-  StatsStorage stats_storage_;
-  CostModel cost_model_;
-
   static constexpr size_t NUM_ROWS_A = 100'000;
   static constexpr size_t NUM_ROWS_B = 5;
+  static constexpr size_t NUM_ROWS_C = 200;
+  static constexpr size_t NUM_ROWS_D = 200;
+  static constexpr size_t NUM_ROWS_E = 2'000'000;
 
+  ColumnStats column_stats_obj_a_1_;
+  ColumnStats column_stats_obj_b_1_;
+  ColumnStats column_stats_obj_c_1_;
+  ColumnStats column_stats_obj_d_1_;
+  ColumnStats column_stats_obj_e_1_;
+
+  TableStats table_stats_obj_a_;
+  TableStats table_stats_obj_b_;
+  TableStats table_stats_obj_c_;
+  TableStats table_stats_obj_d_;
+  TableStats table_stats_obj_e_;
+
+  StatsStorage stats_storage_;
+  std::unique_ptr<CostModel> cost_model_;
+  std::unique_ptr<OptimizerContext> context_;
   void SetUp() override {
-    // generate 100k random values and generate histogram for them.
-    // This is used for A's "statistics", since it is unclear how to mimic histogram bounds "convincingly".
-    /*
-    Histogram<int> a_hist{100};
-    std::default_random_engine generator;
-    std::uniform_int_distribution<int> distribution(1, 100);
-    for (int i = 0; i < NUM_ROWS_A; i++) {
-      auto number = static_cast<int>(distribution(generator));
-      a_hist.Increment(number);
-    }
-    std::vector<double> a_hist_bounds = a_hist.Uniform();
-     */
-    /*
-     * @param database_id - database oid of column
-     * @param table_id - table oid of column
-     * @param column_id - column oid of column
-     *
-     * @param num_rows - number of rows in column
-     * @param cardinality - cardinality of column
-     * @param frac_null - fraction of null values out of total values in column
-     *
-     * @param most_common_vals - list of most common values in the column
-     * @param most_common_freqs - list of the frequencies of the most common values in the column
-     * @param histogram_bounds - the bounds of the histogram of the column e.g. (1.0 - 4.0)
-     * @param is_base_table - indicates whether the column is from a base table
-     */
+    ///////COLUMNS//////
+    // table 1 column stats
     column_stats_obj_a_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1),
                                         NUM_ROWS_A, NUM_ROWS_A / 2.0, 0.2, {1, 2, 3}, {5, 5, 5}, {1.0, 5.0}, true);
+
+    // table 2 column stats
     column_stats_obj_b_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(1),
                                         NUM_ROWS_B, NUM_ROWS_B, 0.0, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+
+    // table 3 column stats
+    column_stats_obj_c_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(3), catalog::col_oid_t(1),
+                                        NUM_ROWS_C, NUM_ROWS_C, 0.0, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+
+    // table 4 column stats
+    column_stats_obj_d_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::col_oid_t(1),
+                                        NUM_ROWS_D, NUM_ROWS_D, 0.0, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+
+    // table 5 column stats
+    column_stats_obj_e_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(5), catalog::col_oid_t(1),
+                                        NUM_ROWS_E, NUM_ROWS_E, 0.0, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+
+    //////TABLES//////
+    // table 1
     table_stats_obj_a_ =
         TableStats(catalog::db_oid_t(1), catalog::table_oid_t(1), NUM_ROWS_A, true, {column_stats_obj_a_1_});
+    // table 2
     table_stats_obj_b_ =
         TableStats(catalog::db_oid_t(1), catalog::table_oid_t(2), NUM_ROWS_B, true, {column_stats_obj_b_1_});
+    // table 3
+    table_stats_obj_c_ =
+        TableStats(catalog::db_oid_t(1), catalog::table_oid_t(3), NUM_ROWS_C, true, {column_stats_obj_c_1_});
+    // table 4
+    table_stats_obj_d_ =
+        TableStats(catalog::db_oid_t(1), catalog::table_oid_t(4), NUM_ROWS_D, true, {column_stats_obj_d_1_});
+    // table 5
+    table_stats_obj_e_ =
+        TableStats(catalog::db_oid_t(1), catalog::table_oid_t(5), NUM_ROWS_E, true, {column_stats_obj_e_1_});
+
     stats_storage_ = StatsStorage();
     stats_storage_.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1), std::move(table_stats_obj_a_));
     stats_storage_.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2), std::move(table_stats_obj_b_));
-    cost_model_ = CostModel();
-    cost_model_.SetStatsStorage(&stats_storage_);
+    stats_storage_.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(3), std::move(table_stats_obj_c_));
+    stats_storage_.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(4), std::move(table_stats_obj_d_));
+    stats_storage_.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(5), std::move(table_stats_obj_e_));
+
+    cost_model_ = std::make_unique<CostModel>();
+    cost_model_->SetStatsStorage(&stats_storage_);
+    context_ = std::make_unique<OptimizerContext>(
+        common::ManagedPointer(cost_model_).CastManagedPointerTo<optimizer::AbstractCostModel>());
+    context_->SetStatsStorage(&stats_storage_);
   }
 };
 
 // NOLINTNEXTLINE
-TEST_F(CostModelTests, InnerNLJoinOrderTest) {
-  OptimizerContext optimizer_context = OptimizerContext(common::ManagedPointer<AbstractCostModel>(&cost_model_));
-  optimizer_context.SetStatsStorage(&stats_storage_);
-  parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+TEST_F(CostModelTests, InnerNLJoinCorrectnessTest) {
+  // create child gexprs
+  auto seq_scan_1 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                  std::vector<AnnotatedExpression>(), "table", false);
+  auto seq_scan_2 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
+                                  std::vector<AnnotatedExpression>(), "table", false);
+
+  std::vector<std::unique_ptr<OperatorNode>> children_larger_outer = {};
+  children_larger_outer.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_1, {})));
+  children_larger_outer.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_2, {})));
+
   Operator inner_nl_join_a_first = InnerNLJoin::Make(std::vector<AnnotatedExpression>());
-  Operator inner_nl_join_b_first = InnerNLJoin::Make(std::vector<AnnotatedExpression>());
-  // child operators: one scans the first table, while the other scans the 2nd table. The join will operate on these two
-  // tables.
-  Operator seq_scan_a = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                      std::vector<AnnotatedExpression>(), "table", false);
-  Operator seq_scan_b = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
-                                      std::vector<AnnotatedExpression>(), "table", false);
-  std::vector<std::unique_ptr<OperatorNode>> children_a_first = {};
-  children_a_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_a, {})));
-  children_a_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_b, {})));
+  OperatorNode operator_expression_a_first = OperatorNode(inner_nl_join_a_first, std::move(children_larger_outer));
+  auto gexpr_inner_nl_join =
+      context_->MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression_a_first));
+  context_->GetMemo().InsertExpression(gexpr_inner_nl_join, false);
+  auto left_group = context_->GetMemo().GetGroupByID(group_id_t(0));
+  auto right_group = context_->GetMemo().GetGroupByID(group_id_t(1));
+  auto curr_group = context_->GetMemo().GetGroupByID(group_id_t(2));
+  left_group->SetNumRows(table_stats_obj_a_.GetNumRows());
+  right_group->SetNumRows(table_stats_obj_b_.GetNumRows());
+  curr_group->SetNumRows(1000);
+  auto left_gexpr = left_group->GetPhysicalExpressions()[0];
+  auto right_gexpr = right_group->GetPhysicalExpressions()[0];
+  auto prop_set = new PropertySet();
+  left_group->SetExpressionCost(left_gexpr, cost_model_->CalculateCost(nullptr, &context_->GetMemo(), left_gexpr),
+                                prop_set);
+  right_group->SetExpressionCost(right_gexpr, cost_model_->CalculateCost(nullptr, &context_->GetMemo(), right_gexpr),
+                                 prop_set);
+  auto cost_larger_outer = cost_model_->CalculateCost(nullptr, &context_->GetMemo(), gexpr_inner_nl_join);
 
-  std::vector<std::unique_ptr<OperatorNode>> children_b_first = {};
-  children_b_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_b, {})));
-  children_b_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_a, {})));
+  std::vector<std::unique_ptr<OperatorNode>> children_smaller_outer = {};
+  children_smaller_outer.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_2, {})));
+  children_smaller_outer.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_1, {})));
 
-  OperatorNode operator_expression_a_first = OperatorNode(inner_nl_join_a_first, std::move(children_a_first));
-  OperatorNode operator_expression_b_first = OperatorNode(inner_nl_join_b_first, std::move(children_b_first));
-  GroupExpression *grexp_a_first =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression_a_first));
-  grexp_a_first->SetGroupID(group_id_t(0));
-  GroupExpression *grexp_b_first =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression_b_first));
-  grexp_b_first->SetGroupID(group_id_t(0));
+  Operator inner_nl_join_a_second = InnerNLJoin::Make(std::vector<AnnotatedExpression>());
+  OperatorNode operator_expression_a_second = OperatorNode(inner_nl_join_a_second, std::move(children_smaller_outer));
+  auto gexpr_inner_nl_join_2 =
+      context_->MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression_a_second));
+  context_->GetMemo().InsertExpression(gexpr_inner_nl_join_2, false);
+  auto curr_group_2 = context_->GetMemo().GetGroupByID(group_id_t(3));
+  curr_group_2->SetNumRows(1000);
+  auto cost_smaller_outer = cost_model_->CalculateCost(nullptr, &context_->GetMemo(), gexpr_inner_nl_join_2);
 
-  // sets row counts for both tables in the child groups for A first
-  optimizer_context.GetMemo()
-      .GetGroupByID(grexp_a_first->GetChildGroupId(0))
-      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
-  optimizer_context.GetMemo()
-      .GetGroupByID(grexp_a_first->GetChildGroupId(1))
-      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
-
-  // sets row counts for both tables in the child groups for B first
-  optimizer_context.GetMemo()
-      .GetGroupByID(grexp_b_first->GetChildGroupId(0))
-      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
-  optimizer_context.GetMemo()
-      .GetGroupByID(grexp_b_first->GetChildGroupId(1))
-      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
-
-  auto cost_a_first =
-      cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp_a_first);
-  auto cost_b_first =
-      cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp_b_first);
-
-  // since B is much smaller, we expect that the cost of having it as the outer table is smaller
-  EXPECT_LT(cost_b_first, cost_a_first);
-
-  delete grexp_a_first;
-  delete grexp_b_first;
-  delete expr_b_1;
+  EXPECT_EQ(cost_smaller_outer, cost_larger_outer);
+  delete prop_set;
 }
 
-TEST_F(CostModelTests, HashVsNLJoinTest) {
-  OptimizerContext optimizer_context = OptimizerContext(common::ManagedPointer<AbstractCostModel>(&cost_model_));
-  optimizer_context.SetStatsStorage(&stats_storage_);
-  parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  Operator inner_nl_join = InnerNLJoin::Make(std::vector<AnnotatedExpression>());
-  Operator inner_hash_join = InnerHashJoin::Make(std::vector<AnnotatedExpression>(),
-                                                 std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
-                                                 std::vector<common::ManagedPointer<parser::AbstractExpression>>());
-  // child operators: one scans the first table, while the other scans the 2nd table. The join will operate on these two
-  // tables.
-  Operator seq_scan_a = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                      std::vector<AnnotatedExpression>(), "table", false);
-  Operator seq_scan_b = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
-                                      std::vector<AnnotatedExpression>(), "table", false);
-  std::vector<std::unique_ptr<OperatorNode>> children_a_first = {};
-  children_a_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_a, {})));
-  children_a_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_b, {})));
-
-  std::vector<std::unique_ptr<OperatorNode>> children_b_first = {};
-  children_b_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_b, {})));
-  children_b_first.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_a, {})));
-
-  OperatorNode op_expr_nl_join = OperatorNode(inner_nl_join, std::move(children_a_first));
-  OperatorNode op_expr_hash_join = OperatorNode(inner_hash_join, std::move(children_b_first));
-  GroupExpression *grexp_nl_join =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&op_expr_nl_join));
-  grexp_nl_join->SetGroupID(group_id_t(0));
-  GroupExpression *grexp_hash_join =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&op_expr_hash_join));
-  grexp_hash_join->SetGroupID(group_id_t(0));
-
-  // sets row counts for both tables in the child groups for A first
-  optimizer_context.GetMemo()
-      .GetGroupByID(grexp_nl_join->GetChildGroupId(0))
-      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
-  optimizer_context.GetMemo()
-      .GetGroupByID(grexp_nl_join->GetChildGroupId(1))
-      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
-
-  // sets row counts for both tables in the child groups for B first
-  optimizer_context.GetMemo()
-      .GetGroupByID(grexp_hash_join->GetChildGroupId(0))
-      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
-  optimizer_context.GetMemo()
-      .GetGroupByID(grexp_hash_join->GetChildGroupId(1))
-      ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
-
-  auto cost_nl_join =
-      cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp_nl_join);
-  auto cost_hash_join =
-      cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp_hash_join);
-
-  EXPECT_LT(cost_hash_join, cost_nl_join);
-
-  delete grexp_nl_join;
-  delete grexp_hash_join;
-  delete expr_b_1;
-}
+TEST_F(CostModelTests, HashJoinCorrectnessTest) {}
 
 }  // namespace terrier::optimizer

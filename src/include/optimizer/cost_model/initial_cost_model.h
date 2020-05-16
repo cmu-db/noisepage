@@ -2,12 +2,16 @@
 
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
+#include "optimizer/memo.h"
 #include "optimizer/physical_operators.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
-// This cost model calculates the lower bound cost of the given GroupExpression
+/**
+ * This cost model calculates the lower bound cost of the given GroupExpression.
+ */
 class InitialCostModel : public AbstractCostModel {
  public:
   /**
@@ -33,7 +37,14 @@ class InitialCostModel : public AbstractCostModel {
    * Visit a SeqScan operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const SeqScan *op) override { output_cost_ = 1.f; }
+  void Visit(UNUSED_ATTRIBUTE const SeqScan *op) override {
+    auto table_stats = stats_storage_->GetTableStats(op->GetDatabaseOID(), op->GetTableOID());
+    if (table_stats->GetColumnCount() == 0) {
+      output_cost_ = 1.f;
+      return;
+    }
+    output_cost_ = table_stats->GetNumRows() * tuple_cpu_cost_;
+  }
 
   /**
    * Visit a IndexScan operator
@@ -65,8 +76,6 @@ class InitialCostModel : public AbstractCostModel {
    */
   void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override {
     double outer_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
-    double inner_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
-
     double total_cost = 0.0;
 
     // computes cost of scanning the entire inner rel per outer row
@@ -173,6 +182,11 @@ class InitialCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const Aggregate *op) override { output_cost_ = 0.f; }
 
  private:
+  /**
+   * Statistics storage object for all tables
+   */
+  StatsStorage *stats_storage_;
+
   /**
    * GroupExpression to cost
    */

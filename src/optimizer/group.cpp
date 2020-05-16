@@ -40,6 +40,16 @@ bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet *p
   OPTIMIZER_LOG_TRACE("Adding expression cost on group {0} with op {1}", expr->GetGroupID(),
                       expr->Op().GetName().c_str());
 
+  // if lower bound cost isn't set, then set it
+  if (cost_lower_bound_ == -1) {
+    cost_lower_bound_ = cost;
+  }
+
+  // updates lower bound if inserted cost is less than current lower bound
+  if (cost < cost_lower_bound_) {
+    cost_lower_bound_ = cost;
+  }
+
   auto it = lowest_cost_expressions_.find(properties);
   if (it == lowest_cost_expressions_.end()) {
     // not exist so insert

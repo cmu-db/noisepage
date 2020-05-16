@@ -96,6 +96,7 @@ class CostModel : public AbstractCostModel {
     auto total_row_count = memo_->GetGroupByID(gexpr_->GetGroupID())->GetNumRows();
 
     double init_cost = 0.0;
+
     if (outer_rows > 1) {
       init_cost += outer_rows * memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetCostLB();
     }
