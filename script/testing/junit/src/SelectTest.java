@@ -100,9 +100,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkIntRow(rs, new String [] {"c1", "c1"}, new int [] {1, 1});
+        checkIntRow(rs, new String [] {"c1", "c1"}, new Integer[] {1, 1});
         rs.next();
-        checkIntRow(rs, new String [] {"c1", "c1"}, new int [] {2, 2});
+        checkIntRow(rs, new String [] {"c1", "c1"}, new Integer[] {2, 2});
         assertNoMoreRows(rs);
     }
 
@@ -120,9 +120,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkIntRow(rs, new String [] {"new_name"}, new int [] {1});
+        checkIntRow(rs, new String [] {"new_name"}, new Integer[] {1});
         rs.next();
-        checkIntRow(rs, new String [] {"new_name"}, new int [] {2});
+        checkIntRow(rs, new String [] {"new_name"}, new Integer[] {2});
         assertNoMoreRows(rs);
 
         /* constant column name */
@@ -130,9 +130,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkIntRow(rs, new String [] {"new_name"}, new int [] {1});
+        checkIntRow(rs, new String [] {"new_name"}, new Integer[] {1});
         rs.next();
-        checkIntRow(rs, new String [] {"new_name"}, new int [] {1});
+        checkIntRow(rs, new String [] {"new_name"}, new Integer[] {1});
         assertNoMoreRows(rs);
 
         /* alternate column name */
@@ -140,9 +140,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkIntRow(rs, new String [] {"c2", "c1"}, new int [] {1, 2});
+        checkIntRow(rs, new String [] {"c2", "c1"}, new Integer[] {1, 2});
         rs.next();
-        checkIntRow(rs, new String [] {"c2", "c1"}, new int [] {2, 3});
+        checkIntRow(rs, new String [] {"c2", "c1"}, new Integer[] {2, 3});
         assertNoMoreRows(rs);
 
         /* Wrong count, wait for Having fix */
@@ -156,9 +156,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkIntRow(rs, new String [] {"c1", "c2"}, new int [] {1, 2});
+        checkIntRow(rs, new String [] {"c1", "c2"}, new Integer[] {1, 2});
         rs.next();
-        checkIntRow(rs, new String [] {"c1", "c2"}, new int [] {2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2"}, new Integer[] {2, 3});
         assertNoMoreRows(rs);
 
         /* confusing name */
@@ -185,7 +185,7 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkIntRow(rs, new String [] {"stock_count"}, new int [] {2});
+        checkIntRow(rs, new String [] {"stock_count"}, new Integer[] {2});
         assertNoMoreRows(rs);
     }
 
