@@ -1821,6 +1821,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
   auto date_type = GetTypeOidForType(type::TypeId::DATE);
+  auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1861,6 +1862,10 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
   // TODO(tanujnay112): no op codes for lower and upper yet
+
+  // length
+  CreateProcedure(txn, postgres::LENGTH_PRO_OID, "length", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "", true);
 
   // date_part
   CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
@@ -1965,7 +1970,12 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                                                            {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
                                                            execution::ast::Builtin::Position, true);
   SetProcCtxPtr(txn, postgres::POSITION_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
 
+  // length
+  func_context = new execution::functions::FunctionContext("length", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Length, true);
+  SetProcCtxPtr(txn, postgres::LENGTH_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext("version", type::TypeId::VARCHAR, {},

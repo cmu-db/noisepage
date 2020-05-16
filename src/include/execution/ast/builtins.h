@@ -298,6 +298,7 @@ namespace terrier::execution::ast {
   F(Version, version)                                                   \
   F(Position, position)                                                 \
   F(ASCII, ascii)                                                       \
+  F(Length, length)                                                     \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \
