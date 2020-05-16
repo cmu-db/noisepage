@@ -240,8 +240,10 @@ void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~
 }  //
 
 // -------------------------------------------------------------------
-// Arithmetic?
+// Arithmetic
 // -------------------------------------------------------------------
-void OpMod(terrier::execution::sql::ComputeMod *computeMod) {
-  computeMod->Mod();
+// static void Mod(Real *result, const Real &a, const Real &b, bool *div_by_zero);
+VM_OP_WARM void OpMod(terrier::execution::sql::Real *result, const terrier::execution::sql::Real &a,
+                      const terrier::execution::sql::Real &b, terrier::execution::sql::bool * div_by_zero) {
+  terrier::execution::sql::ArithmeticFunctions::Mod(result, &a, &b, div_by_zero);
 }
