@@ -241,7 +241,7 @@ public class SelectTest extends TestUtility {
       stmt = conn.createStatement();
       rs = stmt.executeQuery(select_SQL);
       rs.next();
-      checkDoubleRow(rs, new String [] {"AB"}, new double[] {2.37});
+      checkDoubleRow(rs, new String [] {"AB"}, new Double[] {2.37});
       assertNoMoreRows(rs);
       stmt = conn.createStatement();
       stmt.execute(drop_SQL);

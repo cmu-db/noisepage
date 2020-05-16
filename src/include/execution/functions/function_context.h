@@ -9,35 +9,35 @@
 #include "execution/ast/builtins.h"
 #include "type/type_id.h"
 
-namespace terrier::execution::udf {
+namespace terrier::execution::functions {
 
 /**
  * @brief Stores execution and type information about a stored procedure
  */
-class UDFContext {
+class FunctionContext {
  public:
   /**
-   * Creates a UDFContext object
+   * Creates a FunctionContext object
    * @param func_name Name of function
    * @param func_ret_type Return type of function
    * @param args_type Vector of argument types
    */
-  UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
+  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(std::move(args_type)),
         is_builtin_{false},
         is_exec_ctx_required_{false} {}
   /**
-   * Creates a UDFContext object for a builtin function
+   * Creates a FunctionContext object for a builtin function
    * @param func_name Name of function
    * @param func_ret_type Return type of function
    * @param args_type Vector of argument types
    * @param builtin Which builtin this context refers to
    * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
    */
-  UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
-             ast::Builtin builtin, bool is_exec_ctx_required = false)
+  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+                  ast::Builtin builtin, bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(std::move(args_type)),
@@ -90,4 +90,4 @@ class UDFContext {
   bool is_exec_ctx_required_;
 };
 
-}  // namespace terrier::execution::udf
+}  // namespace terrier::execution::functions
