@@ -1907,6 +1907,36 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str1", "str2"}, {str_type, str_type},
                   {str_type, str_type}, {}, int_type, "", true);
 
+  // lpad
+  CreateProcedure(txn, postgres::LPAD_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"},
+                  {str_type, dec_type, str_type}, {str_type, dec_type, str_type}, {}, str_type, "", true);
+
+  // ltrim2arg
+  CreateProcedure(txn, postgres::LTRIM2ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"},
+                  {str_type, str_type}, {str_type, str_type}, {}, str_type, "", true);
+
+  // ltrim1arg
+  CreateProcedure(txn, postgres::LTRIM1ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"},
+                  {str_type}, {str_type}, {}, str_type, "", true);
+
+  // rpad
+  CreateProcedure(txn, postgres::RPAD_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"},
+                  {str_type, dec_type, str_type}, {str_type, dec_type, str_type}, {}, str_type, "", true);
+
+  // rtrim2arg
+  CreateProcedure(txn, postgres::RTRIM2ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"},
+                  {str_type, str_type}, {str_type, str_type}, {}, str_type, "", true);
+
+  // rtrim1arg
+  CreateProcedure(txn, postgres::RTRIM1ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"},
+                  {str_type}, {str_type}, {}, str_type, "", true);
+
   BootstrapProcContexts(txn);
 }
 

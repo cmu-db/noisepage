@@ -2254,20 +2254,20 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     case ast::Builtin::Ltrim: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       if (call->NumArgs() == 2) {
-        Emitter()->Emit(Bytecode::LTrim, exec_ctx, ret, input_string);
+        Emitter()->Emit(Bytecode::LTrim1Arg, exec_ctx, ret, input_string);
       } else {
         LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
-        Emitter()->Emit(Bytecode::LTrim, exec_ctx, ret, input_string, chars);
+        Emitter()->Emit(Bytecode::LTrim2Arg, exec_ctx, ret, input_string, chars);
       }
       break;
     }
     case ast::Builtin::Rtrim: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       if (call->NumArgs() == 2) {
-        Emitter()->Emit(Bytecode::LTrim, exec_ctx, ret, input_string);
+        Emitter()->Emit(Bytecode::RTrim1Arg, exec_ctx, ret, input_string);
       } else {
         LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
-        Emitter()->Emit(Bytecode::LTrim, exec_ctx, ret, input_string, chars);
+        Emitter()->Emit(Bytecode::RTrim2Arg, exec_ctx, ret, input_string, chars);
       }
       break;
     }
