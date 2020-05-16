@@ -247,11 +247,13 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
 
   CHECK_SQL_FUNC(Sqrt, std::sqrt, 4.0);
   CHECK_SQL_FUNC(Sqrt, std::sqrt, 1.0);
-  CHECK_SQL_FUNC(Sqrt, std::sqrt, 213.5);
+  CHECK_SQL_FUNC(Sqrt, std::sqrt, 50.1);
+  CHECK_SQL_FUNC(Sqrt, std::sqrt, 100.234);
 
   CHECK_SQL_FUNC(Cbrt, std::cbrt, 4.0);
-  CHECK_SQL_FUNC(Cbrt, std::cbrt, 1.0);
-  CHECK_SQL_FUNC(Cbrt, std::cbrt, 82.3);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, -1.0);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, 50.1);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, -100.234);
 
   CHECK_SQL_FUNC(Exp, std::exp, 4.0);
   CHECK_SQL_FUNC(Exp, std::exp, 1.0);
