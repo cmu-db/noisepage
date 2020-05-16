@@ -2237,6 +2237,40 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::Position, ret, exec_ctx, input_string, sub_string);
       break;
     }
+    case ast::Builtin::Lpad: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
+      Emitter()->Emit(Bytecode::LPad, exec_ctx, ret, input_string, len, pad);
+      break;
+    }
+    case ast::Builtin::Rpad: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
+      Emitter()->Emit(Bytecode::RPad, exec_ctx, ret, input_string, len, pad);
+      break;
+    }
+    case ast::Builtin::Ltrim: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      if (call->NumArgs() == 2) {
+        Emitter()->Emit(Bytecode::LTrim, exec_ctx, ret, input_string);
+      } else {
+        LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
+        Emitter()->Emit(Bytecode::LTrim, exec_ctx, ret, input_string, chars);
+      }
+      break;
+    }
+    case ast::Builtin::Rtrim: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      if (call->NumArgs() == 2) {
+        Emitter()->Emit(Bytecode::LTrim, exec_ctx, ret, input_string);
+      } else {
+        LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
+        Emitter()->Emit(Bytecode::LTrim, exec_ctx, ret, input_string, chars);
+      }
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string function!");
   }
@@ -2610,7 +2644,11 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Repeat:
     case ast::Builtin::Trim:
     case ast::Builtin::Trim2:
-    case ast::Builtin::Position: {
+    case ast::Builtin::Position:
+    case ast::Builtin::Lpad:
+    case ast::Builtin::Ltrim:
+    case ast::Builtin::Rpad:
+    case ast::Builtin::Rtrim: {
       VisitBuiltinStringCall(call, builtin);
       break;
     }
