@@ -1,5 +1,4 @@
 #include <limits>
-#include <limits>
 #include <memory>
 #include <random>
 #include <vector>
@@ -193,6 +192,7 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
     EXPECT_FALSE(ret.is_null_);                 \
     EXPECT_DOUBLE_EQ(C_FUNC(input), ret.val_);  \
   }
+
 #define CHECK_SQL_FUNC(TPL_FUNC, C_FUNC) \
   CHECK_HANDLES_NULL(TPL_FUNC, C_FUNC)   \
   CHECK_HANDLES_NONNULL(TPL_FUNC, C_FUNC)

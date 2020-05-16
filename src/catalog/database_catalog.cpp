@@ -1964,7 +1964,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   // round up to
   func_context = new execution::functions::FunctionContext("roundupto", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                                                execution::ast::Builtin::RoundUpTo);
+                                                           execution::ast::Builtin::RoundUpTo);
   txn->RegisterAbortAction([=]() { delete func_context; });
   SetProcCtxPtr(txn, postgres::ROUNDUPTO_PRO_OID, func_context);
 
