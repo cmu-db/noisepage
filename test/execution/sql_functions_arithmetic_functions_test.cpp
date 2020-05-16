@@ -276,6 +276,11 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
   CHECK_SQL_FUNC(Log10, std::log10, 4.4);
   CHECK_SQL_FUNC(Log10, std::log10, 100.234);
 
+  CHECK_SQL_FUNC(Round, std::round, 100.4);
+  CHECK_SQL_FUNC(Round, std::round, 100.5);
+  CHECK_SQL_FUNC(Round, std::round, -100.4);
+  CHECK_SQL_FUNC(Round, std::round, -100.5);
+
 #undef CHECK_SQL_FUNC
 #undef CHECK_HANDLES_NONNULL
 #undef CHECK_HANDLES_NULL
@@ -302,6 +307,46 @@ TEST_F(ArithmeticFunctionsTests, Sign) {
   ArithmeticFunctions::Sign(&result, input);
   EXPECT_FALSE(result.is_null_);
   EXPECT_DOUBLE_EQ(0.0, result.val_);
+}
+
+// RoundUpTo
+TEST_F(ArithmeticFunctionsTests, RoundUpTo) {
+  Real input = Real::Null(), result = Real::Null();
+  Integer scale = Integer::Null();
+
+  input = Real::Null();
+  scale = Integer(2);
+  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  EXPECT_TRUE(result.is_null_);
+
+  input = Real(12.345);
+  scale = Integer::Null();
+  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  EXPECT_TRUE(result.is_null_);
+
+  input = Real(12.345);
+  scale = Integer(2);
+  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(12.35, result.val_);
+
+  input = Real(12.344);
+  scale = Integer(2);
+  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(12.34, result.val_);
+
+  input = Real(-12.345);
+  scale = Integer(2);
+  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(-12.35, result.val_);
+
+  input = Real(-12.344);
+  scale = Integer(2);
+  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(-12.34, result.val_);
 }
 
 }  // namespace terrier::execution::sql::test
