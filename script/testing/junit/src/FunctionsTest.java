@@ -27,6 +27,7 @@ public class FunctionsTest extends TestUtility {
             "CREATE TABLE data (" +
                     "int_val INT, " +
                     "double_val DECIMAL," +
+                    "small_double_val DECIMAL," +
                     "str_i_val VARCHAR(32)," + // Integer as string
                     "str_a_val VARCHAR(32)," + // Alpha string
 //                     "bool_val BOOL," +
@@ -41,16 +42,17 @@ public class FunctionsTest extends TestUtility {
         stmt.execute(SQL_CREATE_TABLE);
 
         String sql = "INSERT INTO data (" +
-                     "int_val, double_val, str_i_val, str_a_val, " +
+                     "int_val, double_val, small_double_val, str_i_val, str_a_val, " +
 //                      "bool_val, " + 
                      "is_null " +
-                     ") VALUES (?, ?, ?, ?, ?);";
+                     ") VALUES (?, ?, ?, ?, ?, ?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
 
         // Non-Null Values
         int idx = 1;
         pstmt.setInt(idx++, 123);
         pstmt.setDouble(idx++, 12.34);
+        pstmt.setDouble(idx++, 0.5);
         pstmt.setString(idx++, "123456");
         pstmt.setString(idx++, "AbCdEf");
 //         pstmt.setBoolean(idx++, true);
@@ -61,6 +63,7 @@ public class FunctionsTest extends TestUtility {
         // Null Values
         idx = 1;
         pstmt.setNull(idx++, java.sql.Types.INTEGER);
+        pstmt.setNull(idx++, java.sql.Types.DOUBLE);
         pstmt.setNull(idx++, java.sql.Types.DOUBLE);
         pstmt.setNull(idx++, java.sql.Types.VARCHAR);
         pstmt.setNull(idx++, java.sql.Types.VARCHAR);
@@ -165,6 +168,21 @@ public class FunctionsTest extends TestUtility {
         checkDoubleFunc("tan", "double_val", false, -0.230318);
         checkDoubleFunc("tan", "double_val", true, null);
     }
+    @Test
+    public void testACos() throws SQLException {
+        checkDoubleFunc("acos", "small_double_val", false, 1.047198);
+        checkDoubleFunc("acos", "small_double_val", true, null);
+    }
+    @Test
+    public void testASin() throws SQLException {
+        checkDoubleFunc("asin", "small_double_val", false, 0.523599);
+        checkDoubleFunc("asin", "small_double_val", true, null);
+    }
+    @Test
+    public void testATan() throws SQLException {
+        checkDoubleFunc("atan", "small_double_val", false, 0.463648);
+        checkDoubleFunc("atan", "small_double_val", true, null);
+    }
     
     /**
      * String Functions
@@ -203,6 +221,17 @@ public class FunctionsTest extends TestUtility {
         checkLeftRightFunc("right", "str_a_val", -2, false, "CdEf");
         checkLeftRightFunc("right", "str_a_val", 10, false, "AbCdEf");
         checkLeftRightFunc("right", "str_a_val", -10, false, "");
+    }
+
+    @Test
+    public void testRepeat() throws SQLException {
+        checkLeftRightFunc("repeat", "str_a_val", -1, false, "");
+        checkLeftRightFunc("repeat", "str_a_val", 0, false, "");
+        checkLeftRightFunc("repeat", "str_a_val", 1, false, "AbCdEf");
+        checkLeftRightFunc("repeat", "str_a_val", 2, false, "AbCdEfAbCdEf");
+        checkLeftRightFunc("repeat", "str_a_val", 3, false, "AbCdEfAbCdEfAbCdEf");
+        checkLeftRightFunc("repeat", "str_a_val", 4, false, "AbCdEfAbCdEfAbCdEfAbCdEf");
+        checkLeftRightFunc("repeat", "str_a_val", 4, true, null);
     }
 
 }

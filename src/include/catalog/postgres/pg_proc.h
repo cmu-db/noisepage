@@ -80,6 +80,7 @@ constexpr proc_oid_t COT_PRO_OID = proc_oid_t(91);
 constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(92);
 constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(93);
 constexpr proc_oid_t LEFT_PRO_OID = proc_oid_t(113);
+constexpr proc_oid_t REPEAT_PRO_OID = proc_oid_t(117);
 constexpr proc_oid_t REVERSE_PRO_OID = proc_oid_t(118);
 constexpr proc_oid_t RIGHT_PRO_OID = proc_oid_t(119);
 

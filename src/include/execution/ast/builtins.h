@@ -248,6 +248,7 @@ namespace terrier::execution::ast {
   F(Upper, upper)                                                       \
   F(Left, left)                                                         \
   F(Right, right)                                                       \
+  F(Repeat, repeat)                                                     \
   F(Reverse, reverse)
 /**
  * Enum of builtins
