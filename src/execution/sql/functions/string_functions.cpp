@@ -363,4 +363,26 @@ void StringFunctions::Right(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, String
   }
 }
 
+void StringFunctions::Position(exec::ExecutionContext *ctx, Integer *pos, const StringVal &search_str,
+                               const StringVal &search_sub_str) {
+  if (search_str.is_null_ || search_sub_str.is_null_) {
+    *pos = Integer::Null();
+    return;
+  }
+
+  auto search_str_view = search_str.StringView();
+  auto search_sub_str_view = search_sub_str.StringView();
+
+  // Postgres performs a case insensitive search for Position()
+  auto it =
+      std::search(search_str_view.begin(), search_str_view.end(), search_sub_str_view.begin(),
+                  search_sub_str_view.end(), [](char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); });
+  auto found = (it - search_str_view.begin());
+
+  if (found == search_str_view.length()) {
+    *pos = Integer(0);
+  } else {
+    *pos = Integer(found + 1);
+  }
+}
 }  // namespace terrier::execution::sql

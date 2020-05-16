@@ -133,7 +133,7 @@ public class FunctionsTest extends TestUtility {
     private void checkStringFunc(String func_name, String col_name, boolean is_null, String expected) throws SQLException {
         String sql = String.format("SELECT %s(%s) AS result FROM data WHERE is_null = %s",
                                    func_name, col_name, (is_null ? 1 : 0));
-        
+
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(sql);
         boolean exists = rs.next();
@@ -145,6 +145,21 @@ public class FunctionsTest extends TestUtility {
         }
         assertNoMoreRows(rs);
     }
+
+    private void checkStringPositionFunc(String func_name, String substring, String col_name, boolean is_null, Integer expected) throws SQLException {
+            String sql = String.format("SELECT %s(\'%s\' IN %s) AS result FROM data WHERE is_null = %s", func_name, substring, col_name, (is_null ? 1 : 0));
+
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            boolean exists = rs.next();
+            assert(exists);
+            if (is_null) {
+                checkIntRow(rs, new String[]{"result"}, new int[1]);
+            } else {
+                checkIntRow(rs, new String[]{"result"}, new int[]{expected});
+            }
+            assertNoMoreRows(rs);
+        }
      
     /**
      * Tests usage of trig udf functions
@@ -198,5 +213,11 @@ public class FunctionsTest extends TestUtility {
         checkStringFunc("lower", "str_a_val", false, "abcdef");
         checkStringFunc("lower", "str_a_val", true, null);
     }
-
+    @Test
+    public void testPosition() throws SQLException {
+        checkStringPositionFunc("position", "bC", "str_a_val", false, 2);
+        checkStringPositionFunc("position", "bc", "str_a_val", false, 2);
+        checkStringPositionFunc("position", "aa", "str_a_val", false, 0);
+        checkStringPositionFunc("position", "bC", "str_a_val", true, null);
+    }
 }

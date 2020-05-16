@@ -122,6 +122,12 @@ class EXPORT StringFunctions {
    * Converts the string to upper case
    */
   static void Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+
+  /**
+   * Finds the first matching position of a substring in a string
+   */
+  static void Position(exec::ExecutionContext *ctx, Integer *pos, const StringVal &search_str,
+                       const StringVal &search_sub_str);
 };
 
 }  // namespace terrier::execution::sql
