@@ -1778,6 +1778,15 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // cot
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
 
+  // ceil
+  BOOTSTRAP_TRIG_FN("ceil", postgres::CEIL_PRO_OID, execution::ast::Builtin::Ceil)
+
+  // floor
+  BOOTSTRAP_TRIG_FN("floor", postgres::FLOOR_PRO_OID, execution::ast::Builtin::Floor)
+
+  // log10
+  BOOTSTRAP_TRIG_FN("log10", postgres::LOG10_PRO_OID, execution::ast::Builtin::Log10)
+
 #undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
@@ -1848,6 +1857,16 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   // cot
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
+
+  // ceil
+  BOOTSTRAP_TRIG_FN("ceil", postgres::CEIL_PRO_OID, execution::ast::Builtin::Ceil)
+
+  // floor
+  BOOTSTRAP_TRIG_FN("floor", postgres::FLOOR_PRO_OID, execution::ast::Builtin::Floor)
+
+  // log10
+  BOOTSTRAP_TRIG_FN("log10", postgres::LOG10_PRO_OID, execution::ast::Builtin::Log10)
+
 #undef BOOTSTRAP_TRIG_FN
 
   func_context = new execution::functions::FunctionContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},

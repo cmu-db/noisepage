@@ -264,6 +264,9 @@ namespace terrier::execution::ast {
   F(Cot, cot)                                                           \
   F(Sin, sin)                                                           \
   F(Tan, tan)                                                           \
+  F(Floor, floor)                                                       \
+  F(Ceil, ceil)                                                         \
+  F(Log10, log10)                                                       \
                                                                         \
   /* Generic */                                                         \
   F(SizeOf, sizeOf)                                                     \
