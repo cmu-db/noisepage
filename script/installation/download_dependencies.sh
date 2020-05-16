@@ -24,7 +24,8 @@
 
 set -e
 
-SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../third_party" && pwd )"
+
 
 if [ "$#" -ne 1 ]; then
   echo "Usage: $0 <destination-directory>"
