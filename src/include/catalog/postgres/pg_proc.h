@@ -74,6 +74,7 @@ constexpr proc_oid_t COT_PRO_OID = proc_oid_t(91);
 constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(92);
 constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(93);
 constexpr proc_oid_t STARTSWITH_PRO_OID = proc_oid_t(104);
+constexpr proc_oid_t SUBSTR_PRO_OID = proc_oid_t(123);
 constexpr proc_oid_t COSH_PRO_OID = proc_oid_t(127);
 constexpr proc_oid_t SINH_PRO_OID = proc_oid_t(128);
 constexpr proc_oid_t TANH_PRO_OID = proc_oid_t(129);

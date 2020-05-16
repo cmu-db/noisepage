@@ -32,24 +32,25 @@ void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
     return;
   }
 
-  const auto start = std::max(pos.val_, int64_t{1});
-  const auto end = pos.val_ + std::min(static_cast<int64_t>(str.GetLength()), len.val_);
+  // If the start index is less than 0 we set the index to 0
+  const auto str_start = std::max(pos.val_ - 1, int64_t{0});
+  const auto str_len = std::min(int64_t{str.GetLength()} - str_start, len.val_);
 
   // The end can be before the start only if the length was negative. This is an
   // error.
-  if (end < pos.val_) {
+  if (str_len < 0) {
     *result = StringVal::Null();
     return;
   }
 
-  // If start is negative, return empty string
-  if (end < 1) {
+  // If the length is 0 return empty string
+  if (str_len == 0) {
     *result = StringVal("");
     return;
   }
 
   // All good
-  *result = StringVal(str.GetContent() + start - 1, end - start);
+  *result = StringVal(str.GetContent() + str_start, uint32_t(str_len));
 }
 
 namespace {

@@ -2417,6 +2417,47 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::StringVal;
       break;
     }
+    case ast::Builtin::Substring: {
+      // check to make sure this function has four arguments
+      if (!CheckArgCount(call, 4)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      auto int32_t_kind = ast::BuiltinType::Int32;
+
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      auto *resolved_type = Resolve(call->Arguments()[1]);
+      if (resolved_type == nullptr) {
+        return;
+      }
+      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // checking to see if the third argument is an Integer
+      if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_t_kind));
+        return;
+      }
+
+      // checking to see if the fourth argument is an Integer
+      if (!call->Arguments()[3]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(int32_t_kind));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
     case ast::Builtin::Version: {
       // check to make sure this function has one arguments
       if (!CheckArgCount(call, 1)) {
@@ -2909,7 +2950,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::Lower:
     case ast::Builtin::Version:
-    case ast::Builtin::StartsWith: {
+    case ast::Builtin::StartsWith:
+    case ast::Builtin::Substring: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
