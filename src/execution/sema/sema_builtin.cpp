@@ -2999,6 +2999,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinStorageInterfaceCall(call, builtin);
       break;
     }
+    case ast::Builtin::IntMod:
+    case ast::Builtin::Mod:
     case ast::Builtin::Exp:
     case ast::Builtin::ACos:
     case ast::Builtin::ASin:
