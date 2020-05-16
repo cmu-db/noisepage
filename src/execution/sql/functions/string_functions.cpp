@@ -494,7 +494,7 @@ void StringFunctions::InitCap(exec::ExecutionContext *ctx, StringVal *result, co
   auto *src = str.Content();
   bool upper = src[0] == ' ';
   ptr[0] = static_cast<char>(std::toupper(src[0]));
-  for (uint32_t i = 0; i < str.len_; i++) {
+  for (uint32_t i = 1; i < str.len_; i++) {
     ptr[i] = upper ? static_cast<char>(std::toupper(src[i])) : src[i];
     upper = src[i] == ' ';
   }
