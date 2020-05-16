@@ -12,7 +12,7 @@
 #include "type/type_id.h"
 
 #define HIGHEST_BUILTIN_PROC_ID 1000  // FIXME: I set 1000 for now. Not sure what it really should be...
-#define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
+#define IS_BUILTIN_PROC(x) (x <= HIGHEST_BUILTIN_PROC_ID)
 
 namespace terrier::catalog::postgres {
 

@@ -97,6 +97,22 @@ public class FunctionsTest extends TestUtility {
      * UDF statement tests
      * ---------------------------------------------
      */
+     
+     private void checkIntegerFunc(String func_name, String col_name, boolean is_null, Integer expected) throws SQLException {
+         String sql = String.format("SELECT %s(%s) AS result FROM data WHERE is_null = %s",
+                                    func_name, col_name, (is_null ? 1 : 0));
+         
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(sql);
+         boolean exists = rs.next();
+         assert(exists);
+         if (is_null) {
+             checkIntRow(rs, new String[]{"result"}, new Integer[]{null});
+         } else {
+             checkIntRow(rs, new String[]{"result"}, new Integer[]{expected});
+         }
+         assertNoMoreRows(rs);
+    }
 
     private void checkDoubleFunc(String func_name, String col_name, boolean is_null, Double expected) throws SQLException {
         String sql = String.format("SELECT %s(%s) AS result FROM data WHERE is_null = %s",

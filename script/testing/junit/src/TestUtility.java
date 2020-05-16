@@ -45,10 +45,15 @@ public class TestUtility {
      * @param columns         column names
      * @param expected expected values of columns
      */
-    public void checkIntRow(ResultSet rs, String [] columns, int [] expected) throws SQLException {
+    public void checkIntRow(ResultSet rs, String [] columns, Integer[] expected) throws SQLException {
         assertEquals(columns.length, expected.length);
         for (int i=0; i<columns.length; i++) {
-            assertEquals(expected[i], rs.getInt(columns[i]));
+            Integer val = (Integer)rs.getObject(columns[i]);
+            if (expected[i] == null) {
+                assertEquals(expected[i], val);
+            } else {
+                assertEquals(expected[i], val);
+            }
         }
     }
 
