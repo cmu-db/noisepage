@@ -1555,9 +1555,15 @@ VM_OP_WARM void OpStartsWith(terrier::execution::sql::BoolVal *result, terrier::
   terrier::execution::sql::StringFunctions::StartsWith(result, ctx, *str, *start);
 }
 
-VM_OP_WARM void OpTrim(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::StringVal *chars) {
-  terrier::execution::sql::StringFunctions::Trim(result, ctx, *str, *chars);
+VM_OP_WARM void OpTrim(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                       const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::Trim(ctx, result, *str);
+}
+
+VM_OP_WARM void OpTrim2(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                        const terrier::execution::sql::StringVal *str,
+                        const terrier::execution::sql::StringVal *chars) {
+  terrier::execution::sql::StringFunctions::Trim(ctx, result, *str, *chars);
 }
 
 VM_OP_WARM void OpUpper(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,

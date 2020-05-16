@@ -1861,6 +1861,13 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
                   {}, str_type, "", true);
 
+  CreateProcedure(txn, postgres::TRIM_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+
+  CreateProcedure(txn, postgres::TRIM2_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "str"}, {str_type, str_type}, {str_type, str_type},
+                  {}, str_type, "", true);
+
   // date_part
   CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
@@ -1958,6 +1965,18 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                                                            {type::TypeId::VARCHAR, type::TypeId::INTEGER},
                                                            execution::ast::Builtin::Repeat, true);
   SetProcCtxPtr(txn, postgres::REPEAT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("btrim", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Trim, true);
+  SetProcCtxPtr(txn, postgres::TRIM_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("btrim", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Trim2, true);
+  SetProcCtxPtr(txn, postgres::TRIM2_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext(

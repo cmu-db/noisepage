@@ -93,4 +93,7 @@ constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(108);
 // SQL Function
 constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(109);
 
+constexpr proc_oid_t TRIM_PRO_OID = proc_oid_t(124);
+constexpr proc_oid_t TRIM2_PRO_OID = proc_oid_t(143);
+
 }  // namespace terrier::catalog::postgres

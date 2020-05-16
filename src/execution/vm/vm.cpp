@@ -2211,8 +2211,16 @@ ALL_NUMERIC_TYPES(GEN_ABS_OP)
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpTrim(exec_ctx, result, str);
+    DISPATCH_NEXT();
+  }
+
+  OP(Trim2) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpTrim(result, exec_ctx, str, chars);
+    OpTrim2(exec_ctx, result, str, chars);
     DISPATCH_NEXT();
   }
 

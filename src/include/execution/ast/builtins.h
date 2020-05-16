@@ -295,6 +295,10 @@ namespace terrier::execution::ast {
   F(Right, right)                                                       \
   F(Reverse, reverse)                                                   \
   F(Repeat, repeat)                                                     \
+  F(Trim, trim)                                                         \
+  F(Trim2, trim2)                                                       \
+                                                                        \
+  /* Arithmetic functions */                                            \
   F(Abs, abs)                                                           \
                                                                         \
   /* Mini runners functions */                                          \
