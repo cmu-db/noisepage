@@ -2020,8 +2020,15 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   // pow
   func_context = new execution::functions::FunctionContext("pow", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                                                                 execution::ast::Builtin::Pow);
-  txn->RegisterAbortAction([=]() { delete func_context; });
   SetProcCtxPtr(txn, postgres::POW_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // split part
+  func_context = new execution::functions::FunctionContext("split_part", type::TypeId::VARCHAR, {type::TypeId::VARCHAR,
+                                                           type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::SplitPart, true);
+  SetProcCtxPtr(txn, postgres::SPLIT_PART_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext("chr", type::TypeId::VARCHAR, {type::TypeId::INTEGER},
                                                            execution::ast::Builtin::Chr, true);

@@ -2157,7 +2157,7 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     case ast::Builtin::SplitPart: {
       LocalVar delim = VisitExpressionForRValue(call->Arguments()[2]);
       LocalVar field = VisitExpressionForRValue(call->Arguments()[3]);
-      Emitter()->Emit(Bytecode::Lower, exec_ctx, ret, input_string, delim, field);
+      Emitter()->Emit(Bytecode::SplitPart, exec_ctx, ret, input_string, delim, field);
       break;
     }
     case ast::Builtin::Chr: {
