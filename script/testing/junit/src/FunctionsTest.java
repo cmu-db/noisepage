@@ -159,4 +159,10 @@ public class FunctionsTest extends TestUtility {
         checkStringFunc("lower", "str_a_val", true, null);
     }
 
+    @Test
+    public void testUpper() throws SQLException {
+        checkStringFunc("upper", "str_a_val", false, "ABCDEF");
+        checkStringFunc("upper", "str_a_val", true, null);
+    }
+
 }
