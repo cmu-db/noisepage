@@ -2425,7 +2425,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // checking to see if the first argument is an execution context
       auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      auto int32_t_kind = ast::BuiltinType::Int32;
+      auto int_t_kind = ast::BuiltinType::Integer;
 
       if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
         ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
@@ -2443,14 +2443,14 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the third argument is an Integer
-      if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_t_kind));
+      if (call->Arguments()[2]->GetType() != GetBuiltinType(int_t_kind)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(int_t_kind));
         return;
       }
 
       // checking to see if the fourth argument is an Integer
-      if (!call->Arguments()[3]->GetType()->IsIntegerType()) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(int32_t_kind));
+      if (call->Arguments()[3]->GetType() != GetBuiltinType(int_t_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(int_t_kind));
         return;
       }
 
