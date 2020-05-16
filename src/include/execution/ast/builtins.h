@@ -291,6 +291,9 @@ namespace terrier::execution::ast {
   F(Version, version)                                                   \
   F(StartsWith, startsWith)                                             \
   F(Substring, substring)                                               \
+  F(Left, left)                                                         \
+  F(Right, right)                                                       \
+  F(Reverse, reverse)                                                   \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \

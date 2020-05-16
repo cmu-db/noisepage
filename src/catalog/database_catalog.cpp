@@ -1836,6 +1836,18 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "pos", "len"}, {str_type, int_type, int_type},
                   {str_type, int_type, int_type}, {}, str_type, "", true);
 
+  // reverse
+  CreateProcedure(txn, postgres::REVERSE_PRO_OID, "reverse", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  // left
+  CreateProcedure(txn, postgres::LEFT_PRO_OID, "left", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
+                  {}, str_type, "", true);
+  // right
+  CreateProcedure(txn, postgres::RIGHT_PRO_OID, "right", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
+                  {}, str_type, "", true);
+
   // date_part
   CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
@@ -1910,6 +1922,23 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   func_context = new execution::functions::FunctionContext("substr", type::TypeId::VARCHAR, {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::INTEGER},
                                                            execution::ast::Builtin::Substring, true);
   SetProcCtxPtr(txn, postgres::SUBSTR_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("reverse", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Reverse, true);
+  SetProcCtxPtr(txn, postgres::REVERSE_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("left", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Left, true);
+  SetProcCtxPtr(txn, postgres::LEFT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("right", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Right, true);
+  SetProcCtxPtr(txn, postgres::RIGHT_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext(
