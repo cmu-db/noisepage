@@ -2463,17 +2463,59 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
 
 void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::BuiltinType::Kind sql_type;
+
+  // Checking to see if the first argument is an execution context
+  // All string functions have the execution context as their first argument
+  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+    return;
+  }
+
   switch (builtin) {
-    case ast::Builtin::Chr: {
-      // check to make sure this function has two arguments
-      if (!CheckArgCount(call, 2)) {
+    case ast::Builtin::SplitPart: {
+      // check to make sure this function has four arguments
+      if (!CheckArgCount(call, 4)) {
         return;
       }
 
-      // checking to see if the first argument is an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+      // checking to see if the second argument is a string
+      auto *resolved_type = Resolve(call->Arguments()[1]);
+      if (resolved_type == nullptr) {
+        return;
+      }
+      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // checking to see if the third argument is a string
+      resolved_type = Resolve(call->Arguments()[2]);
+      if (resolved_type == nullptr) {
+        return;
+      }
+      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // checking to see if the forth argument is an integer
+      resolved_type = Resolve(call->Arguments()[3]);
+      if (resolved_type == nullptr) {
+        return;
+      }
+      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Int32));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    case ast::Builtin::Chr: {
+      // check to make sure this function has two arguments
+      if (!CheckArgCount(call, 2)) {
         return;
       }
 
@@ -2495,13 +2537,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      // checking to see if the first argument is an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
       // checking to see if the second argument is a string
       auto *resolved_type = call->Arguments()[1]->GetType();
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
@@ -2516,13 +2551,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::ASCII: {
       // check to make sure this function has two arguments
       if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      // checking to see if the first argument is an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
 
@@ -2544,13 +2572,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      // checking to see if the first argument is an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
       // checking to see if the second argument is a string
       auto *resolved_type = call->Arguments()[1]->GetType();
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
@@ -2565,13 +2586,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::Version: {
       // check to make sure this function has one arguments
       if (!CheckArgCount(call, 1)) {
-        return;
-      }
-
-      // checking to see if the first argument is an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
 
@@ -2640,13 +2654,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::Md5Sum: {
       // check to make sure this function has two arguments
       if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      // checking to see if the first argument is an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
 
@@ -3111,6 +3118,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinParamCall(call, builtin);
       break;
     }
+    case ast::Builtin::SplitPart:
     case ast::Builtin::Chr:
     case ast::Builtin::CharLength:
     case ast::Builtin::ASCII:

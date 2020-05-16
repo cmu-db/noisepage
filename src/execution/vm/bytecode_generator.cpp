@@ -2154,6 +2154,12 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
+    case ast::Builtin::SplitPart: {
+      LocalVar delim = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar field = VisitExpressionForRValue(call->Arguments()[3]);
+      Emitter()->Emit(Bytecode::Lower, exec_ctx, ret, input_string, delim, field);
+      break;
+    }
     case ast::Builtin::Chr: {
       // input_string here is a integer type number
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
@@ -2581,6 +2587,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinParamCall(call, builtin);
       break;
     }
+    case ast::Builtin::SplitPart:
     case ast::Builtin::Chr:
     case ast::Builtin::CharLength:
     case ast::Builtin::ASCII:

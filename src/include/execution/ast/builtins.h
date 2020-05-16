@@ -305,6 +305,7 @@ namespace terrier::execution::ast {
   F(Length, length)                                                     \
   F(Md5Sum, md5)                                                        \
   F(InitCap, initCap)                                                   \
+  F(SplitPart, splitPart)                                               \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \

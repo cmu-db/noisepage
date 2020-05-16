@@ -1830,6 +1830,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
   auto date_type = GetTypeOidForType(type::TypeId::DATE);
+  auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
 
   // round2
   CreateProcedure(txn, postgres::ROUND2_PRO_OID, "round", postgres::INTERNAL_LANGUAGE_OID,
@@ -1887,6 +1888,12 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // version
   CreateProcedure(txn, postgres::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
+
+  // split part
+  CreateProcedure(txn, postgres::SPLIT_PART_PRO_OID, "split_part", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "delim", "field"}, {str_type, str_type, int_type},
+                  {str_type, str_type, int_type}, {}, str_type, "", true);
+
   // TODO(tanujnay112): no op codes for lower and upper yet
 
   // length
