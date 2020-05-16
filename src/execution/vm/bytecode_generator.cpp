@@ -2113,6 +2113,10 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::Lower, ret, exec_ctx, input_string);
       break;
     }
+    case ast::Builtin::Upper: {
+      Emitter()->Emit(Bytecode::Upper, exec_ctx, ret, input_string);
+      break;
+    }
     case ast::Builtin::Version: {
       GetEmitter()->Emit(Bytecode::Version, ret, exec_ctx);
       break;
@@ -2478,6 +2482,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::Lower:
+    case ast::Builtin::Upper:
     case ast::Builtin::Version:
     case ast::Builtin::StartsWith:
     case ast::Builtin::Substring: {

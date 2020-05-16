@@ -287,6 +287,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* String functions */                                                \
   F(Lower, lower)                                                       \
+  F(Upper, upper)                                                       \
   F(Version, version)                                                   \
   F(StartsWith, startsWith)                                             \
   F(Substring, substring)                                               \
