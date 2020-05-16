@@ -309,6 +309,10 @@ namespace terrier::execution::ast {
   F(Trim2, trim2)                                                       \
   F(Position, position)                                                 \
   F(ASCII, ascii)                                                       \
+  F(Lpad, lpad)                                                         \
+  F(Ltrim, ltrim)                                                       \
+  F(Rpad, rpad)                                                         \
+  F(Rtrim, rtrim)                                                       \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \
