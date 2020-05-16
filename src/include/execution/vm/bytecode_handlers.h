@@ -1411,9 +1411,9 @@ VM_OP_WARM void OpRound(terrier::execution::sql::Real *result, const terrier::ex
   terrier::execution::sql::ArithmeticFunctions::Round(result, *v);
 }
 
-VM_OP_WARM void OpRoundUpTo(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v,
-                            const terrier::execution::sql::Integer *scale) {
-  terrier::execution::sql::ArithmeticFunctions::RoundUpTo(result, *v, *scale);
+VM_OP_WARM void OpRound2(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v,
+                         const terrier::execution::sql::Integer *precision) {
+  terrier::execution::sql::ArithmeticFunctions::Round(result, *v, *precision);
 }
 
 VM_OP_WARM void OpLog(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *base,

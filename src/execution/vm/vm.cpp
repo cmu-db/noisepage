@@ -2010,11 +2010,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   BINARY_REAL_MATH_OP(Log);
   BINARY_REAL_MATH_OP(Pow);
 
-  OP(RoundUpTo) : {
+  OP(Round2) : {
     auto *result = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
     auto *v = frame->LocalAt<const sql::Real *>(READ_LOCAL_ID());
     auto *scale = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
-    OpRoundUpTo(result, v, scale);
+    OpRound2(result, v, scale);
     DISPATCH_NEXT();
   }
 

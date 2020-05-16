@@ -561,7 +561,7 @@ namespace terrier::execution::vm {
   F(Radians, OperandType::Local, OperandType::Local)                                                                  \
   F(Degrees, OperandType::Local, OperandType::Local)                                                                  \
   F(Round, OperandType::Local, OperandType::Local)                                                                    \
-  F(RoundUpTo, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(Round2, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
   F(Log, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
   F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
                                                                                                                       \

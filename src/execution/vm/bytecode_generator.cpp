@@ -1706,8 +1706,8 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       Emitter()->Emit(Bytecode::Round, dest, src);
       break;
     }
-    case ast::Builtin::RoundUpTo: {
-      Emitter()->Emit(Bytecode::RoundUpTo, dest, src, VisitExpressionForRValue(call->Arguments()[1]));
+    case ast::Builtin::Round2: {
+      Emitter()->Emit(Bytecode::Round2, dest, src, VisitExpressionForRValue(call->Arguments()[1]));
       break;
     }
     default: {
@@ -2477,7 +2477,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Sqrt:
     case ast::Builtin::Cbrt:
     case ast::Builtin::Round:
-    case ast::Builtin::RoundUpTo: {
+    case ast::Builtin::Round2: {
       VisitBuiltinTrigCall(call, builtin);
       break;
     }

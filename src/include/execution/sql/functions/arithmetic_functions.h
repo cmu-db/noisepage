@@ -227,7 +227,7 @@ class EXPORT ArithmeticFunctions {
   /**
    * Rounding with scale
    */
-  static void RoundUpTo(Real *result, const Real &v, const Integer &scale);
+  static void Round(Real *result, const Real &v, const Integer &precision);
 
   /**
    * Logarithm with base
@@ -340,8 +340,8 @@ inline void ArithmeticFunctions::Atan2(Real *result, const Real &a, const Real &
   *result = Real(terrier::execution::sql::Atan2<double>{}(a.val_, b.val_));
 }
 
-inline void ArithmeticFunctions::RoundUpTo(Real *result, const Real &v, const Integer &scale) {
-  if (v.is_null_ || scale.is_null_) {
+inline void ArithmeticFunctions::Round(Real *result, const Real &v, const Integer &precision) {
+  if (v.is_null_ || precision.is_null_) {
     *result = Real::Null();
     return;
   }

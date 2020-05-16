@@ -312,41 +312,41 @@ TEST_F(ArithmeticFunctionsTests, Sign) {
 }
 
 // RoundUpTo
-TEST_F(ArithmeticFunctionsTests, RoundUpTo) {
+TEST_F(ArithmeticFunctionsTests, Round) {
   Real input = Real::Null(), result = Real::Null();
-  Integer scale = Integer::Null();
+  Integer precision = Integer::Null();
 
   input = Real::Null();
-  scale = Integer(2);
-  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  precision = Integer(2);
+  ArithmeticFunctions::Round(&result, input, precision);
   EXPECT_TRUE(result.is_null_);
 
   input = Real(12.345);
-  scale = Integer::Null();
-  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  precision = Integer::Null();
+  ArithmeticFunctions::Round(&result, input, precision);
   EXPECT_TRUE(result.is_null_);
 
   input = Real(12.345);
-  scale = Integer(2);
-  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  precision = Integer(2);
+  ArithmeticFunctions::Round(&result, input, precision);
   EXPECT_FALSE(result.is_null_);
   EXPECT_DOUBLE_EQ(12.35, result.val_);
 
   input = Real(12.344);
-  scale = Integer(2);
-  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  precision = Integer(2);
+  ArithmeticFunctions::Round(&result, input, precision);
   EXPECT_FALSE(result.is_null_);
   EXPECT_DOUBLE_EQ(12.34, result.val_);
 
   input = Real(-12.345);
-  scale = Integer(2);
-  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  precision = Integer(2);
+  ArithmeticFunctions::Round(&result, input, precision);
   EXPECT_FALSE(result.is_null_);
   EXPECT_DOUBLE_EQ(-12.35, result.val_);
 
   input = Real(-12.344);
-  scale = Integer(2);
-  ArithmeticFunctions::RoundUpTo(&result, input, scale);
+  precision = Integer(2);
+  ArithmeticFunctions::Round(&result, input, precision);
   EXPECT_FALSE(result.is_null_);
   EXPECT_DOUBLE_EQ(-12.34, result.val_);
 }
