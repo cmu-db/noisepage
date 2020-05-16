@@ -191,12 +191,18 @@ public class FunctionsTest extends TestUtility {
     public void testLeft() throws SQLException {
         checkLeftRightFunc("left", "str_a_val", 3, false, "AbC");
         checkLeftRightFunc("left", "str_a_val", 3, true, null);
+        checkLeftRightFunc("left", "str_a_val", -2, false, "AbCd");
+        checkLeftRightFunc("left", "str_a_val", 10, false, "AbCdEf");
+        checkLeftRightFunc("left", "str_a_val", -10, false, "");
     }
 
     @Test
     public void testRight() throws SQLException {
         checkLeftRightFunc("right", "str_a_val", 3, false, "dEf");
         checkLeftRightFunc("right", "str_a_val", 3, true, null);
+        checkLeftRightFunc("right", "str_a_val", -2, false, "CdEf");
+        checkLeftRightFunc("right", "str_a_val", 10, false, "AbCdEf");
+        checkLeftRightFunc("right", "str_a_val", -10, false, "");
     }
 
 }
