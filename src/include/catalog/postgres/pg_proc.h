@@ -83,17 +83,17 @@ constexpr proc_oid_t LEFT_PRO_OID = proc_oid_t(100);
 constexpr proc_oid_t RIGHT_PRO_OID = proc_oid_t(101);
 constexpr proc_oid_t REVERSE_PRO_OID = proc_oid_t(102);
 constexpr proc_oid_t REPEAT_PRO_OID = proc_oid_t(103);
-constexpr proc_oid_t ABS_PRO_OID = proc_oid_t(104);
+constexpr proc_oid_t TRIM_PRO_OID = proc_oid_t(104);
+constexpr proc_oid_t TRIM2_PRO_OID = proc_oid_t(105);
+constexpr proc_oid_t ABS_INT_PRO_OID = proc_oid_t(106);
+constexpr proc_oid_t ABS_REAL_PRO_OID = proc_oid_t(107);
 
-constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(105);
-constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(106);
-constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(107);
-constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(108);
+constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(108);
+constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(109);
+constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(110);
+constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(111);
 
 // SQL Function
-constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(109);
-
-constexpr proc_oid_t TRIM_PRO_OID = proc_oid_t(124);
-constexpr proc_oid_t TRIM2_PRO_OID = proc_oid_t(143);
+constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(112);
 
 }  // namespace terrier::catalog::postgres

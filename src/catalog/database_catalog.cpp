@@ -1754,11 +1754,11 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
                   dec_type, "", true);
   // Abs
-  CreateProcedure(txn, postgres::ABS_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
+  CreateProcedure(txn, postgres::ABS_REAL_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {dec_type}, {dec_type}, {},
                   dec_type, "", true);
   // Abs
-  CreateProcedure(txn, postgres::ABS_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
+  CreateProcedure(txn, postgres::ABS_INT_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {int_type}, {int_type}, {},
                   int_type, "", true);
 
