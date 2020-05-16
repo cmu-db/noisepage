@@ -35,6 +35,13 @@ file(GLOB_RECURSE MADOKA_SOURCES
 )
 list(APPEND TERRIER_SRCS ${MADOKA_SOURCES})
 
+# md5
+file(GLOB_RECURSE MD5_SOURCES
+        ${PROJECT_SOURCE_DIR}/third_party/md5/*.cpp
+        ${PROJECT_SOURCE_DIR}/third_party/md5/*.h
+)
+list(APPEND TERRIER_SRCS ${MD5_SOURCES})
+
 # libcount
 file(GLOB_RECURSE LIBCOUNT_SOURCES
         ${PROJECT_SOURCE_DIR}/third_party/libcount/*.cc
@@ -45,10 +52,6 @@ list(APPEND TERRIER_SRCS ${LIBCOUNT_SOURCES})
 # ips4o: used for parallel sorting in execution
 file(GLOB_RECURSE IPS4O_SOURCES ${PROJECT_SOURCE_DIR}/third_party/ips4o/*.hpp)
 list(APPEND TERRIER_SRCS ${IPS4O_SOURCES})
-
-# md5
-file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/md5/*.h)
-list(APPEND TERRIER_SRCS ${MD5_SOURCES})
 
 # xbyak: used for interpretation in execution
 file(GLOB_RECURSE XBYAK_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.h)

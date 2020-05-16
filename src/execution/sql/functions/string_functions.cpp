@@ -8,8 +8,9 @@
 #include "execution/sql/operators/like_operators.h"
 #include "execution/util/bit_util.h"
 #include <iostream>
+#include <string.h>
 #include <iomanip>
-#include <md5/md5.h>
+#include "md5/md5.h"
 
 namespace terrier::execution::sql {
 
@@ -443,35 +444,28 @@ void StringFunctions::Chr(StringVal *result, exec::ExecutionContext *ctx, const 
   }
 }
 
-void Md5Sum(exec::ExecutionContext* ctx, StringVal* result, const StringVal& str) {
+void StringFunctions::Md5Sum(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
   if (str.is_null_) {
     *result = StringVal::Null();
     return;
   }
-
-  const char *BYTES = str.Content();
-
-  md5::md5_t md5;
-  md5.process(BYTES, str.len_);
-  md5.finish();
-
-  // char str[MD5_STRING_SIZE];
-  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), MD5_STRING_SIZE);
-  md5.get_string(ptr);
-  //unsigned char md5sum[MD5_DIGEST_LENGTH];
-  //// boost::iostreams::mapped_file_source src(path);
-  //MD5(reinterpret_cast<const unsigned char*>(str.Content()), str.len_, md5sum);
-
-  //std::ostringstream sout;
-  //sout << std::hex << std::setfill('0');
-  //for (auto c : md5sum) sout << std::setw(2) << (int)c;
-  //auto src = sout.str();
-  //char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), src.size());
-  //auto source = sout.str().c_str();
-  //for (uint32_t i = 0; i < src.size(); i++) {
-  //  ptr[i] = static_cast<char>(source[i]);
-  //}
-  //std::cout << result << std::endl;
+  char new_str[str.len_];
+  strcpy(new_str, str.Content());
+  MD5_CTX md5ctx;
+  MD5Init(&md5ctx);
+  MD5Update(&md5ctx, reinterpret_cast<unsigned char *>(new_str), str.len_);
+  unsigned char md5sum[16];
+  MD5Final(&md5ctx, md5sum);
+  std::ostringstream sout;
+  sout << std::hex << std::setfill('0');
+  for (auto c : md5sum) sout << std::setw(2) << (int)c;
+  auto src = sout.str();
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), src.size());
+  auto source = src.c_str();
+  for (unsigned int i = 0; i < src.size(); i++) {
+    ptr[i] = source[i];
+    std::cout << ptr[i];
+  }
 }
 
 void StringFunctions::InitCap(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {

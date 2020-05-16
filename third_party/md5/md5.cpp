@@ -1,539 +1,142 @@
 #include "md5.h"
 
-#include <cassert>
-#include <cstring>
-#include <iostream>
+#include <string.h>
 
-#include "conf.h"
-#include "md5_loc.h"
+unsigned char PADDING[] = {0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                           0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                           0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-namespace md5 {
-/****************************** Public Functions ******************************/
-
-/*
- * md5_t
- *
- * DESCRIPTION:
- *
- * Initialize structure containing state of MD5 computation. (RFC 1321,
- * 3.3: Step 3).  This is for progressive MD5 calculations only.  If
- * you have the complete string available, call it as below.
- * process should be called for each bunch of bytes and after the
- * last process call, finish should be called to get the signature.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * None.
- */
-md5_t::md5_t() { initialise(); }
-
-/*
- * md5_t
- *
- * DESCRIPTION:
- *
- * This function is used to calculate a MD5 signature for a buffer of
- * bytes.  If you only have part of a buffer that you want to process
- * then md5_t, process, and finish should be used.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * buffer - A buffer of bytes whose MD5 signature we are calculating.
- *
- * input_length - The length of the buffer.
- *
- * signature - A 16 byte buffer that will contain the MD5 signature.
- */
-md5_t::md5_t(const void *input, const unsigned int input_length, void *signature) {
-  /* initialize the computation context */
-  initialise();
-
-  /* process whole buffer but last input_length % MD5_BLOCK bytes */
-  process(input, input_length);
-
-  /* put result in desired memory area */
-  finish(signature);
+void MD5Init(MD5_CTX *context) {
+  context->count[0] = 0;
+  context->count[1] = 0;
+  context->state[0] = 0x67452301;
+  context->state[1] = 0xEFCDAB89;
+  context->state[2] = 0x98BADCFE;
+  context->state[3] = 0x10325476;
 }
+void MD5Update(MD5_CTX *context, unsigned char *input, unsigned int inputlen) {
+  unsigned int i = 0, index = 0, partlen = 0;
+  index = (context->count[0] >> 3) & 0x3F;
+  partlen = 64 - index;
+  context->count[0] += inputlen << 3;
+  if (context->count[0] < (inputlen << 3)) context->count[1]++;
+  context->count[1] += inputlen >> 29;
 
-/*
- * process
- *
- * DESCRIPTION:
- *
- * This function is used to progressively calculate a MD5 signature some
- * number of bytes at a time.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * buffer - A buffer of bytes whose MD5 signature we are calculating.
- *
- * input_length - The length of the buffer.
- */
-void md5_t::process(const void *input, const unsigned int input_length) {
-  if (!finished) {
-    unsigned int processed = 0;
-
-    /*
-     * If we have any data stored from a previous call to process then we use these
-     * bytes first, and the new data is large enough to create a complete block then
-     * we process these bytes first.
-     */
-    if (stored_size and input_length + stored_size >= md5::BLOCK_SIZE) {
-      unsigned char block[md5::BLOCK_SIZE];
-      memcpy(block, stored, stored_size);
-      memcpy(block + stored_size, input, md5::BLOCK_SIZE - stored_size);
-      processed = md5::BLOCK_SIZE - stored_size;
-      stored_size = 0;
-      process_block(block);
-    }
-
-    /*
-     * While there is enough data to create a complete block, process it.
-     */
-    while (processed + md5::BLOCK_SIZE <= input_length) {
-      process_block((unsigned char *)input + processed);
-      processed += md5::BLOCK_SIZE;
-    }
-
-    /*
-     * If there are any unprocessed bytes left over that do not create a complete block
-     * then we store these bytes for processing next time.
-     */
-    if (processed != input_length) {
-      memcpy(stored + stored_size, (char *)input + processed, input_length - processed);
-      stored_size += input_length - processed;
-    } else {
-      stored_size = 0;
-    }
+  if (inputlen >= partlen) {
+    memcpy(&context->buffer[index], input, partlen);
+    MD5Transform(context->state, context->buffer);
+    for (i = partlen; i + 64 <= inputlen; i += 64) MD5Transform(context->state, &input[i]);
+    index = 0;
   } else {
-    // throw error when trying to process after completion?
+    i = 0;
+  }
+  memcpy(&context->buffer[index], &input[i], inputlen - i);
+}
+void MD5Final(MD5_CTX *context, unsigned char digest[16]) {
+  unsigned int index = 0, padlen = 0;
+  unsigned char bits[8];
+  index = (context->count[0] >> 3) & 0x3F;
+  padlen = (index < 56) ? (56 - index) : (120 - index);
+  MD5Encode(bits, context->count, 8);
+  MD5Update(context, PADDING, padlen);
+  MD5Update(context, bits, 8);
+  MD5Encode(digest, context->state, 16);
+}
+void MD5Encode(unsigned char *output, unsigned int *input, unsigned int len) {
+  unsigned int i = 0, j = 0;
+  while (j < len) {
+    output[j] = input[i] & 0xFF;
+    output[j + 1] = (input[i] >> 8) & 0xFF;
+    output[j + 2] = (input[i] >> 16) & 0xFF;
+    output[j + 3] = (input[i] >> 24) & 0xFF;
+    i++;
+    j += 4;
   }
 }
-
-/*
- * finish
- *
- * DESCRIPTION:
- *
- * Finish a progressing MD5 calculation and copy the resulting MD5
- * signature into the result buffer which should be 16 bytes
- * (MD5_SIZE).  After this call, the MD5 structure cannot process
- * additional bytes.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * signature - A 16 byte buffer that will contain the MD5 signature.
- */
-void md5_t::finish(void *signature_) {
-  if (!finished) {
-    if (message_length[0] + stored_size < message_length[0]) message_length[1]++;
-    message_length[0] += stored_size;
-
-    int pad = md5::BLOCK_SIZE - (sizeof(unsigned int) * 2) - stored_size;
-    if (pad <= 0) pad += md5::BLOCK_SIZE;
-
-    /*
-     * Modified from a fixed array to this assignment and memset to be
-     * more flexible with block-sizes -- Gray 10/97.
-     */
-    if (pad > 0) {
-      stored[stored_size] = 0x80;
-      if (pad > 1) memset(stored + stored_size + 1, 0, pad - 1);
-      stored_size += pad;
-    }
-
-    /*
-     * Put the 64-bit file length in _bits_ (i.e. *8) at the end of the
-     * buffer. appears to be in beg-endian format in the buffer?
-     */
-    unsigned int size_low = ((message_length[0] & 0x1FFFFFFF) << 3);
-    memcpy(stored + stored_size, &size_low, sizeof(unsigned int));
-    stored_size += sizeof(unsigned int);
-
-    /* shift the high word over by 3 and add in the top 3 bits from the low */
-    unsigned int size_high = (message_length[1] << 3) | ((message_length[0] & 0xE0000000) >> 29);
-    memcpy(stored + stored_size, &size_high, sizeof(unsigned int));
-    stored_size += sizeof(unsigned int);
-
-    /*
-     * process the last block of data.
-     * if the length of the message was already exactly sized, then we have
-     * 2 messages to process
-     */
-    process_block(stored);
-    if (stored_size > md5::BLOCK_SIZE) process_block(stored + md5::BLOCK_SIZE);
-
-    /* Arrange the results into a signature */
-    get_result(static_cast<void *>(signature));
-
-    /* store the signature into a readable sring */
-    sig_to_string(signature, str, MD5_STRING_SIZE);
-
-    if (signature_ != NULL) {
-      memcpy(signature_, static_cast<void *>(signature), MD5_SIZE);
-    }
-
-    finished = true;
-  } else {
-    // add error?
+void MD5Decode(unsigned int *output, unsigned char *input, unsigned int len) {
+  unsigned int i = 0, j = 0;
+  while (j < len) {
+    output[i] = (input[j]) | (input[j + 1] << 8) | (input[j + 2] << 16) | (input[j + 3] << 24);
+    i++;
+    j += 4;
   }
 }
+void MD5Transform(unsigned int state[4], unsigned char block[64]) {
+  unsigned int a = state[0];
+  unsigned int b = state[1];
+  unsigned int c = state[2];
+  unsigned int d = state[3];
+  unsigned int x[64];
+  MD5Decode(x, block, 64);
+  FF(a, b, c, d, x[0], 7, 0xd76aa478);
+  FF(d, a, b, c, x[1], 12, 0xe8c7b756);
+  FF(c, d, a, b, x[2], 17, 0x242070db);
+  FF(b, c, d, a, x[3], 22, 0xc1bdceee);
+  FF(a, b, c, d, x[4], 7, 0xf57c0faf);
+  FF(d, a, b, c, x[5], 12, 0x4787c62a);
+  FF(c, d, a, b, x[6], 17, 0xa8304613);
+  FF(b, c, d, a, x[7], 22, 0xfd469501);
+  FF(a, b, c, d, x[8], 7, 0x698098d8);
+  FF(d, a, b, c, x[9], 12, 0x8b44f7af);
+  FF(c, d, a, b, x[10], 17, 0xffff5bb1);
+  FF(b, c, d, a, x[11], 22, 0x895cd7be);
+  FF(a, b, c, d, x[12], 7, 0x6b901122);
+  FF(d, a, b, c, x[13], 12, 0xfd987193);
+  FF(c, d, a, b, x[14], 17, 0xa679438e);
+  FF(b, c, d, a, x[15], 22, 0x49b40821);
 
-/*
- * get_sig
- *
- * DESCRIPTION:
- *
- * Retrieves the previously calculated signature from the MD5 object.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * signature_ - A 16 byte buffer that will contain the MD5 signature.
- */
-void md5_t::get_sig(void *signature_) {
-  if (finished) {
-    memcpy(signature_, signature, MD5_SIZE);
-  } else {
-    // error?
-  }
+  GG(a, b, c, d, x[1], 5, 0xf61e2562);
+  GG(d, a, b, c, x[6], 9, 0xc040b340);
+  GG(c, d, a, b, x[11], 14, 0x265e5a51);
+  GG(b, c, d, a, x[0], 20, 0xe9b6c7aa);
+  GG(a, b, c, d, x[5], 5, 0xd62f105d);
+  GG(d, a, b, c, x[10], 9, 0x2441453);
+  GG(c, d, a, b, x[15], 14, 0xd8a1e681);
+  GG(b, c, d, a, x[4], 20, 0xe7d3fbc8);
+  GG(a, b, c, d, x[9], 5, 0x21e1cde6);
+  GG(d, a, b, c, x[14], 9, 0xc33707d6);
+  GG(c, d, a, b, x[3], 14, 0xf4d50d87);
+  GG(b, c, d, a, x[8], 20, 0x455a14ed);
+  GG(a, b, c, d, x[13], 5, 0xa9e3e905);
+  GG(d, a, b, c, x[2], 9, 0xfcefa3f8);
+  GG(c, d, a, b, x[7], 14, 0x676f02d9);
+  GG(b, c, d, a, x[12], 20, 0x8d2a4c8a);
+
+  HH(a, b, c, d, x[5], 4, 0xfffa3942);
+  HH(d, a, b, c, x[8], 11, 0x8771f681);
+  HH(c, d, a, b, x[11], 16, 0x6d9d6122);
+  HH(b, c, d, a, x[14], 23, 0xfde5380c);
+  HH(a, b, c, d, x[1], 4, 0xa4beea44);
+  HH(d, a, b, c, x[4], 11, 0x4bdecfa9);
+  HH(c, d, a, b, x[7], 16, 0xf6bb4b60);
+  HH(b, c, d, a, x[10], 23, 0xbebfbc70);
+  HH(a, b, c, d, x[13], 4, 0x289b7ec6);
+  HH(d, a, b, c, x[0], 11, 0xeaa127fa);
+  HH(c, d, a, b, x[3], 16, 0xd4ef3085);
+  HH(b, c, d, a, x[6], 23, 0x4881d05);
+  HH(a, b, c, d, x[9], 4, 0xd9d4d039);
+  HH(d, a, b, c, x[12], 11, 0xe6db99e5);
+  HH(c, d, a, b, x[15], 16, 0x1fa27cf8);
+  HH(b, c, d, a, x[2], 23, 0xc4ac5665);
+
+  II(a, b, c, d, x[0], 6, 0xf4292244);
+  II(d, a, b, c, x[7], 10, 0x432aff97);
+  II(c, d, a, b, x[14], 15, 0xab9423a7);
+  II(b, c, d, a, x[5], 21, 0xfc93a039);
+  II(a, b, c, d, x[12], 6, 0x655b59c3);
+  II(d, a, b, c, x[3], 10, 0x8f0ccc92);
+  II(c, d, a, b, x[10], 15, 0xffeff47d);
+  II(b, c, d, a, x[1], 21, 0x85845dd1);
+  II(a, b, c, d, x[8], 6, 0x6fa87e4f);
+  II(d, a, b, c, x[15], 10, 0xfe2ce6e0);
+  II(c, d, a, b, x[6], 15, 0xa3014314);
+  II(b, c, d, a, x[13], 21, 0x4e0811a1);
+  II(a, b, c, d, x[4], 6, 0xf7537e82);
+  II(d, a, b, c, x[11], 10, 0xbd3af235);
+  II(c, d, a, b, x[2], 15, 0x2ad7d2bb);
+  II(b, c, d, a, x[9], 21, 0xeb86d391);
+  state[0] += a;
+  state[1] += b;
+  state[2] += c;
+  state[3] += d;
 }
-
-/*
- * get_string
- *
- * DESCRIPTION:
- *
- * Retrieves the previously calculated signature from the MD5 object in
- * printable format.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * str_ - a string of characters which should be at least 33 bytes long
- * (2 characters per MD5 byte and 1 for the \0).
- */
-void md5_t::get_string(void *str_) {
-  if (finished) {
-    memcpy(str_, str, MD5_STRING_SIZE);
-  } else {
-    // error?
-  }
-}
-
-/****************************** Private Functions ******************************/
-
-/*
- * initialise
- *
- * DESCRIPTION:
- *
- * Initialize structure containing state of MD5 computation. (RFC 1321,
- * 3.3: Step 3).
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * None.
- */
-void md5_t::initialise() {
-  /*
-   * ensures that unsigned int is 4 bytes on this platform, will need modifying
-   * if we are to use on a different sized platform.
-   */
-  assert(MD5_SIZE == 16);
-
-  A = 0x67452301;
-  B = 0xefcdab89;
-  C = 0x98badcfe;
-  D = 0x10325476;
-
-  message_length[0] = 0;
-  message_length[1] = 0;
-  stored_size = 0;
-
-  finished = false;
-}
-
-/*
- * process_block
- *
- * DESCRIPTION:
- *
- * Process a block of bytes into a MD5 state structure.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * buffer - A buffer of bytes whose MD5 signature we are calculating.
- *
- * input_length - The length of the buffer.
- */
-void md5_t::process_block(const unsigned char *block) {
-  /* Process each 16-word block. */
-
-  /*
-   * we check for when the lower word rolls over, and increment the
-   * higher word. we do not need to worry if the higher word rolls over
-   * as only the two words we maintain are needed in the function later
-   */
-  if (message_length[0] + md5::BLOCK_SIZE < message_length[0]) message_length[1]++;
-  message_length[0] += BLOCK_SIZE;
-
-  // Copy the block into X. */
-  unsigned int X[16];
-  for (unsigned int i = 0; i < 16; i++) {
-    memcpy(X + i, block + 4 * i, 4);
-  }
-
-  /* Save A as AA, B as BB, C as CC, and D as DD. */
-  unsigned int AA = A, BB = B, CC = C, DD = D;
-
-  /* Round 1
-   * Let [abcd k s i] denote the operation
-   * a = b + ((a + F(b,c,d) + X[k] + T[i]) <<< s)
-   * Do the following 16 operations
-   * [ABCD  0  7  1]  [DABC  1 12  2]  [CDAB  2 17  3]  [BCDA  3 22  4]
-   * [ABCD  4  7  5]  [DABC  5 12  6]  [CDAB  6 17  7]  [BCDA  7 22  8]
-   * [ABCD  8  7  9]  [DABC  9 12 10]  [CDAB 10 17 11]  [BCDA 11 22 12]
-   * [ABCD 12  7 13]  [DABC 13 12 14]  [CDAB 14 17 15]  [BCDA 15 22 16]
-   */
-  md5::FF(A, B, C, D, X[0], 0, 0);
-  md5::FF(D, A, B, C, X[1], 1, 1);
-  md5::FF(C, D, A, B, X[2], 2, 2);
-  md5::FF(B, C, D, A, X[3], 3, 3);
-  md5::FF(A, B, C, D, X[4], 0, 4);
-  md5::FF(D, A, B, C, X[5], 1, 5);
-  md5::FF(C, D, A, B, X[6], 2, 6);
-  md5::FF(B, C, D, A, X[7], 3, 7);
-  md5::FF(A, B, C, D, X[8], 0, 8);
-  md5::FF(D, A, B, C, X[9], 1, 9);
-  md5::FF(C, D, A, B, X[10], 2, 10);
-  md5::FF(B, C, D, A, X[11], 3, 11);
-  md5::FF(A, B, C, D, X[12], 0, 12);
-  md5::FF(D, A, B, C, X[13], 1, 13);
-  md5::FF(C, D, A, B, X[14], 2, 14);
-  md5::FF(B, C, D, A, X[15], 3, 15);
-
-  /* Round 2
-   * Let [abcd k s i] denote the operation
-   * a = b + ((a + G(b,c,d) + X[k] + T[i]) <<< s)
-   * Do the following 16 operations
-   * [ABCD  1  5 17]  [DABC  6  9 18]  [CDAB 11 14 19]  [BCDA  0 20 20]
-   * [ABCD  5  5 21]  [DABC 10  9 22]  [CDAB 15 14 23]  [BCDA  4 20 24]
-   * [ABCD  9  5 25]  [DABC 14  9 26]  [CDAB  3 14 27]  [BCDA  8 20 28]
-   * [ABCD 13  5 29]  [DABC  2  9 30]  [CDAB  7 14 31]  [BCDA 12 20 32]
-   */
-  md5::GG(A, B, C, D, X[1], 0, 16);
-  md5::GG(D, A, B, C, X[6], 1, 17);
-  md5::GG(C, D, A, B, X[11], 2, 18);
-  md5::GG(B, C, D, A, X[0], 3, 19);
-  md5::GG(A, B, C, D, X[5], 0, 20);
-  md5::GG(D, A, B, C, X[10], 1, 21);
-  md5::GG(C, D, A, B, X[15], 2, 22);
-  md5::GG(B, C, D, A, X[4], 3, 23);
-  md5::GG(A, B, C, D, X[9], 0, 24);
-  md5::GG(D, A, B, C, X[14], 1, 25);
-  md5::GG(C, D, A, B, X[3], 2, 26);
-  md5::GG(B, C, D, A, X[8], 3, 27);
-  md5::GG(A, B, C, D, X[13], 0, 28);
-  md5::GG(D, A, B, C, X[2], 1, 29);
-  md5::GG(C, D, A, B, X[7], 2, 30);
-  md5::GG(B, C, D, A, X[12], 3, 31);
-
-  /* Round 3
-   * Let [abcd k s i] denote the operation
-   * a = b + ((a + H(b,c,d) + X[k] + T[i]) <<< s)
-   * Do the following 16 operations
-   * [ABCD  5  4 33]  [DABC  8 11 34]  [CDAB 11 16 35]  [BCDA 14 23 36]
-   * [ABCD  1  4 37]  [DABC  4 11 38]  [CDAB  7 16 39]  [BCDA 10 23 40]
-   * [ABCD 13  4 41]  [DABC  0 11 42]  [CDAB  3 16 43]  [BCDA  6 23 44]
-   * [ABCD  9  4 45]  [DABC 12 11 46]  [CDAB 15 16 47]  [BCDA  2 23 48]
-   */
-  md5::HH(A, B, C, D, X[5], 0, 32);
-  md5::HH(D, A, B, C, X[8], 1, 33);
-  md5::HH(C, D, A, B, X[11], 2, 34);
-  md5::HH(B, C, D, A, X[14], 3, 35);
-  md5::HH(A, B, C, D, X[1], 0, 36);
-  md5::HH(D, A, B, C, X[4], 1, 37);
-  md5::HH(C, D, A, B, X[7], 2, 38);
-  md5::HH(B, C, D, A, X[10], 3, 39);
-  md5::HH(A, B, C, D, X[13], 0, 40);
-  md5::HH(D, A, B, C, X[0], 1, 41);
-  md5::HH(C, D, A, B, X[3], 2, 42);
-  md5::HH(B, C, D, A, X[6], 3, 43);
-  md5::HH(A, B, C, D, X[9], 0, 44);
-  md5::HH(D, A, B, C, X[12], 1, 45);
-  md5::HH(C, D, A, B, X[15], 2, 46);
-  md5::HH(B, C, D, A, X[2], 3, 47);
-
-  /* Round 4
-   * Let [abcd k s i] denote the operation
-   * a = b + ((a + I(b,c,d) + X[k] + T[i]) <<< s)
-   * Do the following 16 operations
-   * [ABCD  0  6 49]  [DABC  7 10 50]  [CDAB 14 15 51]  [BCDA  5 21 52]
-   * [ABCD 12  6 53]  [DABC  3 10 54]  [CDAB 10 15 55]  [BCDA  1 21 56]
-   * [ABCD  8  6 57]  [DABC 15 10 58]  [CDAB  6 15 59]  [BCDA 13 21 60]
-   * [ABCD  4  6 61]  [DABC 11 10 62]  [CDAB  2 15 63]  [BCDA  9 21 64]
-   */
-  md5::II(A, B, C, D, X[0], 0, 48);
-  md5::II(D, A, B, C, X[7], 1, 49);
-  md5::II(C, D, A, B, X[14], 2, 50);
-  md5::II(B, C, D, A, X[5], 3, 51);
-  md5::II(A, B, C, D, X[12], 0, 52);
-  md5::II(D, A, B, C, X[3], 1, 53);
-  md5::II(C, D, A, B, X[10], 2, 54);
-  md5::II(B, C, D, A, X[1], 3, 55);
-  md5::II(A, B, C, D, X[8], 0, 56);
-  md5::II(D, A, B, C, X[15], 1, 57);
-  md5::II(C, D, A, B, X[6], 2, 58);
-  md5::II(B, C, D, A, X[13], 3, 59);
-  md5::II(A, B, C, D, X[4], 0, 60);
-  md5::II(D, A, B, C, X[11], 1, 61);
-  md5::II(C, D, A, B, X[2], 2, 62);
-  md5::II(B, C, D, A, X[9], 3, 63);
-
-  /* Then perform the following additions. (That is increment each
-  of the four registers by the value it had before this block
-  was started.) */
-  A += AA;
-  B += BB;
-  C += CC;
-  D += DD;
-}
-
-/*
- * get_result
- *
- * DESCRIPTION:
- *
- * Copy the resulting MD5 signature into the first 16 bytes (MD5_SIZE)
- * of the result buffer.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * result - A 16 byte buffer that will contain the MD5 signature.
- */
-void md5_t::get_result(void *result) {
-  memcpy((char *)result, &A, sizeof(unsigned int));
-  memcpy((char *)result + sizeof(unsigned int), &B, sizeof(unsigned int));
-  memcpy((char *)result + 2 * sizeof(unsigned int), &C, sizeof(unsigned int));
-  memcpy((char *)result + 3 * sizeof(unsigned int), &D, sizeof(unsigned int));
-}
-
-/****************************** Exported Functions ******************************/
-
-/*
- * sig_to_string
- *
- * DESCRIPTION:
- *
- * Convert a MD5 signature in a 16 byte buffer into a hexadecimal string
- * representation.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * signature_ - a 16 byte buffer that contains the MD5 signature.
- *
- * str_ - a string of charactes which should be at least 33 bytes long (2
- * characters per MD5 byte and 1 for the \0).
- *
- * str_len - the length of the string.
- */
-void sig_to_string(const void *signature_, char *str_, const int str_len) {
-  unsigned char *sig_p;
-  char *str_p;
-  char *max_p;
-  unsigned int high, low;
-
-  str_p = str_;
-  max_p = str_ + str_len;
-
-  for (sig_p = (unsigned char *)signature_; sig_p < (unsigned char *)signature_ + MD5_SIZE; sig_p++) {
-    high = *sig_p / 16;
-    low = *sig_p % 16;
-    /* account for 2 chars */
-    if (str_p + 1 >= max_p) {
-      break;
-    }
-    *str_p++ = md5::HEX_STRING[high];
-    *str_p++ = md5::HEX_STRING[low];
-  }
-  /* account for 2 chars */
-  if (str_p < max_p) {
-    *str_p++ = '\0';
-  }
-}
-
-/*
- * sig_from_string
- *
- * DESCRIPTION:
- *
- * Convert a MD5 signature from a hexadecimal string representation into
- * a 16 byte buffer.
- *
- * RETURNS:
- *
- * None.
- *
- * ARGUMENTS:
- *
- * signature_ - A 16 byte buffer that will contain the MD5 signature.
- *
- * str_ - A string of charactes which _must_ be at least 32 bytes long (2
- * characters per MD5 byte).
- */
-void sig_from_string(void *signature_, const char *str_) {
-  unsigned char *sig_p;
-  const char *str_p;
-  char *hex;
-  unsigned int high, low, val;
-
-  hex = (char *)md5::HEX_STRING;
-  sig_p = static_cast<unsigned char *>(signature_);
-
-  for (str_p = str_; str_p < str_ + MD5_SIZE * 2; str_p += 2) {
-    high = strchr(hex, *str_p) - hex;
-    low = strchr(hex, *(str_p + 1)) - hex;
-    val = high * 16 + low;
-    *sig_p++ = val;
-  }
-}
-}  // namespace md5

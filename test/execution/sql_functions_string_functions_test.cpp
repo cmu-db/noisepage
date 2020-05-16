@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "execution/exec/execution_context.h"
 #include "execution/sql/functions/string_functions.h"
