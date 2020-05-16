@@ -1834,7 +1834,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 
   // round up to
   CreateProcedure(txn, postgres::ROUNDUPTO_PRO_OID, "roundupto", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, int_type}, {dec_type, int_type}, {},
                   dec_type, "", true);
 
   CreateProcedure(
@@ -1966,7 +1966,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   func_context = new execution::functions::FunctionContext("roundupto", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                                                                 execution::ast::Builtin::RoundUpTo);
   txn->RegisterAbortAction([=]() { delete func_context; });
-  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, func_context);
+  SetProcCtxPtr(txn, postgres::ROUNDUPTO_PRO_OID, func_context);
 
   func_context = new execution::functions::FunctionContext("exp", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                                                            execution::ast::Builtin::Exp, true);
