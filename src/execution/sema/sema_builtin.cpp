@@ -1453,6 +1453,7 @@ void Sema::CheckBuiltinVectorFilterCall(ast::CallExpr *call) {
 
 void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto real_kind = ast::BuiltinType::Real;
+  const auto int_kind = ast::BuiltinType::Integer;
 
   const auto &call_args = call->Arguments();
   switch (builtin) {
@@ -1501,6 +1502,61 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
       break;
     }
+
+    case ast::Builtin::Mod: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      bool firstOperandTypeCorrect = call_args[0]->GetType()->IsSpecificBuiltin(real_kind);
+      bool secondOperandTypeCorrect = call_args[1]->GetType()->IsSpecificBuiltin(real_kind);
+
+      if (!firstOperandTypeCorrect && !secondOperandTypeCorrect) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(real_kind));
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(real_kind));
+        return;
+      }
+
+      if (!firstOperandTypeCorrect) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(real_kind));
+        return;
+      }
+
+      if (!secondOperandTypeCorrect) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(real_kind));
+        return;
+      }
+
+      break;
+    }
+
+    case ast::Builtin::IntMod: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      bool firstOperandTypeCorrect = call_args[0]->GetType()->IsSpecificBuiltin(int_kind);
+      bool secondOperandTypeCorrect = call_args[1]->GetType()->IsSpecificBuiltin(int_kind);
+
+      if (!firstOperandTypeCorrect && !secondOperandTypeCorrect) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(int_kind));
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(int_kind));
+        return;
+      }
+
+      if (!firstOperandTypeCorrect) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(int_kind));
+        return;
+      }
+
+      if (!secondOperandTypeCorrect) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(int_kind));
+        return;
+      }
+
+      break;
+    }
+
     default: {
       UNREACHABLE("Impossible math trig function call");
     }
