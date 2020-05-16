@@ -590,4 +590,44 @@ TEST_F(StringFunctionsTests, ASCII) {
   }
 }
 
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, Chr) {
+// Nulls
+{
+auto result = StringVal("");
+StringFunctions::Chr(Ctx(), &result, Integer(0));
+EXPECT_TRUE(result.is_null_);
+}
+
+// Simple ascii
+auto result = StringVal("");
+StringFunctions::Chr(Ctx(), &result, Integer(65));
+EXPECT_TRUE(StringVal("A", 1) == result);
+
+// More than ascii 127
+result = StringVal("");
+StringFunctions::Chr(Ctx(), &result, Integer(352));
+EXPECT_TRUE(StringVal("Š", 2) == result);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, CharLength) {
+// Nulls
+{
+auto result = Integer(0);
+StringFunctions::CharLength(Ctx(), &result, StringVal::Null());
+EXPECT_TRUE(result.is_null_);
+}
+
+// Simple char
+auto result = Integer(0);
+StringFunctions::CharLength(Ctx(), &result, StringVal("H"));
+EXPECT_TRUE(1 == result.val_);
+
+// Simple nulti char
+result = Integer(0);
+StringFunctions::CharLength(Ctx(), &result, StringVal("Has a beg"));
+EXPECT_TRUE(9 == result.val_);
+}
+
 }  // namespace terrier::execution::sql::test
