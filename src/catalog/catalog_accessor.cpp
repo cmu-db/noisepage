@@ -166,16 +166,16 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return catalog::INVALID_PROC_OID;
 }
 
-bool CatalogAccessor::SetProcCtxPtr(proc_oid_t proc_oid, const execution::udf::UDFContext *udf_context) {
+bool CatalogAccessor::SetProcCtxPtr(proc_oid_t proc_oid, const execution::functions::FunctionContext *udf_context) {
   return dbc_->SetProcCtxPtr(txn_, proc_oid, udf_context);
 }
 
-common::ManagedPointer<execution::udf::UDFContext> CatalogAccessor::GetProcCtxPtr(proc_oid_t proc_oid) {
+common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetProcCtxPtr(proc_oid_t proc_oid) {
   return dbc_->GetProcCtxPtr(txn_, proc_oid);
 }
 
-common::ManagedPointer<execution::udf::UDFContext> CatalogAccessor::GetUDFContext(proc_oid_t proc_oid) {
-  return dbc_->GetUDFContext(txn_, proc_oid);
+common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetFunctionContext(proc_oid_t proc_oid) {
+  return dbc_->GetFunctionContext(txn_, proc_oid);
 }
 
 type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }

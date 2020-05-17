@@ -13,7 +13,7 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
-#include "execution/udf/udf_context.h"
+#include "execution/functions/function_context.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -343,32 +343,32 @@ class DatabaseCatalog {
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
   /**
-   * Sets the proc context pointer column of proc_oid to udf_context
+   * Sets the proc context pointer column of proc_oid to func_context
    * @param txn transaction to use
    * @param proc_oid The proc_oid whose pointer column we are setting here
-   * @param udf_context The context object to set to
+   * @param func_context The context object to set to
    * @return False if the given proc_oid is invalid, True if else
    */
   bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-                     const execution::udf::UDFContext *udf_context);
+                     const execution::functions::FunctionContext *func_context);
 
   /**
-   * Gets a udf context object for a given proc if it is null for a valid proc id then the udf context
+   * Gets a functions context object for a given proc if it is null for a valid proc id then the functions context
    * object is reconstructed, put in pg_proc and returned
    * @param txn the transaction to use
    * @param proc_oid the proc_oid we are querying here for the context object
-   * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
+   * @return nullptr if proc_oid is invalid else a valid functions context object for this proc_oid
    */
-  common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(
+  common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(
       common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
 
   /**
-   * Gets the proc context pointer column of proc_oid to udf_context
+   * Gets the proc context pointer column of proc_oid to func_context
    * @param txn transaction to use
    * @param proc_oid The proc_oid whose pointer column we are getting here
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
    */
-  common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(
+  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
   /**
@@ -594,7 +594,7 @@ class DatabaseCatalog {
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
-   * Bootstraps the proc udf contexts in pg_proc
+   * Bootstraps the proc functions contexts in pg_proc
    * @param txn transaction to insert into catalog with
    */
   void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn);
