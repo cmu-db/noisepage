@@ -1895,8 +1895,8 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 }
 
 void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn) {
-  auto func_context = new execution::functions::FunctionContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                                                execution::ast::Builtin::ATan2);
+  auto func_context = new execution::functions::FunctionContext(
+      "atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, execution::ast::Builtin::ATan2);
   txn->RegisterAbortAction([=]() { delete func_context; });
   SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, func_context);
 
@@ -1963,10 +1963,10 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 #undef BOOTSTRAP_TRIG_FN
 
   // round2
-  func_context = new execution::functions::FunctionContext("round", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                                           execution::ast::Builtin::Round2);
-  txn->RegisterAbortAction([=]() { delete func_context; });
+  func_context = new execution::functions::FunctionContext(
+      "round", type::TypeId::DECIMAL, {type::TypeId::DECIMAL, type::TypeId::INTEGER}, execution::ast::Builtin::Round2);
   SetProcCtxPtr(txn, postgres::ROUND2_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext("exp", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                                                            execution::ast::Builtin::Exp, true);
