@@ -2153,7 +2153,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpLTrim3Arg(exec_ctx, result, input, chars);
+    OpLTrim2Arg(exec_ctx, result, input, chars);
     DISPATCH_NEXT();
   }
 
@@ -2161,7 +2161,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpLTrim2Arg(exec_ctx, result, input);
+    OpLTrim1Arg(exec_ctx, result, input);
     DISPATCH_NEXT();
   }
 
@@ -2201,14 +2201,22 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(RTrim) : {
-    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpRTrim(result, exec_ctx, input, chars);
-    DISPATCH_NEXT();
-  }
+  OP(RTrim2Arg) : {
+  auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+  auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+  auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+  auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+  OpRTrim2Arg(exec_ctx, result, input, chars);
+  DISPATCH_NEXT();
+}
+
+  OP(RTrim1Arg) : {
+  auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+  auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+  auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+  OpRTrim1Arg(exec_ctx, result, input);
+  DISPATCH_NEXT();
+}
 
   OP(SplitPart) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
