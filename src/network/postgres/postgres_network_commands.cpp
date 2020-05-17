@@ -240,6 +240,12 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<PostgresPacketWriter> out,
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              const common::ManagedPointer<ConnectionContext> connection) {
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::BIND_COMMAND)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
   TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
@@ -280,6 +286,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // read the params
   auto params =
       PostgresPacketUtil::ReadParameters(common::ManagedPointer(&in_), statement->ParamTypes(), param_formats);
+  uint64_t param_num = params.size();
 
   // read out the result formats
   auto result_formats = PostgresPacketUtil::ReadFormatCodes(common::ManagedPointer(&in_));
@@ -348,6 +355,14 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     connection->Transaction()->SetMustAbort();
     out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
     postgres_interpreter->SetWaitingForSync();
+  }
+
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::BIND_COMMAND)) {
+    common::thread_context.resource_tracker_.Stop();
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    common::thread_context.metrics_store_->RecordBindCommandData(param_num, statement->GetQueryText().size(),
+                                                                 resource_metrics);
   }
 
   return Transition::PROCEED;

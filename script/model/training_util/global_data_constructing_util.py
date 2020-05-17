@@ -237,7 +237,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         # Record the predicted
         data.y_pred = pipeline_y_pred
         logging.debug("{} pipeline predicted time: {}".format(data.name, pipeline_y_pred[-1]))
-        ratio_error = abs(y - pipeline_y_pred) / (y + 1e-6)
+        ratio_error = abs(y - pipeline_y_pred) / (y + 1)
         logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
 
         io_util.write_csv_result(prediction_path, data.name, [""] + list(y) + [""] + list(pipeline_y_pred) + [""] +

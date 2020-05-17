@@ -74,6 +74,11 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
         metric->Swap();
         break;
       }
+      case MetricsComponent::BIND_COMMAND: {
+        const auto &metric = metrics_store.second->bind_command_metric_;
+        metric->Swap();
+        break;
+      }
     }
   }
 }
@@ -124,6 +129,10 @@ void MetricsManager::ToCSV() const {
         }
         case MetricsComponent::EXECUTION_PIPELINE: {
           OpenFiles<PipelineMetricRawData>(&outfiles);
+          break;
+        }
+        case MetricsComponent::BIND_COMMAND: {
+          OpenFiles<BindCommandMetricRawData>(&outfiles);
           break;
         }
       }

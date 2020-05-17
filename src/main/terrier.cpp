@@ -9,6 +9,7 @@
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
+#include "metrics/metrics_defs.h"
 
 /**
  * Need a global pointer to access from SignalHandler, unfortunately. Do not remove from this anonymous namespace since
@@ -92,6 +93,8 @@ int main(int argc, char *argv[]) {
                      .Build();
 
   db_main_handler_ptr = db_main.get();
+
+  db_main->GetMetricsManager()->EnableMetric(terrier::metrics::MetricsComponent::BIND_COMMAND, 0);
 
   db_main->Run();
 

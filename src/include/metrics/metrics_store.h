@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "execution/exec_defs.h"
@@ -16,6 +17,7 @@
 #include "metrics/metrics_defs.h"
 #include "metrics/pipeline_metric.h"
 #include "metrics/transaction_metric.h"
+#include "metrics/bind_command_metric.h"
 
 namespace terrier::metrics {
 
@@ -134,6 +136,20 @@ class MetricsStore {
   }
 
   /**
+   * Record metrics for the execution engine when finish a pipeline
+   * @param feature first entry of execution datapoint
+   * @param len second entry of execution datapoint
+   * @param execution_mode Execution mode
+   * @param resource_metrics Metrics
+   */
+  void RecordBindCommandData(uint64_t param_num, uint64_t query_text_size,
+                           const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::BIND_COMMAND), "BindCommandMetric not enabled.");
+    TERRIER_ASSERT(bind_command_metric_ != nullptr, "BindCommandMetric not allocated. Check MetricsStore constructor.");
+    bind_command_metric_->RecordBindCommandData(param_num, query_text_size, resource_metrics);
+  }
+
+  /**
    * @param component metrics component to test
    * @return true if metrics enabled for this component, false otherwise
    */
@@ -177,6 +193,7 @@ class MetricsStore {
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
   std::unique_ptr<ExecutionMetric> execution_metric_;
   std::unique_ptr<PipelineMetric> pipeline_metric_;
+  std::unique_ptr<BindCommandMetric> bind_command_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
   const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;
