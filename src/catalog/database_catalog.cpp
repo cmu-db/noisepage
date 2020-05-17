@@ -1428,7 +1428,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
 
     for (auto expr : expressions) delete expr;
 
-    for (auto udf_ctxt : func_contexts) delete udf_ctxt;
+    for (auto func_ctxt : func_contexts) delete func_ctxt;
   };
 
   // No new transactions can see these object but there may be deferred index
@@ -2117,16 +2117,16 @@ common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::G
 
 common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
     const common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid) {
-  auto udf_ctx = GetProcCtxPtr(txn, proc_oid);
-  if (udf_ctx == nullptr) {
+  auto func_ctx = GetProcCtxPtr(txn, proc_oid);
+  if (func_ctx == nullptr) {
     if (IS_BUILTIN_PROC(proc_oid)) {
       BootstrapProcContexts(txn);
     } else {
       UNREACHABLE("We don't support dynamically added udf's yet");
     }
-    udf_ctx = GetProcCtxPtr(txn, proc_oid);
+    func_ctx = GetProcCtxPtr(txn, proc_oid);
   }
-  return udf_ctx;
+  return func_ctx;
 }
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
