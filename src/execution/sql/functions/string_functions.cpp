@@ -449,7 +449,7 @@ void StringFunctions::Md5Sum(exec::ExecutionContext *ctx, StringVal *result, con
     *result = StringVal::Null();
     return;
   }
-  char new_str[str.len_];
+  char new_str[str.len_ + 1];
   strcpy(new_str, str.Content());
   MD5_CTX md5ctx;
   MD5Init(&md5ctx);
