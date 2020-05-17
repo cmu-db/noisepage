@@ -2013,8 +2013,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(Round2) : {
     auto *result = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
     auto *v = frame->LocalAt<const sql::Real *>(READ_LOCAL_ID());
-    auto *scale = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
-    OpRound2(result, v, scale);
+    auto *precision = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpRound2(result, v, precision);
     DISPATCH_NEXT();
   }
 

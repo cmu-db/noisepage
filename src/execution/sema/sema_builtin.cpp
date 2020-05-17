@@ -2631,7 +2631,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      // this function returns a integer
+      // this function returns an integer
       sql_type = ast::BuiltinType::Integer;
       break;
     }

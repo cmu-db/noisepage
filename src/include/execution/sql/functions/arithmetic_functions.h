@@ -227,7 +227,7 @@ class EXPORT ArithmeticFunctions {
   /**
    * Rounding with precision
    */
-  static void Round(Real *result, const Real &v, const Integer &precision);
+  static void Round2(Real *result, const Real &v, const Integer &precision);
 
   /**
    * Logarithm with base
@@ -348,7 +348,7 @@ inline void ArithmeticFunctions::Round(Real *result, const Real &v) {
   *result = Real(terrier::execution::sql::Round<double>{}(v.val_));
 }
 
-inline void ArithmeticFunctions::Round(Real *result, const Real &v, const Integer &precision) {
+inline void ArithmeticFunctions::Round2(Real *result, const Real &v, const Integer &precision) {
   if (v.is_null_ || precision.is_null_) {
     *result = Real::Null();
     return;
