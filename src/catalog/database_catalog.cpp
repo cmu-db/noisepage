@@ -1011,7 +1011,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
                                   index_oid_t index) {
   if (!TryLock(txn)) return false;
   // We should respect foreign key relations and attempt to delete the index's columns first
-  auto result UNUSED_ATTRIBUTE = DeleteColumns<IndexSchema::Column, index_oid_t>(txn, index);
+  auto result = DeleteColumns<IndexSchema::Column, index_oid_t>(txn, index);
   if (!result) return false;
 
   // Initialize PRs for pg_class
@@ -2431,7 +2431,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
   *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)]))) =
       all_arg_types_varlen;
 
-  auto result UNUSED_ATTRIBUTE = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
+  auto result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
   if (!result) {
     delete[] buffer;
     return false;

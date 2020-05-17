@@ -225,8 +225,7 @@ class DataTable {
   friend class ArrowSerializer;
   // The TransactionContext needs to modify VersionPtrs when pruning version chains
   friend class transaction::TransactionContext;
-  // TODO(Ling): remove this after deferred action is installed
-  // The TransactionContext needs to modify VersionPtrs when pruning version chains
+  // TODO(Ling): remove this after gc is removed in the future
   friend class GarbageCollector;
 
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
