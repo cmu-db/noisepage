@@ -98,13 +98,12 @@ void AggregateHelper::GenAHTStructs(ast::StructDecl **global_decl, util::RegionV
 
   // Add the global hash table's struct.
   if (!op_->GetGroupByTerms().empty()) {
+    gen_struct(&global_info_);
     if (global_decl != nullptr) {
       auto *decl = decls->back();
       TERRIER_ASSERT(ast::StructDecl::classof(decl), "Expected StructDecl");
       *global_decl = reinterpret_cast<ast::StructDecl *>(decl);
     }
-
-    gen_struct(&global_info_);
   }
 
   // Add each distinct hash table's struct.

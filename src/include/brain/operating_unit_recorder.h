@@ -8,6 +8,7 @@
 #include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "execution/ast/ast.h"
+#include "execution/ast/context.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
@@ -23,8 +24,11 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Constructor
    * @param accessor CatalogAccessor
+   * @param ast_ctx AstContext
    */
-  explicit OperatingUnitRecorder(common::ManagedPointer<catalog::CatalogAccessor> accessor) : accessor_(accessor) {}
+  explicit OperatingUnitRecorder(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                 common::ManagedPointer<execution::ast::Context> ast_ctx)
+      : accessor_(accessor), ast_ctx_(ast_ctx) {}
 
   /**
    * Extracts features from OperatorTranslators
@@ -156,6 +160,11 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * CatalogAccessor
    */
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
+
+  /**
+   * AstContext
+   */
+  common::ManagedPointer<execution::ast::Context> ast_ctx_;
 };
 
 }  // namespace terrier::brain

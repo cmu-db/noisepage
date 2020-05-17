@@ -52,8 +52,16 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
   // Rough loop to get an estimate size of entire struct
   size_t total = total_offset;
   for (auto *field : fields) {
-    auto *field_type = field->TypeRepr()->GetType();
-    total += field_type->Size();
+    auto *field_repr = field->TypeRepr();
+    if (field_repr->GetType() != nullptr) {
+      total += field_repr->GetType()->Size();
+    } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
+      // Likely built in type
+      auto *type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
+      if (type != nullptr) {
+        total += type->Size();
+      }
+    }
   }
 
   // For mini-runners, only ints for sort, hj, aggregate
@@ -347,7 +355,7 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
       RecordArithmeticFeatures(c_plan, o_num_rows - 1);
 
       // Get all features/card estimates from the right child
-      OperatingUnitRecorder rec(accessor_);
+      OperatingUnitRecorder rec(accessor_, ast_ctx_);
       rec.plan_feature_type_ = plan_feature_type_;
       plan->GetChild(1)->Accept(common::ManagedPointer<planner::PlanVisitor>(&rec));
       for (auto &feature : rec.pipeline_features_) {
