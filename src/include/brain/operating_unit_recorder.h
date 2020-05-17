@@ -7,6 +7,7 @@
 
 #include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
+#include "execution/ast/ast.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
@@ -72,9 +73,21 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param num_keys Number keys
    * @param plan Plan Node
    * @param scaling_factor Scaling factor
+   * @param mem_factor Memory scaling factor
    */
   void AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
-                         UNUSED_ATTRIBUTE const planner::AbstractPlanNode *plan, size_t scaling_factor);
+                         const planner::AbstractPlanNode *plan, size_t scaling_factor, double mem_factor);
+
+  /**
+   * Compute Memory Scaling Factor against the mini-runners
+   * @param decl Struct being used by the pipeline
+   * @param total_offset Additional size by the feature (i.e HashTableEntry)
+   * @param key_size Key Size
+   * @param ref_offset Additional size to be added to the reference size
+   * @returns scaling factor
+   */
+  double ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset, size_t key_size,
+                                  size_t ref_offset);
 
   /**
    * Compute key size from vector of expressions
@@ -123,6 +136,11 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * Current Translator Feature Type
    */
   ExecutionOperatingUnitType plan_feature_type_;
+
+  /**
+   * Current Translator
+   */
+  common::ManagedPointer<execution::compiler::OperatorTranslator> current_translator_;
 
   /**
    * Arithmetic features for a given plan

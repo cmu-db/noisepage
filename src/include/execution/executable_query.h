@@ -93,6 +93,14 @@ class ExecutableQuery {
     return path.substr(found + 1, size - found - 5);
   }
 
+  /**
+   * Set Pipeline Operating Units for use by mini_runners
+   * @param units Pipeline Operating Units
+   */
+  void SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units) {
+    pipeline_operating_units_ = std::move(units);
+  }
+
   // TPL bytecodes for this query.
   std::unique_ptr<vm::Module> tpl_module_ = nullptr;
 

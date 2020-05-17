@@ -89,7 +89,7 @@ void SortBottomTranslator::InitializeStructs(execution::util::RegionVector<execu
   auto *decl = codegen_->MakeStruct(sorter_struct_, std::move(fields));
   TERRIER_ASSERT(ast::StructDecl::classof(decl), "Expected StructDecl");
 
-  struct_decl_ = reinterpret_cast<ast::StructDecl*>(decl);
+  struct_decl_ = reinterpret_cast<ast::StructDecl *>(decl);
   decls->emplace_back(struct_decl_);
 }
 

@@ -55,7 +55,7 @@ void HashJoinLeftTranslator::InitializeStructs(util::RegionVector<ast::Decl *> *
   auto *decl = codegen_->MakeStruct(build_struct_, std::move(fields));
   TERRIER_ASSERT(ast::StructDecl::classof(decl), "Expected StructDecl");
 
-  struct_decl_ = reinterpret_cast<ast::StructDecl*>(decl);
+  struct_decl_ = reinterpret_cast<ast::StructDecl *>(decl);
   decls->emplace_back(struct_decl_);
 }
 

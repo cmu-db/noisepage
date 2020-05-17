@@ -68,7 +68,7 @@ void AggregateHelper::DeclareAHTs(util::RegionVector<ast::FieldDecl *> *fields) 
   }
 }
 
-void AggregateHelper::GenAHTStructs(ast::StructDecl ** global_decl, util::RegionVector<ast::Decl *> *decls) {
+void AggregateHelper::GenAHTStructs(ast::StructDecl **global_decl, util::RegionVector<ast::Decl *> *decls) {
   // Generic function to add a struct
   auto gen_struct = [&](const AHTInfo *info) {
     // First make the fields
@@ -101,7 +101,7 @@ void AggregateHelper::GenAHTStructs(ast::StructDecl ** global_decl, util::Region
     if (global_decl != nullptr) {
       auto *decl = decls->back();
       TERRIER_ASSERT(ast::StructDecl::classof(decl), "Expected StructDecl");
-      *global_decl = reinterpret_cast<ast::StructDecl*>(decl);
+      *global_decl = reinterpret_cast<ast::StructDecl *>(decl);
     }
 
     gen_struct(&global_info_);

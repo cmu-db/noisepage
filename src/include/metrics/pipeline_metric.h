@@ -58,6 +58,7 @@ class PipelineMetricRawData : public AbstractRawData {
       outfile << data.GetKeySizeVectorString() << ", ";
       outfile << data.GetNumKeysVectorString() << ", ";
       outfile << data.GetCardinalityVectorString() << ", ";
+      outfile << data.GetMemFactorsVectorString() << ", ";
 
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
@@ -76,7 +77,7 @@ class PipelineMetricRawData : public AbstractRawData {
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
       "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, key_sizes, num_keys, "
-      "est_cardinalities"};
+      "est_cardinalities, mem_factor"};
 
  private:
   friend class PipelineMetric;
@@ -149,6 +150,14 @@ class PipelineMetricRawData : public AbstractRawData {
         num_keys.emplace_back(feature.GetNumKeys());
       }
       return ConcatVectorToString<size_t>(num_keys);
+    }
+
+    std::string GetMemFactorsVectorString() {
+      std::vector<double> factors;
+      for (auto &feature : features_) {
+        factors.emplace_back(feature.GetMemFactor());
+      }
+      return ConcatVectorToString<double>(factors);
     }
 
     const execution::query_id_t query_id_;
