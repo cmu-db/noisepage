@@ -2566,6 +2566,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::Lower:
+    case ast::Builtin::Md5Sum:
     case ast::Builtin::InitCap: {
       // check to make sure this function has two arguments
       if (!CheckArgCount(call, 2)) {
@@ -2649,26 +2650,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // this function returns an integer
       sql_type = ast::BuiltinType::Integer;
-      break;
-    }
-    case ast::Builtin::Md5Sum: {
-      // check to make sure this function has two arguments
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      // checking to see if the second argument is a string
-      auto *resolved_type = Resolve(call->Arguments()[1]);
-      if (resolved_type == nullptr) {
-        return;
-      }
-      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
-        return;
-      }
-
-      // this function returns a string
-      sql_type = ast::BuiltinType::StringVal;
       break;
     }
     default:
