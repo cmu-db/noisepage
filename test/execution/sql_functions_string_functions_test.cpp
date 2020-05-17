@@ -698,9 +698,9 @@ TEST_F(StringFunctionsTests, InitCap) {
   EXPECT_TRUE(StringVal("Zyh") == result);
 
   // spaces
-  x = StringVal("  test  ");
+  x = StringVal("--test--");
   StringFunctions::InitCap(Ctx(), &result, x);
-  EXPECT_TRUE(StringVal("  Test  ") == result);
+  EXPECT_TRUE(StringVal("--Test--") == result);
 
   // special char
   x = StringVal("3imple 7est");
@@ -708,9 +708,9 @@ TEST_F(StringFunctionsTests, InitCap) {
   EXPECT_TRUE(StringVal("3imple 7est") == result);
 
   // complex
-  x = StringVal("a 3imple   7est  simple t  ");
+  x = StringVal("-a 3imple   7est  simple t  Test");
   StringFunctions::InitCap(Ctx(), &result, x);
-  EXPECT_TRUE(StringVal("A 3imple   7est  Simple T  ") == result);
+  EXPECT_TRUE(StringVal("-A 3imple   7est  Simple T  Test") == result);
 }
 
 }  // namespace terrier::execution::sql::test
