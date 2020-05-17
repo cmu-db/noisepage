@@ -35,6 +35,7 @@
 #include "planner/plannodes/drop_view_plan_node.h"
 #include "planner/plannodes/export_external_file_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
@@ -469,6 +470,79 @@ std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateProjectionForJoin(
   }
 
   return std::make_unique<planner::OutputSchema>(std::move(columns));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// A IndexJoin B (where B has an index)
+///////////////////////////////////////////////////////////////////////////////
+
+void PlanGenerator::Visit(const InnerIndexJoin *op) {
+  TERRIER_ASSERT(children_expr_map_.size() == 1, "InnerIndexJoin has 1 child");
+  TERRIER_ASSERT(children_plans_.size() == 1, "InnerIndexJoin has 1 child");
+
+  std::vector<planner::OutputSchema::Column> columns;
+  for (auto &expr : output_cols_) {
+    auto type = expr->GetReturnValueType();
+    if (children_expr_map_[0].count(expr) != 0U) {
+      auto dve = std::make_unique<parser::DerivedValueExpression>(type, 0, children_expr_map_[0][expr]);
+      columns.emplace_back(expr->GetExpressionName(), type, std::move(dve));
+    } else {
+      auto eval = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr);
+      columns.emplace_back(expr->GetExpressionName(), type, std::move(eval));
+    }
+  }
+
+  auto proj_schema = std::make_unique<planner::OutputSchema>(std::move(columns));
+  auto comb_pred = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetJoinPredicates());
+  auto eval_pred = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, common::ManagedPointer(comb_pred));
+  auto join_predicate =
+      parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_pred), children_expr_map_).release();
+  RegisterPointerCleanup<parser::AbstractExpression>(join_predicate, true, true);
+
+  auto type = op->GetScanType();
+  planner::IndexJoinPlanNode::Builder builder;
+  builder.SetOutputSchema(std::move(proj_schema))
+      .SetJoinType(planner::LogicalJoinType::INNER)
+      .SetJoinPredicate(common::ManagedPointer(join_predicate))
+      .SetIndexOid(op->GetIndexOID())
+      .SetTableOid(op->GetTableOID())
+      .SetScanType(op->GetScanType())
+      .AddChild(std::move(children_plans_[0]));
+
+  for (auto bound : op->GetJoinKeys()) {
+    if (type == planner::IndexScanType::Exact) {
+      // Exact lookup
+      auto key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, bound.second[0]).release();
+      RegisterPointerCleanup<parser::AbstractExpression>(key, true, true);
+
+      builder.AddLoIndexColumn(bound.first, common::ManagedPointer(key));
+      builder.AddHiIndexColumn(bound.first, common::ManagedPointer(key));
+    } else if (type == planner::IndexScanType::AscendingClosed) {
+      // Range lookup, so use lo and hi
+      auto lkey = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, bound.second[0]).release();
+      auto hkey = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, bound.second[1]).release();
+      RegisterPointerCleanup<parser::AbstractExpression>(lkey, true, true);
+      RegisterPointerCleanup<parser::AbstractExpression>(hkey, true, true);
+
+      builder.AddLoIndexColumn(bound.first, common::ManagedPointer(lkey));
+      builder.AddHiIndexColumn(bound.first, common::ManagedPointer(hkey));
+    } else if (type == planner::IndexScanType::AscendingOpenHigh) {
+      // Open high scan, so use only lo
+      auto key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, bound.second[0]).release();
+      RegisterPointerCleanup<parser::AbstractExpression>(key, true, true);
+      builder.AddLoIndexColumn(bound.first, common::ManagedPointer(key));
+    } else if (type == planner::IndexScanType::AscendingOpenLow) {
+      // Open low scan, so use only high
+      auto key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, bound.second[1]).release();
+      RegisterPointerCleanup<parser::AbstractExpression>(key, true, true);
+      builder.AddHiIndexColumn(bound.first, common::ManagedPointer(key));
+    } else if (type == planner::IndexScanType::AscendingOpenBoth) {
+      // No bounds need to be set
+      TERRIER_ASSERT(0, "Unreachable");
+    }
+  }
+
+  output_plan_ = builder.Build();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

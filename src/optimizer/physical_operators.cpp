@@ -270,6 +270,83 @@ common::hash_t Limit::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
+// InnerIndexJoin
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *InnerIndexJoin::Copy() const { return new InnerIndexJoin(*this); }
+
+Operator InnerIndexJoin::Make(
+    catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
+    std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
+    std::vector<AnnotatedExpression> join_predicates) {
+  auto join = std::make_unique<InnerIndexJoin>();
+  join->tbl_oid_ = tbl_oid;
+  join->idx_oid_ = idx_oid;
+  join->join_keys_ = std::move(join_keys);
+  join->join_predicates_ = std::move(join_predicates);
+  join->scan_type_ = scan_type;
+  return Operator(std::move(join));
+}
+
+common::hash_t InnerIndexJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(tbl_oid_));
+  hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(idx_oid_));
+  hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(scan_type_));
+
+  std::vector<catalog::indexkeycol_oid_t> cols;
+  for (auto &join_key : join_keys_) {
+    cols.push_back(join_key.first);
+  }
+
+  std::sort(cols.begin(), cols.end());
+  for (auto &col : cols) {
+    hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(col));
+    for (auto &expr : join_keys_.find(col)->second) {
+      if (expr == nullptr)
+        hash = common::HashUtil::SumHashes(hash, 0);
+      else
+        hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    }
+  }
+
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
+  }
+  return hash;
+}
+
+bool InnerIndexJoin::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::INNERINDEXJOIN) return false;
+  const InnerIndexJoin &node = *dynamic_cast<const InnerIndexJoin *>(&r);
+  if (tbl_oid_ != node.tbl_oid_) return false;
+  if (idx_oid_ != node.idx_oid_) return false;
+  if (scan_type_ != node.scan_type_) return false;
+
+  if (join_predicates_.size() != node.join_predicates_.size()) return false;
+  if (join_predicates_ != node.join_predicates_) return false;
+
+  if (join_keys_.size() != node.join_keys_.size()) return false;
+  for (auto &join_key : join_keys_) {
+    if (node.join_keys_.find(join_key.first) == node.join_keys_.end()) return false;
+
+    auto &expr = join_key.second;
+    auto &other = node.join_keys_.find(join_key.first)->second;
+    if (expr.size() != other.size()) return false;
+    for (size_t i = 0; i < expr.size(); i++) {
+      if (expr[i] == nullptr && other[i] == nullptr) continue;
+      if ((expr[i] != nullptr && other[i] == nullptr) || (expr[i] == nullptr && other[i] != nullptr)) return false;
+      if (*(expr[i]) != *(other[i])) return false;
+    }
+  }
+
+  return true;
+}
+
+//===--------------------------------------------------------------------===//
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
@@ -1258,6 +1335,8 @@ const char *OperatorNodeContents<OrderBy>::name = "OrderBy";
 template <>
 const char *OperatorNodeContents<Limit>::name = "Limit";
 template <>
+const char *OperatorNodeContents<InnerIndexJoin>::name = "InnerIndexJoin";
+template <>
 const char *OperatorNodeContents<InnerNLJoin>::name = "InnerNLJoin";
 template <>
 const char *OperatorNodeContents<LeftNLJoin>::name = "LeftNLJoin";
@@ -1333,6 +1412,8 @@ template <>
 OpType OperatorNodeContents<OrderBy>::type = OpType::ORDERBY;
 template <>
 OpType OperatorNodeContents<Limit>::type = OpType::LIMIT;
+template <>
+OpType OperatorNodeContents<InnerIndexJoin>::type = OpType::INNERINDEXJOIN;
 template <>
 OpType OperatorNodeContents<InnerNLJoin>::type = OpType::INNERNLJOIN;
 template <>
