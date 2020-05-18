@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "brain/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
