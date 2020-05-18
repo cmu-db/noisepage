@@ -118,6 +118,21 @@ class LogicalGetToPhysicalIndexScan : public Rule {
    */
   void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
+
+  /**
+   * Set whether to allow CVEs when checking whether an index can be used
+   *
+   * This is primarily intended for use by the IndexJoin where a predicate
+   * of the form (col1 == col2) has a plausible use. If transforming a
+   * normal table scan to an index scan, predicates of form (col1 compare col2)
+   * are ignored in determining the high/low key bounds.
+   *
+   * @param allow Whether to allow CVEs
+   */
+  void SetAllowCVEs(bool allow) { allow_cves_ = allow; }
+
+ private:
+  bool allow_cves_ = false;
 };
 
 /**
@@ -297,6 +312,34 @@ class LogicalAggregateToPhysicalAggregate : public Rule {
    * Constructor
    */
   LogicalAggregateToPhysicalAggregate();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input OperatorNode passes the check
+   */
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
+ * Rule transforms Logical Inner Join to InnerIndexJoin
+ */
+class LogicalInnerJoinToPhysicalInnerIndexJoin : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalInnerJoinToPhysicalInnerIndexJoin();
 
   /**
    * Checks whether the given rule can be applied

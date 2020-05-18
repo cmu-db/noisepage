@@ -17,7 +17,8 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode *op, C
       index_pm_(codegen_->Accessor()->GetIndex(op_->GetIndexOid())->GetKeyOidToOffsetMap()),
       index_iter_(codegen_->NewIdentifier("index_iter")),
       col_oids_(codegen->NewIdentifier("col_oids")),
-      index_pr_(codegen->NewIdentifier("index_pr")),
+      lo_index_pr_(codegen->NewIdentifier("lo_index_pr")),
+      hi_index_pr_(codegen->NewIdentifier("hi_index_pr")),
       table_pr_(codegen->NewIdentifier("table_pr")),
       slot_(codegen->NewIdentifier("slot")) {}
 
@@ -46,7 +47,14 @@ void IndexJoinTranslator::Abort(FunctionBuilder *builder) {
 
 void IndexJoinTranslator::Consume(FunctionBuilder *builder) {
   // Fill the key with table data
-  FillKey(builder);
+  if (op_->GetScanType() == planner::IndexScanType::Exact) {
+    FillKey(builder, lo_index_pr_, op_->GetLoIndexColumns());
+    FillKey(builder, hi_index_pr_, op_->GetLoIndexColumns());
+  } else {
+    FillKey(builder, lo_index_pr_, op_->GetLoIndexColumns());
+    FillKey(builder, hi_index_pr_, op_->GetHiIndexColumns());
+  }
+
   // Generate the loop
   GenForLoop(builder);
   // Get Table PR
@@ -102,15 +110,20 @@ void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) {
   // Declare: var index_iter : IndexIterator
   ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::IndexIterator);
   builder->Append(codegen_->DeclareVariable(index_iter_, iter_type, nullptr));
+  // Initialize: @indexIteratorInit(&index_iter, table_oid, index_oid, execCtx, col_oids_)
+  uint32_t num_attrs = std::max(op_->GetLoIndexColumns().size(), op_->GetHiIndexColumns().size());
+
   // Initialize: @indexIteratorInit(&index_iter, table_oid, index_oid, execCtx)
-  ast::Expr *init_call = codegen_->IndexIteratorInit(index_iter_, op_->GetIndexColumns().size(), !op_->GetTableOid(),
-                                                     !op_->GetIndexOid(), col_oids_);
+  ast::Expr *init_call =
+      codegen_->IndexIteratorInit(index_iter_, num_attrs, !op_->GetTableOid(), !op_->GetIndexOid(), col_oids_);
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
 void IndexJoinTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionBuilder *builder) {
-  ast::Expr *get_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetPR, index_iter_, true);
-  builder->Append(codegen_->DeclareVariable(index_pr_, nullptr, get_pr_call));
+  ast::Expr *lo_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetLoPR, index_iter_, true);
+  ast::Expr *hi_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetHiPR, index_iter_, true);
+  builder->Append(codegen_->DeclareVariable(lo_index_pr_, nullptr, lo_pr_call));
+  builder->Append(codegen_->DeclareVariable(hi_index_pr_, nullptr, hi_pr_call));
 }
 
 void IndexJoinTranslator::DeclareTablePR(terrier::execution::compiler::FunctionBuilder *builder) {
@@ -123,15 +136,17 @@ void IndexJoinTranslator::DeclareSlot(terrier::execution::compiler::FunctionBuil
   builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
 }
 
-void IndexJoinTranslator::FillKey(FunctionBuilder *builder) {
+void IndexJoinTranslator::FillKey(
+    FunctionBuilder *builder, ast::Identifier pr,
+    const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs) {
   // Set key.attr_i = expr_i for each key attribute
-  for (const auto &key : op_->GetIndexColumns()) {
+  for (const auto &key : index_exprs) {
     auto translator = TranslatorFactory::CreateExpressionTranslator(key.second.Get(), codegen_);
     uint16_t attr_offset = index_pm_.at(key.first);
     type::TypeId attr_type = index_schema_.GetColumn(!key.first - 1).Type();
     bool nullable = index_schema_.GetColumn(!key.first - 1).Nullable();
     auto set_key_call =
-        codegen_->PRSet(codegen_->MakeExpr(index_pr_), attr_type, nullable, attr_offset, translator->DeriveExpr(this));
+        codegen_->PRSet(codegen_->MakeExpr(pr), attr_type, nullable, attr_offset, translator->DeriveExpr(this));
     builder->Append(codegen_->MakeStmt(set_key_call));
   }
 }
@@ -139,7 +154,7 @@ void IndexJoinTranslator::FillKey(FunctionBuilder *builder) {
 void IndexJoinTranslator::GenForLoop(FunctionBuilder *builder) {
   // for (@indexIteratorScanKey(&index_iter); @indexIteratorAdvance(&index_iter);)
   // Loop Initialization
-  ast::Expr *scan_call = codegen_->IndexIteratorScan(index_iter_, planner::IndexScanType::Exact, 0);
+  ast::Expr *scan_call = codegen_->IndexIteratorScan(index_iter_, op_->GetScanType(), 0);
   ast::Stmt *loop_init = codegen_->MakeStmt(scan_call);
   // Loop condition
   ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorAdvance, index_iter_, true);
