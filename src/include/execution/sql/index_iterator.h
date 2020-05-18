@@ -2,10 +2,20 @@
 
 #include <memory>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/storage_defs.h"
+
+namespace terrier::storage {
+class SqlTable;
+
+namespace index {
+enum class ScanType;
+class Index;
+}  // namespace index
+}  // namespace terrier::storage
 
 namespace terrier::execution::sql {
 /**

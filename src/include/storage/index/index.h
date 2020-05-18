@@ -14,7 +14,7 @@
 
 namespace terrier::storage::index {
 
-enum ScanType : uint32_t {
+enum class ScanType : uint32_t {
   Closed,   /* [low, high] range scan */
   OpenLow,  /* [begin(), high] range scan */
   OpenHigh, /* [low, end()] range scan */

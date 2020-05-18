@@ -5,9 +5,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
 #include "util/time_util.h"
-#include "execution/sql/value.h"
 
 namespace terrier {
 
@@ -32,7 +32,7 @@ class BinderSherpa {
    * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
    */
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
-                        const common::ManagedPointer<std::vector<type::TransientValue>> parameters)
+                        const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters)
       : parse_result_(parse_result), parameters_(parameters) {
     TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
   }
@@ -46,7 +46,7 @@ class BinderSherpa {
    * @return parameters for the query being bound
    * @warning can be nullptr if there are no parameters
    */
-  common::ManagedPointer<std::vector<type::TransientValue>> GetParameters() const { return parameters_; }
+  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> GetParameters() const { return parameters_; }
 
   /**
    * @param expr The expression whose type constraints we want to look up.
@@ -92,7 +92,8 @@ class BinderSherpa {
    * @param value The transient value to be checked and potentially promoted.
    * @param desired_type The type to promote the transient value to.
    */
-  void CheckAndTryPromoteType(common::ManagedPointer<type::TransientValue> value, type::TypeId desired_type) const;
+  void CheckAndTryPromoteType(common::ManagedPointer<parser::ConstantValueExpression> value,
+                              type::TypeId desired_type) const;
 
   /**
    * Convenience function. Used by the visitor sheep to report that an error has occurred, causing BINDER_EXCEPTION.
@@ -113,7 +114,7 @@ class BinderSherpa {
    * @return The TransientValue obtained by peeking @p int_val with @p peeker if the value fits.
    */
   template <typename Output, typename Input>
-  static type::TransientValue TryCastNumeric(const Input int_val, type::TransientValue peeker(Output)) {
+  static parser::ConstantValueExpression TryCastNumeric(const Input int_val, type::TransientValue peeker(Output)) {
     if (!IsRepresentable<Output>(int_val)) {
       throw BINDER_EXCEPTION("BinderSherpa TryCastNumeric value out of bounds!");
     }
@@ -124,7 +125,7 @@ class BinderSherpa {
    * @return Casted numeric type, or an exception if the cast fails.
    */
   template <typename Input>
-  static type::TransientValue TryCastNumericAll(Input int_val, type::TypeId desired_type) {
+  static parser::ConstantValueExpression TryCastNumericAll(Input int_val, type::TypeId desired_type) {
     switch (desired_type) {
       case type::TypeId::TINYINT:
         return TryCastNumeric<int8_t>(int_val, &type::TransientValueFactory::GetTinyInt);
@@ -142,7 +143,7 @@ class BinderSherpa {
   }
 
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
-  const common::ManagedPointer<std::vector<type::TransientValue>> parameters_ = nullptr;
+  const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
 };
 }  // namespace binder
