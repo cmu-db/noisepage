@@ -8,7 +8,6 @@
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
-#include "type/transient_value.h"
 
 namespace terrier::network {
 

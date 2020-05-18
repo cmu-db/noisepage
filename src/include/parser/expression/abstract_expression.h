@@ -11,7 +11,6 @@
 #include "common/json.h"
 #include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
-#include "type/transient_value.h"
 #include "type/type_id.h"
 
 namespace terrier::optimizer {

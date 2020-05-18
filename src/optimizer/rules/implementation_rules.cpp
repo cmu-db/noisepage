@@ -18,7 +18,6 @@
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 #include "storage/storage_defs.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 

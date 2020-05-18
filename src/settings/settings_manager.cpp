@@ -10,7 +10,6 @@
 #include "common/macros.h"
 #include "main/db_main.h"
 #include "settings/settings_callbacks.h"
-#include "type/transient_value_factory.h"
 
 #define __SETTING_GFLAGS_DECLARE__     // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -19,8 +18,6 @@
 
 namespace terrier::settings {
 
-using ValueFactory = type::TransientValueFactory;
-using ValuePeeker = type::TransientValuePeeker;
 using ActionContext = common::ActionContext;
 using ActionState = common::ActionState;
 
@@ -43,8 +40,8 @@ void SettingsManager::ValidateParams() {
 #undef __SETTING_VALIDATE__            // NOLINT
 }
 
-void SettingsManager::ValidateSetting(Param param, const type::TransientValue &min_value,
-                                      const type::TransientValue &max_value) {
+void SettingsManager::ValidateSetting(Param param, const common::ManagedPointer<execution::sql::Val> min_value,
+                                      const common::ManagedPointer<execution::sql::Val> max_value) {
   const ParamInfo &info = param_map_.find(param)->second;
   if (!ValidateValue(info.value_, min_value, max_value)) {
     SETTINGS_LOG_ERROR(

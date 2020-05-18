@@ -8,7 +8,7 @@
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/postgres_protocol_util.h"
-#include "type/transient_value_factory.h"
+
 #include "type/type_id.h"
 #include "util/time_util.h"
 

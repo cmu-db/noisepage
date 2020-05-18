@@ -17,7 +17,6 @@
 #include "optimizer/statistics/value_condition.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 

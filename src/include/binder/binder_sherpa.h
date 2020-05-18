@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
-#include "type/transient_value_factory.h"
 #include "util/time_util.h"
+#include "execution/sql/value.h"
 
 namespace terrier {
 

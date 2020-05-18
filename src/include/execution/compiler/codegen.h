@@ -16,8 +16,7 @@
 #include "execution/util/region.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/index_scan_plan_node.h"
-#include "type/transient_value.h"
-#include "type/transient_value_peeker.h"
+
 #include "type/type_id.h"
 
 namespace terrier::execution::compiler {

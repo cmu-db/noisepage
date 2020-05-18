@@ -18,7 +18,6 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::catalog::postgres {
 

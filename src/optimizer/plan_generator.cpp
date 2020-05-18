@@ -45,7 +45,6 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 

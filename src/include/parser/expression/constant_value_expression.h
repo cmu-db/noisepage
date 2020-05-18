@@ -7,10 +7,8 @@
 
 #include "binder/bind_node_visitor.h"
 #include "common/hash_util.h"
+#include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
-#include "type/transient_value_peeker.h"
 #include "util/time_util.h"
 
 namespace terrier::parser {
@@ -23,8 +21,8 @@ class ConstantValueExpression : public AbstractExpression {
    * Instantiate a new constant value expression.
    * @param value value to be held
    */
-  explicit ConstantValueExpression(type::TransientValue value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(std::move(value)) {}
+  explicit ConstantValueExpression(const type::TypeId type, const common::ManagedPointer<execution::sql::Val> value)
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), {}
 
   /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
@@ -72,7 +70,7 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
   /** @return the constant value stored in this expression */
-  type::TransientValue GetValue() const { return value_; }
+  common::ManagedPointer<execution::sql::Val> GetValue() const { return common::ManagedPointer(value_); }
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
@@ -103,7 +101,7 @@ class ConstantValueExpression : public AbstractExpression {
  private:
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   /** The constant held inside this ConstantValueExpression. */
-  type::TransientValue value_;
+  std::unique_ptr<execution::sql::Val> value_;
 };
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);

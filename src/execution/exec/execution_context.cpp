@@ -1,5 +1,7 @@
 #include "execution/exec/execution_context.h"
+
 #include "brain/operating_unit.h"
+#include "common/thread_context.h"
 #include "execution/sql/value.h"
 
 namespace terrier::execution::exec {

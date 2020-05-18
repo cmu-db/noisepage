@@ -1,7 +1,6 @@
 #include "optimizer/statistics/selectivity.h"
 #include "loggers/optimizer_logger.h"
 #include "parser/expression_defs.h"
-#include "type/transient_value_util.h"
 
 namespace terrier::optimizer {
 

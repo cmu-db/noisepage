@@ -2,8 +2,9 @@
 #include <memory>
 #include <string>
 #include <utility>
+
 #include "common/managed_pointer.h"
-#include "type/transient_value.h"
+#include "parser/expression/constant_value_expression.h"
 
 namespace terrier {
 class DBMain;
@@ -46,8 +47,9 @@ class ParamInfo {
    * @param max_value allowed maximum value
    * @param callback function invoked when param is changed
    */
-  ParamInfo(std::string name, type::TransientValue &&value, std::string desc, type::TransientValue &&default_value,
-            bool is_mutable, double min_value, double max_value, callback_fn callback)
+  ParamInfo(std::string name, std::unique_ptr<parser::ConstantValueExpression> value, std::string desc,
+            std::unique_ptr<parser::ConstantValueExpression> default_value, bool is_mutable, double min_value,
+            double max_value, callback_fn callback)
       : name_(std::move(name)),
         value_(std::move(value)),
         desc_(std::move(desc)),
@@ -57,16 +59,16 @@ class ParamInfo {
         max_value_(max_value),
         callback_(callback) {}
 
+  common::ManagedPointer<parser::ConstantValueExpression> GetValue() const { return common::ManagedPointer(value_); }
+
  private:
-  friend class terrier::DBMain;
-  friend class SettingsManager;
   std::string name_;
-  type::TransientValue value_;
+  std::unique_ptr<parser::ConstantValueExpression> value_;
   std::string desc_;
-  type::TransientValue default_value_;
+  std::unique_ptr<parser::ConstantValueExpression> default_value_;
   bool is_mutable_;
-  double min_value_;
-  double max_value_;
+  std::unique_ptr<parser::ConstantValueExpression> min_value_;
+  std::unique_ptr<parser::ConstantValueExpression> max_value_;
   callback_fn callback_;
 };
 

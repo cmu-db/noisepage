@@ -12,8 +12,6 @@
 #include "common/shared_latch.h"
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
-#include "type/transient_value.h"
-#include "type/transient_value_peeker.h"
 
 namespace terrier::settings {
 using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext> action_context);
@@ -138,7 +136,8 @@ class SettingsManager {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   common::SharedLatch latch_;
 
-  void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);
+  void ValidateSetting(Param param, common::ManagedPointer<execution::sql::Val> min_value,
+                       common::ManagedPointer<execution::sql::Val> max_value);
 
   type::TransientValue &GetValue(Param param);
   bool SetValue(Param param, type::TransientValue value);

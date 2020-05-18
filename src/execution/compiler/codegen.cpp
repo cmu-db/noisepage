@@ -6,7 +6,7 @@
 
 #include "brain/operating_unit.h"
 #include "execution/sql/value.h"
-#include "type/transient_value_peeker.h"
+
 #include "util/time_util.h"
 
 namespace terrier::execution::compiler {

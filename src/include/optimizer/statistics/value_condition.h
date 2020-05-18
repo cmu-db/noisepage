@@ -8,7 +8,6 @@
 #include "common/managed_pointer.h"
 #include "loggers/optimizer_logger.h"
 #include "parser/expression_defs.h"
-#include "type/transient_value.h"
 
 namespace terrier::optimizer {
 /**

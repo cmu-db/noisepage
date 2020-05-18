@@ -9,7 +9,6 @@
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "type/transient_value.h"
 
 namespace terrier {
 

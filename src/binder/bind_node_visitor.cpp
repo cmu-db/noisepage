@@ -26,7 +26,6 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/sql_statement.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::binder {
 
