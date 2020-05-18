@@ -34,7 +34,7 @@ class BinderSherpa {
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
                         const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters)
       : parse_result_(parse_result), parameters_(parameters) {
-    TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
+    TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
   }
 
   /**
