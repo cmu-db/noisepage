@@ -119,7 +119,7 @@ class MiniTrainer:
         self.model_map = {}
 
         # First get the data for all mini runners
-        for filename in glob.glob(os.path.join(self.input_path, '*.csv')):
+        for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
             data_list = opunit_data.get_mini_runner_data(filename, self.model_map, self.stats_map)
             for data in data_list:
