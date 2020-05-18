@@ -7,16 +7,10 @@
 
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "util/time_util.h"
 
-namespace terrier {
-
-namespace parser {
-class ParseResult;
-class AbstractExpression;
-};  // namespace parser
-
-namespace binder {
+namespace terrier::binder {
 /**
  * BinderSherpa tracks state that is communicated throughout the visitor pattern such as the parse result and also
  * expression-specific metadata.
@@ -114,7 +108,7 @@ class BinderSherpa {
    * @return The TransientValue obtained by peeking @p int_val with @p peeker if the value fits.
    */
   template <typename Output, typename Input>
-  static parser::ConstantValueExpression TryCastNumeric(const Input int_val, type::TransientValue peeker(Output)) {
+  static parser::ConstantValueExpression TryCastNumeric(const Input int_val) {
     if (!IsRepresentable<Output>(int_val)) {
       throw BINDER_EXCEPTION("BinderSherpa TryCastNumeric value out of bounds!");
     }
@@ -125,18 +119,18 @@ class BinderSherpa {
    * @return Casted numeric type, or an exception if the cast fails.
    */
   template <typename Input>
-  static parser::ConstantValueExpression TryCastNumericAll(Input int_val, type::TypeId desired_type) {
+  static parser::ConstantValueExpression TryCastNumericAll(Input int_val, const type::TypeId desired_type) {
     switch (desired_type) {
       case type::TypeId::TINYINT:
-        return TryCastNumeric<int8_t>(int_val, &type::TransientValueFactory::GetTinyInt);
+        return TryCastNumeric<int8_t>(int_val);
       case type::TypeId::SMALLINT:
-        return TryCastNumeric<int16_t>(int_val, &type::TransientValueFactory::GetSmallInt);
+        return TryCastNumeric<int16_t>(int_val);
       case type::TypeId::INTEGER:
-        return TryCastNumeric<int32_t>(int_val, &type::TransientValueFactory::GetInteger);
+        return TryCastNumeric<int32_t>(int_val);
       case type::TypeId::BIGINT:
-        return TryCastNumeric<int64_t>(int_val, &type::TransientValueFactory::GetBigInt);
+        return TryCastNumeric<int64_t>(int_val);
       case type::TypeId::DECIMAL:
-        return TryCastNumeric<double>(int_val, &type::TransientValueFactory::GetDecimal);
+        return TryCastNumeric<double>(int_val);
       default:
         throw BINDER_EXCEPTION("BinderSherpa TryCastNumericAll not a numeric type!");
     }
@@ -146,6 +140,4 @@ class BinderSherpa {
   const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
 };
-}  // namespace binder
-
-}  // namespace terrier
+}  // namespace terrier::binder

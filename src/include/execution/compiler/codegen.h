@@ -182,7 +182,7 @@ class CodeGen {
    * @param transient_val the transient value to read
    * @return the value stored in transient_val
    */
-  ast::Expr *PeekValue(const terrier::type::TransientValue &transient_val);
+  ast::Expr *PeekValue(const parser::ConstantValueExpression &const_val);
 
   /**
    * Convert from terrier type to TPL expr type

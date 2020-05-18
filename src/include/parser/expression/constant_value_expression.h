@@ -5,11 +5,14 @@
 #include <utility>
 #include <vector>
 
-#include "binder/bind_node_visitor.h"
 #include "common/hash_util.h"
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
 #include "util/time_util.h"
+
+namespace terrier::binder {
+class BindNodeVisitor;
+}
 
 namespace terrier::parser {
 /**
@@ -21,20 +24,46 @@ class ConstantValueExpression : public AbstractExpression {
    * Instantiate a new constant value expression.
    * @param value value to be held
    */
-  explicit ConstantValueExpression(const type::TypeId type, const common::ManagedPointer<execution::sql::Val> value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), {}
+  ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value)
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(std::move(value)) {}
 
   /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
+  //
+  //  /**
+  //   * NULL CVE
+  //   * @param val
+  //   */
+  //  explicit ConstantValueExpression(const type::TypeId type)
+  //      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type::TypeId::BOOLEAN, {}),
+  //        value_(std::make_unique<execution::sql::Val>(true)) {}
+  //
+  //  /**
+  //   * Non-NULL boolean CVE
+  //   * @param val
+  //   */
+  //  explicit ConstantValueExpression(const bool val)
+  //      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type::TypeId::BOOLEAN, {}),
+  //        value_(std::make_unique<execution::sql::BoolVal>(val)) {}
+  //
+  //  /**
+  //   * Non-NULL integral CVE
+  //   * @param val
+  //   */
+  //  explicit ConstantValueExpression(const int8_t val)
+  //      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type::TypeId::TINYINT, {}),
+  //        value_(std::make_unique<execution::sql::BoolVal>(val)) {}
 
-  common::hash_t Hash() const override {
-    return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
-  }
+  // FIXME(Matt): hashing stuff
+  //  common::hash_t Hash() const override {
+  //    return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
+  //  }
 
   bool operator==(const AbstractExpression &other) const override {
+    // FIXME(Matt): equality stuff
     if (!AbstractExpression::operator==(other)) return false;
-    auto const &const_expr = dynamic_cast<const ConstantValueExpression &>(other);
-    return value_ == const_expr.GetValue();
+    const auto &const_expr = dynamic_cast<const ConstantValueExpression &>(other);
+    return value_ == const_expr.value_;
   }
 
   /**
@@ -42,9 +71,11 @@ class ConstantValueExpression : public AbstractExpression {
    * @returns copy of this
    */
   std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<ConstantValueExpression>(GetValue());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
+    // FIXME(Matt): copy stuff
+    //    auto expr = std::make_unique<ConstantValueExpression>(GetValue());
+    //    expr->SetMutableStateForCopy(*this);
+    //    return expr;
+    return nullptr;
   }
 
   /**
@@ -59,13 +90,12 @@ class ConstantValueExpression : public AbstractExpression {
     return Copy();
   }
 
-  void DeriveReturnValueType() override { return_value_type_ = GetValue().Type(); }
-
   void DeriveExpressionName() override {
     if (!this->GetAlias().empty()) {
       this->SetExpressionName(this->GetAlias());
     } else {
-      this->SetExpressionName(value_.ToString());
+      // FIXME(Matt): this stuff
+      this->SetExpressionName("");
     }
   }
 
@@ -80,9 +110,11 @@ class ConstantValueExpression : public AbstractExpression {
    * @see TransientValue for why TransientValue::ToJson is private
    */
   nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["value"] = value_;
-    return j;
+    // FIXME(Matt): JSON stuff
+    //    nlohmann::json j = AbstractExpression::ToJson();
+    //    j["value"] = value_;
+    //    return j;
+    return nlohmann::json();
   }
 
   /**
@@ -92,16 +124,17 @@ class ConstantValueExpression : public AbstractExpression {
    */
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
     std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    value_ = j.at("value").get<type::TransientValue>();
+    // FIXME(Matt): JSON stuff
+    //    auto e1 = AbstractExpression::FromJson(j);
+    //    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+    //    value_ = j.at("value").get<type::TransientValue>();
     return exprs;
   }
 
  private:
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   /** The constant held inside this ConstantValueExpression. */
-  std::unique_ptr<execution::sql::Val> value_;
+  const std::unique_ptr<execution::sql::Val> value_ = nullptr;
 };
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);

@@ -6,7 +6,6 @@
 
 #include "brain/operating_unit.h"
 #include "execution/sql/value.h"
-
 #include "util/time_util.h"
 
 namespace terrier::execution::compiler {
@@ -380,11 +379,11 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
-  if (transient_val.Null()) {
+ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) {
+  if (const_val.GetValue().is_null_) {
     // NullToSql(&expr) produces a NULL of expr's type.
     ast::Expr *dummy_expr;
-    switch (transient_val.Type()) {
+    switch (const_val.GetReturnValueType()) {
       case type::TypeId::BOOLEAN:
         dummy_expr = BoolLiteral(false);
         break;
@@ -413,7 +412,7 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
     return OneArgCall(ast::Builtin::NullToSql, PointerTo(dummy_expr));
   }
 
-  switch (transient_val.Type()) {
+  switch (const_val.GetReturnValueType()) {
     case type::TypeId::BOOLEAN: {
       auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
       return BoolLiteral(val);
