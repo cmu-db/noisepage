@@ -40,6 +40,7 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "storage/block_layout.h"
 #include "type/type_id.h"
 
 namespace terrier::brain {
@@ -76,7 +77,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(
   for (auto &expr : exprs) {
     // TODO(wz2): Need a better way to handle varchars
     // GetTypeSize() return storage::VARCHAR_COLUMN for varchars but expr does not have length info
-    key_size += type::TypeUtil::GetTypeSize(expr->GetReturnValueType());
+    key_size += storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(expr->GetReturnValueType()));
   }
 
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
@@ -86,7 +87,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(
 size_t OperatingUnitRecorder::ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan) {
   size_t key_size = 0;
   for (auto &col : plan->GetOutputSchema()->GetColumns()) {
-    key_size += type::TypeUtil::GetTypeSize(col.GetType());
+    key_size += storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(col.GetType()));
   }
 
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
@@ -100,7 +101,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid) {
     if (col.AttrSize() == storage::VARLEN_COLUMN && col.MaxVarlenSize() > 0) {
       key_size += col.MaxVarlenSize();
     } else {
-      key_size += col.AttrSize();
+      key_size += storage::AttrSizeBytes(col.AttrSize());
     }
   }
 
@@ -117,7 +118,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid,
     if (col.AttrSize() == storage::VARLEN_COLUMN && col.MaxVarlenSize() > 0) {
       key_size += col.MaxVarlenSize();
     } else {
-      key_size += col.AttrSize();
+      key_size += storage::AttrSizeBytes(col.AttrSize());
     }
   }
 
