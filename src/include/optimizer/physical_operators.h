@@ -478,6 +478,87 @@ class Limit : public OperatorNodeContents<Limit> {
 };
 
 /**
+ * Physical operator for inner index join
+ */
+class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
+ public:
+  /**
+   * @param tbl_oid Table OID
+   * @param idx_oid Index OID
+   * @param scan_type IndexScanType
+   * @param join_keys Join Keys
+   * @param join_predicates predicates for join
+   * @return an InnerIndexJoin operator
+   */
+  static Operator Make(catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
+                       std::vector<AnnotatedExpression> join_predicates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+
+  common::hash_t Hash() const override;
+
+  /**
+   * @return Table OID
+   */
+  catalog::table_oid_t GetTableOID() const { return tbl_oid_; }
+
+  /**
+   * @return Index OID
+   */
+  catalog::index_oid_t GetIndexOID() const { return idx_oid_; }
+
+  /**
+   * @return scan type
+   */
+  planner::IndexScanType GetScanType() const { return scan_type_; }
+
+  /**
+   * @return Join Keys
+   */
+  const std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> &GetJoinKeys() const {
+    return join_keys_;
+  }
+
+  /**
+   * @return Predicates for the Join
+   */
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
+
+ private:
+  /**
+   * Table OID
+   */
+  catalog::table_oid_t tbl_oid_;
+
+  /**
+   * Index OID
+   */
+  catalog::index_oid_t idx_oid_;
+
+  /**
+   * Scan Type
+   */
+  planner::IndexScanType scan_type_;
+
+  /**
+   * Join Keys
+   */
+  std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys_;
+
+  /**
+   * Predicates for join
+   */
+  std::vector<AnnotatedExpression> join_predicates_;
+};
+
+/**
  * Physical operator for inner nested loop join
  */
 class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {

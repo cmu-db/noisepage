@@ -404,6 +404,8 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
         dummy_expr = StringToSql("");
         break;
       case type::TypeId::DECIMAL:
+        dummy_expr = FloatToSql(0.0);
+        break;
       case type::TypeId::VARBINARY:
       default:
         UNREACHABLE("Unsupported NULL type!");

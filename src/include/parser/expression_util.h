@@ -363,6 +363,9 @@ class ExpressionUtil {
       // Technically, EvaluateExpression should replace all ColumnValueExpressions with
       // DerivedValueExpressions using expr_maps in order for execution to make sense,
       // otherwise we have ColumnValues that don't point into previous tuples....
+      //
+      // However, there are other cases where EvaluateExpression will result in an unbound
+      // ColumnValueExpression particularly when dealing with InnerIndexJoin.
       OPTIMIZER_LOG_WARN("EvaluateExpression resulted in an unbound ColumnValueExpression");
       // TERRIER_ASSERT(0, "EvaluateExpression resulted in an unbound ColumnValueExpression");
     } else if (IsAggregateExpression(expr->GetExpressionType())) {

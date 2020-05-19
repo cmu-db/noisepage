@@ -20,6 +20,9 @@ nlohmann::json IndexJoinPlanNode::ToJson() const {
   nlohmann::json j = AbstractJoinPlanNode::ToJson();
   j["index_oid"] = index_oid_;
   j["table_oid"] = table_oid_;
+  j["scan_type"] = scan_type_;
+  j["lo_index_cols"] = lo_index_cols_;
+  j["hi_index_cols"] = hi_index_cols_;
   return j;
 }
 
