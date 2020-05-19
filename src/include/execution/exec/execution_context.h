@@ -169,7 +169,7 @@ class EXPORT ExecutionContext {
    * @param param_idx index of parameter to access
    * @return immutable parameter at provided index
    */
-  const parser::ConstantValueExpression &GetParam(uint32_t param_idx) const { return (*params_)[param_idx]; }
+  const parser::ConstantValueExpression &GetParam(uint32_t param_idx) const;
 
   /**
    * INSERT, UPDATE, and DELETE queries return a number for the rows affected, so this should be incremented in the root
