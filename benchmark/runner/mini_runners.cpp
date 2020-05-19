@@ -506,10 +506,10 @@ class MiniRunners : public benchmark::Fixture {
     return plan;
   }
 
-  void ExecuteSeqScan(benchmark::State &state);
-  void ExecuteInsert(benchmark::State &state);
-  void ExecuteUpdate(benchmark::State &state);
-  void ExecuteDelete(benchmark::State &state);
+  void ExecuteSeqScan(benchmark::State *state);
+  void ExecuteInsert(benchmark::State *state);
+  void ExecuteUpdate(benchmark::State *state);
+  void ExecuteDelete(benchmark::State *state);
 
   std::string ConstructColumns(std::string prefix, type::TypeId left_type, type::TypeId right_type, int64_t num_left,
                                int64_t num_right) {
@@ -906,23 +906,23 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
   metrics_manager_->Aggregate();
   metrics_manager_->UnregisterThread();
-};
+}
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
     ->Unit(benchmark::kMillisecond)
     ->Apply(GenOutputArguments)
     ->Iterations(1);
 
-void MiniRunners::ExecuteSeqScan(benchmark::State &state) {
-  auto num_integers = state.range(0);
-  auto num_decimals = state.range(1);
-  auto tbl_ints = state.range(2);
-  auto tbl_decimals = state.range(3);
-  auto row = state.range(4);
-  auto car = state.range(5);
+void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
+  auto num_integers = state->range(0);
+  auto num_decimals = state->range(1);
+  auto tbl_ints = state->range(2);
+  auto tbl_decimals = state->range(3);
+  auto row = state->range(4);
+  auto car = state->range(5);
 
   // NOLINTNEXTLINE
-  for (auto _ : state) {
+  for (auto _ : *state) {
     metrics_manager_->RegisterThread();
 
     auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
@@ -945,12 +945,14 @@ void MiniRunners::ExecuteSeqScan(benchmark::State &state) {
     metrics_manager_->UnregisterThread();
   }
 
-  state.SetItemsProcessed(row);
+  state->SetItemsProcessed(row);
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ1_0_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(state); }
-BENCHMARK_DEFINE_F(MiniRunners, SEQ1_1_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ1_0_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(&state); }
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ1_1_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(&state); }
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ1_0_SeqScanRunners)
     ->Unit(benchmark::kMillisecond)
@@ -985,14 +987,14 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ1_2_IndexScanRunners)
     ->Iterations(1)
     ->Apply(GenIdxScanArguments);
 
-void MiniRunners::ExecuteInsert(benchmark::State &state) {
-  auto num_ints = state.range(0);
-  auto num_decimals = state.range(1);
-  auto num_cols = state.range(2);
-  auto num_rows = state.range(3);
+void MiniRunners::ExecuteInsert(benchmark::State *state) {
+  auto num_ints = state->range(0);
+  auto num_decimals = state->range(1);
+  auto num_cols = state->range(2);
+  auto num_rows = state->range(3);
 
   // NOLINTNEXTLINE
-  for (auto _ : state) {
+  for (auto _ : *state) {
     // Create temporary table schema
     std::vector<catalog::Schema::Column> cols;
     std::vector<std::pair<type::TypeId, int64_t>> info = {{type::TypeId::INTEGER, num_ints},
@@ -1079,19 +1081,21 @@ void MiniRunners::ExecuteInsert(benchmark::State &state) {
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
 
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
     gc->PerformGarbageCollection();
     gc->PerformGarbageCollection();
   }
 
-  state.SetItemsProcessed(num_rows);
+  state->SetItemsProcessed(num_rows);
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_InsertRunners)(benchmark::State &state) { ExecuteInsert(state); }
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_InsertRunners)
     ->Unit(benchmark::kMillisecond)
@@ -1105,16 +1109,16 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_InsertRunners)
     ->Iterations(1)
     ->Apply(GenInsertMixedArguments);
 
-void MiniRunners::ExecuteUpdate(benchmark::State &state) {
-  auto num_integers = state.range(0);
-  auto num_decimals = state.range(1);
-  auto tbl_ints = state.range(2);
-  auto tbl_decimals = state.range(3);
-  auto row = state.range(4);
-  auto car = state.range(5);
+void MiniRunners::ExecuteUpdate(benchmark::State *state) {
+  auto num_integers = state->range(0);
+  auto num_decimals = state->range(1);
+  auto tbl_ints = state->range(2);
+  auto tbl_decimals = state->range(3);
+  auto row = state->range(4);
+  auto car = state->range(5);
 
   // NOLINTNEXTLINE
-  for (auto _ : state) {
+  for (auto _ : *state) {
     // UPDATE [] SET [col] = random integer()
     // This does not force a read from the underlying tuple more than getting the slot.
     // Arguably, this approach has the least amount of "SEQ_SCAN" overhead and measures:
@@ -1162,15 +1166,17 @@ void MiniRunners::ExecuteUpdate(benchmark::State &state) {
     gc->PerformGarbageCollection();
     gc->PerformGarbageCollection();
 
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
 
-  state.SetItemsProcessed(row);
+  state->SetItemsProcessed(row);
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(state); }
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_UpdateRunners)
     ->Unit(benchmark::kMillisecond)
@@ -1184,16 +1190,16 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_UpdateRunners)
     ->Iterations(1)
     ->Apply(GenUpdateDeleteMixedArguments);
 
-void MiniRunners::ExecuteDelete(benchmark::State &state) {
-  auto num_integers = state.range(0);
-  auto num_decimals = state.range(1);
-  auto tbl_ints = state.range(2);
-  auto tbl_decimals = state.range(3);
-  auto row = state.range(4);
-  auto car = state.range(5);
+void MiniRunners::ExecuteDelete(benchmark::State *state) {
+  auto num_integers = state->range(0);
+  auto num_decimals = state->range(1);
+  auto tbl_ints = state->range(2);
+  auto tbl_decimals = state->range(3);
+  auto row = state->range(4);
+  auto car = state->range(5);
 
   // NOLINTNEXTLINE
-  for (auto _ : state) {
+  for (auto _ : *state) {
     metrics_manager_->RegisterThread();
 
     auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
@@ -1225,15 +1231,17 @@ void MiniRunners::ExecuteDelete(benchmark::State &state) {
     gc->PerformGarbageCollection();
     gc->PerformGarbageCollection();
 
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
 
-  state.SetItemsProcessed(row);
+  state->SetItemsProcessed(row);
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_DeleteRunners)(benchmark::State &state) { ExecuteDelete(state); }
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_DeleteRunners)(benchmark::State &state) { ExecuteDelete(state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_DeleteRunners)
     ->Unit(benchmark::kMillisecond)

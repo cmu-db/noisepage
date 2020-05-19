@@ -54,7 +54,7 @@ class ExecutableQuery {
   /**
    * Construct and compile an executable TPL program from file or source
    *
-   * @param contents Name of the file or TPL program
+   * @param filename Name of the file or TPL program
    * @param exec_ctx context to execute
    * @param is_file Whether load from file
    */
