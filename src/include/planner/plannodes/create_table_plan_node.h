@@ -536,20 +536,23 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &ProcessCheckConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
-      auto check_cols = std::vector<std::string>();
+      // TODO(Matt): I'm pretty sure this isn't how we're gonna do constraints anyway
 
-      // TODO(Gus,Wen) more expression types need to be supported
-      if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
-        check_cols.push_back(col->GetColumnName());
-
-        common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
-            (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
-        type::TransientValue tmp_value = const_expr_elem->GetValue();
-
-        CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
-                             std::move(tmp_value));
-        con_checks_.emplace_back(std::move(check_info));
-      }
+      //      auto check_cols =
+      //          std::vector<std::string>();
+      //
+      //      // TODO(Gus,Wen) more expression types need to be supported
+      //      if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
+      //        check_cols.push_back(col->GetColumnName());
+      //
+      //        common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
+      //            (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
+      //        const auto val = const_expr_elem->GetValue();
+      //
+      //        CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
+      //                             );
+      //        con_checks_.emplace_back(std::move(check_info));
+      //      }
       return *this;
     }
 
