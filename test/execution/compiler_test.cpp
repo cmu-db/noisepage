@@ -55,7 +55,7 @@ class CompilerTest : public SqlBasedTest {
                                   const std::vector<brain::ExecutionOperatingUnitType> &vec_b) {
     std::unordered_set<brain::ExecutionOperatingUnitType> set_a;
     std::unordered_set<brain::ExecutionOperatingUnitType> set_b;
-    for (auto e : vec_a) {
+    for (const auto &e : vec_a) {
       set_a.insert(e.GetExecutionOperatingUnitType());
     }
 
