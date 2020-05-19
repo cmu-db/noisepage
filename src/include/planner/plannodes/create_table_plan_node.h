@@ -276,7 +276,7 @@ struct CheckInfo {
   /**
    * Columns that need to be checked
    */
-  std::vector<std::string> check_cols_;
+  std::vector<std::string> check_cols_;  // TODO(Matt): always size 1 according to ProcessCheckConstraint?
   /**
    * Name of this constraint
    */
@@ -288,7 +288,7 @@ struct CheckInfo {
   /**
    * Value of expression to be checked
    */
-  std::unique_ptr<parser::ConstantValueExpression> expr_value_;
+  parser::ConstantValueExpression expr_value_;
 
   /**
    * @return serialized CheckInfo
@@ -322,7 +322,7 @@ struct CheckInfo {
    * @param expr_value the value of the expression to be satisfied
    */
   CheckInfo(std::vector<std::string> check_cols, std::string constraint_name, parser::ExpressionType expr_type,
-            std::unique_ptr<parser::ConstantValueExpression> expr_value)
+            parser::ConstantValueExpression &&expr_value)
       : check_cols_(std::move(check_cols)),
         constraint_name_(std::move(constraint_name)),
         expr_type_(expr_type),
