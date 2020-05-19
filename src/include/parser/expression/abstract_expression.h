@@ -70,6 +70,8 @@ class AbstractExpression {
    */
   AbstractExpression() = default;
 
+  AbstractExpression(AbstractExpression &&other) = default;
+
   /**
    * @param expression_name Set the expression name of the current expression
    */
