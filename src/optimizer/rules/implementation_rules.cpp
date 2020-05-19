@@ -3,13 +3,11 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/group_expression.h"
 #include "optimizer/index_util.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_defs.h"
@@ -120,11 +118,11 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   bool is_update = get->GetIsForUpdate();
   auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
 
-  auto sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT);
+  const auto *sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT);
   std::vector<catalog::col_oid_t> sort_col_ids;
   if (sort != nullptr) {
     // Check if can satisfy sort property with an index
-    auto sort_prop = sort->As<PropertySort>();
+    const auto *sort_prop = sort->As<PropertySort>();
     if (IndexUtil::CheckSortProperty(sort_prop)) {
       auto indexes = accessor->GetIndexOids(get->GetTableOid());
       for (auto index : indexes) {
@@ -169,7 +167,7 @@ LogicalQueryDerivedGetToPhysicalQueryDerivedScan::LogicalQueryDerivedGetToPhysic
   type_ = RuleType::QUERY_DERIVED_GET_TO_PHYSICAL;
   match_pattern_ = new Pattern(OpType::LOGICALQUERYDERIVEDGET);
 
-  auto child = new Pattern(OpType::LEAF);
+  auto *child = new Pattern(OpType::LEAF);
   match_pattern_->AddChild(child);
 }
 
@@ -241,7 +239,7 @@ void LogicalExternalFileGetToPhysicalExternalFileGet::Transform(
 LogicalDeleteToPhysicalDelete::LogicalDeleteToPhysicalDelete() {
   type_ = RuleType::DELETE_TO_PHYSICAL;
   match_pattern_ = new Pattern(OpType::LOGICALDELETE);
-  auto child = new Pattern(OpType::LEAF);
+  auto *child = new Pattern(OpType::LEAF);
   match_pattern_->AddChild(child);
 }
 
@@ -275,7 +273,7 @@ LogicalUpdateToPhysicalUpdate::LogicalUpdateToPhysicalUpdate() {
   type_ = RuleType::UPDATE_TO_PHYSICAL;
   match_pattern_ = new Pattern(OpType::LOGICALUPDATE);
 
-  auto child = new Pattern(OpType::LEAF);
+  auto *child = new Pattern(OpType::LEAF);
   match_pattern_->AddChild(child);
 }
 
@@ -348,7 +346,7 @@ LogicalInsertSelectToPhysicalInsertSelect::LogicalInsertSelectToPhysicalInsertSe
   type_ = RuleType::INSERT_SELECT_TO_PHYSICAL;
   match_pattern_ = new Pattern(OpType::LOGICALINSERTSELECT);
 
-  auto child = new Pattern(OpType::LEAF);
+  auto *child = new Pattern(OpType::LEAF);
   match_pattern_->AddChild(child);
 }
 
@@ -388,7 +386,7 @@ LogicalGroupByToPhysicalHashGroupBy::LogicalGroupByToPhysicalHashGroupBy() {
   type_ = RuleType::AGGREGATE_TO_HASH_AGGREGATE;
   match_pattern_ = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
 
-  auto child = new Pattern(OpType::LEAF);
+  auto *child = new Pattern(OpType::LEAF);
   match_pattern_->AddChild(child);
 }
 
@@ -425,7 +423,7 @@ LogicalAggregateToPhysicalAggregate::LogicalAggregateToPhysicalAggregate() {
   type_ = RuleType::AGGREGATE_TO_PLAIN_AGGREGATE;
   match_pattern_ = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
 
-  auto child = new Pattern(OpType::LEAF);
+  auto *child = new Pattern(OpType::LEAF);
   match_pattern_->AddChild(child);
 }
 
@@ -457,8 +455,8 @@ void LogicalAggregateToPhysicalAggregate::Transform(common::ManagedPointer<Abstr
 LogicalInnerJoinToPhysicalInnerIndexJoin::LogicalInnerJoinToPhysicalInnerIndexJoin() {
   type_ = RuleType::INNER_JOIN_TO_INDEX_JOIN;
 
-  auto left_child = new Pattern(OpType::LEAF);
-  auto right_child = new Pattern(OpType::LOGICALGET);
+  auto *left_child = new Pattern(OpType::LEAF);
+  auto *right_child = new Pattern(OpType::LOGICALGET);
 
   // Initialize a pattern for optimizer to match
   match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
@@ -500,7 +498,7 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
 
   // Combine the index scan predicates
   std::vector<AnnotatedExpression> join_preds = r_child->GetPredicates();
-  for (auto &pred : inner_join->GetJoinPredicates()) join_preds.push_back(pred);
+  for (const auto &pred : inner_join->GetJoinPredicates()) join_preds.push_back(pred);
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> empty;
   auto new_child = std::make_unique<OperatorNode>(
@@ -538,8 +536,8 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
 LogicalInnerJoinToPhysicalInnerNLJoin::LogicalInnerJoinToPhysicalInnerNLJoin() {
   type_ = RuleType::INNER_JOIN_TO_NL_JOIN;
 
-  auto left_child = new Pattern(OpType::LEAF);
-  auto right_child = new Pattern(OpType::LEAF);
+  auto *left_child = new Pattern(OpType::LEAF);
+  auto *right_child = new Pattern(OpType::LEAF);
 
   // Initialize a pattern for optimizer to match
   match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
@@ -582,8 +580,8 @@ LogicalInnerJoinToPhysicalInnerHashJoin::LogicalInnerJoinToPhysicalInnerHashJoin
   type_ = RuleType::INNER_JOIN_TO_HASH_JOIN;
 
   // Make three node types for pattern matching
-  auto left_child(new Pattern(OpType::LEAF));
-  auto right_child(new Pattern(OpType::LEAF));
+  auto *left_child(new Pattern(OpType::LEAF));
+  auto *right_child(new Pattern(OpType::LEAF));
 
   // Initialize a pattern for optimizer to match
   match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
@@ -611,8 +609,10 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(
   TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
   auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
-  auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
-  auto &right_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
+  const auto &left_group_alias =
+      context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
+  const auto &right_group_alias =
+      context->GetOptimizerContext()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
   std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
 
@@ -787,7 +787,7 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
     uint16_t varlen_size = 0;
     if (attr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto cve = attr.CastManagedPointerTo<parser::ColumnValueExpression>();
-      auto &col = tbl_schema.GetColumn(cve->GetColumnOid());
+      const auto &col = tbl_schema.GetColumn(cve->GetColumnOid());
       name = cve->GetColumnName();
       nullable = col.Nullable();
       if (is_var) varlen_size = col.MaxVarlenSize();
