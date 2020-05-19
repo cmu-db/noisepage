@@ -13,6 +13,10 @@
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
 
+namespace terrier::parser {
+class ConstantValueExpression;
+}
+
 namespace terrier::settings {
 using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext> action_context);
 
@@ -139,10 +143,10 @@ class SettingsManager {
   void ValidateSetting(Param param, common::ManagedPointer<execution::sql::Val> min_value,
                        common::ManagedPointer<execution::sql::Val> max_value);
 
-  type::TransientValue &GetValue(Param param);
-  bool SetValue(Param param, type::TransientValue value);
-  bool ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
-                     const type::TransientValue &max_value);
+  parser::ConstantValueExpression &GetValue(Param param);
+  bool SetValue(Param param, parser::ConstantValueExpression value);
+  bool ValidateValue(const parser::ConstantValueExpression &value, const parser::ConstantValueExpression &min_value,
+                     const parser::ConstantValueExpression &max_value);
   common::ActionState InvokeCallback(Param param, void *old_value, void *new_value,
                                      common::ManagedPointer<common::ActionContext> action_context);
 };

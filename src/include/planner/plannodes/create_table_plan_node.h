@@ -288,7 +288,7 @@ struct CheckInfo {
   /**
    * Value of expression to be checked
    */
-  type::TransientValue expr_value_;
+  std::unique_ptr<parser::ConstantValueExpression> expr_value_;
 
   /**
    * @return serialized CheckInfo
@@ -310,7 +310,8 @@ struct CheckInfo {
     check_cols_ = j.at("check_cols").get<std::vector<std::string>>();
     constraint_name_ = j.at("constraint_name").get<std::string>();
     expr_type_ = j.at("expr_type").get<parser::ExpressionType>();
-    expr_value_ = j.at("expr_value").get<type::TransientValue>();
+    // FIXME(Matt): json stuff
+    //    expr_value_ = j.at("expr_value").get<type::TransientValue>();
   }
 
   /**
@@ -321,7 +322,7 @@ struct CheckInfo {
    * @param expr_value the value of the expression to be satisfied
    */
   CheckInfo(std::vector<std::string> check_cols, std::string constraint_name, parser::ExpressionType expr_type,
-            type::TransientValue expr_value)
+            std::unique_ptr<parser::ConstantValueExpression> expr_value)
       : check_cols_(std::move(check_cols)),
         constraint_name_(std::move(constraint_name)),
         expr_type_(expr_type),
@@ -346,7 +347,8 @@ struct CheckInfo {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type_));
 
     // Hash expr_value
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
+    // FIXME(Matt): hash stuff
+    //    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
     return hash;
   }
 

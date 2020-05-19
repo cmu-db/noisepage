@@ -139,7 +139,7 @@ class ConstantValueExpression : public AbstractExpression {
  private:
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   /** The constant held inside this ConstantValueExpression. */
-  std::unique_ptr<execution::sql::Val> value_ = nullptr;
+  std::unique_ptr<execution::sql::Val> value_;
 };
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);

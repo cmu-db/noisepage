@@ -67,8 +67,8 @@ class ParamInfo {
   std::string desc_;
   std::unique_ptr<parser::ConstantValueExpression> default_value_;
   bool is_mutable_;
-  std::unique_ptr<parser::ConstantValueExpression> min_value_;
-  std::unique_ptr<parser::ConstantValueExpression> max_value_;
+  double min_value_;
+  double max_value_;
   callback_fn callback_;
 };
 
