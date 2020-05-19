@@ -3,6 +3,7 @@
 #include "brain/operating_unit.h"
 #include "common/thread_context.h"
 #include "execution/sql/value.h"
+#include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
 
 namespace terrier::execution::exec {

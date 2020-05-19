@@ -6,6 +6,7 @@
 
 #include "brain/operating_unit.h"
 #include "execution/sql/value.h"
+#include "parser/expression/constant_value_expression.h"
 #include "util/time_util.h"
 
 namespace terrier::execution::compiler {
@@ -288,7 +289,7 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
   ast::Expr *iter_ptr = PointerTo(iter);
   util::RegionVector<ast::Expr *> args({iter_ptr}, Region());
 
-  if (asc_scan) args.push_back(IntLiteral(asc_type));
+  if (asc_scan) args.push_back(IntLiteral(static_cast<int64_t>(asc_type)));
   if (use_limit) args.push_back(IntLiteral(limit));
 
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
@@ -380,7 +381,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 }
 
 ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) {
-  if (const_val.GetValue().is_null_) {
+  if (const_val.GetValue()->is_null_) {
     // NullToSql(&expr) produces a NULL of expr's type.
     ast::Expr *dummy_expr;
     switch (const_val.GetReturnValueType()) {
