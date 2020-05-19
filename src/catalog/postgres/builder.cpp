@@ -28,8 +28,8 @@ constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
  * @param type of the value which is NULL
  * @return NULL expression with the correct type
  */
-static parser::ConstantValueExpression MakeNull(type::TypeId col_type) {
-  return parser::ConstantValueExpression(type::TransientValueFactory::GetNull(col_type));
+static parser::ConstantValueExpression MakeNull(const type::TypeId col_type) {
+  return parser::ConstantValueExpression(col_type, std::make_unique<execution::sql::Val>(true));
 }
 
 Schema Builder::GetDatabaseTableSchema() {

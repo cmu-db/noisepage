@@ -344,8 +344,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
               cols.emplace_back(pair);
             } else {
               // Make a null value of the right type that we can either compare with the stored expression or insert.
-              auto null_tv = type::TransientValueFactory::GetNull(schema_col.Type());
-              auto null_ex = std::make_unique<parser::ConstantValueExpression>(std::move(null_tv));
+              auto null_ex = std::make_unique<parser::ConstantValueExpression>(
+                  schema_col.Type(), std::make_unique<execution::sql::Val>(true));
 
               // TODO(WAN): We thought that you might be able to collapse these two cases into one, since currently
               // the catalog column's stored expression is always a NULL of the right type if not otherwise specified.
@@ -607,7 +607,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConstantValueExpressi
   SqlNodeVisitor::Visit(expr);
 
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
-  sherpa_->CheckAndTryPromoteType(common::ManagedPointer(&expr->value_), desired_type);
+  sherpa_->CheckAndTryPromoteType(expr, desired_type);
   expr->DeriveReturnValueType();
 }
 
