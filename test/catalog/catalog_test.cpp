@@ -160,6 +160,15 @@ TEST_F(CatalogTests, ProcTest) {
   auto sin_oid = accessor->GetProcOid("sin", {accessor->GetTypeOidFromTypeId(type::TypeId::DECIMAL)});
   EXPECT_NE(sin_oid, catalog::INVALID_PROC_OID);
 
+  auto sin_context = accessor->GetProcCtxPtr(sin_oid);
+  EXPECT_TRUE(sin_context->IsBuiltin());
+  EXPECT_EQ(sin_context->GetBuiltin(), execution::ast::Builtin::Sin);
+  EXPECT_EQ(sin_context->GetFunctionReturnType(), type::TypeId::DECIMAL);
+  auto sin_args = sin_context->GetFunctionArgsType();
+  EXPECT_EQ(sin_args.size(), 1);
+  EXPECT_EQ(sin_args.back(), type::TypeId::DECIMAL);
+  EXPECT_EQ(sin_context->GetFunctionName(), "sin");
+
   EXPECT_EQ(found_oid, proc_oid);
   auto result = accessor->DropProcedure(found_oid);
   EXPECT_TRUE(result);

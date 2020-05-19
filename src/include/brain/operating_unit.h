@@ -32,6 +32,10 @@ class CompilerTest_SimpleInsertWithParamsTest_Test;
 class CompilerTest_StaticDistinctAggregateTest_Test;
 }  // namespace terrier::execution::compiler::test
 
+namespace terrier::optimizer {
+class IdxJoinTest_SimpleIdxJoinTest_Test;
+}
+
 namespace terrier::brain {
 
 class OperatingUnitRecorder;
@@ -125,6 +129,7 @@ using ExecutionOperatingUnitFeatureVector = std::vector<ExecutionOperatingUnitFe
  */
 class PipelineOperatingUnits {
  public:
+  friend class terrier::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithProjectionTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithParamsTest_Test;
