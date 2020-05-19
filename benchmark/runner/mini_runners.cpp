@@ -239,7 +239,7 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<std::vector<int64_t>> args;
   GENERATE_MIXED_ARGUMENTS(args);
-  for (auto arg : args) {
+  for (const auto &arg : args) {
     b->Args(arg);
   }
 }
@@ -497,9 +497,6 @@ class MiniRunners : public benchmark::Fixture {
   static execution::vm::ExecutionMode mode;
   const uint64_t optimizer_timeout_ = 1000000;
 
-  typedef std::unique_ptr<planner::AbstractPlanNode> (*PlanCorrect)(
-      common::ManagedPointer<transaction::TransactionContext> txn, std::unique_ptr<planner::AbstractPlanNode>);
-
   static std::unique_ptr<planner::AbstractPlanNode> PassthroughPlanCorrect(
       UNUSED_ATTRIBUTE common::ManagedPointer<transaction::TransactionContext> txn,
       std::unique_ptr<planner::AbstractPlanNode> plan) {
@@ -511,8 +508,8 @@ class MiniRunners : public benchmark::Fixture {
   void ExecuteUpdate(benchmark::State *state);
   void ExecuteDelete(benchmark::State *state);
 
-  std::string ConstructColumns(std::string prefix, type::TypeId left_type, type::TypeId right_type, int64_t num_left,
-                               int64_t num_right) {
+  std::string ConstructColumns(const std::string &prefix, type::TypeId left_type, type::TypeId right_type,
+                               int64_t num_left, int64_t num_right) {
     std::stringstream cols;
     for (auto i = 1; i <= num_left; i++) {
       cols << prefix << (type::TypeUtil::TypeIdToString(left_type)) << i;
@@ -526,7 +523,7 @@ class MiniRunners : public benchmark::Fixture {
     return cols.str();
   }
 
-  std::string ConstructPredicate(std::string left_alias, std::string right_alias, type::TypeId left_type,
+  std::string ConstructPredicate(const std::string &left_alias, const std::string &right_alias, type::TypeId left_type,
                                  type::TypeId right_type, int64_t num_left, int64_t num_right) {
     std::stringstream pred;
     for (auto i = 1; i <= num_left; i++) {
@@ -559,7 +556,7 @@ class MiniRunners : public benchmark::Fixture {
       std::string build_tbl, common::ManagedPointer<transaction::TransactionContext> txn,
       std::unique_ptr<planner::AbstractPlanNode> plan) {
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
-    auto build_oid = accessor->GetTableOid(build_tbl);
+    auto build_oid = accessor->GetTableOid(std::move(build_tbl));
 
     if (plan->GetPlanNodeType() != planner::PlanNodeType::HASHJOIN) throw "Expected HashJoin";
     if (plan->GetChild(0)->GetPlanNodeType() != planner::PlanNodeType::SEQSCAN) throw "Expected Left SeqScan";
@@ -594,9 +591,9 @@ class MiniRunners : public benchmark::Fixture {
   void BenchmarkSqlStatement(
       const std::string &query, std::unique_ptr<brain::PipelineOperatingUnits> units,
       std::unique_ptr<optimizer::AbstractCostModel> cost_model, bool commit,
-      std::function<std::unique_ptr<planner::AbstractPlanNode>(common::ManagedPointer<transaction::TransactionContext>,
-                                                               std::unique_ptr<planner::AbstractPlanNode>)>
-          corrector = std::function<std::unique_ptr<planner::AbstractPlanNode>(
+      const std::function<std::unique_ptr<planner::AbstractPlanNode>(
+          common::ManagedPointer<transaction::TransactionContext>, std::unique_ptr<planner::AbstractPlanNode>)>
+          &corrector = std::function<std::unique_ptr<planner::AbstractPlanNode>(
               common::ManagedPointer<transaction::TransactionContext>, std::unique_ptr<planner::AbstractPlanNode>)>(
               PassthroughPlanCorrect)) {
     auto txn = txn_manager_->BeginTransaction();
@@ -831,8 +828,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   auto row_num = state.range(2);
   auto num_col = num_integers + num_decimals;
 
-  // NOLINTNEXTLINE
   metrics_manager_->RegisterThread();
+
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     std::stringstream output;
     output << "struct Output {\n";
@@ -1505,7 +1503,7 @@ void EndRunnersState() {
 
 }  // namespace terrier::runner
 
-void RunBenchmarkSequence(void) {
+void RunBenchmarkSequence() {
   // As discussed, certain runners utilize multiple features.
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters

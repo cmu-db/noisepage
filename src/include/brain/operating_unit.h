@@ -105,7 +105,7 @@ class ExecutionOperatingUnitFeature {
    * @returns memory adjustment factor
    */
   double GetMemFactor() const {
-    if (mem_factors_.size() == 0) return 1.0;
+    if (mem_factors_.empty()) return 1.0;
 
     double sum = 0.0;
     for (auto factor : mem_factors_) {

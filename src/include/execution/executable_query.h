@@ -54,11 +54,11 @@ class ExecutableQuery {
   /**
    * Construct and compile an executable TPL program from file or source
    *
-   * @param filename Name of the file or TPL program
+   * @param contents Name of the file or TPL program
    * @param exec_ctx context to execute
    * @param is_file Whether load from file
    */
-  ExecutableQuery(const std::string &filename, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file);
+  ExecutableQuery(const std::string &contents, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file);
 
   /**
    *

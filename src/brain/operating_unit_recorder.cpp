@@ -47,7 +47,7 @@ namespace terrier::brain {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
-  execution::ast::StructTypeRepr *type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
+  auto *type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
   auto &fields = type->Fields();
 
   // Rough loop to get an estimate size of entire struct
