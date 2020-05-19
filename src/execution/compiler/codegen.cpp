@@ -415,45 +415,38 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
 
   switch (const_val.GetReturnValueType()) {
     case type::TypeId::BOOLEAN: {
-      auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
+      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
       return BoolLiteral(val);
     }
-    case type::TypeId::TINYINT: {
-      auto val = type::TransientValuePeeker::PeekTinyInt(transient_val);
-      return IntToSql(val);
-    }
-    case type::TypeId::SMALLINT: {
-      auto val = type::TransientValuePeeker::PeekSmallInt(transient_val);
-      return IntToSql(val);
-    }
-    case type::TypeId::INTEGER: {
-      auto val = type::TransientValuePeeker::PeekInteger(transient_val);
-      return IntToSql(val);
-    }
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
+      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
       return IntToSql(val);
     }
     case type::TypeId::DATE: {
-      auto val = terrier::type::TransientValuePeeker::PeekDate(transient_val);
-      auto ymd = terrier::util::TimeConvertor::YMDFromDate(val);
+      // TODO(Matt): Not sure I did this right...
+      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative();
+      auto ymd = terrier::util::TimeConvertor::YMDFromDate(static_cast<type::date_t>(val));
       auto year = static_cast<int32_t>(ymd.year());
       auto month = static_cast<uint32_t>(ymd.month());
       auto day = static_cast<uint32_t>(ymd.day());
       return DateToSql(year, month, day);
     }
     case type::TypeId::TIMESTAMP: {
-      auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
-      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(val);
+      // TODO(Matt): Not sure I did this right...
+      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative();
+      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(static_cast<type::timestamp_t>(val));
       return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {
-      auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
+      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
       return FloatToSql(val);
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
+      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
       return StringToSql(val);
     }
     default:
