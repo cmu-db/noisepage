@@ -9,6 +9,10 @@
 #include "network/postgres/statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
+namespace terrier::parser {
+class ConstantValueExpression;
+}
+
 namespace terrier::network {
 
 /**
@@ -32,7 +36,7 @@ class Portal {
    * @param params params for this query
    * @param result_formats output formats for this query
    */
-  Portal(const common::ManagedPointer<Statement> statement, std::vector<type::TransientValue> &&params,
+  Portal(const common::ManagedPointer<Statement> statement, std::vector<parser::ConstantValueExpression> &&params,
          std::vector<FieldFormat> &&result_formats)
       : statement_(statement), params_(std::move(params)), result_formats_(std::move(result_formats)) {}
 
@@ -54,13 +58,13 @@ class Portal {
   /**
    * @return params for this query
    */
-  common::ManagedPointer<const std::vector<type::TransientValue>> Parameters() {
+  common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> Parameters() {
     return common::ManagedPointer(&params_);
   }
 
  private:
   const common::ManagedPointer<network::Statement> statement_;
-  const std::vector<type::TransientValue> params_;
+  const std::vector<parser::ConstantValueExpression> params_;
   const std::vector<FieldFormat> result_formats_;
 };
 

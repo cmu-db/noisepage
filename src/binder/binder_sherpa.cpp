@@ -124,7 +124,9 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
             if (!parsed_date.first) {
               ReportFailure("Binder conversion from VARCHAR to DATE failed.");
             }
-            value->SetValue(type::TypeId::DATE, std::make_unique<execution::sql::DateVal>(parsed_date.second));
+            value->SetValue(type::TypeId::DATE,
+                            std::make_unique<execution::sql::DateVal>(
+                                execution::sql::Date::FromNative(static_cast<uint32_t>(parsed_date.second))));
             break;
           }
           case type::TypeId::TIMESTAMP: {
@@ -133,7 +135,8 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
               ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
             }
             value->SetValue(type::TypeId::TIMESTAMP,
-                            std::make_unique<execution::sql::TimestampVal>(parsed_timestamp.second));
+                            std::make_unique<execution::sql::TimestampVal>(
+                                execution::sql::Timestamp::FromNative(static_cast<uint64_t>(parsed_timestamp.second))));
             break;
           }
           case type::TypeId::TINYINT: {
