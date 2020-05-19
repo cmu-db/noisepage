@@ -41,15 +41,15 @@ catalog::db_oid_t db_oid{0};
 /**
  * Arg <0, 1, 2, 3, 4, 5>
  * 0 - # integers to scan
- * 1 - # bigintegers to scan
+ * 1 - # decimals to scan
  * 2 - integers of table
- * 3 - bigintegers of table
+ * 3 - decimals of table
  * 4 - Number of rows
  * 5 - Cardinality
  */
 #define GENERATE_MIXED_ARGUMENTS(args)                                                              \
   {                                                                                                 \
-    /* Vector of table distributions <INTEGER, BIGINT> */                                           \
+    /* Vector of table distributions <INTEGER, DECIMALS> */                                         \
     std::vector<std::pair<uint32_t, uint32_t>> mixed_dist = {{3, 12}, {7, 8}, {11, 4}};             \
     /* Always generate full table scans for all row_num and cardinalities. */                       \
     for (auto col_dist : mixed_dist) {                                                              \
@@ -175,7 +175,7 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
 /**
  * Arg <0, 1, 2>
  * 0 - # integers to scan
- * 1 - # big integers to scan
+ * 1 - # decimals to scan
  * 2 - row
  */
 static void GenOutputArguments(benchmark::internal::Benchmark *b) {
@@ -202,9 +202,9 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
 /**
  * Arg <0, 1, 2, 3, 4, 5>
  * 0 - # integers to scan
- * 1 - # big integers to scan
+ * 1 - # decimals to scan
  * 2 - # integers in table
- * 3 - # big integers in table
+ * 3 - # decimals in table
  * 4 - row
  * 5 - cardinality
  */
@@ -247,9 +247,9 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
 /**
  * Arg <0, 1, 2, 3, 4, 5>
  * 0 - # integers to scan
- * 1 - # big integers to scan
+ * 1 - # decimals to scan
  * 2 - # integers in table
- * 3 - # big integers in table
+ * 3 - # decimals in table
  * 4 - row
  * 5 - cardinality
  */
@@ -282,9 +282,9 @@ static void GenSortArguments(benchmark::internal::Benchmark *b) {
 /**
  * Arg <0, 1, 2, 3, 4, 5>
  * 0 - # integers to scan
- * 1 - # big integers to scan
+ * 1 - # decimals to scan
  * 2 - # integers in table
- * 3 - # big integers in table
+ * 3 - # decimals in table
  * 4 - row
  * 5 - cardinality
  */
@@ -317,9 +317,9 @@ static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
 /**
  * Arg <0, 1, 2, 3, 4, 5>
  * 0 - # integers to scan
- * 1 - # bigintegers to scan
+ * 1 - # decimals to scan
  * 2 - integers of table
- * 3 - bigintegers of table
+ * 3 - decimals of table
  * 4 - Number of rows
  * 5 - Cardinality
  */
@@ -356,9 +356,9 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
 /**
  * Arg <0, 1, 2, 3, 4, 5, 6, 7, 8>
  * 0 - # integers to scan
- * 1 - # bigintegers ot scan
+ * 1 - # decimals ot scan
  * 2 - # integers in table
- * 3 - # bigintegers in table
+ * 3 - # decimals in table
  * 4 - Build # rows
  * 5 - Build Cardinality
  * 6 - Probe # rows

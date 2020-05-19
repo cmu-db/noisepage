@@ -445,7 +445,6 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
   std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15}, {3, 12}, {7, 8}, {11, 4}, {15, 0}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  std::unordered_set<std::string> gen_tbl_names;
   for (auto types : mixed_types) {
     for (auto col_dist : mixed_dist) {
       for (uint32_t row_num : row_nums) {
@@ -483,10 +482,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
             }
           }
 
-          if (gen_tbl_names.find(tbl_name) == gen_tbl_names.end()) {
-            table_metas.emplace_back(tbl_name, row_num, col_metas);
-            gen_tbl_names.insert(tbl_name);
-          }
+          table_metas.emplace_back(tbl_name, row_num, col_metas);
         }
       }
     }
