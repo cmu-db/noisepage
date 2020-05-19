@@ -149,7 +149,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
-      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, &scan_type, &bounds)) {
+      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, allow_cves_, &scan_type,
+                                                 &bounds)) {
         auto op = std::make_unique<OperatorNode>(
             IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
                             std::move(bounds))
@@ -448,6 +449,87 @@ void LogicalAggregateToPhysicalAggregate::Transform(common::ManagedPointer<Abstr
       std::make_unique<OperatorNode>(Aggregate::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                      std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// LogicalInnerJoinToPhysicalInnerIndexJoin
+///////////////////////////////////////////////////////////////////////////////
+LogicalInnerJoinToPhysicalInnerIndexJoin::LogicalInnerJoinToPhysicalInnerIndexJoin() {
+  type_ = RuleType::INNER_JOIN_TO_INDEX_JOIN;
+
+  auto left_child = new Pattern(OpType::LEAF);
+  auto right_child = new Pattern(OpType::LOGICALGET);
+
+  // Initialize a pattern for optimizer to match
+  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+
+  // Add node - we match join relation R and S
+  match_pattern_->AddChild(left_child);
+  match_pattern_->AddChild(right_child);
+}
+
+bool LogicalInnerJoinToPhysicalInnerIndexJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                                     OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  UNUSED_ATTRIBUTE const auto join = plan->Contents()->GetContentsAs<LogicalInnerJoin>();
+  TERRIER_ASSERT(join != nullptr, "Plan should be a Inner Join");
+  TERRIER_ASSERT(plan->GetChildren().size() == 2, "Inner Join should have two children");
+
+  // Get the "right" inner child
+  auto rchild = plan->GetChildren()[1];
+  UNUSED_ATTRIBUTE auto get = rchild->Contents()->GetContentsAs<LogicalGet>();
+  TERRIER_ASSERT(get != nullptr, "Right child should be a GET");
+
+  // Check whether the right child can be done as an index scan
+  LogicalGetToPhysicalIndexScan idx_scan_check;
+  return idx_scan_check.Check(rchild, context);
+}
+
+void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
+    common::ManagedPointer<AbstractOptimizerNode> input,
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  // first build an expression representing hash join
+  const auto inner_join = input->Contents()->GetContentsAs<LogicalInnerJoin>();
+  const auto &children = input->GetChildren();
+  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
+
+  // Get the "right" inner child and append the join predicate
+  auto r_child = children[1]->Contents()->GetContentsAs<LogicalGet>();
+
+  // Combine the index scan predicates
+  std::vector<AnnotatedExpression> join_preds = r_child->GetPredicates();
+  for (auto &pred : inner_join->GetJoinPredicates()) join_preds.push_back(pred);
+
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> empty;
+  auto new_child = std::make_unique<OperatorNode>(
+      LogicalGet::Make(r_child->GetDatabaseOid(), r_child->GetNamespaceOid(), r_child->GetTableOid(), join_preds,
+                       r_child->GetTableAlias(), r_child->GetIsForUpdate())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(empty), context->GetOptimizerContext()->GetTxn());
+
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> transform;
+  LogicalGetToPhysicalIndexScan idx_scan_transform;
+  idx_scan_transform.SetAllowCVEs(true);
+  idx_scan_transform.Transform(common::ManagedPointer<AbstractOptimizerNode>(new_child.get()), &transform, context);
+
+  for (const auto &idx_op : transform) {
+    auto idx_scan = idx_op->Contents()->GetContentsAs<IndexScan>();
+    TERRIER_ASSERT(idx_scan != nullptr, "Transformation should have produced an IndexScan");
+
+    if (!idx_scan->GetBounds().empty()) {
+      std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
+      child.emplace_back(children[0]->Copy());
+
+      auto result = std::make_unique<OperatorNode>(
+          InnerIndexJoin::Make(idx_scan->GetTableOID(), idx_scan->GetIndexOID(), idx_scan->GetIndexScanType(),
+                               idx_scan->GetBounds(), join_preds)
+              .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+          std::move(child), context->GetOptimizerContext()->GetTxn());
+      transformed->emplace_back(std::move(result));
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

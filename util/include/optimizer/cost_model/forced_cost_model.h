@@ -28,10 +28,12 @@ class ForcedCostModel : public AbstractCostModel {
   /**
    * Costs a GroupExpression
    * @param txn TransactionContext that query is generated under
+   * @param accessor CatalogAccessor
    * @param memo Memo object containing all relevant groups
    * @param gexpr GroupExpression to calculate cost for
    */
-  double CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) override {
+  double CalculateCost(transaction::TransactionContext *txn, UNUSED_ATTRIBUTE catalog::CatalogAccessor *accessor,
+                       Memo *memo, GroupExpression *gexpr) override {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;

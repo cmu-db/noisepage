@@ -52,4 +52,4 @@ In order to add a builtin function foo(...) we have to do the following:
 
 9) This is the last step. Now we want to make this function available in the catalog table, pg_proc. To do this edit
     src/catalog/database_catalog.cpp. Here, we want to add an entry into pg_proc in BootstrapProcs and also add a line
-    to initialize the metadata object (of type UDFContext) in BootstrapProcContexts and add it to pg_proc.
+    to initialize the metadata object (of type FunctionContext) in BootstrapProcContexts and add it to pg_proc.

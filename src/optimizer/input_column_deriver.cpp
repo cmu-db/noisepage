@@ -130,6 +130,75 @@ void InputColumnDeriver::Visit(const SortGroupBy *op) { AggregateHelper(op); }
 
 void InputColumnDeriver::Visit(const Aggregate *op) { AggregateHelper(op); }
 
+void InputColumnDeriver::Visit(const InnerIndexJoin *op) {
+  ExprSet input_cols_set;
+  for (auto &join_keys : op->GetJoinKeys()) {
+    // Get all Tuple/Aggregate expressions from join keys
+    for (auto join_key : join_keys.second) {
+      if (join_key != nullptr) {
+        parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, join_key);
+      }
+    }
+  }
+  for (auto &join_cond : op->GetJoinPredicates()) {
+    // Get all Tuple/Aggregate expressions from join conditions
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, join_cond.GetExpr());
+  }
+
+  ExprMap output_cols_map;
+  for (auto expr : required_cols_) {
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&output_cols_map, expr);
+  }
+  for (auto &expr_idx_pair : output_cols_map) {
+    input_cols_set.insert(expr_idx_pair.first);
+  }
+
+  // Construct input columns
+  ExprSet probe_table_cols_set;
+  auto &probe_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetTableAliases();
+  for (auto &col : input_cols_set) {
+    common::ManagedPointer<parser::ColumnValueExpression> tv_expr;
+    if (col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
+    } else {
+      TERRIER_ASSERT(parser::ExpressionUtil::IsAggregateExpression(col), "col should be AggregateExpression");
+
+      ExprSet tv_exprs;
+      // Get the ColumnValueExpression used in the AggregateExpression
+      parser::ExpressionUtil::GetTupleValueExprs(&tv_exprs, col);
+      if (tv_exprs.empty()) {
+        // Do not need input columns like COUNT(1)
+        continue;
+      }
+
+      // We get only the first ColumnValueExpression (should probably assert check this)
+      tv_expr = (*(tv_exprs.begin())).CastManagedPointerTo<parser::ColumnValueExpression>();
+      TERRIER_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
+    }
+
+    // Pick the probe if alias matches
+    std::string tv_table_name = tv_expr->GetTableName();
+    TERRIER_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
+    if (probe_table_aliases.count(tv_table_name) != 0U) {
+      probe_table_cols_set.insert(col);
+    }
+  }
+
+  // Derive output columns
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols(output_cols_map.size());
+  for (auto &expr_idx_pair : output_cols_map) {
+    output_cols[expr_idx_pair.second] = expr_idx_pair.first;
+  }
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> probe_cols;
+  for (auto &col : probe_table_cols_set) {
+    probe_cols.push_back(col);
+  }
+
+  PT2 child_cols = PT2{probe_cols};
+  output_input_cols_ = std::make_pair(std::move(output_cols), std::move(child_cols));
+}
+
 void InputColumnDeriver::Visit(const InnerNLJoin *op) { JoinHelper(op); }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { TERRIER_ASSERT(0, "LeftNLJoin not supported"); }
