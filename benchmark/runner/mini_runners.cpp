@@ -486,7 +486,7 @@ static void GenUpdateDeleteMixedArguments(benchmark::internal::Benchmark *b) {
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<std::vector<int64_t>> args;
   GENERATE_MIXED_ARGUMENTS(args);
-  for (auto arg : args) {
+  for (const auto &arg : args) {
     b->Args(arg);
   }
 }
