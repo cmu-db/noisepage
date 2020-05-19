@@ -77,7 +77,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, SimpleDefer) {
   bool deferred = false;
-  deferred_action_manager_->RegisterDeferredAction([&]() { deferred = true; });
+  deferred_action_manager_->RegisterDeferredAction([&]() { deferred = true; }, transaction::DafId::INVALID);
 
   EXPECT_FALSE(deferred);
 
@@ -94,7 +94,7 @@ TEST_F(DeferredActionsTest, DelayedDefer) {
   auto *txn = txn_mgr_->BeginTransaction();
 
   bool deferred = false;
-  deferred_action_manager_->RegisterDeferredAction([&]() { deferred = true; });
+  deferred_action_manager_->RegisterDeferredAction([&]() { deferred = true; }, transaction::DafId::INVALID);
 
   EXPECT_FALSE(deferred);
 
@@ -117,8 +117,8 @@ TEST_F(DeferredActionsTest, ChainedDefer) {
   bool defer2 = false;
   deferred_action_manager_->RegisterDeferredAction([&]() {
     defer1 = true;
-    deferred_action_manager_->RegisterDeferredAction([&]() { defer2 = true; });
-  });
+    deferred_action_manager_->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
+  }, transaction::DafId::INVALID);
 
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
@@ -150,8 +150,8 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
     aborted = true;
     deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager]() {
       defer1 = true;
-      deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; });
-    });
+      deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
+    }, transaction::DafId::INVALID);
   });
 
   EXPECT_FALSE(aborted);
@@ -204,8 +204,8 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
     committed = true;
     deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager]() {
       defer1 = true;
-      deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; });
-    });
+      deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
+    }, transaction::DafId::INVALID);
   });
 
   EXPECT_FALSE(aborted);

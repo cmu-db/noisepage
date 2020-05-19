@@ -4,9 +4,9 @@
 
 namespace terrier::transaction {
 
-timestamp_t DeferredActionManager::RegisterDeferredAction(DeferredAction &&a) {
+timestamp_t DeferredActionManager::RegisterDeferredAction(DeferredAction &&a, transaction::DafId daf_id) {
   timestamp_t result = timestamp_manager_->CurrentTime();
-  std::pair<timestamp_t, DeferredAction> elem = {result, a};
+  std::pair<timestamp_t, std::pair<DeferredAction, DafId>> elem = {result, {a, daf_id}};
 
   // Timestamp needs to be fetched inside the critical section such that actions in the
   // deferred action queue is in order. This simplifies the interleavings we need to deal
@@ -72,7 +72,7 @@ uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn) {
   //  (for uncommiitted transactions, or on overflow)
   // Although that should never happen, we need to be aware that this might be a problem in the future.
   while (!back_log_.empty() && transaction::TransactionUtil::NewerThan(oldest_txn, back_log_.front().first)) {
-    back_log_.front().second(oldest_txn);
+    back_log_.front().second.first(oldest_txn);
     processed++;
     back_log_.pop();
   }
@@ -81,7 +81,7 @@ uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn) {
 
 uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn) {
   uint32_t processed = 0;
-  std::pair<timestamp_t, DeferredAction> curr_action = std::make_pair(timestamp_t(0), [=](timestamp_t /*unused*/) {});
+  std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = {timestamp_t(0), {[=](timestamp_t /*unused*/) {}, DafId::INVALID}};
   // bool reinsert = false;
   auto curr_size = new_deferred_actions_.unsafe_size();
   while (processed != curr_size) {
@@ -93,7 +93,7 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn) {
                    "With single consumer of queue, we should be able to pop front when we have not processed every "
                    "item in the queue.");
     if (!transaction::TransactionUtil::NewerThan(oldest_txn, curr_action.first)) break;
-    curr_action.second(oldest_txn);
+    curr_action.second.first(oldest_txn);
     processed++;
   }
   if (processed != curr_size && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);

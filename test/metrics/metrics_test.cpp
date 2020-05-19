@@ -45,7 +45,7 @@ class MetricsTests : public TerrierTest {
     sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), table_schema_);
   }
   void TearDown() override {
-    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table_; });
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table_; }, transaction::DafId::INVALID);
   }
 
   std::default_random_engine generator_;

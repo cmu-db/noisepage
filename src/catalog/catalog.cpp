@@ -74,14 +74,14 @@ void Catalog::TearDown() {
       [=, db_cats{std::move(db_cats)}](transaction::DeferredActionManager *deferred_action_manager) {
         for (auto db : db_cats) {
           auto del_action = DeallocateDatabaseCatalog(db);
-          deferred_action_manager->RegisterDeferredAction(del_action);
+          deferred_action_manager->RegisterDeferredAction(del_action, transaction::DafId::CATALOG_TEARDOWN);
         }
         // Pass vars to the deferral by value
         deferred_action_manager->RegisterDeferredAction([=]() {
           delete databases_oid_index_;   // Delete the OID index
           delete databases_name_index_;  // Delete the name index
           delete databases_;             // Delete the table
-        });
+        }, transaction::DafId::CATALOG_TEARDOWN);
       });
 
   // Deallocate the buffer (not needed if hard-coded to be on stack).
@@ -126,7 +126,7 @@ bool Catalog::DeleteDatabase(const common::ManagedPointer<transaction::Transacti
   // live references at deletion that need to be deleted.
   txn->RegisterCommitAction(
       [=, del_action{std::move(del_action)}](transaction::DeferredActionManager *deferred_action_manager) {
-        deferred_action_manager->RegisterDeferredAction(del_action);
+        deferred_action_manager->RegisterDeferredAction(del_action, transaction::DafId::CATALOG_TEARDOWN);
       });
   return true;
 }

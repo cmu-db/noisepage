@@ -84,7 +84,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
       // DeferredAction
-      db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
+      db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::DEALLOCATION);
     }
     state->SetItemsProcessed(num_txns_ * state->iterations());
   }

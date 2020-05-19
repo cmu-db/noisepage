@@ -26,7 +26,7 @@ class LargeGCTests : public TerrierTest {
         for (auto w : result.second) delete w;
         db_main->GetGarbageCollectorThread()->ResumeGC();
       }
-      db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
+      db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID);
     }
   }
 };

@@ -13,6 +13,19 @@
 namespace terrier::transaction {
 
 constexpr uint8_t MIN_GC_INVOCATIONS = 3;
+constexpr uint8_t DAF_TAG_COUNT = 6;
+
+enum class DafId : uint8_t {
+  DEALLOCATION = 0,
+  DOUBLE_DEFERRAL,
+  CATALOG_TEARDOWN,
+  INDEX_REMOVE_KEY,
+  COMPACTION,
+  LOG_RECORD_REMOVAL,
+  TXN_REMOVAL,
+  UNLINK,
+  INVALID
+};
 
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
@@ -25,7 +38,10 @@ class DeferredActionManager {
    * off.
    */
   explicit DeferredActionManager(const common::ManagedPointer<TimestampManager> timestamp_manager)
-      : timestamp_manager_(timestamp_manager) {}
+      : timestamp_manager_(timestamp_manager), daf_tags_(DAF_TAG_COUNT) {
+    for (size_t i = 0; i < DAF_TAG_COUNT; i++) // NOLINT
+      daf_tags_[i] = 0;
+  }
 
   ~DeferredActionManager() {
     TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
@@ -38,7 +54,7 @@ class DeferredActionManager {
    * transaction) is more recent than the time this function was called.
    * @param a functional implementation of the action that is deferred. @see DeferredAction
    */
-  timestamp_t RegisterDeferredAction(DeferredAction &&a);
+  timestamp_t RegisterDeferredAction(DeferredAction &&a, transaction::DafId daf_id);
 
   /**
    * Adds the action to a buffered list of deferred actions.  This action will
@@ -46,10 +62,10 @@ class DeferredActionManager {
    * transaction) is more recent than the time this function was called.
    * @param a functional implementation of the action that is deferred
    */
-  timestamp_t RegisterDeferredAction(const std::function<void()> &a) {
+  timestamp_t RegisterDeferredAction(const std::function<void()> &a, DafId daf_id) {
     // TODO(Tianyu): Will this be a performance problem? Hopefully C++ is smart enough
     // to optimize out this call...
-    return RegisterDeferredAction([=](timestamp_t /*unused*/) { a(); });
+    return RegisterDeferredAction([=](timestamp_t /*unused*/) { a(); }, daf_id);
   }
 
   /**
@@ -95,8 +111,8 @@ class DeferredActionManager {
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
-  tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_;
-  std::queue<std::pair<timestamp_t, DeferredAction>> back_log_;
+  tbb::concurrent_queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> new_deferred_actions_;
+  std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> back_log_;
   // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
   // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
   // wasteful traversals of the version chain.
@@ -104,6 +120,7 @@ class DeferredActionManager {
 
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
+  std::vector<std::atomic<uint16_t>> daf_tags_;
 
   // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
   //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls

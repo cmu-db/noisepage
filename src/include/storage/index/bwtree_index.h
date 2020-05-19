@@ -105,7 +105,7 @@ class BwTreeIndex final : public Index {
       deferred_action_manager->RegisterDeferredAction([=]() {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
         TERRIER_ASSERT(result, "Deferred delete on the index failed.");
-      });
+      }, transaction::DafId::INDEX_REMOVE_KEY);
     });
   }
 

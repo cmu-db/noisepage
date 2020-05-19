@@ -82,7 +82,7 @@ class HashIndexTests : public TerrierTest {
       delete sql_table_;
       delete default_index_;
       delete unique_index_;
-    });
+    }, transaction::DafId::INVALID);
 
     delete[] key_buffer_1_;
     delete[] key_buffer_2_;

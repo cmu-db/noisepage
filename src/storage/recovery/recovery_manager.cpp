@@ -35,7 +35,7 @@ void RecoveryManager::RecoverFromLogs() {
         TERRIER_ASSERT(pair.second.empty(), "Abort records should not have any varlen pointers");
         DeferRecordDeletes(log_record->TxnBegin(), true);
         buffered_changes_map_.erase(log_record->TxnBegin());
-        deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
+        deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); }, transaction::DafId::LOG_RECORD_REMOVAL);
         break;
       }
 
@@ -50,7 +50,7 @@ void RecoveryManager::RecoverFromLogs() {
         recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
 
         // Clean up the log record
-        deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
+        deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); }, transaction::DafId::LOG_RECORD_REMOVAL);
         break;
       }
 
@@ -114,7 +114,7 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
         }
       }
     }
-  });
+  }, transaction::DafId::LOG_RECORD_REMOVAL);
 }
 
 uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {

@@ -227,7 +227,7 @@ class HashIndex final : public Index {
 
     // Register a deferred action for the GC with txn manager. See base function comment.
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-      deferred_action_manager->RegisterDeferredAction(ERASE_KEY_ACTION);
+      deferred_action_manager->RegisterDeferredAction(ERASE_KEY_ACTION, transaction::DafId::INDEX_REMOVE_KEY);
     });
   }
 

@@ -139,8 +139,8 @@ void TransactionManager::CleanTransaction(TransactionContext *txn) {
       deferred_action_manager_->RegisterDeferredAction([=]() {
         num_deallocated_++;
         delete txn;
-      });
-    });
+      }, transaction::DafId::TXN_REMOVAL);
+    }, transaction::DafId::UNLINK);
   }
 }
 

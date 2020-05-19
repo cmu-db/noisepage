@@ -229,7 +229,7 @@ class RecoveryTests : public TerrierTest {
     }
     // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
     // DeferredAction
-    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID);
   }
 };
 
@@ -762,10 +762,10 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
   // DeferredAction
-  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID);
 
   secondary_recovery_db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
-      [=]() { unlink(secondary_log_file.c_str()); });
+      [=]() { unlink(secondary_log_file.c_str()); }, transaction::DafId::INVALID);
 }
 
 }  // namespace terrier::storage
