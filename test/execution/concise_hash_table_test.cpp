@@ -217,7 +217,7 @@ TEST_F(ConciseHashTableTest, MultiGroupBuildTest) {
   //
 
   ConciseHashTable table(probe_length);
-  table.SetSize(nullptr,num_tuples);
+  table.SetSize(nullptr, num_tuples);
 
   EXPECT_EQ(ConciseHashTable::K_MIN_NUM_SLOTS, table.Capacity());
 
