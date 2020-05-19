@@ -77,6 +77,15 @@ SETTING_int(
     terrier::settings::Callbacks::NoOp
 )
 
+// Write ahead logging
+SETTING_bool(
+    wal,
+    "Whether WAL is enabled (default: true)",
+    true,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
 // Path to log file for WAL
 SETTING_string(
     log_file_path,
@@ -146,8 +155,16 @@ SETTING_int64(
 )
 
 SETTING_bool(
+    metrics,
+    "Metrics sub-system for various components (default: true).",
+    true,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
     metrics_logging,
-    "Metrics collection for the Logging component.",
+    "Metrics collection for the Logging component (default: false).",
     false,
     true,
     terrier::settings::Callbacks::MetricsLogging
@@ -155,7 +172,7 @@ SETTING_bool(
 
 SETTING_bool(
     metrics_transaction,
-    "Metrics collection for the TransactionManager component.",
+    "Metrics collection for the TransactionManager component (default: false).",
     false,
     true,
     terrier::settings::Callbacks::MetricsTransaction
@@ -163,7 +180,7 @@ SETTING_bool(
 
 SETTING_bool(
     metrics_pipeline,
-    "Metrics collection for the ExecutionEngine pipelines.",
+    "Metrics collection for the ExecutionEngine pipelines (default: false).",
     false,
     true,
     terrier::settings::Callbacks::MetricsPipeline
