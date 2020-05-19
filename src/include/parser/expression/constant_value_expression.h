@@ -86,7 +86,7 @@ class ConstantValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "COnstantValueExpression should have 0 children");
+    TERRIER_ASSERT(children.empty(), "ConstantValueExpression should have 0 children");
     return Copy();
   }
 
@@ -101,6 +101,11 @@ class ConstantValueExpression : public AbstractExpression {
 
   /** @return the constant value stored in this expression */
   common::ManagedPointer<execution::sql::Val> GetValue() const { return common::ManagedPointer(value_); }
+
+  void SetValue(const type::TypeId type, std::unique_ptr<execution::sql::Val> value) {
+    return_value_type_ = type;
+    value_ = std::move(value);
+  }
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
@@ -134,7 +139,7 @@ class ConstantValueExpression : public AbstractExpression {
  private:
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   /** The constant held inside this ConstantValueExpression. */
-  const std::unique_ptr<execution::sql::Val> value_ = nullptr;
+  std::unique_ptr<execution::sql::Val> value_ = nullptr;
 };
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);

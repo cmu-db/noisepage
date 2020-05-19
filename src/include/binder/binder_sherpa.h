@@ -105,35 +105,51 @@ class BinderSherpa {
   }
 
   /**
-   * @return The TransientValue obtained by peeking @p int_val with @p peeker if the value fits.
-   */
-  template <typename Output, typename Input>
-  static parser::ConstantValueExpression TryCastNumeric(const Input int_val) {
-    if (!IsRepresentable<Output>(int_val)) {
-      throw BINDER_EXCEPTION("BinderSherpa TryCastNumeric value out of bounds!");
-    }
-    return peeker(static_cast<Output>(int_val));
-  }
-
-  /**
    * @return Casted numeric type, or an exception if the cast fails.
    */
   template <typename Input>
-  static parser::ConstantValueExpression TryCastNumericAll(Input int_val, const type::TypeId desired_type) {
+  static void TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
+                                const Input int_val, const type::TypeId desired_type) {
     switch (desired_type) {
-      case type::TypeId::TINYINT:
-        return TryCastNumeric<int8_t>(int_val);
-      case type::TypeId::SMALLINT:
-        return TryCastNumeric<int16_t>(int_val);
-      case type::TypeId::INTEGER:
-        return TryCastNumeric<int32_t>(int_val);
-      case type::TypeId::BIGINT:
-        return TryCastNumeric<int64_t>(int_val);
-      case type::TypeId::DECIMAL:
-        return TryCastNumeric<double>(int_val);
+      case type::TypeId::TINYINT: {
+        if (IsRepresentable<int8_t>(int_val)) {
+          value->SetReturnValueType(desired_type);
+          return;
+        }
+        break;
+      }
+      case type::TypeId::SMALLINT: {
+        if (IsRepresentable<int16_t>(int_val)) {
+          value->SetReturnValueType(desired_type);
+          return;
+        }
+        break;
+      }
+      case type::TypeId::INTEGER: {
+        if (IsRepresentable<int32_t>(int_val)) {
+          value->SetReturnValueType(desired_type);
+          return;
+        }
+        break;
+      }
+      case type::TypeId::BIGINT: {
+        if (IsRepresentable<int64_t>(int_val)) {
+          value->SetReturnValueType(desired_type);
+          return;
+        }
+        break;
+      }
+      case type::TypeId::DECIMAL: {
+        if (IsRepresentable<double>(int_val)) {
+          value->SetValue(desired_type, std::make_unique<execution::sql::Real>(static_cast<double>(int_val)));
+          return;
+        }
+        break;
+      }
       default:
         throw BINDER_EXCEPTION("BinderSherpa TryCastNumericAll not a numeric type!");
     }
+    throw BINDER_EXCEPTION("BinderSherpa TryCastNumericAll value out of bounds!");
   }
 
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;

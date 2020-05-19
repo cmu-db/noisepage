@@ -20,6 +20,7 @@ class QueryToOperatorTransformer;
 
 namespace terrier::binder {
 class BindNodeVisitor;
+class BinderSherpa;
 }  // namespace terrier::binder
 
 namespace terrier::parser {
@@ -268,6 +269,7 @@ class AbstractExpression {
   // as they each traverse the ast independently and add in necessary information to the ast
   // TODO(Ling): we could look into whether the two traversals can be combined to one in the future
   friend class binder::BindNodeVisitor;
+  friend class binder::BinderSherpa;
   friend class optimizer::QueryToOperatorTransformer;
 
   /**
