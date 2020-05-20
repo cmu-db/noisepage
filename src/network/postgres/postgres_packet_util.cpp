@@ -102,13 +102,14 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       }
       // fall back to VARCHAR?
       if (string_val.length() <= execution::sql::StringVal::InlineThreshold()) {
-        return {type, std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length())};
+        return {type, std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length()), nullptr};
       }
-      // TODO(Matt): smarter allocation? also who owns this? the CVE? right now it will leak
+      // TODO(Matt): smarter allocation?
       auto *const buffer = common::AllocationUtil::AllocateAligned(string_val.length());
       std::memcpy(reinterpret_cast<char *const>(buffer), string_val.c_str(), string_val.length());
       return {type,
-              std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), string_val.length())};
+              std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), string_val.length()),
+              buffer};
     }
     default:
       // TODO(Matt): Note that not all types are handled yet. Add them as we support them.

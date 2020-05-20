@@ -175,15 +175,15 @@ class ConstantValueExpression : public AbstractExpression {
         // Inlined
         if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
           expr = std::make_unique<ConstantValueExpression>(
-              return_value_type_, std::make_unique<execution::sql::StringVal>(val->Content(), val->len_));
+              return_value_type_, std::make_unique<execution::sql::StringVal>(val->Content(), val->len_), nullptr);
           break;
         }
-        // TODO(Matt): smarter allocation? also who owns this? the CVE? right now it will leak
+        // TODO(Matt): smarter allocation?
         auto *const buffer = common::AllocationUtil::AllocateAligned(val->len_);
         std::memcpy(reinterpret_cast<char *const>(buffer), val->Content(), val->len_);
         expr = std::make_unique<ConstantValueExpression>(
             return_value_type_,
-            std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), val->len_));
+            std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), val->len_), buffer);
         break;
       }
       default:
