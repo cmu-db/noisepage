@@ -9,6 +9,7 @@
 
 #include "common/macros.h"
 #include "main/db_main.h"
+#include "parser/expression/constant_value_expression.h"
 #include "settings/settings_callbacks.h"
 
 #define __SETTING_GFLAGS_DECLARE__     // NOLINT
@@ -237,9 +238,9 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
   setter_callback(action_context);
 }
 
-type::TransientValue &SettingsManager::GetValue(Param param) {
+common::ManagedPointer<parser::ConstantValueExpression> SettingsManager::GetValue(Param param) {
   auto &param_info = param_map_.find(param)->second;
-  return param_info.value_;
+  return param_info.GetValue();
 }
 
 bool SettingsManager::SetValue(Param param, type::TransientValue value) {
@@ -251,15 +252,20 @@ bool SettingsManager::SetValue(Param param, type::TransientValue value) {
   return true;
 }
 
-bool SettingsManager::ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
-                                    const type::TransientValue &max_value) {
-  switch (value.Type()) {
+bool SettingsManager::ValidateValue(const parser::ConstantValueExpression &value,
+                                    const parser::ConstantValueExpression &min_value,
+                                    const parser::ConstantValueExpression &max_value) {
+  switch (value.GetReturnValueType()) {
     case type::TypeId::INTEGER:
-      return ValuePeeker::PeekInteger(value) >= ValuePeeker::PeekInteger(min_value) &&
-             ValuePeeker::PeekInteger(value) <= ValuePeeker::PeekInteger(max_value);
+      return value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ >=
+                 min_value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ &&
+             value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ <=
+                 max_value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
     case type::TypeId ::DECIMAL:
-      return ValuePeeker::PeekDecimal(value) >= ValuePeeker::PeekDecimal(min_value) &&
-             ValuePeeker::PeekDecimal(value) <= ValuePeeker::PeekDecimal(max_value);
+      return value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ >=
+                 min_value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ &&
+             value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ <=
+                 max_value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
     default:
       return true;
   }

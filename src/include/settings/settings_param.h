@@ -62,10 +62,13 @@ class ParamInfo {
   common::ManagedPointer<parser::ConstantValueExpression> GetValue() const { return common::ManagedPointer(value_); }
 
  private:
+  friend class terrier::DBMain;
+  friend class SettingsManager;
   std::string name_;
-  std::unique_ptr<parser::ConstantValueExpression> value_;
+  std::unique_ptr<parser::ConstantValueExpression> value_;  // TODO(Matt): just make it a field, rather than unique_ptr?
   std::string desc_;
-  std::unique_ptr<parser::ConstantValueExpression> default_value_;
+  std::unique_ptr<parser::ConstantValueExpression>
+      default_value_;  // TODO(Matt): just make it a field, rather than unique_ptr?
   bool is_mutable_;
   double min_value_;
   double max_value_;

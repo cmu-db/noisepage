@@ -143,7 +143,7 @@ class SettingsManager {
   void ValidateSetting(Param param, common::ManagedPointer<execution::sql::Val> min_value,
                        common::ManagedPointer<execution::sql::Val> max_value);
 
-  parser::ConstantValueExpression &GetValue(Param param);
+  common::ManagedPointer<parser::ConstantValueExpression> GetValue(Param param);
   bool SetValue(Param param, parser::ConstantValueExpression value);
   bool ValidateValue(const parser::ConstantValueExpression &value, const parser::ConstantValueExpression &min_value,
                      const parser::ConstantValueExpression &max_value);
