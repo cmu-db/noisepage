@@ -140,11 +140,11 @@ class SettingsManager {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   common::SharedLatch latch_;
 
-  void ValidateSetting(Param param, common::ManagedPointer<execution::sql::Val> min_value,
-                       common::ManagedPointer<execution::sql::Val> max_value);
+  void ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
+                       const parser::ConstantValueExpression &max_value);
 
   common::ManagedPointer<parser::ConstantValueExpression> GetValue(Param param);
-  bool SetValue(Param param, parser::ConstantValueExpression value);
+  bool SetValue(Param param, std::unique_ptr<parser::ConstantValueExpression> value);
   bool ValidateValue(const parser::ConstantValueExpression &value, const parser::ConstantValueExpression &min_value,
                      const parser::ConstantValueExpression &max_value);
   common::ActionState InvokeCallback(Param param, void *old_value, void *new_value,

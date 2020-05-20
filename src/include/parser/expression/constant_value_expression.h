@@ -25,60 +25,72 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value value to be held
    */
   ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(std::move(value)) {}
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(std::move(value)) {
+    TERRIER_ASSERT(
+        type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY,
+        "Constructor can't handle taking ownership of non-inlined varlens so it can't be used with StringVals.");
+  }
+
+  ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::StringVal> value, byte *const buffer)
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(std::move(value)), buffer_(buffer) {
+    TERRIER_ASSERT(type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY,
+                   "Constructor is just for potentially taking ownership of non-lined varlens.");
+  }
 
   /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
-//
-//  ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
-//    switch (other.GetReturnValueType()) {
-//      case type::TypeId::BOOLEAN: {
-//        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-//        value_ = std::make_unique<execution::sql::BoolVal>(val);
-//        break;
-//      }
-//      case type::TypeId::TINYINT:
-//      case type::TypeId::SMALLINT:
-//      case type::TypeId::INTEGER:
-//      case type::TypeId::BIGINT: {
-//        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-//        value_ = std::make_unique<execution::sql::Integer>(val);
-//        break;
-//      }
-//      case type::TypeId::DECIMAL: {
-//        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-//        value_ = std::make_unique<execution::sql::Real>(val);
-//        break;
-//      }
-//      case type::TypeId::TIMESTAMP: {
-//        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-//        value_ = std::make_unique<execution::sql::TimestampVal>(val);
-//        break;
-//      }
-//      case type::TypeId::DATE: {
-//        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-//        value_ = std::make_unique<execution::sql::DateVal>(val);
-//        break;
-//      }
-//      case type::TypeId::VARCHAR:
-//      case type::TypeId::VARBINARY: {
-//        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
-//        // Inlined
-//        if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
-//          value_ = std::make_unique<execution::sql::StringVal>(val->Content(), val->len_);
-//          break;
-//        }
-//        // TODO(Matt): smarter allocation? also who owns this? the CVE? right now it will leak
-//        auto *const buffer = common::AllocationUtil::AllocateAligned(val->len_);
-//        std::memcpy(reinterpret_cast<char *const>(buffer), val->Content(), val->len_);
-//        value_ = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), val->len_);
-//        break;
-//      }
-//      default:
-//        UNREACHABLE("Invalid TypeId.");
-//    }
-//    this->SetMutableStateForCopy(other);
-//  }
+
+  ~ConstantValueExpression() override { delete[] buffer_; }
+
+  ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
+    switch (other.GetReturnValueType()) {
+      case type::TypeId::BOOLEAN: {
+        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+        value_ = std::make_unique<execution::sql::BoolVal>(val);
+        break;
+      }
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT: {
+        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+        value_ = std::make_unique<execution::sql::Integer>(val);
+        break;
+      }
+      case type::TypeId::DECIMAL: {
+        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+        value_ = std::make_unique<execution::sql::Real>(val);
+        break;
+      }
+      case type::TypeId::TIMESTAMP: {
+        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
+        value_ = std::make_unique<execution::sql::TimestampVal>(val);
+        break;
+      }
+      case type::TypeId::DATE: {
+        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
+        value_ = std::make_unique<execution::sql::DateVal>(val);
+        break;
+      }
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY: {
+        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
+        // Inlined
+        if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
+          value_ = std::make_unique<execution::sql::StringVal>(val->Content(), val->len_);
+          break;
+        }
+        // TODO(Matt): smarter allocation?
+        buffer_ = common::AllocationUtil::AllocateAligned(val->len_);
+        std::memcpy(reinterpret_cast<char *const>(buffer_), val->Content(), val->len_);
+        value_ = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer_), val->len_);
+        break;
+      }
+      default:
+        UNREACHABLE("Invalid TypeId.");
+    }
+    this->SetMutableStateForCopy(other);
+  }
 
   //
   //  /**
@@ -206,6 +218,9 @@ class ConstantValueExpression : public AbstractExpression {
   common::ManagedPointer<execution::sql::Val> GetValue() const { return common::ManagedPointer(value_); }
 
   void SetValue(const type::TypeId type, std::unique_ptr<execution::sql::Val> value) {
+    TERRIER_ASSERT(
+        type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY,
+        "SetValue can't handle taking ownership of non-inlined varlens so it can't be used with StringVals.");
     return_value_type_ = type;
     value_ = std::move(value);
   }
@@ -243,6 +258,8 @@ class ConstantValueExpression : public AbstractExpression {
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   /** The constant held inside this ConstantValueExpression. */
   std::unique_ptr<execution::sql::Val> value_;
+
+  byte *buffer_ = nullptr;
 };
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
