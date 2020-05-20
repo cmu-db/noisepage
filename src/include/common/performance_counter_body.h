@@ -2,8 +2,8 @@
 
 #include <atomic>
 #include <string>
-#include "common/performance_counter.h"
 #include "common/json.h"
+#include "common/performance_counter.h"
 
 /*
  * Every helper macro needs to appear in both NDEBUG and DEBUG branches.
@@ -47,15 +47,15 @@
  *
  */
 
-#define DEFINE_PERFORMANCE_CLASS_BODY(ClassName, MemberList)                                              \
-  nlohmann::json ClassName::ToJson() const {                                                              \
-      nlohmann::json output;                                                                              \
-      output["CounterName"] = #ClassName;                                                                 \
-      MemberList(PC_FN_JSON_TO);                                                                          \
-      return output;                                                                                      \
-  }                                                                                                       \
-  void ClassName::FromJson(const nlohmann::json &j) { MemberList(PC_FN_JSON_FROM); }                      \
-                                                                                                          \
-  void ClassName::ZeroCounters() { MemberList(PC_FN_ZERO) }                                               \
-  void to_json(nlohmann::json &j, const ClassName &c) { j = c.ToJson(); }  /* NOLINT */                   \
+#define DEFINE_PERFORMANCE_CLASS_BODY(ClassName, MemberList)                            \
+  nlohmann::json ClassName::ToJson() const {                                            \
+    nlohmann::json output;                                                              \
+    output["CounterName"] = #ClassName;                                                 \
+    MemberList(PC_FN_JSON_TO);                                                          \
+    return output;                                                                      \
+  }                                                                                     \
+  void ClassName::FromJson(const nlohmann::json &j) { MemberList(PC_FN_JSON_FROM); }    \
+                                                                                        \
+  void ClassName::ZeroCounters() { MemberList(PC_FN_ZERO) }                             \
+  void to_json(nlohmann::json &j, const ClassName &c) { j = c.ToJson(); }  /* NOLINT */ \
   void from_json(const nlohmann::json &j, ClassName &c) { c.FromJson(j); } /* NOLINT */

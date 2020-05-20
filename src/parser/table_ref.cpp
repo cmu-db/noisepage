@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
-#include "parser/select_statement.h"
 #include "common/json.h"
+#include "parser/select_statement.h"
 
 namespace terrier::parser {
 

@@ -1,8 +1,8 @@
 #pragma once
+#include <cstring>
 #include <list>
 #include <unordered_map>
 #include <vector>
-#include <cstring>
 
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"

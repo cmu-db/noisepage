@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "common/macros.h"
 #include "common/json_header.h"
+#include "common/macros.h"
 
 namespace terrier::optimizer {
 /**

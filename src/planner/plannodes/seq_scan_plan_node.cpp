@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "common/hash_util.h"
-#include "planner/plannodes/seq_scan_plan_node.h"
 #include "common/json.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 
 namespace terrier::planner {
 

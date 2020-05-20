@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "storage/data_table.h"
 #include "common/json.h"
+#include "storage/data_table.h"
 
 namespace terrier::planner {
 

@@ -3,9 +3,9 @@
 
 #include "loggers/optimizer_logger.h"
 
+#include "common/json.h"
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
-#include "common/json.h"
 
 namespace terrier::optimizer {
 

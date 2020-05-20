@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "nlohmann/json.hpp"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
@@ -43,7 +44,6 @@
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
-#include "nlohmann/json.hpp"
 
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"

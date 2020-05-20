@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -18,7 +19,6 @@
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
-#include "common/json.h"
 
 namespace terrier::parser {
 

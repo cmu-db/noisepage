@@ -1,11 +1,11 @@
 #include "common/strong_typedef.h"
 #include "common/json.h"
 
-#include "optimizer/optimizer_defs.h"
 #include "catalog/catalog_defs.h"
 #include "common/action_context.h"
 #include "execution/exec_defs.h"
 #include "network/network_defs.h"
+#include "optimizer/optimizer_defs.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"

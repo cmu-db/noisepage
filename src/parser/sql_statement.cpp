@@ -1,6 +1,6 @@
 #include "parser/sql_statement.h"
-#include "parser/expression/abstract_expression.h"
 #include "common/json.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
 

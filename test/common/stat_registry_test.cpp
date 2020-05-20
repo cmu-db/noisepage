@@ -8,9 +8,9 @@
 #include <string>
 #include <vector>
 
-#include "common/performance_counter_body.h"
 #include "common/json.h"
 #include "common/macros.h"
+#include "common/performance_counter_body.h"
 #include "gtest/gtest.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"

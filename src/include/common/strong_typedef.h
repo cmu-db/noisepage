@@ -59,7 +59,7 @@ namespace terrier::common {
   }                                                                                           \
   using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
   namespace tags {                                                                            \
-  void to_json(nlohmann::json &j, const name &c); /* NOLINT */                                \
+  void to_json(nlohmann::json &j, const name &c);   /* NOLINT */                              \
   void from_json(const nlohmann::json &j, name &c); /* NOLINT */                              \
   }
 

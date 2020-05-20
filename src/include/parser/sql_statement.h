@@ -11,8 +11,8 @@
 #include "common/hash_util.h"
 #include "common/json_header.h"
 #include "common/macros.h"
-#include "parser/parser_defs.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/parser_defs.h"
 
 namespace terrier {
 

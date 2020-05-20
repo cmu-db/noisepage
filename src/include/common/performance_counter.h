@@ -142,26 +142,25 @@ class PerformanceCounter {
  * DEFINE_PERFORMANCE_CLASS_BODY with the same arguements.
  *
  */
-#define DEFINE_PERFORMANCE_CLASS_HEADER(ClassName, MemberList)                                 \
-  class ClassName : public terrier::common::PerformanceCounter {                               \
-   private:                                                                                    \
-    std::string name = #ClassName;                                                             \
-    MemberList(PC_HELPER_DEFINE_MEMBERS);                                                      \
-                                                                                               \
-   public:                                                                                     \
-    MemberList(PC_HELPER_DEFINE_GET);                                                          \
-    MemberList(PC_HELPER_DEFINE_SET);                                                          \
-    MemberList(PC_HELPER_DEFINE_INCREMENT);                                                    \
-    MemberList(PC_HELPER_DEFINE_DECREMENT);                                                    \
-                                                                                               \
-    std::string GetName() override { return name; }                                            \
-    void SetName(const std::string &name) override { this->name = name; }                      \
-                                                                                               \
-    nlohmann::json ToJson() const override;                                                    \
-    void FromJson(const nlohmann::json &j) override;                                           \
-    void ZeroCounters();                                                                       \
-  };                                                                                           \
-                                                                                               \
-  void to_json(nlohmann::json &j, const ClassName &c);  /* NOLINT */                           \
-  void from_json(const nlohmann::json &j, ClassName &c);  /* NOLINT */
-
+#define DEFINE_PERFORMANCE_CLASS_HEADER(ClassName, MemberList)            \
+  class ClassName : public terrier::common::PerformanceCounter {          \
+   private:                                                               \
+    std::string name = #ClassName;                                        \
+    MemberList(PC_HELPER_DEFINE_MEMBERS);                                 \
+                                                                          \
+   public:                                                                \
+    MemberList(PC_HELPER_DEFINE_GET);                                     \
+    MemberList(PC_HELPER_DEFINE_SET);                                     \
+    MemberList(PC_HELPER_DEFINE_INCREMENT);                               \
+    MemberList(PC_HELPER_DEFINE_DECREMENT);                               \
+                                                                          \
+    std::string GetName() override { return name; }                       \
+    void SetName(const std::string &name) override { this->name = name; } \
+                                                                          \
+    nlohmann::json ToJson() const override;                               \
+    void FromJson(const nlohmann::json &j) override;                      \
+    void ZeroCounters();                                                  \
+  };                                                                      \
+                                                                          \
+  void to_json(nlohmann::json &j, const ClassName &c);   /* NOLINT */     \
+  void from_json(const nlohmann::json &j, ClassName &c); /* NOLINT */

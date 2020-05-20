@@ -16,7 +16,6 @@ nlohmann::json TransientValue::ToJson() const {
   return j;
 }
 
-
 void TransientValue::FromJson(const nlohmann::json &j) {
   type_ = j.at("type").get<TypeId>();
   if (Type() == TypeId::VARCHAR && !Null()) {

@@ -1,12 +1,12 @@
 #include <list>
 
 #include "common/allocator.h"
+#include "common/performance_counter_body.h"
 #include "storage/block_access_controller.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
-#include "common/performance_counter_body.h"
 
 namespace terrier::storage {
 
