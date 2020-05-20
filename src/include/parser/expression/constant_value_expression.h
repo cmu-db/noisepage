@@ -115,8 +115,9 @@ class ConstantValueExpression : public AbstractExpression {
               return_value_type_, std::make_unique<execution::sql::StringVal>(val->Content(), val->len_));
           break;
         }
-        // TODO(Matt): smarter allocation? also who owns this?
-        const auto *buffer = common::AllocationUtil::AllocateAligned(val->len_);
+        // TODO(Matt): smarter allocation? also who owns this? the CVE?
+        auto *const buffer = common::AllocationUtil::AllocateAligned(val->len_);
+        std::memcpy(reinterpret_cast<char *const>(buffer), val->Content(), val->len_);
         expr = std::make_unique<ConstantValueExpression>(
             return_value_type_,
             std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), val->len_));

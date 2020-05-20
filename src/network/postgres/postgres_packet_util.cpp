@@ -53,22 +53,30 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     case type::TypeId::BOOLEAN: {
       // Matt: as best as I can tell, we only expect 'TRUE' of 'FALSE' coming in here, rather than the 't' or 'f' that
       // results use. We can simplify this logic a bit if that assumption can be verified
-      if (string_val == "TRUE") return type::TransientValueFactory::GetBoolean(true);
+      if (string_val == "TRUE") return {type, std::make_unique<execution::sql::BoolVal>(true)};
       TERRIER_ASSERT(string_val == "FALSE", "Input equals something other than TRUE or FALSE. We should check that.");
-      return type::TransientValueFactory::GetBoolean(false);
+      return {type, std::make_unique<execution::sql::BoolVal>(false)};
     }
     case type::TypeId::TINYINT:
-      return type::TransientValueFactory::GetTinyInt(static_cast<int8_t>(std::stoll(string_val)));
+      return {type, std::make_unique<execution::sql::Integer>(static_cast<int8_t>(std::stoll(string_val)))};
     case type::TypeId::SMALLINT:
-      return type::TransientValueFactory::GetSmallInt(static_cast<int16_t>(std::stoll(string_val)));
+      return {type, std::make_unique<execution::sql::Integer>(static_cast<int16_t>(std::stoll(string_val)))};
     case type::TypeId::INTEGER:
-      return type::TransientValueFactory::GetInteger(static_cast<int32_t>(std::stoll(string_val)));
+      return {type, std::make_unique<execution::sql::Integer>(static_cast<int32_t>(std::stoll(string_val)))};
     case type::TypeId::BIGINT:
-      return type::TransientValueFactory::GetBigInt(static_cast<int64_t>(std::stoll(string_val)));
+      return {type, std::make_unique<execution::sql::Integer>(static_cast<int64_t>(std::stoll(string_val)))};
     case type::TypeId::DECIMAL:
-      return type::TransientValueFactory::GetDecimal(std::stod(string_val));
-    case type::TypeId::VARCHAR:
-      return type::TransientValueFactory::GetVarChar(string_val);
+      return {type, std::make_unique<execution::sql::Real>(std::stod(string_val))};
+    case type::TypeId::VARCHAR: {
+      if (string_val.length() <= execution::sql::StringVal::InlineThreshold()) {
+        return {type, std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length())};
+      }
+      // TODO(Matt): smarter allocation? also who owns this? the CVE?
+      auto *const buffer = common::AllocationUtil::AllocateAligned(string_val.length());
+      std::memcpy(reinterpret_cast<char *const>(buffer), string_val.c_str(), string_val.length());
+      return {type,
+              std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), string_val.length())};
+    }
     case type::TypeId::TIMESTAMP: {
       const auto parse_result = util::TimeConvertor::ParseTimestamp(string_val);
       TERRIER_ASSERT(parse_result.first, "Failed to parse the timestamp.");
