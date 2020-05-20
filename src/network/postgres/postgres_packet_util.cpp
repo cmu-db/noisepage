@@ -125,27 +125,28 @@ parser::ConstantValueExpression PostgresPacketUtil::BinaryValueToInternalValue(
   switch (type) {
     case type::TypeId::TINYINT: {
       TERRIER_ASSERT(size == 1, "Unexpected size for this type.");
-      return type::TransientValueFactory::GetTinyInt(read_buffer->ReadValue<int8_t>());
+      return {type, std::make_unique<execution::sql::Integer>(read_buffer->ReadValue<int8_t>())};
     }
     case type::TypeId::SMALLINT: {
       TERRIER_ASSERT(size == 2, "Unexpected size for this type.");
-      return type::TransientValueFactory::GetSmallInt(read_buffer->ReadValue<int16_t>());
+      return {type, std::make_unique<execution::sql::Integer>(read_buffer->ReadValue<int16_t>())};
     }
     case type::TypeId::INTEGER: {
       TERRIER_ASSERT(size == 4, "Unexpected size for this type.");
-      return type::TransientValueFactory::GetInteger(read_buffer->ReadValue<int32_t>());
+      return {type, std::make_unique<execution::sql::Integer>(read_buffer->ReadValue<int32_t>())};
     }
     case type::TypeId::BIGINT: {
       TERRIER_ASSERT(size == 8, "Unexpected size for this type.");
-      return type::TransientValueFactory::GetBigInt(read_buffer->ReadValue<int64_t>());
+      return {type, std::make_unique<execution::sql::Integer>(read_buffer->ReadValue<int64_t>())};
     }
     case type::TypeId::DECIMAL: {
       TERRIER_ASSERT(size == 8, "Unexpected size for this type.");
-      return type::TransientValueFactory::GetDecimal(read_buffer->ReadValue<double>());
+      return {type, std::make_unique<execution::sql::Real>(read_buffer->ReadValue<double>())};
     }
     case type::TypeId::DATE: {
       // TODO(Matt): unsure if this is correct. Need tests.
-      return type::TransientValueFactory::GetDate(static_cast<type::date_t>(read_buffer->ReadValue<int32_t>()));
+      return {type,
+              std::make_unique<execution::sql::DateVal>(static_cast<uint32_t>(read_buffer->ReadValue<int32_t>()))};
     }
     default:
       // (Matt): from looking at jdbc source code, that seems like all the possible binary types
@@ -160,7 +161,7 @@ std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
   TERRIER_ASSERT(num_params == param_types.size(),
                  "We don't support type inference on parameters yet, so the size of param_types should equal the "
                  "number of parameters.");
-  std::vector<type::TransientValue> params;
+  std::vector<parser::ConstantValueExpression> params;
   params.reserve(num_params);
   for (uint16_t i = 0; i < num_params; i++) {
     const auto param_size = read_buffer->ReadValue<int32_t>();
