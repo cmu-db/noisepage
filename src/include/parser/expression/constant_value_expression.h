@@ -50,51 +50,55 @@ class ConstantValueExpression : public AbstractExpression {
   ~ConstantValueExpression() override { delete[] buffer_; }
 
   ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
-    switch (other.GetReturnValueType()) {
-      case type::TypeId::BOOLEAN: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-        value_ = std::make_unique<execution::sql::BoolVal>(val);
-        break;
-      }
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-        value_ = std::make_unique<execution::sql::Integer>(val);
-        break;
-      }
-      case type::TypeId::DECIMAL: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-        value_ = std::make_unique<execution::sql::Real>(val);
-        break;
-      }
-      case type::TypeId::TIMESTAMP: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-        value_ = std::make_unique<execution::sql::TimestampVal>(val);
-        break;
-      }
-      case type::TypeId::DATE: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-        value_ = std::make_unique<execution::sql::DateVal>(val);
-        break;
-      }
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
-        // Inlined
-        if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
-          value_ = std::make_unique<execution::sql::StringVal>(val->Content(), val->len_);
+    if (other.value_->is_null_) {
+      value_ = std::make_unique<execution::sql::Val>(true);
+    } else {
+      switch (other.GetReturnValueType()) {
+        case type::TypeId::BOOLEAN: {
+          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+          value_ = std::make_unique<execution::sql::BoolVal>(val);
           break;
         }
-        // TODO(Matt): smarter allocation?
-        buffer_ = common::AllocationUtil::AllocateAligned(val->len_);
-        std::memcpy(buffer_, val->Content(), val->len_);
-        value_ = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer_), val->len_);
-        break;
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT: {
+          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+          value_ = std::make_unique<execution::sql::Integer>(val);
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+          value_ = std::make_unique<execution::sql::Real>(val);
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
+          value_ = std::make_unique<execution::sql::TimestampVal>(val);
+          break;
+        }
+        case type::TypeId::DATE: {
+          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
+          value_ = std::make_unique<execution::sql::DateVal>(val);
+          break;
+        }
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY: {
+          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
+          // Inlined
+          if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
+            value_ = std::make_unique<execution::sql::StringVal>(val->Content(), val->len_);
+            break;
+          }
+          // TODO(Matt): smarter allocation?
+          buffer_ = common::AllocationUtil::AllocateAligned(val->len_);
+          std::memcpy(buffer_, val->Content(), val->len_);
+          value_ = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer_), val->len_);
+          break;
+        }
+        default:
+          UNREACHABLE("Invalid TypeId.");
       }
-      default:
-        UNREACHABLE("Invalid TypeId.");
     }
     this->SetMutableStateForCopy(other);
   }
@@ -142,60 +146,66 @@ class ConstantValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> Copy() const override {
     std::unique_ptr<ConstantValueExpression> expr = nullptr;
-    switch (return_value_type_) {
-      case type::TypeId::BOOLEAN: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-        expr = std::make_unique<ConstantValueExpression>(return_value_type_,
-                                                         std::make_unique<execution::sql::BoolVal>(val));
-        break;
-      }
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-        expr = std::make_unique<ConstantValueExpression>(return_value_type_,
-                                                         std::make_unique<execution::sql::Integer>(val));
-        break;
-      }
-      case type::TypeId::DECIMAL: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-        expr =
-            std::make_unique<ConstantValueExpression>(return_value_type_, std::make_unique<execution::sql::Real>(val));
-        break;
-      }
-      case type::TypeId::TIMESTAMP: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-        expr = std::make_unique<ConstantValueExpression>(return_value_type_,
-                                                         std::make_unique<execution::sql::TimestampVal>(val));
-        break;
-      }
-      case type::TypeId::DATE: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-        expr = std::make_unique<ConstantValueExpression>(return_value_type_,
-                                                         std::make_unique<execution::sql::DateVal>(val));
-        break;
-      }
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>();
-        // Inlined
-        if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
-          expr = std::make_unique<ConstantValueExpression>(
-              return_value_type_, std::make_unique<execution::sql::StringVal>(val->Content(), val->len_), nullptr);
+
+    if (value_->is_null_) {
+      expr = std::make_unique<ConstantValueExpression>(return_value_type_, std::make_unique<execution::sql::Val>(true));
+    } else {
+      switch (return_value_type_) {
+        case type::TypeId::BOOLEAN: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+          expr = std::make_unique<ConstantValueExpression>(return_value_type_,
+                                                           std::make_unique<execution::sql::BoolVal>(val));
           break;
         }
-        // TODO(Matt): smarter allocation?
-        auto *const buffer = common::AllocationUtil::AllocateAligned(val->len_);
-        std::memcpy(buffer, val->Content(), val->len_);
-        expr = std::make_unique<ConstantValueExpression>(
-            return_value_type_,
-            std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), val->len_), buffer);
-        break;
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+          expr = std::make_unique<ConstantValueExpression>(return_value_type_,
+                                                           std::make_unique<execution::sql::Integer>(val));
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+          expr = std::make_unique<ConstantValueExpression>(return_value_type_,
+                                                           std::make_unique<execution::sql::Real>(val));
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
+          expr = std::make_unique<ConstantValueExpression>(return_value_type_,
+                                                           std::make_unique<execution::sql::TimestampVal>(val));
+          break;
+        }
+        case type::TypeId::DATE: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
+          expr = std::make_unique<ConstantValueExpression>(return_value_type_,
+                                                           std::make_unique<execution::sql::DateVal>(val));
+          break;
+        }
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>();
+          // Inlined
+          if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
+            expr = std::make_unique<ConstantValueExpression>(
+                return_value_type_, std::make_unique<execution::sql::StringVal>(val->Content(), val->len_), nullptr);
+            break;
+          }
+          // TODO(Matt): smarter allocation?
+          auto *const buffer = common::AllocationUtil::AllocateAligned(val->len_);
+          std::memcpy(buffer, val->Content(), val->len_);
+          expr = std::make_unique<ConstantValueExpression>(
+              return_value_type_,
+              std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), val->len_), buffer);
+          break;
+        }
+        default:
+          UNREACHABLE("Invalid TypeId.");
       }
-      default:
-        UNREACHABLE("Invalid TypeId.");
     }
+
     expr->SetMutableStateForCopy(*this);
     return expr;
   }
