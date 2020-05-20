@@ -174,6 +174,5 @@ std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
   }
   return params;
 }
-};  // namespace terrier::network
 
 }  // namespace terrier::network
