@@ -62,15 +62,29 @@ class AbstractExpression {
         children_(std::move(children)) {}
 
   /**
-   * Copy constructs an abstract expression.
-   * @param other the abstract expression to be copied
-   */
-  AbstractExpression(const AbstractExpression &other) = default;
-
-  /**
    * Default constructor used for json deserialization
    */
   AbstractExpression() = default;
+
+  //  /**
+  //   * Copy constructs an abstract expression.
+  //   * @param other the abstract expression to be copied
+  //   */
+  //  AbstractExpression(const AbstractExpression &other) = default;
+
+  // TODO(Matt): unclear why I had to do this to get it to compile...something might be broken
+
+  /**
+   * Copy constructs an abstract expression.
+   * @param other the abstract expression to be copied
+   */
+  AbstractExpression(const AbstractExpression &other)
+      : expression_type_(other.expression_type_),
+        expression_name_(other.expression_name_),
+        alias_(other.alias_),
+        return_value_type_(other.return_value_type_),
+        depth_(other.depth_),
+        has_subquery_(other.has_subquery_) {}
 
   /**
    * @param expression_name Set the expression name of the current expression

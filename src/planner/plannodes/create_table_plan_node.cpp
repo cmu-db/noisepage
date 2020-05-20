@@ -1,4 +1,5 @@
 #include "planner/plannodes/create_table_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <utility>
@@ -117,7 +118,8 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTablePlanNode::Fr
 
   foreign_keys_ = j.at("foreign_keys").get<std::vector<ForeignKeyInfo>>();
   con_uniques_ = j.at("con_uniques").get<std::vector<UniqueInfo>>();
-  con_checks_ = j.at("con_checks").get<std::vector<CheckInfo>>();
+  // FIXME(Matt): json stuff
+//  con_checks_ = j.at("con_checks").get<std::vector<CheckInfo>>();
 
   return exprs;
 }
