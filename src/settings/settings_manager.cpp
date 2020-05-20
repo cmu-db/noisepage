@@ -233,18 +233,31 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
   const auto &param_info = param_map_.find(param)->second;
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
-  std::string_view old_value =
-      GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
-  if (!SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                           type::TypeId::VARCHAR, std::make_unique<execution::sql::StringVal>(value)))) {
+  auto old_cve = std::unique_ptr<parser::ConstantValueExpression>{
+      reinterpret_cast<parser::ConstantValueExpression *>(GetValue(param)->Copy().release())};
+  std::unique_ptr<parser::ConstantValueExpression> new_cve;
+
+  // Inlined
+  if (value.length() <= execution::sql::StringVal::InlineThreshold()) {
+    new_cve = std::make_unique<parser::ConstantValueExpression>(
+        type::TypeId::VARCHAR, std::make_unique<execution::sql::StringVal>(value.data(), value.length()), nullptr);
+  } else {
+    // TODO(Matt): smarter allocation?
+    auto *const buffer = common::AllocationUtil::AllocateAligned(value.length());
+    std::memcpy(reinterpret_cast<char *const>(buffer), value.data(), value.length());
+    new_cve = std::make_unique<parser::ConstantValueExpression>(
+        type::TypeId::VARCHAR,
+        std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), value.length()), buffer);
+  }
+
+  if (!SetValue(param, std::move(new_cve))) {
     action_context->SetState(ActionState::FAILURE);
   } else {
     std::string_view new_value(value);
+    auto old_value = old_cve->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
     ActionState action_state = InvokeCallback(param, &old_value, &new_value, action_context);
     if (action_state == ActionState::FAILURE) {
-      const bool result =
-          SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                              type::TypeId::VARCHAR, std::make_unique<execution::sql::StringVal>(old_value)));
+      const bool result = SetValue(param, std::move(old_cve));
       if (!result) {
         SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
         throw SETTINGS_EXCEPTION("Failed to reset parameter");
