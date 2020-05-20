@@ -705,15 +705,17 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
 
       if (str_view.length() <= execution::sql::StringVal::InlineThreshold()) {
         result = std::make_unique<ConstantValueExpression>(
-            type::TypeId::VARCHAR, std::make_unique<execution::sql::StringVal>(str_view.data(), str_view.length()));
+            type::TypeId::VARCHAR, std::make_unique<execution::sql::StringVal>(str_view.data(), str_view.length()),
+            nullptr);
         break;
       }
-      // TODO(Matt): smarter allocation? also who owns this? the CVE? right now it will leak
+      // TODO(Matt): smarter allocation?
       auto *const buffer = common::AllocationUtil::AllocateAligned(str_view.length());
       std::memcpy(reinterpret_cast<char *const>(buffer), str_view.data(), str_view.length());
       result = std::make_unique<ConstantValueExpression>(
           type::TypeId::VARCHAR,
-          std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), str_view.length()));
+          std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), str_view.length()),
+          buffer);
 
       break;
     }
