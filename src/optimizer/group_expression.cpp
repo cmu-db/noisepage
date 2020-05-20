@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "optimizer/expression_node_contents.h"
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/rule.h"
@@ -33,13 +34,12 @@ void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
 }
 
 common::hash_t GroupExpression::Hash() const {
-  size_t hash = op_.Hash();
+  common::hash_t hash = contents_->Hash();
 
   for (group_id_t child_group : child_groups_) {
-    size_t child_hash = common::HashUtil::Hash<group_id_t>(child_group);
+    common::hash_t child_hash = common::HashUtil::Hash<group_id_t>(child_group);
     hash = common::HashUtil::CombineHashes(hash, child_hash);
   }
-
   return hash;
 }
 
