@@ -2,8 +2,7 @@
 
 #include <vector>
 
-#include "common/macros.h"
-#include "type/type_id.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::trafficcop {
 class TrafficCop;

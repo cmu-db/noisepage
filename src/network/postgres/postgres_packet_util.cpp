@@ -3,11 +3,13 @@
 #include <string>
 #include <vector>
 
+#include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
 #include "network/network_io_utils.h"
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/postgres_protocol_util.h"
+#include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"
 #include "util/time_util.h"
 
@@ -39,11 +41,11 @@ std::vector<type::TypeId> PostgresPacketUtil::ReadParamTypes(const common::Manag
   return param_types;
 }
 
-type::TransientValue PostgresPacketUtil::TextValueToInternalValue(
+parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     const common::ManagedPointer<ReadBufferView> read_buffer, const int32_t size, const type::TypeId type) {
   if (size == -1) {
     // it's a NULL
-    return type::TransientValueFactory::GetNull(type);
+    return {type, std::make_unique<execution::sql::Val>(true)};
   }
 
   const auto string_val = read_buffer->ReadString(size);
@@ -98,11 +100,11 @@ type::TransientValue PostgresPacketUtil::TextValueToInternalValue(
   }
 }
 
-type::TransientValue PostgresPacketUtil::BinaryValueToInternalValue(
+parser::ConstantValueExpression PostgresPacketUtil::BinaryValueToInternalValue(
     const common::ManagedPointer<ReadBufferView> read_buffer, const int32_t size, const type::TypeId type) {
   if (size == -1) {
     // it's a NULL
-    return type::TransientValueFactory::GetNull(type);
+    return {type, std::make_unique<execution::sql::Val>(true)};
   }
 
   switch (type) {
@@ -136,7 +138,7 @@ type::TransientValue PostgresPacketUtil::BinaryValueToInternalValue(
   }
 }
 
-std::vector<type::TransientValue> PostgresPacketUtil::ReadParameters(
+std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
     const common::ManagedPointer<ReadBufferView> read_buffer, const std::vector<type::TypeId> &param_types,
     const std::vector<FieldFormat> &param_formats) {
   const auto num_params = static_cast<size_t>(read_buffer->ReadValue<int16_t>());

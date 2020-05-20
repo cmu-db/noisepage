@@ -43,8 +43,8 @@ class PostgresPacketUtil {
    * @param type internal type of the value
    * @return TransientValue containing the value from the packet
    */
-  static type::TransientValue TextValueToInternalValue(const common::ManagedPointer<ReadBufferView> read_buffer,
-                                                       const int32_t size, const type::TypeId type);
+  static parser::ConstantValueExpression TextValueToInternalValue(common::ManagedPointer<ReadBufferView> read_buffer,
+                                                                  int32_t size, type::TypeId type);
 
   /**
    * Given a read buffer that starts at a binary value, consumes it and returns an internal TransientValue for that type
@@ -53,8 +53,8 @@ class PostgresPacketUtil {
    * @param type internal type of the value
    * @return TransientValue containing the value from the packet
    */
-  static type::TransientValue BinaryValueToInternalValue(const common::ManagedPointer<ReadBufferView> read_buffer,
-                                                         const int32_t size, const type::TypeId type);
+  static parser::ConstantValueExpression BinaryValueToInternalValue(common::ManagedPointer<ReadBufferView> read_buffer,
+                                                                    int32_t size, type::TypeId type);
 
   /**
    * Given a read buffer that starts at the parameter types for a Parse message, reads the values out
@@ -63,9 +63,9 @@ class PostgresPacketUtil {
    * @param param_formats
    * @return vector of internal types for the parameters
    */
-  static std::vector<type::TransientValue> ReadParameters(const common::ManagedPointer<ReadBufferView> read_buffer,
-                                                          const std::vector<type::TypeId> &param_types,
-                                                          const std::vector<FieldFormat> &param_formats);
+  static std::vector<parser::ConstantValueExpression> ReadParameters(common::ManagedPointer<ReadBufferView> read_buffer,
+                                                                     const std::vector<type::TypeId> &param_types,
+                                                                     const std::vector<FieldFormat> &param_formats);
 };
 
 }  // namespace terrier::network
