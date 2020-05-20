@@ -103,31 +103,6 @@ class ConstantValueExpression : public AbstractExpression {
     this->SetMutableStateForCopy(other);
   }
 
-  //
-  //  /**
-  //   * NULL CVE
-  //   * @param val
-  //   */
-  //  explicit ConstantValueExpression(const type::TypeId type)
-  //      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type::TypeId::BOOLEAN, {}),
-  //        value_(std::make_unique<execution::sql::Val>(true)) {}
-  //
-  //  /**
-  //   * Non-NULL boolean CVE
-  //   * @param val
-  //   */
-  //  explicit ConstantValueExpression(const bool val)
-  //      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type::TypeId::BOOLEAN, {}),
-  //        value_(std::make_unique<execution::sql::BoolVal>(val)) {}
-  //
-  //  /**
-  //   * Non-NULL integral CVE
-  //   * @param val
-  //   */
-  //  explicit ConstantValueExpression(const int8_t val)
-  //      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type::TypeId::TINYINT, {}),
-  //        value_(std::make_unique<execution::sql::BoolVal>(val)) {}
-
   // FIXME(Matt): hashing stuff
   //  common::hash_t Hash() const override {
   //    return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
@@ -148,7 +123,13 @@ class ConstantValueExpression : public AbstractExpression {
     std::unique_ptr<ConstantValueExpression> expr = nullptr;
 
     if (value_->is_null_) {
-      expr = std::make_unique<ConstantValueExpression>(return_value_type_, std::make_unique<execution::sql::Val>(true));
+      if (return_value_type_ != type::TypeId::VARCHAR && return_value_type_ != type::TypeId::VARBINARY) {
+        expr =
+            std::make_unique<ConstantValueExpression>(return_value_type_, std::make_unique<execution::sql::Val>(true));
+      } else {
+        expr = std::make_unique<ConstantValueExpression>(return_value_type_,
+                                                         std::make_unique<execution::sql::Val>(true), nullptr);
+      }
     } else {
       switch (return_value_type_) {
         case type::TypeId::BOOLEAN: {
