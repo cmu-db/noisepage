@@ -71,7 +71,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       if (string_val.length() <= execution::sql::StringVal::InlineThreshold()) {
         return {type, std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length())};
       }
-      // TODO(Matt): smarter allocation? also who owns this? the CVE?
+      // TODO(Matt): smarter allocation? also who owns this? the CVE? right now it will leak
       auto *const buffer = common::AllocationUtil::AllocateAligned(string_val.length());
       std::memcpy(reinterpret_cast<char *const>(buffer), string_val.c_str(), string_val.length());
       return {type,
@@ -80,27 +80,34 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     case type::TypeId::TIMESTAMP: {
       const auto parse_result = util::TimeConvertor::ParseTimestamp(string_val);
       TERRIER_ASSERT(parse_result.first, "Failed to parse the timestamp.");
-      return type::TransientValueFactory::GetTimestamp(parse_result.second);
+      return {type, std::make_unique<execution::sql::TimestampVal>(static_cast<uint64_t>(parse_result.second))};
     }
     case type::TypeId::DATE: {
       const auto parse_result = util::TimeConvertor::ParseDate(string_val);
       TERRIER_ASSERT(parse_result.first, "Failed to parse the date.");
-      return type::TransientValueFactory::GetDate(parse_result.second);
+      return {type, std::make_unique<execution::sql::DateVal>(static_cast<uint32_t>(parse_result.second))};
     }
     case type::TypeId::INVALID: {
       // Postgres may not have told us the type in Parse message. Right now in oltpbench the JDBC driver is doing this
       // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
       const auto ts_parse_result = util::TimeConvertor::ParseTimestamp(string_val);
       if (ts_parse_result.first) {
-        return type::TransientValueFactory::GetTimestamp(ts_parse_result.second);
+        return {type, std::make_unique<execution::sql::TimestampVal>(static_cast<uint64_t>(ts_parse_result.second))};
       }
       // try date?
       const auto date_parse_result = util::TimeConvertor::ParseDate(string_val);
       if (date_parse_result.first) {
-        return type::TransientValueFactory::GetDate(date_parse_result.second);
+        return {type, std::make_unique<execution::sql::DateVal>(static_cast<uint32_t>(date_parse_result.second))};
       }
       // fall back to VARCHAR?
-      return type::TransientValueFactory::GetVarChar(string_val);
+      if (string_val.length() <= execution::sql::StringVal::InlineThreshold()) {
+        return {type, std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length())};
+      }
+      // TODO(Matt): smarter allocation? also who owns this? the CVE? right now it will leak
+      auto *const buffer = common::AllocationUtil::AllocateAligned(string_val.length());
+      std::memcpy(reinterpret_cast<char *const>(buffer), string_val.c_str(), string_val.length());
+      return {type,
+              std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), string_val.length())};
     }
     default:
       // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
