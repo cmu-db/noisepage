@@ -91,6 +91,12 @@ class InputColumnDeriver : public OperatorVisitor {
   void Visit(const Limit *op) override;
 
   /**
+   * Visit function to derive input/output columns for InnerIndexJoin
+   * @param op InnerIndexJoin operator to visit
+   */
+  void Visit(const InnerIndexJoin *op) override;
+
+  /**
    * Visit function to derive input/output columns for InnerNLJoin
    * @param op InnerNLJoin operator to visit
    */

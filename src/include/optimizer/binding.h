@@ -13,6 +13,7 @@
 #include "optimizer/operator_node.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/pattern.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
@@ -41,9 +42,9 @@ class BindingIterator {
 
   /**
    * Virtual function for getting the next binding
-   * @returns next OperatorNode that matches
+   * @returns next AbstractOptimizerNode that matches
    */
-  virtual std::unique_ptr<OperatorNode> Next() = 0;
+  virtual std::unique_ptr<AbstractOptimizerNode> Next() = 0;
 
  protected:
   /**
@@ -63,14 +64,16 @@ class GroupBindingIterator : public BindingIterator {
    * @param memo Memo to be used
    * @param id ID of the Group for binding
    * @param pattern Pattern to bind
+   * @param txn transaction context for memory management
    */
-  GroupBindingIterator(const Memo &memo, group_id_t id, Pattern *pattern)
+  GroupBindingIterator(const Memo &memo, group_id_t id, Pattern *pattern, transaction::TransactionContext *txn)
       : BindingIterator(memo),
         group_id_(id),
         pattern_(pattern),
         target_group_(memo_.GetGroupByID(id)),
         num_group_items_(target_group_->GetLogicalExpressions().size()),
-        current_item_index_(0) {
+        current_item_index_(0),
+        txn_(txn) {
     OPTIMIZER_LOG_TRACE("Attempting to bind on group {0}", id);
   }
 
@@ -82,9 +85,9 @@ class GroupBindingIterator : public BindingIterator {
 
   /**
    * Virtual function for getting the next binding
-   * @returns next OperatorNode that matches
+   * @returns next AbstractOptimizerNode that matches
    */
-  std::unique_ptr<OperatorNode> Next() override;
+  std::unique_ptr<AbstractOptimizerNode> Next() override;
 
  private:
   /**
@@ -116,6 +119,11 @@ class GroupBindingIterator : public BindingIterator {
    * Iterator used for binding against GroupExpression
    */
   std::unique_ptr<BindingIterator> current_iterator_;
+
+  /**
+   * Transaction context for managing memory of on-the-fly operator creation
+   */
+  transaction::TransactionContext *txn_;
 };
 
 /**
@@ -129,8 +137,10 @@ class GroupExprBindingIterator : public BindingIterator {
    * @param memo Memo to be used
    * @param gexpr GroupExpression to bind to
    * @param pattern Pattern to bind
+   * @param txn transaction context for memory management
    */
-  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern);
+  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
+                           transaction::TransactionContext *txn);
 
   /**
    * Virtual function for whether a binding exists
@@ -141,9 +151,9 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Virtual function for getting the next binding
    * Pointer returned must be deleted by caller when done.
-   * @returns next OperatorNode that matches
+   * @returns next AbstractOptimizerNode that matches
    */
-  std::unique_ptr<OperatorNode> Next() override {
+  std::unique_ptr<AbstractOptimizerNode> Next() override {
     TERRIER_ASSERT(current_binding_, "binding must exist");
     return std::move(current_binding_);
   }
@@ -167,17 +177,22 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Current binding
    */
-  std::unique_ptr<OperatorNode> current_binding_;
+  std::unique_ptr<AbstractOptimizerNode> current_binding_;
 
   /**
    * Stored bindings for children expressions
    */
-  std::vector<std::vector<std::unique_ptr<OperatorNode>>> children_bindings_;
+  std::vector<std::vector<std::unique_ptr<AbstractOptimizerNode>>> children_bindings_;
 
   /**
    * Position indicators tracking progress within children_bindings_
    */
   std::vector<size_t> children_bindings_pos_;
+
+  /**
+   * Transaction context to manage the memory of on-the-fly operators.
+   */
+  transaction::TransactionContext *txn_;
 };
 
 }  // namespace terrier::optimizer

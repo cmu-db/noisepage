@@ -17,7 +17,7 @@
 #include "planner/plannodes/plan_node_defs.h"
 
 namespace terrier::parser {
-class AbstractExpressionn;
+class AbstractExpression;
 class UpdateClause;
 }  // namespace terrier::parser
 
