@@ -31,10 +31,17 @@ class ConstantValueExpression : public AbstractExpression {
         "Constructor can't handle taking ownership of non-inlined varlens so it can't be used with StringVals.");
   }
 
-  ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::StringVal> value, byte *const buffer)
+  ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value, byte *const buffer)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(std::move(value)), buffer_(buffer) {
     TERRIER_ASSERT(type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY,
                    "Constructor is just for potentially taking ownership of non-lined varlens.");
+    TERRIER_ASSERT(value_->is_null_ ||
+                       (buffer_ == nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ <=
+                                                  execution::sql::StringVal::InlineThreshold()) ||
+                       (buffer_ != nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ >
+                                                  execution::sql::StringVal::InlineThreshold()),
+                   "Value should either be NULL, below the threshold with no owned buffer, or above the threshold with "
+                   "a provided buffer.");
   }
 
   /** Default constructor for deserialization. */
@@ -82,7 +89,7 @@ class ConstantValueExpression : public AbstractExpression {
         }
         // TODO(Matt): smarter allocation?
         buffer_ = common::AllocationUtil::AllocateAligned(val->len_);
-        std::memcpy(reinterpret_cast<char *const>(buffer_), val->Content(), val->len_);
+        std::memcpy(buffer_, val->Content(), val->len_);
         value_ = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer_), val->len_);
         break;
       }
@@ -180,7 +187,7 @@ class ConstantValueExpression : public AbstractExpression {
         }
         // TODO(Matt): smarter allocation?
         auto *const buffer = common::AllocationUtil::AllocateAligned(val->len_);
-        std::memcpy(reinterpret_cast<char *const>(buffer), val->Content(), val->len_);
+        std::memcpy(buffer, val->Content(), val->len_);
         expr = std::make_unique<ConstantValueExpression>(
             return_value_type_,
             std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), val->len_), buffer);
