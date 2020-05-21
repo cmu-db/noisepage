@@ -20,10 +20,10 @@ namespace terrier::parser {
  */
 class ConstantValueExpression : public AbstractExpression {
  public:
-  /**
-   * Instantiate a new constant value expression.
-   * @param value value to be held
-   */
+  explicit ConstantValueExpression(const type::TypeId type)
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}),
+        value_(std::make_unique<execution::sql::Val>(true)) {}
+
   ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(std::move(value)) {
     TERRIER_ASSERT(
@@ -231,11 +231,49 @@ class ConstantValueExpression : public AbstractExpression {
    * @see TransientValue for why TransientValue::ToJson is private
    */
   nlohmann::json ToJson() const override {
-    // FIXME(Matt): JSON stuff
-    //    nlohmann::json j = AbstractExpression::ToJson();
-    //    j["value"] = value_;
-    //    return j;
-    return nlohmann::json();
+    nlohmann::json j = AbstractExpression::ToJson();
+
+    if (!value_->is_null_) {
+      switch (return_value_type_) {
+        case type::TypeId::BOOLEAN: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+          j["value"] = val;
+          break;
+        }
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+          j["value"] = val;
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+          j["value"] = val;
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative();
+          j["value"] = val;
+          break;
+        }
+        case type::TypeId::DATE: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative();
+          j["value"] = val;
+          break;
+        }
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY: {
+          const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
+          j["value"] = val;
+          break;
+        }
+        default:
+          UNREACHABLE("Invalid TypeId.");
+      }
+    }
+    return j;
   }
 
   /**
@@ -245,10 +283,58 @@ class ConstantValueExpression : public AbstractExpression {
    */
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
     std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    // FIXME(Matt): JSON stuff
-    //    auto e1 = AbstractExpression::FromJson(j);
-    //    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    //    value_ = j.at("value").get<type::TransientValue>();
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+
+    if (j.find("value") != j.end()) {
+      // it's not NULL
+      switch (return_value_type_) {
+        case type::TypeId::BOOLEAN: {
+          value_ = std::make_unique<execution::sql::BoolVal>(j.at("value").get<bool>());
+          break;
+        }
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT: {
+          value_ = std::make_unique<execution::sql::Integer>(j.at("value").get<int64_t>());
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          value_ = std::make_unique<execution::sql::Real>(j.at("value").get<double>());
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          value_ = std::make_unique<execution::sql::TimestampVal>(
+              execution::sql::Timestamp::FromNative(j.at("value").get<uint64_t>()));
+          break;
+        }
+        case type::TypeId::DATE: {
+          value_ = std::make_unique<execution::sql::DateVal>(
+              execution::sql::Date::FromNative(j.at("value").get<uint32_t>()));
+          break;
+        }
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY: {
+          const auto string_val = j.at("value").get<std::string>();
+          if (string_val.length() <= execution::sql::StringVal::InlineThreshold()) {
+            value_ = std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length());
+          } else {
+            // TODO(Matt): smarter allocation?
+            buffer_ = common::AllocationUtil::AllocateAligned(string_val.length());
+            std::memcpy(buffer_, string_val.c_str(), string_val.length());
+            value_ = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer_),
+                                                                 string_val.length());
+          }
+          break;
+        }
+        default:
+          UNREACHABLE("Invalid TypeId.");
+      }
+    } else {
+      value_ = std::make_unique<execution::sql::Val>(true);
+    }
+
     return exprs;
   }
 

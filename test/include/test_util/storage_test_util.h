@@ -26,7 +26,6 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 #include "transaction/transaction_manager.h"
-#include "type/transient_value_factory.h"
 #include "type/type_id.h"
 namespace terrier {
 class StorageTestUtil {
@@ -505,13 +504,11 @@ class StorageTestUtil {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           auto varlen_size = std::uniform_int_distribution(0U, max_varlen_size)(*generator);
-          key_cols.emplace_back("", type, varlen_size, is_nullable,
-                                parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
+          key_cols.emplace_back("", type, varlen_size, is_nullable, parser::ConstantValueExpression(type));
           break;
         }
         default:
-          key_cols.emplace_back("", type, is_nullable,
-                                parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
+          key_cols.emplace_back("", type, is_nullable, parser::ConstantValueExpression(type));
           break;
       }
       ForceOid(&(key_cols.back()), key_oid);
