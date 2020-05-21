@@ -275,37 +275,27 @@ TEST_F(CVETests, DateTest) {
   }
 }
 
-/*
 // NOLINTNEXTLINE
 TEST_F(CVETests, VarCharTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto length = std::uniform_int_distribution<uint32_t>(1, UINT8_MAX)(generator_);
     auto *const data = new char[length];
-    for (uint32_t j = 0; j < length - 1; j++) {
+    for (uint32_t j = 0; j < length; j++) {
       data[j] = std::uniform_int_distribution<char>('A', 'z')(generator_);
     }
-    data[length - 1] = '\0';  // null terminate the c-string
 
-    auto value = type::TransientValueFactory::GetVarChar(data);
+    auto string_val = execution::sql::ValueUtil::CreateStringVal(
+        common::ManagedPointer(reinterpret_cast<const char *>(data)), length);
+    ConstantValueExpression value(type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));
     EXPECT_FALSE(value.GetValue()->is_null_);
-    std::string_view string_view = type::TransientValuePeeker::PeekVarChar(value);
-    EXPECT_EQ(data, string_view);
-    EXPECT_EQ(value.ToString(), "VARCHAR");
-
-    auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
-    value.SetNull(null);
-    EXPECT_EQ(null, value.Null());
-
-    value.SetNull(false);
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    string_view = type::TransientValuePeeker::PeekVarChar(value);
-    EXPECT_EQ(data, string_view);
-    delete[] data;
+    const std::string_view string_view =
+        value.GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
+    EXPECT_EQ(std::string_view(data, length), string_view);
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -315,7 +305,7 @@ TEST_F(CVETests, VarCharTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -324,6 +314,7 @@ TEST_F(CVETests, VarCharTest) {
   }
 }
 
+/*
 // NOLINTNEXTLINE
 TEST_F(CVETests, BooleanJsonTest) {
   auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
