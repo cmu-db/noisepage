@@ -66,7 +66,7 @@ class BindCommandMetricRawData : public AbstractRawData {
   /**
    * Columns to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {"param_num, query_text_size"};
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"param_num, query_text_size"};
 
  private:
   friend class BindCommandMetric;

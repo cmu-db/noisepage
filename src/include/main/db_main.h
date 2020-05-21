@@ -284,8 +284,7 @@ class DBMain {
           use_settings_manager_ ? BootstrapSettingsManager(common::ManagedPointer(db_main)) : DISABLED;
 
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
-      if (use_metrics_) metrics_manager = BootstrapMetricsManager(metrics_pipeline_, metrics_transaction_,
-                                                                  metrics_logging_, metrics_gc_);
+      if (use_metrics_) metrics_manager = BootstrapMetricsManager();
 
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {
@@ -622,6 +621,8 @@ class DBMain {
     bool metrics_transaction_ = false;
     bool metrics_logging_ = false;
     bool metrics_gc_ = false;
+    bool metrics_bind_command_ = false;
+    bool metrics_execute_command_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
     std::string log_file_path_ = "wal.log";
@@ -682,6 +683,8 @@ class DBMain {
       metrics_transaction_ = settings_manager->GetBool(settings::Param::metrics_transaction);
       metrics_logging_ = settings_manager->GetBool(settings::Param::metrics_logging);
       metrics_gc_ = settings_manager->GetBool(settings::Param::metrics_gc);
+      metrics_bind_command_ = settings_manager->GetBool(settings::Param::metrics_bind_command);
+      metrics_execute_command_ = settings_manager->GetBool(settings::Param::metrics_execute_command);
 
       return settings_manager;
     }
@@ -690,13 +693,14 @@ class DBMain {
      * Instantiate the MetricsManager and enable metrics for components arrocding to the Builder's settings.
      * @return
      */
-    std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager(bool metrics_pipeline, bool metrics_transaction,
-                                                                     bool metrics_logging, bool metrics_gc) {
+    std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
-      if (metrics_pipeline) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
-      if (metrics_transaction) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
-      if (metrics_logging) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-      if (metrics_gc) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+      if (metrics_pipeline_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+      if (metrics_transaction_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
+      if (metrics_logging_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+      if (metrics_gc_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+      if (metrics_bind_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND, 0);
+      if (metrics_execute_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND, 0);
 
       return metrics_manager;
     }

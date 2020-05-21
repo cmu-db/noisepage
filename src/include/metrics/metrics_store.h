@@ -18,6 +18,7 @@
 #include "metrics/pipeline_metric.h"
 #include "metrics/transaction_metric.h"
 #include "metrics/bind_command_metric.h"
+#include "metrics/execute_command_metric.h"
 
 namespace terrier::metrics {
 
@@ -136,17 +137,25 @@ class MetricsStore {
   }
 
   /**
-   * Record metrics for the execution engine when finish a pipeline
-   * @param feature first entry of execution datapoint
-   * @param len second entry of execution datapoint
-   * @param execution_mode Execution mode
-   * @param resource_metrics Metrics
+   * Record metrics for the bind command
+   * @param param_num the number of bind parameters
+   * @param query_text_size the size of the query text
    */
   void RecordBindCommandData(uint64_t param_num, uint64_t query_text_size,
                            const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::BIND_COMMAND), "BindCommandMetric not enabled.");
     TERRIER_ASSERT(bind_command_metric_ != nullptr, "BindCommandMetric not allocated. Check MetricsStore constructor.");
     bind_command_metric_->RecordBindCommandData(param_num, query_text_size, resource_metrics);
+  }
+
+  /**
+   * Record metrics for the execute command
+   * @param portal_name_size the size of the portal name
+   */
+  void RecordExecuteCommandData(uint64_t portal_name_size, const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTE_COMMAND), "ExecuteCommandMetric not enabled.");
+    TERRIER_ASSERT(execute_command_metric_ != nullptr, "ExecuteCommandMetric not allocated. Check MetricsStore constructor.");
+    execute_command_metric_->RecordExecuteCommandData(portal_name_size, resource_metrics);
   }
 
   /**
@@ -194,6 +203,7 @@ class MetricsStore {
   std::unique_ptr<ExecutionMetric> execution_metric_;
   std::unique_ptr<PipelineMetric> pipeline_metric_;
   std::unique_ptr<BindCommandMetric> bind_command_metric_;
+  std::unique_ptr<ExecuteCommandMetric> execute_command_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
   const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;

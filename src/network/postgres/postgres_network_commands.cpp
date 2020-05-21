@@ -414,6 +414,13 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<PostgresPacketWriter> out,
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
+
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
   TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
@@ -451,6 +458,13 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     // We don't yet support query types with values greater than this
     out->WriteCommandComplete(query_type, 0);
     return Transition::PROCEED;
+  }
+
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND)) {
+    common::thread_context.resource_tracker_.Stop();
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    common::thread_context.metrics_store_->RecordExecuteCommandData(portal_name.size(), resource_metrics);
   }
 
   if (portal->PhysicalPlan() != nullptr) {

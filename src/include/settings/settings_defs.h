@@ -178,6 +178,22 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    metrics_bind_command,
+    "Metrics collection for the bind command.",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsBindCommand
+)
+
+SETTING_bool(
+    metrics_execute_command,
+    "Metrics collection for the execute command.",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsExecuteCommand
+)
+
+SETTING_bool(
     use_query_cache,
     "Extended Query protocol caches physical plans and generated code after first execution. Warning: bugs with DDL changes.",
     true,
