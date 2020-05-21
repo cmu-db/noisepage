@@ -18,7 +18,7 @@
 #include "type/transient_value.h"
 
 namespace terrier::parser {
-class AbstractExpressionn;
+class AbstractExpression;
 class UpdateClause;
 }  // namespace terrier::parser
 

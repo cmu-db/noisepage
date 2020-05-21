@@ -182,7 +182,7 @@ class Rule {
    * @param context The current context for the optimization
    * @return If the rule is applicable, return true, otherwise return false
    */
-  virtual bool Check(common::ManagedPointer<OperatorNode> expr, OptimizationContext *context) const = 0;
+  virtual bool Check(common::ManagedPointer<AbstractOptimizerNode> expr, OptimizationContext *context) const = 0;
 
   /**
    * Convert a "before" operator tree to an "after" operator tree
@@ -191,8 +191,8 @@ class Rule {
    * @param transformed Vector of "after" operator trees
    * @param context The current optimization context
    */
-  virtual void Transform(common::ManagedPointer<OperatorNode> input,
-                         std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  virtual void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                         std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                          OptimizationContext *context) const = 0;
 
  protected:

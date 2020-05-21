@@ -32,7 +32,7 @@ std::pair<PT1, PT2> InputColumnDeriver::DeriveInputColumns(
   gexpr_ = gexpr;
   required_cols_ = std::move(required_cols);
   memo_ = memo;
-  gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+  gexpr->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
   return std::move(output_input_cols_);
 }
 
@@ -313,11 +313,11 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNodeContents *op) {
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> groupby_cols;
   std::vector<AnnotatedExpression> having_exprs;
-  if (op->GetType() == OpType::HASHGROUPBY) {
+  if (op->GetOpType() == OpType::HASHGROUPBY) {
     auto groupby = reinterpret_cast<const HashGroupBy *>(op);
     groupby_cols = groupby->GetColumns();
     having_exprs = groupby->GetHaving();
-  } else if (op->GetType() == OpType::SORTGROUPBY) {
+  } else if (op->GetOpType() == OpType::SORTGROUPBY) {
     auto groupby = reinterpret_cast<const SortGroupBy *>(op);
     groupby_cols = groupby->GetColumns();
     having_exprs = groupby->GetHaving();
@@ -357,12 +357,12 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
   std::vector<AnnotatedExpression> join_conds;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
-  if (op->GetType() == OpType::INNERHASHJOIN) {
+  if (op->GetOpType() == OpType::INNERHASHJOIN) {
     auto join_op = reinterpret_cast<const InnerHashJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
     left_keys = join_op->GetLeftKeys();
     right_keys = join_op->GetRightKeys();
-  } else if (op->GetType() == OpType::INNERNLJOIN) {
+  } else if (op->GetOpType() == OpType::INNERNLJOIN) {
     auto join_op = reinterpret_cast<const InnerNLJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
   }

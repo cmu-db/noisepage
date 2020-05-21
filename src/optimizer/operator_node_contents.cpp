@@ -8,9 +8,10 @@ namespace terrier::optimizer {
 
 Operator::Operator() noexcept = default;
 
-Operator::Operator(std::unique_ptr<BaseOperatorNodeContents> contents) : contents_(std::move(contents)) {}
+Operator::Operator(common::ManagedPointer<BaseOperatorNodeContents> contents)
+    : AbstractOptimizerNodeContents(contents.CastManagedPointerTo<AbstractOptimizerNodeContents>()) {}
 
-Operator::Operator(Operator &&o) noexcept : contents_(std::move(o.contents_)) {}
+Operator::Operator(Operator &&o) noexcept : AbstractOptimizerNodeContents(o.contents_) {}
 
 void Operator::Accept(common::ManagedPointer<OperatorVisitor> v) const { contents_->Accept(v); }
 
@@ -21,13 +22,15 @@ std::string Operator::GetName() const {
   return "Undefined";
 }
 
-OpType Operator::GetType() const {
+OpType Operator::GetOpType() const {
   if (IsDefined()) {
-    return contents_->GetType();
+    return contents_->GetOpType();
   }
 
   return OpType::UNDEFINED;
 }
+
+parser::ExpressionType Operator::GetExpType() const { return parser::ExpressionType::INVALID; }
 
 bool Operator::IsLogical() const {
   if (IsDefined()) {
@@ -59,5 +62,14 @@ bool Operator::operator==(const Operator &rhs) const {
 }
 
 bool Operator::IsDefined() const { return contents_ != nullptr; }
+
+Operator Operator::RegisterWithTxnContext(transaction::TransactionContext *txn) {
+  auto *op = dynamic_cast<BaseOperatorNodeContents *>(contents_.Get());
+  if (txn != nullptr) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return *this;
+}
 
 }  // namespace terrier::optimizer

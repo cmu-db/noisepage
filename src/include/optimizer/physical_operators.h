@@ -699,7 +699,7 @@ class InnerHashJoin : public OperatorNodeContents<InnerHashJoin> {
    * @param join_predicates predicates for join
    * @param left_keys left keys to join
    * @param right_keys right keys to join
-   * @return an IneerNLJoin operator
+   * @return an InnerNLJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
@@ -1959,6 +1959,7 @@ class DropIndex : public OperatorNodeContents<DropIndex> {
 class DropNamespace : public OperatorNodeContents<DropNamespace> {
  public:
   /**
+   * @param namespace_oid OID of namespace to drop
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid);
@@ -1990,6 +1991,10 @@ class DropNamespace : public OperatorNodeContents<DropNamespace> {
 class DropTrigger : public OperatorNodeContents<DropTrigger> {
  public:
   /**
+   * @param database_oid OID of database
+   * @param namespace_oid OID of namespace
+   * @param trigger_oid OID of trigger to drop
+   * @param if_exists existence flag
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -2052,6 +2057,10 @@ class DropTrigger : public OperatorNodeContents<DropTrigger> {
 class DropView : public OperatorNodeContents<DropView> {
  public:
   /**
+   * @param database_oid OID of database
+   * @param namespace_oid OID of namespace
+   * @param view_oid OID of view to drop
+   * @param if_exists existence flag
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
