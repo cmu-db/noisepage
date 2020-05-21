@@ -45,60 +45,6 @@ class ConstantValueExpression : public AbstractExpression {
   /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
 
-  ConstantValueExpression &operator=(const ConstantValueExpression &other) {
-    if (this != &other) {  // self-assignment check expected
-      if (other.value_->is_null_) {
-        value_ = std::make_unique<execution::sql::Val>(true);
-      } else {
-        switch (other.GetReturnValueType()) {
-          case type::TypeId::BOOLEAN: {
-            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-            value_ = std::make_unique<execution::sql::BoolVal>(val);
-            break;
-          }
-          case type::TypeId::TINYINT:
-          case type::TypeId::SMALLINT:
-          case type::TypeId::INTEGER:
-          case type::TypeId::BIGINT: {
-            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-            value_ = std::make_unique<execution::sql::Integer>(val);
-            break;
-          }
-          case type::TypeId::DECIMAL: {
-            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-            value_ = std::make_unique<execution::sql::Real>(val);
-            break;
-          }
-          case type::TypeId::TIMESTAMP: {
-            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-            value_ = std::make_unique<execution::sql::TimestampVal>(val);
-            break;
-          }
-          case type::TypeId::DATE: {
-            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-            value_ = std::make_unique<execution::sql::DateVal>(val);
-            break;
-          }
-          case type::TypeId::VARCHAR:
-          case type::TypeId::VARBINARY: {
-            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
-
-            auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
-
-            value_ = std::move(string_val.first);
-            buffer_ = std::move(string_val.second);
-
-            break;
-          }
-          default:
-            UNREACHABLE("Invalid TypeId.");
-        }
-      }
-      this->SetMutableStateForCopy(other);
-    }
-    return *this;
-  }
-
   ConstantValueExpression &operator=(ConstantValueExpression &&other) {
     if (this != &other) {  // self-assignment check expected
       value_ = std::move(other.value_);
@@ -109,10 +55,9 @@ class ConstantValueExpression : public AbstractExpression {
     return *this;
   }
 
-  ConstantValueExpression(ConstantValueExpression &&other) {
+  ConstantValueExpression(ConstantValueExpression &&other) : AbstractExpression(other) {
     value_ = std::move(other.value_);
     buffer_ = std::move(other.buffer_);
-    this->SetMutableStateForCopy(other);
     other.value_ = std::make_unique<execution::sql::Val>(true);
   }
 
@@ -164,7 +109,6 @@ class ConstantValueExpression : public AbstractExpression {
           UNREACHABLE("Invalid TypeId.");
       }
     }
-    this->SetMutableStateForCopy(other);
   }
 
   // FIXME(Matt): hashing stuff
@@ -173,10 +117,50 @@ class ConstantValueExpression : public AbstractExpression {
   //  }
 
   bool operator==(const AbstractExpression &other) const override {
-    // FIXME(Matt): equality stuff
     if (!AbstractExpression::operator==(other)) return false;
-    const auto &const_expr = dynamic_cast<const ConstantValueExpression &>(other);
-    return value_ == const_expr.value_;
+    const auto &other_cve = dynamic_cast<const ConstantValueExpression &>(other);
+
+    if (value_->is_null_ != other_cve.value_->is_null_) return false;
+    if (value_->is_null_ && other_cve.value_->is_null_) return true;
+
+    switch (other.GetReturnValueType()) {
+      case type::TypeId::BOOLEAN: {
+        const auto this_val = GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+        const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+        return this_val == other_val;
+      }
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT: {
+        const auto this_val = GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+        const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+        return this_val == other_val;
+      }
+      case type::TypeId::DECIMAL: {
+        const auto this_val = GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+        const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+        return this_val == other_val;
+      }
+      case type::TypeId::TIMESTAMP: {
+        const auto this_val = GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
+        const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
+        return this_val == other_val;
+      }
+      case type::TypeId::DATE: {
+        const auto this_val = GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
+        const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
+        return this_val == other_val;
+      }
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY: {
+        const auto this_val = GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
+        const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
+        return this_val == other_val;
+      }
+      default:
+        UNREACHABLE("Invalid TypeId.");
+    }
   }
 
   /**
