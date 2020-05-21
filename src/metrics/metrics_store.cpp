@@ -67,6 +67,13 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
           result[component] = bind_command_metric_->Swap();
           break;
         }
+        case MetricsComponent::EXECUTE_COMMAND: {
+          TERRIER_ASSERT(
+              execute_command_metric_ != nullptr,
+              "ExecuteCommandMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
+          result[component] = execute_command_metric_->Swap();
+          break;
+        }
       }
     }
   }
