@@ -111,13 +111,13 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::ExecutionContext exec_ctx{db_oid, common::ManagedPointer(txn), printer, output_schema,
                                   common::ManagedPointer(accessor)};
   // Add dummy parameters for tests
-  sql::DateVal date(sql::Date::FromYMD(1937, 3, 7));
-  std::vector<type::TransientValue> params;
-  params.emplace_back(type::TransientValueFactory::GetInteger(37));
-  params.emplace_back(type::TransientValueFactory::GetDecimal(37.73));
-  params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date.val_.ToNative())));
-  params.emplace_back(type::TransientValueFactory::GetVarChar("37 Strings"));
-  exec_ctx.SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+  std::vector<parser::ConstantValueExpression> params;
+  params.emplace_back(type::TypeId::INTEGER, std::make_unique<sql::Integer>(37));
+  params.emplace_back(type::TypeId::DECIMAL, std::make_unique<sql::Real>(37.73));
+  params.emplace_back(type::TypeId::DATE, std::make_unique<sql::DateVal>(sql::Date::FromYMD(1937, 3, 7)));
+  auto string_val = sql::ValueUtil::CreateStringVal(std::string_view("37 Strings"));
+  params.emplace_back(type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));
+  exec_ctx.SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
 
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};

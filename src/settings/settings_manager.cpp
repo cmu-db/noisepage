@@ -44,7 +44,7 @@ void SettingsManager::ValidateParams() {
 void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
                                       const parser::ConstantValueExpression &max_value) {
   const ParamInfo &info = param_map_.find(param)->second;
-  if (!ValidateValue(*(info.GetValue()), min_value, max_value)) {
+  if (!ValidateValue(info.value_, min_value, max_value)) {
     SETTINGS_LOG_ERROR(
         "Value given for \"{}"
         "\" is not in its min-max bounds",
@@ -55,27 +55,27 @@ void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueEx
 
 int32_t SettingsManager::GetInt(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
 }
 
 int64_t SettingsManager::GetInt64(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
 }
 
 double SettingsManager::GetDouble(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
 }
 
 bool SettingsManager::GetBool(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
 }
 
 std::string SettingsManager::GetString(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return std::string(GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView());
+  return std::string(GetValue(param).GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView());
 }
 
 void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<ActionContext> action_context,
@@ -95,16 +95,14 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    int32_t old_value = GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-    if (!SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                             type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(value)))) {
+    int32_t old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+    if (!SetValue(param, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
         const bool result =
-            SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                                type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(old_value)));
+            SetValue(param, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -132,16 +130,14 @@ void SettingsManager::SetInt64(Param param, int64_t value, common::ManagedPointe
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    int64_t old_value = GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-    if (!SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                             type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(value)))) {
+    int64_t old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+    if (!SetValue(param, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
         const bool result =
-            SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                                type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(old_value)));
+            SetValue(param, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -169,16 +165,13 @@ void SettingsManager::SetDouble(Param param, double value, common::ManagedPointe
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    double old_value = GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-    if (!SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                             type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(value)))) {
+    double old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+    if (!SetValue(param, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        const bool result =
-            SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                                type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(old_value)));
+        const bool result = SetValue(param, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -201,16 +194,14 @@ void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<Ac
   const auto &param_info = param_map_.find(param)->second;
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
-  bool old_value = GetValue(param)->GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-  if (!SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                           type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(value)))) {
+  bool old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+  if (!SetValue(param, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(value)})) {
     action_context->SetState(ActionState::FAILURE);
   } else {
     ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
     if (action_state == ActionState::FAILURE) {
       const bool result =
-          SetValue(param, std::make_unique<parser::ConstantValueExpression>(
-                              type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(old_value)));
+          SetValue(param, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(old_value)});
       if (!result) {
         SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
         throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -234,21 +225,18 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   auto old_cve = std::unique_ptr<parser::ConstantValueExpression>{
-      reinterpret_cast<parser::ConstantValueExpression *>(GetValue(param)->Copy().release())};
+      reinterpret_cast<parser::ConstantValueExpression *>(GetValue(param).Copy().release())};
 
   auto string_val = execution::sql::ValueUtil::CreateStringVal(value);
 
-  std::unique_ptr<parser::ConstantValueExpression> new_cve = std::make_unique<parser::ConstantValueExpression>(
-      type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));
-
-  if (!SetValue(param, std::move(new_cve))) {
+  if (!SetValue(param, {type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second)})) {
     action_context->SetState(ActionState::FAILURE);
   } else {
     std::string_view new_value(value);
     auto old_value = old_cve->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
     ActionState action_state = InvokeCallback(param, &old_value, &new_value, action_context);
     if (action_state == ActionState::FAILURE) {
-      const bool result = SetValue(param, std::move(old_cve));
+      const bool result = SetValue(param, *old_cve);
       if (!result) {
         SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
         throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -258,12 +246,12 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
   setter_callback(action_context);
 }
 
-common::ManagedPointer<parser::ConstantValueExpression> SettingsManager::GetValue(Param param) {
+parser::ConstantValueExpression &SettingsManager::GetValue(Param param) {
   auto &param_info = param_map_.find(param)->second;
-  return param_info.GetValue();
+  return param_info.value_;
 }
 
-bool SettingsManager::SetValue(Param param, std::unique_ptr<parser::ConstantValueExpression> value) {
+bool SettingsManager::SetValue(Param param, parser::ConstantValueExpression value) {
   auto &param_info = param_map_.find(param)->second;
 
   if (!param_info.is_mutable_) return false;

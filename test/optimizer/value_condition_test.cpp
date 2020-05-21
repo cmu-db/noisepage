@@ -4,8 +4,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "optimizer/statistics/value_condition.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
 
 #include "gtest/gtest.h"
 

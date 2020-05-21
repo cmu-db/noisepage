@@ -51,8 +51,7 @@ class MetricsTests : public TerrierTest {
   std::default_random_engine generator_;
 
   const catalog::Schema table_schema_{
-      {{"attribute", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))}}};
+      {{"attribute", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER)}}};
 
   void Insert() {
     static storage::ProjectedRowInitializer tuple_initializer =

@@ -47,9 +47,9 @@ class ParamInfo {
    * @param max_value allowed maximum value
    * @param callback function invoked when param is changed
    */
-  ParamInfo(std::string name, std::unique_ptr<parser::ConstantValueExpression> value, std::string desc,
-            std::unique_ptr<parser::ConstantValueExpression> default_value, bool is_mutable, double min_value,
-            double max_value, callback_fn callback)
+  ParamInfo(std::string name, parser::ConstantValueExpression &&value, std::string desc,
+            parser::ConstantValueExpression &&default_value, bool is_mutable, double min_value, double max_value,
+            callback_fn callback)
       : name_(std::move(name)),
         value_(std::move(value)),
         desc_(std::move(desc)),
@@ -59,16 +59,13 @@ class ParamInfo {
         max_value_(max_value),
         callback_(callback) {}
 
-  common::ManagedPointer<parser::ConstantValueExpression> GetValue() const { return common::ManagedPointer(value_); }
-
  private:
   friend class terrier::DBMain;
   friend class SettingsManager;
   std::string name_;
-  std::unique_ptr<parser::ConstantValueExpression> value_;  // TODO(Matt): just make it a field, rather than unique_ptr?
+  parser::ConstantValueExpression value_;
   std::string desc_;
-  std::unique_ptr<parser::ConstantValueExpression>
-      default_value_;  // TODO(Matt): just make it a field, rather than unique_ptr?
+  parser::ConstantValueExpression default_value_;
   bool is_mutable_;
   double min_value_;
   double max_value_;

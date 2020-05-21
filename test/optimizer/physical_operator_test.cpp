@@ -15,8 +15,6 @@
 #include "test_util/storage_test_util.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
 
 #include "gtest/gtest.h"
 

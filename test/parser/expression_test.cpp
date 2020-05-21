@@ -22,8 +22,7 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/parameter.h"
 #include "parser/postgresparser.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
+
 #include "type/type_id.h"
 
 namespace terrier::parser::expression {

@@ -52,8 +52,8 @@ class BinderCorrectnessTest : public TerrierTest {
     BINDER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
     // get default values of the columns
-    auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
-    auto varchar_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
+    auto int_default = parser::ConstantValueExpression(type::TypeId::INTEGER);
+    auto varchar_default = parser::ConstantValueExpression(type::TypeId::VARCHAR);
 
     // TODO(Ling): use mixed case in table name and schema name
     //  for testcases to see if the binder does not differentiate between upper and lower cases

@@ -48,7 +48,6 @@
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
-#include "type/transient_value_factory.h"
 
 using std::make_tuple;
 
@@ -88,8 +87,8 @@ class OperatorTransformerTest : public TerrierTest {
     OPTIMIZER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
     // get default values of the columns
-    auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
-    auto varchar_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
+    auto int_default = parser::ConstantValueExpression(type::TypeId::INTEGER);
+    auto varchar_default = parser::ConstantValueExpression(type::TypeId::VARCHAR);
 
     // create table A
     txn_ = txn_manager_->BeginTransaction();

@@ -36,8 +36,7 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
+
 #include "type/type_id.h"
 
 namespace terrier::execution::compiler::test {

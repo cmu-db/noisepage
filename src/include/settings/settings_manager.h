@@ -143,8 +143,8 @@ class SettingsManager {
   void ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
                        const parser::ConstantValueExpression &max_value);
 
-  common::ManagedPointer<parser::ConstantValueExpression> GetValue(Param param);
-  bool SetValue(Param param, std::unique_ptr<parser::ConstantValueExpression> value);
+  parser::ConstantValueExpression &GetValue(Param param);
+  bool SetValue(Param param, parser::ConstantValueExpression value);
   bool ValidateValue(const parser::ConstantValueExpression &value, const parser::ConstantValueExpression &min_value,
                      const parser::ConstantValueExpression &max_value);
   common::ActionState InvokeCallback(Param param, void *old_value, void *new_value,

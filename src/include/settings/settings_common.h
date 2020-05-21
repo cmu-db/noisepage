@@ -194,63 +194,49 @@
 #ifdef SETTING_string
 #undef SETTING_string
 #endif
-#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)          \
-  param_map.emplace(terrier::settings::Param::name,                                                           \
-                    terrier::settings::ParamInfo(                                                             \
-                        #name,                                                                                \
-                        std::make_unique<parser::ConstantValueExpression>(                                    \
-                            type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(FLAGS_##name)),  \
-                        description,                                                                          \
-                        std::make_unique<parser::ConstantValueExpression>(                                    \
-                            type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(default_value)), \
+#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
+  param_map.emplace(                                                                                                \
+      terrier::settings::Param::name,                                                                               \
+      terrier::settings::ParamInfo(                                                                                 \
+          #name, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(FLAGS_##name)}, description,     \
+          {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(default_value)}, is_mutable, min_value, \
+          max_value, &callback_fn));
+
+#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                 \
+  param_map.emplace(terrier::settings::Param::name,                                                                    \
+                    terrier::settings::ParamInfo(                                                                      \
+                        #name, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(FLAGS_##name)},        \
+                        description, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(default_value)}, \
                         is_mutable, min_value, max_value, &callback_fn));
 
-#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)       \
-  param_map.emplace(terrier::settings::Param::name,                                                          \
-                    terrier::settings::ParamInfo(                                                            \
-                        #name,                                                                               \
-                        std::make_unique<parser::ConstantValueExpression>(                                   \
-                            type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(FLAGS_##name)),  \
-                        description,                                                                         \
-                        std::make_unique<parser::ConstantValueExpression>(                                   \
-                            type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(default_value)), \
-                        is_mutable, min_value, max_value, &callback_fn));
-
-#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)               \
-  param_map.emplace(                                                                                                  \
-      terrier::settings::Param::name,                                                                                 \
-      terrier::settings::ParamInfo(#name,                                                                             \
-                                   std::make_unique<parser::ConstantValueExpression>(                                 \
-                                       type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(FLAGS_##name)),  \
-                                   description,                                                                       \
-                                   std::make_unique<parser::ConstantValueExpression>(                                 \
-                                       type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(default_value)), \
-                                   is_mutable, min_value, max_value, &callback_fn));
-
-#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                               \
-  param_map.emplace(terrier::settings::Param::name,                                                           \
-                    terrier::settings::ParamInfo(                                                             \
-                        #name,                                                                                \
-                        std::make_unique<parser::ConstantValueExpression>(                                    \
-                            type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(FLAGS_##name)),  \
-                        description,                                                                          \
-                        std::make_unique<parser::ConstantValueExpression>(                                    \
-                            type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(default_value)), \
-                        is_mutable, 0, 0, &callback_fn));
-
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                    \
-  const std::string_view value_string{FLAGS_##name};                                                                 \
-  auto string_val = execution::sql::ValueUtil::CreateStringVal(value_string);                                        \
-  auto value_cve = std::make_unique<parser::ConstantValueExpression>(                                                \
-      type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));                             \
-                                                                                                                     \
-  const std::string_view default_value_string{default_value};                                                        \
-  auto default_value_string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);                  \
-  auto default_value_cve = std::make_unique<parser::ConstantValueExpression>(                                        \
-      type::TypeId::VARCHAR, std::move(default_value_string_val.first), std::move(default_value_string_val.second)); \
-                                                                                                                     \
+#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)              \
   param_map.emplace(terrier::settings::Param::name,                                                                  \
-                    terrier::settings::ParamInfo(#name, std::move(value_cve), description,                           \
-                                                 std::move(default_value_cve), is_mutable, 0, 0, &callback_fn));
+                    terrier::settings::ParamInfo(                                                                    \
+                        #name, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(FLAGS_##name)},        \
+                        description, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(default_value)}, \
+                        is_mutable, min_value, max_value, &callback_fn));
+
+#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                                 \
+  param_map.emplace(                                                                                            \
+      terrier::settings::Param::name,                                                                           \
+      terrier::settings::ParamInfo(                                                                             \
+          #name, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(FLAGS_##name)}, description, \
+          {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(default_value)}, is_mutable, 0, 0,  \
+          &callback_fn));
+
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                 \
+  const std::string_view value_string{FLAGS_##name};                                                              \
+  auto string_val = execution::sql::ValueUtil::CreateStringVal(value_string);                                     \
+                                                                                                                  \
+  const std::string_view default_value_string{default_value};                                                     \
+  auto default_value_string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);               \
+                                                                                                                  \
+  param_map.emplace(                                                                                              \
+      terrier::settings::Param::name,                                                                             \
+      terrier::settings::ParamInfo(                                                                               \
+          #name, {type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second)}, description, \
+          {type::TypeId::VARCHAR, std::move(default_value_string_val.first),                                      \
+           std::move(default_value_string_val.second)},                                                           \
+          is_mutable, 0, 0, &callback_fn));
 
 #endif

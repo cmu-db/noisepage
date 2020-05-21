@@ -548,8 +548,7 @@ class StorageTestUtil {
       const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
       const auto type = storage::index::NUMERIC_KEY_TYPES[type_offset];
 
-      key_cols.emplace_back("", type, false,
-                            parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
+      key_cols.emplace_back("", type, false, parser::ConstantValueExpression(type));
       ForceOid(&(key_cols.back()), key_oids[col++]);
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
@@ -591,13 +590,11 @@ class StorageTestUtil {
 
       catalog::Schema::Column col;
       if (random_type == type::TypeId::VARCHAR) {
-        col = catalog::Schema::Column(
-            "col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+        col = catalog::Schema::Column("col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
+                                      parser::ConstantValueExpression(type::TypeId::INTEGER));
       } else {
-        col = catalog::Schema::Column(
-            "col" + std::to_string(i), random_type, false,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+        col = catalog::Schema::Column("col" + std::to_string(i), random_type, false,
+                                      parser::ConstantValueExpression(type::TypeId::INTEGER));
       }
       col.SetOid(catalog::col_oid_t(i));
       columns.push_back(col);

@@ -57,9 +57,8 @@ class BwTreeIndexTests : public TerrierTest {
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetRecordBufferSegmentSize(1e6).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
-    auto col = catalog::Schema::Column(
-        "attribute", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
+                                       parser::ConstantValueExpression(type::TypeId::INTEGER));
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
     table_schema_ = catalog::Schema({col});
     sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), table_schema_);

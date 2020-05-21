@@ -66,16 +66,8 @@ class AbstractExpression {
    */
   AbstractExpression() = default;
 
-  //  /**
-  //   * Copy constructs an abstract expression.
-  //   * @param other the abstract expression to be copied
-  //   */
-  //  AbstractExpression(const AbstractExpression &other) = default;
-
-  // TODO(Matt): unclear why I had to do this to get it to compile...something might be broken
-
   /**
-   * Copy constructs an abstract expression.
+   * Copy constructs an abstract expression. Does not do a deep copy of the children
    * @param other the abstract expression to be copied
    */
   AbstractExpression(const AbstractExpression &other)
