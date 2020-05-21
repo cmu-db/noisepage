@@ -36,7 +36,6 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-
 #include "type/type_id.h"
 
 namespace terrier::execution::compiler::test {
@@ -271,11 +270,11 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
   auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-  std::vector<type::TransientValue> params;
-  params.emplace_back(type::TransientValueFactory::GetInteger(100));
-  params.emplace_back(type::TransientValueFactory::GetInteger(500));
-  params.emplace_back(type::TransientValueFactory::GetInteger(3));
-  exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+  std::vector<parser::ConstantValueExpression> params;
+  params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(100));
+  params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(500));
+  params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(3));
+  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
 
   // Run & Check
   auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
