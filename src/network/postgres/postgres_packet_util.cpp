@@ -48,68 +48,54 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     return {type, std::make_unique<execution::sql::Val>(true)};
   }
 
-  const auto string_val = read_buffer->ReadString(size);
+  const auto string = read_buffer->ReadString(size);
   switch (type) {
     case type::TypeId::BOOLEAN: {
       // Matt: as best as I can tell, we only expect 'TRUE' of 'FALSE' coming in here, rather than the 't' or 'f' that
       // results use. We can simplify this logic a bit if that assumption can be verified
-      if (string_val == "TRUE") return {type, std::make_unique<execution::sql::BoolVal>(true)};
-      TERRIER_ASSERT(string_val == "FALSE", "Input equals something other than TRUE or FALSE. We should check that.");
+      if (string == "TRUE") return {type, std::make_unique<execution::sql::BoolVal>(true)};
+      TERRIER_ASSERT(string == "FALSE", "Input equals something other than TRUE or FALSE. We should check that.");
       return {type, std::make_unique<execution::sql::BoolVal>(false)};
     }
     case type::TypeId::TINYINT:
-      return {type, std::make_unique<execution::sql::Integer>(static_cast<int8_t>(std::stoll(string_val)))};
+      return {type, std::make_unique<execution::sql::Integer>(static_cast<int8_t>(std::stoll(string)))};
     case type::TypeId::SMALLINT:
-      return {type, std::make_unique<execution::sql::Integer>(static_cast<int16_t>(std::stoll(string_val)))};
+      return {type, std::make_unique<execution::sql::Integer>(static_cast<int16_t>(std::stoll(string)))};
     case type::TypeId::INTEGER:
-      return {type, std::make_unique<execution::sql::Integer>(static_cast<int32_t>(std::stoll(string_val)))};
+      return {type, std::make_unique<execution::sql::Integer>(static_cast<int32_t>(std::stoll(string)))};
     case type::TypeId::BIGINT:
-      return {type, std::make_unique<execution::sql::Integer>(static_cast<int64_t>(std::stoll(string_val)))};
+      return {type, std::make_unique<execution::sql::Integer>(static_cast<int64_t>(std::stoll(string)))};
     case type::TypeId::DECIMAL:
-      return {type, std::make_unique<execution::sql::Real>(std::stod(string_val))};
+      return {type, std::make_unique<execution::sql::Real>(std::stod(string))};
     case type::TypeId::VARCHAR: {
-      if (string_val.length() <= execution::sql::StringVal::InlineThreshold()) {
-        return {type, std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length()), nullptr};
-      }
-      // TODO(Matt): smarter allocation?
-      auto *const buffer = common::AllocationUtil::AllocateAligned(string_val.length());
-      std::memcpy(buffer, string_val.c_str(), string_val.length());
-      return {type,
-              std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), string_val.length()),
-              buffer};
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      return {type, std::move(string_val.first), std::move(string_val.second)};
     }
     case type::TypeId::TIMESTAMP: {
-      const auto parse_result = util::TimeConvertor::ParseTimestamp(string_val);
+      const auto parse_result = util::TimeConvertor::ParseTimestamp(string);
       TERRIER_ASSERT(parse_result.first, "Failed to parse the timestamp.");
       return {type, std::make_unique<execution::sql::TimestampVal>(static_cast<uint64_t>(parse_result.second))};
     }
     case type::TypeId::DATE: {
-      const auto parse_result = util::TimeConvertor::ParseDate(string_val);
+      const auto parse_result = util::TimeConvertor::ParseDate(string);
       TERRIER_ASSERT(parse_result.first, "Failed to parse the date.");
       return {type, std::make_unique<execution::sql::DateVal>(static_cast<uint32_t>(parse_result.second))};
     }
     case type::TypeId::INVALID: {
       // Postgres may not have told us the type in Parse message. Right now in oltpbench the JDBC driver is doing this
       // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
-      const auto ts_parse_result = util::TimeConvertor::ParseTimestamp(string_val);
+      const auto ts_parse_result = util::TimeConvertor::ParseTimestamp(string);
       if (ts_parse_result.first) {
         return {type, std::make_unique<execution::sql::TimestampVal>(static_cast<uint64_t>(ts_parse_result.second))};
       }
       // try date?
-      const auto date_parse_result = util::TimeConvertor::ParseDate(string_val);
+      const auto date_parse_result = util::TimeConvertor::ParseDate(string);
       if (date_parse_result.first) {
         return {type, std::make_unique<execution::sql::DateVal>(static_cast<uint32_t>(date_parse_result.second))};
       }
       // fall back to VARCHAR?
-      if (string_val.length() <= execution::sql::StringVal::InlineThreshold()) {
-        return {type, std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length()), nullptr};
-      }
-      // TODO(Matt): smarter allocation?
-      auto *const buffer = common::AllocationUtil::AllocateAligned(string_val.length());
-      std::memcpy(reinterpret_cast<char *const>(buffer), string_val.c_str(), string_val.length());
-      return {type,
-              std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), string_val.length()),
-              buffer};
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      return {type, std::move(string_val.first), std::move(string_val.second)};
     }
     default:
       // TODO(Matt): Note that not all types are handled yet. Add them as we support them.

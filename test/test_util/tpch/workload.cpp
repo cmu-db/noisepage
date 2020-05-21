@@ -66,19 +66,10 @@ std::vector<parser::ConstantValueExpression> Workload::GetQueryParams(const std:
 
   // Add the identifier for each pipeline. At most 8 query pipelines for now
   for (int i = 0; i < 8; ++i) {
-    std::string query_val = query_name + "_p" + std::to_string(i + 1);
+    const std::string query_val = query_name + "_p" + std::to_string(i + 1);
 
-    // Inlined
-    if (query_val.length() <= execution::sql::StringVal::InlineThreshold()) {
-      params.emplace_back(type::TypeId::VARCHAR,
-                          std::make_unique<execution::sql::StringVal>(query_val.c_str(), query_val.length()), nullptr);
-    } else {
-      // TODO(Matt): smarter allocation?
-      auto *const buffer = common::AllocationUtil::AllocateAligned(query_val.length());
-      std::memcpy(buffer, query_val.c_str(), query_val.length());
-      params.emplace_back(type::TypeId::VARCHAR,
-                          std::make_unique<execution::sql::StringVal>(query_val.c_str(), query_val.length()), buffer);
-    }
+    auto string_val = execution::sql::ValueUtil::CreateStringVal(query_val);
+    params.emplace_back(type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));
   }
 
   return params;

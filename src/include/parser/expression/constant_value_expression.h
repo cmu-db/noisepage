@@ -7,6 +7,7 @@
 
 #include "common/hash_util.h"
 #include "execution/sql/value.h"
+#include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "util/time_util.h"
 
@@ -15,39 +16,34 @@ class BindNodeVisitor;
 }
 
 namespace terrier::parser {
+
 /**
  * ConstantValueExpression represents a constant, e.g. numbers, string literals.
  */
 class ConstantValueExpression : public AbstractExpression {
  public:
   explicit ConstantValueExpression(const type::TypeId type)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}),
-        value_(std::make_unique<execution::sql::Val>(true)) {}
+      : ConstantValueExpression(type, std::make_unique<execution::sql::Val>(true), nullptr) {}
 
   ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(std::move(value)) {
-    TERRIER_ASSERT(
-        type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY,
-        "Constructor can't handle taking ownership of non-inlined varlens so it can't be used with StringVals.");
-  }
+      : ConstantValueExpression(type, std::move(value), nullptr) {}
 
-  ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value, byte *const buffer)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(std::move(value)), buffer_(buffer) {
-    TERRIER_ASSERT(type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY,
-                   "Constructor is just for potentially taking ownership of non-lined varlens.");
-    TERRIER_ASSERT(value_->is_null_ ||
+  ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value,
+                          std::unique_ptr<byte> buffer)
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}),
+        value_(std::move(value)),
+        buffer_(std::move(buffer)) {
+    TERRIER_ASSERT(value_->is_null_ || (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY) ||
                        (buffer_ == nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ <=
                                                   execution::sql::StringVal::InlineThreshold()) ||
                        (buffer_ != nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ >
                                                   execution::sql::StringVal::InlineThreshold()),
-                   "Value should either be NULL, below the threshold with no owned buffer, or above the threshold with "
-                   "a provided buffer.");
+                   "Value should either be NULL, a non-varlen type, or varlen and below the threshold with no owned "
+                   "buffer, or varlen and above the threshold with a provided buffer.");
   }
 
   /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
-
-  ~ConstantValueExpression() override { delete[] buffer_; }
 
   ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
     if (other.value_->is_null_) {
@@ -85,15 +81,12 @@ class ConstantValueExpression : public AbstractExpression {
         case type::TypeId::VARCHAR:
         case type::TypeId::VARBINARY: {
           const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
-          // Inlined
-          if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
-            value_ = std::make_unique<execution::sql::StringVal>(val->Content(), val->len_);
-            break;
-          }
-          // TODO(Matt): smarter allocation?
-          buffer_ = common::AllocationUtil::AllocateAligned(val->len_);
-          std::memcpy(buffer_, val->Content(), val->len_);
-          value_ = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer_), val->len_);
+
+          auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
+
+          value_ = std::move(string_val.first);
+          buffer_ = std::move(string_val.second);
+
           break;
         }
         default:
@@ -124,11 +117,9 @@ class ConstantValueExpression : public AbstractExpression {
 
     if (value_->is_null_) {
       if (return_value_type_ != type::TypeId::VARCHAR && return_value_type_ != type::TypeId::VARBINARY) {
-        expr =
-            std::make_unique<ConstantValueExpression>(return_value_type_, std::make_unique<execution::sql::Val>(true));
+        expr = std::make_unique<ConstantValueExpression>(return_value_type_);
       } else {
-        expr = std::make_unique<ConstantValueExpression>(return_value_type_,
-                                                         std::make_unique<execution::sql::Val>(true), nullptr);
+        expr = std::make_unique<ConstantValueExpression>(return_value_type_);
       }
     } else {
       switch (return_value_type_) {
@@ -168,18 +159,11 @@ class ConstantValueExpression : public AbstractExpression {
         case type::TypeId::VARCHAR:
         case type::TypeId::VARBINARY: {
           const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>();
-          // Inlined
-          if (val->len_ <= execution::sql::StringVal::InlineThreshold()) {
-            expr = std::make_unique<ConstantValueExpression>(
-                return_value_type_, std::make_unique<execution::sql::StringVal>(val->Content(), val->len_), nullptr);
-            break;
-          }
-          // TODO(Matt): smarter allocation?
-          auto *const buffer = common::AllocationUtil::AllocateAligned(val->len_);
-          std::memcpy(buffer, val->Content(), val->len_);
-          expr = std::make_unique<ConstantValueExpression>(
-              return_value_type_,
-              std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), val->len_), buffer);
+
+          auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
+
+          expr = std::make_unique<ConstantValueExpression>(return_value_type_, std::move(string_val.first),
+                                                           std::move(string_val.second));
           break;
         }
         default:
@@ -215,12 +199,21 @@ class ConstantValueExpression : public AbstractExpression {
   /** @return the constant value stored in this expression */
   common::ManagedPointer<execution::sql::Val> GetValue() const { return common::ManagedPointer(value_); }
 
-  void SetValue(const type::TypeId type, std::unique_ptr<execution::sql::Val> value) {
-    TERRIER_ASSERT(
-        type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY,
-        "SetValue can't handle taking ownership of non-inlined varlens so it can't be used with StringVals.");
+  void SetValue(const type::TypeId type, std::unique_ptr<execution::sql::Val> value, std::unique_ptr<byte> buffer) {
     return_value_type_ = type;
     value_ = std::move(value);
+    buffer_ = std::move(buffer);
+  }
+
+  void SetValue(const type::TypeId type, std::unique_ptr<execution::sql::Val> value) {
+    SetValue(type, std::move(value), nullptr);
+    TERRIER_ASSERT(value_->is_null_ || (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY) ||
+                       (buffer_ == nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ <=
+                                                  execution::sql::StringVal::InlineThreshold()) ||
+                       (buffer_ != nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ >
+                                                  execution::sql::StringVal::InlineThreshold()),
+                   "Value should either be NULL, a non-varlen type, or varlen and below the threshold with no owned "
+                   "buffer, or varlen and above the threshold with a provided buffer.");
   }
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
@@ -316,16 +309,11 @@ class ConstantValueExpression : public AbstractExpression {
         }
         case type::TypeId::VARCHAR:
         case type::TypeId::VARBINARY: {
-          const auto string_val = j.at("value").get<std::string>();
-          if (string_val.length() <= execution::sql::StringVal::InlineThreshold()) {
-            value_ = std::make_unique<execution::sql::StringVal>(string_val.c_str(), string_val.length());
-          } else {
-            // TODO(Matt): smarter allocation?
-            buffer_ = common::AllocationUtil::AllocateAligned(string_val.length());
-            std::memcpy(buffer_, string_val.c_str(), string_val.length());
-            value_ = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer_),
-                                                                 string_val.length());
-          }
+          auto string_val = execution::sql::ValueUtil::CreateStringVal(j.at("value").get<std::string>());
+
+          value_ = std::move(string_val.first);
+          buffer_ = std::move(string_val.second);
+
           break;
         }
         default:
@@ -342,8 +330,7 @@ class ConstantValueExpression : public AbstractExpression {
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   /** The constant held inside this ConstantValueExpression. */
   std::unique_ptr<execution::sql::Val> value_;
-
-  byte *buffer_ = nullptr;
+  std::unique_ptr<byte> buffer_;
 };
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);

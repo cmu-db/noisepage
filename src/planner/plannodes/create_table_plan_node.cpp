@@ -119,7 +119,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTablePlanNode::Fr
   foreign_keys_ = j.at("foreign_keys").get<std::vector<ForeignKeyInfo>>();
   con_uniques_ = j.at("con_uniques").get<std::vector<UniqueInfo>>();
   // FIXME(Matt): json stuff
-//  con_checks_ = j.at("con_checks").get<std::vector<CheckInfo>>();
+  //  con_checks_ = j.at("con_checks").get<std::vector<CheckInfo>>();
 
   return exprs;
 }

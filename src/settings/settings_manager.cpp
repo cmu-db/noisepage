@@ -235,20 +235,11 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   auto old_cve = std::unique_ptr<parser::ConstantValueExpression>{
       reinterpret_cast<parser::ConstantValueExpression *>(GetValue(param)->Copy().release())};
-  std::unique_ptr<parser::ConstantValueExpression> new_cve;
 
-  // Inlined
-  if (value.length() <= execution::sql::StringVal::InlineThreshold()) {
-    new_cve = std::make_unique<parser::ConstantValueExpression>(
-        type::TypeId::VARCHAR, std::make_unique<execution::sql::StringVal>(value.data(), value.length()), nullptr);
-  } else {
-    // TODO(Matt): smarter allocation?
-    auto *const buffer = common::AllocationUtil::AllocateAligned(value.length());
-    std::memcpy(reinterpret_cast<char *const>(buffer), value.data(), value.length());
-    new_cve = std::make_unique<parser::ConstantValueExpression>(
-        type::TypeId::VARCHAR,
-        std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), value.length()), buffer);
-  }
+  auto string_val = execution::sql::ValueUtil::CreateStringVal(value);
+
+  std::unique_ptr<parser::ConstantValueExpression> new_cve = std::make_unique<parser::ConstantValueExpression>(
+      type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));
 
   if (!SetValue(param, std::move(new_cve))) {
     action_context->SetState(ActionState::FAILURE);

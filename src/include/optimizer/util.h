@@ -12,7 +12,13 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
+namespace terrier::catalog {
+class CatalogAccessor;
+}
+
 namespace terrier::optimizer {
+
+class AnnotatedExpression;
 
 /**
  * Collection of utility functions for the optimizer

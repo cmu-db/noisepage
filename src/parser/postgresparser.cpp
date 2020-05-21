@@ -701,21 +701,10 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
     }
 
     case T_String: {
-      const auto str_view = std::string_view{val.val_.str_};
-
-      if (str_view.length() <= execution::sql::StringVal::InlineThreshold()) {
-        result = std::make_unique<ConstantValueExpression>(
-            type::TypeId::VARCHAR, std::make_unique<execution::sql::StringVal>(str_view.data(), str_view.length()),
-            nullptr);
-        break;
-      }
-      // TODO(Matt): smarter allocation?
-      auto *const buffer = common::AllocationUtil::AllocateAligned(str_view.length());
-      std::memcpy(reinterpret_cast<char *const>(buffer), str_view.data(), str_view.length());
-      result = std::make_unique<ConstantValueExpression>(
-          type::TypeId::VARCHAR,
-          std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), str_view.length()),
-          buffer);
+      const auto string = std::string_view{val.val_.str_};
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      result = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, std::move(string_val.first),
+                                                         std::move(string_val.second));
 
       break;
     }
@@ -736,8 +725,6 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
     }
 
     case T_Null: {
-      // TODO(Matt): using TypeId::INVALID seems wrong, since Val can represent NULL maybe we revisit this throughout
-      // the pipeline
       result =
           std::make_unique<ConstantValueExpression>(type::TypeId::INVALID, std::make_unique<execution::sql::Val>(true));
       break;

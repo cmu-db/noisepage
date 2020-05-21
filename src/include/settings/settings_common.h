@@ -143,23 +143,11 @@
                   {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(default_value)}, \
                   {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(default_value)});
 
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                      \
-  std::string default_value_string{default_value};                                                                     \
-  std::unique_ptr<parser::ConstantValueExpression> default_value_cve;                                                  \
-  if (default_value_string.length() <= execution::sql::StringVal::InlineThreshold()) {                                 \
-    auto default_value_stringval =                                                                                     \
-        std::make_unique<execution::sql::StringVal>(default_value_string.c_str(), default_value_string.length());      \
-    default_value_cve = std::make_unique<parser::ConstantValueExpression>(                                             \
-        type::TypeId::VARCHAR, std::move(default_value_stringval), nullptr);                                           \
-  } else {                                                                                                             \
-    /* TODO(Matt): smarter allocation? */                                                                              \
-    auto *const buffer = common::AllocationUtil::AllocateAligned(default_value_string.length());                       \
-    std::memcpy(buffer, default_value_string.c_str(), default_value_string.length());                                  \
-    auto default_value_stringval = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), \
-                                                                               default_value_string.length());         \
-    default_value_cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR,                       \
-                                                                          std::move(default_value_stringval), buffer); \
-  }                                                                                                                    \
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)        \
+  std::string default_value_string{default_value};                                       \
+  auto string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);    \
+  auto default_value_cve = std::make_unique<parser::ConstantValueExpression>(            \
+      type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second)); \
   ValidateSetting(terrier::settings::Param::name, *default_value_cve, *default_value_cve);
 #endif
 
@@ -250,42 +238,19 @@
                             type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(default_value)), \
                         is_mutable, 0, 0, &callback_fn));
 
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                      \
-  std::string value_string{FLAGS_##name};                                                                              \
-  std::unique_ptr<parser::ConstantValueExpression> value_cve;                                                          \
-  if (value_string.length() <= execution::sql::StringVal::InlineThreshold()) {                                         \
-    auto value_stringval = std::make_unique<execution::sql::StringVal>(value_string.c_str(), value_string.length());   \
-    value_cve =                                                                                                        \
-        std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, std::move(value_stringval), nullptr); \
-  } else {                                                                                                             \
-    /* TODO(Matt): smarter allocation? */                                                                              \
-    auto *const buffer = common::AllocationUtil::AllocateAligned(value_string.length());                               \
-    std::memcpy(buffer, value_string.c_str(), value_string.length());                                                  \
-    auto value_stringval =                                                                                             \
-        std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), value_string.length());    \
-    value_cve =                                                                                                        \
-        std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, std::move(value_stringval), buffer);  \
-  }                                                                                                                    \
-                                                                                                                       \
-  std::string default_value_string{default_value};                                                                     \
-  std::unique_ptr<parser::ConstantValueExpression> default_value_cve;                                                  \
-  if (default_value_string.length() <= execution::sql::StringVal::InlineThreshold()) {                                 \
-    auto default_value_stringval =                                                                                     \
-        std::make_unique<execution::sql::StringVal>(default_value_string.c_str(), default_value_string.length());      \
-    default_value_cve = std::make_unique<parser::ConstantValueExpression>(                                             \
-        type::TypeId::VARCHAR, std::move(default_value_stringval), nullptr);                                           \
-  } else {                                                                                                             \
-    /* TODO(Matt): smarter allocation? */                                                                              \
-    auto *const buffer = common::AllocationUtil::AllocateAligned(default_value_string.length());                       \
-    std::memcpy(buffer, default_value_string.c_str(), default_value_string.length());                                  \
-    auto default_value_stringval = std::make_unique<execution::sql::StringVal>(reinterpret_cast<const char *>(buffer), \
-                                                                               default_value_string.length());         \
-    default_value_cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR,                       \
-                                                                          std::move(default_value_stringval), buffer); \
-  }                                                                                                                    \
-                                                                                                                       \
-  param_map.emplace(terrier::settings::Param::name,                                                                    \
-                    terrier::settings::ParamInfo(#name, std::move(value_cve), description,                             \
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                    \
+  const std::string_view value_string{FLAGS_##name};                                                                 \
+  auto string_val = execution::sql::ValueUtil::CreateStringVal(value_string);                                        \
+  auto value_cve = std::make_unique<parser::ConstantValueExpression>(                                                \
+      type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));                             \
+                                                                                                                     \
+  const std::string_view default_value_string{default_value};                                                        \
+  auto default_value_string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);                  \
+  auto default_value_cve = std::make_unique<parser::ConstantValueExpression>(                                        \
+      type::TypeId::VARCHAR, std::move(default_value_string_val.first), std::move(default_value_string_val.second)); \
+                                                                                                                     \
+  param_map.emplace(terrier::settings::Param::name,                                                                  \
+                    terrier::settings::ParamInfo(#name, std::move(value_cve), description,                           \
                                                  std::move(default_value_cve), is_mutable, 0, 0, &callback_fn));
 
 #endif
