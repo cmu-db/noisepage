@@ -45,11 +45,82 @@ class ConstantValueExpression : public AbstractExpression {
   /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
 
+  ConstantValueExpression &operator=(const ConstantValueExpression &other) {
+    if (this != &other) {  // self-assignment check expected
+      // AbstractExpression fields we need copied over
+      expression_type_ = other.expression_type_;
+      expression_name_ = other.expression_name_;
+      alias_ = other.alias_;
+      return_value_type_ = other.return_value_type_;
+      depth_ = other.depth_;
+      has_subquery_ = other.has_subquery_;
+      // ConstantValueExpression fields
+      if (other.value_->is_null_) {
+        value_ = std::make_unique<execution::sql::Val>(true);
+        buffer_ = nullptr;
+      } else {
+        switch (other.GetReturnValueType()) {
+          case type::TypeId::BOOLEAN: {
+            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+            value_ = std::make_unique<execution::sql::BoolVal>(val);
+            buffer_ = nullptr;
+            break;
+          }
+          case type::TypeId::TINYINT:
+          case type::TypeId::SMALLINT:
+          case type::TypeId::INTEGER:
+          case type::TypeId::BIGINT: {
+            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+            value_ = std::make_unique<execution::sql::Integer>(val);
+            buffer_ = nullptr;
+            break;
+          }
+          case type::TypeId::DECIMAL: {
+            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+            value_ = std::make_unique<execution::sql::Real>(val);
+            buffer_ = nullptr;
+            break;
+          }
+          case type::TypeId::TIMESTAMP: {
+            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
+            value_ = std::make_unique<execution::sql::TimestampVal>(val);
+            buffer_ = nullptr;
+            break;
+          }
+          case type::TypeId::DATE: {
+            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
+            value_ = std::make_unique<execution::sql::DateVal>(val);
+            buffer_ = nullptr;
+            break;
+          }
+          case type::TypeId::VARCHAR:
+          case type::TypeId::VARBINARY: {
+            const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
+            auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
+            value_ = std::move(string_val.first);
+            buffer_ = std::move(string_val.second);
+            break;
+          }
+          default:
+            UNREACHABLE("Invalid TypeId.");
+        }
+      }
+    }
+    return *this;
+  }
+
   ConstantValueExpression &operator=(ConstantValueExpression &&other) {
     if (this != &other) {  // self-assignment check expected
+      // AbstractExpression fields we need copied over
+      expression_type_ = other.expression_type_;
+      expression_name_ = other.expression_name_;
+      alias_ = other.alias_;
+      return_value_type_ = other.return_value_type_;
+      depth_ = other.depth_;
+      has_subquery_ = other.has_subquery_;
+      // ConstantValueExpression fields
       value_ = std::move(other.value_);
       buffer_ = std::move(other.buffer_);
-      this->SetMutableStateForCopy(other);
       other.value_ = std::make_unique<execution::sql::Val>(true);
     }
     return *this;
@@ -327,7 +398,7 @@ class ConstantValueExpression : public AbstractExpression {
   /** The constant held inside this ConstantValueExpression. */
   std::unique_ptr<execution::sql::Val> value_;
   std::unique_ptr<byte> buffer_;
-};
+};  // namespace terrier::parser
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
 
