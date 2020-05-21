@@ -36,7 +36,7 @@ TEST_F(CVETests, BooleanTest) {
     ConstantValueExpression value(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_);
-    EXPECT_EQ(value.ToString(), "BOOLEAN");
+    EXPECT_EQ(value.GetExpressionName(), "BOOLEAN");
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);

@@ -293,8 +293,7 @@ class ConstantValueExpression : public AbstractExpression {
     if (!this->GetAlias().empty()) {
       this->SetExpressionName(this->GetAlias());
     } else {
-      // FIXME(Matt): this stuff
-      this->SetExpressionName("");
+      this->SetExpressionName(type::TypeUtil::TypeIdToString(GetReturnValueType()));
     }
   }
 
