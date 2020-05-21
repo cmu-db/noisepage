@@ -36,8 +36,8 @@ SETTING_int(
 // RecordBufferSegmentPool reuse limit
 SETTING_int(
     record_buffer_segment_reuse,
-    "The minimum number of record buffer segments to keep allocated in the system (default: 1000)",
-    1000,
+    "The minimum number of record buffer segments to keep allocated in the system (default: 10000)",
+    10000,
     1,
     1000000,
     true,
