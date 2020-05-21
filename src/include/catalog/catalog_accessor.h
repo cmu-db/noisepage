@@ -361,6 +361,11 @@ class CatalogAccessor {
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
   /**
+   * @return managed pointer to transaction context
+   */
+  common::ManagedPointer<transaction::TransactionContext> GetTxn() const { return txn_; }
+
+  /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
    * @param dbc pointer to the database catalog being accessed
