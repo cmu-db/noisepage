@@ -121,6 +121,7 @@ class ConstantValueExpression : public AbstractExpression {
       // ConstantValueExpression fields
       value_ = std::move(other.value_);
       buffer_ = std::move(other.buffer_);
+      // Set other to NULL because unclear what else it would be in this case
       other.value_ = std::make_unique<execution::sql::Val>(true);
     }
     return *this;
@@ -182,10 +183,44 @@ class ConstantValueExpression : public AbstractExpression {
     }
   }
 
-  // FIXME(Matt): hashing stuff
-  //  common::hash_t Hash() const override {
-  //    return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
-  //  }
+  common::hash_t Hash() const override {
+    const auto hash =
+        common::HashUtil::CombineHashes(AbstractExpression::Hash(), common::HashUtil::Hash(value_->is_null_));
+    if (value_->is_null_) return hash;
+
+    switch (GetReturnValueType()) {
+      case type::TypeId::BOOLEAN: {
+        const auto val = GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+        return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      }
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT: {
+        const auto val = GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+        return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      }
+      case type::TypeId::DECIMAL: {
+        const auto val = GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+        return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      }
+      case type::TypeId::TIMESTAMP: {
+        const auto val = GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative();
+        return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      }
+      case type::TypeId::DATE: {
+        const auto val = GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative();
+        return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      }
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY: {
+        const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
+        return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      }
+      default:
+        UNREACHABLE("Invalid TypeId.");
+    }
+  }
 
   bool operator==(const AbstractExpression &other) const override {
     if (!AbstractExpression::operator==(other)) return false;

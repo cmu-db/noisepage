@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <string>
+
 #include "common/strong_typedef.h"
 namespace terrier::common {
 
@@ -95,6 +96,16 @@ class HashUtil {
    * @return hash of the string
    */
   static hash_t Hash(const std::string &str) {
+    return HashBytes(reinterpret_cast<const byte *>(str.data()), str.size());
+  }
+
+  /**
+   * Special case Hash method for strings. If you use the above version,
+   * you will hash the address of the string's data, which is not what you want.
+   * @param str the string to be hashed
+   * @return hash of the string
+   */
+  static hash_t Hash(const std::string_view str) {
     return HashBytes(reinterpret_cast<const byte *>(str.data()), str.size());
   }
 
