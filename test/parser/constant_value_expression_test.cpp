@@ -16,16 +16,13 @@ class CVETests : public TerrierTest {
 /**
  * These tests all follow the same basic structure:
  * 1) Randomly generate reference C type data
- * 2) Create a TransientValue using the TransientValueFactory from this C type
- * 3) Assert that the new TransientValue is not NULL
- * 4) Assert that the C type returned by TransientValuePeeker matches the reference C type data
- * 5) Flip a coin for reference NULL value
- * 6) Test SetNull, compare NULL value to reference
- * 7) Clear SetNull, compare to original reference C type
- * 8) Test copy constructor
- * 9) Test copy assignment operator
- * 10) Test move constructor
- * 11) Test move assignment operator
+ * 2) Create a ConstantValueExpression from this C type
+ * 3) Assert that the new ConstantValueExpression is not NULL
+ * 4) Assert that the C type returned by value matches the reference C type data
+ * 5) Test copy constructor
+ * 6) Test copy assignment operator
+ * 7) Test move constructor
+ * 8) Test move assignment operator
  */
 
 // NOLINTNEXTLINE
@@ -36,7 +33,6 @@ TEST_F(CVETests, BooleanTest) {
     ConstantValueExpression value(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_);
-    EXPECT_EQ(value.GetExpressionName(), "BOOLEAN");
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
@@ -61,29 +57,20 @@ TEST_F(CVETests, BooleanTest) {
     EXPECT_EQ(copy_constructed_value.Hash(), move_assigned_value.Hash());
   }
 }
-/*
+
 // NOLINTNEXTLINE
 TEST_F(CVETests, TinyIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
 
-    auto value = type::TransientValueFactory::GetTinyInt(data);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekTinyInt(value));
-    EXPECT_EQ(value.ToString(), "TINYINT");
-
-    auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
-    value.SetNull(null);
-    EXPECT_EQ(null, value.Null());
-
-    value.SetNull(false);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekTinyInt(value));
+    ConstantValueExpression value(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(data));
+    EXPECT_FALSE(value.GetValue()->is_null_);
+    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -93,7 +80,7 @@ TEST_F(CVETests, TinyIntTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -107,23 +94,14 @@ TEST_F(CVETests, SmallIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
 
-    auto value = type::TransientValueFactory::GetSmallInt(data);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekSmallInt(value));
-    EXPECT_EQ(value.ToString(), "SMALLINT");
-
-    auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
-    value.SetNull(null);
-    EXPECT_EQ(null, value.Null());
-
-    value.SetNull(false);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekSmallInt(value));
+    ConstantValueExpression value(type::TypeId::SMALLINT, std::make_unique<execution::sql::Integer>(data));
+    EXPECT_FALSE(value.GetValue()->is_null_);
+    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -133,7 +111,7 @@ TEST_F(CVETests, SmallIntTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -147,23 +125,14 @@ TEST_F(CVETests, IntegerTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
 
-    auto value = type::TransientValueFactory::GetInteger(data);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekInteger(value));
-    EXPECT_EQ(value.ToString(), "INTEGER");
-
-    auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
-    value.SetNull(null);
-    EXPECT_EQ(null, value.Null());
-
-    value.SetNull(false);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekInteger(value));
+    ConstantValueExpression value(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(data));
+    EXPECT_FALSE(value.GetValue()->is_null_);
+    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -173,7 +142,7 @@ TEST_F(CVETests, IntegerTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -187,23 +156,14 @@ TEST_F(CVETests, BigIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
 
-    auto value = type::TransientValueFactory::GetBigInt(data);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekBigInt(value));
-    EXPECT_EQ(value.ToString(), "BIGINT");
-
-    auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
-    value.SetNull(null);
-    EXPECT_EQ(null, value.Null());
-
-    value.SetNull(false);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekBigInt(value));
+    ConstantValueExpression value(type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(data));
+    EXPECT_FALSE(value.GetValue()->is_null_);
+    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -213,7 +173,7 @@ TEST_F(CVETests, BigIntTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -227,23 +187,14 @@ TEST_F(CVETests, DecimalTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
-    auto value = type::TransientValueFactory::GetDecimal(data);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekDecimal(value));
-    EXPECT_EQ(value.ToString(), "DECIMAL");
-
-    auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
-    value.SetNull(null);
-    EXPECT_EQ(null, value.Null());
-
-    value.SetNull(false);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekDecimal(value));
+    ConstantValueExpression value(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(data));
+    EXPECT_FALSE(value.GetValue()->is_null_);
+    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_);
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -253,7 +204,7 @@ TEST_F(CVETests, DecimalTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -265,25 +216,16 @@ TEST_F(CVETests, DecimalTest) {
 // NOLINTNEXTLINE
 TEST_F(CVETests, TimestampTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
-    auto data = static_cast<type::timestamp_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
+    auto data = static_cast<uint64_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
 
-    auto value = type::TransientValueFactory::GetTimestamp(data);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekTimestamp(value));
-    EXPECT_EQ(value.ToString(), "TIMESTAMP");
-
-    auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
-    value.SetNull(null);
-    EXPECT_EQ(null, value.Null());
-
-    value.SetNull(false);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekTimestamp(value));
+    ConstantValueExpression value(type::TypeId::TIMESTAMP, std::make_unique<execution::sql::TimestampVal>(data));
+    EXPECT_FALSE(value.GetValue()->is_null_);
+    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -293,7 +235,7 @@ TEST_F(CVETests, TimestampTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -305,25 +247,16 @@ TEST_F(CVETests, TimestampTest) {
 // NOLINTNEXTLINE
 TEST_F(CVETests, DateTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
-    auto data = static_cast<type::date_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
+    auto data = static_cast<uint32_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
 
-    auto value = type::TransientValueFactory::GetDate(data);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekDate(value));
-    EXPECT_EQ(value.ToString(), "DATE");
-
-    auto null = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
-    value.SetNull(null);
-    EXPECT_EQ(null, value.Null());
-
-    value.SetNull(false);
-    EXPECT_FALSE(value.Null());
-    EXPECT_EQ(data, type::TransientValuePeeker::PeekDate(value));
+    ConstantValueExpression value(type::TypeId::DATE, std::make_unique<execution::sql::DateVal>(data));
+    EXPECT_FALSE(value.GetValue()->is_null_);
+    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    auto copy_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -333,7 +266,7 @@ TEST_F(CVETests, DateTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    auto move_assigned_value = type::TransientValueFactory::GetBoolean(true);
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN);
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -342,6 +275,7 @@ TEST_F(CVETests, DateTest) {
   }
 }
 
+/*
 // NOLINTNEXTLINE
 TEST_F(CVETests, VarCharTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
@@ -353,7 +287,7 @@ TEST_F(CVETests, VarCharTest) {
     data[length - 1] = '\0';  // null terminate the c-string
 
     auto value = type::TransientValueFactory::GetVarChar(data);
-    EXPECT_FALSE(value.Null());
+    EXPECT_FALSE(value.GetValue()->is_null_);
     std::string_view string_view = type::TransientValuePeeker::PeekVarChar(value);
     EXPECT_EQ(data, string_view);
     EXPECT_EQ(value.ToString(), "VARCHAR");
@@ -363,7 +297,7 @@ TEST_F(CVETests, VarCharTest) {
     EXPECT_EQ(null, value.Null());
 
     value.SetNull(false);
-    EXPECT_FALSE(value.Null());
+    EXPECT_FALSE(value.GetValue()->is_null_);
     string_view = type::TransientValuePeeker::PeekVarChar(value);
     EXPECT_EQ(data, string_view);
     delete[] data;
@@ -395,7 +329,7 @@ TEST_F(CVETests, BooleanJsonTest) {
   auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
 
   auto value = type::TransientValueFactory::GetBoolean(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -411,7 +345,7 @@ TEST_F(CVETests, TinyIntJsonTest) {
   auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
 
   auto value = type::TransientValueFactory::GetTinyInt(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -427,7 +361,7 @@ TEST_F(CVETests, SmallIntJsonTest) {
   auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
 
   auto value = type::TransientValueFactory::GetSmallInt(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -443,7 +377,7 @@ TEST_F(CVETests, IntegerJsonTest) {
   auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
 
   auto value = type::TransientValueFactory::GetInteger(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -459,7 +393,7 @@ TEST_F(CVETests, BigIntJsonTest) {
   auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
 
   auto value = type::TransientValueFactory::GetBigInt(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -475,7 +409,7 @@ TEST_F(CVETests, DecimalJsonTest) {
   auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
   auto value = type::TransientValueFactory::GetDecimal(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -491,7 +425,7 @@ TEST_F(CVETests, TimestampJsonTest) {
   auto data = static_cast<type::timestamp_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
 
   auto value = type::TransientValueFactory::GetTimestamp(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -507,7 +441,7 @@ TEST_F(CVETests, DateJsonTest) {
   auto data = static_cast<type::date_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
 
   auto value = type::TransientValueFactory::GetDate(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -528,7 +462,7 @@ TEST_F(CVETests, VarCharJsonTest) {
   data[length - 1] = '\0';  // null terminate the c-string
 
   TransientValue value = type::TransientValueFactory::GetVarChar(data);
-  EXPECT_FALSE(value.Null());
+  EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
