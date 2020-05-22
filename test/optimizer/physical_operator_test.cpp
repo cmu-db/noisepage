@@ -435,7 +435,8 @@ TEST(OperatorTests, LimitTest) {
 
   size_t offset = 90;
   size_t limit = 22;
-  auto sort_expr_ori = new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
+  auto sort_expr_ori =
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
   OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
 
@@ -1160,7 +1161,8 @@ TEST(OperatorTests, UpdateTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   std::string column = "abc";
-  parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
+  parser::AbstractExpression *value =
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
   parser::UpdateClause *raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer(value));
   auto update_clause = common::ManagedPointer(raw_update_clause);
   catalog::db_oid_t database_oid(123);
@@ -1609,9 +1611,9 @@ TEST(OperatorTests, CreateIndexTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   auto idx_schema = std::make_unique<catalog::IndexSchema>(
-      std::vector<catalog::IndexSchema::Column>{
-          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
-                                       parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
+      std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
+          "col_1", type::TypeId::TINYINT, true,
+          parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
 
   Operator op1 =
@@ -1624,16 +1626,16 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_EQ(op1.GetContentsAs<CreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
   EXPECT_EQ(op1.GetContentsAs<CreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
   auto idx_schema_dup = std::make_unique<catalog::IndexSchema>(
-      std::vector<catalog::IndexSchema::Column>{
-          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
-                                       parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
+      std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
+          "col_1", type::TypeId::TINYINT, true,
+          parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   EXPECT_EQ(*op1.GetContentsAs<CreateIndex>()->GetSchema(), *idx_schema_dup);
 
   auto idx_schema_2 = std::make_unique<catalog::IndexSchema>(
-      std::vector<catalog::IndexSchema::Column>{
-          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
-                                       parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
+      std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
+          "col_1", type::TypeId::TINYINT, true,
+          parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op2 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_2))
@@ -1642,9 +1644,9 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   auto idx_schema_3 = std::make_unique<catalog::IndexSchema>(
-      std::vector<catalog::IndexSchema::Column>{
-          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
-                                       parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
+      std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
+          "col_1", type::TypeId::TINYINT, true,
+          parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op3 =
       CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1", std::move(idx_schema_3))
@@ -1653,9 +1655,9 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   auto idx_schema_4 = std::make_unique<catalog::IndexSchema>(
-      std::vector<catalog::IndexSchema::Column>{
-          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
-                                       parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
+      std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
+          "col_1", type::TypeId::TINYINT, true,
+          parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op4 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2", std::move(idx_schema_4))
@@ -1664,9 +1666,9 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_NE(op1.Hash(), op4.Hash());
 
   auto idx_schema_5 = std::make_unique<catalog::IndexSchema>(
-      std::vector<catalog::IndexSchema::Column>{
-          catalog::IndexSchema::Column("col_1", type::TypeId::INTEGER, true,
-                                       parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1)))},
+      std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
+          "col_1", type::TypeId::INTEGER, true,
+          parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op5 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5))
@@ -1676,10 +1678,12 @@ TEST(OperatorTests, CreateIndexTest) {
 
   auto idx_schema_6 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{
-          catalog::IndexSchema::Column("col_1", type::TypeId::INTEGER, true,
-                                       parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1))),
-          catalog::IndexSchema::Column("col_2", type::TypeId::TINYINT, true,
-                                       parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1)))},
+          catalog::IndexSchema::Column(
+              "col_1", type::TypeId::INTEGER, true,
+              parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1))),
+          catalog::IndexSchema::Column(
+              "col_2", type::TypeId::TINYINT, true,
+              parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op6 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_6))
@@ -1705,11 +1709,11 @@ TEST(OperatorTests, CreateTableTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  auto col_def =
-      new parser::ColumnDefinition("col_1", parser::ColumnDefinition::DataType::INTEGER, true, true, true,
-                                   common::ManagedPointer<parser::AbstractExpression>(
-                                       new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(9))),
-                                   nullptr, 4);
+  auto col_def = new parser::ColumnDefinition(
+      "col_1", parser::ColumnDefinition::DataType::INTEGER, true, true, true,
+      common::ManagedPointer<parser::AbstractExpression>(
+          new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(9))),
+      nullptr, 4);
   Operator op1 = CreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def)},
@@ -1764,10 +1768,11 @@ TEST(OperatorTests, CreateTableTest) {
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
+  auto col_def_2_string_val = execution::sql::ValueUtil::CreateStringVal(std::string_view("col"));
   auto col_def_2 = new parser::ColumnDefinition(
       "col_1", parser::ColumnDefinition::DataType::VARCHAR, true, true, true,
-      common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TransientValueFactory::GetVarChar("col"))),
+      common::ManagedPointer<parser::AbstractExpression>(new parser::ConstantValueExpression(
+          type::TypeId::VARCHAR, std::move(col_def_2_string_val.first), std::move(col_def_2_string_val.second))),
       nullptr, 20);
   Operator op7 = CreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
@@ -1931,7 +1936,8 @@ TEST(OperatorTests, CreateTriggerTest) {
   EXPECT_FALSE(op10 == op1);
   EXPECT_NE(op1.Hash(), op10.Hash());
 
-  auto when_2 = new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(2));
+  auto when_2 =
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(2));
   Operator op11 =
       CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
                           {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when_2), 0)

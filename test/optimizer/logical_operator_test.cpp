@@ -1740,10 +1740,11 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
+  auto col_def_2_string_val = execution::sql::ValueUtil::CreateStringVal(std::string_view("col"));
   auto col_def_2 = new parser::ColumnDefinition(
       "col_1", parser::ColumnDefinition::DataType::VARCHAR, true, true, true,
-      common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TransientValueFactory::GetVarChar("col"))),
+      common::ManagedPointer<parser::AbstractExpression>(new parser::ConstantValueExpression(
+          type::TypeId::VARCHAR, std::move(col_def_2_string_val.first), std::move(col_def_2_string_val.second))),
       nullptr, 20);
   Operator op7 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{

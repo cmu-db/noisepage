@@ -170,7 +170,7 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
     EXPECT_EQ(set0->GetValue().CastManagedPointerTo<execution::sql::Real>()->val_, 1);
     EXPECT_EQ(set1->GetValue().CastManagedPointerTo<execution::sql::Real>()->val_, 2);
     EXPECT_EQ(set2->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 3);
-    EXPECT_EQ(type::TransientValuePeeker::PeekVarChar(set3->GetValue()), "4");
+    EXPECT_EQ(set3->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView(), "4");
 
     // Idx Scan, full output schema
     EXPECT_EQ(update->GetChildren().size(), 1);
