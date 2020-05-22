@@ -1,9 +1,10 @@
+#include "parser/expression/abstract_expression.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -207,15 +208,6 @@ void AbstractExpression::DeriveExpressionName() {
     expression_name_ = alias_;
     return;
   }
-
-  bool first = true;
-  auto op_str = ExpressionTypeToString(expression_type_, true);
-  for (auto &child : children_) {
-    if (!first) expression_name_ += " ";
-    child->DeriveExpressionName();
-    expression_name_ += op_str + " " + child->expression_name_;
-    first = false;
-  }
-  if (first) expression_name_ = op_str;
+  // TODO(WAN): I don't understand why we need to derive an expression name at all. And aliases are known early.
 }
 }  // namespace terrier::parser
