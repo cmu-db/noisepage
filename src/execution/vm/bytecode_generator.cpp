@@ -2456,22 +2456,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
-    case ast::Builtin::VerifyTableInsertConstraint: {
-      VisitBuiltinStorageInterfaceCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::DeleteCascade: {
-      VisitBuiltinStorageInterfaceCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::UpdateCascade: {
-      VisitBuiltinStorageInterfaceCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::UpdateVerify: {
-      VisitBuiltinStorageInterfaceCall(call, builtin);
-      break;
-    }
+    case ast::Builtin::VerifyTableInsertConstraint:
+    case ast::Builtin::DeleteCascade:
+    case ast::Builtin::UpdateCascade:
+    case ast::Builtin::UpdateVerify:
     case ast::Builtin::StorageInterfaceFree: {
       VisitBuiltinStorageInterfaceCall(call, builtin);
       break;

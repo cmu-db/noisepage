@@ -185,7 +185,6 @@ bool DDLExecutors::CreatePKConstraintsAndIndices(common::ManagedPointer<catalog:
     }
     constraint_oid = accessor->CreatePKConstraint(ns, table, pk_info.constraint_name_, index_oid, pk_cols);
     if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
-      std::cerr << "Catalog wasn't able to proceed, txn must now abort\n";
       return false;
     }
   }
