@@ -904,7 +904,7 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
     }
 
     auto prepared_query =
-        OptimizeSqlStatement(std::move(query_final), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+        OptimizeSqlStatement(query_final, std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
     for (auto i = 0; i < num_iters; i++) {
       if (i == num_iters - 1) {
         metrics_manager_->RegisterThread();
