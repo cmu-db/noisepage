@@ -41,17 +41,17 @@ class PostgresPacketUtil {
    * @param read_buffer incoming postgres packet with next field as a value
    * @param size size of the value
    * @param type internal type of the value
-   * @return TransientValue containing the value from the packet
+   * @return ConstantValueExpression containing the value from the packet
    */
   static parser::ConstantValueExpression TextValueToInternalValue(common::ManagedPointer<ReadBufferView> read_buffer,
                                                                   int32_t size, type::TypeId type);
 
   /**
-   * Given a read buffer that starts at a binary value, consumes it and returns an internal TransientValue for that type
+   * Given a read buffer that starts at a binary value, consumes it and returns a ConstantValueExpression for that type
    * @param read_buffer incoming postgres packet with next field as a value
    * @param size size of the value
    * @param type internal type of the value
-   * @return TransientValue containing the value from the packet
+   * @return ConstantValueExpression containing the value from the packet
    */
   static parser::ConstantValueExpression BinaryValueToInternalValue(common::ManagedPointer<ReadBufferView> read_buffer,
                                                                     int32_t size, type::TypeId type);

@@ -367,8 +367,6 @@ class ConstantValueExpression : public AbstractExpression {
 
   /**
    * @return expression serialized to json
-   * @note TransientValue::ToJson() is private, ConstantValueExpression is a friend
-   * @see TransientValue for why TransientValue::ToJson is private
    */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
@@ -418,8 +416,6 @@ class ConstantValueExpression : public AbstractExpression {
 
   /**
    * @param j json to deserialize
-   * @note TransientValue::FromJson() is private, ConstantValueExpression is a friend
-   * @see TransientValue for why TransientValue::FromJson is private
    */
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
     std::vector<std::unique_ptr<AbstractExpression>> exprs;

@@ -297,9 +297,10 @@ void SettingsManager::ConstructParamMap(                                        
    * This will expand to a list of code like:
    * param_map.emplace(
    *     terrier::settings::Param::port,
-   *     terrier::settings::ParamInfo(port, terrier::type::TransientValueFactory::GetInteger(FLAGS_port),
-   *                                  "Terrier port (default: 15721)",
-   *                                  terrier::type::TransientValueFactory::GetInteger(15721), is_mutable));
+   *     terrier::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
+   *     std::make_unique<execution::sql::Integer>(FLAGS_port)), "Terrier port (default: 15721)",
+   *     parser::ConstantValueExpression(type::TypeID::INTEGER, std::make_unique<execution::sql::Integer>(15721)),
+   *     is_mutable));
    */
 
 #define __SETTING_POPULATE__           // NOLINT

@@ -1,4 +1,5 @@
 #include <common/macros.h>
+
 #include <random>
 #include <utility>
 
@@ -358,7 +359,8 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
       std::stringstream col_name;
       col_name << "col" << j;
       cols.emplace_back(col_name.str(), type::TypeId::INTEGER, false,
-                        terrier::parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+                        terrier::parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                                 std::make_unique<execution::sql::Integer>(0)));
     }
     catalog::Schema tmp_schema(cols);
 
