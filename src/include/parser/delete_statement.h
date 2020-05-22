@@ -43,10 +43,7 @@ class DeleteStatement : public SQLStatement {
   /** @return expression that represents deletion condition */
   common::ManagedPointer<AbstractExpression> GetDeleteCondition() { return expr_; }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
  private:
   const std::unique_ptr<TableRef> table_ref_;

@@ -16,61 +16,47 @@
 #include "parser/expression/type_cast_expression.h"
 
 namespace terrier {
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::AggregateExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::AggregateExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::CaseExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::CaseExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ConjunctionExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ConjunctionExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ConstantValueExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ConstantValueExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::DefaultValueExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::DefaultValueExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::DerivedValueExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::DerivedValueExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::OperatorExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::OperatorExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::StarExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::StarExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::SubqueryExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::SubqueryExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
-void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::TypeCastExpression> expr,
-                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
-  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::TypeCastExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
 }
 
 }  // namespace terrier

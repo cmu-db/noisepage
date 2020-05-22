@@ -778,6 +778,17 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   // -------------------------------------------------------
+  // Date functions
+  // -------------------------------------------------------
+
+  OP(ExtractYear) : {
+    auto *sql_int = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<sql::DateVal *>(READ_LOCAL_ID());
+    OpExtractYear(sql_int, input);
+    DISPATCH_NEXT();
+  }
+
+  // -------------------------------------------------------
   // SQL Comparison Operations
   // -------------------------------------------------------
 

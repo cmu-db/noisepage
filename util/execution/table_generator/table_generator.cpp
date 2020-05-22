@@ -349,8 +349,8 @@ void TableGenerator::GenerateMiniRunnerIndexes() {
           idx_meta_cols.emplace_back(index_strs.back().c_str(), type, false, index_strs.back().c_str());
         }
 
-        auto meta = IndexInsertMeta(idx_name_str.c_str(), table_name.c_str(), idx_meta_cols);
-        CreateIndex(&meta);
+        auto index_meta = IndexInsertMeta(idx_name_str.c_str(), table_name.c_str(), idx_meta_cols);
+        CreateIndex(&index_meta);
       }
     }
   }

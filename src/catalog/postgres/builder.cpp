@@ -722,6 +722,9 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("proconfig", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROCONFIG_COL_OID);
 
+  columns.emplace_back("ctx_pointer", type::TypeId::BIGINT, true, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(PRO_CTX_PTR_COL_OID);
+
   return Schema(columns);
 }
 
