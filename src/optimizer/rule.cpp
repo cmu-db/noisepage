@@ -9,7 +9,7 @@ namespace terrier::optimizer {
 RulePromise Rule::Promise(GroupExpression *group_expr) const {
   auto root_type = match_pattern_->Type();
   // This rule is not applicable
-  if (root_type != OpType::LEAF && root_type != group_expr->Op().GetType()) {
+  if (root_type != OpType::LEAF && root_type != group_expr->Contents()->GetOpType()) {
     return RulePromise::NO_PROMISE;
   }
   if (IsPhysical()) return RulePromise::PHYSICAL_PROMISE;
