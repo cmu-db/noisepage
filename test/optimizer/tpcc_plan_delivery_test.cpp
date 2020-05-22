@@ -171,7 +171,7 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateDeliveryDate) {
     EXPECT_EQ(expr->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
     auto cve = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(cve->GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative(),
-              util::TimeConvertor::TimestampFromHMSu(2020, 1, 2, 11, 22, 33, 456000));
+              static_cast<uint64_t>(util::TimeConvertor::TimestampFromHMSu(2020, 1, 2, 11, 22, 33, 456000)));
 
     // Idx Scan, full output schema
     EXPECT_EQ(update->GetChildren().size(), 1);

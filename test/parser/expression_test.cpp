@@ -138,9 +138,12 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_bi_3;
 
   // constant double/decimalGetDecimal
-  auto expr_d_1 = new ConstantValueExpression(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(1));
-  auto expr_d_2 = new ConstantValueExpression(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(1));
-  auto expr_d_3 = new ConstantValueExpression(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(32768));
+  auto expr_d_1 = new ConstantValueExpression(type::TypeId::DECIMAL,
+                                              std::make_unique<execution::sql::Real>(static_cast<double>(1)));
+  auto expr_d_2 = new ConstantValueExpression(type::TypeId::DECIMAL,
+                                              std::make_unique<execution::sql::Real>(static_cast<double>(1)));
+  auto expr_d_3 = new ConstantValueExpression(type::TypeId::DECIMAL,
+                                              std::make_unique<execution::sql::Real>(static_cast<double>(32768)));
 
   EXPECT_TRUE(*expr_d_1 == *expr_d_2);
   EXPECT_EQ(expr_d_1->Hash(), expr_d_2->Hash());
@@ -218,7 +221,7 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
 
   auto string_val2 = execution::sql::ValueUtil::CreateStringVal(std::string_view("ConstantValueExpressionJsonTest"));
   EXPECT_EQ(
-      deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()->GetValue(),
+      *(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()),
       ConstantValueExpression(type::TypeId::VARCHAR, std::move(string_val2.first), std::move(string_val2.second)));
 }
 
@@ -642,13 +645,13 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   EXPECT_EQ(op_expr_1->GetExpressionName(), "OPERATOR_NOT");
 
   std::vector<std::unique_ptr<AbstractExpression>> children;
-  children.emplace_back(
-      std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(1)));
+  children.emplace_back(std::make_unique<ConstantValueExpression>(
+      type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(static_cast<double>(1))));
   children.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
                                                                   std::make_unique<execution::sql::Integer>(32768)));
   std::vector<std::unique_ptr<AbstractExpression>> children_cp;
-  children_cp.emplace_back(
-      std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(1)));
+  children_cp.emplace_back(std::make_unique<ConstantValueExpression>(
+      type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(static_cast<double>(1))));
   children_cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
                                                                      std::make_unique<execution::sql::Integer>(32768)));
 
