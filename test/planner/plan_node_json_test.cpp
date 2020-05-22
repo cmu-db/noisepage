@@ -678,7 +678,7 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
     tuple.emplace_back(ptr);
     for (; num_cols - 1 > 0; num_cols--) {
       auto cve =
-          new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique < execution::sql::BoolVal(true));
+          new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
       free_exprs.push_back(cve);
       tuple.emplace_back(cve);
     }

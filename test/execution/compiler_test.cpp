@@ -3078,26 +3078,28 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
+    std::vector<parser::ConstantValueExpression> params;
     // First parameter list
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.val_.ToNative())));
-    params.emplace_back(type::TransientValueFactory::GetDecimal(real1));
-    params.emplace_back(type::TransientValueFactory::GetBoolean(bool1));
-    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint1));
-    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint1));
-    params.emplace_back(type::TransientValueFactory::GetInteger(int1));
-    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint1));
+    auto str1_val = sql::ValueUtil::CreateStringVal(str1);
+    params.emplace_back(type::TypeId::VARCHAR, std::move(str1_val.first), std::move(str1_val.second));
+    params.emplace_back(type::TypeId::DATE, std::make_unique<sql::DateVal>(date1.val_));
+    params.emplace_back(type::TypeId::DECIMAL, std::make_unique<sql::Real>(real1));
+    params.emplace_back(type::TypeId::BOOLEAN, std::make_unique<sql::BoolVal>(bool1));
+    params.emplace_back(type::TypeId::TINYINT, std::make_unique<sql::Integer>(tinyint1));
+    params.emplace_back(type::TypeId::SMALLINT, std::make_unique<sql::Integer>(smallint1));
+    params.emplace_back(type::TypeId::INTEGER, std::make_unique<sql::Integer>(int1));
+    params.emplace_back(type::TypeId::BIGINT, std::make_unique<sql::Integer>(bigint1));
     // Second parameter list
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.val_.ToNative())));
-    params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
-    params.emplace_back(type::TransientValueFactory::GetBoolean(bool2));
-    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint2));
-    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint2));
-    params.emplace_back(type::TransientValueFactory::GetInteger(int2));
-    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint2));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+    auto str2_val = sql::ValueUtil::CreateStringVal(str1);
+    params.emplace_back(type::TypeId::VARCHAR, std::move(str2_val.first), std::move(str2_val.second));
+    params.emplace_back(type::TypeId::DATE, std::make_unique<sql::DateVal>(date2.val_));
+    params.emplace_back(type::TypeId::DECIMAL, std::make_unique<sql::Real>(real2));
+    params.emplace_back(type::TypeId::BOOLEAN, std::make_unique<sql::BoolVal>(bool2));
+    params.emplace_back(type::TypeId::TINYINT, std::make_unique<sql::Integer>(tinyint2));
+    params.emplace_back(type::TypeId::SMALLINT, std::make_unique<sql::Integer>(smallint2));
+    params.emplace_back(type::TypeId::INTEGER, std::make_unique<sql::Integer>(int2));
+    params.emplace_back(type::TypeId::BIGINT, std::make_unique<sql::Integer>(bigint2));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
 
@@ -3274,10 +3276,12 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+    std::vector<parser::ConstantValueExpression> params;
+    auto str1_val = sql::ValueUtil::CreateStringVal(str1);
+    auto str2_val = sql::ValueUtil::CreateStringVal(str2);
+    params.emplace_back(type::TypeId::VARCHAR, std::move(str1_val.first), std::move(str1_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, std::move(str2_val.first), std::move(str2_val.second));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();

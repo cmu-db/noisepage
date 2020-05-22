@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "binder/bind_node_visitor.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/exec/execution_context.h"
 #include "execution/executable_query.h"
