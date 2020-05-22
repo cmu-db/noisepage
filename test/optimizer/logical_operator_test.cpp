@@ -36,8 +36,8 @@ TEST(OperatorTests, LogicalInsertTest) {
   catalog::table_oid_t table_oid(789);
   catalog::col_oid_t columns[] = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
   parser::AbstractExpression *raw_values[] = {
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)),
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(9))};
   auto *values = new std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(
       {std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))});
 
@@ -84,9 +84,9 @@ TEST(OperatorTests, LogicalInsertTest) {
   // NOTE: We only do this for debug builds
 #ifndef NDEBUG
   parser::AbstractExpression *bad_raw_values[] = {
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)),
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(2)),
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(3))};
   auto *bad_values = new std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(
       {std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))});
   EXPECT_DEATH(LogicalInsert::Make(
@@ -166,7 +166,7 @@ TEST(OperatorTests, LogicalLimitTest) {
   size_t offset = 90;
   size_t limit = 22;
   parser::AbstractExpression *sort_expr_ori =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
   OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
 
@@ -253,7 +253,7 @@ TEST(OperatorTests, LogicalUpdateTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   std::string column = "abc";
-  parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
   auto update_clause =
       std::make_unique<parser::UpdateClause>(column, common::ManagedPointer<parser::AbstractExpression>(value));
   auto update_clause2 =
@@ -543,9 +543,9 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   auto alias_to_expr_map_5 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+      new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
   auto expr1 = common::ManagedPointer(expr_b_1);
   auto expr2 = common::ManagedPointer(expr_b_2);
 
@@ -1589,9 +1589,9 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> raw_values = {
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1))),
+          new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1))),
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9)))};
+          new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(9)))};
   auto raw_values_copy = raw_values;
   Operator op3 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                           parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy))
@@ -1612,7 +1612,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
       common::ManagedPointer<parser::AbstractExpression>(
           new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true))),
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9)))};
+          new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(9)))};
   auto raw_values_copy3 = raw_values_2;
   Operator op10 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                            parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy3))
@@ -1683,7 +1683,7 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   auto col_def =
       new parser::ColumnDefinition("col_1", parser::ColumnDefinition::DataType::INTEGER, true, true, true,
                                    common::ManagedPointer<parser::AbstractExpression>(
-                                       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))),
+                                       new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(9))),
                                    nullptr, 4);
   Operator op1 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
@@ -1828,7 +1828,7 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  auto when = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  auto when = new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1));
   Operator op1 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
                                             common::ManagedPointer<parser::AbstractExpression>(when), 0)
@@ -1918,7 +1918,7 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
   EXPECT_FALSE(op10 == op1);
   EXPECT_NE(op1.Hash(), op10.Hash());
 
-  auto when_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2));
+  auto when_2 = new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(2));
   Operator op11 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                              "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
                                              common::ManagedPointer<parser::AbstractExpression>(when_2), 0)
