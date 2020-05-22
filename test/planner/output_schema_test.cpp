@@ -22,7 +22,8 @@ class OutputSchemaTests : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN,
+                                                             std::make_unique<execution::sql::BoolVal>(true));
   }
 };
 

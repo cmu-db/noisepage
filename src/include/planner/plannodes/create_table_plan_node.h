@@ -534,8 +534,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &ProcessCheckConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
-      //       TODO(Matt): I'm pretty sure this isn't how we're gonna do constraints anyway
-
       auto check_cols = std::vector<std::string>();
 
       // TODO(Gus,Wen) more expression types need to be supported

@@ -1,3 +1,7 @@
+#include <memory>
+#include <string>
+#include <utility>
+
 // This allows the settings defined once to be used in different contexts.
 // When __SETTING_GFLAGS_DEFINE__ is set,
 //    setting definitions will be exposed through glfags definitions.

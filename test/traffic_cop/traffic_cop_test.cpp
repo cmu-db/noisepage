@@ -61,7 +61,6 @@ TEST_F(TrafficCopTests, EmptyCommitTest) {
 
     pqxx::work txn1(connection);
     txn1.commit();
-    connection.disconnect();
   } catch (const std::exception &e) {
     EXPECT_TRUE(false);
   }
@@ -75,7 +74,6 @@ TEST_F(TrafficCopTests, EmptyAbortTest) {
 
     pqxx::work txn1(connection);
     txn1.abort();
-    connection.disconnect();
   } catch (const std::exception &e) {
     EXPECT_TRUE(false);
   }
@@ -90,7 +88,6 @@ TEST_F(TrafficCopTests, EmptyStatementTest) {
     pqxx::work txn1(connection);
     pqxx::result r = txn1.exec(";");
     txn1.commit();
-    connection.disconnect();
   } catch (const std::exception &e) {
     EXPECT_TRUE(false);
   }
@@ -105,7 +102,6 @@ TEST_F(TrafficCopTests, BadParseTest) {
     pqxx::work txn1(connection);
     pqxx::result r = txn1.exec("INSTERT INTO FOO VALUES (1,1);");
     txn1.commit();
-    connection.disconnect();
   } catch (const std::exception &e) {
     std::string error(e.what());
     std::string expect("ERROR:  syntax error\n");
@@ -122,7 +118,6 @@ TEST_F(TrafficCopTests, BadBindingTest) {
     pqxx::work txn1(connection);
     pqxx::result r = txn1.exec("INSERT INTO FOO VALUES (1,1);");
     txn1.commit();
-    connection.disconnect();
   } catch (const std::exception &e) {
     std::string error(e.what());
     std::string expect("ERROR:  binding failed\n");
@@ -143,7 +138,6 @@ TEST_F(TrafficCopTests, BasicTest) {
     pqxx::result r = txn1.exec("SELECT * FROM TableA");
     EXPECT_EQ(r.size(), 1);
     txn1.commit();
-    connection.disconnect();
   } catch (const std::exception &e) {
     EXPECT_TRUE(false);
   }
@@ -174,7 +168,6 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
     } while (new_namespace_oid == catalog::INVALID_NAMESPACE_OID);
     EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
     txn1.commit();
-    connection.disconnect();
   } catch (const std::exception &e) {
     EXPECT_TRUE(false);
   }
