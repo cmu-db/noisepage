@@ -14,7 +14,7 @@ namespace terrier::execution::vm {
 // ---------------------------------------------------------
 
 LocalInfo::LocalInfo(std::string name, ast::Type *type, uint32_t offset, LocalInfo::Kind kind) noexcept
-    : name_(std::move(name)), type_(type), offset_(offset), size_(type->Size()), kind_(kind) {}
+    : name_(std::move(name)), type_(type), offset_(offset), size_(type->GetSize()), kind_(kind) {}
 
 // ---------------------------------------------------------
 // Function Information
@@ -35,14 +35,14 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalI
   TERRIER_ASSERT(!name.empty(), "Local name cannot be empty");
 
   // Bump size to account for the alignment of the new local
-  if (!common::MathUtil::IsAligned(frame_size_, type->Alignment())) {
-    frame_size_ = common::MathUtil::AlignTo(frame_size_, type->Alignment());
+  if (!common::MathUtil::IsAligned(frame_size_, type->GetAlignment())) {
+    frame_size_ = common::MathUtil::AlignTo(frame_size_, type->GetAlignment());
   }
 
   const auto offset = static_cast<uint32_t>(frame_size_);
   locals_.emplace_back(name, type, offset, kind);
 
-  frame_size_ += type->Size();
+  frame_size_ += type->GetSize();
 
   return LocalVar(offset, LocalVar::AddressMode::Address);
 }
@@ -65,7 +65,7 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name) {
 
 LocalVar FunctionInfo::GetReturnValueLocal() const {
   // This invocation only makes sense if the function actually returns a value
-  TERRIER_ASSERT(!func_type_->ReturnType()->IsNilType(),
+  TERRIER_ASSERT(!func_type_->GetReturnType()->IsNilType(),
                  "Cannot lookup local slot for function that does not have return value");
   return LocalVar(0u, LocalVar::AddressMode::Address);
 }

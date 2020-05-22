@@ -33,7 +33,7 @@ void PrettyPrintFuncInfo(std::ostream *os, const FunctionInfo &func) {
     }
     *os << std::setw(static_cast<int>(max_local_len)) << std::right << local.Name() << ":  offset=" << std::setw(7)
         << std::left << local.Offset() << " size=" << std::setw(7) << std::left << local.Size()
-        << " align=" << std::setw(7) << std::left << local.GetType()->Alignment() << " type=" << std::setw(7)
+        << " align=" << std::setw(7) << std::left << local.GetType()->GetAlignment() << " type=" << std::setw(7)
         << std::left << ast::Type::ToString(local.GetType()) << std::endl;
   }
 }

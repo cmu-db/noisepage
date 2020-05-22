@@ -15,15 +15,16 @@ namespace terrier::execution::ast {
  *
  * Usage:
  * @code
+ * // The ForStmtVisitor class will find ALL for-statement nodes in the input AST
  * class ForStmtVisitor : public AstTraversalVisitor<ForStmtVisitor> {
  *  public:
- *    ForStmtVisitor(ast::AstNode *root) :
- *      AstTraversalVisitor<ForStmtVisitor>(root) {}
+ *   ForStmtVisitor(ast::AstNode *root) : AstTraversalVisitor<ForStmtVisitor>(root) {}
  *
- *   void VisitForStmt(ast::ForStmt *stmt) { ... }
+ *   void VisitForStmt(ast::ForStmt *stmt) {
+ *     // Process stmt
+ *   }
  * }
  * @endcode
- * The a ForStmtVisitor class will find all for-statement nodes in an AST tree
  *
  * @tparam Subclass visitor subclass
  */

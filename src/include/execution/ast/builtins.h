@@ -11,19 +11,23 @@ namespace terrier::execution::ast {
   F(IsSqlNull, isSqlNull)                                               \
   F(IsSqlNotNull, isSqlNotNull)                                         \
   F(NullToSql, nullToSql)                                               \
+                                                                        \
   /* Primitive <-> SQL */                                               \
-  F(IntToSql, intToSql)                                                 \
   F(BoolToSql, boolToSql)                                               \
+  F(DateToSql, dateToSql)                                               \
   F(FloatToSql, floatToSql)                                             \
+  F(IntToSql, intToSql)                                                 \
   F(SqlToBool, sqlToBool)                                               \
   F(StringToSql, stringToSql)                                           \
-  F(VarlenToSql, varlenToSql)                                           \
-  F(DateToSql, dateToSql)                                               \
   F(TimestampToSql, timestampToSql)                                     \
   F(TimestampToSqlHMSu, timestampToSqlHMSu)                             \
+  F(VarlenToSql, varlenToSql)                                           \
                                                                         \
   /* Date Functions */                                                  \
   F(ExtractYear, extractYear)                                           \
+                                                                        \
+  /* SQL Functions */                                                   \
+  F(Like, like)                                                         \
                                                                         \
   /* Vectorized Filters */                                              \
   F(FilterEq, filterEq)                                                 \
@@ -96,6 +100,7 @@ namespace terrier::execution::ast {
   /* Aggregations */                                                    \
   F(AggHashTableInit, aggHTInit)                                        \
   F(AggHashTableInsert, aggHTInsert)                                    \
+  F(AggHashTableLinkEntry, aggHTLink)                                   \
   F(AggHashTableLookup, aggHTLookup)                                    \
   F(AggHashTableProcessBatch, aggHTProcessBatch)                        \
   F(AggHashTableMovePartitions, aggHTMoveParts)                         \
@@ -110,6 +115,7 @@ namespace terrier::execution::ast {
   F(AggPartIterNext, aggPartIterNext)                                   \
   F(AggPartIterGetHash, aggPartIterGetHash)                             \
   F(AggPartIterGetRow, aggPartIterGetRow)                               \
+  F(AggPartIterGetRowEntry, aggPartIterGetRowEntry)                     \
   F(AggInit, aggInit)                                                   \
   F(AggAdvance, aggAdvance)                                             \
   F(AggMerge, aggMerge)                                                 \
@@ -125,7 +131,12 @@ namespace terrier::execution::ast {
   F(JoinHashTableIterClose, joinHTIterClose)                            \
   F(JoinHashTableBuild, joinHTBuild)                                    \
   F(JoinHashTableBuildParallel, joinHTBuildParallel)                    \
+  F(JoinHashTableLookup, joinHTLookup)                                  \
   F(JoinHashTableFree, joinHTFree)                                      \
+                                                                        \
+  /* Hash Table Entry Iterator (for hash joins) */                      \
+  F(HashTableEntryIterHasNext, htEntryIterHasNext)                      \
+  F(HashTableEntryIterGetRow, htEntryIterGetRow)                        \
                                                                         \
   /* Sorting */                                                         \
   F(SorterInit, sorterInit)                                             \
@@ -153,8 +164,9 @@ namespace terrier::execution::ast {
   F(Tan, tan)                                                           \
                                                                         \
   /* Generic */                                                         \
-  F(SizeOf, sizeOf)                                                     \
+  F(OffsetOf, offsetOf)                                                 \
   F(PtrCast, ptrCast)                                                   \
+  F(SizeOf, sizeOf)                                                     \
                                                                         \
   /* Output Buffer */                                                   \
   F(OutputAlloc, outputAlloc)                                           \
@@ -247,7 +259,7 @@ namespace terrier::execution::ast {
   F(Lower, lower)
 
 /**
- * Enum of builtins
+ * An enumeration of all TPL builtin functions.
  */
 enum class Builtin : uint8_t {
 #define ENTRY(Name, ...) Name,
@@ -259,9 +271,9 @@ enum class Builtin : uint8_t {
 };
 
 /**
- * Manages builtin functions
+ * Manages builtin functions.
  */
-class Builtins {
+class Builtins : public AllStatic {
  public:
   /**
    * The total number of builtin functions
@@ -269,14 +281,12 @@ class Builtins {
   static const uint32_t BUILTINS_COUNT = static_cast<uint32_t>(Builtin ::Last) + 1;
 
   /**
-   * @return the total number of bytecodes
+   * @return The total number of builtin functions.
    */
   static constexpr uint32_t NumBuiltins() { return BUILTINS_COUNT; }
 
   /**
-   * Return the name of the builtin
-   * @param builtin builtin to retrieve
-   * @return name of the builtin function
+   * @return The name of the function associated with the given builtin enumeration.
    */
   static const char *GetFunctionName(Builtin builtin) { return builtin_functions_name[static_cast<uint8_t>(builtin)]; }
 

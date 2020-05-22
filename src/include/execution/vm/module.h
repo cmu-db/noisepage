@@ -217,7 +217,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
 
   // Verify argument counts
   constexpr const uint32_t num_params = sizeof...(ArgTypes);
-  if (num_params != func_info->FuncType()->NumParams()) {
+  if (num_params != func_info->FuncType()->GetNumParams()) {
     return false;
   }
 

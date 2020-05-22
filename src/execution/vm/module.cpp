@@ -119,9 +119,10 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // is larger than 8 bytes (i.e., larger than a general-purpose register),
     // a pointer to the return value is provided to the trampoline as the first
     // argument
-    const ast::Type *return_type = func_.FuncType()->ReturnType();
+    const ast::Type *return_type = func_.FuncType()->GetReturnType();
     if (!return_type->IsNilType()) {
-      required_stack_space += static_cast<uint32_t>(common::MathUtil::AlignTo(return_type->Size(), sizeof(intptr_t)));
+      required_stack_space +=
+          static_cast<uint32_t>(common::MathUtil::AlignTo(return_type->GetSize(), sizeof(intptr_t)));
     }
 
     // Always align to cacheline boundary
@@ -165,7 +166,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     const Xbyak::Reg arg_regs[][6] = {{edi, esi, edx, ecx, r8d, r9d}, {rdi, rsi, rdx, rcx, r8, r9}};
 
     const ast::FunctionType *func_type = func_.FuncType();
-    TERRIER_ASSERT(func_type->NumParams() < sizeof(arg_regs), "Too many function arguments");
+    TERRIER_ASSERT(func_type->GetNumParams() < sizeof(arg_regs), "Too many function arguments");
 
     uint32_t displacement = 0;
     uint32_t local_idx = 0;
@@ -175,8 +176,8 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // If the function returns a non-void value, insert the pointer now.
     //
 
-    if (const ast::Type *return_type = func_type->ReturnType(); !return_type->IsNilType()) {
-      displacement = static_cast<uint32_t>(common::MathUtil::AlignTo(return_type->Size(), sizeof(intptr_t)));
+    if (const ast::Type *return_type = func_type->GetReturnType(); !return_type->IsNilType()) {
+      displacement = static_cast<uint32_t>(common::MathUtil::AlignTo(return_type->GetSize(), sizeof(intptr_t)));
       mov(ptr[rsp + displacement], rsp);
       local_idx++;
     }
@@ -185,7 +186,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // Now comes all the input arguments
     //
 
-    for (uint32_t idx = 0; idx < func_type->NumParams(); idx++, local_idx++) {
+    for (uint32_t idx = 0; idx < func_type->GetNumParams(); idx++, local_idx++) {
       const auto &local_info = func_.Locals()[local_idx];
       auto use_64bit_reg = static_cast<uint32_t>(local_info.Size() > sizeof(uint32_t));
       mov(ptr[rsp + displacement + local_info.Offset()], arg_regs[use_64bit_reg][idx]);
@@ -194,10 +195,10 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
 
   void InvokeVMFunction() {
     const ast::FunctionType *func_type = func_.FuncType();
-    const ast::Type *ret_type = func_type->ReturnType();
+    const ast::Type *ret_type = func_type->GetReturnType();
     uint32_t ret_type_size = 0;
     if (!ret_type->IsNilType()) {
-      ret_type_size = static_cast<uint32_t>(common::MathUtil::AlignTo(ret_type->Size(), sizeof(intptr_t)));
+      ret_type_size = static_cast<uint32_t>(common::MathUtil::AlignTo(ret_type->GetSize(), sizeof(intptr_t)));
     }
 
     // Set up the arguments to VM::InvokeFunction(module, function ID, args)
@@ -210,7 +211,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     call(rax);
 
     if (!ret_type->IsNilType()) {
-      if (ret_type->Size() < 8) {
+      if (ret_type->GetSize() < 8) {
         mov(eax, ptr[rsp]);
       } else {
         mov(rax, ptr[rsp]);

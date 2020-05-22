@@ -91,7 +91,7 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
   // TODO(pmenon): Fix me to support other arithmetic types
   // Primitive int <-> primitive int
   if (left->GetType()->IsIntegerType() && right->GetType()->IsIntegerType()) {
-    if (left->GetType()->Size() < right->GetType()->Size()) {
+    if (left->GetType()->GetSize() < right->GetType()->GetSize()) {
       auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::IntegralCast);
       return {right->GetType(), new_left, right};
     }
@@ -196,7 +196,7 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
 
   // Two Integers
   if (left->GetType()->IsIntegerType() && right->GetType()->IsIntegerType()) {
-    if (left->GetType()->Size() < right->GetType()->Size()) {
+    if (left->GetType()->GetSize() < right->GetType()->GetSize()) {
       auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::IntegralCast);
       return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool), new_left, right};
     }

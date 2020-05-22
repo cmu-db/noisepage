@@ -782,10 +782,10 @@ void Sema::CheckBuiltinJoinHashTableIterHasNext(ast::CallExpr *call) {
 
   // Second argument is a key equality function
   auto *const key_eq_type = args[1]->GetType()->SafeAs<ast::FunctionType>();
-  if (key_eq_type == nullptr || key_eq_type->NumParams() != 3 ||
-      !key_eq_type->ReturnType()->IsSpecificBuiltin(ast::BuiltinType::Bool) ||
-      !key_eq_type->Params()[0].type_->IsPointerType() || !key_eq_type->Params()[1].type_->IsPointerType() ||
-      !key_eq_type->Params()[2].type_->IsPointerType()) {
+  if (key_eq_type == nullptr || key_eq_type->GetNumParams() != 3 ||
+      !key_eq_type->GetReturnType()->IsSpecificBuiltin(ast::BuiltinType::Bool) ||
+      !key_eq_type->GetParams()[0].type_->IsPointerType() || !key_eq_type->GetParams()[1].type_->IsPointerType() ||
+      !key_eq_type->GetParams()[2].type_->IsPointerType()) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadEqualityFunctionForJHTGetNext, args[1]->GetType(),
                                1);
     return;
@@ -1032,7 +1032,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       }
       auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
@@ -1060,7 +1060,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       }
       auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind)) {
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind)) {
         ReportIncorrectCallArg(call, 3, "Fourth argument should be a uint32 array");
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
@@ -1128,7 +1128,7 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   }
   // Check type
   const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
-  const auto &params = scan_fn_type->Params();
+  const auto &params = scan_fn_type->GetParams();
   if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
       !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
@@ -1272,10 +1272,10 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
         // clang-format off
         auto *arg_type = call->Arguments()[arg_idx]->GetType()->SafeAs<ast::FunctionType>();
         if (arg_type == nullptr ||                                              // not a function
-            !arg_type->ReturnType()->IsIntegerType() ||                        // doesn't return an integer
-            arg_type->NumParams() != 1 ||                                      // isn't a single-arg func
-            arg_type->Params()[0].type_->GetPointeeType() == nullptr ||          // first arg isn't a *PCI
-            !arg_type->Params()[0].type_->GetPointeeType()->IsSpecificBuiltin(
+            !arg_type->GetReturnType()->IsIntegerType() ||                        // doesn't return an integer
+            arg_type->GetNumParams() != 1 ||                                      // isn't a single-arg func
+            arg_type->GetParams()[0].type_->GetPointeeType() == nullptr ||          // first arg isn't a *PCI
+            !arg_type->GetParams()[0].type_->GetPointeeType()->IsSpecificBuiltin(
                 ast::BuiltinType::ProjectedColumnsIterator)) {
           // error
           GetErrorReporter()->Report(
@@ -1419,9 +1419,9 @@ void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
 
   // Second argument must be a function
   auto *const cmp_func_type = args[2]->GetType()->SafeAs<ast::FunctionType>();
-  if (cmp_func_type == nullptr || cmp_func_type->NumParams() != 2 ||
-      !cmp_func_type->ReturnType()->IsSpecificBuiltin(ast::BuiltinType::Int32) ||
-      !cmp_func_type->Params()[0].type_->IsPointerType() || !cmp_func_type->Params()[1].type_->IsPointerType()) {
+  if (cmp_func_type == nullptr || cmp_func_type->GetNumParams() != 2 ||
+      !cmp_func_type->GetReturnType()->IsSpecificBuiltin(ast::BuiltinType::Int32) ||
+      !cmp_func_type->GetParams()[0].type_->IsPointerType() || !cmp_func_type->GetParams()[1].type_->IsPointerType()) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadComparisonFunctionForSorter, args[2]->GetType());
     return;
   }
@@ -1685,7 +1685,7 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
       }
       auto *arr_type = call->Arguments()[5]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
       }
       break;
@@ -1722,7 +1722,7 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
       }
       auto *arr_type = call->Arguments()[5]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
       }
       break;
@@ -2004,7 +2004,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       }
       auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
       }
 
@@ -2043,7 +2043,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       }
       auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
       }
 

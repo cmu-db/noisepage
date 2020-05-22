@@ -2,15 +2,14 @@
 
 #include <functional>
 
-#include "llvm/ADT/DenseMapInfo.h"
-
 #include "common/macros.h"
+#include "llvm/ADT/DenseMapInfo.h"
 
 namespace terrier::execution::ast {
 
 /**
  * A uniqued string identifier in some AST context. This serves as a super-
- * lightweight string reference. Two identifiers are equal if they point to the
+ * lightweight string reference. Two identifiers allocated from the same AST context are equal if they point to the
  * same string (i.e., we don't need to check contents).
  */
 class Identifier {
@@ -74,7 +73,7 @@ class Identifier {
 namespace llvm {
 
 /**
- * Make Identifiers usable from LLVM DenseMaps
+ * Functor to make Identifiers usable from LLVM DenseMap.
  */
 template <>
 struct DenseMapInfo<terrier::execution::ast::Identifier> {
@@ -116,7 +115,7 @@ struct DenseMapInfo<terrier::execution::ast::Identifier> {
 namespace std {
 
 /**
- * Make Identifiers usable as keys in STL/TPL maps
+ * Functor to make Identifiers usable as keys in STL/TPL maps.
  */
 template <>
 struct hash<terrier::execution::ast::Identifier> {

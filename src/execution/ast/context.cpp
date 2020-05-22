@@ -8,10 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/StringMap.h"
-
 #include "brain/operating_unit.h"
 #include "common/math_util.h"
 #include "execution/ast/ast_node_factory.h"
@@ -28,6 +24,9 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/StringMap.h"
 
 namespace terrier::execution::ast {
 
@@ -42,13 +41,16 @@ llvm::hash_code hash_value(const Field &field) {  // NOLINT
   return llvm::hash_combine(field.name_.Data(), field.type_);
 }
 
+/*
+ * Struct required to store TPL struct types in LLVM DenseMaps.
+ */
 struct StructTypeKeyInfo {
   struct KeyTy {
     const util::RegionVector<Field> &elements_;
 
     explicit KeyTy(const util::RegionVector<Field> &es) : elements_(es) {}
 
-    explicit KeyTy(const StructType *struct_type) : elements_(struct_type->Fields()) {}
+    explicit KeyTy(const StructType *struct_type) : elements_(struct_type->GetFields()) {}
 
     bool operator==(const KeyTy &that) const { return elements_ == that.elements_; }
 
@@ -83,6 +85,9 @@ struct StructTypeKeyInfo {
 // Key type used in the cache for function types in the context
 // ---------------------------------------------------------
 
+/*
+ * Struct required to store TPL function types in LLVM DenseMaps.
+ */
 struct FunctionTypeKeyInfo {
   struct KeyTy {
     Type *const ret_type_;
@@ -90,7 +95,8 @@ struct FunctionTypeKeyInfo {
 
     explicit KeyTy(Type *ret_type, const util::RegionVector<Field> &ps) : ret_type_(ret_type), params_(ps) {}
 
-    explicit KeyTy(const FunctionType *func_type) : ret_type_(func_type->ReturnType()), params_(func_type->Params()) {}
+    explicit KeyTy(const FunctionType *func_type)
+        : ret_type_(func_type->GetReturnType()), params_(func_type->GetParams()) {}
 
     bool operator==(const KeyTy &that) const { return ret_type_ == that.ret_type_ && params_ == that.params_; }
 
@@ -191,6 +197,10 @@ Context::Context(util::Region *region, sema::ErrorReporter *error_reporter)
 Context::~Context() = default;
 
 Identifier Context::GetIdentifier(llvm::StringRef str) {
+  if (str.empty()) {
+    return Identifier(nullptr);
+  }
+
   auto iter = Impl()->string_table_.insert(std::make_pair(str, static_cast<char>(0))).first;
   return Identifier(iter->getKeyData());
 }
@@ -214,7 +224,7 @@ bool Context::IsBuiltinFunction(Identifier identifier, Builtin *builtin) const {
 Identifier Context::GetBuiltinFunction(Builtin builtin) { return GetIdentifier(Builtins::GetFunctionName(builtin)); }
 
 Identifier Context::GetBuiltinType(BuiltinType::Kind kind) {
-  return GetIdentifier(Impl()->builtin_types_list_[kind]->TplName());
+  return GetIdentifier(Impl()->builtin_types_list_[kind]->GetTplName());
 }
 
 PointerType *Type::PointerTo() { return PointerType::Get(this); }
@@ -266,6 +276,14 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
 
 // static
 StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
+  // Empty structs get an artificial element
+  if (fields.empty()) {
+    // Empty structs get an artificial byte field to ensure non-zero size
+    ast::Identifier name = ctx->GetIdentifier("__field$0$");
+    ast::Type *byte_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int8);
+    fields.emplace_back(name, byte_type);
+  }
+
   const StructTypeKeyInfo::KeyTy key(fields);
 
   auto insert_res = ctx->Impl()->struct_types_.insert_as(nullptr, key);
@@ -282,18 +300,31 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     util::RegionVector<uint32_t> field_offsets(ctx->Region());
     for (const auto &field : fields) {
       // Check if the type needs to be padded
-      uint32_t field_align = field.type_->Alignment();
+      uint32_t field_align = field.type_->GetAlignment();
       if (!common::MathUtil::IsAligned(size, field_align)) {
         size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
       }
 
       // Update size and calculate alignment
       field_offsets.push_back(size);
-      size += field.type_->Size();
-      alignment = std::max(alignment, field.type_->Alignment());
+      size += field.type_->GetSize();
+      alignment = std::max(alignment, field.type_->GetAlignment());
     }
 
+    // Empty structs have an alignment of 1 byte
+    if (alignment == 0) {
+      alignment = 1;
+    }
+
+    // Add padding at end so that these structs can be placed compactly in an
+    // array and still respect alignment
+    if (!common::MathUtil::IsAligned(size, alignment)) {
+      size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, alignment));
+    }
+
+    // Create type
     struct_type = new (ctx->Region()) StructType(ctx, size, alignment, std::move(fields), std::move(field_offsets));
+    // Set in cache
     *iter = struct_type;
   } else {
     struct_type = *iter;

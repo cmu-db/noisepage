@@ -199,6 +199,8 @@ class AstNodeFactory {
    */
   LitExpr *NewBoolLiteral(const SourcePosition &pos, bool val) { return new (region_) LitExpr(pos, val); }
 
+  // TODO(WAN): pmenon IntLiteral and FloatLiteral are int32 and float respectively?
+
   /**
    * @param pos source position
    * @param num integer value

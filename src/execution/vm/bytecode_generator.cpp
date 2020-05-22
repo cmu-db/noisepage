@@ -262,7 +262,7 @@ void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
 void BytecodeGenerator::VisitArrayIndexExpr(ast::IndexExpr *node) {
   // The type and the element's size
   auto *type = node->Object()->GetType()->As<ast::ArrayType>();
-  auto elem_size = type->ElementType()->Size();
+  auto elem_size = type->GetElementType()->GetSize();
 
   // First, we need to get the base address of the array
   LocalVar arr;
@@ -588,7 +588,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       LocalVar arr = VisitExpressionForLValue(call->Arguments()[3]);
       // Emit the initialization codes
       Emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, table_oid, arr,
-                                   static_cast<uint32_t>(arr_type->Length()));
+                                   static_cast<uint32_t>(arr_type->GetLength()));
       Emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
     }
@@ -605,7 +605,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
       // Emit the initialization codes
       Emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, !table_oid, col_oids,
-                                   static_cast<uint32_t>(arr_type->Length()));
+                                   static_cast<uint32_t>(arr_type->GetLength()));
       Emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
     }
@@ -813,7 +813,7 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
 }
 
 void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
-  TERRIER_ASSERT(call->GetType()->Size() == sizeof(hash_t),
+  TERRIER_ASSERT(call->GetType()->GetSize() == sizeof(hash_t),
                  "Hash value size (from return type of @hash) doesn't match actual "
                  "size of hash_t type");
 
@@ -1523,7 +1523,7 @@ void BytecodeGenerator::VisitBuiltinSizeOfCall(ast::CallExpr *call) {
   ast::Type *target_type = call->Arguments()[0]->GetType();
   LocalVar size_var = ExecutionResult()->GetOrCreateDestination(
       ast::BuiltinType::Get(target_type->GetContext(), ast::BuiltinType::Uint32));
-  Emitter()->EmitAssignImm4(size_var, target_type->Size());
+  Emitter()->EmitAssignImm4(size_var, target_type->GetSize());
   ExecutionResult()->SetDestination(size_var.ValueOf());
 }
 
@@ -1564,7 +1564,7 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[5]);
       // Emit the initialization codes
       Emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, num_attrs, table_oid, index_oid,
-                                       col_oids, static_cast<uint32_t>(arr_type->Length()));
+                                       col_oids, static_cast<uint32_t>(arr_type->GetLength()));
       Emitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
       break;
     }
@@ -1587,7 +1587,7 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[5]);
       // Emit the initialization codes
       Emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, num_attrs, !table_oid,
-                                       !index_oid, col_oids, static_cast<uint32_t>(arr_type->Length()));
+                                       !index_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()));
       Emitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
       break;
     }
@@ -1913,7 +1913,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
       auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
-      auto num_oids = static_cast<uint32_t>(arr_type->Length());
+      auto num_oids = static_cast<uint32_t>(arr_type->GetLength());
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
       LocalVar is_index_key_update = VisitExpressionForRValue(call->Arguments()[4]);
       Emitter()->EmitStorageInterfaceInit(Bytecode::StorageInterfaceInit, storage_interface, exec_ctx, table_oid,
@@ -1926,7 +1926,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name.Data());
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
-      auto num_oids = static_cast<uint32_t>(arr_type->Length());
+      auto num_oids = static_cast<uint32_t>(arr_type->GetLength());
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
       LocalVar is_index_key_update = VisitExpressionForRValue(call->Arguments()[4]);
       Emitter()->EmitStorageInterfaceInit(Bytecode::StorageInterfaceInit, storage_interface, exec_ctx, !table_oid,
@@ -2356,15 +2356,15 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
 
   auto *func_type = call->Function()->GetType()->As<ast::FunctionType>();
 
-  if (!func_type->ReturnType()->IsNilType()) {
+  if (!func_type->GetReturnType()->IsNilType()) {
     LocalVar ret_val;
     if (caller_wants_result) {
-      ret_val = ExecutionResult()->GetOrCreateDestination(func_type->ReturnType());
+      ret_val = ExecutionResult()->GetOrCreateDestination(func_type->GetReturnType());
 
       // Let the caller know where the result value is
       ExecutionResult()->SetDestination(ret_val.ValueOf());
     } else {
-      ret_val = CurrentFunction()->NewLocal(func_type->ReturnType());
+      ret_val = CurrentFunction()->NewLocal(func_type->GetReturnType());
     }
 
     // Push return value address into parameter list
@@ -2372,7 +2372,7 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
   }
 
   // Collect non-return-value parameters as usual
-  for (uint32_t i = 0; i < func_type->NumParams(); i++) {
+  for (uint32_t i = 0; i < func_type->GetNumParams(); i++) {
     params.push_back(VisitExpressionForRValue(call->Arguments()[i]));
   }
 
@@ -2760,7 +2760,7 @@ void BytecodeGenerator::VisitFunctionLitExpr(ast::FunctionLitExpr *node) { Visit
 
 void BytecodeGenerator::BuildAssign(LocalVar dest, LocalVar ptr, ast::Type *dest_type) {
   // Emit the appropriate assignment
-  const uint32_t size = dest_type->Size();
+  const uint32_t size = dest_type->GetSize();
   if (size == 1) {
     Emitter()->EmitAssign(Bytecode::Assign1, dest, ptr);
   } else if (size == 2) {
@@ -2774,7 +2774,7 @@ void BytecodeGenerator::BuildAssign(LocalVar dest, LocalVar ptr, ast::Type *dest
 
 void BytecodeGenerator::BuildDeref(LocalVar dest, LocalVar ptr, ast::Type *dest_type) {
   // Emit the appropriate deref
-  const uint32_t size = dest_type->Size();
+  const uint32_t size = dest_type->GetSize();
   if (size == 1) {
     Emitter()->EmitDeref(Bytecode::Deref1, dest, ptr);
   } else if (size == 2) {
@@ -2816,7 +2816,7 @@ void BytecodeGenerator::VisitMemberExpr(ast::MemberExpr *node) {
   if (auto *type = node->Object()->GetType(); node->IsSugaredArrow()) {
     // Double pointer, need to dereference
     obj_ptr = BuildLoadPointer(obj_ptr, type);
-    obj_type = type->As<ast::PointerType>()->Base()->As<ast::StructType>();
+    obj_type = type->As<ast::PointerType>()->GetBase()->As<ast::StructType>();
   } else {
     obj_type = type->As<ast::StructType>();
   }
@@ -2892,12 +2892,12 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
   FunctionInfo *func = &functions_.back();
 
   // Register return type
-  if (auto *return_type = func_type->ReturnType(); !return_type->IsNilType()) {
+  if (auto *return_type = func_type->GetReturnType(); !return_type->IsNilType()) {
     func->NewParameterLocal(return_type->PointerTo(), "hiddenRv");
   }
 
   // Register parameters
-  for (const auto &param : func_type->Params()) {
+  for (const auto &param : func_type->GetParams()) {
     func->NewParameterLocal(param.type_, param.name_.Data());
   }
 
