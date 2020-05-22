@@ -68,7 +68,7 @@ class ConstantValueExpression : public AbstractExpression {
 
   /**
    * Copy constructor
-   * @param other CVE to move
+   * @param other CVE to copy
    */
   ConstantValueExpression(const ConstantValueExpression &other);
 

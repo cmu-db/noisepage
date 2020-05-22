@@ -98,10 +98,10 @@ ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueE
 
 ConstantValueExpression &ConstantValueExpression::operator=(ConstantValueExpression &&other) noexcept {
   if (this != &other) {  // self-assignment check expected
-    // AbstractExpression fields we need copied over
+    // AbstractExpression fields we need moved over
     expression_type_ = other.expression_type_;
-    expression_name_ = other.expression_name_;
-    alias_ = other.alias_;
+    expression_name_ = std::move(other.expression_name_);
+    alias_ = std::move(other.alias_);
     return_value_type_ = other.return_value_type_;
     depth_ = other.depth_;
     has_subquery_ = other.has_subquery_;

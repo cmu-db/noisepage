@@ -217,9 +217,7 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder *builder,
       case terrier::type::TypeId::SMALLINT:
       case terrier::type::TypeId::INTEGER:
       case terrier::type::TypeId::BIGINT:
-        // TODO(Matt): why do we cast this down to int32_t?
-        filter_val =
-            codegen_->IntLiteral(static_cast<int32_t>(val.CastManagedPointerTo<execution::sql::Integer>()->val_));
+        filter_val = codegen_->IntLiteral(val.CastManagedPointerTo<execution::sql::Integer>()->val_);
         break;
       default:
         UNREACHABLE("Impossible vectorized predicate!");

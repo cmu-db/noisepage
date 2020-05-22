@@ -90,7 +90,7 @@ class HashUtil {
   }
 
   /**
-   * Special case Hash method for strings. If you use the above version,
+   * Special case Hash method for strings. If you use the above version (const T &obj),
    * you will hash the address of the string's data, which is not what you want.
    * @param str the string to be hashed
    * @return hash of the string
@@ -100,7 +100,7 @@ class HashUtil {
   }
 
   /**
-   * Special case Hash method for strings. If you use the above version,
+   * Special case Hash method for string_vals. If you use the above version (const T &obj),
    * you will hash the address of the string's data, which is not what you want.
    * @param str the string to be hashed
    * @return hash of the string
@@ -110,16 +110,11 @@ class HashUtil {
   }
 
   /**
-   * Special case Hash method for string literals. This is dirty. We are
-   * just going to wrap the character array that you give us into a new
-   * std::string object.
+   * Special case Hash method for string literals.
    * @param str the string to be hashed
    * @return hash of the string
    */
-  static hash_t Hash(const char *str) {
-    // HACK HACK HACK
-    return Hash(std::string(str));
-  }
+  static hash_t Hash(const char *str) { return Hash(std::string_view(str)); }
 };
 
 }  // namespace terrier::common

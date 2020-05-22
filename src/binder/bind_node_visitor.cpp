@@ -652,7 +652,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::OperatorExpression> e
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) {
   BINDER_LOG_TRACE("Visiting ParameterValueExpression ...");
   SqlNodeVisitor::Visit(expr);
-  // TODO(Matt): This is gross. Revisit this.
   const common::ManagedPointer<parser::ConstantValueExpression> param =
       common::ManagedPointer(&((*(sherpa_->GetParameters()))[expr->GetValueIdx()]));
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());

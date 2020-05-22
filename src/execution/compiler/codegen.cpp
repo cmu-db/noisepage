@@ -426,7 +426,6 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
       return IntToSql(val);
     }
     case type::TypeId::DATE: {
-      // TODO(Matt): Not sure I did this right...
       const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative();
       auto ymd = terrier::util::TimeConvertor::YMDFromDate(static_cast<type::date_t>(val));
       auto year = static_cast<int32_t>(ymd.year());
@@ -435,7 +434,6 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
       return DateToSql(year, month, day);
     }
     case type::TypeId::TIMESTAMP: {
-      // TODO(Matt): Not sure I did this right...
       const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative();
       auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(static_cast<type::timestamp_t>(val));
       return TimestampToSql(julian_usec);

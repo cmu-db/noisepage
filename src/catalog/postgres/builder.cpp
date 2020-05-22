@@ -717,7 +717,7 @@ Schema Builder::GetProcTableSchema() {
   columns.back().SetOid(PROARGMODES_COL_OID);
 
   columns.emplace_back("proargdefaults", type::TypeId::VARBINARY, 4096, false,
-                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGDEFAULTS_COL_OID);
 
   columns.emplace_back("proargnames", type::TypeId::VARBINARY, 4096, false,
