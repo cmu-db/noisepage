@@ -136,7 +136,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @param other CVE to move
    * @return self-reference
    */
-  ConstantValueExpression &operator=(ConstantValueExpression &&other) {
+  ConstantValueExpression &operator=(ConstantValueExpression &&other) noexcept {
     if (this != &other) {  // self-assignment check expected
       // AbstractExpression fields we need copied over
       expression_type_ = other.expression_type_;
@@ -158,7 +158,7 @@ class ConstantValueExpression : public AbstractExpression {
    * Move constructor
    * @param other CVE to move
    */
-  ConstantValueExpression(ConstantValueExpression &&other) : AbstractExpression(other) {
+  ConstantValueExpression(ConstantValueExpression &&other) noexcept : AbstractExpression(other) {
     value_ = std::move(other.value_);
     buffer_ = std::move(other.buffer_);
     other.value_ = std::make_unique<execution::sql::Val>(true);
