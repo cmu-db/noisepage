@@ -365,11 +365,11 @@ TEST(OperatorTests, LogicalGetTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -614,11 +614,11 @@ TEST(OperatorTests, LogicalFilterTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -686,11 +686,11 @@ TEST(OperatorTests, LogicalProjectionTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -744,11 +744,11 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -820,11 +820,11 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -895,11 +895,11 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -971,11 +971,11 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -1047,11 +1047,11 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -1108,11 +1108,11 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -1170,11 +1170,11 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -1231,11 +1231,11 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -1293,13 +1293,13 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
 
   // ConstValueExpression subclass AbstractExpression
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
   parser::AbstractExpression *expr_b_7 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
 
   // columns: vector of shared_ptr of AbstractExpression
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
@@ -1309,13 +1309,13 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
 
   // ConstValueExpression subclass AbstractExpression
   parser::AbstractExpression *expr_b_4 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_5 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_8 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
   parser::AbstractExpression *expr_b_6 =
-      new parser::ConstantValueExpression > (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(false));
   auto x_4 = common::ManagedPointer<parser::AbstractExpression>(expr_b_4);
   auto x_5 = common::ManagedPointer<parser::AbstractExpression>(expr_b_5);
   auto x_6 = common::ManagedPointer<parser::AbstractExpression>(expr_b_6);
@@ -1611,8 +1611,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> raw_values_2 = {
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression >
-          (type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true))),
+          new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true))),
       common::ManagedPointer<parser::AbstractExpression>(
           new parser::ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(9)))};
   auto raw_values_copy3 = raw_values_2;
