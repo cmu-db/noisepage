@@ -3090,7 +3090,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TypeId::INTEGER, std::make_unique<sql::Integer>(int1));
     params.emplace_back(type::TypeId::BIGINT, std::make_unique<sql::Integer>(bigint1));
     // Second parameter list
-    auto str2_val = sql::ValueUtil::CreateStringVal(str1);
+    auto str2_val = sql::ValueUtil::CreateStringVal(str2);
     params.emplace_back(type::TypeId::VARCHAR, std::move(str2_val.first), std::move(str2_val.second));
     params.emplace_back(type::TypeId::DATE, std::make_unique<sql::DateVal>(date2.val_));
     params.emplace_back(type::TypeId::DECIMAL, std::make_unique<sql::Real>(real2));
