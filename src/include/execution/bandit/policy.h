@@ -27,8 +27,8 @@ class Policy {
   };
 
   /**
-   * Constructor
-   * @param kind the kind of policy
+   * Construct a policy of the given kind.
+   * @param kind The specific kind of policy this is.
    */
   explicit Policy(Kind kind);
 
@@ -38,14 +38,14 @@ class Policy {
   virtual ~Policy() = default;
 
   /**
-   * Returns the next action according to the policy
+   * @return The next action to take according to the policy.
    */
   virtual uint32_t NextAction(Agent *agent) = 0;
 
   /**
-   * @return the kind of policy
+   * @return The specific kind of policy this is.
    */
-  auto GetKind() { return kind_; }
+  Kind GetKind() const { return kind_; }
 
  protected:
   /**
@@ -90,6 +90,7 @@ class EpsilonGreedyPolicy : public Policy {
 
  private:
   double epsilon_;
+  // Real-valued distribution between [0,1]
   std::uniform_real_distribution<double> real_;
 };
 

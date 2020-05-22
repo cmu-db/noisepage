@@ -43,7 +43,7 @@ uint32_t ChooseBestIndex(const std::vector<double> &values, std::mt19937 *const 
 // With probability 1 - epsilon choose the action with the best value estimate.
 // Otherwise choose a random action.
 uint32_t EpsilonGreedyPolicy::NextAction(Agent *const agent) {
-  const auto &value_estimates = agent->ValueEstimates();
+  const auto &value_estimates = agent->GetValueEstimates();
   if (real_(generator_) < epsilon_) {
     return static_cast<uint32_t>(generator_() % value_estimates.size());
   }
@@ -58,15 +58,15 @@ uint32_t EpsilonGreedyPolicy::NextAction(Agent *const agent) {
 // where c is a hyperparamter.
 // If an action was never taken, it gets infinite preference.
 uint32_t UCBPolicy::NextAction(Agent *const agent) {
-  const auto &value_estimates = agent->ValueEstimates();
-  const auto &action_attempts = agent->ActionAttempts();
+  const auto &value_estimates = agent->GetValueEstimates();
+  const auto &action_attempts = agent->GetActionAttempts();
 
   std::vector<double> values(action_attempts.size(), 0.0);
   std::vector<uint32_t> best_actions;
 
   for (uint32_t i = 0; i < action_attempts.size(); ++i) {
     double exploration = action_attempts[i] == 0 ? MAX_EXPLORATION_VALUE
-                                                 : std::sqrt((std::log(agent->TimeStep() + 1) / action_attempts[i]));
+                                                 : std::sqrt((std::log(agent->GetTimeStep() + 1) / action_attempts[i]));
     values[i] = value_estimates[i] + c_ * exploration;
   }
 
@@ -75,7 +75,7 @@ uint32_t UCBPolicy::NextAction(Agent *const agent) {
 
 uint32_t AnnealingEpsilonGreedyPolicy::NextAction(Agent *const agent) {
   // Compute a new, decayed epsilon
-  const auto &attempts = agent->ActionAttempts();
+  const auto &attempts = agent->GetActionAttempts();
   const auto t = 1 + std::accumulate(attempts.begin(), attempts.end(), 0u);
   const auto new_epsilon = 1.0 / std::log(t + 0.0000001);
   SetEpsilon(new_epsilon);

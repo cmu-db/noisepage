@@ -29,7 +29,7 @@ class Agent {
   void Reset();
 
   /**
-   * Return the next action to be taken.
+   * @return The next action to be taken.
    */
   uint32_t NextAction();
 
@@ -40,24 +40,24 @@ class Agent {
   void Observe(double reward);
 
   /**
-   * Return the current optimal action.
+   * @return The current optimal action.
    */
   uint32_t GetCurrentOptimalAction() const;
 
   /**
-   * Return estimations of the value of each flavor/action
+   * @return The estimations of the value of each flavor/action.
    */
-  const std::vector<double> &ValueEstimates() const { return value_estimates_; }
+  const std::vector<double> &GetValueEstimates() const { return value_estimates_; }
 
   /**
-   * Return counts of the number of times each flavor/action was tried
+   * @return The counts of the number of times each flavor/action was tried.
    */
-  const std::vector<uint32_t> &ActionAttempts() const { return action_attempts_; }
+  const std::vector<uint32_t> &GetActionAttempts() const { return action_attempts_; }
 
   /**
-   * Return the current time step
+   * @return The current time step.
    */
-  uint32_t TimeStep() const { return time_step_; }
+  uint32_t GetTimeStep() const { return time_step_; }
 
  private:
   // Policy to use for choosing the next action.

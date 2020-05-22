@@ -7,7 +7,10 @@
 
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
-#include "execution/vm/bytecode_module.h"
+
+namespace terrier::execution::vm {
+class Module;
+}  // namespace terrier::execution::vm
 
 namespace terrier::execution::bandit {
 
@@ -18,7 +21,7 @@ class MultiArmedBandit {
  public:
   /**
    * Constructor
-   * TODO(Amadou): Ask Prashant what this optimal parameter is for.
+   * TODO(Amadou): Ask Prashanth what this optimal parameter is for.
    * @param module bytecode module of the executing file
    * @param action_names names of the actions to take
    * @param optimal unused for now
