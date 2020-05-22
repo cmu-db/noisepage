@@ -57,7 +57,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   EXPECT_FALSE(*expr_b_1 != *expr_b_3);
 
   expr_b_1->DeriveExpressionName();
-  EXPECT_EQ(expr_b_1->GetExpressionName(), "BOOLEAN");
+  EXPECT_EQ(expr_b_1->GetExpressionName(), "");
 
   delete expr_b_2;
   delete expr_b_3;
@@ -86,7 +86,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   // Private members expression name will be initialized as empty string
   EXPECT_EQ(expr_ti_1->GetExpressionName(), "");
   expr_ti_1->DeriveExpressionName();
-  EXPECT_EQ(expr_ti_1->GetExpressionName(), "TINYINT");
+  EXPECT_EQ(expr_ti_1->GetExpressionName(), "");
   // depth is still -1 after deriveDepth, as the depth is set in binder
   EXPECT_EQ(expr_ti_1->DeriveDepth(), -1);
   EXPECT_FALSE(expr_ti_1->HasSubquery());
@@ -308,7 +308,7 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   EXPECT_EQ(c_expr_1->DeriveDepth(), -1);
   EXPECT_FALSE(c_expr_1->HasSubquery());
   c_expr_1->DeriveExpressionName();
-  EXPECT_EQ(c_expr_1->GetExpressionName(), "AND BOOLEAN AND BOOLEAN");
+  EXPECT_EQ(c_expr_1->GetExpressionName(), "");
 
   delete c_expr_1;
   delete c_expr_2;
@@ -405,7 +405,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_EQ(agg_expr_1->GetDepth(), -1);
   EXPECT_FALSE(agg_expr_1->HasSubquery());
   agg_expr_1->DeriveExpressionName();
-  EXPECT_EQ(agg_expr_1->GetExpressionName(), "COUNT STAR");
+  EXPECT_EQ(agg_expr_1->GetExpressionName(), "");
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_6;
@@ -538,7 +538,7 @@ TEST(ExpressionTests, CaseExpressionTest) {
   case_expr->DeriveSubqueryFlag();
   EXPECT_FALSE(case_expr->HasSubquery());
   case_expr->DeriveExpressionName();
-  EXPECT_EQ(case_expr->GetExpressionName(), "OPERATOR_CASE_EXPR");
+  EXPECT_EQ(case_expr->GetExpressionName(), "");
 
   delete case_expr;
   delete case_expr_2;
@@ -606,9 +606,9 @@ TEST(ExpressionTests, FunctionExpressionTest) {
   EXPECT_NE(func_expr_1->Hash(), func_expr_4->Hash());
   EXPECT_NE(func_expr_1->Hash(), func_expr_5->Hash());
   func_expr_5->DeriveExpressionName();
-  EXPECT_EQ(func_expr_5->GetExpressionName(), "FullHouse(STAR,BOOLEAN)");
+  EXPECT_EQ(func_expr_5->GetExpressionName(), "FullHouse");
   func_expr_1->DeriveExpressionName();
-  EXPECT_EQ(func_expr_1->GetExpressionName(), "FullHouse()");
+  EXPECT_EQ(func_expr_1->GetExpressionName(), "FullHouse");
 }
 
 // NOLINTNEXTLINE
@@ -643,7 +643,7 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   op_expr_1->DeriveReturnValueType();
   EXPECT_TRUE(op_expr_1->GetReturnValueType() == type::TypeId::BOOLEAN);
   op_expr_1->DeriveExpressionName();
-  EXPECT_EQ(op_expr_1->GetExpressionName(), "OPERATOR_NOT");
+  EXPECT_EQ(op_expr_1->GetExpressionName(), "");
 
   std::vector<std::unique_ptr<AbstractExpression>> children;
   children.emplace_back(std::make_unique<ConstantValueExpression>(
@@ -660,7 +660,7 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   op_expr_2->DeriveReturnValueType();
   EXPECT_TRUE(op_expr_2->GetReturnValueType() == type::TypeId::DECIMAL);
   op_expr_2->DeriveExpressionName();
-  EXPECT_EQ(op_expr_2->GetExpressionName(), "+ DECIMAL + BIGINT");
+  EXPECT_EQ(op_expr_2->GetExpressionName(), "");
 
   auto child3 =
       std::make_unique<ConstantValueExpression>(type::TypeId::DATE, std::make_unique<execution::sql::DateVal>(1));
@@ -669,7 +669,7 @@ TEST(ExpressionTests, OperatorExpressionTest) {
       new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
 
   op_expr_3->DeriveExpressionName();
-  EXPECT_EQ(op_expr_3->GetExpressionName(), "OPERATOR_CONCAT DECIMAL OPERATOR_CONCAT BIGINT OPERATOR_CONCAT DATE");
+  EXPECT_EQ(op_expr_3->GetExpressionName(), "");
   // Make sure that we catch when the deduced expression type suggests that invalid operand types
   // NOTE: We only do this for debug builds
 #ifndef NDEBUG
@@ -720,7 +720,7 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   auto original_expr = new TypeCastExpression(type::TypeId::SMALLINT, std::move(children));
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
   original_expr->DeriveExpressionName();
-  EXPECT_EQ(original_expr->GetExpressionName(), "OPERATOR_CAST STAR");
+  EXPECT_EQ(original_expr->GetExpressionName(), "");
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
@@ -753,7 +753,7 @@ TEST(ExpressionTests, ParameterValueExpressionTest) {
   EXPECT_EQ(param_expr_1->GetChildrenSize(), 0);
   EXPECT_EQ(param_expr_1->GetValueIdx(), 42);
   param_expr_1->DeriveExpressionName();
-  EXPECT_EQ(param_expr_1->GetExpressionName(), "VALUE_PARAMETER");
+  EXPECT_EQ(param_expr_1->GetExpressionName(), "");
 
   delete param_expr_1;
   delete param_expr_2;
@@ -930,7 +930,7 @@ TEST(ExpressionTests, DerivedValueExpressionTest) {
   EXPECT_EQ(tve1->GetValueIdx(), 3);
 
   tve1->DeriveExpressionName();
-  EXPECT_EQ(tve1->GetExpressionName(), "VALUE_TUPLE");
+  EXPECT_EQ(tve1->GetExpressionName(), "");
 
   delete tve1;
   delete tve2;
@@ -974,7 +974,7 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   original_expr->DeriveExpressionName();
-  EXPECT_EQ(original_expr->GetExpressionName(), "= INTEGER = INTEGER");
+  EXPECT_EQ(original_expr->GetExpressionName(), "");
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
@@ -997,7 +997,7 @@ TEST(ExpressionTests, StarExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::STAR);
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INTEGER);
   original_expr->DeriveExpressionName();
-  EXPECT_EQ(original_expr->GetExpressionName(), "STAR");
+  EXPECT_EQ(original_expr->GetExpressionName(), "");
 
   auto copy = original_expr->Copy();
   EXPECT_EQ(*original_expr, *copy);
@@ -1022,7 +1022,7 @@ TEST(ExpressionTests, DefaultValueExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::VALUE_DEFAULT);
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
   original_expr->DeriveExpressionName();
-  EXPECT_EQ(original_expr->GetExpressionName(), "VALUE_DEFAULT");
+  EXPECT_EQ(original_expr->GetExpressionName(), "");
   auto copy = original_expr->Copy();
   EXPECT_EQ(*original_expr, *copy);
 
@@ -1100,7 +1100,7 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   EXPECT_NE(subselect_expr0->Hash(), subselect_expr4->Hash());
   EXPECT_NE(subselect_expr0->Hash(), subselect_expr5->Hash());
   subselect_expr0->DeriveExpressionName();
-  EXPECT_EQ(subselect_expr0->GetExpressionName(), "ROW_SUBQUERY");
+  EXPECT_EQ(subselect_expr0->GetExpressionName(), "");
 
   delete subselect_expr0;
   delete subselect_expr1;

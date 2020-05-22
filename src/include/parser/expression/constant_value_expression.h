@@ -99,8 +99,6 @@ class ConstantValueExpression : public AbstractExpression {
   void DeriveExpressionName() override {
     if (!this->GetAlias().empty()) {
       this->SetExpressionName(this->GetAlias());
-    } else {
-      this->SetExpressionName(type::TypeUtil::TypeIdToString(GetReturnValueType()));
     }
   }
 

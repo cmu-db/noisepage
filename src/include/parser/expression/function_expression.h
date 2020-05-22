@@ -72,19 +72,7 @@ class FunctionExpression : public AbstractExpression {
   /** @return function name */
   const std::string &GetFuncName() const { return func_name_; }
 
-  void DeriveExpressionName() override {
-    bool first = true;
-    std::string name = this->GetFuncName() + "(";
-    for (auto &child : children_) {
-      if (!first) name.append(",");
-
-      child->DeriveExpressionName();
-      name.append(child->GetExpressionName());
-      first = false;
-    }
-    name.append(")");
-    this->SetExpressionName(name);
-  }
+  void DeriveExpressionName() override { SetExpressionName(GetFuncName()); }
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
