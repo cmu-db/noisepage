@@ -32,8 +32,9 @@ void SettingsManager::ValidateParams() {
   // This will expand to invoke settings_manager::DefineSetting on
   // all of the settings defined in settings.h.
   // Example:
-  //   ValidateSetting(Param::port, type::TransientValueFactory::GetInteger(1024),
-  //                  type::TransientValueFactory::GetInteger(65535));
+  //   ValidateSetting(Param::port, parser::ConstantValueExpression(type::TypeID::INTEGER,
+  //   std::make_unique<execution::sql::Integer>(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
+  //   std::make_unique<execution::sql::Integer>(65535)));
 
 #define __SETTING_VALIDATE__           // NOLINT
 #include "settings/settings_common.h"  // NOLINT

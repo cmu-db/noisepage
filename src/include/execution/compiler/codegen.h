@@ -16,7 +16,6 @@
 #include "execution/util/region.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/index_scan_plan_node.h"
-
 #include "type/type_id.h"
 
 namespace terrier::execution::compiler {
@@ -179,7 +178,7 @@ class CodeGen {
   ast::Decl *MakeStruct(ast::Identifier struct_name, util::RegionVector<ast::FieldDecl *> &&fields);
 
   /**
-   * @param transient_val the transient value to read
+   * @param const_val the CVE to read
    * @return the value stored in transient_val
    */
   ast::Expr *PeekValue(const parser::ConstantValueExpression &const_val);

@@ -22,17 +22,35 @@ namespace terrier::parser {
  */
 class ConstantValueExpression : public AbstractExpression {
  public:
+  /**
+   * Construct a NULL CVE of provided type
+   * @param type SQL type for NULL, apparently can be INVALID coming out of the parser for NULLs
+   */
   explicit ConstantValueExpression(const type::TypeId type)
       : ConstantValueExpression(type, std::make_unique<execution::sql::Val>(true), nullptr) {}
 
+  /**
+   * Construct a CVE of provided type and value
+   * @param type SQL type, apparently can be INVALID coming out of the parser for NULLs
+   * @param value underlying value to take ownership of
+   */
   ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value)
-      : ConstantValueExpression(type, std::move(value), nullptr) {}
+      : ConstantValueExpression(type, std::move(value), nullptr) {
+    TERRIER_ASSERT(value_ != nullptr, "Didn't provide a value.");
+  }
 
+  /**
+   * Construct a CVE of provided type and value
+   * @param type SQL type, apparently can be INVALID coming out of the parser for NULLs
+   * @param value underlying value to take ownership of
+   * @param buffer StringVal might not be inlined, so take ownership of that buffer as well
+   */
   ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value,
                           std::unique_ptr<byte> buffer)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}),
         value_(std::move(value)),
         buffer_(std::move(buffer)) {
+    TERRIER_ASSERT(value_ != nullptr, "Didn't provide a value.");
     TERRIER_ASSERT(value_->is_null_ || (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY) ||
                        (buffer_ == nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ <=
                                                   execution::sql::StringVal::InlineThreshold()) ||
@@ -45,6 +63,11 @@ class ConstantValueExpression : public AbstractExpression {
   /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
 
+  /**
+   * Copy assignment operator
+   * @param other CVE to copy
+   * @return self-reference
+   */
   ConstantValueExpression &operator=(const ConstantValueExpression &other) {
     if (this != &other) {  // self-assignment check expected
       // AbstractExpression fields we need copied over
@@ -108,7 +131,11 @@ class ConstantValueExpression : public AbstractExpression {
     }
     return *this;
   }
-
+  /**
+   * Move assignment operator
+   * @param other CVE to move
+   * @return self-reference
+   */
   ConstantValueExpression &operator=(ConstantValueExpression &&other) {
     if (this != &other) {  // self-assignment check expected
       // AbstractExpression fields we need copied over
@@ -127,12 +154,20 @@ class ConstantValueExpression : public AbstractExpression {
     return *this;
   }
 
+  /**
+   * Move constructor
+   * @param other CVE to move
+   */
   ConstantValueExpression(ConstantValueExpression &&other) : AbstractExpression(other) {
     value_ = std::move(other.value_);
     buffer_ = std::move(other.buffer_);
     other.value_ = std::make_unique<execution::sql::Val>(true);
   }
 
+  /**
+   * Copy constructor
+   * @param other CVE to move
+   */
   ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
     if (other.value_->is_null_) {
       value_ = std::make_unique<execution::sql::Val>(true);
@@ -300,12 +335,23 @@ class ConstantValueExpression : public AbstractExpression {
   /** @return the constant value stored in this expression */
   common::ManagedPointer<execution::sql::Val> GetValue() const { return common::ManagedPointer(value_); }
 
+  /**
+   * Change the underlying value of this CVE. Used by the BinderSherpa to promote parameters
+   * @param type SQL type, apparently can be INVALID coming out of the parser for NULLs
+   * @param value underlying value to take ownership of
+   * @param buffer StringVal might not be inlined, so take ownership of that buffer as well
+   */
   void SetValue(const type::TypeId type, std::unique_ptr<execution::sql::Val> value, std::unique_ptr<byte> buffer) {
+    TERRIER_ASSERT(value_ != nullptr, "Didn't provide a value.");
     return_value_type_ = type;
     value_ = std::move(value);
     buffer_ = std::move(buffer);
   }
-
+  /**
+   * Change the underlying value of this CVE. Used by the BinderSherpa to promote parameters
+   * @param type SQL type, apparently can be INVALID coming out of the parser for NULLs
+   * @param value underlying value to take ownership of
+   */
   void SetValue(const type::TypeId type, std::unique_ptr<execution::sql::Val> value) {
     SetValue(type, std::move(value), nullptr);
     TERRIER_ASSERT(value_->is_null_ || (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY) ||

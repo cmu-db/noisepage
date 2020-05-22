@@ -37,7 +37,7 @@ class PostgresPacketUtil {
   static std::vector<type::TypeId> ReadParamTypes(common::ManagedPointer<ReadBufferView> read_buffer);
 
   /**
-   * Given a read buffer that starts at a text value, consumes it and returns an internal TransientValue for that type
+   * Given a read buffer that starts at a text value, consumes it and returns a ConstantValueExpression for that type
    * @param read_buffer incoming postgres packet with next field as a value
    * @param size size of the value
    * @param type internal type of the value
