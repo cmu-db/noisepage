@@ -249,13 +249,13 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 
   auto insert_value_a1 =
       logical_insert->GetValues().Get()[0][0][0].CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(insert_value_a1->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(insert_value_a1->GetValue()), 5);
+  EXPECT_EQ(insert_value_a1->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(insert_value_a1->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 5);
 
   auto insert_value_a2 =
       logical_insert->GetValues().Get()[0][0][1].CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(insert_value_a2->GetValue().Type(), type::TypeId::VARCHAR);
-  EXPECT_EQ(type::TransientValuePeeker::PeekVarChar(insert_value_a2->GetValue()), "MY DATA");
+  EXPECT_EQ(insert_value_a2->GetReturnValueType(), type::TypeId::VARCHAR);
+  EXPECT_EQ(insert_value_a2->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView(), "MY DATA");
 }
 
 // NOLINTNEXTLINE
@@ -328,7 +328,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   auto update_clause = logical_update->GetUpdateClauses()[0].Get();
   EXPECT_EQ("a1", update_clause->GetColumnName());
   auto constant = update_clause->GetUpdateValue().CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
   EXPECT_EQ(constant->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 999);
 
   // Test LogicalGet
@@ -1016,8 +1016,8 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
 
   auto def_expr = ct->GetColumns()[3]->GetDefaultExpression();
   EXPECT_EQ(def_expr->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(def_expr.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
-            type::TransientValueFactory::GetInteger(14));
+  EXPECT_EQ(*(def_expr.CastManagedPointerTo<parser::ConstantValueExpression>()),
+            parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(14)));
 
   auto chk_expr = ct->GetColumns()[3]->GetCheckExpression();
   EXPECT_EQ(chk_expr->GetExpressionType(), parser::ExpressionType::COMPARE_LESS_THAN);
@@ -1025,8 +1025,8 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(chk_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName(), "c");
   EXPECT_EQ(chk_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "c4");
   EXPECT_EQ(chk_expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(chk_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
-            type::TransientValueFactory::GetInteger(100));
+  EXPECT_EQ(*(chk_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>()),
+            parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(100)));
 
   optimizer::PlanGenerator plan_generator{};
   optimizer::PropertySet property_set{};
@@ -1060,7 +1060,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].AttrSize(), 4);
   EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].AttrSize(), 4);
   EXPECT_EQ(*ctpn->GetSchema()->GetColumns()[3].StoredExpression(),
-            parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(14)));
+            parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(14)));
 
   EXPECT_TRUE(ctpn->HasPrimaryKey());
   EXPECT_EQ(ctpn->GetPrimaryKey().primary_key_cols_.size(), 1);
@@ -1084,7 +1084,8 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(ctpn->GetCheckConstraints()[0].check_cols_[0], "c4");
   EXPECT_EQ(ctpn->GetCheckConstraints()[0].constraint_name_, "con_check");
   EXPECT_EQ(ctpn->GetCheckConstraints()[0].expr_type_, parser::ExpressionType::COMPARE_LESS_THAN);
-  EXPECT_EQ(ctpn->GetCheckConstraints()[0].expr_value_, type::TransientValueFactory::GetInteger(100));
+  EXPECT_EQ(ctpn->GetCheckConstraints()[0].expr_value_,
+            parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(100)));
 }
 
 // NOLINTNEXTLINE
@@ -1372,8 +1373,8 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   EXPECT_EQ(sc0->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(sc0.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "a1");
   EXPECT_EQ(sc1->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(sc1.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
-            type::TransientValueFactory::GetInteger(4));
+  EXPECT_EQ(*(sc1.CastManagedPointerTo<parser::ConstantValueExpression>()),
+            parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(4)));
 
   optimizer::PlanGenerator plan_generator{};
   optimizer::PropertySet property_set{};
@@ -1397,8 +1398,8 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   EXPECT_EQ(scpn0->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(scpn0.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "a1");
   EXPECT_EQ(scpn1->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(scpn1.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
-            type::TransientValueFactory::GetInteger(4));
+  EXPECT_EQ(*(scpn1.CastManagedPointerTo<parser::ConstantValueExpression>()),
+            parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(4)));
 }
 
 // NOLINTNEXTLINE

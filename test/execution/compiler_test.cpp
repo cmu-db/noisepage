@@ -2864,10 +2864,10 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
-    params.emplace_back(type::TransientValueFactory::GetInteger(495));
-    params.emplace_back(type::TransientValueFactory::GetInteger(505));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+    std::vector<parser::ConstantValueExpression> params;
+    params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(495));
+    params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(505));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
 
