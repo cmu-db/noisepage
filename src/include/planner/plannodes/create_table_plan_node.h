@@ -310,8 +310,7 @@ struct CheckInfo {
     check_cols_ = j.at("check_cols").get<std::vector<std::string>>();
     constraint_name_ = j.at("constraint_name").get<std::string>();
     expr_type_ = j.at("expr_type").get<parser::ExpressionType>();
-    // FIXME(Matt): json stuff
-    //    expr_value_ = j.at("expr_value").get<type::TransientValue>();
+    expr_value_ = j.at("expr_value").get<parser::ConstantValueExpression>();
   }
 
   /**
@@ -322,7 +321,7 @@ struct CheckInfo {
    * @param expr_value the value of the expression to be satisfied
    */
   CheckInfo(std::vector<std::string> check_cols, std::string constraint_name, parser::ExpressionType expr_type,
-            parser::ConstantValueExpression &&expr_value)
+            parser::ConstantValueExpression expr_value)
       : check_cols_(std::move(check_cols)),
         constraint_name_(std::move(constraint_name)),
         expr_type_(expr_type),
@@ -347,8 +346,7 @@ struct CheckInfo {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type_));
 
     // Hash expr_value
-    // FIXME(Matt): hash stuff
-    //    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
     return hash;
   }
 
@@ -536,23 +534,22 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &ProcessCheckConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
-      // TODO(Matt): I'm pretty sure this isn't how we're gonna do constraints anyway
+      //       TODO(Matt): I'm pretty sure this isn't how we're gonna do constraints anyway
 
-      //      auto check_cols =
-      //          std::vector<std::string>();
-      //
-      //      // TODO(Gus,Wen) more expression types need to be supported
-      //      if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
-      //        check_cols.push_back(col->GetColumnName());
-      //
-      //        common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
-      //            (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
-      //        const auto val = const_expr_elem->GetValue();
-      //
-      //        CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
-      //                             );
-      //        con_checks_.emplace_back(std::move(check_info));
-      //      }
+      auto check_cols = std::vector<std::string>();
+
+      // TODO(Gus,Wen) more expression types need to be supported
+      if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
+        check_cols.push_back(col->GetColumnName());
+
+        common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
+            (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
+        auto tmp_value = *const_expr_elem;
+
+        CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
+                             std::move(tmp_value));
+        con_checks_.emplace_back(std::move(check_info));
+      }
       return *this;
     }
 
