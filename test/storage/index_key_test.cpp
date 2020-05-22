@@ -873,8 +873,7 @@ TEST_F(IndexKeyTests, CompactIntsKeyBasicTest) {
 template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back("", type_id, nullable,
-                        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
+  key_cols.emplace_back("", type_id, nullable, parser::ConstantValueExpression(type_id));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   const IndexMetadata metadata(

@@ -329,7 +329,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   EXPECT_EQ("a1", update_clause->GetColumnName());
   auto constant = update_clause->GetUpdateValue().CastManagedPointerTo<parser::ConstantValueExpression>();
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 999);
+  EXPECT_EQ(constant->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 999);
 
   // Test LogicalGet
   auto logical_get = operator_tree_->GetChildren()[0]->Contents()->GetContentsAs<optimizer::LogicalGet>();
