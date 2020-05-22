@@ -811,8 +811,7 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
   const uint8_t num_cols = KeySize / sizeof(CType);
 
   for (uint8_t i = 0; i < num_cols; i++) {
-    key_cols.emplace_back("", type_id, false,
-                          parser::ConstantValueExpression(type_id)));
+    key_cols.emplace_back("", type_id, false, parser::ConstantValueExpression(type_id));
     StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(i));
   }
   key_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);

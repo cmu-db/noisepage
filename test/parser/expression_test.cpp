@@ -72,8 +72,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   EXPECT_NE(expr_ti_1->Hash(), expr_ti_3->Hash());
 
   EXPECT_EQ(expr_ti_1->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(expr_ti_1->GetValue(),
-            ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)));
+  EXPECT_EQ(*expr_ti_1, ConstantValueExpression(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(1)));
   // There is no need to deduce the return_value_type of constant value expression
   // and calling this function essentially does nothing
   // Only test if we can call it without error.
