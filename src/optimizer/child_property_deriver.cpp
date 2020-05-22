@@ -21,7 +21,7 @@ std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> ChildPropertyD
   memo_ = memo;
   gexpr_ = gexpr;
   accessor_ = accessor;
-  gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+  gexpr->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
   return move(output_);
 }
 
@@ -101,6 +101,11 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerIndexJoin *op) {
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{new PropertySet()});
+}
+
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) { DeriveForJoin(); }
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {}

@@ -25,7 +25,7 @@ void StatsCalculator::CalculateStats(GroupExpression *gexpr, ExprSet required_co
   gexpr_ = gexpr;
   required_cols_ = std::move(required_cols);
   context_ = context;
-  gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+  gexpr->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
 }
 
 void StatsCalculator::Visit(const LogicalGet *op) {
