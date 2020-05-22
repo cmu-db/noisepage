@@ -83,7 +83,7 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
     switch (curr_type) {
       // NULL conversion.
       case type::TypeId::INVALID: {
-        value->SetValue(type::TypeId::INVALID, std::make_unique<execution::sql::Val>(true));
+        value->SetValue(desired_type, std::make_unique<execution::sql::Val>(true));
         break;
       }
 
