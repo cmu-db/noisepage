@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "execution/sql/value_util.h"
 #include "gtest/gtest.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"

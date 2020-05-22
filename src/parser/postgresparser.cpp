@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "common/exception.h"
+#include "execution/sql/value_util.h"
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
 #include "loggers/parser_logger.h"

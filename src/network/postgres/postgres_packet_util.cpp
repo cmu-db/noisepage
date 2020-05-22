@@ -4,10 +4,10 @@
 #include <vector>
 
 #include "execution/sql/value.h"
+#include "execution/sql/value_util.h"
 #include "execution/util/execution_common.h"
 #include "network/network_io_utils.h"
 #include "network/postgres/postgres_defs.h"
-#include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/postgres_protocol_util.h"
 #include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"

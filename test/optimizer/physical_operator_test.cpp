@@ -8,6 +8,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "execution/sql/value_util.h"
 #include "gtest/gtest.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/physical_operators.h"

@@ -18,6 +18,7 @@
 #include "execution/execution_util.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/value.h"
+#include "execution/sql/value_util.h"
 #include "execution/sql_test.h"  // NOLINT
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_module.h"

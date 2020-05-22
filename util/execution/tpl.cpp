@@ -23,6 +23,7 @@
 #include "execution/sema/sema.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/value.h"
+#include "execution/sql/value_util.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
