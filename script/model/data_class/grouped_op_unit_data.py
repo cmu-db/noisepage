@@ -51,9 +51,14 @@ def _execution_get_grouped_op_unit_data(filename):
                 # Execution mode is the second element for now...
                 mode = int(line[1])
                 for opunit_feature in opunit_features:
+                    if opunit_feature[0] in data_info.MEM_ADJUST_OPUNITS:
+                        opunit_feature[1].append(mem_scaling_factor)
+                    else:
+                        opunit_feature[1].append(1.0)
                     opunit_feature[1].append(mode)
+
                 line_data = list(map(int, line[2:]))
-                data_list.append(GroupedOpUnitData(line[0], opunit_features, mem_scaling_factor, np.array(line_data)))
+                data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data)))
 
     return data_list
 
@@ -100,7 +105,7 @@ class GroupedOpUnitData:
     """
     The class that stores the information about a group of operating units measured together
     """
-    def __init__(self, name, opunit_features, mem_scaling, metrics):
+    def __init__(self, name, opunit_features, metrics):
         """
         :param name: The name of the data point (e.g., could be the pipeline identifier)
         :param opunit_features: The list of opunits and their inputs for this event
@@ -108,7 +113,6 @@ class GroupedOpUnitData:
         """
         self.name = name
         self.opunit_features = opunit_features
-        self.mem_scaling_factor = mem_scaling
         self.y = metrics[-data_info.MINI_MODEL_TARGET_NUM:]
         self.y_pred = None
         index_map = data_info.TARGET_CSV_INDEX

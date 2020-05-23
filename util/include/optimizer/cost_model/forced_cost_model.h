@@ -37,7 +37,7 @@ class ForcedCostModel : public AbstractCostModel {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;
-    gexpr_->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+    gexpr_->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
     return output_cost_;
   };
 

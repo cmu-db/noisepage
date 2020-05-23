@@ -1,5 +1,7 @@
 import logging
+import copy
 import glob
+import math
 import os
 import numpy as np
 import tqdm
@@ -228,11 +230,31 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                 y_pred = prediction_cache[key]
             logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                                  x[0], y_pred[0, -1]))
-            pipeline_y_pred += y_pred[0]
 
-        # Memory Scaling. pred[-2] is the memory target
-        mem_scaling_factor = data.mem_scaling_factor
-        pipeline_y_pred[data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= mem_scaling_factor
+            if opunit in data_info.MEM_ADJUST_OPUNITS:
+                num_tuple = opunit_feature[1][data_info.TUPLE_NUM_INDEX]
+                if opunit == OpUnit.AGG_BUILD:
+                    num_tuple = opunit_feature[1][data_info.CARDINALITY_INDEX]
+
+                pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
+                buffer_size = pow_high * data_info.POINTER_SIZE
+                if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
+                    buffer_size = 0
+
+                pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
+                if pred_mem <= buffer_size:
+                    logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
+                            .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+
+                # Poorly encapsulated, but memory scaling factor is located as the 2nd last of feature
+                # slightly inaccurate since ignores load factors for hash tables
+                adj_mem = (pred_mem - buffer_size) * opunit_feature[1][-2] + buffer_size
+
+                # Don't modify prediction cache
+                y_pred = copy.deepcopy(y_pred)
+                y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
+
+            pipeline_y_pred += y_pred[0]
 
         # Record the predicted
         data.y_pred = pipeline_y_pred

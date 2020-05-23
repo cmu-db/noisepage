@@ -55,7 +55,7 @@ class CompilerTest : public SqlBasedTest {
                                   const std::vector<brain::ExecutionOperatingUnitType> &vec_b) {
     std::unordered_set<brain::ExecutionOperatingUnitType> set_a;
     std::unordered_set<brain::ExecutionOperatingUnitType> set_b;
-    for (auto e : vec_a) {
+    for (const auto &e : vec_a) {
       set_a.insert(e.GetExecutionOperatingUnitType());
     }
 
@@ -2203,7 +2203,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OUTPUT, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::IDX_SCAN,
       brain::ExecutionOperatingUnitType::SEQ_SCAN};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
@@ -2318,8 +2318,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::IDX_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::SEQ_SCAN};
+      brain::ExecutionOperatingUnitType::OUTPUT, brain::ExecutionOperatingUnitType::IDX_SCAN,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 

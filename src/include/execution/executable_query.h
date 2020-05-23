@@ -58,7 +58,7 @@ class ExecutableQuery {
    * @param exec_ctx context to execute
    * @param is_file Whether load from file
    */
-  ExecutableQuery(const std::string &filename, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file);
+  ExecutableQuery(const std::string &contents, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file);
 
   /**
    *
@@ -91,6 +91,14 @@ class ExecutableQuery {
     std::size_t size = path.size();
     std::size_t found = path.find_last_of("/\\");
     return path.substr(found + 1, size - found - 5);
+  }
+
+  /**
+   * Set Pipeline Operating Units for use by mini_runners
+   * @param units Pipeline Operating Units
+   */
+  void SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units) {
+    pipeline_operating_units_ = std::move(units);
   }
 
   // TPL bytecodes for this query.

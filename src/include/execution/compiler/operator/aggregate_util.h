@@ -128,9 +128,10 @@ class AggregateHelper {
 
   /**
    * Generate the input structs of each hash table.
+   * @param global_decl Output to place struct decl
    * @param decls List of top level declarations.
    */
-  void GenAHTStructs(util::RegionVector<ast::Decl *> *decls);
+  void GenAHTStructs(ast::StructDecl **global_decl, util::RegionVector<ast::Decl *> *decls);
 
   /**
    * Generate the struct containing the values to aggregate and groub by.
