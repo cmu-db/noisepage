@@ -9,6 +9,7 @@
 
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
+#include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
@@ -53,7 +54,7 @@ namespace terrier::optimizer {
 PlanGenerator::PlanGenerator() = default;
 
 std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpNode(
-    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, OperatorNode *op,
+    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, AbstractOptimizerNode *op,
     PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
     std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
@@ -66,7 +67,7 @@ std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpNode(
   accessor_ = accessor;
   txn_ = txn;
 
-  op->GetOp().Accept(common::ManagedPointer<OperatorVisitor>(this));
+  op->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
 
   CorrectOutputPlanWithProjection();
   return std::move(output_plan_);
@@ -350,14 +351,14 @@ void PlanGenerator::Visit(const Limit *op) {
     auto &sort_columns = op->GetSortExpressions();
     auto &sort_flags = op->GetSortAscending();
     auto sort_column_size = sort_columns.size();
-    for (size_t idx = 0; idx < sort_column_size; idx++) {
+    for (size_t i = 0; i < sort_column_size; i++) {
       // Based on InputColumnDeriver, sort columns should be provided
 
       // Evaluate the sort_column using children_expr_map (what the child provides)
       // Need to replace ColumnValueExpression with DerivedValueExpression
-      auto eval_expr = parser::ExpressionUtil::EvaluateExpression({child_cols_map}, sort_columns[idx]).release();
+      auto eval_expr = parser::ExpressionUtil::EvaluateExpression({child_cols_map}, sort_columns[i]).release();
       RegisterPointerCleanup<parser::AbstractExpression>(eval_expr, true, true);
-      order_build.AddSortKey(common::ManagedPointer(eval_expr), sort_flags[idx]);
+      order_build.AddSortKey(common::ManagedPointer(eval_expr), sort_flags[i]);
     }
 
     output_plan_ = order_build.Build();

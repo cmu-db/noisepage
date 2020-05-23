@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <vector>
+
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/projection_plan_node.h"
@@ -11,6 +12,7 @@ namespace terrier::execution::compiler {
 /**
  * Projection Translator
  * The translator only implements GetOutput and GetChildOutput.
+ * Note that child_translator_ may be nullptr in certain cases, e.g., "SELECT 1".
  */
 class ProjectionTranslator : public OperatorTranslator {
  public:
@@ -23,10 +25,21 @@ class ProjectionTranslator : public OperatorTranslator {
       : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::PROJECTION), op_(op) {}
 
   // Pass through
-  void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }
+  void Produce(FunctionBuilder *builder) override {
+    if (LIKELY(nullptr != child_translator_)) {
+      child_translator_->Produce(builder);
+    } else {
+      // For queries like "SELECT 1", the parent translator will consume the ProjectionTranslator's output directly.
+      parent_translator_->Consume(builder);
+    }
+  }
 
   // Pass through
-  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
+  void Abort(FunctionBuilder *builder) override {
+    if (LIKELY(nullptr != child_translator_)) {
+      child_translator_->Abort(builder);
+    }
+  }
 
   // Pass through
   void Consume(FunctionBuilder *builder) override { parent_translator_->Consume(builder); }

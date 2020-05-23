@@ -157,7 +157,8 @@ class PostgresPacketWriter : public PacketWriter {
       // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
       const auto &name =
           columns[i].GetExpr()->GetAlias().empty() ? columns[i].GetName() : columns[i].GetExpr()->GetAlias();
-      AppendString(name)
+      // If a column has no name, then Postgres will return "?column?" as a column name.
+      AppendString(name.empty() ? "?column?" : name)
           .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
           .AppendValue(
