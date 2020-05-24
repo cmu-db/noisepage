@@ -171,7 +171,7 @@ if __name__ == '__main__':
     aparser.add_argument('--model_results_path', default='global_model_results',
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
-    aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
+    aparser.add_argument('--mini_model_file', default='trained_nogen_model/mini_model_map.pickle',
                          help='File of the saved mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["huber"],
                          help='ML models for the mini trainer to evaluate')

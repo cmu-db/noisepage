@@ -171,15 +171,11 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
       num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
     }
 
-    cardinality = 0;  // extract from plan num_rows (this is the scan size)
+    cardinality = 1;  // extract from plan num_rows (this is the scan size)
   }
 
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
-
-  // For IDX_SCAN, num_rows is the number of tuples in the index (the same as the tuple number in the underlying table)
-  if (type == ExecutionOperatingUnitType::IDX_SCAN)
-    num_rows = static_cast<const planner::IndexScanPlanNode*>(plan)->GetTableNumTuple();
 
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {

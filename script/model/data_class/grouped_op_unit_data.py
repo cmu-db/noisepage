@@ -84,13 +84,13 @@ def _pipeline_get_grouped_op_unit_data(filename):
             opunits = []
             features = line[features_vector_index].split(';')
             for idx, feature in enumerate(features):
-                if feature == 'LIMIT' or feature == 'PROJECTION':
+                if feature == 'LIMIT':
                     continue
                 opunit = OpUnit[feature]
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
                 opunits.append((opunit, x_loc))
 
-            data_list.append(GroupedOpUnitData("q{} p{} {}".format(line[0], line[1], opunits), opunits, 1.0,
+            data_list.append(GroupedOpUnitData("q{} p{} {}".format(line[0], line[1], opunits), opunits,
                                                np.array(metrics)))
 
     return data_list
