@@ -43,4 +43,18 @@ using TransactionEndAction = std::function<void(DeferredActionManager *)>;
  * and in cases such as GC knowing the actual time enables optimizations.
  */
 using DeferredAction = std::function<void(timestamp_t)>;
+
+constexpr uint8_t DAF_TAG_COUNT = 8;
+
+enum DafId : uint8_t {
+  MEMORY_DEALLOCATION = 0,
+  CATALOG_TEARDOWN,
+  INDEX_REMOVE_KEY,
+  COMPACTION,
+  LOG_RECORD_REMOVAL,
+  TXN_REMOVAL,
+  UNLINK,
+  INVALID
+};
+
 }  // namespace terrier::transaction

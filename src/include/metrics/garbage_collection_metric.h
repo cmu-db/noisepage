@@ -20,13 +20,23 @@ namespace terrier::metrics {
  */
 class GarbageCollectionMetricRawData : public AbstractRawData {
  public:
+  explicit GarbageCollectionMetricRawData() : aggregate_data_(transaction::DAF_TAG_COUNT, AggregateData()) {}
+
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<GarbageCollectionMetricRawData *>(other);
-    if (!other_db_metric->deallocate_data_.empty()) {
-      deallocate_data_.splice(deallocate_data_.cbegin(), other_db_metric->deallocate_data_);
+    if (!other_db_metric->action_data_.empty()) {
+      action_data_.splice(action_data_.cbegin(), other_db_metric->action_data_);
     }
-    if (!other_db_metric->unlink_data_.empty()) {
-      unlink_data_.splice(unlink_data_.cbegin(), other_db_metric->unlink_data_);
+
+    // aggregate the data by daf type
+    for (const auto action : action_data_) {
+      if (aggregate_data_.at(int32_t(action.daf_id_)).daf_id_ == transaction::DafId::INVALID) {
+        aggregate_data_[int32_t(action.daf_id_)] = {action.resource_metrics_.start_, action.daf_id_, 1, action.resource_metrics_.elapsed_us_};
+      } else {
+        aggregate_data_[int32_t(action.daf_id_)].num_processed_++;
+        aggregate_data_[int32_t(action.daf_id_)].time_elapsed_ += action.resource_metrics_.elapsed_us_;
+      }
+      //std::cout << aggregate_data_[int32_t(action.daf_id_)].start_ << ", " << aggregate_data_[int32_t(action.daf_id_)].daf_id_ << ", " << aggregate_data_[int32_t(action.daf_id_)].num_processed_ << ", " << aggregate_data_[int32_t(action.daf_id_)].time_elapsed_ << std::endl;
     }
   }
 
@@ -45,69 +55,83 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
                                  [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
                    "Not all files are open.");
 
-    auto &serializer_outfile = (*outfiles)[0];
-    auto &consumer_outfile = (*outfiles)[1];
+    auto &daf_event = (*outfiles)[0];
+    auto &daf_agg = (*outfiles)[1];
+    auto &daf_count_agg = (*outfiles)[2];
+    auto &daf_time_agg = (*outfiles)[3];
 
-    for (const auto &data : deallocate_data_) {
-      serializer_outfile << data.num_processed_ << ", ";
-      data.resource_metrics_.ToCSV(serializer_outfile);
-      serializer_outfile << std::endl;
+    for (const auto &data : action_data_) {
+      daf_event << static_cast<int>(data.daf_id_) << ", ";
+      data.resource_metrics_.ToCSV(daf_event);
+      daf_event << std::endl;
     }
-    for (const auto &data : unlink_data_) {
-      consumer_outfile << data.num_processed_ << ", " << data.num_buffers_ << ", " << data.num_readonly_ << ", ";
-      data.resource_metrics_.ToCSV(consumer_outfile);
-      consumer_outfile << std::endl;
+    daf_count_agg << idx;
+    daf_time_agg << idx;
+    for (const auto &data : aggregate_data_) {
+      if (data.daf_id_ != transaction::DafId::INVALID) {
+        daf_agg << data.start_ << ", " << static_cast<int>(data.daf_id_) << ", " << data.num_processed_ << ", "<< data.time_elapsed_;
+        daf_agg << std::endl;
+      }
+      daf_count_agg << ", " << static_cast<int>(data.num_processed_);
+      daf_time_agg << ", " << static_cast<int>(data.time_elapsed_);
     }
-    deallocate_data_.clear();
-    unlink_data_.clear();
+    daf_count_agg << std::endl;
+    daf_time_agg << std::endl;
+    idx++;
+    action_data_.clear();
+    auto local_agg_data = std::vector<AggregateData>(transaction::DAF_TAG_COUNT, AggregateData());
+    aggregate_data_.swap(local_agg_data);
   }
 
   /**
    * Files to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 2> FILES = {"./gc_deallocate.csv", "./gc_unlink.csv"};
+  static constexpr std::array<std::string_view, 4> FILES = {"./daf_events.csv", "./daf_aggregate.csv", "./daf_count_agg.csv", "./daf_time_agg.csv"};
   /**
    * Columns to use for writing to CSV.
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"num_processed",
-                                                                      "num_processed, num_buffers, num_readonly"};
+  static constexpr std::array<std::string_view, 4> FEATURE_COLUMNS = {"daf_id",
+                                                                      "start_time, daf_id, num_processed, time_elapsed",
+                                                                      "idx, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, UNLINK",
+                                                                      "idx, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, UNLINK"};
 
  private:
   friend class GarbageCollectionMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
-  void RecordDeallocateData(const uint64_t num_processed, const common::ResourceTracker::Metrics &resource_metrics) {
-    deallocate_data_.emplace_front(num_processed, resource_metrics);
+  void RecordActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics) {
+    action_data_.emplace_front(daf_id, resource_metrics);
   }
 
-  void RecordUnlinkData(const uint64_t num_processed, const uint64_t num_buffers, const uint64_t num_readonly,
-                        const common::ResourceTracker::Metrics &resource_metrics) {
-    unlink_data_.emplace_front(num_processed, num_buffers, num_readonly, resource_metrics);
-  }
-
-  struct DeallocateData {
-    DeallocateData(const uint64_t num_processed, const common::ResourceTracker::Metrics &resource_metrics)
-        : num_processed_(num_processed), resource_metrics_(resource_metrics) {}
-    const uint64_t num_processed_;
+  struct ActionData {
+    ActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics)
+        : daf_id_(daf_id), resource_metrics_(resource_metrics) {}
+    const transaction::DafId daf_id_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
 
-  struct UnlinkData {
-    UnlinkData(const uint64_t num_processed, const uint64_t num_buffers, const uint64_t num_readonly,
-               const common::ResourceTracker::Metrics &resource_metrics)
-        : num_processed_(num_processed),
-          num_buffers_(num_buffers),
-          num_readonly_(num_readonly),
-          resource_metrics_(resource_metrics) {}
-    const uint64_t num_processed_;
-    const uint64_t num_buffers_;
-    const uint64_t num_readonly_;
-    const common::ResourceTracker::Metrics resource_metrics_;
+  struct AggregateData {
+    AggregateData() : start_(0), daf_id_(transaction::DafId::INVALID), num_processed_(0), time_elapsed_(0) {}
+
+    AggregateData(const uint64_t start, const transaction::DafId daf_id, const uint64_t num_processed,
+               const uint64_t time_elapsed)
+        : start_(start),
+          daf_id_(daf_id),
+          num_processed_(num_processed),
+          time_elapsed_(time_elapsed) {}
+
+    AggregateData(const AggregateData &other) = default;
+    uint64_t start_;
+    transaction::DafId daf_id_;
+    uint64_t num_processed_;
+    uint64_t time_elapsed_;
   };
 
-  std::list<DeallocateData> deallocate_data_;
-  std::list<UnlinkData> unlink_data_;
+  std::list<ActionData> action_data_;
+  std::vector<AggregateData> aggregate_data_;
+
+  int idx = 0;
 };
 
 /**
@@ -117,12 +141,8 @@ class GarbageCollectionMetric : public AbstractMetric<GarbageCollectionMetricRaw
  private:
   friend class MetricsStore;
 
-  void RecordDeallocateData(const uint64_t num_processed, const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordDeallocateData(num_processed, resource_metrics);
-  }
-  void RecordUnlinkData(const uint64_t num_processed, const uint64_t num_buffers, const uint64_t num_readonly,
-                        const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordUnlinkData(num_processed, num_buffers, num_readonly, resource_metrics);
+  void RecordActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics) {
+    GetRawData()->RecordActionData(daf_id, resource_metrics);
   }
 };
 }  // namespace terrier::metrics

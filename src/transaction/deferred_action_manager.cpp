@@ -66,13 +66,23 @@ void DeferredActionManager::ProcessIndexes() {
   for (const auto &index : indexes_) index->PerformGarbageCollection();
 }
 uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn) {
+  bool daf_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
+
   uint32_t processed = 0;
   // Execute as many deferred actions as we can at this time from the backlog.
   // TODO(Tianyu): This will not work if somehow the timestamps we compare against has sign bit flipped.
   //  (for uncommiitted transactions, or on overflow)
   // Although that should never happen, we need to be aware that this might be a problem in the future.
   while (!back_log_.empty() && transaction::TransactionUtil::NewerThan(oldest_txn, back_log_.front().first)) {
+    if (daf_metrics_enabled) common::thread_context.resource_tracker_.Start();
     back_log_.front().second.first(oldest_txn);
+    if (daf_metrics_enabled) {
+      common::thread_context.resource_tracker_.Stop();
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordActionData(back_log_.front().second.second, resource_metrics);
+    }
     processed++;
     back_log_.pop();
   }
@@ -84,6 +94,11 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn) {
   std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = {timestamp_t(0), {[=](timestamp_t /*unused*/) {}, DafId::INVALID}};
   // bool reinsert = false;
   auto curr_size = new_deferred_actions_.unsafe_size();
+
+  bool daf_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
+
   while (processed != curr_size) {
     // Try_pop would pop the front of the queue if there is at least element in queue,
     // Since currently the deferred action queue only has one consumer, if the while loop condition is satifsfied
@@ -93,7 +108,15 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn) {
                    "With single consumer of queue, we should be able to pop front when we have not processed every "
                    "item in the queue.");
     if (!transaction::TransactionUtil::NewerThan(oldest_txn, curr_action.first)) break;
+    if (daf_metrics_enabled) common::thread_context.resource_tracker_.Start();
+
     curr_action.second.first(oldest_txn);
+
+    if (daf_metrics_enabled) {
+      common::thread_context.resource_tracker_.Stop();
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordActionData(curr_action.second.second, resource_metrics);
+    }
     processed++;
   }
   if (processed != curr_size && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);

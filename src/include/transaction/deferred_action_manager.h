@@ -13,19 +13,6 @@
 namespace terrier::transaction {
 
 constexpr uint8_t MIN_GC_INVOCATIONS = 3;
-constexpr uint8_t DAF_TAG_COUNT = 6;
-
-enum class DafId : uint8_t {
-  DEALLOCATION = 0,
-  DOUBLE_DEFERRAL,
-  CATALOG_TEARDOWN,
-  INDEX_REMOVE_KEY,
-  COMPACTION,
-  LOG_RECORD_REMOVAL,
-  TXN_REMOVAL,
-  UNLINK,
-  INVALID
-};
 
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
