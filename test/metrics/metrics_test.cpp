@@ -35,12 +35,11 @@ class MetricsTests : public TerrierTest {
     db_main_ = terrier::DBMain::Builder()
                    .SetUseSettingsManager(true)
                    .SetSettingsParameterMap(std::move(param_map))
-                   .SetUseMetrics(true)
-                   .SetUseLogging(true)
                    .SetUseGC(true)
                    .Build();
     settings_manager_ = db_main_->GetSettingsManager();
     metrics_manager_ = db_main_->GetMetricsManager();
+    db_main_->GetMetricsThread()->PauseMetrics();  // We want to aggregate them manually, so pause the thread.
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), table_schema_);
   }
