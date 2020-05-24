@@ -1,6 +1,6 @@
 #pragma once
 
-#include "execution/util/execution_common.h"
+#include "common/all_static.h"
 
 namespace terrier::execution::ast {
 
@@ -273,7 +273,7 @@ enum class Builtin : uint8_t {
 /**
  * Manages builtin functions.
  */
-class Builtins : public AllStatic {
+class Builtins : public common::AllStatic {
  public:
   /**
    * The total number of builtin functions

@@ -4,8 +4,8 @@
 #include <cstdlib>
 #include <numeric>
 
+#include "common/all_static.h"
 #include "common/macros.h"
-#include "execution/util/execution_common.h"
 #include "llvm/Support/MathExtras.h"
 
 namespace terrier::common {
@@ -13,7 +13,7 @@ namespace terrier::common {
 /**
  * Utility class containing various math/arithmetic functions
  */
-class MathUtil : public terrier::execution::AllStatic {
+class MathUtil : public AllStatic {
  public:
   /**
    * Perform a division taking the ceil of the result

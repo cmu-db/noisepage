@@ -72,16 +72,6 @@ struct SourcePosition {
 };
 
 /**
- * Base for classes that should NOT be instantiated, i.e., classes that only have static functions.
- */
-class AllStatic {
-#ifndef NDEBUG
- public:
-  AllStatic() = delete;
-#endif
-};
-
-/**
  * Use to classify locality of reference for memory accesses
  */
 enum class Locality : uint8_t { None = 0, Low = 1, Medium = 2, High = 3 };
