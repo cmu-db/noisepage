@@ -60,7 +60,7 @@ class Context {
    * Lookup a builtin type with name @em name in the TPL type system.
    * @return A non-null pointer to the Type if @em name is a valid builtin type; null otherwise.
    */
-  Type *LookupBuiltinType(Identifier name) const;
+  Type *LookupBuiltinType(Identifier identifier) const;
 
   /**
    * Is the function with name @em name a builtin TPL function?
