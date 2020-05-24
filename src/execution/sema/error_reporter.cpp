@@ -13,38 +13,39 @@ namespace terrier::execution::sema {
 namespace {
 #define F(id, str, arg_types) str,
 // NOLINTNEXTLINE
-constexpr const char *error_strings[] = {MESSAGE_LIST(F)};
+constexpr const char *kErrorStrings[] = {MESSAGE_LIST(F)};
 #undef F
+
+
+// Helper template class for MessageArgument::FormatMessageArgument().
+template <class T>
+struct always_false : std::false_type {};
 
 }  // namespace
 
-void ErrorReporter::MessageArgument::FormatMessageArgument(std::string *str) const {
-  switch (GetKind()) {
-    case Kind::CString: {
-      str->append(raw_str_);
-      break;
-    }
-    case MessageArgument::Kind::Int: {
-      str->append(std::to_string(integer_));
-      break;
-    }
-    case Kind::Position: {
-      str->append("[line/col: ")
-          .append(std::to_string(pos_.line_))
-          .append("/")
-          .append(std::to_string(pos_.column_))
-          .append("]");
-      break;
-    }
-    case Kind::Token: {
-      str->append(parsing::Token::GetString(static_cast<parsing::Token::Type>(integer_)));
-      break;
-    }
-    case Kind::Type: {
-      str->append(ast::Type::ToString(type_));
-      break;
-    }
-  }
+void ErrorReporter::MessageArgument::FormatMessageArgument(std::string &str) const {
+  std::visit(
+      [&](auto &&arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, const char *>) {
+          str.append(arg);
+        } else if constexpr (std::is_same_v<T, int32_t>) {
+          str.append(std::to_string(arg));
+        } else if constexpr (std::is_same_v<T, SourcePosition>) {
+          str.append("[line/col: ")
+              .append(std::to_string(arg.line_))
+              .append("/")
+              .append(std::to_string(arg.column_))
+              .append("]");
+        } else if constexpr (std::is_same_v<T, parsing::Token::Type>) {
+          str.append(parsing::Token::GetString(static_cast<parsing::Token::Type>(arg)));
+        } else if constexpr (std::is_same_v<T, ast::Type *>) {
+          str.append(ast::Type::ToString(arg));
+        } else {
+          static_assert(always_false<T>::value, "non-exhaustive visitor");
+        }
+      },
+      arg_);
 }
 
 std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
@@ -55,7 +56,7 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
   msg.append("Line: ").append(std::to_string(Position().line_)).append(", ");
   msg.append("Col: ").append(std::to_string(Position().column_)).append(" => ");
 
-  const char *fmt = error_strings[msg_idx];
+  const char *fmt = kErrorStrings[msg_idx];
   if (args_.empty()) {
     msg.append(fmt);
     return msg;
@@ -72,7 +73,7 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
 
     msg.append(fmt, pos - fmt);
 
-    args_[arg_idx++].FormatMessageArgument(&msg);
+    args_[arg_idx++].FormatMessageArgument(msg);
 
     fmt = pos + 1;
     while (std::isalnum(*fmt) != 0) {
@@ -83,14 +84,10 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
   return msg;
 }
 
-std::string ErrorReporter::SerializeErrors() {
-  std::string error_str;
-
+void ErrorReporter::PrintErrors(std::ostream &os) {
   for (const auto &error : errors_) {
-    error_str.append(error.FormatMessage()).append("\n");
+    os << error.FormatMessage() << "\n";
   }
-
-  return error_str;
 }
 
 }  // namespace terrier::execution::sema

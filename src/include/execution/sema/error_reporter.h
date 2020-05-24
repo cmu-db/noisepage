@@ -1,7 +1,9 @@
 #pragma once
 
+#include <iosfwd>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "execution/ast/identifier.h"
@@ -40,10 +42,9 @@ struct PassArgument {
 class ErrorReporter {
  public:
   /**
-   * Constructor
-   * @param region region to use for allocation
+   * Create a new error reporter.
    */
-  explicit ErrorReporter(util::Region *region) : region_(region), errors_(region) {}
+  ErrorReporter() : region_("error-strings"), errors_(&region_) {}
 
   /**
    * Record an error
@@ -69,6 +70,12 @@ class ErrorReporter {
   void Reset() { errors_.clear(); }
 
   /**
+   * Dump all error messages to the given output stream.
+   * @param os The stream to write errors into.
+   */
+  void PrintErrors(std::ostream &os);
+
+  /**
    * Serializes the list of errors
    */
   std::string SerializeErrors();
@@ -79,37 +86,24 @@ class ErrorReporter {
    */
   class MessageArgument {
    public:
-    enum Kind { CString, Int, Position, Token, Type };
-
-    explicit MessageArgument(const char *str) : kind_(Kind::CString), raw_str_(str) {}
-
-    explicit MessageArgument(int32_t integer) : kind_(Kind::Int), integer_(integer) {}
+    explicit MessageArgument(const char *str) : arg_(str) {}
 
     explicit MessageArgument(ast::Identifier str) : MessageArgument(str.GetData()) {}
 
-    explicit MessageArgument(ast::Type *type) : kind_(Kind::Type), type_(type) {}
+    explicit MessageArgument(SourcePosition pos) : arg_(pos) {}
 
-    explicit MessageArgument(const parsing::Token::Type type)
-        : MessageArgument(static_cast<std::underlying_type_t<parsing::Token::Type>>(type)) {
-      kind_ = Kind::Token;
-    }
+    explicit MessageArgument(int32_t integer) : arg_(integer) {}
 
-    explicit MessageArgument(const SourcePosition &pos) : kind_(Kind::Position), pos_(pos) {}
+    explicit MessageArgument(ast::Type *type) : arg_(type) {}
 
-    Kind GetKind() const { return kind_; }
+    explicit MessageArgument(parsing::Token::Type type) : arg_(type) {}
 
    private:
     friend class ErrorReporter;
-    void FormatMessageArgument(std::string *str) const;
+    void FormatMessageArgument(std::string &str) const;
 
    private:
-    Kind kind_;
-    union {
-      const char *raw_str_;
-      int32_t integer_;
-      SourcePosition pos_;
-      ast::Type *type_;
-    };
+    std::variant<const char *, int32_t, SourcePosition, parsing::Token::Type, ast::Type *> arg_;
   };
 
   /*
@@ -140,7 +134,10 @@ class ErrorReporter {
   };
 
  private:
-  util::Region *region_;
+  // Memory region
+  util::Region region_;
+
+  // List of all errors
   util::RegionVector<MessageWithArgs> errors_;
 };
 

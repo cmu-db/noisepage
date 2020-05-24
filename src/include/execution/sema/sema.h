@@ -15,6 +15,10 @@ namespace ast {
 class Context;
 }  // namespace ast
 
+namespace sql {
+class Schema;
+}  // namespace sql
+
 namespace sema {
 
 /**
@@ -74,9 +78,6 @@ class Sema : public ast::AstVisitor<Sema> {
     return expr->GetType();
   }
 
-  // Convert the given schema into a row type
-  ast::Type *GetRowTypeFromSqlSchema(const catalog::Schema &schema);
-
   // Create a builtin type
   ast::Type *GetBuiltinType(uint16_t builtin_kind);
 
@@ -109,30 +110,31 @@ class Sema : public ast::AstVisitor<Sema> {
   CheckResult CheckComparisonOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                       ast::Expr *right);
 
+  // Check operands to a comparison where at least one of the inputs is a SQL value.
+  CheckResult CheckSqlComparisonOperands(parsing::Token::Type op, const SourcePosition &pos,
+                                         ast::Expr *left, ast::Expr *right);
+
   // Check the assignment of the expression to a variable or the target type.
   // Return true if the assignment is valid, and false otherwise.
   // Will also apply an implicit cast to make the assignment valid.
-  bool CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr);
+  bool CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr);
 
   // Dispatched from VisitCall() to handle builtin functions
   void CheckBuiltinCall(ast::CallExpr *call);
-  void CheckBuiltinMapCall(ast::CallExpr *call);
-  void CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckNullValueCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinStringLikeCall(ast::CallExpr *call);
   void CheckBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinFilterCall(ast::CallExpr *call);
   void CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinAggHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinAggPartIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinJoinHashTableInit(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableInsert(ast::CallExpr *call);
-  void CheckBuiltinJoinHashTableIterInit(ast::CallExpr *call);
-  void CheckBuiltinJoinHashTableIterHasNext(ast::CallExpr *call);
-  void CheckBuiltinJoinHashTableIterGetRow(ast::CallExpr *call);
-  void CheckBuiltinJoinHashTableIterClose(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinJoinHashTableLookup(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableFree(ast::CallExpr *call);
+  void CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterInit(ast::CallExpr *call);
   void CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin);
@@ -142,23 +144,16 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSizeOfCall(ast::CallExpr *call);
+  void CheckBuiltinOffsetOfCall(ast::CallExpr *call);
   void CheckBuiltinPtrCastCall(ast::CallExpr *call);
   void CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinTableIterParCall(ast::CallExpr *call);
   void CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinFilterManagerCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinVectorFilterCall(ast::CallExpr *call);
   void CheckBuiltinHashCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinOutputAlloc(ast::CallExpr *call);
-  void CheckBuiltinOutputFinalize(ast::CallExpr *call);
-  void CheckBuiltinIndexIteratorInit(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinIndexIteratorAdvance(ast::CallExpr *call);
-  void CheckBuiltinIndexIteratorScan(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinIndexIteratorFree(ast::CallExpr *call);
-  void CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckResultBufferCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin);
 
   // -------------------------------------------------------
   // Scoping
@@ -185,7 +180,7 @@ class Sema : public ast::AstVisitor<Sema> {
     Scope *scope = CurrentScope();
     scope_ = scope->Outer();
 
-    if (num_cached_scopes_ < K_SCOPE_CACHE_SIZE) {
+    if (num_cached_scopes_ < kScopeCacheSize) {
       scope_cache_[num_cached_scopes_++].reset(scope);
     } else {
       delete scope;
@@ -250,9 +245,9 @@ class Sema : public ast::AstVisitor<Sema> {
   Scope *scope_;
 
   // A cache of scopes to reduce allocations
-  static constexpr const uint32_t K_SCOPE_CACHE_SIZE = 4;
+  static constexpr const uint32_t kScopeCacheSize = 4;
   uint64_t num_cached_scopes_;
-  std::unique_ptr<Scope> scope_cache_[K_SCOPE_CACHE_SIZE] = {nullptr};
+  std::unique_ptr<Scope> scope_cache_[kScopeCacheSize] = {nullptr};
 
   ast::FunctionLitExpr *curr_func_;
 };

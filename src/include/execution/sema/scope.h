@@ -73,10 +73,11 @@ class Scope {
   Scope *Outer() const { return outer_; }
 
  private:
+  // The outer scope.
   Scope *outer_;
-
+  // The scope kind.
   Kind scope_kind_;
-
+  // The mapping of identifiers to their types.
   llvm::DenseMap<ast::Identifier, ast::Type *> decls_;
 };
 
