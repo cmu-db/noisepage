@@ -155,7 +155,7 @@ class TestAstBuilder {
    */
   template <BuiltinType::Kind BUILTIN>
   Expr *BuiltinTypeRepr() {
-    return IdentExpr(BuiltinType::Get(Ctx(), BUILTIN)->TplName());
+    return IdentExpr(BuiltinType::Get(Ctx(), BUILTIN)->GetTplName());
   }
 
   /**

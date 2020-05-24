@@ -69,8 +69,8 @@ TEST_F(TypeTest, StructPaddingTest) {
 
   // Expect: [0-1] b, [2-7] pad, [8-15] int64_t, [16-17] int8_t_1, [18-19] pad,
   //         [20-23] int32_t, [24-25] int8_t_2, [26-27] int16_t, [28-31] pad, [32-40] p
-  EXPECT_EQ(sizeof(Test), type->Size());
-  EXPECT_EQ(alignof(Test), type->Alignment());
+  EXPECT_EQ(sizeof(Test), type->GetSize());
+  EXPECT_EQ(alignof(Test), type->GetAlignment());
   EXPECT_EQ(offsetof(Test, a_), type->GetOffsetOfFieldByName(Name("a")));
   EXPECT_EQ(offsetof(Test, b_), type->GetOffsetOfFieldByName(Name("b")));
   EXPECT_EQ(offsetof(Test, c_), type->GetOffsetOfFieldByName(Name("c")));
