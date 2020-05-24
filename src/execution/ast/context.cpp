@@ -205,13 +205,13 @@ Identifier Context::GetIdentifier(llvm::StringRef str) {
   return Identifier(iter->getKeyData());
 }
 
-Type *Context::LookupBuiltinType(Identifier identifier) const {
-  auto iter = Impl()->builtin_types_.find(identifier);
+Type *Context::LookupBuiltinType(Identifier name) const {
+  auto iter = Impl()->builtin_types_.find(name);
   return (iter == Impl()->builtin_types_.end() ? nullptr : iter->second);
 }
 
-bool Context::IsBuiltinFunction(Identifier identifier, Builtin *builtin) const {
-  if (auto iter = Impl()->builtin_funcs_.find(identifier); iter != Impl()->builtin_funcs_.end()) {
+bool Context::IsBuiltinFunction(Identifier name, Builtin *builtin) const {
+  if (auto iter = Impl()->builtin_funcs_.find(name); iter != Impl()->builtin_funcs_.end()) {
     if (builtin != nullptr) {
       *builtin = iter->second;
     }
