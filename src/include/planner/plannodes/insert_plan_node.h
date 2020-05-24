@@ -11,8 +11,6 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "type/transient_value.h"
-#include "type/transient_value_peeker.h"
 
 namespace terrier::planner {
 

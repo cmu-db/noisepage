@@ -1,6 +1,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
 #include <utility>
+
 #include "execution/ast/type.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
@@ -208,22 +209,15 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder *builder,
     auto col_idx = pm_[left_cve->GetColumnOid()];
     auto col_type = schema_.GetColumn(left_cve->GetColumnOid()).Type();
     auto const_val = dynamic_cast<const terrier::parser::ConstantValueExpression *>(predicate->GetChild(1).Get());
-    auto trans_val = const_val->GetValue();
-    auto type = trans_val.Type();
+    auto val = const_val->GetValue();
+    auto type = const_val->GetReturnValueType();
     ast::Expr *filter_val;
     switch (type) {
       case terrier::type::TypeId::TINYINT:
-        filter_val = codegen_->IntLiteral(terrier::type::TransientValuePeeker::PeekTinyInt(trans_val));
-        break;
       case terrier::type::TypeId::SMALLINT:
-        filter_val = codegen_->IntLiteral(terrier::type::TransientValuePeeker::PeekSmallInt(trans_val));
-        break;
       case terrier::type::TypeId::INTEGER:
-        filter_val = codegen_->IntLiteral(terrier::type::TransientValuePeeker::PeekInteger(trans_val));
-        break;
       case terrier::type::TypeId::BIGINT:
-        filter_val =
-            codegen_->IntLiteral(static_cast<int32_t>(terrier::type::TransientValuePeeker::PeekBigInt(trans_val)));
+        filter_val = codegen_->IntLiteral(val.CastManagedPointerTo<execution::sql::Integer>()->val_);
         break;
       default:
         UNREACHABLE("Impossible vectorized predicate!");

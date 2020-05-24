@@ -8,7 +8,10 @@
 #include "common/managed_pointer.h"
 #include "loggers/optimizer_logger.h"
 #include "parser/expression_defs.h"
-#include "type/transient_value.h"
+
+namespace terrier::parser {
+class ConstantValueExpression;
+}
 
 namespace terrier::optimizer {
 /**
@@ -30,7 +33,7 @@ class ValueCondition {
    * @param value - the value used in the condition (e.g. 1)
    */
   ValueCondition(catalog::col_oid_t column_id, std::string column_name, parser::ExpressionType type,
-                 std::unique_ptr<type::TransientValue> value)
+                 std::unique_ptr<parser::ConstantValueExpression> value)
       : column_id_{column_id}, column_name_{std::move(column_name)}, type_{type}, value_{std::move(value)} {}
 
   /**
@@ -39,7 +42,8 @@ class ValueCondition {
    * @param type
    * @param value
    */
-  ValueCondition(catalog::col_oid_t column_id, parser::ExpressionType type, std::unique_ptr<type::TransientValue> value)
+  ValueCondition(catalog::col_oid_t column_id, parser::ExpressionType type,
+                 std::unique_ptr<parser::ConstantValueExpression> value)
       : ValueCondition(column_id, "", type, std::move(value)) {}
 
   /**
@@ -48,7 +52,8 @@ class ValueCondition {
    * @param type
    * @param value
    */
-  ValueCondition(std::string column_name, parser::ExpressionType type, std::unique_ptr<type::TransientValue> value)
+  ValueCondition(std::string column_name, parser::ExpressionType type,
+                 std::unique_ptr<parser::ConstantValueExpression> value)
       : ValueCondition(catalog::col_oid_t(0), std::move(column_name), type, std::move(value)) {}
 
   /**
@@ -69,7 +74,9 @@ class ValueCondition {
   /**
    * @return the pointer to the value
    */
-  common::ManagedPointer<type::TransientValue> GetPointerToValue() const { return common::ManagedPointer(value_); }
+  common::ManagedPointer<parser::ConstantValueExpression> GetPointerToValue() const {
+    return common::ManagedPointer(value_);
+  }
 
  private:
   /**
@@ -90,6 +97,6 @@ class ValueCondition {
   /**
    * Pointer to value stated in the condition
    */
-  std::unique_ptr<type::TransientValue> value_;
+  std::unique_ptr<parser::ConstantValueExpression> value_;
 };
 }  // namespace terrier::optimizer

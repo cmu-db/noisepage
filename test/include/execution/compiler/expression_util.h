@@ -2,6 +2,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
@@ -13,7 +14,6 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::execution::compiler {
 
@@ -41,24 +41,24 @@ class ExpressionMaker {
    * Create an integer constant expression
    */
   ManagedExpression Constant(int32_t val) {
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetInteger(val)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
+        type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(val)));
   }
 
   /**
    * Create a floating point constant expression
    */
   ManagedExpression Constant(double val) {
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDecimal(val)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL,
+                                                                         std::make_unique<execution::sql::Real>(val)));
   }
 
   /**
    * Create a date constant expression
    */
   ManagedExpression Constant(int32_t year, uint32_t month, uint32_t day) {
-    sql::DateVal date(sql::Date::FromYMD(year, month, day));
-    type::date_t int_val(date.val_.ToNative());
-    return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
+        type::TypeId::DATE, std::make_unique<sql::DateVal>(sql::Date::FromYMD(year, month, day))));
   }
 
   /**

@@ -16,7 +16,6 @@
 #include "test_util/catalog_test_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier {
 
@@ -177,16 +176,14 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 // Ensure that the ForceOid function for schemas works as intended
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ForceOid) {
-  auto index_col = catalog::IndexSchema::Column(
-      "", type::TypeId::INTEGER, false,
-      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto index_col = catalog::IndexSchema::Column("", type::TypeId::INTEGER, false,
+                                                parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto idx_col_oid = catalog::indexkeycol_oid_t(1);
   StorageTestUtil::ForceOid(&(index_col), idx_col_oid);
   EXPECT_EQ(index_col.Oid(), idx_col_oid);
 
-  auto col = catalog::Schema::Column(
-      "iHateStorage", type::TypeId::INTEGER, false,
-      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto col = catalog::Schema::Column("iHateStorage", type::TypeId::INTEGER, false,
+                                     parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto col_oid = catalog::col_oid_t(2);
   StorageTestUtil::ForceOid(&(col), col_oid);
   EXPECT_EQ(col.Oid(), col_oid);
