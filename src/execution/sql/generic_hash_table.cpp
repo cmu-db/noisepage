@@ -14,7 +14,7 @@ GenericHashTable::~GenericHashTable() {
   }
 }
 
-void GenericHashTable::SetSize(common::ManagedPointer<MemoryTracker> tracker, uint64_t new_size) {
+void GenericHashTable::SetSize(uint64_t new_size, common::ManagedPointer<MemoryTracker> tracker) {
   TERRIER_ASSERT(new_size > 0, "New size cannot be zero!");
   if (entries_ != nullptr) {
     util::TrackFreeHugeArray(tracker, entries_, Capacity());

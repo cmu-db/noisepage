@@ -151,16 +151,16 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
                                               const planner::AbstractPlanNode *plan, size_t scaling_factor,
                                               double mem_factor) {
   // TODO(wz2): Populate actual num_rows/cardinality after #759
-  size_t num_rows = 0;
-  size_t cardinality = 0;
+  size_t num_rows = 1;
+  size_t cardinality = 1;
   if (type == ExecutionOperatingUnitType::OUTPUT || type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
     // If feature is OUTPUT or computation, then cardinality = num_rows
     cardinality = num_rows;
   } else if (type == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
     TERRIER_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
     UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(1);
-    num_rows = 0;     // extract from c_plan num_rows (# row to probe)
-    cardinality = 0;  // extract from plan num_rows (# matched rows)
+    num_rows = 1;     // extract from c_plan num_rows (# row to probe)
+    cardinality = 1;  // extract from plan num_rows (# matched rows)
   } else if (type == ExecutionOperatingUnitType::IDX_SCAN) {
     // For IDX_SCAN, the feature is as follows:
     // - num_rows is the size of the index
@@ -172,7 +172,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
       num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
     }
 
-    cardinality = 0;  // extract from plan num_rows (this is the scan size)
+    cardinality = 1;  // extract from plan num_rows (this is the scan size)
   }
 
   num_rows *= scaling_factor;

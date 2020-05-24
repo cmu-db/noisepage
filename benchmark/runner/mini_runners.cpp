@@ -42,7 +42,7 @@ catalog::db_oid_t db_oid{0};
 /**
  * Number of warmup iterations
  */
-int64_t warmup_iterations_num{2};
+int64_t warmup_iterations_num{5};
 
 /**
  * Limit on num_rows for which queries need warming up
@@ -750,12 +750,6 @@ execution::vm::ExecutionMode MiniRunners::mode = execution::vm::ExecutionMode::I
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_ArithmeticRunners)(benchmark::State &state) {
-  // Only benchmark arithmetic runners in interpret mode
-  if (MiniRunners::mode != execution::vm::ExecutionMode::Interpret) {
-    state.SetItemsProcessed(0);
-    return;
-  }
-
   // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
@@ -940,23 +934,18 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ1_1_SeqScanRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ1_2_IndexScanRunners)(benchmark::State &state) {
-  if (MiniRunners::mode != execution::vm::ExecutionMode::Interpret) {
-    state.SetItemsProcessed(0);
-    return;
-  }
+  auto type = static_cast<type::TypeId>(state.range(0));
+  auto key_num = state.range(1);
+  auto num_rows = state.range(2);
+  auto lookup_size = state.range(3);
 
   int num_iters = 1;
-  if (state.range(2) <= warmup_rows_limit) {
+  if (lookup_size <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
   }
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    auto type = static_cast<type::TypeId>(state.range(0));
-    auto key_num = state.range(1);
-    auto num_rows = state.range(2);
-    auto lookup_size = state.range(3);
-
     auto type_size = type::TypeUtil::GetTypeSize(type);
     auto tuple_size = type_size * key_num;
 
@@ -1102,15 +1091,11 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::INSERT, num_rows, tuple_size, num_cols, num_rows, 1);
     units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      metrics_manager_->RegisterThread();
-      auto equery = OptimizeSqlStatement(query, std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
-      BenchmarkExecQuery(equery.first.get(), equery.second.get(), true);
-      metrics_manager_->Aggregate();
-      metrics_manager_->UnregisterThread();
-    }
+    metrics_manager_->RegisterThread();
+    auto equery = OptimizeSqlStatement(query, std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+    BenchmarkExecQuery(equery.first.get(), equery.second.get(), true);
+    metrics_manager_->Aggregate();
+    metrics_manager_->UnregisterThread();
 
     // Drop the table
     {
@@ -1119,8 +1104,6 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
       accessor->DropTable(tbl_oid);
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
-
-    state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
     gc->PerformGarbageCollection();
@@ -1138,13 +1121,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_InsertRunners)(benchmark::State &state) {
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_InsertRunners)
     ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenInsertArguments);
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_InsertRunners)
     ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenInsertMixedArguments);
 
@@ -1198,20 +1179,11 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 
     auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
     for (auto i = 0; i < num_iters; i++) {
-      uint64_t elapsed_ms;
-      {
-        common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-        if (i == num_iters - 1) {
-          metrics_manager_->RegisterThread();
-        }
-
-        BenchmarkExecQuery(equery.first.get(), equery.second.get(), false);
-
-        if (i == num_iters - 1) {
-          metrics_manager_->Aggregate();
-          metrics_manager_->UnregisterThread();
-        }
+      if (i == num_iters - 1) {
+        metrics_manager_->RegisterThread();
       }
+
+      BenchmarkExecQuery(equery.first.get(), equery.second.get(), false);
 
       // Perform GC to do any cleanup...becuase the transaction aborted
       auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
@@ -1219,7 +1191,8 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
       gc->PerformGarbageCollection();
 
       if (i == num_iters - 1) {
-        state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+        metrics_manager_->Aggregate();
+        metrics_manager_->UnregisterThread();
       }
     }
   }
@@ -1235,13 +1208,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_UpdateRunners)(benchmark::State &state) {
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_UpdateRunners)
     ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenUpdateDeleteArguments);
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_UpdateRunners)
     ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenUpdateDeleteMixedArguments);
 
@@ -1252,6 +1223,11 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   auto tbl_decimals = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
+
+  int num_iters = 1;
+  if (row <= warmup_rows_limit) {
+    num_iters += warmup_iterations_num;
+  }
 
   // NOLINTNEXTLINE
   for (auto _ : *state) {
@@ -1272,23 +1248,24 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
     query << "DELETE FROM "
           << ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
 
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      metrics_manager_->RegisterThread();
-      auto equery =
-          OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+    auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+    for (auto i = 0; i < num_iters; i++) {
+      if (i == num_iters - 1) {
+        metrics_manager_->RegisterThread();
+      }
+
       BenchmarkExecQuery(equery.first.get(), equery.second.get(), false);
-      metrics_manager_->Aggregate();
-      metrics_manager_->UnregisterThread();
+
+      // Perform GC to do any cleanup...becuase the transaction aborted
+      auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+      gc->PerformGarbageCollection();
+      gc->PerformGarbageCollection();
+
+      if (i == num_iters - 1) {
+        metrics_manager_->Aggregate();
+        metrics_manager_->UnregisterThread();
+      }
     }
-
-    // Perform GC to do any cleanup...becuase the transaction aborted
-    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
-    gc->PerformGarbageCollection();
-    gc->PerformGarbageCollection();
-
-    state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
 
   state->SetItemsProcessed(row);
@@ -1302,13 +1279,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_DeleteRunners)(benchmark::State &state) {
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_DeleteRunners)
     ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenUpdateDeleteArguments);
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_DeleteRunners)
     ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenUpdateDeleteMixedArguments);
 
