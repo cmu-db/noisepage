@@ -387,7 +387,7 @@ set(TERRIER_DEPENDENCIES
 
 set(TERRIER_TEST_LINK_LIBS
         test_util
-        terrier_static
+        terrier_shared
         gtest
         gmock_main
         gflags
@@ -396,7 +396,7 @@ set(TERRIER_TEST_LINK_LIBS
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
         test_util
-        terrier_static
+        terrier_shared
         benchmark
         gtest
         gmock_main
