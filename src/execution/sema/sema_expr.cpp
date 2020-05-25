@@ -179,8 +179,8 @@ void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
       return;
     }
 
-    ast::ReturnStmt *empty_ret = GetContext()->NodeFactory()->NewReturnStmt(node->Position(), nullptr);
-    node->Body()->Statements().push_back(empty_ret);
+    ast::ReturnStmt *empty_ret = GetContext()->GetNodeFactory()->NewReturnStmt(node->Position(), nullptr);
+    node->Body()->statements_.push_back(empty_ret);
   }
 }
 
@@ -232,7 +232,7 @@ void Sema::VisitIndexExpr(ast::IndexExpr *node) {
 }
 
 void Sema::VisitLitExpr(ast::LitExpr *node) {
-  switch (node->LiteralKind()) {
+  switch (node->GetLiteralKind()) {
     case ast::LitExpr::LitKind::Nil: {
       node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Nil));
       break;
@@ -260,7 +260,7 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
 
 void Sema::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
   // Resolve the type of the sub expression
-  ast::Type *expr_type = Resolve(node->Expression());
+  ast::Type *expr_type = Resolve(node->Input());
 
   if (expr_type == nullptr) {
     // Some error occurred

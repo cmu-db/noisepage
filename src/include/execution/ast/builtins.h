@@ -17,17 +17,26 @@ namespace terrier::execution::ast {
   F(DateToSql, dateToSql)                                               \
   F(FloatToSql, floatToSql)                                             \
   F(IntToSql, intToSql)                                                 \
+  F(IsValNull, isValNull)                                               \
   F(SqlToBool, sqlToBool)                                               \
   F(StringToSql, stringToSql)                                           \
   F(TimestampToSql, timestampToSql)                                     \
   F(TimestampToSqlHMSu, timestampToSqlHMSu)                             \
   F(VarlenToSql, varlenToSql)                                           \
                                                                         \
-  /* Date Functions */                                                  \
-  F(ExtractYear, extractYear)                                           \
+  /* SQL Conversions */                                                 \
+  F(ConvertBoolToInteger, convertBoolToInt)                             \
+  F(ConvertIntegerToReal, convertIntToReal)                             \
+  F(ConvertDateToTimestamp, convertDateToTime)                          \
+  F(ConvertStringToBool, convertStringToBool)                           \
+  F(ConvertStringToInt, convertStringToInt)                             \
+  F(ConvertStringToReal, convertStringToReal)                           \
+  F(ConvertStringToDate, convertStringToDate)                           \
+  F(ConvertStringToTime, convertStringToTime)                           \
                                                                         \
   /* SQL Functions */                                                   \
   F(Like, like)                                                         \
+  F(ExtractYear, extractYear)                                           \
                                                                         \
   /* Vectorized Filters */                                              \
   F(FilterEq, filterEq)                                                 \
@@ -39,12 +48,15 @@ namespace terrier::execution::ast {
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
+  F(ExecutionContextGetTLS, execCtxGetTLS)                              \
   F(ExecutionContextStartResourceTracker, execCtxStartResourceTracker)  \
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
   F(ThreadStateContainerInit, tlsInit)                                  \
   F(ThreadStateContainerReset, tlsReset)                                \
+  F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \
   F(ThreadStateContainerIterate, tlsIterate)                            \
+  F(ThreadStateContainerClear, tlsClear)                                \
   F(ThreadStateContainerFree, tlsFree)                                  \
                                                                         \
   /* Table scans */                                                     \
@@ -94,7 +106,7 @@ namespace terrier::execution::ast {
   F(FilterManagerInit, filterManagerInit)                               \
   F(FilterManagerInsertFilter, filterManagerInsertFilter)               \
   F(FilterManagerFinalize, filterManagerFinalize)                       \
-  F(FilterManagerRunFilters, filtersRun)                                \
+  F(FilterManagerRunFilters, filterManagerRunFilters)                   \
   F(FilterManagerFree, filterManagerFree)                               \
                                                                         \
   /* Aggregations */                                                    \
@@ -150,8 +162,20 @@ namespace terrier::execution::ast {
   F(SorterIterInit, sorterIterInit)                                     \
   F(SorterIterHasNext, sorterIterHasNext)                               \
   F(SorterIterNext, sorterIterNext)                                     \
+  F(SorterIterSkipRows, sorterIterSkipRows)                             \
   F(SorterIterGetRow, sorterIterGetRow)                                 \
   F(SorterIterClose, sorterIterClose)                                   \
+                                                                        \
+  /* Output */                                                          \
+  F(ResultBufferAllocOutRow, resultBufferAllocRow)                      \
+  F(ResultBufferFinalize, resultBufferFinalize)                         \
+                                                                        \
+  /* CSV */                                                             \
+  F(CSVReaderInit, csvReaderInit)                                       \
+  F(CSVReaderAdvance, csvReaderAdvance)                                 \
+  F(CSVReaderGetField, csvReaderGetField)                               \
+  F(CSVReaderGetRecordNumber, csvReaderGetRecordNumber)                 \
+  F(CSVReaderClose, csvReaderClose)                                     \
                                                                         \
   /* Trig */                                                            \
   F(ACos, acos)                                                         \
@@ -278,7 +302,7 @@ class Builtins : public AllStatic {
   /**
    * The total number of builtin functions
    */
-  static const uint32_t BUILTINS_COUNT = static_cast<uint32_t>(Builtin ::Last) + 1;
+  static const uint32_t BUILTINS_COUNT = static_cast<uint32_t>(Builtin::Last) + 1;
 
   /**
    * @return The total number of builtin functions.

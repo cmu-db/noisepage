@@ -19,7 +19,7 @@ namespace terrier::execution::ast {
  *
  * All AST node visitations will get forwarded to the derived class if they
  * are implemented, and fallback to this base class otherwise. Moreover, the
- * fallbacks will walk up the hierarchy chain.
+ * fallbacks will walk up the node hierarchy.
  *
  * To easily define visitors for all nodes, use the AST_NODES() macro providing
  * a function generator macro as the argument.
@@ -27,6 +27,7 @@ namespace terrier::execution::ast {
 template <typename Subclass, typename RetType = void>
 class AstVisitor {
  public:
+  // Dispatch to a given type
 #define DISPATCH(Type) return this->Impl()->Visit##Type(static_cast<Type *>(node));
 
   /**

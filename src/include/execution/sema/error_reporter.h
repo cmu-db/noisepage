@@ -85,7 +85,7 @@ class ErrorReporter {
 
     explicit MessageArgument(int32_t integer) : kind_(Kind::Int), integer_(integer) {}
 
-    explicit MessageArgument(ast::Identifier str) : MessageArgument(str.Data()) {}
+    explicit MessageArgument(ast::Identifier str) : MessageArgument(str.GetData()) {}
 
     explicit MessageArgument(ast::Type *type) : kind_(Kind::Type), type_(type) {}
 

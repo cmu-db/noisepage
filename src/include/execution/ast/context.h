@@ -50,7 +50,8 @@ class Context {
   ~Context();
 
   /**
-   * Return @em str as a unique string in this context.
+   * Return a unique and context-owned version of the provided string. Identifiers are any string
+   * that appear in TPL source code. Identical strings will map to the same AST Identifier object.
    * @param str The input string.
    * @return A uniqued (interned) version of the string in this context.
    */
@@ -88,6 +89,9 @@ class Context {
   // Simple accessors
   // -------------------------------------------------------
 
+  /**
+   * PIMPL type.
+   */
   struct Implementation;
 
   /**
@@ -98,7 +102,7 @@ class Context {
   /**
    * @return The AST node factory.
    */
-  AstNodeFactory *NodeFactory() const { return node_factory_.get(); }
+  AstNodeFactory *GetNodeFactory() const { return node_factory_.get(); }
 
   /**
    * @return The error reporter for this context.
@@ -108,7 +112,7 @@ class Context {
   /**
    * @return The memory region this context uses to perform ALL allocations.
    */
-  util::Region *Region() const { return region_; }
+  util::Region *GetRegion() const { return region_; }
 
  private:
   // Region allocator for all Ast objects this context needs

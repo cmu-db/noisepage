@@ -55,7 +55,7 @@ fun main(execCtx: *ExecutionContext) -> int {
   col_oids[0] = 1
   for (@tableIterInitBind(&tvi, execCtx, "test_1", col_oids); @tableIterAdvance(&tvi); ) {
     var pci = @tableIterGetPCI(&tvi)
-    @filtersRun(&filter, pci)
+    @filterManagerRunFilters(&filter, pci)
     ret = ret + count(pci)
   }
 

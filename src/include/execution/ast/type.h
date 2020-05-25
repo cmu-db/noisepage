@@ -36,69 +36,75 @@ class Context;
 //           implementations, but can also be created and manipulated from TPL
 //           code. We specialize these because we also want to add SQL-level
 //           type information to these builtins.
-#define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                                                  \
-  /* Primitive types */                                                                         \
-  PRIM(Nil, uint8_t, "nil")                                                                     \
-  PRIM(Bool, bool, "bool")                                                                      \
-  PRIM(Int8, int8_t, "int8")                                                                    \
-  PRIM(Int16, int16_t, "int16")                                                                 \
-  PRIM(Int32, int32_t, "int32")                                                                 \
-  PRIM(Int64, int64_t, "int64")                                                                 \
-  PRIM(Uint8, uint8_t, "uint8")                                                                 \
-  PRIM(Uint16, uint16_t, "uint16")                                                              \
-  PRIM(Uint32, uint32_t, "uint32")                                                              \
-  PRIM(Uint64, uint64_t, "uint64")                                                              \
-  PRIM(Int128, int128_t, "int128")                                                              \
-  PRIM(Uint128, uint128_t, "uint128")                                                           \
-  PRIM(Float32, float, "float32")                                                               \
-  PRIM(Float64, double, "float64")                                                              \
-                                                                                                \
-  /* Non-primitive builtins */                                                                  \
-  NON_PRIM(AggregationHashTable, terrier::execution::sql::AggregationHashTable)                 \
-  NON_PRIM(AggregationHashTableIterator, terrier::execution::sql::AggregationHashTableIterator) \
-  NON_PRIM(AggOverflowPartIter, terrier::execution::sql::AggregationOverflowPartitionIterator)  \
-  NON_PRIM(BloomFilter, terrier::execution::sql::BloomFilter)                                   \
-  NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                        \
-  NON_PRIM(FilterManager, terrier::execution::sql::FilterManager)                               \
-  NON_PRIM(HashTableEntry, terrier::execution::sql::HashTableEntry)                             \
-  /* TODO(WAN): EXEC PORT NON_PRIM(HashTableEntryIterator,                                      \
-   * terrier::execution::sql::HashTableEntryIterator) */                                        \
-  NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                               \
-  NON_PRIM(JoinHashTable, terrier::execution::sql::JoinHashTable)                               \
-  NON_PRIM(JoinHashTableVectorProbe, terrier::execution::sql::JoinHashTableVectorProbe)         \
-  NON_PRIM(JoinHashTableIterator, terrier::execution::sql::JoinHashTableIterator)               \
-  NON_PRIM(MemoryPool, terrier::execution::sql::MemoryPool)                                     \
-  NON_PRIM(ProjectedColumnsIterator, terrier::execution::sql::ProjectedColumnsIterator)         \
-  NON_PRIM(Sorter, terrier::execution::sql::Sorter)                                             \
-  NON_PRIM(SorterIterator, terrier::execution::sql::SorterIterator)                             \
-  NON_PRIM(TableVectorIterator, terrier::execution::sql::TableVectorIterator)                   \
-  NON_PRIM(ThreadStateContainer, terrier::execution::sql::ThreadStateContainer)                 \
-  /* TODO(WAN): EXEC PORT NON_PRIM(TupleIdList, terrier::execution::sql::TupleIdList)   */      \
-                                                                                                \
-  /* SQL Aggregate types (if you add, remember to update BuiltinType) */                        \
-  NON_PRIM(CountAggregate, terrier::execution::sql::CountAggregate)                             \
-  NON_PRIM(CountStarAggregate, terrier::execution::sql::CountStarAggregate)                     \
-  NON_PRIM(IntegerAvgAggregate, terrier::execution::sql::AvgAggregate)                          \
-  NON_PRIM(IntegerMaxAggregate, terrier::execution::sql::IntegerMaxAggregate)                   \
-  NON_PRIM(IntegerMinAggregate, terrier::execution::sql::IntegerMinAggregate)                   \
-  NON_PRIM(IntegerSumAggregate, terrier::execution::sql::IntegerSumAggregate)                   \
-  NON_PRIM(RealAvgAggregate, terrier::execution::sql::AvgAggregate)                             \
-  NON_PRIM(RealMaxAggregate, terrier::execution::sql::RealMaxAggregate)                         \
-  NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                         \
-  NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                         \
-                                                                                                \
-  /* SQL Table operations */                                                                    \
-  NON_PRIM(ProjectedRow, terrier::storage::ProjectedRow)                                        \
-  NON_PRIM(StorageInterface, terrier::execution::sql::StorageInterface)                         \
-  NON_PRIM(TupleSlot, terrier::storage::TupleSlot)                                              \
-                                                                                                \
-  /* Non-primitive SQL Runtime Values */                                                        \
-  SQL(Boolean, terrier::execution::sql::BoolVal)                                                \
-  SQL(Integer, terrier::execution::sql::Integer)                                                \
-  SQL(Real, terrier::execution::sql::Real)                                                      \
-  SQL(Decimal, terrier::execution::sql::Decimal)                                                \
-  SQL(StringVal, terrier::execution::sql::StringVal)                                            \
-  SQL(Date, terrier::execution::sql::DateVal)                                                   \
+#define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                                                                \
+  /* Primitive types */                                                                                       \
+  PRIM(Nil, uint8_t, "nil")                                                                                   \
+  PRIM(Bool, bool, "bool")                                                                                    \
+  PRIM(Int8, int8_t, "int8")                                                                                  \
+  PRIM(Int16, int16_t, "int16")                                                                               \
+  PRIM(Int32, int32_t, "int32")                                                                               \
+  PRIM(Int64, int64_t, "int64")                                                                               \
+  PRIM(Uint8, uint8_t, "uint8")                                                                               \
+  PRIM(Uint16, uint16_t, "uint16")                                                                            \
+  PRIM(Uint32, uint32_t, "uint32")                                                                            \
+  PRIM(Uint64, uint64_t, "uint64")                                                                            \
+  PRIM(Int128, int128_t, "int128")                                                                            \
+  PRIM(Uint128, uint128_t, "uint128")                                                                         \
+  PRIM(Float32, float, "float32")                                                                             \
+  PRIM(Float64, double, "float64")                                                                            \
+                                                                                                              \
+  /* Non-primitive builtins */                                                                                \
+  NON_PRIM(AggregationHashTable, terrier::execution::sql::AggregationHashTable)                               \
+  NON_PRIM(AggregationHashTableIterator, terrier::execution::sql::AggregationHashTableIterator)               \
+  /* TODO(WAN): EXEC PORT needed? NON_PRIM(AHTVectorIterator, tpl::sql::AHTVectorIterator)  */                \
+  NON_PRIM(AggOverflowPartIter, terrier::execution::sql::AggregationOverflowPartitionIterator)                \
+  NON_PRIM(BloomFilter, terrier::execution::sql::BloomFilter)                                                 \
+  /* TODO(WAN): EXEC PORT NON_PRIM(CSVReader, terrier::execution::util::CSVReader)                         */ \
+  NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                                      \
+  NON_PRIM(FilterManager, terrier::execution::sql::FilterManager)                                             \
+  NON_PRIM(HashTableEntry, terrier::execution::sql::HashTableEntry)                                           \
+  /* TODO(WAN): EXEC PORT needed? NON_PRIM(HashTableEntryIterator, tpl::sql::HashTableEntryIterator)     */   \
+  NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                                             \
+  NON_PRIM(JoinHashTable, terrier::execution::sql::JoinHashTable)                                             \
+  NON_PRIM(JoinHashTableIterator, terrier::execution::sql::JoinHashTableIterator)                             \
+  NON_PRIM(MemoryPool, terrier::execution::sql::MemoryPool)                                                   \
+  NON_PRIM(ProjectedColumnsIterator, terrier::execution::sql::ProjectedColumnsIterator)                       \
+  NON_PRIM(Sorter, terrier::execution::sql::Sorter)                                                           \
+  NON_PRIM(SorterIterator, terrier::execution::sql::SorterIterator)                                           \
+  NON_PRIM(TableVectorIterator, terrier::execution::sql::TableVectorIterator)                                 \
+  NON_PRIM(ThreadStateContainer, terrier::execution::sql::ThreadStateContainer)                               \
+  /* TODO(WAN): EXEC PORT needed? NON_PRIM(TupleIdList, tpl::sql::TupleIdList)                        */      \
+                                                                                                              \
+  /* SQL Aggregate types (if you add, remember to update BuiltinType) */                                      \
+  NON_PRIM(CountAggregate, terrier::execution::sql::CountAggregate)                                           \
+  NON_PRIM(CountStarAggregate, terrier::execution::sql::CountStarAggregate)                                   \
+  NON_PRIM(IntegerAvgAggregate, terrier::execution::sql::AvgAggregate)                                        \
+  NON_PRIM(IntegerMaxAggregate, terrier::execution::sql::IntegerMaxAggregate)                                 \
+  NON_PRIM(IntegerMinAggregate, terrier::execution::sql::IntegerMinAggregate)                                 \
+  NON_PRIM(IntegerSumAggregate, terrier::execution::sql::IntegerSumAggregate)                                 \
+  NON_PRIM(RealAvgAggregate, terrier::execution::sql::AvgAggregate)                                           \
+  NON_PRIM(RealMaxAggregate, terrier::execution::sql::RealMaxAggregate)                                       \
+  NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                                       \
+  NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                                       \
+  /*TODO(WAN): EXEC PORT implement these                                                                      \
+    NON_PRIM(DateMinAggregate, terrier::execution::sql::DateMinAggregate)                                     \
+    NON_PRIM(DateMaxAggregate, terrier::execution::sql::DateMaxAggregate)                                     \
+    NON_PRIM(StringMinAggregate, terrier::execution::sql::StringMinAggregate)                                 \
+    NON_PRIM(StringMaxAggregate, terrier::execution::sql::StringMaxAggregate)                                 \
+  */                                                                                                          \
+                                                                                                              \
+  /* SQL Table operations */                                                                                  \
+  NON_PRIM(ProjectedRow, terrier::storage::ProjectedRow)                                                      \
+  NON_PRIM(StorageInterface, terrier::execution::sql::StorageInterface)                                       \
+  NON_PRIM(TupleSlot, terrier::storage::TupleSlot)                                                            \
+                                                                                                              \
+  /* Non-primitive SQL Runtime Values */                                                                      \
+  SQL(Boolean, terrier::execution::sql::BoolVal)                                                              \
+  SQL(Integer, terrier::execution::sql::Integer)                                                              \
+  SQL(Real, terrier::execution::sql::Real)                                                                    \
+  SQL(Decimal, terrier::execution::sql::Decimal)                                                              \
+  SQL(StringVal, terrier::execution::sql::StringVal)                                                          \
+  SQL(Date, terrier::execution::sql::DateVal)                                                                 \
   SQL(Timestamp, terrier::execution::sql::TimestampVal)
 
 // Ignore a builtin
@@ -237,51 +243,43 @@ class Type : public util::RegionObject {
 #undef F
 
   /**
-   * Checks whether this is an arithmetic type
-   * @return true iff this is an arithmetic type.
+   * @return True if this type is arithmetic. Arithmetic types are 8-bit, 16-bit, 32-bit, or 64-bit
+   *         signed and unsigned integer types, or 32- or 64-bit floating point types.
    */
   bool IsArithmetic() const;
 
   /**
-   * Checks whether this is of the given builtin kind
-   * @param kind The kind to check
-   * @return true iff this is of the given kind.
-   */
-  bool IsSpecificBuiltin(uint16_t kind) const;
-
-  /**
-   * Checks whether this is a nil type
-   * @return true iff this is a nil type.
-   */
-  bool IsNilType() const;
-
-  /**
-   * Checks whether this is a bool type
-   * @return true iff this is a bool type.
-   */
-  bool IsBoolType() const;
-
-  /**
-   * Checks whether this is an integer type
-   * @return true iff this is an integer type.
+   * @return True if this is a 8-bit, 16-bit, 32-bit, or 64-bit signed or unsigned TPL integer type.
    */
   bool IsIntegerType() const;
 
   /**
-   * Checks whether this is a float type
-   * @return true iff this is a float type.
+   * @return True if this is a 32-bit or 64-bit floating point type; false otherwise.
    */
   bool IsFloatType() const;
 
   /**
-   * Checks whether this is a sql value type
-   * @return true iff this is a sql value type.
+   * @return True if this type is a specific builtin; false otherwise.
+   */
+  bool IsSpecificBuiltin(uint16_t kind) const;
+
+  /**
+   * @return True if this is a TPL nil; false otherwise.
+   */
+  bool IsNilType() const;
+
+  /**
+   * @return True if this is a TPL boolean type; false otherwise.
+   */
+  bool IsBoolType() const;
+
+  /**
+   * @return True if this is a builtin SQL value type; false otherwise.
    */
   bool IsSqlValueType() const;
 
   /**
-   * Checks whether this is a sql aggregator type
-   * @return true iff this is a sql aggregator type.
+   * @return True if this is a builtin SQL aggregate type; false otherwise.
    */
   bool IsSqlAggregatorType() const;
 
@@ -328,7 +326,7 @@ class Type : public util::RegionObject {
 };
 
 /**
- * A builtin type (int32, float32, Integer, JoinHashTable etc.)
+ * Builtin types (int32, float32, Integer, JoinHashTable etc.)
  */
 class BuiltinType : public Type {
  public:
@@ -371,7 +369,7 @@ class BuiltinType : public Type {
   /**
    * @return True if this type is a C/C++ primitive integer; false otherwise.
    */
-  bool IsInteger() const { return Kind::Int8 <= GetKind() && GetKind() <= Kind::Uint128; }
+  bool IsIntegral() const { return Kind::Int8 <= GetKind() && GetKind() <= Kind::Uint128; }
 
   /**
    * @return True if this type is a C/C++ primitive floating point number; false otherwise.
@@ -387,7 +385,7 @@ class BuiltinType : public Type {
    * @return True if this type is a SQL aggregator type (i.e., IntegerSumAggregate,
    *         CountAggregate, etc.); false otherwise.
    */
-  bool IsSqlAggregatorType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::RealSumAggregate; }
+  bool IsSqlAggregateType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::RealSumAggregate; }
 
   /**
    * @return The kind of this builtin.
@@ -498,8 +496,7 @@ class ArrayType : public Type {
   Type *GetElementType() const { return elem_type_; }
 
   /**
-   * @return True if Fix ExpressionTest to match Postgres expression names.the array has a known compile-time length;
-   * false otherwise.
+   * @return True if the array has a known compile-time length; false otherwise.
    */
   bool HasKnownLength() const { return length_ != 0; }
 
@@ -683,7 +680,6 @@ class StructType : public Type {
   }
 
   /**
-   * @param other struct to compare to
    * @return True if the layout of the provided structure @em other is equivalent to this struct.
    */
   bool IsLayoutIdentical(const StructType &other) const { return (this == &other || GetFields() == other.GetFields()); }
@@ -745,7 +741,7 @@ inline bool Type::IsBoolType() const { return IsSpecificBuiltin(BuiltinType::Boo
 
 inline bool Type::IsIntegerType() const {
   if (auto *builtin_type = SafeAs<BuiltinType>()) {
-    return builtin_type->IsInteger();
+    return builtin_type->IsIntegral();
   }
   return false;
 }
@@ -766,7 +762,7 @@ inline bool Type::IsSqlValueType() const {
 
 inline bool Type::IsSqlAggregatorType() const {
   if (auto *builtin_type = SafeAs<BuiltinType>()) {
-    return builtin_type->IsSqlAggregatorType();
+    return builtin_type->IsSqlAggregateType();
   }
   return false;
 }
