@@ -11,6 +11,9 @@ class AstNode;
  */
 class AstPrettyPrint {
  public:
+  /**
+   * Dump the provided AST node to the output stream supplied.
+   */
   static void Dump(std::ostream &os, AstNode *node);
 };
 

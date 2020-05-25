@@ -53,6 +53,7 @@ class TypeVisitor {
 #undef DISPATCH
 
  protected:
+  /** The implementation of this class. */
   Subclass *Impl() { return static_cast<Subclass *>(this); }
 };
 

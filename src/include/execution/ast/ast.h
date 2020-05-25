@@ -1677,6 +1677,12 @@ class UnaryOpExpr : public Expr {
  */
 class ArrayTypeRepr : public Expr {
  public:
+  /**
+   * Constructor.
+   * @param pos Source position.
+   * @param len Length of the array.
+   * @param elem_type The type of elements that the array stores.
+   */
   ArrayTypeRepr(const SourcePosition &pos, Expr *len, Expr *elem_type)
       : Expr(Kind::ArrayTypeRepr, pos), len_(len), elem_type_(elem_type) {}
 
