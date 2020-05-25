@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <string>
 
-#include "common/hash_util.h"
+#include "execution/util/hash.h"
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"
 

@@ -260,7 +260,6 @@ struct StringVal : public Val {
     return result;
   }
 };
-
 /**
  * A NULL-able SQL date value.
  */

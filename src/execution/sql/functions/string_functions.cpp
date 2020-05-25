@@ -5,7 +5,7 @@
 #include <string>
 
 #include "execution/exec/execution_context.h"
-#include "execution/sql/operators/like_operators.h"
+#include "execution/sql/operations/like_operators.h"
 
 namespace terrier::execution::sql {
 
