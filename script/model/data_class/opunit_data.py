@@ -82,20 +82,19 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache):
             features = line[features_vector_index].split(';')
             for idx, feature in enumerate(features):
                 opunit = OpUnit[feature]
-                if opunit not in data_info.ARITHMETIC_OPUNITS or line[execution_mode_index] != '1':
-                    x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
-                    if opunit in model_map:
-                        key = [opunit] + x_loc
-                        if tuple(key) in predict_cache:
-                            y_merged = y_merged - predict_cache[tuple(key)]
-                        else:
-                            predict = model_map[opunit].predict(np.array(x_loc).reshape(1, -1))[0]
-                            predict_cache[tuple(key)] = predict
-                            y_merged = y_merged - predict
-
-                        y_merged = np.clip(y_merged, 0, None)
+                x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
+                if opunit in model_map:
+                    key = [opunit] + x_loc
+                    if tuple(key) in predict_cache:
+                        y_merged = y_merged - predict_cache[tuple(key)]
                     else:
-                        opunits.append((opunit, x_loc))
+                        predict = model_map[opunit].predict(np.array(x_loc).reshape(1, -1))[0]
+                        predict_cache[tuple(key)] = predict
+                        y_merged = y_merged - predict
+
+                    y_merged = np.clip(y_merged, 0, None)
+                else:
+                    opunits.append((opunit, x_loc))
 
             if len(opunits) > 1:
                 raise Exception('Unmodelled OperatingUnits detected: {}'.format(opunits))
@@ -112,14 +111,6 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache):
 
     data_list = []
     for opunit, values in data_map.items():
-        # Since the compiled arithmetics are always optimized away,
-        # we treat the compiled arithmetics the same as the interpreted ones by copying the data
-        if opunit in data_info.ARITHMETIC_OPUNITS:
-            compiled_values = copy.deepcopy(values)
-            for v in compiled_values:
-                v[data_info.EXECUTION_MODE_INDEX] = 1 # mark as compiled
-            values += compiled_values
-
         np_value = np.array(values)
         x = np_value[:, :data_info.RECORD_FEATURES_END]
         y = np_value[:, -data_info.RECORD_METRICS_START:]
