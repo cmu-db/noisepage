@@ -498,8 +498,8 @@ class PostgresPacketWriter : public PacketWriter {
           // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
           // continue
           auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
-          AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
-              .AppendRaw(string_val->Content(), string_val->len_);
+          AppendValue<int32_t>(static_cast<int32_t>(string_val->GetLength()))
+              .AppendRaw(string_val->GetContent(), string_val->GetLength());
           return execution::sql::ValUtil::GetSqlSize(type);
         }
         default:

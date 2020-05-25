@@ -115,7 +115,6 @@ class EXPORT Hasher {
     return b;
   }
 
- private:
   // -------------------------------------------------------
   // CRC Hashing
   // -------------------------------------------------------
@@ -127,6 +126,7 @@ class EXPORT Hasher {
     return ((result2 << 32u) | result1) * 0x2545F4914F6CDD1Dull;
   }
 
+ private:
   template <typename T>
   static auto HashCrc(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     return HashCrc(val, hash_t{0});

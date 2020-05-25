@@ -1,7 +1,9 @@
 #pragma once
 
 #include <limits>
+#include <string>
 
+#include "common/all_static.h"
 #include "execution/sql/value.h"
 
 namespace terrier::execution::exec {
@@ -13,13 +15,8 @@ namespace terrier::execution::sql {
 /**
  * Utility class to handle SQL string manipulations.
  */
-class EXPORT StringFunctions {
+class EXPORT StringFunctions : public common::AllStatic {
  public:
-  /**
-   * Delete to force only static functions
-   */
-  StringFunctions() = delete;
-
   /**
    * Return the string length
    */
@@ -122,6 +119,11 @@ class EXPORT StringFunctions {
    * Converts the string to upper case
    */
   static void Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+
+  /**
+   * The SQL LIKE operation.
+   */
+  static void Like(exec::ExecutionContext *ctx, BoolVal *result, const StringVal &string, const StringVal &pattern);
 };
 
 }  // namespace terrier::execution::sql

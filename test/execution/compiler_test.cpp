@@ -3181,8 +3181,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
 
     // Make sure all of our values match what we inserted into the table
     if (num_output_rows == 0) {
-      ASSERT_EQ(col1->len_, str1.size());
-      ASSERT_EQ(std::memcmp(col1->Content(), str1.data(), col1->len_), 0);
+      ASSERT_EQ(col1->GetLength(), str1.size());
+      ASSERT_EQ(std::memcmp(col1->GetContent(), str1.data(), col1->GetLength()), 0);
       ASSERT_EQ(col2->val_, date1.val_);
       ASSERT_EQ(col3->val_, real1);
       ASSERT_EQ(col4->val_, bool1);
@@ -3191,8 +3191,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
       ASSERT_EQ(col7->val_, int1);
       ASSERT_EQ(col8->val_, bigint1);
     } else {
-      ASSERT_TRUE(col1->len_ == str2.size());
-      ASSERT_EQ(std::memcmp(col1->Content(), str2.data(), col1->len_), 0);
+      ASSERT_TRUE(col1->GetLength() == str2.size());
+      ASSERT_EQ(std::memcmp(col1->GetContent(), str2.data(), col1->GetLength()), 0);
       ASSERT_EQ(col2->val_, date2.val_);
       ASSERT_EQ(col3->val_, real2);
       ASSERT_EQ(col4->val_, bool2);

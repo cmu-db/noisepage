@@ -205,7 +205,7 @@ VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::
 
 VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     const terrier::execution::sql::StringVal &name) {
-  exec_ctx->EndResourceTracker(name.Content(), name.len_);
+  exec_ctx->EndResourceTracker(name.GetContent(), name.GetLength());
 }
 
 VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
@@ -368,14 +368,14 @@ VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::Decimal *out,
+VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::DecimalVal *out,
                                UNUSED_ATTRIBUTE terrier::execution::sql::ProjectedColumnsIterator *iter,
                                UNUSED_ATTRIBUTE uint16_t col_idx) {
   // TODO(Amadou): Implement once the representation of Decimal is settled upon.
   // The sql::Decimal class does not seem to match the storage layer's DECIMAL type as it needs a precision and
   // a scale.
   out->is_null_ = false;
-  out->val_ = 0;
+  out->val_ = terrier::execution::sql::Decimal64(0);
 }
 
 VM_OP_HOT void OpPCIGetDateVal(terrier::execution::sql::DateVal *out,
@@ -494,9 +494,9 @@ VM_OP_HOT void OpPCIGetDoubleNull(terrier::execution::sql::Real *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDecimalNull(terrier::execution::sql::Decimal *out,
+VM_OP_HOT void OpPCIGetDecimalNull(terrier::execution::sql::DecimalVal *out,
                                    terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
-  out->val_ = 0;
+  out->val_ = terrier::execution::sql::Decimal64(0);
   out->is_null_ = false;
 }
 
@@ -573,7 +573,7 @@ VM_OP_HOT void OpHashReal(terrier::hash_t *hash_val, terrier::execution::sql::Re
 
 VM_OP_HOT void OpHashString(terrier::hash_t *hash_val, terrier::execution::sql::StringVal *input) {
   *hash_val = terrier::execution::util::Hasher::Hash<terrier::execution::util::HashMethod::xxHash3>(
-      reinterpret_cast<const uint8_t *>(input->Content()), input->len_);
+      reinterpret_cast<const uint8_t *>(input->GetContent()), input->GetLength());
   *hash_val = input->is_null_ ? 0 : *hash_val;
 }
 
@@ -616,7 +616,7 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
-VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) { *result = terrier::execution::sql::Val::Null(); }
+VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) { *result = terrier::execution::sql::Val(true); }
 
 VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;

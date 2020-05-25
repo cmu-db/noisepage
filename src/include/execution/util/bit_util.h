@@ -43,7 +43,7 @@ class BitUtil : public common::AllStatic {
    * @return A count of the number of set (i.e., '1') bits in the given integral value @em val.
    */
   template <typename T>
-  static constexpr uint32_t CountPopulation(T val) {
+  static constexpr uint32_t CountBits(T val) {
     return llvm::countPopulation(val);
   }
 
@@ -63,7 +63,7 @@ class BitUtil : public common::AllStatic {
    */
   static constexpr bool Test(const uint32_t bits[], const uint32_t idx) {
     const uint32_t mask = 1u << (idx % K_BIT_WORD_SIZE);
-    return bits[idx / K_BIT_WORD_SIZE] & mask;
+    return static_cast<bool>(bits[idx / K_BIT_WORD_SIZE] & mask);
   }
 
   /**
@@ -73,6 +73,20 @@ class BitUtil : public common::AllStatic {
    */
   static constexpr void Set(uint32_t bits[], const uint32_t idx) {
     bits[idx / K_BIT_WORD_SIZE] |= 1u << (idx % K_BIT_WORD_SIZE);
+  }
+
+  /**
+   * Set the bit at index @em idx to the boolean indicated by @em val
+   * @param bits The bit vector
+   * @param idx The index of the bit to set or unset
+   * @param val The value to set the bit to
+   */
+  static constexpr void SetTo(uint32_t bits[], const uint32_t idx, const bool val) {
+    if (val) {
+      Set(bits, idx);
+    } else {
+      Unset(bits, idx);
+    }
   }
 
   /**
@@ -91,6 +105,16 @@ class BitUtil : public common::AllStatic {
    */
   static constexpr void Flip(uint32_t bits[], const uint32_t idx) {
     bits[idx / K_BIT_WORD_SIZE] ^= 1u << (idx % K_BIT_WORD_SIZE);
+  }
+
+  /**
+   * Clear all the bits in the bit vector, setting them to 0
+   * @param bits bit vector to be cleared
+   * @param num_bits size of the bit vector, in bits
+   */
+  static void Clear(uint32_t bits[], const uint64_t num_bits) {
+    auto num_words = Num32BitWordsFor(num_bits);
+    std::memset(bits, 0, num_words * sizeof(uint32_t));
   }
 };
 

@@ -677,7 +677,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   GEN_PCI_ACCESS(BigInt, sql::Integer)
   GEN_PCI_ACCESS(Real, sql::Real)
   GEN_PCI_ACCESS(Double, sql::Real)
-  GEN_PCI_ACCESS(Decimal, sql::Decimal)
+  GEN_PCI_ACCESS(Decimal, sql::DecimalVal)
   GEN_PCI_ACCESS(DateVal, sql::DateVal)
   GEN_PCI_ACCESS(TimestampVal, sql::TimestampVal)
   GEN_PCI_ACCESS(Varlen, sql::StringVal)

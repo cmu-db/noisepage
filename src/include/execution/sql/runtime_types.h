@@ -4,15 +4,17 @@
 #include <string>
 
 #include "execution/util/hash.h"
+#include "execution/util/string_heap.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::execution::sql {
 
 class Timestamp;
 
 /** Number of milliseconds in a day. */
-static constexpr uint64_t K_MS_PER_DAY = 24 * 60 * 60 * 1000;
+static constexpr uint64_t MS_PER_DAY = 24 * 60 * 60 * 1000;
 /** Number of microseconds in a day. */
-static constexpr uint64_t K_US_PER_DAY = static_cast<uint64_t>(24) * 60 * 60 * 1000 * 1000;
+static constexpr uint64_t US_PER_DAY = static_cast<uint64_t>(24) * 60 * 60 * 1000 * 1000;
 
 /** A SQL date. */
 class EXPORT Date {
@@ -57,7 +59,7 @@ class EXPORT Date {
    * @param seed The value to seed the hash with.
    * @return The hash value for this date instance.
    */
-  hash_t Hash(const hash_t seed) const { return util::Hasher::Hash(value_, seed); }
+  hash_t Hash(const hash_t seed) const { return util::Hasher::HashCrc(value_, seed); }
 
   /**
    * @return The hash value of this date instance.
@@ -105,7 +107,8 @@ class EXPORT Date {
   static Date FromNative(Date::NativeType val);
 
   /**
-   * Convert a string of the form "YYYY-MM-DD" into a date instance.
+   * Convert a string of the form "YYYY-MM-DD" into a date instance. Will attempt to convert the
+   * first date-like object it sees, skipping any leading whitespace.
    * @param str The string to convert.
    * @return The constructed Date. May be invalid.
    */
@@ -160,7 +163,7 @@ class EXPORT Timestamp {
    * @param seed The value to seed the hash with.
    * @return The hash value for this timestamp instance.
    */
-  hash_t Hash(const hash_t seed) const { return util::Hasher::Hash(value_, seed); }
+  hash_t Hash(const hash_t seed) const { return util::Hasher::HashCrc(value_, seed); }
 
   /**
    * @return The hash value of this timestamp instance.
@@ -251,7 +254,249 @@ class EXPORT Timestamp {
   NativeType value_;
 };
 
+//===----------------------------------------------------------------------===//
+//
+// Fixed point decimals
+//
+//===----------------------------------------------------------------------===//
+
+/**
+ * A generic fixed point decimal value. This only serves as a storage container for decimals of various sizes.
+ * Operations on decimals require a precision and scale.
+ *
+ * @tparam T The underlying native data type sufficiently large to store decimals of a pre-determined scale.
+ */
+template <typename T>
+class Decimal {
+ public:
+  using NativeType = T;
+
+  /**
+   * Create a decimal value using the given raw underlying encoded value.
+   * @param value The value to set this decimal to.
+   */
+  explicit Decimal(const T &value) : value_(value) {}
+
+  /**
+   * @return The raw underlying encoded decimal value.
+   */
+  operator T() const { return value_; }  // NOLINT
+
+  /**
+   * Compute the hash value of this decimal instance.
+   * @param seed The value to seed the hash with.
+   * @return The hash value for this decimal instance.
+   */
+  hash_t Hash(const hash_t seed) const { return util::Hasher::HashCrc(value_); }
+
+  /**
+   * @return The hash value of this decimal instance.
+   */
+  hash_t Hash() const { return Hash(0); }
+
+  /**
+   * Add the encoded decimal value @em that to this decimal value.
+   * @param that The value to add.
+   * @return This decimal value.
+   */
+  const Decimal<T> &operator+=(const T &that) {
+    value_ += that;
+    return *this;
+  }
+
+  /**
+   * Subtract the encoded decimal value @em that from this decimal value.
+   * @param that The value to subtract.
+   * @return This decimal value.
+   */
+  const Decimal<T> &operator-=(const T &that) {
+    value_ -= that;
+    return *this;
+  }
+
+  /**
+   * Multiply the encoded decimal value @em that with this decimal value.
+   * @param that The value to multiply by.
+   * @return This decimal value.
+   */
+  const Decimal<T> &operator*=(const T &that) {
+    value_ *= that;
+    return *this;
+  }
+
+  /**
+   * Divide this decimal value by the encoded decimal value @em that.
+   * @param that The value to divide by.
+   * @return This decimal value.
+   */
+  const Decimal<T> &operator/=(const T &that) {
+    value_ /= that;
+    return *this;
+  }
+
+  /**
+   * Modulo divide this decimal value by the encoded decimal value @em that.
+   * @param that The value to modulus by.
+   * @return This decimal value.
+   */
+  const Decimal<T> &operator%=(const T &that) {
+    value_ %= that;
+    return *this;
+  }
+
+ private:
+  // The encoded decimal value
+  T value_;
+};
+
+using Decimal32 = Decimal<int32_t>;
+using Decimal64 = Decimal<int64_t>;
+using Decimal128 = Decimal<int128_t>;
+
+//===----------------------------------------------------------------------===//
+//
+// Variable-length values
+//
+//===----------------------------------------------------------------------===//
+
+/**
+ * A container for varlens.
+ */
+class VarlenHeap {
+ public:
+  /**
+   * Allocate memory from the heap whose contents will be filled in by the user BEFORE creating a varlen.
+   * @param len The length of the varlen to allocate.
+   * @return The character byte array.
+   */
+  char *PreAllocate(std::size_t len) { return heap_.Allocate(len); }
+
+  /**
+   * Allocate a varlen from this heap whose contents are the same as the input string.
+   * @param str The string to copy into the heap.
+   * @param len The length of the input string.
+   * @return A varlen.
+   */
+  storage::VarlenEntry AddVarlen(const char *str, std::size_t len) {
+    auto *content = heap_.AddString(std::string_view(str, len));
+    return storage::VarlenEntry::Create(reinterpret_cast<byte *>(content), len, false);
+  }
+
+  /**
+   * Allocate and return a varlen from this heap whose contents as the same as the input string.
+   * @param string The string to copy into the heap.
+   * @return A varlen.
+   */
+  storage::VarlenEntry AddVarlen(const std::string &string) { return AddVarlen(string.c_str(), string.length()); }
+
+  /**
+   * Add a copy of the given varlen into this heap.
+   * @param other The varlen to copy into this heap.
+   * @return A new varlen entry.
+   */
+  storage::VarlenEntry AddVarlen(const storage::VarlenEntry &other) {
+    return AddVarlen(reinterpret_cast<const char *>(other.Content()), other.Size());
+  }
+
+  /**
+   * Destroy all heap-allocated varlens.
+   */
+  void Destroy() { heap_.Destroy(); }
+
+ private:
+  // Internal heap of strings
+  util::StringHeap heap_;
+};
+
+/**
+ * Simple structure representing a blob.
+ */
+class Blob {
+ public:
+  /**
+   * Crete an empty blob reference.
+   */
+  Blob() = default;
+
+  /**
+   * Create a reference to an existing blob.
+   * @param data The blob data.
+   * @param size The size of the blob.
+   */
+  Blob(byte *data, std::size_t size) noexcept : data_(data), size_(size) {}
+
+  /**
+   * @return A const-view of the raw blob data.
+   */
+  const byte *GetData() const noexcept { return data_; }
+
+  /**
+   * @return The size of the blob in bytes.
+   */
+  std::size_t GetSize() const noexcept { return size_; }
+
+  /**
+   * Compare two strings. Returns:
+   * < 0 if left < right
+   *  0  if left == right
+   * > 0 if left > right
+   *
+   * @param left The first blob.
+   * @param right The second blob.
+   * @return The appropriate signed value indicating comparison order.
+   */
+  static int32_t Compare(const Blob &left, const Blob &right) {
+    const std::size_t min_len = std::min(left.GetSize(), right.GetSize());
+    const int32_t result = min_len == 0 ? 0 : std::memcmp(left.GetData(), right.GetData(), left.GetSize());
+    if (result != 0) {
+      return result;
+    }
+    return left.GetSize() - right.GetSize();
+  }
+
+  /**
+   * @return True if this blob is byte-for-byte equivalent to @em that blob; false otherwise.
+   */
+  bool operator==(const Blob &that) const noexcept {
+    return size_ == that.size_ && std::memcmp(data_, that.data_, size_) == 0;
+  }
+
+  /**
+   * @return True if this blob is byte-for-byte not-equal-to @em that blob; false otherwise.
+   */
+  bool operator!=(const Blob &that) const noexcept { return !(*this == that); }
+
+  /**
+   * @return True if this blob is byte-for-byte less-than @em that blob; false otherwise.
+   */
+  bool operator<(const Blob &that) const noexcept { return Compare(*this, that) < 0; }
+
+  /**
+   * @return True if this blob is byte-for-byte less-than-or-equal-to @em that blob; false
+   *         otherwise.
+   */
+  bool operator<=(const Blob &that) const noexcept { return Compare(*this, that) <= 0; }
+
+  /**
+   * @return True if this blob is byte-for-byte greater than @em that blob; false otherwise.
+   */
+  bool operator>(const Blob &that) const noexcept { return Compare(*this, that) > 0; }
+
+  /**
+   * @return True if this blob is byte-for-byte greater-than-or-equal-to @em that blob; false
+   *         otherwise.
+   */
+  bool operator>=(const Blob &that) const noexcept { return Compare(*this, that) >= 0; }
+
+ private:
+  // Root
+  byte *data_{nullptr};
+
+  // Length
+  std::size_t size_{0};
+};
+
 /** Converts the provided date into a timestamp. */
-inline Timestamp Date::ConvertToTimestamp() const noexcept { return Timestamp(value_ * K_US_PER_DAY); }
+inline Timestamp Date::ConvertToTimestamp() const noexcept { return Timestamp(value_ * US_PER_DAY); }
 
 }  // namespace terrier::execution::sql

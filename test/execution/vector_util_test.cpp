@@ -1,14 +1,15 @@
+#include "execution/util/vector_util.h"
+
 #include <sys/mman.h>
+
 #include <algorithm>
 #include <random>
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"
-
+#include "common/constants.h"
 #include "execution/sql/memory_pool.h"
-#include "execution/util/timer.h"
-#include "execution/util/vector_util.h"
+#include "execution/tpl_test.h"
 
 namespace terrier::execution::util::test {
 

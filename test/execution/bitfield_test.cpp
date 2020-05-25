@@ -1,5 +1,6 @@
 #include "execution/tpl_test.h"
 
+#include "common/constants.h"
 #include "execution/util/bitfield.h"
 
 namespace terrier::execution::util::test {

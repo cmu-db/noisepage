@@ -229,17 +229,17 @@ class EXPORT ComparisonFunctions {
    */
   static int32_t Compare(const StringVal &v1, const StringVal &v2) {
     TERRIER_ASSERT(!v1.is_null_ && !v2.is_null_, "Both input strings must not be null");
-    const auto min_len = std::min(v1.len_, v2.len_);
+    const auto min_len = std::min(v1.GetLength(), v2.GetLength());
     if (min_len == 0) {
-      if (v1.len_ == v2.len_) {
+      if (v1.GetLength() == v2.GetLength()) {
         return 0;
       }
-      if (v1.len_ == 0) {
+      if (v1.GetLength() == 0) {
         return -1;
       }
       return 1;
     }
-    return RawStringCompare(v1.Content(), v1.len_, v2.Content(), v2.len_, min_len);
+    return RawStringCompare(v1.GetContent(), v1.GetLength(), v2.GetContent(), v2.GetLength(), min_len);
   }
 };
 

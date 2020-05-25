@@ -1,6 +1,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include "execution/exec/output.h"
 #include "execution/sql/value.h"
 #include "planner/plannodes/output_schema.h"
 #include "test_util/test_harness.h"
@@ -232,7 +234,7 @@ class SingleIntSortChecker : public OutputChecker {
   }
 
  private:
-  sql::Integer prev_val_{true, 0};
+  sql::Integer prev_val_{0};
   uint32_t col_idx_;
 };
 

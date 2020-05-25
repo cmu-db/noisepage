@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "common/all_static.h"
 
 namespace terrier::execution::ast {

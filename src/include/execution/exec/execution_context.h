@@ -3,12 +3,15 @@
 #include <utility>
 #include <vector>
 
+// TODO(WAN): COMPILE TIME looks like a lot of possible forward declarations
+
 #include "catalog/catalog_accessor.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
 #include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/memory_tracker.h"
+#include "execution/sql/runtime_types.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
@@ -23,48 +26,6 @@ namespace terrier::execution::exec {
  */
 class EXPORT ExecutionContext {
  public:
-  /**
-   * An allocator for short-ish strings. Needed because the requirements of
-   * string allocation (small size and frequent usage) are slightly different
-   * than that of generic memory allocator for larger structures. This string
-   * allocator relies on memory regions for fast allocations, and bulk
-   * deletions.
-   */
-  class StringAllocator {
-   public:
-    /**
-     * Create a new allocator
-     */
-    explicit StringAllocator(common::ManagedPointer<sql::MemoryTracker> tracker) : region_(""), tracker_(tracker) {}
-
-    /**
-     * This class cannot be copied or moved.
-     */
-    DISALLOW_COPY_AND_MOVE(StringAllocator);
-
-    /**
-     * Destroy allocator
-     */
-    ~StringAllocator() = default;
-
-    /**
-     * Allocate a string of the given size..
-     * @param size Size of the string in bytes.
-     * @return A pointer to the string.
-     */
-    char *Allocate(std::size_t size);
-
-    /**
-     * No-op. Bulk de-allocated upon destruction.
-     */
-    void Deallocate(char *str) {}
-
-   private:
-    util::Region region_;
-    // Metadata tracker for memory allocations
-    common::ManagedPointer<sql::MemoryTracker> tracker_;
-  };
-
   /**
    * Constructor
    * @param db_oid oid of the database
@@ -83,7 +44,6 @@ class EXPORT ExecutionContext {
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
-        string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
         accessor_(accessor) {}
 
   /**
@@ -104,7 +64,7 @@ class EXPORT ExecutionContext {
   /**
    * @return the string allocator
    */
-  StringAllocator *GetStringAllocator() { return &string_allocator_; }
+  sql::VarlenHeap *GetStringAllocator() { return &string_allocator_; }
 
   /**
    * @param schema the schema of the output
@@ -187,7 +147,8 @@ class EXPORT ExecutionContext {
   std::unique_ptr<sql::MemoryTracker> mem_tracker_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
-  StringAllocator string_allocator_;
+  // TODO(WAN): EXEC PORT we used to push the memory tracker into the string allocator, do this
+  sql::VarlenHeap string_allocator_;
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   common::ManagedPointer<const std::vector<type::TransientValue>> params_;
