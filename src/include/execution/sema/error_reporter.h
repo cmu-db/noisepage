@@ -41,10 +41,12 @@ struct PassArgument {
  */
 class ErrorReporter {
  public:
+
   /**
-   * Create a new error reporter.
+   * Constructor
+   * @param region region to use for allocation
    */
-  ErrorReporter() : region_("error-strings"), errors_(&region_) {}
+  explicit ErrorReporter(util::Region *region) : region_(region), errors_(region) {}
 
   /**
    * Record an error
@@ -68,12 +70,6 @@ class ErrorReporter {
    * Clears the list of errors
    */
   void Reset() { errors_.clear(); }
-
-  /**
-   * Dump all error messages to the given output stream.
-   * @param os The stream to write errors into.
-   */
-  void PrintErrors(std::ostream &os);
 
   /**
    * Serializes the list of errors
@@ -135,7 +131,7 @@ class ErrorReporter {
 
  private:
   // Memory region
-  util::Region region_;
+  util::Region *region_;
 
   // List of all errors
   util::RegionVector<MessageWithArgs> errors_;

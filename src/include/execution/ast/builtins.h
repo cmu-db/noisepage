@@ -166,17 +166,6 @@ namespace terrier::execution::ast {
   F(SorterIterGetRow, sorterIterGetRow)                                 \
   F(SorterIterClose, sorterIterClose)                                   \
                                                                         \
-  /* Output */                                                          \
-  F(ResultBufferAllocOutRow, resultBufferAllocRow)                      \
-  F(ResultBufferFinalize, resultBufferFinalize)                         \
-                                                                        \
-  /* CSV */                                                             \
-  F(CSVReaderInit, csvReaderInit)                                       \
-  F(CSVReaderAdvance, csvReaderAdvance)                                 \
-  F(CSVReaderGetField, csvReaderGetField)                               \
-  F(CSVReaderGetRecordNumber, csvReaderGetRecordNumber)                 \
-  F(CSVReaderClose, csvReaderClose)                                     \
-                                                                        \
   /* Trig */                                                            \
   F(ACos, acos)                                                         \
   F(ASin, asin)                                                         \

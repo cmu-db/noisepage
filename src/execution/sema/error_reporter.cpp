@@ -84,10 +84,14 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
   return msg;
 }
 
-void ErrorReporter::PrintErrors(std::ostream &os) {
+std::string ErrorReporter::SerializeErrors() {
+  std::string error_str;
+
   for (const auto &error : errors_) {
-    os << error.FormatMessage() << "\n";
+    error_str.append(error.FormatMessage()).append("\n");
   }
+
+  return error_str;
 }
 
 }  // namespace terrier::execution::sema

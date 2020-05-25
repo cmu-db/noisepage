@@ -117,7 +117,7 @@ class Sema : public ast::AstVisitor<Sema> {
   // Check the assignment of the expression to a variable or the target type.
   // Return true if the assignment is valid, and false otherwise.
   // Will also apply an implicit cast to make the assignment valid.
-  bool CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr);
+  bool CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr);
 
   // Dispatched from VisitCall() to handle builtin functions
   void CheckBuiltinCall(ast::CallExpr *call);
@@ -128,13 +128,23 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinAggHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinAggPartIterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinFilterCall(ast::CallExpr *call);
   void CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorScan(execution::ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorFree(execution::ast::CallExpr *call);
+  void CheckBuiltinIndexIteratorAdvance(execution::ast::CallExpr *call);
+  void CheckBuiltinJoinHashTableIterInit(ast::CallExpr *call);
+  void CheckBuiltinJoinHashTableIterHasNext(ast::CallExpr *call);
+  void CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call);
   void CheckBuiltinJoinHashTableInit(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableInsert(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinJoinHashTableLookup(ast::CallExpr *call);
+//  void CheckBuiltinJoinHashTableLookup(ast::CallExpr *call);
+  void CheckBuiltinJoinHashTableIterGetRow(execution::ast::CallExpr *call);
   void CheckBuiltinJoinHashTableFree(ast::CallExpr *call);
-  void CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin builtin);
+//  void CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterInit(ast::CallExpr *call);
   void CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin);
@@ -143,17 +153,23 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSizeOfCall(ast::CallExpr *call);
   void CheckBuiltinOffsetOfCall(ast::CallExpr *call);
   void CheckBuiltinPtrCastCall(ast::CallExpr *call);
   void CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinTableIterParCall(ast::CallExpr *call);
-  void CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinFilterManagerCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinVectorFilterCall(ast::CallExpr *call);
+//  void CheckBuiltinVectorFilterCall(ast::CallExpr *call);
   void CheckBuiltinHashCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckResultBufferCall(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinOutputAlloc(execution::ast::CallExpr *call);
+  void CheckBuiltinOutputFinalize(execution::ast::CallExpr *call);
+  void CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin);
+//  void CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin);
 
   // -------------------------------------------------------
   // Scoping

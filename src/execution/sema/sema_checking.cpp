@@ -89,7 +89,7 @@ Sema::CheckResult Sema::CheckSqlComparisonOperands(parsing::Token::Type op,
   }
 
   // Error.
-  ErrorReporter().Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
+  GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
                            right->GetType());
   return {nullptr, left, right};
 }
@@ -200,7 +200,7 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   // Check for raw pointer comparison.
   if (left->GetType()->IsPointerType() || right->GetType()->IsPointerType()) {
     if (!parsing::Token::IsEqualityOp(op)) {
-      ErrorReporter().Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
+      GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
                                right->GetType());
       return {nullptr, left, right};
     }
@@ -217,7 +217,7 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     }
 
     // Error
-    ErrorReporter().Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
+    GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
                              right->GetType());
     return {nullptr, left, right};
   }
@@ -237,7 +237,7 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
 
   // If neither input expression is arithmetic, it's an ill-formed operation.
   if (!left->GetType()->IsArithmetic() || !right->GetType()->IsArithmetic()) {
-    ErrorReporter().Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
+    GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
                              right->GetType());
     return {nullptr, left, right};
   }
@@ -256,8 +256,8 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   UNREACHABLE("Impossible");
 }
 
-bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr) {
-  auto expr_type = expr->GetType();
+bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) {
+  auto expr_type = (*expr)->GetType();
 
   // If the target and expression types are the same, nothing to do
   if (expr_type == target_type) {
@@ -278,21 +278,21 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr) 
 
   // Integer expansion
   if (target_type->IsIntegerType() && expr_type->IsIntegerType()) {
-    if (target_type->Size() > expr_type->Size()) {
-      expr = ImplCastExprToType(expr, target_type, ast::CastKind::IntegralCast);
+    if (target_type->GetSize() > expr_type->GetSize()) {
+      *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
     }
     return true;
   }
 
   // Float to integer expansion
   if (target_type->IsIntegerType() && expr_type->IsFloatType()) {
-    *expr = ImplCastExprToType(expr, target_type, ast::CastKind::FloatToInt);
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::FloatToInt);
     return true;
   }
 
   // Integer to float expansion
   if (target_type->IsFloatType() && expr_type->IsIntegerType()) {
-    *expr = ImplCastExprToType(expr, target_type, ast::CastKind::IntToFloat);
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntToFloat);
     return true;
   }
 
@@ -301,7 +301,7 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr) 
     if (auto *expr_base = expr_type->GetPointeeType()) {
       if (auto *expr_arr = expr_base->SafeAs<ast::ArrayType>()) {
         if (target_arr->HasUnknownLength() && expr_arr->HasKnownLength()) {
-          *expr = ImplCastExprToType(expr, target_type, ast::CastKind::BitCast);
+          *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::BitCast);
           return true;
         }
       }
@@ -310,13 +310,13 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr) 
 
   // *T to *U
   if (target_type->IsPointerType() || expr_type->IsPointerType()) {
-    *expr = ImplCastExprToType(expr, target_type, ast::CastKind::BitCast);
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::BitCast);
     return true;
   }
 
   // SQL bool to primitive bool
-  if (target_type->IsBoolType() && expr->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
-    expr = ImplCastExprToType(expr, target_type, ast::CastKind::SqlBoolToBool);
+  if (target_type->IsBoolType() && (*expr)->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::SqlBoolToBool);
     return true;
   }
 

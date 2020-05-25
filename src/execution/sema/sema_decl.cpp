@@ -98,7 +98,7 @@ void Sema::VisitStructDecl(ast::StructDecl *node) {
   // Check for duplicate fields.
   if (const ast::FieldDecl *dup = nullptr;
       HasDuplicatesNames(node->TypeRepr()->As<ast::StructTypeRepr>()->Fields(), &dup)) {
-    ErrorReporter().Report(node->Position(), ErrorMessages::kDuplicateStructFieldName,
+    GetErrorReporter()->Report(node->Position(), ErrorMessages::kDuplicateStructFieldName,
                              dup->Name(), node->Name());
     return;
   }
