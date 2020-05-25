@@ -49,6 +49,13 @@ int64_t warmup_iterations_num{5};
  */
 int64_t warmup_rows_limit{50};
 
+void InvokeGC() {
+  // Perform GC to do any cleanup
+  auto gc = terrier::runner::db_main->GetStorageLayer()->GetGarbageCollector();
+  gc->PerformGarbageCollection();
+  gc->PerformGarbageCollection();
+}
+
 /**
  * Arg <0, 1, 2, 3, 4, 5>
  * 0 - # integers to scan
@@ -58,7 +65,7 @@ int64_t warmup_rows_limit{50};
  * 4 - Number of rows
  * 5 - Cardinality
  */
-#define GENERATE_MIXED_ARGUMENTS(args)                                                              \
+#define GENERATE_MIXED_ARGUMENTS(args, noop)                                                        \
   {                                                                                                 \
     /* Vector of table distributions <INTEGER, DECIMALS> */                                         \
     std::vector<std::pair<uint32_t, uint32_t>> mixed_dist = {{3, 12}, {7, 8}, {11, 4}};             \
@@ -77,6 +84,7 @@ int64_t warmup_rows_limit{50};
         if (start.second < col_dist.second) {                                                       \
           start.second += 2;                                                                        \
         } else if (start.first < col_dist.first) {                                                  \
+          if (noop) args.push_back({0, 0, 0, 0, 0, 0});                                             \
           start.first += 2;                                                                         \
           start.second = 2;                                                                         \
         } else {                                                                                    \
@@ -249,7 +257,7 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<std::vector<int64_t>> args;
-  GENERATE_MIXED_ARGUMENTS(args);
+  GENERATE_MIXED_ARGUMENTS(args, false);
   for (const auto &arg : args) {
     b->Args(arg);
   }
@@ -489,6 +497,9 @@ static void GenUpdateDeleteArguments(benchmark::internal::Benchmark *b) {
         }
       }
     }
+
+    // No-op to perform garbage collection
+    b->Args({0, 0, 0, 0, 0, 0});
   }
 }
 
@@ -496,7 +507,7 @@ static void GenUpdateDeleteMixedArguments(benchmark::internal::Benchmark *b) {
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<std::vector<int64_t>> args;
-  GENERATE_MIXED_ARGUMENTS(args);
+  GENERATE_MIXED_ARGUMENTS(args, true);
   for (const auto &arg : args) {
     b->Args(arg);
   }
@@ -1137,6 +1148,12 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto row = state->range(4);
   auto car = state->range(5);
 
+  if (row == 0) {
+    state->SetItemsProcessed(row);
+    InvokeGC();
+    return;
+  }
+
   int num_iters = 1;
   if (row <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
@@ -1185,11 +1202,6 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 
       BenchmarkExecQuery(equery.first.get(), equery.second.get(), false);
 
-      // Perform GC to do any cleanup...becuase the transaction aborted
-      auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
-      gc->PerformGarbageCollection();
-      gc->PerformGarbageCollection();
-
       if (i == num_iters - 1) {
         metrics_manager_->Aggregate();
         metrics_manager_->UnregisterThread();
@@ -1224,6 +1236,12 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   auto row = state->range(4);
   auto car = state->range(5);
 
+  if (row == 0) {
+    state->SetItemsProcessed(row);
+    InvokeGC();
+    return;
+  }
+
   int num_iters = 1;
   if (row <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
@@ -1231,8 +1249,6 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 
   // NOLINTNEXTLINE
   for (auto _ : *state) {
-    metrics_manager_->RegisterThread();
-
     auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
     auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL);
     auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
@@ -1255,11 +1271,6 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
       }
 
       BenchmarkExecQuery(equery.first.get(), equery.second.get(), false);
-
-      // Perform GC to do any cleanup...becuase the transaction aborted
-      auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
-      gc->PerformGarbageCollection();
-      gc->PerformGarbageCollection();
 
       if (i == num_iters - 1) {
         metrics_manager_->Aggregate();
@@ -1506,10 +1517,10 @@ void InitializeRunnersState() {
                              .SetUseCatalog(true)
                              .SetUseStatsStorage(true)
                              .SetUseMetrics(true)
-                             .SetBlockStoreSize(10000000)
-                             .SetBlockStoreReuse(10000000)
-                             .SetRecordBufferSegmentSize(10000000)
-                             .SetRecordBufferSegmentReuse(10000000);
+                             .SetBlockStoreSize(1000000000)
+                             .SetBlockStoreReuse(1000000000)
+                             .SetRecordBufferSegmentSize(1000000000)
+                             .SetRecordBufferSegmentReuse(1000000000);
 
   db_main = db_main_builder.Build().release();
 
@@ -1575,6 +1586,8 @@ void RunBenchmarkSequence() {
         snprintf(buffer, sizeof(buffer), "--benchmark_filter=%s", filter.c_str());
         benchmark::Initialize(&argc, const_cast<char **>(argv));
         benchmark::RunSpecifiedBenchmarks();
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        terrier::runner::InvokeGC();
       }
     }
 
