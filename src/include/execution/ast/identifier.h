@@ -25,7 +25,7 @@ class Identifier {
   /**
    * Create an empty identifier.
    */
-  Identifier() noexcept : data_(nullptr) {}
+  Identifier() noexcept = default;
 
   /**
    * @return A const pointer to this identifier's underlying string data.
@@ -54,7 +54,7 @@ class Identifier {
    * @return A copy of this identifier's contents as a string. We assume that the identifier was
    *         properly NULL terminated.
    */
-  std::string GetString() const { return !data_ ? std::string() : std::string(data_, GetLength()); }
+  std::string GetString() const { return data_ == nullptr ? std::string() : std::string(data_, GetLength()); }
 
   /**
    * Is this identifier equal to another identifier @em other.
@@ -86,7 +86,7 @@ class Identifier {
   }
 
  private:
-  const char *data_;
+  const char *data_{nullptr};
 };
 
 }  // namespace terrier::execution::ast

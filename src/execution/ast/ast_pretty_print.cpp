@@ -267,7 +267,7 @@ void AstPrettyPrintImpl::VisitIfStmt(IfStmt *node) {
   Visit(node->Condition());
   os_ << ") ";
   Visit(node->ThenStmt());
-  if (node->ElseStmt()) {
+  if (node->ElseStmt() != nullptr) {
     os_ << " else ";
     Visit(node->ElseStmt());
   }
