@@ -17,7 +17,6 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier {
 
@@ -264,10 +263,8 @@ TEST_F(CatalogTests, UserTableTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -311,10 +308,8 @@ TEST_F(CatalogTests, UserIndexTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -364,10 +359,8 @@ TEST_F(CatalogTests, CascadingDropTableTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -427,10 +420,8 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   txn = txn_manager_->BeginTransaction();
@@ -494,10 +485,8 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   txn = txn_manager_->BeginTransaction();
@@ -571,10 +560,8 @@ TEST_F(CatalogTests, UserSearchPathTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   // Insert a table into "public"
@@ -630,10 +617,8 @@ TEST_F(CatalogTests, CatalogSearchPathTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   // Check whether name conflict is inserted into the proper default (first in search path) and masked by implicit
@@ -688,8 +673,7 @@ TEST_F(CatalogTests, GetIndexesTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -733,8 +717,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);

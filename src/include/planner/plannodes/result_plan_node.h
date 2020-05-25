@@ -4,13 +4,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "storage/storage_defs.h"
 
-// TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
-// collection of TransientValues
 namespace terrier::planner {
 
 /**

@@ -18,7 +18,6 @@
 #include "parser/update_statement.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/plan_node_defs.h"
-#include "type/transient_value.h"
 
 namespace terrier {
 
