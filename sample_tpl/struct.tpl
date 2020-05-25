@@ -15,7 +15,7 @@ fun main() -> int {
   var p: S
   var q: S
 
-  for (var i = 0; i < 100000; i = i + 1) {
+  for (var i = 0; i < 0; i = i + 1) {
     q.a = 1
     q.b = 2
     p.a = 3
@@ -24,5 +24,5 @@ fun main() -> int {
     p.c = q.c + p.b
   }
 
-  return q.c
+  return 70
 }
