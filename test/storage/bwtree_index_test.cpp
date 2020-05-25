@@ -93,11 +93,13 @@ class BwTreeIndexTests : public TerrierTest {
     db_main_->GetStorageLayer()->GetGarbageCollector()->UnregisterIndexForGC(
         common::ManagedPointer<Index>(default_index_));
 
-    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
-      delete sql_table_;
-      delete default_index_;
-      delete unique_index_;
-    }, transaction::DafId::INVALID);
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+        [=]() {
+          delete sql_table_;
+          delete default_index_;
+          delete unique_index_;
+        },
+        transaction::DafId::INVALID);
 
     delete[] key_buffer_1_;
     delete[] key_buffer_2_;

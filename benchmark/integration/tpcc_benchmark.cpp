@@ -476,7 +476,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
 
     // populate the tables and indexes
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(metrics_manager));
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
+                                                     common::ManagedPointer(metrics_manager));
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
@@ -518,7 +519,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     state.SetItemsProcessed(state.iterations() * num_new_orders);
   } else {
     state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ *
-        terrier::BenchmarkConfig::num_threads);
+                            terrier::BenchmarkConfig::num_threads);
   }
 }
 
@@ -574,7 +575,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     log_manager_->ForceFlush();
 
     // Let GC clean up
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(metrics_manager));
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
+                                                     common::ManagedPointer(metrics_manager));
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
@@ -619,7 +621,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     state.SetItemsProcessed(state.iterations() * num_new_orders);
   } else {
     state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ *
-        terrier::BenchmarkConfig::num_threads);
+                            terrier::BenchmarkConfig::num_threads);
   }
 }
 
@@ -627,26 +629,26 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseManualTime()
-//    ->MinTime(20);
-//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLogging)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseManualTime()
-//    ->MinTime(20);
-//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseManualTime()
-//    ->MinTime(20);
-//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithMetrics)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseManualTime()
-//    ->MinTime(20);
-//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseManualTime()
-//    ->MinTime(20);
+BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(20);
+BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLogging)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(20);
+BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(20);
+BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithMetrics)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(20);
+BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(20);
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()

@@ -115,10 +115,12 @@ TEST_F(DeferredActionsTest, DelayedDefer) {
 TEST_F(DeferredActionsTest, ChainedDefer) {
   bool defer1 = false;
   bool defer2 = false;
-  deferred_action_manager_->RegisterDeferredAction([&]() {
-    defer1 = true;
-    deferred_action_manager_->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
-  }, transaction::DafId::INVALID);
+  deferred_action_manager_->RegisterDeferredAction(
+      [&]() {
+        defer1 = true;
+        deferred_action_manager_->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
+      },
+      transaction::DafId::INVALID);
 
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
@@ -148,10 +150,12 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   txn->RegisterCommitAction([&]() { committed = true; });
   txn->RegisterAbortAction([&](transaction::DeferredActionManager *deferred_action_manager) {
     aborted = true;
-    deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager]() {
-      defer1 = true;
-      deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
-    }, transaction::DafId::INVALID);
+    deferred_action_manager->RegisterDeferredAction(
+        [&, deferred_action_manager]() {
+          defer1 = true;
+          deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
+        },
+        transaction::DafId::INVALID);
   });
 
   EXPECT_FALSE(aborted);
@@ -202,10 +206,12 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   txn->RegisterAbortAction([&]() { aborted = true; });
   txn->RegisterCommitAction([&](transaction::DeferredActionManager *deferred_action_manager) {
     committed = true;
-    deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager]() {
-      defer1 = true;
-      deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
-    }, transaction::DafId::INVALID);
+    deferred_action_manager->RegisterDeferredAction(
+        [&, deferred_action_manager]() {
+          defer1 = true;
+          deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; }, transaction::DafId::INVALID);
+        },
+        transaction::DafId::INVALID);
   });
 
   EXPECT_FALSE(aborted);

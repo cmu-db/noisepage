@@ -77,11 +77,13 @@ void Catalog::TearDown() {
           deferred_action_manager->RegisterDeferredAction(del_action, transaction::DafId::CATALOG_TEARDOWN);
         }
         // Pass vars to the deferral by value
-        deferred_action_manager->RegisterDeferredAction([=]() {
-          delete databases_oid_index_;   // Delete the OID index
-          delete databases_name_index_;  // Delete the name index
-          delete databases_;             // Delete the table
-        }, transaction::DafId::CATALOG_TEARDOWN);
+        deferred_action_manager->RegisterDeferredAction(
+            [=]() {
+              delete databases_oid_index_;   // Delete the OID index
+              delete databases_name_index_;  // Delete the name index
+              delete databases_;             // Delete the table
+            },
+            transaction::DafId::CATALOG_TEARDOWN);
       });
 
   // Deallocate the buffer (not needed if hard-coded to be on stack).

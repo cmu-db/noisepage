@@ -834,14 +834,18 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   // Everything succeeded from an MVCC standpoint, register deferred action for the GC with txn manager. See base
   // function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() {
-      deferred_action_manager->RegisterDeferredAction([=]() {
-        // Defer an action upon commit to delete the table. Delete table will need a double deferral because there could
-        // be transactions not yet unlinked by the GC that depend on the table
-        delete schema_ptr;
-        delete table_ptr;
-      }, transaction::DafId::MEMORY_DEALLOCATION);
-    }, transaction::DafId::MEMORY_DEALLOCATION);
+    deferred_action_manager->RegisterDeferredAction(
+        [=]() {
+          deferred_action_manager->RegisterDeferredAction(
+              [=]() {
+                // Defer an action upon commit to delete the table. Delete table will need a double deferral because
+                // there could be transactions not yet unlinked by the GC that depend on the table
+                delete schema_ptr;
+                delete table_ptr;
+              },
+              transaction::DafId::MEMORY_DEALLOCATION);
+        },
+        transaction::DafId::MEMORY_DEALLOCATION);
   });
 
   delete[] buffer;
@@ -912,7 +916,11 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
   // before we can safely delete this.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction(
-        [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; }, transaction::DafId::MEMORY_DEALLOCATION); }, transaction::DafId::MEMORY_DEALLOCATION);
+        [=]() {
+          deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; },
+                                                          transaction::DafId::MEMORY_DEALLOCATION);
+        },
+        transaction::DafId::MEMORY_DEALLOCATION);
   });
   return SetClassPointer(txn, table, table_ptr, postgres::REL_PTR_COL_OID);
 }
@@ -1138,12 +1146,16 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
           garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
         }
         // Unregistering from GC can happen immediately, but we have to double-defer freeing the actual objects
-        deferred_action_manager->RegisterDeferredAction([=]() {
-          deferred_action_manager->RegisterDeferredAction([=]() {
-            delete schema_ptr;
-            delete index_ptr;
-          }, transaction::DafId::MEMORY_DEALLOCATION);
-        }, transaction::DafId::MEMORY_DEALLOCATION);
+        deferred_action_manager->RegisterDeferredAction(
+            [=]() {
+              deferred_action_manager->RegisterDeferredAction(
+                  [=]() {
+                    delete schema_ptr;
+                    delete index_ptr;
+                  },
+                  transaction::DafId::MEMORY_DEALLOCATION);
+            },
+            transaction::DafId::MEMORY_DEALLOCATION);
       });
 
   delete[] buffer;
@@ -1215,7 +1227,8 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
         if (index_ptr->Type() == storage::index::IndexType::BWTREE) {
           garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
         }
-        deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; }, transaction::DafId::MEMORY_DEALLOCATION);
+        deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; },
+                                                        transaction::DafId::MEMORY_DEALLOCATION);
       });
   return SetClassPointer(txn, index, index_ptr, postgres::REL_PTR_COL_OID);
 }
@@ -2506,7 +2519,11 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   if (ctx_ptr != nullptr) {
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
       deferred_action_manager->RegisterDeferredAction(
-          [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; }, transaction::DafId::MEMORY_DEALLOCATION); }, transaction::DafId::MEMORY_DEALLOCATION);
+          [=]() {
+            deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; },
+                                                            transaction::DafId::MEMORY_DEALLOCATION);
+          },
+          transaction::DafId::MEMORY_DEALLOCATION);
     });
   }
   return true;

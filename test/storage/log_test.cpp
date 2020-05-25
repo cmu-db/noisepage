@@ -238,7 +238,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
   // DeferredAction
-  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID);
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; },
+                                                                                      transaction::DafId::INVALID);
 
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
@@ -284,7 +285,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
   // DeferredAction
-  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID);
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; },
+                                                                                      transaction::DafId::INVALID);
 
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
@@ -359,7 +361,8 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
   // DeferredAction
-  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; }, transaction::DafId::INVALID);
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; },
+                                                                                      transaction::DafId::INVALID);
 }
 
 // This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo
@@ -417,7 +420,8 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
   // DeferredAction
-  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; }, transaction::DafId::INVALID);
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; },
+                                                                                      transaction::DafId::INVALID);
 }
 
 // Verify that we invoke the callback even for read-only txns. This test checks a bug that was found when sending
@@ -449,6 +453,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyCallbackTest) {
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
   // DeferredAction
-  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; }, transaction::DafId::INVALID);
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; },
+                                                                                      transaction::DafId::INVALID);
 }
 }  // namespace terrier::storage

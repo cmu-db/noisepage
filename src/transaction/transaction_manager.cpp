@@ -133,14 +133,18 @@ void TransactionManager::CleanTransaction(TransactionContext *txn) {
     // This is a read-only transaction so this is safe to immediately delete
     delete txn;
   } else {
-    deferred_action_manager_->RegisterDeferredAction([=](timestamp_t oldest_txn) {
-      num_unlinked_++;
-      txn->Unlink(oldest_txn, deferred_action_manager_->GetVisitedSlotsLocation());
-      deferred_action_manager_->RegisterDeferredAction([=]() {
-        num_deallocated_++;
-        delete txn;
-      }, transaction::DafId::TXN_REMOVAL);
-    }, transaction::DafId::UNLINK);
+    deferred_action_manager_->RegisterDeferredAction(
+        [=](timestamp_t oldest_txn) {
+          num_unlinked_++;
+          txn->Unlink(oldest_txn, deferred_action_manager_->GetVisitedSlotsLocation());
+          deferred_action_manager_->RegisterDeferredAction(
+              [=]() {
+                num_deallocated_++;
+                delete txn;
+              },
+              transaction::DafId::TXN_REMOVAL);
+        },
+        transaction::DafId::UNLINK);
   }
 }
 

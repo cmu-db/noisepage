@@ -268,7 +268,8 @@ class IndexKeyTests : public TerrierTest {
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Clean up
-    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; }, transaction::DafId::INVALID);
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; },
+                                                                                       transaction::DafId::INVALID);
     delete[] key_buffer;
   }
 

@@ -68,7 +68,7 @@ void DeferredActionManager::ProcessIndexes() {
 uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn) {
   bool daf_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
-          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
 
   uint32_t processed = 0;
   // Execute as many deferred actions as we can at this time from the backlog.
@@ -91,13 +91,14 @@ uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn) {
 
 uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn) {
   uint32_t processed = 0;
-  std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = {timestamp_t(0), {[=](timestamp_t /*unused*/) {}, DafId::INVALID}};
+  std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = {
+      timestamp_t(0), {[=](timestamp_t /*unused*/) {}, DafId::INVALID}};
   // bool reinsert = false;
   auto curr_size = new_deferred_actions_.unsafe_size();
 
   bool daf_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
-          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
 
   while (processed != curr_size) {
     // Try_pop would pop the front of the queue if there is at least element in queue,

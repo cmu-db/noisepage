@@ -26,7 +26,7 @@ class DeferredActionManager {
    */
   explicit DeferredActionManager(const common::ManagedPointer<TimestampManager> timestamp_manager)
       : timestamp_manager_(timestamp_manager), daf_tags_(DAF_TAG_COUNT) {
-    for (size_t i = 0; i < DAF_TAG_COUNT; i++) // NOLINT
+    for (size_t i = 0; i < DAF_TAG_COUNT; i++)  // NOLINT
       daf_tags_[i] = 0;
   }
 
