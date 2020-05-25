@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "binder/bind_node_visitor.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/exec/execution_context.h"
 #include "execution/executable_query.h"
@@ -25,9 +26,8 @@
 #include "parser/postgresparser.h"
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
-#include "traffic_cop/traffic_cop_defs.h"
-
 #include "test_util/test_harness.h"
+#include "traffic_cop/traffic_cop_defs.h"
 
 namespace terrier::optimizer {
 
@@ -35,7 +35,7 @@ struct IdxJoinTest : public TerrierTest {
   const uint64_t optimizer_timeout_ = 1000000;
 
   void ExecuteSQL(std::string sql, network::QueryType qtype) {
-    std::vector<type::TransientValue> params;
+    std::vector<parser::ConstantValueExpression> params;
     tcop_->BeginTransaction(common::ManagedPointer(&context_));
     auto parse = tcop_->ParseQuery(sql, common::ManagedPointer(&context_));
     auto stmt = network::Statement(std::move(sql), std::move(parse));
