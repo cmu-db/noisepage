@@ -1215,7 +1215,6 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1);
     units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
-    std::cout << row << " " << car << "\n";
     std::string predicate = ConstructIndexScanPredicate(num_col, row, car);
     query << " WHERE " << predicate;
 
