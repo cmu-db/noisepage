@@ -609,6 +609,7 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
         case ast::BuiltinType::Kind::IntegerMaxAggregate:
         case ast::BuiltinType::Kind::IntegerMinAggregate:
         case ast::BuiltinType::Kind::IntegerSumAggregate:
+        case ast::BuiltinType::Kind::IntegerAvgAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
           break;
         case ast::BuiltinType::Kind::RealMaxAggregate:

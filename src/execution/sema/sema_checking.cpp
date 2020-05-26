@@ -88,6 +88,20 @@ Sema::CheckResult Sema::CheckSqlComparisonOperands(parsing::Token::Type op,
     return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), left, new_right};
   }
 
+  // SQL int <OP> SQL real
+  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) &&
+      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
+    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::SqlIntToSqlReal);
+    return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), new_left, right};
+  }
+
+  // SQL real <OP> SQL int
+  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
+      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+    auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::SqlIntToSqlReal);
+    return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), left, new_right};
+  }
+
   // Error.
   GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(),
                            right->GetType());
@@ -276,11 +290,13 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) 
     return true;
   }
 
-  // Integer expansion
+  // Integer resizing
+  // TODO(Amadou): Figure out integer casting rules. This just resizes_ the integer.
+  // I don't think it handles sign bit expansions and things like that.
   if (target_type->IsIntegerType() && expr_type->IsIntegerType()) {
-    if (target_type->GetSize() > expr_type->GetSize()) {
-      *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
-    }
+    // if (target_type->size() > expr_type->size()) {
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
+    //}
     return true;
   }
 
