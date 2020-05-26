@@ -34,6 +34,11 @@ struct Val {
    * @return a NULL SQL value
    */
   static Val Null() { return Val(true); }
+
+  /**
+   * Virtual destructor since we rely on polymorphism of destructor by owners
+   */
+  virtual ~Val() = default;
 };
 
 /**
