@@ -6,6 +6,7 @@
 
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
+#include "binder/bind_node_visitor.h"
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
 #include "common/scoped_timer.h"
@@ -707,7 +708,8 @@ class MiniRunners : public benchmark::Fixture {
     return ret_val;
   }
 
-  void BenchmarkExecQuery(int64_t num_iters, execution::ExecutableQuery *exec_query, planner::OutputSchema *out_schema, bool commit) {
+  void BenchmarkExecQuery(int64_t num_iters, execution::ExecutableQuery *exec_query, planner::OutputSchema *out_schema,
+                          bool commit) {
     for (auto i = 0; i < num_iters; i++) {
       if (i == num_iters - 1) {
         metrics_manager_->RegisterThread();
@@ -717,8 +719,8 @@ class MiniRunners : public benchmark::Fixture {
       auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn),
-          execution::exec::NoOpResultConsumer(),
-          out_schema, common::ManagedPointer(accessor));
+                                                                          execution::exec::NoOpResultConsumer(),
+                                                                          out_schema, common::ManagedPointer(accessor));
       exec_query->Run(common::ManagedPointer(exec_ctx), mode);
 
       if (commit)
@@ -956,8 +958,7 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   {
     std::stringstream query;
     auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::DECIMAL, num_integers, num_decimals);
-    auto tbl_name =
-      ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
+    auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
     query << "SELECT " << (cols) << " FROM " << tbl_name;
     query_final = query.str();
   }
@@ -1041,18 +1042,20 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   // Create temporary table schema
   std::vector<catalog::Schema::Column> cols;
   std::vector<std::pair<type::TypeId, int64_t>> info = {{type::TypeId::INTEGER, num_ints},
-    {type::TypeId::DECIMAL, num_decimals}};
+                                                        {type::TypeId::DECIMAL, num_decimals}};
   int col_no = 1;
   for (auto &i : info) {
     for (auto j = 1; j <= i.second; j++) {
       std::stringstream col_name;
       col_name << "col" << col_no++;
       if (i.first == type::TypeId::INTEGER) {
-        auto expr = parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
-        cols.emplace_back(col_name.str(), i.first, false, expr);
+        cols.emplace_back(col_name.str(), i.first, false,
+                          terrier::parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                                   std::make_unique<execution::sql::Integer>(0)));
       } else {
-        auto expr = parser::ConstantValueExpression(type::TransientValueFactory::GetDecimal(0));
-        cols.emplace_back(col_name.str(), i.first, false, expr);
+        cols.emplace_back(col_name.str(), i.first, false,
+                          terrier::parser::ConstantValueExpression(type::TypeId::DECIMAL,
+                                                                   std::make_unique<execution::sql::Real>(0.f)));
       }
     }
   }
@@ -1284,7 +1287,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
     units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     query << "DELETE FROM "
-      << ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
+          << ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
 
     equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units));
   } else {
@@ -1299,7 +1302,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 
     std::string predicate = ConstructIndexScanPredicate(num_col, row, car);
     query << "DELETE FROM " << execution::sql::TableGenerator::GenerateTableIndexName(type::TypeId::INTEGER, row)
-      << " WHERE " << predicate;
+          << " WHERE " << predicate;
 
     auto f = std::bind(&MiniRunners::ChildIndexScanCorrector, this, std::placeholders::_1, std::placeholders::_2);
     equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f);

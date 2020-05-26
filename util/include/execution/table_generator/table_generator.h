@@ -11,7 +11,6 @@
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::execution::sql {
 
@@ -320,7 +319,8 @@ class TableGenerator {
                  const catalog::Schema &table_schema);
 
   terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                    std::make_unique<execution::sql::Integer>(0));
   }
 };
 

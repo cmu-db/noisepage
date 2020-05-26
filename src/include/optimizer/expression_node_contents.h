@@ -9,6 +9,10 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
+namespace terrier::transaction {
+class TransactionContext;
+}
+
 namespace terrier::optimizer {
 
 /**
