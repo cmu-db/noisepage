@@ -558,6 +558,16 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
       auto ref_offset = offset + sizeof(execution::sql::CountAggregate);
       auto translator = current_translator_.CastManagedPointerTo<execution::compiler::AggregateBottomTranslator>();
       mem_factor = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, ref_offset);
+    } else {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
+      for (auto term : plan->GetAggregateTerms()) {
+        if (term->IsDistinct()) {
+          keys.emplace_back(term.Get());
+        }
+      }
+
+      key_size = ComputeKeySize(keys);
+      num_keys = keys.size();
     }
 
     AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1, mem_factor);
