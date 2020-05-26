@@ -286,19 +286,6 @@ TEST_F(CatalogTests, UserTableTest) {
   EXPECT_EQ(common::ManagedPointer(table), accessor->GetTable(table_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // cannot add a table with same name
-  std::vector<catalog::Schema::Column> cols2;
-  cols2.emplace_back("id", type::TypeId::INTEGER, false,
-                     parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols2.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                     parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto tmp_schema2 = catalog::Schema(cols2);
-  txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
-  auto table_oid2 = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema2);
-  EXPECT_EQ(table_oid2, catalog::INVALID_TABLE_OID);
-  txn_manager_->Abort(txn);
-
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
