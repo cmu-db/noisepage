@@ -232,13 +232,18 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                                                                                  x[0], y_pred[0, -1]))
 
             if opunit in data_info.MEM_ADJUST_OPUNITS:
+                # Compute the number of "slots" (based on row feature or cardinality feature
                 num_tuple = opunit_feature[1][data_info.TUPLE_NUM_INDEX]
                 if opunit == OpUnit.AGG_BUILD:
                     num_tuple = opunit_feature[1][data_info.CARDINALITY_INDEX]
 
+                # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
+                # that contains the first pow2 larger than num_tuple entries
                 pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
                 buffer_size = pow_high * data_info.POINTER_SIZE
                 if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
+                    # For AGG_BUILD, if slots <= AggregationHashTable::K_DEFAULT_INITIAL_TABLE_SIZE
+                    # the buffer is not recorded as part of the pipeline
                     buffer_size = 0
 
                 pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
