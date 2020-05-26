@@ -276,7 +276,7 @@ struct CheckInfo {
   /**
    * Columns that need to be checked
    */
-  std::vector<std::string> check_cols_;
+  std::vector<std::string> check_cols_;  // TODO(Matt): always size 1 according to ProcessCheckConstraint?
   /**
    * Name of this constraint
    */
@@ -288,7 +288,7 @@ struct CheckInfo {
   /**
    * Value of expression to be checked
    */
-  type::TransientValue expr_value_;
+  parser::ConstantValueExpression expr_value_;
 
   /**
    * @return serialized CheckInfo
@@ -310,7 +310,7 @@ struct CheckInfo {
     check_cols_ = j.at("check_cols").get<std::vector<std::string>>();
     constraint_name_ = j.at("constraint_name").get<std::string>();
     expr_type_ = j.at("expr_type").get<parser::ExpressionType>();
-    expr_value_ = j.at("expr_value").get<type::TransientValue>();
+    expr_value_ = j.at("expr_value").get<parser::ConstantValueExpression>();
   }
 
   /**
@@ -321,7 +321,7 @@ struct CheckInfo {
    * @param expr_value the value of the expression to be satisfied
    */
   CheckInfo(std::vector<std::string> check_cols, std::string constraint_name, parser::ExpressionType expr_type,
-            type::TransientValue expr_value)
+            parser::ConstantValueExpression expr_value)
       : check_cols_(std::move(check_cols)),
         constraint_name_(std::move(constraint_name)),
         expr_type_(expr_type),
@@ -542,7 +542,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
 
         common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
             (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
-        type::TransientValue tmp_value = const_expr_elem->GetValue();
+        auto tmp_value = *const_expr_elem;
 
         CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
                              std::move(tmp_value));

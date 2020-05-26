@@ -57,9 +57,8 @@ class IndexBenchmark : public benchmark::Fixture {
   // Set up table and associated managers and garbage collector for structure
   void SetUp(const benchmark::State &state) override {
     // Define standard column template type to have name, integer type, non-nullable state, and associated parser
-    auto col = catalog::Schema::Column(
-        "attribute", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
+                                       parser::ConstantValueExpression(type::TypeId::INTEGER));
 
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
 

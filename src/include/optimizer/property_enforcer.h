@@ -3,6 +3,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/property_visitor.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
@@ -18,9 +19,10 @@ class PropertyEnforcer : public PropertyVisitor {
    * Enforces a property for a given GroupExpression
    * @param gexpr GroupExpression to enforce the property for
    * @param property Property to enforce
+   * @param txn transaction context for memory management
    * @returns GroupExpression that enforces this property
    */
-  GroupExpression *EnforceProperty(GroupExpression *gexpr, Property *property);
+  GroupExpression *EnforceProperty(GroupExpression *gexpr, Property *property, transaction::TransactionContext *txn);
 
   /**
    * Implementation of the Visit function for PropertySort
@@ -38,6 +40,11 @@ class PropertyEnforcer : public PropertyVisitor {
    * Output GroupExpression after enforcing
    */
   GroupExpression *output_gexpr_;
+
+  /**
+   * Transaction context for managing memory
+   */
+  transaction::TransactionContext *txn_;
 };
 
 }  // namespace terrier::optimizer

@@ -43,12 +43,12 @@ public class TestUtility {
      *
      * @param rs              resultset, with cursor at the desired row
      * @param columns         column names
-     * @param expected_values expected values of columns
+     * @param expected expected values of columns
      */
-    public void checkIntRow(ResultSet rs, String [] columns, int [] expected_values) throws SQLException {
-        assertEquals(columns.length, expected_values.length);
+    public void checkIntRow(ResultSet rs, String [] columns, int [] expected) throws SQLException {
+        assertEquals(columns.length, expected.length);
         for (int i=0; i<columns.length; i++) {
-            assertEquals(expected_values[i], rs.getInt(columns[i]));
+            assertEquals(expected[i], rs.getInt(columns[i]));
         }
     }
 
@@ -57,13 +57,37 @@ public class TestUtility {
      *
      * @param rs              resultset, with cursor at the desired row
      * @param columns         column names
-     * @param expected_values expected values of columns
+     * @param expected expected values of columns
      */
-    public void checkDoubleRow(ResultSet rs, String [] columns, double [] expected_values) throws SQLException {
-        assertEquals(columns.length, expected_values.length);
+    public void checkDoubleRow(ResultSet rs, String [] columns, Double [] expected) throws SQLException {
+        assertEquals(columns.length, expected.length);
         double delta = 0.0001;
         for (int i=0; i<columns.length; i++) {
-            assertEquals(expected_values[i], rs.getDouble(columns[i]), delta);
+            Double val = (Double)rs.getObject(columns[i]);
+            if (expected[i] == null) {
+                assertEquals(expected[i], val);
+            } else {
+                assertEquals(expected[i], val, delta);
+            }
+        }
+    }
+    
+    /**
+    * Check a single row of real queried values against expected values
+    *
+    * @param rs              resultset, with cursor at the desired row
+    * @param columns         column names
+    * @param expected expected values of columns
+    */
+    public void checkStringRow(ResultSet rs, String[] columns, String[] expected) throws SQLException {
+        assertEquals(columns.length, expected.length);
+        for (int i = 0; i < columns.length; i++) {
+            String val = (String)rs.getObject(columns[i]);
+            if (expected[i] == null) {
+                assertEquals(expected[i], val);
+            } else {
+                assertEquals(expected[i], val);
+            }
         }
     }
 

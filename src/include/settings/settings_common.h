@@ -1,10 +1,14 @@
+#include <memory>
+#include <string>
+#include <utility>
+
 // This allows the settings defined once to be used in different contexts.
 // When __SETTING_GFLAGS_DEFINE__ is set,
 //    setting definitions will be exposed through glfags definitions.
 // When __SETTING_GFLAGS_DECLARE__ is set,
 //    setting definitions will be exposed through glfags declarations.
 // When __SETTING_DEFINE__ is set,
-//    setting definitions will be exposed through defitions in settings_manager.
+//    setting definitions will be exposed through definitions in settings_manager.
 // When __SETTING_POPULATE__ is set,
 //    setting definitions will be exposed through definitions in main function.
 // When __SETTING_ENUM__ is set,
@@ -124,25 +128,31 @@
 #ifdef SETTING_string
 #undef SETTING_string
 #endif
-#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)  \
-  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetInteger(min_value), \
-                  type::TransientValueFactory::GetInteger(max_value));
-
+#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
+  ValidateSetting(terrier::settings::Param::name,                                                    \
+                  {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(min_value)},     \
+                  {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(max_value)});
 #define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
-  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetBigInt(min_value),   \
-                  type::TransientValueFactory::GetInteger(max_value));
+  ValidateSetting(terrier::settings::Param::name,                                                      \
+                  {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(min_value)},        \
+                  {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(max_value)});
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
-  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetDecimal(min_value),   \
-                  type::TransientValueFactory::GetDecimal(max_value));
+  ValidateSetting(terrier::settings::Param::name,                                                       \
+                  {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(min_value)},           \
+                  {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(max_value)});
 
-#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                           \
-  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetBoolean(default_value), \
-                  type::TransientValueFactory::GetBoolean(default_value));
+#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                      \
+  ValidateSetting(terrier::settings::Param::name,                                                    \
+                  {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(default_value)}, \
+                  {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(default_value)});
 
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                         \
-  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetVarChar(default_value), \
-                  type::TransientValueFactory::GetVarChar(default_value));
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)        \
+  std::string default_value_string{default_value};                                       \
+  auto string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);    \
+  auto default_value_cve = std::make_unique<parser::ConstantValueExpression>(            \
+      type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second)); \
+  ValidateSetting(terrier::settings::Param::name, *default_value_cve, *default_value_cve);
 #endif
 
 #ifdef __SETTING_ENUM__
@@ -188,38 +198,49 @@
 #ifdef SETTING_string
 #undef SETTING_string
 #endif
-#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                   \
-  param_map.emplace(                                                                                                   \
-      terrier::settings::Param::name,                                                                                  \
-      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetInteger(FLAGS_##name), description, \
-                                   terrier::type::TransientValueFactory::GetInteger(default_value), is_mutable,        \
-                                   min_value, max_value, &callback_fn));
+#define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
+  param_map.emplace(                                                                                                \
+      terrier::settings::Param::name,                                                                               \
+      terrier::settings::ParamInfo(                                                                                 \
+          #name, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(FLAGS_##name)}, description,     \
+          {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(default_value)}, is_mutable, min_value, \
+          max_value, &callback_fn));
 
-#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
-  param_map.emplace(                                                                                                  \
-      terrier::settings::Param::name,                                                                                 \
-      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetBigInt(FLAGS_##name), description, \
-                                   terrier::type::TransientValueFactory::GetBigInt(default_value), is_mutable,        \
-                                   min_value, max_value, &callback_fn));
+#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                 \
+  param_map.emplace(terrier::settings::Param::name,                                                                    \
+                    terrier::settings::ParamInfo(                                                                      \
+                        #name, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(FLAGS_##name)},        \
+                        description, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(default_value)}, \
+                        is_mutable, min_value, max_value, &callback_fn));
 
-#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
-  param_map.emplace(                                                                                                   \
-      terrier::settings::Param::name,                                                                                  \
-      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetDecimal(FLAGS_##name), description, \
-                                   terrier::type::TransientValueFactory::GetDecimal(default_value), is_mutable,        \
-                                   min_value, max_value, &callback_fn));
+#define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)              \
+  param_map.emplace(terrier::settings::Param::name,                                                                  \
+                    terrier::settings::ParamInfo(                                                                    \
+                        #name, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(FLAGS_##name)},        \
+                        description, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(default_value)}, \
+                        is_mutable, min_value, max_value, &callback_fn));
 
-#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                                        \
-  param_map.emplace(                                                                                                   \
-      terrier::settings::Param::name,                                                                                  \
-      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetBoolean(FLAGS_##name), description, \
-                                   terrier::type::TransientValueFactory::GetBoolean(default_value), is_mutable, 0, 0,  \
-                                   &callback_fn));
+#define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                                 \
+  param_map.emplace(                                                                                            \
+      terrier::settings::Param::name,                                                                           \
+      terrier::settings::ParamInfo(                                                                             \
+          #name, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(FLAGS_##name)}, description, \
+          {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(default_value)}, is_mutable, 0, 0,  \
+          &callback_fn));
 
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                      \
-  param_map.emplace(                                                                                                   \
-      terrier::settings::Param::name,                                                                                  \
-      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetVarChar(FLAGS_##name), description, \
-                                   terrier::type::TransientValueFactory::GetVarChar(default_value), is_mutable, 0, 0,  \
-                                   &callback_fn));
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                 \
+  const std::string_view value_string{FLAGS_##name};                                                              \
+  auto string_val = execution::sql::ValueUtil::CreateStringVal(value_string);                                     \
+                                                                                                                  \
+  const std::string_view default_value_string{default_value};                                                     \
+  auto default_value_string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);               \
+                                                                                                                  \
+  param_map.emplace(                                                                                              \
+      terrier::settings::Param::name,                                                                             \
+      terrier::settings::ParamInfo(                                                                               \
+          #name, {type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second)}, description, \
+          {type::TypeId::VARCHAR, std::move(default_value_string_val.first),                                      \
+           std::move(default_value_string_val.second)},                                                           \
+          is_mutable, 0, 0, &callback_fn));
+
 #endif

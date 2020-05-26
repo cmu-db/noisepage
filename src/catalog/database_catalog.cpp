@@ -1333,7 +1333,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   std::vector<storage::SqlTable *> tables;
   std::vector<IndexSchema *> index_schemas;
   std::vector<storage::index::Index *> indexes;
-  std::vector<execution::udf::UDFContext *> udf_contexts;
+  std::vector<execution::functions::FunctionContext *> func_contexts;
 
   // pg_class (schemas & objects) [this is the largest projection]
   const std::vector<col_oid_t> pg_class_oids{postgres::RELKIND_COL_OID, postgres::REL_SCHEMA_COL_OID,
@@ -1388,12 +1388,12 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     }
   }
 
-  // pg_proc (udf_contexts)
+  // pg_proc (func_contexts)
   const std::vector<col_oid_t> pg_proc_contexts{postgres::PRO_CTX_PTR_COL_OID};
   pci = procs_->InitializerForProjectedColumns(pg_proc_contexts, 100);
   pc = pci.Initialize(buffer);
 
-  auto ctxts = reinterpret_cast<execution::udf::UDFContext **>(pc->ColumnStart(0));
+  auto ctxts = reinterpret_cast<execution::functions::FunctionContext **>(pc->ColumnStart(0));
 
   table_iter = procs_->begin();
   while (table_iter != procs_->end()) {
@@ -1403,13 +1403,13 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
       if (ctxts[i] == nullptr) {
         continue;
       }
-      udf_contexts.emplace_back(ctxts[i]);
+      func_contexts.emplace_back(ctxts[i]);
     }
   }
 
   auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
                    table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
-                   expressions{std::move(expressions)}, udf_contexts{std::move(udf_contexts)}]() {
+                   expressions{std::move(expressions)}, func_contexts{std::move(func_contexts)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) {
@@ -1425,7 +1425,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
 
     for (auto expr : expressions) delete expr;
 
-    for (auto udf_ctxt : udf_contexts) delete udf_ctxt;
+    for (auto udf_ctxt : func_contexts) delete udf_ctxt;
   };
 
   // No new transactions can see these object but there may be deferred index
@@ -1789,15 +1789,16 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 }
 
 void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn) {
-  auto udf_context = new execution::udf::UDFContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                                    execution::ast::Builtin::ATan2);
-  txn->RegisterAbortAction([=]() { delete udf_context; });
-  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, udf_context);
+  auto func_context = new execution::functions::FunctionContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                                                execution::ast::Builtin::ATan2);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, func_context);
 
-#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                              \
-  udf_context = new execution::udf::UDFContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
-  SetProcCtxPtr(txn, pro_oid, udf_context);                                                                        \
-  txn->RegisterAbortAction([=]() { delete udf_context; });
+#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                               \
+  func_context =                                                                                                    \
+      new execution::functions::FunctionContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
+  SetProcCtxPtr(txn, pro_oid, func_context);                                                                        \
+  txn->RegisterAbortAction([=]() { delete func_context; });
 
   // ACos
   BOOTSTRAP_TRIG_FN("acos", postgres::ACOS_PRO_OID, execution::ast::Builtin::ACos)
@@ -1821,14 +1822,14 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
 #undef BOOTSTRAP_TRIG_FN
 
-  udf_context = new execution::udf::UDFContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                                               execution::ast::Builtin::Lower, true);
-  SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, udf_context);
-  txn->RegisterAbortAction([=]() { delete udf_context; });
+  func_context = new execution::functions::FunctionContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Lower, true);
+  SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-                                    const execution::udf::UDFContext *udf_context) {
+                                    const execution::functions::FunctionContext *func_context) {
   // Do not need to store the projection map because it is only a single column
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
 
@@ -1847,12 +1848,13 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
 
   delete[] index_buffer;
   auto *const update_redo = txn->StageWrite(db_oid_, postgres::PRO_TABLE_OID, pg_proc_ptr_pri_);
-  *reinterpret_cast<const execution::udf::UDFContext **>(update_redo->Delta()->AccessForceNotNull(0)) = udf_context;
+  *reinterpret_cast<const execution::functions::FunctionContext **>(update_redo->Delta()->AccessForceNotNull(0)) =
+      func_context;
   update_redo->SetTupleSlot(index_results[0]);
   return procs_->Update(txn, update_redo);
 }
 
-common::ManagedPointer<execution::udf::UDFContext> DatabaseCatalog::GetProcCtxPtr(
+common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetProcCtxPtr(
     common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
   // Do not need to store the projection map because it is only a single column
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
@@ -1876,18 +1878,18 @@ common::ManagedPointer<execution::udf::UDFContext> DatabaseCatalog::GetProcCtxPt
 
   auto *ptr_ptr = (reinterpret_cast<void **>(select_pr->AccessWithNullCheck(0)));
 
-  execution::udf::UDFContext *ptr;
+  execution::functions::FunctionContext *ptr;
   if (ptr_ptr == nullptr) {
     ptr = nullptr;
   } else {
-    ptr = *reinterpret_cast<execution::udf::UDFContext **>(ptr_ptr);
+    ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
   }
 
   delete[] buffer;
-  return common::ManagedPointer<execution::udf::UDFContext>(ptr);
+  return common::ManagedPointer<execution::functions::FunctionContext>(ptr);
 }
 
-common::ManagedPointer<execution::udf::UDFContext> DatabaseCatalog::GetUDFContext(
+common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
     const common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid) {
   auto udf_ctx = GetProcCtxPtr(txn, proc_oid);
   if (udf_ctx == nullptr) {
@@ -2515,8 +2517,6 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
-  if (!TryLock(txn)) return INVALID_PROC_OID;
-
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
