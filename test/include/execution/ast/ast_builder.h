@@ -209,7 +209,7 @@ class TestAstBuilder {
   }
 
  private:
-  AstNodeFactory *NodeFactory() { return Ctx()->NodeFactory(); }
+  AstNodeFactory *NodeFactory() { return Ctx()->GetNodeFactory(); }
 
  private:
   std::unique_ptr<util::Region> region_{nullptr};
