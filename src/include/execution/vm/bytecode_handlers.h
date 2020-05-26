@@ -1720,7 +1720,7 @@ VM_OP_HOT void OpGetParamString(terrier::execution::sql::StringVal *ret,
   if (val->is_null_) {
     ret->is_null_ = true;
   } else {
-    *ret = terrier::execution::sql::StringVal(val->ptr_, val->len_);
+    *ret = terrier::execution::sql::StringVal(val->Content(), val->len_);
     ret->is_null_ = false;
   }
 }
