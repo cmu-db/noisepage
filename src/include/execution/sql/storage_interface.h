@@ -5,6 +5,17 @@
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 
+namespace terrier::storage {
+class ProjectedRow;
+class SqlTable;
+class RedoRecord;
+
+namespace index {
+class Index;
+}
+
+}  // namespace terrier::storage
+
 namespace terrier::execution::sql {
 
 /**

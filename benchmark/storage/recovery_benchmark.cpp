@@ -163,8 +163,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     auto namespace_oid = catalog_accessor->CreateNamespace(namespace_name);
 
     // Create random table
-    auto col = catalog::Schema::Column("col1", type::TypeId::INTEGER, false,
-                                       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+    auto col = catalog::Schema::Column(
+        "col1", type::TypeId::INTEGER, false,
+        parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(0)));
     catalog::Schema schema({col});
     auto table_oid = catalog_accessor->CreateTable(namespace_oid, table_name, schema);
     schema = catalog_accessor->GetSchema(table_oid);

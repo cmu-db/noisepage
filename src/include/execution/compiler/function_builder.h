@@ -33,7 +33,7 @@ class FunctionBuilder {
    * Appends a statement to the current block
    * @param stmt statement to append.
    */
-  void Append(ast::Stmt *stmt) { blocks_.back()->AppendStmt(stmt); }
+  void Append(ast::Stmt *stmt) { blocks_.back()->AppendStatement(stmt); }
 
   /**
    * Begins an IfStmt

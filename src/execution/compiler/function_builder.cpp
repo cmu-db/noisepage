@@ -33,7 +33,7 @@ void FunctionBuilder::FinishBlockStmt() { blocks_.pop_back(); }
 
 ast::FunctionDecl *FunctionBuilder::Finish() {
   for (const auto &stmt : final_stmts_) {
-    fn_body_->AppendStmt(stmt);
+    fn_body_->AppendStatement(stmt);
   }
   auto fn_ty = codegen_->Factory()->NewFunctionType(DUMMY_POS, std::move(fn_params_), fn_ret_type_);
   auto fn_lit = codegen_->Factory()->NewFunctionLitExpr(fn_ty, fn_body_);

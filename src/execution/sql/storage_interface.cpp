@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 

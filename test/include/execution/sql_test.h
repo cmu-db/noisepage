@@ -55,7 +55,7 @@ class SqlBasedTest : public TplTest {
   }
 
   parser::ConstantValueExpression DummyCVE() {
-    return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+    return parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(0));
   }
 
   std::unique_ptr<terrier::catalog::CatalogAccessor> MakeAccessor() {

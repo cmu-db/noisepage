@@ -4,7 +4,6 @@
 #include "execution/sql/value.h"
 
 #include "parser/expression/function_expression.h"
-#include "type/transient_value_peeker.h"
 
 namespace terrier::execution::compiler {
 FunctionTranslator::FunctionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)

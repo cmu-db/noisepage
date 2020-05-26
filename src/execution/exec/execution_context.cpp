@@ -1,6 +1,10 @@
 #include "execution/exec/execution_context.h"
+
 #include "brain/operating_unit.h"
+#include "common/thread_context.h"
 #include "execution/sql/value.h"
+#include "metrics/metrics_store.h"
+#include "parser/expression/constant_value_expression.h"
 
 namespace terrier::execution::exec {
 
@@ -48,6 +52,10 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline, execution_mode_, std::move(features),
                                                               resource_metrics);
   }
+}
+
+const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t param_idx) const {
+  return (*params_)[param_idx];
 }
 
 }  // namespace terrier::execution::exec

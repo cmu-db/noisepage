@@ -6,12 +6,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_accessor.h"
 #include "catalog/schema.h"
 #include "loggers/execution_logger.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
-#include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {
@@ -179,7 +179,8 @@ class SchemaReader {
   }
 
   terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER,
+                                                    std::make_unique<execution::sql::Integer>(0));
   }
 
  private:

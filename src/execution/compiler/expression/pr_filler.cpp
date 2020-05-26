@@ -37,7 +37,7 @@ std::pair<ast::File *, std::string> PRFiller::GenFiller(
   GenFiller(index_pm, index_schema, codegen_->MakeExpr(index_pr), &builder);
   // Return the file.
   util::RegionVector<ast::Decl *> top_level({builder.Finish()}, codegen_->Region());
-  return {codegen_->Compile(std::move(top_level)), fn_name.Data()};
+  return {codegen_->Compile(std::move(top_level)), fn_name.GetData()};
 }
 
 }  // namespace terrier::execution::compiler

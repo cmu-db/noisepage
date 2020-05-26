@@ -103,7 +103,7 @@ class AggregateTopTranslator : public OperatorTranslator {
       : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE),
         op_(op),
         bottom_(dynamic_cast<AggregateBottomTranslator *>(bottom)),
-        agg_iterator_("agg_iter") {}
+        agg_iterator_(codegen->Context()->GetIdentifier("agg_iter")) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}

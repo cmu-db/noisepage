@@ -1,10 +1,9 @@
 #include <memory>
 
-#include "execution/sema/sema.h"
-
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
+#include "execution/sema/sema.h"
 
 namespace terrier::execution::sema {
 
@@ -93,8 +92,8 @@ void Sema::VisitIfStmt(ast::IfStmt *node) {
 
     // Perform implicit cast from SQL boolean to primitive boolean
     ast::Expr *cond = node->Condition();
-    cond = GetContext()->NodeFactory()->NewImplicitCastExpr(cond->Position(), ast::CastKind::SqlBoolToBool, bool_type,
-                                                            cond);
+    cond = GetContext()->GetNodeFactory()->NewImplicitCastExpr(cond->Position(), ast::CastKind::SqlBoolToBool,
+                                                               bool_type, cond);
     cond->SetType(bool_type);
     node->SetCondition(cond);
   }
@@ -158,7 +157,7 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
 
   // Cast if necessary
   if (ret != node->Ret()) {
-    node->SetReturn(ret);
+    node->SetRet(ret);
   }
 }
 

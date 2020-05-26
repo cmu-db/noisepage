@@ -24,6 +24,10 @@ namespace terrier::optimizer {
 class StatsStorage;
 }
 
+namespace terrier::parser {
+class ConstantValueExpression;
+}
+
 namespace terrier::planner {
 class AbstractPlanNode;
 }
@@ -135,7 +139,7 @@ class TrafficCop {
    */
   TrafficCopResult BindQuery(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                              common::ManagedPointer<network::Statement> statement,
-                             common::ManagedPointer<std::vector<type::TransientValue>> parameters) const;
+                             common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const;
 
   /**
    * Contains the logic to reason about CREATE execution.
