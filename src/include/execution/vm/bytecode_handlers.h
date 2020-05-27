@@ -637,7 +637,6 @@ VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, double input) {
 VM_OP_HOT void OpIntegerToReal(terrier::execution::sql::Real *result, const terrier::execution::sql::Integer *input) {
   result->is_null_ = input->is_null_;
   if (!input->is_null_) result->val_ = static_cast<double>(input->val_);
-  std::cerr << result->val_;
 }
 
 VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year, uint32_t month, uint32_t day) {
