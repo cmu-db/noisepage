@@ -5,8 +5,8 @@
 #include <utility>
 #include <vector>
 
-#include "common/json.h"
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "execution/sql/value.h"
 #include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
@@ -293,7 +293,7 @@ nlohmann::json ConstantValueExpression::ToJson() const {
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
         const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
-        std::string val_string {val};
+        std::string val_string{val};
         j["value"] = val_string;
         break;
       }
