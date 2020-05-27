@@ -121,9 +121,7 @@ class LLVMEngine {
     /**
      * @return the path to the bytecode handlers bitcode file.
      */
-    std::string GetBytecodeHandlersBcPath() const {
-      return "./bytecode_handlers_ir.bc";
-    }
+    std::string GetBytecodeHandlersBcPath() const { return "./bytecode_handlers_ir.bc"; }
 
    private:
     bool debug_{false};
