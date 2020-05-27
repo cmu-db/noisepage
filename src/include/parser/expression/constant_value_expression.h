@@ -124,13 +124,14 @@ class ConstantValueExpression : public AbstractExpression {
    */
   void SetValue(const type::TypeId type, std::unique_ptr<execution::sql::Val> value) {
     SetValue(type, std::move(value), nullptr);
-    TERRIER_ASSERT(value_->is_null_ || (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY) ||
-                       (buffer_ == nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ <=
-                                                  execution::sql::StringVal::InlineThreshold()) ||
-                       (buffer_ != nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ >
-                                                  execution::sql::StringVal::InlineThreshold()),
-                   "Value should either be NULL, a non-varlen type, or varlen and below the threshold with no owned "
-                   "buffer, or varlen and above the threshold with a provided buffer.");
+    TERRIER_ASSERT(
+        value_->is_null_ || (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY) ||
+            (buffer_ == nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->GetLength() <=
+                                       execution::sql::StringVal::InlineThreshold()) ||
+            (buffer_ != nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->GetLength() >
+                                       execution::sql::StringVal::InlineThreshold()),
+        "Value should either be NULL, a non-varlen type, or varlen and below the threshold with no owned "
+        "buffer, or varlen and above the threshold with a provided buffer.");
   }
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }

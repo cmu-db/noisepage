@@ -183,6 +183,11 @@ struct StringVal : public Val {
   }
 
   /**
+   * @return Threshold for inlining.
+   */
+  static uint32_t InlineThreshold() { return storage::VarlenEntry::InlineThreshold(); }
+
+  /**
    * Helper method to create a VarlenEntry from a StringVal.
    * @param str The input to be turned into a VarlenEntry.
    * @param own Whether the VarlenEntry should own the resulting string.

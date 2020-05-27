@@ -16,6 +16,10 @@
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
 
+namespace terrier::brain {
+class PipelineOperatingUnits;
+}
+
 namespace terrier::catalog {
 class CatalogAccessor;
 }

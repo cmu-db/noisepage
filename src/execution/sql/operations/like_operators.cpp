@@ -1,4 +1,4 @@
-#include "execution/sql/operations/like_operators.h"
+#include "execution/sql/operators/like_operators.h"
 
 #include "common/macros.h"
 

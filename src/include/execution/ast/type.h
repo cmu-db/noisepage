@@ -102,7 +102,7 @@ class Context;
   SQL(Boolean, terrier::execution::sql::BoolVal)                                                              \
   SQL(Integer, terrier::execution::sql::Integer)                                                              \
   SQL(Real, terrier::execution::sql::Real)                                                                    \
-  SQL(Decimal, terrier::execution::sql::Decimal)                                                              \
+  SQL(Decimal, terrier::execution::sql::DecimalVal)                                                           \
   SQL(StringVal, terrier::execution::sql::StringVal)                                                          \
   SQL(Date, terrier::execution::sql::DateVal)                                                                 \
   SQL(Timestamp, terrier::execution::sql::TimestampVal)

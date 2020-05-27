@@ -29,7 +29,7 @@ std::pair<std::unique_ptr<StringVal>, std::unique_ptr<byte>> ValueUtil::CreateSt
 
 std::pair<std::unique_ptr<StringVal>, std::unique_ptr<byte>> ValueUtil::CreateStringVal(
     common::ManagedPointer<StringVal> string) {
-  return CreateStringVal(common::ManagedPointer(string->Content()), string->len_);
+  return CreateStringVal(common::ManagedPointer(string->GetContent()), string->GetLength());
 }
 
 }  // namespace terrier::execution::sql
