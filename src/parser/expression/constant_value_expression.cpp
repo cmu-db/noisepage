@@ -292,7 +292,7 @@ nlohmann::json ConstantValueExpression::ToJson() const {
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
         const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
-        std::string val_string {val};
+        std::string val_string{val};
         j["value"] = val_string;
         break;
       }
