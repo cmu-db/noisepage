@@ -1157,12 +1157,12 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   }
 
   int num_iters = 1;
-  if ((is_idx ? car : row) <= warmup_rows_limit) {
+  if (((is_idx != 0) ? car : row) <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
   }
 
   std::string tbl;
-  if (is_idx) {
+  if (is_idx != 0) {
     tbl = execution::sql::TableGenerator::GenerateTableIndexName(type::TypeId::INTEGER, row);
   } else {
     tbl = ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
@@ -1184,7 +1184,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   std::mt19937 generator{};
   std::uniform_int_distribution<int> distribution(0, INT_MAX);
   for (auto j = 1; j <= num_integers; j++) {
-    if (is_idx) {
+    if (is_idx != 0) {
       query << "col" << j << " = " << distribution(generator);
     } else {
       query << type::TypeUtil::TypeIdToString(type::TypeId::INTEGER) << j << " = " << distribution(generator);
@@ -1200,7 +1200,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 
   std::pair<std::unique_ptr<execution::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
-  if (!is_idx) {
+  if (is_idx == 0) {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, row, tuple_size, num_col, car, 1);
@@ -1266,7 +1266,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   }
 
   int num_iters = 1;
-  if ((is_idx ? car : row) <= warmup_rows_limit) {
+  if (((is_idx != 0) ? car : row) <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
   }
 
@@ -1278,7 +1278,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   std::stringstream query;
   std::pair<std::unique_ptr<execution::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
-  if (!is_idx) {
+  if (is_idx == 0) {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, row, tuple_size, num_col, car, 1);
