@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 common::hash_t DropTriggerPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -65,5 +67,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropTriggerPlanNode::Fr
   if_exists_ = j.at("if_exists").get<bool>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(DropTriggerPlanNode);
 
 }  // namespace terrier::planner

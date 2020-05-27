@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t ProjectionPlanNode::Hash() const {
@@ -31,5 +33,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ProjectionPlanNode::Fro
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ProjectionPlanNode);
 
 }  // namespace terrier::planner

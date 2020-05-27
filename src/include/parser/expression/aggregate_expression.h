@@ -31,13 +31,7 @@ class AggregateExpression : public AbstractExpression {
    * Creates a copy of the current AbstractExpression
    * @returns Copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    std::vector<std::unique_ptr<AbstractExpression>> children;
-    for (const auto &child : GetChildren()) {
-      children.emplace_back(child->Copy());
-    }
-    return CopyWithChildren(std::move(children));
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -46,11 +40,7 @@ class AggregateExpression : public AbstractExpression {
    * @returns copy of this with new children
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
-      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    auto expr = std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override;
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
@@ -67,54 +57,26 @@ class AggregateExpression : public AbstractExpression {
   /** @return true if we should eliminate duplicate values in aggregate function calculations */
   bool IsDistinct() const { return distinct_; }
 
-  void DeriveReturnValueType() override {
-    auto expr_type = this->GetExpressionType();
-    switch (expr_type) {
-      case ExpressionType::AGGREGATE_COUNT:
-        this->SetReturnValueType(type::TypeId::INTEGER);
-        break;
-        // keep the type of the base
-      case ExpressionType::AGGREGATE_MAX:
-      case ExpressionType::AGGREGATE_MIN:
-      case ExpressionType::AGGREGATE_SUM:
-        TERRIER_ASSERT(this->GetChildrenSize() >= 1, "No column name given.");
-        const_cast<parser::AbstractExpression *>(this->GetChild(0).Get())->DeriveReturnValueType();
-        this->SetReturnValueType(this->GetChild(0)->GetReturnValueType());
-        break;
-      case ExpressionType::AGGREGATE_AVG:
-        this->SetReturnValueType(type::TypeId::DECIMAL);
-        break;
-      default:
-        throw PARSER_EXCEPTION(
-            ("Not a valid aggregation expression type: " + std::to_string(static_cast<int>(expr_type))).c_str());
-    }
-  }
+  /**
+   * Derive the expression type of the current expression.
+   */
+  void DeriveReturnValueType() override;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["distinct"] = distinct_;
-    return j;
-  }
+  nlohmann::json ToJson() const override;
 
   /**
    * @param j json to deserialize
    */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    distinct_ = j.at("distinct").get<bool>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /** True if duplicate rows should be removed. */
   bool distinct_;
 };
 
-DEFINE_JSON_DECLARATIONS(AggregateExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(AggregateExpression);
 
 }  // namespace terrier::parser

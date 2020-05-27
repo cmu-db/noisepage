@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "common/hash_util.h"
 #include "execution/sql/value.h"
 #include "execution/sql/value_util.h"
@@ -353,4 +354,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
 
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ConstantValueExpression);
+
 }  // namespace terrier::parser

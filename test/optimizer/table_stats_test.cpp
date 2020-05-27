@@ -1,5 +1,6 @@
 #include <memory>
 
+#include "common/json.h"
 #include "gtest/gtest.h"
 #include "optimizer/statistics/table_stats.h"
 

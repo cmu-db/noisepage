@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "execution/sql/value_util.h"
+#include "common/json.h"
 #include "test_util/test_harness.h"
 
 namespace terrier::parser {

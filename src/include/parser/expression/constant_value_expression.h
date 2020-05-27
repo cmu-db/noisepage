@@ -152,6 +152,6 @@ class ConstantValueExpression : public AbstractExpression {
   std::unique_ptr<byte> buffer_;
 };  // namespace terrier::parser
 
-DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ConstantValueExpression);
 
 }  // namespace terrier::parser
