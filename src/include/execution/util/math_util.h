@@ -112,8 +112,7 @@ class MathUtil : public AllStatic {
    * @return The input address aligned to the desired alignment
    */
   static constexpr uintptr_t AlignAddress(uintptr_t addr, std::size_t alignment) {
-    TPL_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment),
-               "Alignment is not a power of two!");
+    TPL_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment), "Alignment is not a power of two!");
     return (addr + alignment - 1) & ~(alignment - 1);
   }
 

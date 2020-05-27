@@ -56,8 +56,7 @@ namespace {
 
 // Return true if the given list of field declarations contains a duplicate name. If so, the 'dup'
 // output parameter is set to the offending field. Otherwise, return false;
-bool HasDuplicatesNames(const util::RegionVector<ast::FieldDecl *> &fields,
-                        const ast::FieldDecl **dup) {
+bool HasDuplicatesNames(const util::RegionVector<ast::FieldDecl *> &fields, const ast::FieldDecl **dup) {
   llvm::SmallDenseSet<ast::Identifier, 32> seen;
   for (const auto *field : fields) {
     // Attempt to insert into the set. If the insertion succeeds it's a unique
@@ -98,11 +97,9 @@ void Sema::VisitStructDecl(ast::StructDecl *node) {
   // Check for duplicate fields.
   if (const ast::FieldDecl *dup = nullptr;
       HasDuplicatesNames(node->TypeRepr()->As<ast::StructTypeRepr>()->Fields(), &dup)) {
-    GetErrorReporter()->Report(node->Position(), ErrorMessages::kDuplicateStructFieldName,
-                             dup->Name(), node->Name());
+    GetErrorReporter()->Report(node->Position(), ErrorMessages::kDuplicateStructFieldName, dup->Name(), node->Name());
     return;
   }
-
 
   CurrentScope()->Declare(node->Name(), struct_type);
 }

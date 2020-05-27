@@ -47,8 +47,8 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
         !call->Arguments()[1]->GetType()->IsSpecificBuiltin(int64_kind) ||
         !call->Arguments()[2]->GetType()->IsSpecificBuiltin(int64_kind)) {
       GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidCastToSqlDate,
-                               call->Arguments()[0]->GetType(), call->Arguments()[1]->GetType(),
-                               call->Arguments()[2]->GetType());
+                                 call->Arguments()[0]->GetType(), call->Arguments()[1]->GetType(),
+                                 call->Arguments()[2]->GetType());
     }
     // All good. Set return type as SQL Date.
     call->SetType(GetBuiltinType(ast::BuiltinType::Date));
@@ -142,8 +142,7 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
     case ast::Builtin::SqlToBool: {
       if (!input_type->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidSqlCastToBool,
-                                 input_type);
+        GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidSqlCastToBool, input_type);
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
@@ -159,14 +158,14 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     call->SetType(GetBuiltinType(ast::BuiltinType::OutputType));       \
     break;                                                             \
   }
-    CONVERSION_CASE(ConvertBoolToInteger, Boolean, Integer);
-    CONVERSION_CASE(ConvertIntegerToReal, Integer, Real);
-    CONVERSION_CASE(ConvertDateToTimestamp, Date, Timestamp);
-    CONVERSION_CASE(ConvertStringToBool, StringVal, Boolean);
-    CONVERSION_CASE(ConvertStringToInt, StringVal, Integer);
-    CONVERSION_CASE(ConvertStringToReal, StringVal, Real);
-    CONVERSION_CASE(ConvertStringToDate, StringVal, Date);
-    CONVERSION_CASE(ConvertStringToTime, StringVal, Timestamp);
+      CONVERSION_CASE(ConvertBoolToInteger, Boolean, Integer);
+      CONVERSION_CASE(ConvertIntegerToReal, Integer, Real);
+      CONVERSION_CASE(ConvertDateToTimestamp, Date, Timestamp);
+      CONVERSION_CASE(ConvertStringToBool, StringVal, Boolean);
+      CONVERSION_CASE(ConvertStringToInt, StringVal, Integer);
+      CONVERSION_CASE(ConvertStringToReal, StringVal, Real);
+      CONVERSION_CASE(ConvertStringToDate, StringVal, Date);
+      CONVERSION_CASE(ConvertStringToTime, StringVal, Timestamp);
 #undef CONVERSION_CASE
 
     default: {
@@ -255,7 +254,7 @@ void Sema::CheckBuiltinFilterCall(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Int64));
 }
 
-//void Sema::CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin builtin) {
+// void Sema::CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin builtin) {
 //  if (!CheckArgCount(call, 1)) {
 //    return;
 //  }
@@ -294,7 +293,6 @@ void Sema::CheckNullValueCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin
   // Returns a primitive boolean.
   call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
 }
-
 
 void Sema::CheckBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
@@ -362,8 +360,8 @@ void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builti
         return;
       }
       // If there's a third argument indicating regular or partitioned insertion, it must be a bool
-      if (args.size() > 2 && (!args[2]->IsLitExpr() ||
-          !args[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Bool))) {
+      if (args.size() > 2 &&
+          (!args[2]->IsLitExpr() || !args[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Bool))) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Bool));
         return;
       }
@@ -773,7 +771,7 @@ void Sema::CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin buil
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-//void Sema::CheckBuiltinJoinHashTableLookup(ast::CallExpr *call) {
+// void Sema::CheckBuiltinJoinHashTableLookup(ast::CallExpr *call) {
 //  if (!CheckArgCount(call, 3)) {
 //    return;
 //  }
@@ -1364,7 +1362,7 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
   }
 }
 
-//void Sema::CheckBuiltinVectorFilterCall(ast::CallExpr *call) {
+// void Sema::CheckBuiltinVectorFilterCall(ast::CallExpr *call) {
 //  if (!CheckArgCount(call, 4)) {
 //    return;
 //  }
@@ -1448,8 +1446,7 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
   call->SetType(GetBuiltinType(real_kind));
 }
 
-
-//void Sema::CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin) {
+// void Sema::CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin) {
 //  if (!CheckArgCountAtLeast(call, 1)) {
 //    return;
 //  }
@@ -1550,8 +1547,7 @@ void Sema::CheckBuiltinOffsetOfCall(ast::CallExpr *call) {
 
   // Field with the given name must exist in the composite type
   if (type->As<ast::StructType>()->LookupFieldByName(field->Name()) == nullptr) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kFieldObjectDoesNotExist,
-                             field->Name(), type);
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kFieldObjectDoesNotExist, field->Name(), type);
     return;
   }
 
@@ -2582,14 +2578,14 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinHashCall(call, builtin);
       break;
     }
-//    case ast::Builtin::CSVReaderInit:
-//    case ast::Builtin::CSVReaderAdvance:
-//    case ast::Builtin::CSVReaderGetField:
-//    case ast::Builtin::CSVReaderGetRecordNumber:
-//    case ast::Builtin::CSVReaderClose: {
-//      CheckCSVReaderCall(call, builtin);
-//      break;
-//    }
+      //    case ast::Builtin::CSVReaderInit:
+      //    case ast::Builtin::CSVReaderAdvance:
+      //    case ast::Builtin::CSVReaderGetField:
+      //    case ast::Builtin::CSVReaderGetRecordNumber:
+      //    case ast::Builtin::CSVReaderClose: {
+      //      CheckCSVReaderCall(call, builtin);
+      //      break;
+      //    }
     case ast::Builtin::AggHashTableInit:
     case ast::Builtin::AggHashTableInsert:
     case ast::Builtin::AggHashTableLookup:

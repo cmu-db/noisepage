@@ -41,7 +41,6 @@ struct PassArgument {
  */
 class ErrorReporter {
  public:
-
   /**
    * Constructor
    * @param region region to use for allocation
@@ -96,7 +95,7 @@ class ErrorReporter {
 
    private:
     friend class ErrorReporter;
-    void FormatMessageArgument(std::string &str) const;
+    void FormatMessageArgument(std::string *str) const;
 
    private:
     std::variant<const char *, int32_t, SourcePosition, parsing::Token::Type, ast::Type *> arg_;

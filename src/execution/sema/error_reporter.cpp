@@ -16,34 +16,35 @@ namespace {
 constexpr const char *kErrorStrings[] = {MESSAGE_LIST(F)};
 #undef F
 
-
 // Helper template class for MessageArgument::FormatMessageArgument().
 template <class T>
 struct always_false : std::false_type {};
 
 }  // namespace
 
-void ErrorReporter::MessageArgument::FormatMessageArgument(std::string &str) const {
+void ErrorReporter::MessageArgument::FormatMessageArgument(std::string *str) const {
   std::visit(
       [&](auto &&arg) {
         using T = std::decay_t<decltype(arg)>;
+        // clang-tidy off
         if constexpr (std::is_same_v<T, const char *>) {
-          str.append(arg);
+          str->append(arg);
         } else if constexpr (std::is_same_v<T, int32_t>) {
-          str.append(std::to_string(arg));
+          str->append(std::to_string(arg));
         } else if constexpr (std::is_same_v<T, SourcePosition>) {
-          str.append("[line/col: ")
+          str->append("[line/col: ")
               .append(std::to_string(arg.line_))
               .append("/")
               .append(std::to_string(arg.column_))
               .append("]");
         } else if constexpr (std::is_same_v<T, parsing::Token::Type>) {
-          str.append(parsing::Token::GetString(static_cast<parsing::Token::Type>(arg)));
+          str->append(parsing::Token::GetString(static_cast<parsing::Token::Type>(arg)));
         } else if constexpr (std::is_same_v<T, ast::Type *>) {
-          str.append(ast::Type::ToString(arg));
+          str->append(ast::Type::ToString(arg));
         } else {
           static_assert(always_false<T>::value, "non-exhaustive visitor");
         }
+        // clang-tidy on
       },
       arg_);
 }
@@ -73,7 +74,7 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
 
     msg.append(fmt, pos - fmt);
 
-    args_[arg_idx++].FormatMessageArgument(msg);
+    args_[arg_idx++].FormatMessageArgument(&msg);
 
     fmt = pos + 1;
     while (std::isalnum(*fmt) != 0) {
