@@ -1,15 +1,15 @@
+#include "execution/sql/join_hash_table_vector_probe.h"
+
 #include <algorithm>
 #include <memory>
 #include <random>
 #include <vector>
 
-#include "execution/sql_test.h"
-
 #include "catalog/catalog.h"
+#include "common/hash_util.h"
 #include "execution/sql/join_hash_table.h"
-#include "execution/sql/join_hash_table_vector_probe.h"
 #include "execution/sql/projected_columns_iterator.h"
-#include "execution/util/hash.h"
+#include "execution/sql_test.h"
 #include "storage/projected_columns.h"
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
@@ -74,7 +74,7 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
     // Insert
     for (uint32_t i = 0; i < num_tuples; i++) {
       auto key = key_gen();
-      auto hash = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&key), sizeof(key));
+      auto hash = common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&key), sizeof(key));
       auto *tuple = reinterpret_cast<Tuple<N> *>(jht->AllocInputTuple(hash));
       tuple->build_key_ = key;
     }
@@ -89,7 +89,7 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
   template <uint8_t N>
   static hash_t HashTupleInPCI(ProjectedColumnsIterator *pci) noexcept {
     const auto *key_ptr = pci->Get<uint32_t, false>(0, nullptr);
-    return util::Hasher::Hash(reinterpret_cast<const uint8_t *>(key_ptr), sizeof(Tuple<N>::build_key_));
+    return common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(key_ptr), sizeof(Tuple<N>::build_key_));
   }
 
   /**

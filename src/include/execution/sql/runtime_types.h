@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <string>
 
-#include "execution/util/hash.h"
+#include "common/hash_util.h"
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"
 
@@ -59,7 +59,7 @@ class EXPORT Date {
    * @param seed The value to seed the hash with.
    * @return The hash value for this date instance.
    */
-  hash_t Hash(const hash_t seed) const { return util::Hasher::HashCrc(value_, seed); }
+  hash_t Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_, seed); }
 
   /**
    * @return The hash value of this date instance.
@@ -163,7 +163,7 @@ class EXPORT Timestamp {
    * @param seed The value to seed the hash with.
    * @return The hash value for this timestamp instance.
    */
-  hash_t Hash(const hash_t seed) const { return util::Hasher::HashCrc(value_, seed); }
+  hash_t Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_, seed); }
 
   /**
    * @return The hash value of this timestamp instance.
@@ -269,6 +269,7 @@ class EXPORT Timestamp {
 template <typename T>
 class Decimal {
  public:
+  /** Underlying native data type. */
   using NativeType = T;
 
   /**
@@ -287,7 +288,7 @@ class Decimal {
    * @param seed The value to seed the hash with.
    * @return The hash value for this decimal instance.
    */
-  hash_t Hash(const hash_t seed) const { return util::Hasher::HashCrc(value_); }
+  hash_t Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_); }
 
   /**
    * @return The hash value of this decimal instance.

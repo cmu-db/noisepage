@@ -263,8 +263,12 @@ class VarlenEntry {
     TERRIER_ASSERT(size <= InlineThreshold(), "varlen value must be small enough for inlining to happen");
     VarlenEntry result;
     result.size_ = size;
-    // overwrite the content field's 8 bytes for inline storage
-    std::memcpy(result.prefix_, content, size);
+    // Small string: just store the prefix as part of inline storage.
+    // But first zero initialize prefix to ensure strings smaller than GetPrefixSize() still have an equal prefix.
+    std::memset(result.prefix_, 0, PrefixSize());
+    if (size != 0) {
+      std::memcpy(result.prefix_, content, size);
+    }
     return result;
   }
 
@@ -362,6 +366,20 @@ class VarlenEntry {
     return vec;
   }
 
+  /**
+   * Compute the hash value of this variable-length string instance.
+   * @param seed The value to seed the hash with.
+   * @return The hash value for this string instance.
+   */
+  hash_t Hash(hash_t seed) const {
+    // "small" strings use CRC hashing, "long" strings use XXH3.
+    if (IsInlined()) {
+      return common::HashUtil::HashCrc(reinterpret_cast<const uint8_t *>(Prefix()), Size(), seed);
+    } else {
+      return common::HashUtil::HashXX3(reinterpret_cast<const uint8_t *>(Content()), Size(), seed);
+    }
+  }
+
  private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
@@ -395,7 +413,7 @@ struct VarlenContentHasher {
    * @param obj object to hash
    * @return hash code of object
    */
-  size_t operator()(const VarlenEntry &obj) const { return common::HashUtil::HashBytes(obj.Content(), obj.Size()); }
+  size_t operator()(const VarlenEntry &obj) const { return obj.Hash(0); }
 };
 
 /**

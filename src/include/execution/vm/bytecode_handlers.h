@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "execution/ast/type.h"
@@ -22,7 +23,6 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/execution_common.h"
-#include "execution/util/hash.h"
 #include "metrics/metrics_defs.h"
 #include "parser/expression/constant_value_expression.h"
 #include "util/time_util.h"
@@ -563,23 +563,22 @@ VM_OP void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::Projecte
 // ---------------------------------------------------------
 
 VM_OP_HOT void OpHashInt(terrier::hash_t *hash_val, terrier::execution::sql::Integer *input) {
-  *hash_val = terrier::execution::util::Hasher::Hash<terrier::execution::util::HashMethod::Crc>(input->val_);
+  *hash_val = terrier::common::HashUtil::Hash(input->val_);
   *hash_val = input->is_null_ ? 0 : *hash_val;
 }
 
 VM_OP_HOT void OpHashReal(terrier::hash_t *hash_val, terrier::execution::sql::Real *input) {
-  *hash_val = terrier::execution::util::Hasher::Hash<terrier::execution::util::HashMethod::Crc>(input->val_);
+  *hash_val = terrier::common::HashUtil::Hash(input->val_);
   *hash_val = input->is_null_ ? 0 : *hash_val;
 }
 
 VM_OP_HOT void OpHashString(terrier::hash_t *hash_val, terrier::execution::sql::StringVal *input) {
-  *hash_val = terrier::execution::util::Hasher::Hash<terrier::execution::util::HashMethod::xxHash3>(
-      reinterpret_cast<const uint8_t *>(input->GetContent()), input->GetLength());
+  *hash_val = terrier::common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(input->GetContent()), input->GetLength());
   *hash_val = input->is_null_ ? 0 : *hash_val;
 }
 
 VM_OP_HOT void OpHashCombine(terrier::hash_t *hash_val, terrier::hash_t new_hash_val) {
-  *hash_val = terrier::execution::util::Hasher::CombineHashes(*hash_val, new_hash_val);
+  *hash_val = terrier::common::HashUtil::CombineHashes(*hash_val, new_hash_val);
 }
 
 // ---------------------------------------------------------

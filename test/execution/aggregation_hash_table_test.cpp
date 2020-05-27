@@ -1,3 +1,7 @@
+#include "execution/sql/aggregation_hash_table.h"
+
+#include <tbb/tbb.h>  // NOLINT
+
 #include <atomic>
 #include <memory>
 #include <random>
@@ -5,17 +9,13 @@
 #include <utility>
 #include <vector>
 
-#include "execution/sql_test.h"
-
-#include <tbb/tbb.h>  // NOLINT
-
 #include "catalog/catalog.h"
 #include "catalog/schema.h"
+#include "common/hash_util.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/thread_state_container.h"
-#include "execution/util/hash.h"
+#include "execution/sql_test.h"
 
 namespace terrier::execution::sql::test {
 
@@ -27,7 +27,7 @@ struct InputTuple {
 
   explicit InputTuple(uint64_t key, uint64_t col_a) : key_(key), col_a_(col_a) {}
 
-  hash_t Hash() const noexcept { return util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&key_), sizeof(key_)); }
+  hash_t Hash() const noexcept { return common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&key_), sizeof(key_)); }
 };
 
 /**
@@ -243,7 +243,7 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
   const auto hash_fn = [](void *x) {
     auto iters = reinterpret_cast<ProjectedColumnsIterator **>(x);
     auto key = iters[0]->Get<uint32_t, false>(0, nullptr);
-    return util::Hasher::Hash(reinterpret_cast<const uint8_t *>(key), sizeof(uint32_t));
+    return common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(key), sizeof(uint32_t));
   };
 
   const auto key_eq = [](const void *agg, const void *x) {

@@ -1,13 +1,13 @@
-#include <random>
-#include <vector>
-
-#include "execution/tpl_test.h"
+#include "execution/sql/join_hash_table.h"
 
 #include <tbb/tbb.h>  // NOLINT
 
-#include "execution/sql/join_hash_table.h"
+#include <random>
+#include <vector>
+
+#include "common/hash_util.h"
 #include "execution/sql/thread_state_container.h"
-#include "execution/util/hash.h"
+#include "execution/tpl_test.h"
 
 namespace terrier::execution::sql::test {
 
@@ -66,7 +66,7 @@ TEST_F(JoinHashTableTest, LazyInsertionTest) {
 
   // The table
   for (const auto &tuple : tuples) {
-    auto hash_val = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&tuple.a_), sizeof(tuple.a_));
+    auto hash_val = common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&tuple.a_), sizeof(tuple.a_));
     auto *space = join_hash_table.AllocInputTuple(hash_val);
     *reinterpret_cast<Tuple *>(space) = tuple;
   }
@@ -88,7 +88,7 @@ TEST_F(JoinHashTableTest, LazyInsertionTest) {
 void PopulateJoinHashTable(JoinHashTable *jht, uint32_t num_tuples, uint32_t dup_scale_factor) {
   for (uint32_t rep = 0; rep < dup_scale_factor; rep++) {
     for (uint32_t i = 0; i < num_tuples; i++) {
-      auto hash_val = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&i), sizeof(i));
+      auto hash_val = common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&i), sizeof(i));
       auto *space = jht->AllocInputTuple(hash_val);
       auto *tuple = reinterpret_cast<Tuple *>(space);
       tuple->a_ = i;
@@ -122,7 +122,7 @@ void BuildAndProbeTest(uint32_t num_tuples, uint32_t dup_scale_factor) {
   //
 
   for (uint32_t i = 0; i < num_tuples; i++) {
-    auto hash_val = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&i), sizeof(i));
+    auto hash_val = common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&i), sizeof(i));
     Tuple probe_tuple = {i, 0, 0, 0};
     uint32_t count = 0;
     const HashTableEntry *entry = nullptr;
@@ -143,7 +143,7 @@ void BuildAndProbeTest(uint32_t num_tuples, uint32_t dup_scale_factor) {
   //
 
   for (uint32_t i = num_tuples; i < num_tuples + 1000; i++) {
-    auto hash_val = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&i), sizeof(i));
+    auto hash_val = common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&i), sizeof(i));
     Tuple probe_tuple = {i, 0, 0, 0};
     for (auto iter = join_hash_table.Lookup<UseConciseHashTable>(hash_val);
          iter.HasNext(TupleKeyEq, nullptr, reinterpret_cast<void *>(&probe_tuple));) {
@@ -203,7 +203,7 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
     std::random_device random;
     for (uint32_t i = 0; i < num_tuples; i++) {
       auto key = random();
-      auto hash_val = util::Hasher::Hash<util::HashMethod::Crc>(reinterpret_cast<const uint8_t *>(&key), sizeof(key));
+      auto hash_val = common::HashUtil::Hash<util::HashMethod::Crc>(reinterpret_cast<const uint8_t *>(&key), sizeof(key));
       auto *space = join_hash_table.AllocInputTuple(hash_val);
       auto *tuple = reinterpret_cast<Tuple *>(space);
 

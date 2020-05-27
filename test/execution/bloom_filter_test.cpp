@@ -1,11 +1,11 @@
+#include "execution/sql/bloom_filter.h"
+
 #include <random>
 #include <unordered_set>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "execution/tpl_test.h"
-
-#include "execution/sql/bloom_filter.h"
-#include "execution/util/hash.h"
 
 namespace terrier::execution::sql::test {
 
@@ -59,12 +59,12 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
   MemoryPool memory(nullptr);
   BloomFilter filter(&memory, num_filter_elems);
   for (const auto elem : insertions) {
-    filter.Add(util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&elem), sizeof(elem)));
+    filter.Add(common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&elem), sizeof(elem)));
   }
 
   // All inserted elements **must** be present in filter
   for (const auto elem : insertions) {
-    filter.Add(util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&elem), sizeof(elem)));
+    filter.Add(common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&elem), sizeof(elem)));
   }
 
   auto bits_per_elem = static_cast<double>(filter.GetSizeInBits()) / num_filter_elems;
@@ -84,7 +84,7 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
 
     uint32_t actual_found = 0;
     for (const auto elem : lookups) {
-      auto exists = filter.Contains(util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&elem), sizeof(elem)));
+      auto exists = filter.Contains(common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&elem), sizeof(elem)));
 
       if (!exists) {
         EXPECT_EQ(0u, check.count(elem));

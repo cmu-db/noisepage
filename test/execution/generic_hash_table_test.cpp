@@ -1,11 +1,11 @@
+#include "execution/sql/generic_hash_table.h"
+
 #include <random>
 #include <unordered_map>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "execution/tpl_test.h"
-
-#include "execution/sql/generic_hash_table.h"
-#include "execution/util/hash.h"
 
 namespace terrier::execution::sql::test {
 
@@ -82,7 +82,7 @@ TEST_F(GenericHashTableTest, SimpleIterationTest) {
   std::vector<TestEntry> entries;
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
     TestEntry entry(random(), 20);
-    entry.hash_ = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&entry.key_), sizeof(entry.key_));
+    entry.hash_ = common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&entry.key_), sizeof(entry.key_));
 
     reference[entry.key_] = entry;
     entries.emplace_back(entry);
@@ -140,7 +140,7 @@ TEST_F(GenericHashTableTest, LongChainIterationTest) {
   std::vector<TestEntry> entries;
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
     TestEntry entry(key, value);
-    entry.hash_ = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&entry.key_), sizeof(entry.key_));
+    entry.hash_ = common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&entry.key_), sizeof(entry.key_));
     entries.emplace_back(entry);
   }
 
