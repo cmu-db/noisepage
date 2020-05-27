@@ -566,8 +566,10 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
         }
       }
 
-      key_size = ComputeKeySize(keys);
-      num_keys = keys.size();
+      if (!keys.empty()) {
+        key_size = ComputeKeySize(keys);
+        num_keys = keys.size();
+      }
     }
 
     AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1, mem_factor);
