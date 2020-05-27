@@ -561,7 +561,7 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
     auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
     ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
                  bar_col2->is_null_ || bar_col3->is_null_);
-  
+
     ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 3));
     ASSERT_EQ(foo_col1->val_, bar_col1->val_);
 
