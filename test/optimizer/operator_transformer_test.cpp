@@ -250,12 +250,12 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   auto insert_value_a1 =
       logical_insert->GetValues().Get()[0][0][0].CastManagedPointerTo<parser::ConstantValueExpression>();
   EXPECT_EQ(insert_value_a1->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(insert_value_a1->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 5);
+  EXPECT_EQ(insert_value_a1->Peek<int64_t>(), 5);
 
   auto insert_value_a2 =
       logical_insert->GetValues().Get()[0][0][1].CastManagedPointerTo<parser::ConstantValueExpression>();
   EXPECT_EQ(insert_value_a2->GetReturnValueType(), type::TypeId::VARCHAR);
-  EXPECT_EQ(insert_value_a2->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView(), "MY DATA");
+  EXPECT_EQ(insert_value_a2->Peek<std::string_view>(), "MY DATA");
 }
 
 // NOLINTNEXTLINE
@@ -329,7 +329,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   EXPECT_EQ("a1", update_clause->GetColumnName());
   auto constant = update_clause->GetUpdateValue().CastManagedPointerTo<parser::ConstantValueExpression>();
   EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(constant->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 999);
+  EXPECT_EQ(constant->Peek<int64_t>(), 999);
 
   // Test LogicalGet
   auto logical_get = operator_tree_->GetChildren()[0]->Contents()->GetContentsAs<optimizer::LogicalGet>();

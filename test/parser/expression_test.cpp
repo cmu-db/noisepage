@@ -138,12 +138,9 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_bi_3;
 
   // constant double/decimalGetDecimal
-  auto expr_d_1 = new ConstantValueExpression(type::TypeId::DECIMAL,
-                                              std::make_unique<execution::sql::Real>(static_cast<double>(1)));
-  auto expr_d_2 = new ConstantValueExpression(type::TypeId::DECIMAL,
-                                              std::make_unique<execution::sql::Real>(static_cast<double>(1)));
-  auto expr_d_3 = new ConstantValueExpression(type::TypeId::DECIMAL,
-                                              std::make_unique<execution::sql::Real>(static_cast<double>(32768)));
+  auto expr_d_1 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1)));
+  auto expr_d_2 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1)));
+  auto expr_d_3 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(32768)));
 
   EXPECT_TRUE(*expr_d_1 == *expr_d_2);
   EXPECT_EQ(expr_d_1->Hash(), expr_d_2->Hash());
@@ -244,42 +241,42 @@ TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
   auto deserialized = DeserializeExpression(json);
   auto deserialized_expr = common::ManagedPointer(deserialized.result_);
   EXPECT_EQ(*original_expr, *deserialized_expr);
-  EXPECT_TRUE(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()->GetValue()->is_null_);
+  EXPECT_TRUE(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()->IsNull());
 }
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionExpressionTest) {
   std::vector<std::unique_ptr<AbstractExpression>> children1;
-  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(true)));
-  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(false)));
+  children1.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children1.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   std::vector<std::unique_ptr<AbstractExpression>> children1cp;
-  children1cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                     std::make_unique<execution::sql::BoolVal>(true)));
-  children1cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                     std::make_unique<execution::sql::BoolVal>(false)));
+  children1cp.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children1cp.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
 
   std::vector<std::unique_ptr<AbstractExpression>> children2;
-  children2.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(true)));
-  children2.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(false)));
+  children2.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children2.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto c_expr_2 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children2));
 
   std::vector<std::unique_ptr<AbstractExpression>> children3;
-  children3.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(true)));
-  children3.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(true)));
+  children3.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children3.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children3));
 
   std::vector<std::unique_ptr<AbstractExpression>> children4;
-  children4.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(true)));
-  children4.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(false)));
+  children4.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children4.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto c_expr_4 = new ConjunctionExpression(ExpressionType::CONJUNCTION_OR, std::move(children4));
 
   EXPECT_TRUE(*c_expr_1 == *c_expr_2);
@@ -316,10 +313,10 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
 TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   // Create expression
   std::vector<std::unique_ptr<AbstractExpression>> children1;
-  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(true)));
-  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                   std::make_unique<execution::sql::BoolVal>(false)));
+  children1.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children1.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
   auto copy = c_expr_1->Copy();
   EXPECT_EQ(*c_expr_1, *copy);
@@ -374,8 +371,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
 
   // Create expression 5, field child type
   std::vector<std::unique_ptr<AbstractExpression>> children_5;
-  children_5.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                    std::make_unique<execution::sql::BoolVal>(false)));
+  children_5.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto agg_expr_5 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_5), true);
 
   EXPECT_TRUE(*agg_expr_1 == *agg_expr_2);
@@ -405,8 +402,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_6;
-  children_6.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                    std::make_unique<execution::sql::BoolVal>(true)));
+  children_6.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto agg_expr_6 = new AggregateExpression(ExpressionType::AGGREGATE_MAX, std::move(children_6), true);
   agg_expr_6->DeriveReturnValueType();
 
@@ -416,8 +413,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_7;
-  children_7.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                    std::make_unique<execution::sql::BoolVal>(true)));
+  children_7.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto agg_expr_7 = new AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
   agg_expr_7->DeriveReturnValueType();
 
@@ -427,8 +424,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_8;
-  children_8.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                    std::make_unique<execution::sql::BoolVal>(true)));
+  children_8.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto agg_expr_8 = new AggregateExpression(ExpressionType(100), std::move(children_8), true);
   // TODO(WAN): Why is there a random NDEBUG here?
 #ifndef NDEBUG
@@ -642,13 +639,13 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   std::vector<std::unique_ptr<AbstractExpression>> children;
   children.emplace_back(
       std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1))));
-  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
-                                                                  std::make_unique<execution::sql::Integer>(32768)));
+  children.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT, execution::sql::Integer(32768)));
   std::vector<std::unique_ptr<AbstractExpression>> children_cp;
   children_cp.emplace_back(
       std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1))));
-  children_cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
-                                                                     std::make_unique<execution::sql::Integer>(32768)));
+  children_cp.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT, execution::sql::Integer(32768)));
 
   auto op_expr_2 = new OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children));
   op_expr_2->DeriveReturnValueType();

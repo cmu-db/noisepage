@@ -49,8 +49,8 @@ class ExpressionMaker {
    * Create a floating point constant expression
    */
   ManagedExpression Constant(double val) {
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL,
-                                                                         std::make_unique<execution::sql::Real>(val)));
+    return MakeManaged(
+        std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(val)));
   }
 
   /**

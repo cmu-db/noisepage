@@ -29,8 +29,8 @@ void SettingsManager::ValidateParams() {
   // all of the settings defined in settings.h.
   // Example:
   //   ValidateSetting(Param::port, parser::ConstantValueExpression(type::TypeID::INTEGER,
-  //   std::make_unique<execution::sql::Integer>(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
-  //   std::make_unique<execution::sql::Integer>(65535)));
+  //   execution::sql::Integer(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
+  //   execution::sql::Integer(65535)));
 
 #define __SETTING_VALIDATE__           // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -288,7 +288,7 @@ void SettingsManager::ConstructParamMap(                                        
    * param_map.emplace(
    *     terrier::settings::Param::port,
    *     terrier::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
-   *     std::make_unique<execution::sql::Integer>(FLAGS_port)), "Terrier port (default: 15721)",
+   *     execution::sql::Integer(FLAGS_port)), "Terrier port (default: 15721)",
    *     parser::ConstantValueExpression(type::TypeID::INTEGER, execution::sql::Integer(15721)),
    *     is_mutable));
    */
