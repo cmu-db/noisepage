@@ -2,15 +2,11 @@
 
 #include <gflags/gflags.h>
 
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "common/macros.h"
+#include "execution/sql/value_util.h"
 #include "main/db_main.h"
+#include "parser/expression/constant_value_expression.h"
 #include "settings/settings_callbacks.h"
-#include "type/transient_value_factory.h"
 
 #define __SETTING_GFLAGS_DECLARE__     // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -19,8 +15,6 @@
 
 namespace terrier::settings {
 
-using ValueFactory = type::TransientValueFactory;
-using ValuePeeker = type::TransientValuePeeker;
 using ActionContext = common::ActionContext;
 using ActionState = common::ActionState;
 
@@ -34,8 +28,9 @@ void SettingsManager::ValidateParams() {
   // This will expand to invoke settings_manager::DefineSetting on
   // all of the settings defined in settings.h.
   // Example:
-  //   ValidateSetting(Param::port, type::TransientValueFactory::GetInteger(1024),
-  //                  type::TransientValueFactory::GetInteger(65535));
+  //   ValidateSetting(Param::port, parser::ConstantValueExpression(type::TypeID::INTEGER,
+  //   std::make_unique<execution::sql::Integer>(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
+  //   std::make_unique<execution::sql::Integer>(65535)));
 
 #define __SETTING_VALIDATE__           // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -43,8 +38,8 @@ void SettingsManager::ValidateParams() {
 #undef __SETTING_VALIDATE__            // NOLINT
 }
 
-void SettingsManager::ValidateSetting(Param param, const type::TransientValue &min_value,
-                                      const type::TransientValue &max_value) {
+void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
+                                      const parser::ConstantValueExpression &max_value) {
   const ParamInfo &info = param_map_.find(param)->second;
   if (!ValidateValue(info.value_, min_value, max_value)) {
     SETTINGS_LOG_ERROR(
@@ -57,27 +52,27 @@ void SettingsManager::ValidateSetting(Param param, const type::TransientValue &m
 
 int32_t SettingsManager::GetInt(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return ValuePeeker::PeekInteger(GetValue(param));
+  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
 }
 
 int64_t SettingsManager::GetInt64(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return ValuePeeker::PeekBigInt(GetValue(param));
+  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
 }
 
 double SettingsManager::GetDouble(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return ValuePeeker::PeekDecimal(GetValue(param));
+  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
 }
 
 bool SettingsManager::GetBool(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return ValuePeeker::PeekBoolean(GetValue(param));
+  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
 }
 
 std::string SettingsManager::GetString(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return std::string(ValuePeeker::PeekVarChar(GetValue(param)));
+  return std::string(GetValue(param).GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView());
 }
 
 void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<ActionContext> action_context,
@@ -90,20 +85,21 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
   }
 
   const auto &param_info = param_map_.find(param)->second;
-  auto min_value = static_cast<const int>(param_info.min_value_);
-  auto max_value = static_cast<const int>(param_info.max_value_);
+  const auto min_value = static_cast<int32_t>(param_info.min_value_);
+  const auto max_value = static_cast<int32_t>(param_info.max_value_);
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    int old_value = ValuePeeker::PeekInteger(GetValue(param));
-    if (!SetValue(param, ValueFactory::GetInteger(value))) {
+    int32_t old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+    if (!SetValue(param, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        bool result = SetValue(param, ValueFactory::GetInteger(old_value));
+        const bool result =
+            SetValue(param, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -124,20 +120,21 @@ void SettingsManager::SetInt64(Param param, int64_t value, common::ManagedPointe
   }
 
   const auto &param_info = param_map_.find(param)->second;
-  auto min_value = static_cast<const int64_t>(param_info.min_value_);
-  auto max_value = static_cast<const int64_t>(param_info.max_value_);
+  const auto min_value = static_cast<const int64_t>(param_info.min_value_);
+  const auto max_value = static_cast<const int64_t>(param_info.max_value_);
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    int old_value = ValuePeeker::PeekBigInt(GetValue(param));
-    if (!SetValue(param, ValueFactory::GetBigInt(value))) {
+    int64_t old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+    if (!SetValue(param, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        bool result = SetValue(param, ValueFactory::GetBigInt(old_value));
+        const bool result =
+            SetValue(param, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -158,20 +155,20 @@ void SettingsManager::SetDouble(Param param, double value, common::ManagedPointe
   }
 
   const auto &param_info = param_map_.find(param)->second;
-  auto min_value = static_cast<const int>(param_info.min_value_);
-  auto max_value = static_cast<const int>(param_info.max_value_);
+  const auto min_value = static_cast<const int>(param_info.min_value_);
+  const auto max_value = static_cast<const int>(param_info.max_value_);
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    double old_value = ValuePeeker::PeekDecimal(GetValue(param));
-    if (!SetValue(param, ValueFactory::GetDecimal(value))) {
+    double old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+    if (!SetValue(param, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        bool result = SetValue(param, ValueFactory::GetDecimal(old_value));
+        const bool result = SetValue(param, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -194,13 +191,14 @@ void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<Ac
   const auto &param_info = param_map_.find(param)->second;
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
-  bool old_value = ValuePeeker::PeekBoolean(GetValue(param));
-  if (!SetValue(param, ValueFactory::GetBoolean(value))) {
+  bool old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+  if (!SetValue(param, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(value)})) {
     action_context->SetState(ActionState::FAILURE);
   } else {
     ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
     if (action_state == ActionState::FAILURE) {
-      bool result = SetValue(param, ValueFactory::GetBoolean(old_value));
+      const bool result =
+          SetValue(param, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(old_value)});
       if (!result) {
         SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
         throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -223,14 +221,19 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
   const auto &param_info = param_map_.find(param)->second;
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
-  std::string_view old_value = ValuePeeker::PeekVarChar(GetValue(param));
-  if (!SetValue(param, ValueFactory::GetVarChar(value))) {
+  auto old_cve = std::unique_ptr<parser::ConstantValueExpression>{
+      reinterpret_cast<parser::ConstantValueExpression *>(GetValue(param).Copy().release())};
+
+  auto string_val = execution::sql::ValueUtil::CreateStringVal(value);
+
+  if (!SetValue(param, {type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second)})) {
     action_context->SetState(ActionState::FAILURE);
   } else {
     std::string_view new_value(value);
+    auto old_value = old_cve->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
     ActionState action_state = InvokeCallback(param, &old_value, &new_value, action_context);
     if (action_state == ActionState::FAILURE) {
-      bool result = SetValue(param, ValueFactory::GetVarChar(old_value));
+      const bool result = SetValue(param, *old_cve);
       if (!result) {
         SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
         throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -240,12 +243,12 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
   setter_callback(action_context);
 }
 
-type::TransientValue &SettingsManager::GetValue(Param param) {
+parser::ConstantValueExpression &SettingsManager::GetValue(Param param) {
   auto &param_info = param_map_.find(param)->second;
   return param_info.value_;
 }
 
-bool SettingsManager::SetValue(Param param, type::TransientValue value) {
+bool SettingsManager::SetValue(Param param, parser::ConstantValueExpression value) {
   auto &param_info = param_map_.find(param)->second;
 
   if (!param_info.is_mutable_) return false;
@@ -254,15 +257,20 @@ bool SettingsManager::SetValue(Param param, type::TransientValue value) {
   return true;
 }
 
-bool SettingsManager::ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
-                                    const type::TransientValue &max_value) {
-  switch (value.Type()) {
+bool SettingsManager::ValidateValue(const parser::ConstantValueExpression &value,
+                                    const parser::ConstantValueExpression &min_value,
+                                    const parser::ConstantValueExpression &max_value) {
+  switch (value.GetReturnValueType()) {
     case type::TypeId::INTEGER:
-      return ValuePeeker::PeekInteger(value) >= ValuePeeker::PeekInteger(min_value) &&
-             ValuePeeker::PeekInteger(value) <= ValuePeeker::PeekInteger(max_value);
+      return value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ >=
+                 min_value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ &&
+             value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ <=
+                 max_value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
     case type::TypeId ::DECIMAL:
-      return ValuePeeker::PeekDecimal(value) >= ValuePeeker::PeekDecimal(min_value) &&
-             ValuePeeker::PeekDecimal(value) <= ValuePeeker::PeekDecimal(max_value);
+      return value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ >=
+                 min_value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ &&
+             value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ <=
+                 max_value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
     default:
       return true;
   }
@@ -285,9 +293,10 @@ void SettingsManager::ConstructParamMap(                                        
    * This will expand to a list of code like:
    * param_map.emplace(
    *     terrier::settings::Param::port,
-   *     terrier::settings::ParamInfo(port, terrier::type::TransientValueFactory::GetInteger(FLAGS_port),
-   *                                  "Terrier port (default: 15721)",
-   *                                  terrier::type::TransientValueFactory::GetInteger(15721), is_mutable));
+   *     terrier::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
+   *     std::make_unique<execution::sql::Integer>(FLAGS_port)), "Terrier port (default: 15721)",
+   *     parser::ConstantValueExpression(type::TypeID::INTEGER, std::make_unique<execution::sql::Integer>(15721)),
+   *     is_mutable));
    */
 
 #define __SETTING_POPULATE__           // NOLINT

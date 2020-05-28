@@ -8,8 +8,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "planner/plannodes/output_schema.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
+
 #include "type/type_id.h"
 
 #include "test_util/test_harness.h"
@@ -23,7 +22,8 @@ class OutputSchemaTests : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN,
+                                                             std::make_unique<execution::sql::BoolVal>(true));
   }
 };
 
