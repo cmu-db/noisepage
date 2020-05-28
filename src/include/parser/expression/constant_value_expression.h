@@ -32,8 +32,9 @@ class ConstantValueExpression : public AbstractExpression {
 
   /**
    * Construct a CVE of provided type and value
+   * @tparam T execution value type to copy from
    * @param type SQL type, apparently can be INVALID coming out of the parser for NULLs
-   * @param value underlying value to take ownership of
+   * @param value underlying value to copy
    */
   template <typename T>
   ConstantValueExpression(type::TypeId type, T value);
@@ -41,8 +42,8 @@ class ConstantValueExpression : public AbstractExpression {
   /**
    * Construct a CVE of provided type and value
    * @param type SQL type, apparently can be INVALID coming out of the parser for NULLs
-   * @param value underlying value to take ownership of
-   * @param buffer StringVal might not be inlined, so take ownership of that buffer as well
+   * @param value underlying value to copy
+   * @param buffer StringVal might not be inlined, so take ownership of that buffer
    */
   ConstantValueExpression(type::TypeId type, execution::sql::StringVal value, std::unique_ptr<byte[]> buffer);
 
@@ -158,21 +159,29 @@ class ConstantValueExpression : public AbstractExpression {
   /**
    * Change the underlying value of this CVE. Used by the BinderSherpa to promote parameters
    * @param type SQL type, apparently can be INVALID coming out of the parser for NULLs
-   * @param value underlying value to take ownership of
-   * @param buffer StringVal might not be inlined, so take ownership of that buffer as well
+   * @param value underlying value to copy
+   * @param buffer StringVal might not be inlined, so take ownership of that buffer
    */
-  void SetValue(const type::TypeId type, const execution::sql::Val value, std::unique_ptr<byte[]> buffer) {
+  void SetValue(const type::TypeId type, const execution::sql::StringVal value, std::unique_ptr<byte[]> buffer) {
     return_value_type_ = type;
     value_ = value;
     buffer_ = std::move(buffer);
     Validate();
   }
+
   /**
    * Change the underlying value of this CVE. Used by the BinderSherpa to promote parameters
+   * @tparam T execution value type to copy from
    * @param type SQL type, apparently can be INVALID coming out of the parser for NULLs
-   * @param value underlying value to take ownership of
+   * @param value underlying value to copy
    */
-  void SetValue(const type::TypeId type, const execution::sql::Val value) { SetValue(type, value, nullptr); }
+  template <typename T>
+  void SetValue(const type::TypeId type, const T value) {
+    return_value_type_ = type;
+    value_ = value;
+    buffer_ = nullptr;
+    Validate();
+  }
 
   /**
    * @return true if CVE value represents a NULL
@@ -241,5 +250,43 @@ class ConstantValueExpression : public AbstractExpression {
 };  // namespace terrier::parser
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
+
+extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                                 const execution::sql::Val value);
+extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                                 const execution::sql::BoolVal value);
+extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                                 const execution::sql::Integer value);
+extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                                 const execution::sql::Real value);
+extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                                 const execution::sql::Decimal value);
+extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                                 const execution::sql::StringVal value);
+extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                                 const execution::sql::DateVal value);
+extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                                 const execution::sql::TimestampVal value);
+
+extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Val value);
+extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::BoolVal value);
+extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Integer value);
+extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Real value);
+extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Decimal value);
+extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::StringVal value);
+extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DateVal value);
+extern template void ConstantValueExpression::SetValue(const type::TypeId type,
+                                                       const execution::sql::TimestampVal value);
+
+extern template bool ConstantValueExpression::Peek() const;
+extern template int8_t ConstantValueExpression::Peek() const;
+extern template int16_t ConstantValueExpression::Peek() const;
+extern template int32_t ConstantValueExpression::Peek() const;
+extern template int64_t ConstantValueExpression::Peek() const;
+extern template float ConstantValueExpression::Peek() const;
+extern template double ConstantValueExpression::Peek() const;
+extern template execution::sql::Date ConstantValueExpression::Peek() const;
+extern template execution::sql::Timestamp ConstantValueExpression::Peek() const;
+extern template std::string_view ConstantValueExpression::Peek() const;
 
 }  // namespace terrier::parser

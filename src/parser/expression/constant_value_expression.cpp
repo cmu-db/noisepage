@@ -54,17 +54,6 @@ void ConstantValueExpression::Validate() const {
   }
 }
 
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Val value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Integer value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Real value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Decimal value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
-                                                          const execution::sql::StringVal value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::DateVal value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
-                                                          const execution::sql::TimestampVal value);
-
 template <typename T>
 T ConstantValueExpression::Peek() const {
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
@@ -75,11 +64,11 @@ T ConstantValueExpression::Peek() const {
   if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
                 std::is_same_v<T, int64_t>) {  // NOLINT: bugprone-suspicious-semicolon: seems like a false positive
                                                // because of constexpr
-    return GetInteger().val_;
+    return static_cast<T>(GetInteger().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
-    return GetReal().val_;
+    return static_cast<T>(GetReal().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, execution::sql::Date>) {
@@ -95,17 +84,6 @@ T ConstantValueExpression::Peek() const {
   }
   UNREACHABLE("Invalid type for GetAs.");
 }
-
-template bool ConstantValueExpression::Peek() const;
-template int8_t ConstantValueExpression::Peek() const;
-template int16_t ConstantValueExpression::Peek() const;
-template int32_t ConstantValueExpression::Peek() const;
-template int64_t ConstantValueExpression::Peek() const;
-template float ConstantValueExpression::Peek() const;
-template double ConstantValueExpression::Peek() const;
-template execution::sql::Date ConstantValueExpression::Peek() const;
-template execution::sql::Timestamp ConstantValueExpression::Peek() const;
-template std::string_view ConstantValueExpression::Peek() const;
 
 ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueExpression &other) {
   if (this != &other) {  // self-assignment check expected
@@ -329,4 +307,36 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
 
   return exprs;
 }
+
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Val value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Integer value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Real value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Decimal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::StringVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::DateVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::TimestampVal value);
+
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Val value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::BoolVal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Integer value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Real value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Decimal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::StringVal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DateVal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::TimestampVal value);
+
+template bool ConstantValueExpression::Peek() const;
+template int8_t ConstantValueExpression::Peek() const;
+template int16_t ConstantValueExpression::Peek() const;
+template int32_t ConstantValueExpression::Peek() const;
+template int64_t ConstantValueExpression::Peek() const;
+template float ConstantValueExpression::Peek() const;
+template double ConstantValueExpression::Peek() const;
+template execution::sql::Date ConstantValueExpression::Peek() const;
+template execution::sql::Timestamp ConstantValueExpression::Peek() const;
+template std::string_view ConstantValueExpression::Peek() const;
+
 }  // namespace terrier::parser
