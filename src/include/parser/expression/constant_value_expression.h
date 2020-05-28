@@ -251,6 +251,7 @@ class ConstantValueExpression : public AbstractExpression {
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
 
+/// @cond DOXYGEN_IGNORE
 extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
                                                                  const execution::sql::Val value);
 extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
@@ -288,5 +289,6 @@ extern template double ConstantValueExpression::Peek() const;
 extern template execution::sql::Date ConstantValueExpression::Peek() const;
 extern template execution::sql::Timestamp ConstantValueExpression::Peek() const;
 extern template std::string_view ConstantValueExpression::Peek() const;
+/// @endcond
 
 }  // namespace terrier::parser
