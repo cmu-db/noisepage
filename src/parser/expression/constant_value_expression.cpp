@@ -72,19 +72,19 @@ T ConstantValueExpression::Peek() const {
   }
   if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
                 std::is_same_v<T, int64_t>) {
-    return static_cast<T>(GetInteger().val_);
+    return GetInteger().val_;
   }
   if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
-    return static_cast<T>(GetReal().val_);
+    return GetReal().val_;
   }
   if constexpr (std::is_same_v<T, execution::sql::Date>) {
-    return static_cast<T>(GetDateVal().val_);
+    return GetDateVal().val_;
   }
   if constexpr (std::is_same_v<T, execution::sql::Timestamp>) {
-    return static_cast<T>(GetTimestampVal().val_);
+    return GetTimestampVal().val_;
   }
   if constexpr (std::is_same_v<T, std::string_view>) {
-    return static_cast<T>(GetStringVal().StringView());
+    return std::get<execution::sql::StringVal>(value_).StringView();
   }
   UNREACHABLE("Invalid type for GetAs.");
 }
@@ -110,7 +110,7 @@ ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueE
     depth_ = other.depth_;
     has_subquery_ = other.has_subquery_;
     // ConstantValueExpression fields
-    if (other.GetReturnValueType() == type::TypeId::VARCHAR || other.GetReturnValueType() == type::TypeId::VARBINARY) {
+    if (std::holds_alternative<execution::sql::StringVal>(other.value_)) {
       auto string_val = execution::sql::ValueUtil::CreateStringVal(other.GetStringVal());
 
       value_ = string_val.first;
@@ -125,7 +125,7 @@ ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueE
 }
 
 ConstantValueExpression::ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
-  if (other.GetReturnValueType() == type::TypeId::VARCHAR || other.GetReturnValueType() == type::TypeId::VARBINARY) {
+  if (std::holds_alternative<execution::sql::StringVal>(other.value_)) {
     auto string_val = execution::sql::ValueUtil::CreateStringVal(other.GetStringVal());
 
     value_ = string_val.first;

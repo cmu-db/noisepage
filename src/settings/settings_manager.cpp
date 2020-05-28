@@ -72,7 +72,8 @@ bool SettingsManager::GetBool(Param param) {
 
 std::string SettingsManager::GetString(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return std::string(GetValue(param).Peek<std::string_view>());
+  const auto &value = GetValue(param);
+  return std::string(value.Peek<std::string_view>());
 }
 
 void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<ActionContext> action_context,
@@ -93,13 +94,12 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
     action_context->SetState(ActionState::FAILURE);
   } else {
     auto old_value = GetValue(param).Peek<int32_t>();
-    if (!SetValue(param, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(value)})) {
+    if (!SetValue(param, {type::TypeId::INTEGER, execution::sql::Integer(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        const bool result =
-            SetValue(param, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(old_value)});
+        const bool result = SetValue(param, {type::TypeId::INTEGER, execution::sql::Integer(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -128,13 +128,12 @@ void SettingsManager::SetInt64(Param param, int64_t value, common::ManagedPointe
     action_context->SetState(ActionState::FAILURE);
   } else {
     auto old_value = GetValue(param).Peek<int64_t>();
-    if (!SetValue(param, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(value)})) {
+    if (!SetValue(param, {type::TypeId::BIGINT, execution::sql::Integer(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        const bool result =
-            SetValue(param, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(old_value)});
+        const bool result = SetValue(param, {type::TypeId::BIGINT, execution::sql::Integer(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -163,12 +162,12 @@ void SettingsManager::SetDouble(Param param, double value, common::ManagedPointe
     action_context->SetState(ActionState::FAILURE);
   } else {
     auto old_value = GetValue(param).Peek<double>();
-    if (!SetValue(param, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(value)})) {
+    if (!SetValue(param, {type::TypeId::DECIMAL, execution::sql::Real(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        const bool result = SetValue(param, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(old_value)});
+        const bool result = SetValue(param, {type::TypeId::DECIMAL, execution::sql::Real(old_value)});
         if (!result) {
           SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
           throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -192,13 +191,12 @@ void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<Ac
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   auto old_value = GetValue(param).Peek<bool>();
-  if (!SetValue(param, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(value)})) {
+  if (!SetValue(param, {type::TypeId::BOOLEAN, execution::sql::BoolVal(value)})) {
     action_context->SetState(ActionState::FAILURE);
   } else {
     ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
     if (action_state == ActionState::FAILURE) {
-      const bool result =
-          SetValue(param, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(old_value)});
+      const bool result = SetValue(param, {type::TypeId::BOOLEAN, execution::sql::BoolVal(old_value)});
       if (!result) {
         SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
         throw SETTINGS_EXCEPTION("Failed to reset parameter");
@@ -291,7 +289,7 @@ void SettingsManager::ConstructParamMap(                                        
    *     terrier::settings::Param::port,
    *     terrier::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
    *     std::make_unique<execution::sql::Integer>(FLAGS_port)), "Terrier port (default: 15721)",
-   *     parser::ConstantValueExpression(type::TypeID::INTEGER, std::make_unique<execution::sql::Integer>(15721)),
+   *     parser::ConstantValueExpression(type::TypeID::INTEGER, execution::sql::Integer(15721)),
    *     is_mutable));
    */
 

@@ -41,8 +41,8 @@ class ExpressionMaker {
    * Create an integer constant expression
    */
   ManagedExpression Constant(int32_t val) {
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
-        type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(val)));
+    return MakeManaged(
+        std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(val)));
   }
 
   /**
@@ -58,7 +58,7 @@ class ExpressionMaker {
    */
   ManagedExpression Constant(int32_t year, uint32_t month, uint32_t day) {
     return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
-        type::TypeId::DATE, std::make_unique<sql::DateVal>(sql::Date::FromYMD(year, month, day))));
+        type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(year, month, day))));
   }
 
   /**

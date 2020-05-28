@@ -44,7 +44,6 @@ TEST(ValueConditionTests, GetPointerToValueTest) {
                                                                std::make_unique<execution::sql::Integer>(1));
   ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
 
-  EXPECT_EQ(parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1)),
-            *v.GetPointerToValue());
+  EXPECT_EQ(parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1)), *v.GetPointerToValue());
 }
 }  // namespace terrier::optimizer

@@ -31,7 +31,7 @@ TEST_F(CVETests, BooleanTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
 
-    ConstantValueExpression value(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(data));
+    ConstantValueExpression value(type::TypeId::BOOLEAN, execution::sql::BoolVal(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_);
 
@@ -64,7 +64,7 @@ TEST_F(CVETests, TinyIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(data));
+    ConstantValueExpression value(type::TypeId::TINYINT, execution::sql::Integer(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
 
@@ -95,7 +95,7 @@ TEST_F(CVETests, SmallIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::SMALLINT, std::make_unique<execution::sql::Integer>(data));
+    ConstantValueExpression value(type::TypeId::SMALLINT, execution::sql::Integer(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
 
@@ -126,7 +126,7 @@ TEST_F(CVETests, IntegerTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(data));
+    ConstantValueExpression value(type::TypeId::INTEGER, execution::sql::Integer(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
 
@@ -157,7 +157,7 @@ TEST_F(CVETests, BigIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(data));
+    ConstantValueExpression value(type::TypeId::BIGINT, execution::sql::Integer(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
 
@@ -188,7 +188,7 @@ TEST_F(CVETests, DecimalTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
-    ConstantValueExpression value(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(data));
+    ConstantValueExpression value(type::TypeId::DECIMAL, execution::sql::Real(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_);
 
@@ -219,7 +219,7 @@ TEST_F(CVETests, TimestampTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<uint64_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::TIMESTAMP, std::make_unique<execution::sql::TimestampVal>(data));
+    ConstantValueExpression value(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative());
 
@@ -250,7 +250,7 @@ TEST_F(CVETests, DateTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<uint32_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::DATE, std::make_unique<execution::sql::DateVal>(data));
+    ConstantValueExpression value(type::TypeId::DATE, execution::sql::DateVal(data));
     EXPECT_FALSE(value.GetValue()->is_null_);
     EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative());
 
@@ -320,7 +320,7 @@ TEST_F(CVETests, VarCharTest) {
 TEST_F(CVETests, BooleanJsonTest) {
   auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
 
-  ConstantValueExpression value(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(data));
+  ConstantValueExpression value(type::TypeId::BOOLEAN, execution::sql::BoolVal(data));
   EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
@@ -336,7 +336,7 @@ TEST_F(CVETests, BooleanJsonTest) {
 TEST_F(CVETests, TinyIntJsonTest) {
   auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(data));
+  ConstantValueExpression value(type::TypeId::TINYINT, execution::sql::Integer(data));
   EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
@@ -352,7 +352,7 @@ TEST_F(CVETests, TinyIntJsonTest) {
 TEST_F(CVETests, SmallIntJsonTest) {
   auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::SMALLINT, std::make_unique<execution::sql::Integer>(data));
+  ConstantValueExpression value(type::TypeId::SMALLINT, execution::sql::Integer(data));
   EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
@@ -368,7 +368,7 @@ TEST_F(CVETests, SmallIntJsonTest) {
 TEST_F(CVETests, IntegerJsonTest) {
   auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(data));
+  ConstantValueExpression value(type::TypeId::INTEGER, execution::sql::Integer(data));
   EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
@@ -384,7 +384,7 @@ TEST_F(CVETests, IntegerJsonTest) {
 TEST_F(CVETests, BigIntJsonTest) {
   auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(data));
+  ConstantValueExpression value(type::TypeId::BIGINT, execution::sql::Integer(data));
   EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
@@ -400,7 +400,7 @@ TEST_F(CVETests, BigIntJsonTest) {
 TEST_F(CVETests, DecimalJsonTest) {
   auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
-  ConstantValueExpression value(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(data));
+  ConstantValueExpression value(type::TypeId::DECIMAL, execution::sql::Real(data));
   EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
@@ -416,7 +416,7 @@ TEST_F(CVETests, DecimalJsonTest) {
 TEST_F(CVETests, TimestampJsonTest) {
   auto data = static_cast<uint64_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::TIMESTAMP, std::make_unique<execution::sql::TimestampVal>(data));
+  ConstantValueExpression value(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(data));
   EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
@@ -432,7 +432,7 @@ TEST_F(CVETests, TimestampJsonTest) {
 TEST_F(CVETests, DateJsonTest) {
   auto data = static_cast<uint32_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::DATE, std::make_unique<execution::sql::DateVal>(data));
+  ConstantValueExpression value(type::TypeId::DATE, execution::sql::DateVal(data));
   EXPECT_FALSE(value.GetValue()->is_null_);
 
   auto json = value.ToJson();
