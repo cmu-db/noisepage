@@ -1,5 +1,7 @@
 #include "binder/binder_util.h"
 
+#include <limits>
+
 #include "parser/expression/constant_value_expression.h"
 
 namespace terrier::binder {
