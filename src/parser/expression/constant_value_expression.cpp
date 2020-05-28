@@ -47,8 +47,8 @@ void ConstantValueExpression::Validate() const {
     TERRIER_ASSERT(GetStringVal().is_null_ ||
                        (buffer_ == nullptr && GetStringVal().len_ <= execution::sql::StringVal::InlineThreshold()) ||
                        (buffer_ != nullptr && GetStringVal().len_ > execution::sql::StringVal::InlineThreshold()),
-                   "StringVal should either be NULL, below the inline threshold with no owned buffer, or above the "
-                   "inline threshold with a provided buffer.");
+                   "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
+                   "InlineThreshold with a provided buffer.");
   } else {
     UNREACHABLE("Unknown Val type!");
   }
