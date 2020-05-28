@@ -18,7 +18,7 @@ constexpr const char *kErrorStrings[] = {MESSAGE_LIST(F)};
 
 // Helper template class for MessageArgument::FormatMessageArgument().
 template <class T>
-struct always_false : std::false_type {};
+struct AlwaysFalse : std::false_type {};
 
 }  // namespace
 
@@ -26,25 +26,23 @@ void ErrorReporter::MessageArgument::FormatMessageArgument(std::string *str) con
   std::visit(
       [&](auto &&arg) {
         using T = std::decay_t<decltype(arg)>;
-        // clang-tidy off
-        if constexpr (std::is_same_v<T, const char *>) {
+        if constexpr (std::is_same_v<T, const char *>) {  // NOLINT
           str->append(arg);
-        } else if constexpr (std::is_same_v<T, int32_t>) {
+        } else if constexpr (std::is_same_v<T, int32_t>) {  // NOLINT
           str->append(std::to_string(arg));
-        } else if constexpr (std::is_same_v<T, SourcePosition>) {
+        } else if constexpr (std::is_same_v<T, SourcePosition>) {  // NOLINT
           str->append("[line/col: ")
               .append(std::to_string(arg.line_))
               .append("/")
               .append(std::to_string(arg.column_))
               .append("]");
-        } else if constexpr (std::is_same_v<T, parsing::Token::Type>) {
+        } else if constexpr (std::is_same_v<T, parsing::Token::Type>) {  // NOLINT
           str->append(parsing::Token::GetString(static_cast<parsing::Token::Type>(arg)));
-        } else if constexpr (std::is_same_v<T, ast::Type *>) {
+        } else if constexpr (std::is_same_v<T, ast::Type *>) {  // NOLINT
           str->append(ast::Type::ToString(arg));
         } else {
-          static_assert(always_false<T>::value, "non-exhaustive visitor");
+          static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
         }
-        // clang-tidy on
       },
       arg_);
 }
