@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "common/exception.h"
 #include "common/managed_pointer.h"
@@ -15,6 +16,9 @@ namespace terrier::binder {
 class BinderUtil {
  public:
   BinderUtil() = delete;
+
+  static void PromoteParameters(common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
+                                const std::vector<type::TypeId> &desired_parameter_types);
 
   /**
    * Attempt to convert the transient value to the desired type.

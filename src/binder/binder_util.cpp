@@ -6,6 +6,20 @@
 
 namespace terrier::binder {
 
+void BinderUtil::PromoteParameters(
+    const common::ManagedPointer<std::vector<parser::ConstantValueExpression> > parameters,
+    const std::vector<type::TypeId> &desired_parameter_types) {
+  TERRIER_ASSERT(parameters->size() == desired_parameter_types.size(), "They have to be equal in size.");
+  for (uint32_t parameter_index = 0; parameter_index < desired_parameter_types.size(); parameter_index++) {
+    const auto desired_type = desired_parameter_types[parameter_index];
+
+    if (desired_type != type::TypeId::INVALID) {
+      const auto param = common::ManagedPointer(&(*parameters)[parameter_index]);
+      BinderUtil::CheckAndTryPromoteType(param, desired_type);
+    }
+  }
+}
+
 void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::ConstantValueExpression> value,
                                         const type::TypeId desired_type) {
   const auto curr_type = value->GetReturnValueType();
