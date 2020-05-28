@@ -67,22 +67,28 @@ template ConstantValueExpression::ConstantValueExpression(const type::TypeId typ
 
 template <typename T>
 T ConstantValueExpression::Peek() const {
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, bool>) {
     return static_cast<T>(GetBoolVal().val_);
   }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
                 std::is_same_v<T, int64_t>) {
     return GetInteger().val_;
   }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
     return GetReal().val_;
   }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, execution::sql::Date>) {
     return GetDateVal().val_;
   }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, execution::sql::Timestamp>) {
     return GetTimestampVal().val_;
   }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, std::string_view>) {
     return std::get<execution::sql::StringVal>(value_).StringView();
   }

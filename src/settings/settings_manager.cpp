@@ -224,7 +224,7 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
 
   auto string_val = execution::sql::ValueUtil::CreateStringVal(value);
 
-  if (!SetValue(param, {type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second)})) {
+  if (!SetValue(param, {type::TypeId::VARCHAR, string_val.first, std::move(string_val.second)})) {
     action_context->SetState(ActionState::FAILURE);
   } else {
     std::string_view new_value(value);

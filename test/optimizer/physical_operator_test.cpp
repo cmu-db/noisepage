@@ -1772,7 +1772,7 @@ TEST(OperatorTests, CreateTableTest) {
   auto col_def_2 = new parser::ColumnDefinition(
       "col_1", parser::ColumnDefinition::DataType::VARCHAR, true, true, true,
       common::ManagedPointer<parser::AbstractExpression>(new parser::ConstantValueExpression(
-          type::TypeId::VARCHAR, std::move(col_def_2_string_val.first), std::move(col_def_2_string_val.second))),
+          type::TypeId::VARCHAR, col_def_2_string_val.first, std::move(col_def_2_string_val.second))),
       nullptr, 20);
   Operator op7 = CreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{

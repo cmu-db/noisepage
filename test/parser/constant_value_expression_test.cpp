@@ -287,7 +287,7 @@ TEST_F(CVETests, VarCharTest) {
         common::ManagedPointer(reinterpret_cast<const char *>(data)), length);
     ConstantValueExpression value(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
     EXPECT_FALSE(value.IsNull());
-    const std::string_view string_view = value.Peek<std::string_view>();
+    const auto string_view = value.Peek<std::string_view>();
     EXPECT_EQ(std::string_view(data, length), string_view);
     delete[] data;
 
