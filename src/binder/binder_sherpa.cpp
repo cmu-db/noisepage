@@ -83,32 +83,28 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
     switch (curr_type) {
       // NULL conversion.
       case type::TypeId::INVALID: {
-        value->SetValue(desired_type, std::make_unique<execution::sql::Val>(true));
+        value->SetValue(desired_type, execution::sql::Val(true));
         break;
       }
 
         // INTEGER casting (upwards and downwards).
       case type::TypeId::TINYINT: {
-        const auto int_val =
-            static_cast<int8_t>(value->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+        const auto int_val = value->Peek<int8_t>();
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }
       case type::TypeId::SMALLINT: {
-        const auto int_val =
-            static_cast<int16_t>(value->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+        const auto int_val = value->Peek<int16_t>();
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }
       case type::TypeId::INTEGER: {
-        const auto int_val =
-            static_cast<int32_t>(value->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+        const auto int_val = value->Peek<int32_t>();
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }
       case type::TypeId::BIGINT: {
-        const auto int_val =
-            static_cast<int64_t>(value->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+        const auto int_val = value->Peek<int64_t>();
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }

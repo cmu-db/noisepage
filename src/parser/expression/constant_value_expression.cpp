@@ -12,25 +12,93 @@
 
 namespace terrier::parser {
 
-ConstantValueExpression::ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value)
-    : ConstantValueExpression(type, std::move(value), nullptr) {
-  TERRIER_ASSERT(value_ != nullptr, "Didn't provide a value.");
+template <typename T>
+ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const T value)
+    : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(value) {
+  Validate();
 }
 
-ConstantValueExpression::ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value,
-                                                 std::unique_ptr<byte> buffer)
-    : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}),
-      value_(std::move(value)),
-      buffer_(std::move(buffer)) {
-  TERRIER_ASSERT(value_ != nullptr, "Didn't provide a value.");
-  TERRIER_ASSERT(value_->is_null_ || (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY) ||
-                     (buffer_ == nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ <=
-                                                execution::sql::StringVal::InlineThreshold()) ||
-                     (buffer_ != nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ >
-                                                execution::sql::StringVal::InlineThreshold()),
-                 "Value should either be NULL, a non-varlen type, or varlen and below the threshold with no owned "
-                 "buffer, or varlen and above the threshold with a provided buffer.");
+ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::StringVal value,
+                                                 std::unique_ptr<byte[]> buffer)
+    : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(value), buffer_(std::move(buffer)) {
+  Validate();
 }
+
+void ConstantValueExpression::Validate() const {
+  if (std::holds_alternative<execution::sql::Val>(value_)) {
+    TERRIER_ASSERT(
+        std::get<execution::sql::Val>(value_).is_null_,
+        "Should have only constructed a base-type Val in the event of a NULL (likely coming out of PostgresParser).");
+  } else if (std::holds_alternative<execution::sql::BoolVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::BOOLEAN, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::Integer>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::TINYINT || return_value_type_ == type::TypeId::SMALLINT ||
+                       return_value_type_ == type::TypeId::INTEGER || return_value_type_ == type::TypeId::BIGINT,
+                   "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::Real>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::DateVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::DATE, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::TimestampVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::TIMESTAMP, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::StringVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
+                   "Invalid TypeId for Val type.");
+    TERRIER_ASSERT(GetStringVal().is_null_ ||
+                       (buffer_ == nullptr && GetStringVal().len_ <= execution::sql::StringVal::InlineThreshold()) ||
+                       (buffer_ != nullptr && GetStringVal().len_ > execution::sql::StringVal::InlineThreshold()),
+                   "StringVal should either be NULL, below the inline threshold with no owned buffer, or above the "
+                   "inline threshold with a provided buffer.");
+  } else {
+    UNREACHABLE("Unknown Val type!");
+  }
+}
+
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Val value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Integer value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Real value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Decimal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::StringVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::DateVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::TimestampVal value);
+
+template <typename T>
+T ConstantValueExpression::Peek() const {
+  if constexpr (std::is_same_v<T, bool>) {
+    return static_cast<T>(GetBoolVal().val_);
+  }
+  if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
+                std::is_same_v<T, int64_t>) {
+    return static_cast<T>(GetInteger().val_);
+  }
+  if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    return static_cast<T>(GetReal().val_);
+  }
+  if constexpr (std::is_same_v<T, execution::sql::Date>) {
+    return static_cast<T>(GetDateVal().val_);
+  }
+  if constexpr (std::is_same_v<T, execution::sql::Timestamp>) {
+    return static_cast<T>(GetTimestampVal().val_);
+  }
+  if constexpr (std::is_same_v<T, std::string_view>) {
+    return static_cast<T>(GetStringVal().StringView());
+  }
+  UNREACHABLE("Invalid type for GetAs.");
+}
+
+template bool ConstantValueExpression::Peek() const;
+template int8_t ConstantValueExpression::Peek() const;
+template int16_t ConstantValueExpression::Peek() const;
+template int32_t ConstantValueExpression::Peek() const;
+template int64_t ConstantValueExpression::Peek() const;
+template float ConstantValueExpression::Peek() const;
+template double ConstantValueExpression::Peek() const;
+template execution::sql::Date ConstantValueExpression::Peek() const;
+template execution::sql::Timestamp ConstantValueExpression::Peek() const;
+template std::string_view ConstantValueExpression::Peek() const;
 
 ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueExpression &other) {
   if (this != &other) {  // self-assignment check expected
@@ -121,52 +189,15 @@ ConstantValueExpression::ConstantValueExpression(ConstantValueExpression &&other
 }
 
 ConstantValueExpression::ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
-  if (other.value_->is_null_) {
+  if (other.GetReturnValueType() == type::TypeId::VARCHAR || other.GetReturnValueType() == type::TypeId::VARBINARY) {
     value_ = std::make_unique<execution::sql::Val>(true);
   } else {
-    switch (other.GetReturnValueType()) {
-      case type::TypeId::BOOLEAN: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-        value_ = std::make_unique<execution::sql::BoolVal>(val);
-        break;
-      }
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-        value_ = std::make_unique<execution::sql::Integer>(val);
-        break;
-      }
-      case type::TypeId::DECIMAL: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-        value_ = std::make_unique<execution::sql::Real>(val);
-        break;
-      }
-      case type::TypeId::TIMESTAMP: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-        value_ = std::make_unique<execution::sql::TimestampVal>(val);
-        break;
-      }
-      case type::TypeId::DATE: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-        value_ = std::make_unique<execution::sql::DateVal>(val);
-        break;
-      }
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
+    const auto val = other.GetStringVal();
 
-        auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
+    auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
 
-        value_ = std::move(string_val.first);
-        buffer_ = std::move(string_val.second);
-
-        break;
-      }
-      default:
-        UNREACHABLE("Invalid TypeId.");
-    }
+    value_ = string_val.first;
+    buffer_ = std::move(string_val.second);
   }
 }
 
