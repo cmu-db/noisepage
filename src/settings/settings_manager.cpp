@@ -52,27 +52,27 @@ void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueEx
 
 int32_t SettingsManager::GetInt(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+  return GetValue(param).Peek<int32_t>();
 }
 
 int64_t SettingsManager::GetInt64(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+  return GetValue(param).Peek<int64_t>();
 }
 
 double SettingsManager::GetDouble(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+  return GetValue(param).Peek<double>();
 }
 
 bool SettingsManager::GetBool(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return GetValue(param).GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+  return GetValue(param).Peek<bool>();
 }
 
 std::string SettingsManager::GetString(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
-  return std::string(GetValue(param).GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView());
+  return std::string(GetValue(param).Peek<std::string_view>());
 }
 
 void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<ActionContext> action_context,
@@ -92,7 +92,7 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    int32_t old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+    auto old_value = GetValue(param).Peek<int32_t>();
     if (!SetValue(param, {type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
@@ -127,7 +127,7 @@ void SettingsManager::SetInt64(Param param, int64_t value, common::ManagedPointe
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    int64_t old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+    auto old_value = GetValue(param).Peek<int64_t>();
     if (!SetValue(param, {type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
@@ -162,7 +162,7 @@ void SettingsManager::SetDouble(Param param, double value, common::ManagedPointe
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
-    double old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+    auto old_value = GetValue(param).Peek<double>();
     if (!SetValue(param, {type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(value)})) {
       action_context->SetState(ActionState::FAILURE);
     } else {
@@ -191,7 +191,7 @@ void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<Ac
   const auto &param_info = param_map_.find(param)->second;
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
-  bool old_value = GetValue(param).GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
+  auto old_value = GetValue(param).Peek<bool>();
   if (!SetValue(param, {type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(value)})) {
     action_context->SetState(ActionState::FAILURE);
   } else {
@@ -230,7 +230,7 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
     action_context->SetState(ActionState::FAILURE);
   } else {
     std::string_view new_value(value);
-    auto old_value = old_cve->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
+    auto old_value = old_cve->Peek<std::string_view>();
     ActionState action_state = InvokeCallback(param, &old_value, &new_value, action_context);
     if (action_state == ActionState::FAILURE) {
       const bool result = SetValue(param, *old_cve);
@@ -262,15 +262,11 @@ bool SettingsManager::ValidateValue(const parser::ConstantValueExpression &value
                                     const parser::ConstantValueExpression &max_value) {
   switch (value.GetReturnValueType()) {
     case type::TypeId::INTEGER:
-      return value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ >=
-                 min_value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ &&
-             value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_ <=
-                 max_value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
+      return value.Peek<int32_t>() >= min_value.Peek<int32_t>() && value.Peek<int32_t>() <= max_value.Peek<int32_t>();
+    case type::TypeId::BIGINT:
+      return value.Peek<int64_t>() >= min_value.Peek<int64_t>() && value.Peek<int64_t>() <= max_value.Peek<int32_t>();
     case type::TypeId ::DECIMAL:
-      return value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ >=
-                 min_value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ &&
-             value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_ <=
-                 max_value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+      return value.Peek<double>() >= min_value.Peek<double>() && value.Peek<double>() <= max_value.Peek<double>();
     default:
       return true;
   }
