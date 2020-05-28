@@ -254,8 +254,8 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
           reinterpret_cast<parser::ConstantValueExpression *>(cve->Copy().release())};
     } else {
       auto pve = expr->GetChild(right_index).CastManagedPointerTo<parser::ParameterValueExpression>();
-      value = std::make_unique<parser::ConstantValueExpression>(
-          type::TypeId::PARAMETER_OFFSET, std::make_unique<execution::sql::Integer>(pve->GetValueIdx()));
+      value = std::make_unique<parser::ConstantValueExpression>(type::TypeId::PARAMETER_OFFSET,
+                                                                execution::sql::Integer(pve->GetValueIdx()));
     }
 
     ValueCondition condition(col_name, expr_type, std::move(value));

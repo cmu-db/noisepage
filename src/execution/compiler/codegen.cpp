@@ -381,7 +381,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 }
 
 ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) {
-  if (const_val.GetValue()->is_null_) {
+  if (const_val.IsNull()) {
     // NullToSql(&expr) produces a NULL of expr's type.
     ast::Expr *dummy_expr;
     switch (const_val.GetReturnValueType()) {
@@ -415,18 +415,16 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
 
   switch (const_val.GetReturnValueType()) {
     case type::TypeId::BOOLEAN: {
-      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-      return BoolLiteral(val);
+      return BoolLiteral(const_val.Peek<bool>());
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-      return IntToSql(val);
+      return IntToSql(const_val.Peek<int64_t>());
     }
     case type::TypeId::DATE: {
-      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative();
+      const auto val = const_val.Peek<execution::sql::Date>().ToNative();
       auto ymd = terrier::util::TimeConvertor::YMDFromDate(static_cast<type::date_t>(val));
       auto year = static_cast<int32_t>(ymd.year());
       auto month = static_cast<uint32_t>(ymd.month());
@@ -434,18 +432,16 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
       return DateToSql(year, month, day);
     }
     case type::TypeId::TIMESTAMP: {
-      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative();
+      const auto val = const_val.Peek<execution::sql::Timestamp>().ToNative();
       auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(static_cast<type::timestamp_t>(val));
       return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {
-      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-      return FloatToSql(val);
+      return FloatToSql(const_val.Peek<double>());
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      const auto val = const_val.GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
-      return StringToSql(val);
+      return StringToSql(const_val.Peek<std::string_view>());
     }
     default:
       // TODO(Amadou): Add support for these types.
