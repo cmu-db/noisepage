@@ -105,31 +105,51 @@ class ConstantValueExpression : public AbstractExpression {
     }
   }
 
+  /**
+   * @return copy of the underlying Val
+   */
   execution::sql::BoolVal GetBoolVal() const {
     TERRIER_ASSERT(std::holds_alternative<execution::sql::BoolVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::BoolVal>(value_);
   }
 
+  /**
+   * @return copy of the underlying Val
+   */
   execution::sql::Integer GetInteger() const {
     TERRIER_ASSERT(std::holds_alternative<execution::sql::Integer>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::Integer>(value_);
   }
 
+  /**
+   * @return copy of the underlying Val
+   */
   execution::sql::Real GetReal() const {
     TERRIER_ASSERT(std::holds_alternative<execution::sql::Real>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::Real>(value_);
   }
 
+  /**
+   * @return copy of the underlying Val
+   */
   execution::sql::DateVal GetDateVal() const {
     TERRIER_ASSERT(std::holds_alternative<execution::sql::DateVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::DateVal>(value_);
   }
 
+  /**
+   * @return copy of the underlying Val
+   */
   execution::sql::TimestampVal GetTimestampVal() const {
     TERRIER_ASSERT(std::holds_alternative<execution::sql::TimestampVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::TimestampVal>(value_);
   }
 
+  /**
+   * @return copy of the underlying Val
+   * @warning StringVal may not have inlined its value, in which case the StringVal returned by this function will hold
+   * a pointer to the buffer in this CVE. In that case, do not destroy this CVE before the copied StringVal
+   */
   execution::sql::StringVal GetStringVal() const {
     TERRIER_ASSERT(std::holds_alternative<execution::sql::StringVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::StringVal>(value_);
@@ -154,6 +174,9 @@ class ConstantValueExpression : public AbstractExpression {
    */
   void SetValue(const type::TypeId type, const execution::sql::Val value) { SetValue(type, value, nullptr); }
 
+  /**
+   * @return true if CVE value represents a NULL
+   */
   bool IsNull() const {
     if (std::holds_alternative<execution::sql::Val>(value_) && std::get<execution::sql::Val>(value_).is_null_)
       return true;
@@ -185,6 +208,13 @@ class ConstantValueExpression : public AbstractExpression {
     }
   }
 
+  /**
+   * Extracts the underlying execution value as a C++ type
+   * @tparam T C++ type to extract
+   * @return copy of the underlying value as the requested type
+   * @warning std::string_view returned by this function will hold a pointer to the buffer in this CVE. In that case, do
+   * not destroy this CVE before the std::string_view
+   */
   template <typename T>
   T Peek() const;
 

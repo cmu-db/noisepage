@@ -250,7 +250,7 @@ TEST_F(CVETests, DateTest) {
 
     ConstantValueExpression value(type::TypeId::DATE, execution::sql::DateVal(data));
     EXPECT_FALSE(value.IsNull());
-    EXPECT_EQ(data, value.Peek<execution::sql::Timestamp>().ToNative());
+    EXPECT_EQ(data, value.Peek<execution::sql::Date>().ToNative());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
