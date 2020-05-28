@@ -55,6 +55,21 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
+  // SQL Timestamp.
+  if (builtin == ast::Builtin::TimestampToSql) {
+    if (!CheckArgCountAtLeast(call, 1)) {
+      return;
+    }
+    auto uint64_t_kind = ast::BuiltinType::Uint64;
+    // First argument (julian_usec) is a uint64_t
+    if (!call->Arguments()[0]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(uint64_t_kind));
+      return;
+    }
+    call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
+    return;
+  }
+
   // SQL Timestamp, HMSu.
   if (builtin == ast::Builtin::TimestampToSqlHMSu) {
     if (!CheckArgCountAtLeast(call, 7)) {
@@ -1087,10 +1102,26 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 
   switch (builtin) {
     case ast::Builtin::TableIterInit: {
-      // The second argument is the table name as a literal string
-      if (!call_args[1]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
+      }
+
+      // The third argument is a table oid
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Int32));
+        return;
+      }
+      // The fourth argument is a uint32_t array
+      if (!call_args[3]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
+      auto uint32_t_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
