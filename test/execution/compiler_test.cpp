@@ -3082,7 +3082,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<parser::ConstantValueExpression> params;
     // First parameter list
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
-    params.emplace_back(type::TypeId::VARCHAR, std::move(str1_val.first), std::move(str1_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
     params.emplace_back(type::TypeId::DATE, sql::DateVal(date1.val_));
     params.emplace_back(type::TypeId::DECIMAL, sql::Real(real1));
     params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool1));
@@ -3092,7 +3092,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint1));
     // Second parameter list
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
-    params.emplace_back(type::TypeId::VARCHAR, std::move(str2_val.first), std::move(str2_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
     params.emplace_back(type::TypeId::DATE, sql::DateVal(date2.val_));
     params.emplace_back(type::TypeId::DECIMAL, sql::Real(real2));
     params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool2));
@@ -3280,8 +3280,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<parser::ConstantValueExpression> params;
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
-    params.emplace_back(type::TypeId::VARCHAR, std::move(str1_val.first), std::move(str1_val.second));
-    params.emplace_back(type::TypeId::VARCHAR, std::move(str2_val.first), std::move(str2_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
     exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);

@@ -176,7 +176,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value underlying value to copy
    */
   template <typename T>
-  void SetValue(const type::TypeId type, const T value) {
+  void SetValue(type::TypeId type, T value) {
     return_value_type_ = type;
     value_ = value;
     buffer_ = nullptr;

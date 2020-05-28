@@ -192,7 +192,7 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
 
   auto string_val1 = execution::sql::ValueUtil::CreateStringVal(std::string_view("ConstantValueExpressionJsonTest"));
 
-  auto original_expr = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, std::move(string_val1.first),
+  auto original_expr = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, string_val1.first,
                                                                  std::move(string_val1.second));
 
   auto copy = original_expr->Copy();
@@ -214,9 +214,8 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   EXPECT_EQ(*original_expr, *deserialized_expr);
 
   auto string_val2 = execution::sql::ValueUtil::CreateStringVal(std::string_view("ConstantValueExpressionJsonTest"));
-  EXPECT_EQ(
-      *(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()),
-      ConstantValueExpression(type::TypeId::VARCHAR, std::move(string_val2.first), std::move(string_val2.second)));
+  EXPECT_EQ(*(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()),
+            ConstantValueExpression(type::TypeId::VARCHAR, string_val2.first, std::move(string_val2.second)));
 }
 
 // NOLINTNEXTLINE
