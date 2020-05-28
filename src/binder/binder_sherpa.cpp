@@ -111,7 +111,7 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
 
         // DATE and TIMESTAMP conversion. String to numeric type conversion.
       case type::TypeId::VARCHAR: {
-        const auto str_view = value->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
+        const auto str_view = value->Peek<std::string_view>();
 
         // TODO(WAN): A bit stupid to take the string view back into a string.
         switch (desired_type) {
@@ -120,9 +120,9 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
             if (!parsed_date.first) {
               ReportFailure("Binder conversion from VARCHAR to DATE failed.");
             }
-            value->SetValue(type::TypeId::DATE,
-                            std::make_unique<execution::sql::DateVal>(
-                                execution::sql::Date::FromNative(static_cast<uint32_t>(parsed_date.second))));
+            value->SetValue(
+                type::TypeId::DATE,
+                execution::sql::DateVal(execution::sql::Date::FromNative(static_cast<uint32_t>(parsed_date.second))));
             break;
           }
           case type::TypeId::TIMESTAMP: {
@@ -130,9 +130,8 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
             if (!parsed_timestamp.first) {
               ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
             }
-            value->SetValue(type::TypeId::TIMESTAMP,
-                            std::make_unique<execution::sql::TimestampVal>(
-                                execution::sql::Timestamp::FromNative(static_cast<uint64_t>(parsed_timestamp.second))));
+            value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(
+                                                         static_cast<uint64_t>(parsed_timestamp.second))));
             break;
           }
           case type::TypeId::TINYINT: {
@@ -140,7 +139,7 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
             if (!IsRepresentable<int8_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
-            value->SetValue(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(int_val));
+            value->SetValue(type::TypeId::TINYINT, execution::sql::Integer(int_val));
             break;
           }
           case type::TypeId::SMALLINT: {
@@ -148,7 +147,7 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
             if (!IsRepresentable<int16_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
-            value->SetValue(type::TypeId::SMALLINT, std::make_unique<execution::sql::Integer>(int_val));
+            value->SetValue(type::TypeId::SMALLINT, execution::sql::Integer(int_val));
             break;
           }
           case type::TypeId::INTEGER: {
@@ -156,7 +155,7 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
             if (!IsRepresentable<int32_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
-            value->SetValue(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(int_val));
+            value->SetValue(type::TypeId::INTEGER, execution::sql::Integer(int_val));
             break;
           }
           case type::TypeId::BIGINT: {
@@ -164,7 +163,7 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
             if (!IsRepresentable<int64_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
-            value->SetValue(type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(int_val));
+            value->SetValue(type::TypeId::BIGINT, execution::sql::Integer(int_val));
             break;
           }
           case type::TypeId::DECIMAL: {
@@ -175,7 +174,7 @@ void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::C
               } catch (std::exception &e) {
                 throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
               }
-              value->SetValue(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(double_val));
+              value->SetValue(type::TypeId::DECIMAL, execution::sql::Real(double_val));
               break;
             }
           }
