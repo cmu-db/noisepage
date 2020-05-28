@@ -82,7 +82,7 @@ T ConstantValueExpression::Peek() const {
   if constexpr (std::is_same_v<T, std::string_view>) {
     return std::get<execution::sql::StringVal>(value_).StringView();
   }
-  UNREACHABLE("Invalid type for GetAs.");
+  UNREACHABLE("Invalid type for Peek.");
 }
 
 ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueExpression &other) {
