@@ -127,6 +127,7 @@ class Statement {
 
   std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;
   std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;
+  std::vector<type::TypeId> desired_parameter_types_;
 };
 
 }  // namespace terrier::network
