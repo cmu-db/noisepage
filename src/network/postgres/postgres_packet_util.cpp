@@ -86,16 +86,16 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
       const auto ts_parse_result = util::TimeConvertor::ParseTimestamp(string);
       if (ts_parse_result.first) {
-        return {type, execution::sql::TimestampVal(static_cast<uint64_t>(ts_parse_result.second))};
+        return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(static_cast<uint64_t>(ts_parse_result.second))};
       }
       // try date?
       const auto date_parse_result = util::TimeConvertor::ParseDate(string);
       if (date_parse_result.first) {
-        return {type, execution::sql::DateVal(static_cast<uint32_t>(date_parse_result.second))};
+        return {type::TypeId::DATE, execution::sql::DateVal(static_cast<uint32_t>(date_parse_result.second))};
       }
       // fall back to VARCHAR?
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      return {type, string_val.first, std::move(string_val.second)};
+      return {type::TypeId::VARCHAR, string_val.first, std::move(string_val.second)};
     }
     default:
       // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
