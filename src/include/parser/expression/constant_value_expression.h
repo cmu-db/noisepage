@@ -247,7 +247,7 @@ class ConstantValueExpression : public AbstractExpression {
                execution::sql::TimestampVal>
       value_;
   std::unique_ptr<byte[]> buffer_ = nullptr;
-};  // namespace terrier::parser
+};
 
 DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
 
