@@ -24,9 +24,11 @@ void StrongTypeAlias<Tag, IntType>::FromJson(const nlohmann::json &j) {
 }
 
 /*
- * Explicit template instantiations - this exists, because the above template functions
- * need to exist inside a cpp file, in order to prevent using the json library in too many
- * header files. Normally, you cannot define template functions in the cpp file, but by
+ * Explicit template instantiations - these exist, because the above template functions
+ * need to exist inside a cpp file, in order to prevent including the json library in too many
+ * header files.
+ *
+ * Normally, you cannot define template functions in the cpp file, but by
  * explicitly declaring the template class here - you can.
  *
  */

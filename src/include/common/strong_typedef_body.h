@@ -5,6 +5,10 @@
 
 namespace terrier::common {
 
+/*
+ * Using this macro also requires, using the matching macro STRONG_TYPEDEF_HEADER from strong_typedef.h.
+ */
+
 #define STRONG_TYPEDEF_BODY(name, underlying_type)                                            \
   using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
   namespace tags {                                                                            \

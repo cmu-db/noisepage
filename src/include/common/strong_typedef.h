@@ -49,7 +49,7 @@ namespace terrier::common {
  *
  * In order to use this macro, you need to use STRONG_TYPEDEF_HEADER in the .h file, then
  * include common/strong_typedef_body.h in the corresponding .cpp file and use
- * STRONG_TYPEDEF_BODY with the same arguements. Finally, you need to add an explicit instantation
+ * STRONG_TYPEDEF_BODY with the same arguments. Finally, you need to add an explicit instantation
  * of the template in common/strong_typedef.cpp.
  *
  */

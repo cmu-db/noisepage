@@ -9,10 +9,8 @@ namespace terrier::common {
 /**
  * Convenience alias for a JSON object from the nlohmann::json library.
  *
- * In order to use the following macro, you need to include common/json_header.h and use
- * DEFINE_JSON_HEADER_DECLARATIONS in the .h file, and then need to include this file and use
- * DEFINE_JSON_BODY_DECLARATIONS in the .cpp file with the same argument.
- *
+ * Using this macro also requires using the matching macro DEFINE_JSON_HEADER_DECLARATIONS
+ * from json_header.h.
  */
 using json = nlohmann::json;
 
