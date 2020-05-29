@@ -23,27 +23,26 @@ class ValueUtil {
    * @param length input length
    * @return a pair of owned pointers, first to the StringVal and second to an optionally-allocated buffer
    */
-  static std::pair<std::unique_ptr<StringVal>, std::unique_ptr<byte>> CreateStringVal(
-      common::ManagedPointer<const char> string, uint32_t length);
+  static std::pair<StringVal, std::unique_ptr<byte[]>> CreateStringVal(common::ManagedPointer<const char> string,
+                                                                       uint32_t length);
   /**
    * Construct a StringVal, optionally allocating a byte buffer if the input can't be inlined.
    * @param string input
    * @return a pair of owned pointers, first to the StringVal and second to an optionally-allocated buffer
    */
-  static std::pair<std::unique_ptr<StringVal>, std::unique_ptr<byte>> CreateStringVal(const std::string &string);
+  static std::pair<StringVal, std::unique_ptr<byte[]>> CreateStringVal(const std::string &string);
   /**
    * Construct a StringVal, optionally allocating a byte buffer if the input can't be inlined.
    * @param string input
    * @return a pair of owned pointers, first to the StringVal and second to an optionally-allocated buffer
    */
-  static std::pair<std::unique_ptr<StringVal>, std::unique_ptr<byte>> CreateStringVal(std::string_view string);
+  static std::pair<StringVal, std::unique_ptr<byte[]>> CreateStringVal(std::string_view string);
   /**
    * Construct a StringVal, optionally allocating a byte buffer if the input can't be inlined.
    * @param string input
    * @return a pair of owned pointers, first to the StringVal and second to an optionally-allocated buffer
    */
-  static std::pair<std::unique_ptr<StringVal>, std::unique_ptr<byte>> CreateStringVal(
-      common::ManagedPointer<StringVal> string);
+  static std::pair<StringVal, std::unique_ptr<byte[]>> CreateStringVal(StringVal string);
 };
 
 }  // namespace terrier::execution::sql

@@ -13,8 +13,7 @@
 namespace terrier::optimizer {
 // NOLINTNEXTLINE
 TEST(ValueConditionTests, GetColumnIDTest) {
-  auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER,
-                                                               std::make_unique<execution::sql::Integer>(1));
+  auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
   ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
 
   EXPECT_EQ(catalog::col_oid_t(1), v.GetColumnID());
@@ -22,8 +21,7 @@ TEST(ValueConditionTests, GetColumnIDTest) {
 
 // NOLINTNEXTLINE
 TEST(ValueConditionTests, GetColumnNameTest) {
-  auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER,
-                                                               std::make_unique<execution::sql::Integer>(1));
+  auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
   ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
 
   EXPECT_EQ("", v.GetColumnName());
@@ -31,8 +29,7 @@ TEST(ValueConditionTests, GetColumnNameTest) {
 
 // NOLINTNEXTLINE
 TEST(ValueConditionTests, GetTypeTest) {
-  auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER,
-                                                               std::make_unique<execution::sql::Integer>(1));
+  auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
   ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
 
   EXPECT_EQ(parser::ExpressionType::INVALID, v.GetType());
@@ -40,11 +37,9 @@ TEST(ValueConditionTests, GetTypeTest) {
 
 // NOLINTNEXTLINE
 TEST(ValueConditionTests, GetPointerToValueTest) {
-  auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER,
-                                                               std::make_unique<execution::sql::Integer>(1));
+  auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
   ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
 
-  EXPECT_EQ(parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1)),
-            *v.GetPointerToValue());
+  EXPECT_EQ(parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1)), *v.GetPointerToValue());
 }
 }  // namespace terrier::optimizer
