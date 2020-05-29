@@ -1675,7 +1675,12 @@ VM_OP void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx
 #define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                   \
   VM_OP_HOT void OpGetParam##Name(terrier::execution::sql::SqlType *ret,                                      \
                                   terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) { \
-    *ret = exec_ctx->GetParam(param_idx).Get##SqlType();                                                      \
+    const auto cve = exec_ctx->GetParam(param_idx);                                                           \
+    if (cve.IsNull()) {                                                                                       \
+      ret->is_null_ = true;                                                                                   \
+    } else {                                                                                                  \
+      *ret = cve.Get##SqlType();                                                                              \
+    }                                                                                                         \
   }
 
 GEN_SCALAR_PARAM_GET(Bool, BoolVal)
