@@ -209,7 +209,6 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder *builder,
     auto col_idx = pm_[left_cve->GetColumnOid()];
     auto col_type = schema_.GetColumn(left_cve->GetColumnOid()).Type();
     auto const_val = dynamic_cast<const terrier::parser::ConstantValueExpression *>(predicate->GetChild(1).Get());
-    auto val = const_val->GetValue();
     auto type = const_val->GetReturnValueType();
     ast::Expr *filter_val;
     switch (type) {
@@ -217,7 +216,7 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder *builder,
       case terrier::type::TypeId::SMALLINT:
       case terrier::type::TypeId::INTEGER:
       case terrier::type::TypeId::BIGINT:
-        filter_val = codegen_->IntLiteral(val.CastManagedPointerTo<execution::sql::Integer>()->val_);
+        filter_val = codegen_->IntLiteral(const_val->Peek<int64_t>());
         break;
       default:
         UNREACHABLE("Impossible vectorized predicate!");

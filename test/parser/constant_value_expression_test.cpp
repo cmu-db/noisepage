@@ -32,15 +32,14 @@ TEST_F(CVETests, BooleanTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
 
-    ConstantValueExpression value(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(data));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_);
+    ConstantValueExpression value(type::TypeId::BOOLEAN, execution::sql::BoolVal(data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, value.Peek<bool>());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
     EXPECT_EQ(value.Hash(), copy_constructed_value.Hash());
-    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN,
-                                                std::make_unique<execution::sql::BoolVal>(!data));
+    ConstantValueExpression copy_assigned_value(type::TypeId::BOOLEAN, execution::sql::BoolVal(!data));
     EXPECT_NE(value, copy_assigned_value);
     EXPECT_NE(value.Hash(), copy_assigned_value.Hash());
     copy_assigned_value = value;
@@ -50,8 +49,7 @@ TEST_F(CVETests, BooleanTest) {
     auto move_constructed_value(std::move(value));
     EXPECT_EQ(copy_assigned_value, move_constructed_value);
     EXPECT_EQ(copy_assigned_value.Hash(), move_constructed_value.Hash());
-    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN,
-                                                std::make_unique<execution::sql::BoolVal>(!data));
+    ConstantValueExpression move_assigned_value(type::TypeId::BOOLEAN, execution::sql::BoolVal(!data));
     EXPECT_NE(copy_assigned_value, move_assigned_value);
     EXPECT_NE(copy_assigned_value.Hash(), move_assigned_value.Hash());
     move_assigned_value = std::move(copy_assigned_value);
@@ -65,9 +63,9 @@ TEST_F(CVETests, TinyIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(data));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+    ConstantValueExpression value(type::TypeId::TINYINT, execution::sql::Integer(data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, value.Peek<int8_t>());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
@@ -96,9 +94,9 @@ TEST_F(CVETests, SmallIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::SMALLINT, std::make_unique<execution::sql::Integer>(data));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+    ConstantValueExpression value(type::TypeId::SMALLINT, execution::sql::Integer(data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, value.Peek<int16_t>());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
@@ -127,9 +125,9 @@ TEST_F(CVETests, IntegerTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(data));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+    ConstantValueExpression value(type::TypeId::INTEGER, execution::sql::Integer(data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, value.Peek<int32_t>());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
@@ -158,9 +156,9 @@ TEST_F(CVETests, BigIntTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(data));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+    ConstantValueExpression value(type::TypeId::BIGINT, execution::sql::Integer(data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, value.Peek<int64_t>());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
@@ -189,9 +187,9 @@ TEST_F(CVETests, DecimalTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
-    ConstantValueExpression value(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(data));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_);
+    ConstantValueExpression value(type::TypeId::DECIMAL, execution::sql::Real(data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, value.Peek<double>());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
@@ -220,9 +218,9 @@ TEST_F(CVETests, TimestampTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<uint64_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::TIMESTAMP, std::make_unique<execution::sql::TimestampVal>(data));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative());
+    ConstantValueExpression value(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, value.Peek<execution::sql::Timestamp>().ToNative());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
@@ -251,9 +249,9 @@ TEST_F(CVETests, DateTest) {
   for (uint32_t i = 0; i < num_iterations_; i++) {
     auto data = static_cast<uint32_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
 
-    ConstantValueExpression value(type::TypeId::DATE, std::make_unique<execution::sql::DateVal>(data));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    EXPECT_EQ(data, value.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative());
+    ConstantValueExpression value(type::TypeId::DATE, execution::sql::DateVal(data));
+    EXPECT_FALSE(value.IsNull());
+    EXPECT_EQ(data, value.Peek<execution::sql::Date>().ToNative());
 
     auto copy_constructed_value(value);
     EXPECT_EQ(value, copy_constructed_value);
@@ -288,10 +286,9 @@ TEST_F(CVETests, VarCharTest) {
 
     auto string_val = execution::sql::ValueUtil::CreateStringVal(
         common::ManagedPointer(reinterpret_cast<const char *>(data)), length);
-    ConstantValueExpression value(type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));
-    EXPECT_FALSE(value.GetValue()->is_null_);
-    const std::string_view string_view =
-        value.GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
+    ConstantValueExpression value(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+    EXPECT_FALSE(value.IsNull());
+    const auto string_view = value.Peek<std::string_view>();
     EXPECT_EQ(std::string_view(data, length), string_view);
     delete[] data;
 
@@ -321,8 +318,8 @@ TEST_F(CVETests, VarCharTest) {
 TEST_F(CVETests, BooleanJsonTest) {
   auto data = static_cast<bool>(std::uniform_int_distribution<uint8_t>(0, 1)(generator_));
 
-  ConstantValueExpression value(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(data));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::BOOLEAN, execution::sql::BoolVal(data));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -337,8 +334,8 @@ TEST_F(CVETests, BooleanJsonTest) {
 TEST_F(CVETests, TinyIntJsonTest) {
   auto data = static_cast<int8_t>(std::uniform_int_distribution<int8_t>(INT8_MIN, INT8_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::TINYINT, std::make_unique<execution::sql::Integer>(data));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::TINYINT, execution::sql::Integer(data));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -353,8 +350,8 @@ TEST_F(CVETests, TinyIntJsonTest) {
 TEST_F(CVETests, SmallIntJsonTest) {
   auto data = static_cast<int16_t>(std::uniform_int_distribution<int16_t>(INT16_MIN, INT16_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::SMALLINT, std::make_unique<execution::sql::Integer>(data));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::SMALLINT, execution::sql::Integer(data));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -369,8 +366,8 @@ TEST_F(CVETests, SmallIntJsonTest) {
 TEST_F(CVETests, IntegerJsonTest) {
   auto data = static_cast<int32_t>(std::uniform_int_distribution<int32_t>(INT32_MIN, INT32_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(data));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::INTEGER, execution::sql::Integer(data));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -385,8 +382,8 @@ TEST_F(CVETests, IntegerJsonTest) {
 TEST_F(CVETests, BigIntJsonTest) {
   auto data = static_cast<int64_t>(std::uniform_int_distribution<int64_t>(INT64_MIN, INT64_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(data));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::BIGINT, execution::sql::Integer(data));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -401,8 +398,8 @@ TEST_F(CVETests, BigIntJsonTest) {
 TEST_F(CVETests, DecimalJsonTest) {
   auto data = std::uniform_real_distribution<double>(DBL_MIN, DBL_MAX)(generator_);
 
-  ConstantValueExpression value(type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(data));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::DECIMAL, execution::sql::Real(data));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -417,8 +414,8 @@ TEST_F(CVETests, DecimalJsonTest) {
 TEST_F(CVETests, TimestampJsonTest) {
   auto data = static_cast<uint64_t>(std::uniform_int_distribution<uint64_t>(0, UINT64_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::TIMESTAMP, std::make_unique<execution::sql::TimestampVal>(data));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(data));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -433,8 +430,8 @@ TEST_F(CVETests, TimestampJsonTest) {
 TEST_F(CVETests, DateJsonTest) {
   auto data = static_cast<uint32_t>(std::uniform_int_distribution<uint32_t>(0, UINT32_MAX)(generator_));
 
-  ConstantValueExpression value(type::TypeId::DATE, std::make_unique<execution::sql::DateVal>(data));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::DATE, execution::sql::DateVal(data));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
@@ -455,8 +452,8 @@ TEST_F(CVETests, VarCharJsonTest) {
 
   auto string_val =
       execution::sql::ValueUtil::CreateStringVal(common::ManagedPointer(reinterpret_cast<const char *>(data)), length);
-  ConstantValueExpression value(type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));
-  EXPECT_FALSE(value.GetValue()->is_null_);
+  ConstantValueExpression value(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+  EXPECT_FALSE(value.IsNull());
 
   auto json = value.ToJson();
   EXPECT_FALSE(json.is_null());
