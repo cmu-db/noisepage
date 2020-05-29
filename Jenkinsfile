@@ -275,7 +275,7 @@ pipeline {
             }
         }
 
-        stage('End-to-End') {
+        stage('End-to-End Debug') {
             parallel{
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
                     agent { label 'macos' }
@@ -287,12 +287,13 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) terrier'
+                        sh 'cd build && gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --scale-factor=0.01 --loader-threads=4'
                         // TODO: Loading the smallbank database with multiple threads is broken on OSX
-                        sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=1'
-                        sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
-                        sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
+                        sh 'cd build && gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --scale-factor=0.01 --loader-threads=1'
+                        // sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && gtimeout 15m python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -311,11 +312,12 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
-                        sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=4'
-                        sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
-                        sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) terrier'
+                        sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --scale-factor=0.01 --loader-threads=4'
+                        // sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && timeout 15m python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=debug'
                     }
                     post {
                         cleanup {
