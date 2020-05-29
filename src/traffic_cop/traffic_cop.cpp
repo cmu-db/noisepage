@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "binder/bind_node_visitor.h"
+#include "binder/binder_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
@@ -249,19 +250,34 @@ TrafficCopResult TrafficCop::BindQuery(
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
-  try {
-    binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
-    visitor.BindNameToNode(statement->ParseResult(), parameters);
-  } catch (...) {
-    // Failed to bind
-    // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
-    // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
-    if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
-         statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-      return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
+
+  if (statement->PhysicalPlan() == nullptr || !UseQueryCache()) {
+    // it's not cached, bind it
+    try {
+      binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
+      if (parameters != nullptr && !parameters->empty()) {
+        std::vector<type::TypeId> desired_param_types;
+        desired_param_types.resize(parameters->size());
+        visitor.BindNameToNode(statement->ParseResult(), parameters, common::ManagedPointer(&desired_param_types));
+        statement->SetDesiredParamTypes(std::move(desired_param_types));
+      } else {
+        visitor.BindNameToNode(statement->ParseResult(), nullptr, nullptr);
+      }
+    } catch (...) {
+      // Failed to bind
+      // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
+      // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
+      if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
+           statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
+        return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
+      }
+      return {ResultType::ERROR, "ERROR:  binding failed"};
     }
-    return {ResultType::ERROR, "ERROR:  binding failed"};
+  } else {
+    // it's cached. use the desired_param_types to fast-path the binding
+    binder::BinderUtil::PromoteParameters(parameters, statement->GetDesiredParamTypes());
   }
+
   return {ResultType::COMPLETE, 0};
 }
 

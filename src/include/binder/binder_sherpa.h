@@ -26,10 +26,13 @@ class BinderSherpa {
    * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
    */
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
-                        const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters)
-      : parse_result_(parse_result), parameters_(parameters) {
+                        const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
+                        const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types)
+      : parse_result_(parse_result), parameters_(parameters), desired_parameter_types_(desired_parameter_types) {
     TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
-    desired_parameter_types_.reserve(parameters_ != nullptr ? parameters_->size() : 0);
+    TERRIER_ASSERT((parameters == nullptr && desired_parameter_types == nullptr) ||
+                       (parameters != nullptr && desired_parameter_types != nullptr),
+                   "");
   }
 
   /**
@@ -63,7 +66,7 @@ class BinderSherpa {
   }
 
   void SetDesiredParameterType(const uint32_t parameter_index, const type::TypeId type) {
-    desired_parameter_types_[parameter_index] = type;
+    (*desired_parameter_types_)[parameter_index] = type;
   }
 
   /**
@@ -87,7 +90,7 @@ class BinderSherpa {
  private:
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
   const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters_ = nullptr;
-  std::vector<type::TypeId> desired_parameter_types_;
+  const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
 };
 }  // namespace terrier::binder

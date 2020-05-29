@@ -118,6 +118,13 @@ class Statement {
     executable_query_ = std::move(executable_query);
   }
 
+  void SetDesiredParamTypes(std::vector<type::TypeId> &&desired_param_types) {
+    desired_param_types_ = std::move(desired_param_types);
+    TERRIER_ASSERT(desired_param_types_.size() == param_types_.size(), "");
+  }
+
+  const std::vector<type::TypeId> &GetDesiredParamTypes() const { return desired_param_types_; }
+
  private:
   const std::string query_text_;
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
@@ -127,7 +134,7 @@ class Statement {
 
   std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;
   std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;
-  std::vector<type::TypeId> desired_parameter_types_;
+  std::vector<type::TypeId> desired_param_types_;
 };
 
 }  // namespace terrier::network

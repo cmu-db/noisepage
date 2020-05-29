@@ -51,7 +51,8 @@ class BindNodeVisitor : public SqlNodeVisitor {
    * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
    */
   void BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result,
-                      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters);
+                      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
+                      common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types);
 
   void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) override;
   void Visit(common::ManagedPointer<parser::CopyStatement> node) override;
