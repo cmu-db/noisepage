@@ -251,9 +251,9 @@ TrafficCopResult TrafficCop::BindQuery(
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
 
-  if (statement->PhysicalPlan() == nullptr || !UseQueryCache()) {
-    // it's not cached, bind it
-    try {
+  try {
+    if (statement->PhysicalPlan() == nullptr || !UseQueryCache()) {
+      // it's not cached, bind it
       binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
       if (parameters != nullptr && !parameters->empty()) {
         std::vector<type::TypeId> desired_param_types;
@@ -263,19 +263,19 @@ TrafficCopResult TrafficCop::BindQuery(
       } else {
         visitor.BindNameToNode(statement->ParseResult(), nullptr, nullptr);
       }
-    } catch (...) {
-      // Failed to bind
-      // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
-      // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
-      if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
-           statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-        return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
-      }
-      return {ResultType::ERROR, "ERROR:  binding failed"};
+    } else {
+      // it's cached. use the desired_param_types to fast-path the binding
+      binder::BinderUtil::PromoteParameters(parameters, statement->GetDesiredParamTypes());
     }
-  } else {
-    // it's cached. use the desired_param_types to fast-path the binding
-    binder::BinderUtil::PromoteParameters(parameters, statement->GetDesiredParamTypes());
+  } catch (...) {
+    // Failed to bind
+    // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
+    // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
+    if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
+         statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
+      return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
+    }
+    return {ResultType::ERROR, "ERROR:  binding failed"};
   }
 
   return {ResultType::COMPLETE, 0};
