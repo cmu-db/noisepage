@@ -21,7 +21,6 @@ class ExpressionNodeContents;
 
 namespace terrier::binder {
 class BindNodeVisitor;
-class BinderSherpa;
 class BinderUtil;
 }  // namespace terrier::binder
 
