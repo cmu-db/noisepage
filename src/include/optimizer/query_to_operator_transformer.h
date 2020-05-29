@@ -10,7 +10,6 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node.h"
-#include "type/transient_value.h"
 
 namespace terrier {
 

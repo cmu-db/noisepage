@@ -94,11 +94,11 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && gtimeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -119,11 +119,11 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install ccache lsof'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -147,10 +147,10 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install curl lcov ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_GENERATE_COVERAGE=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
@@ -186,11 +186,11 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install ccache lsof'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -209,10 +209,10 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && gtimeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -233,10 +233,10 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -261,10 +261,10 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -274,7 +274,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('End-to-End') {
             parallel{
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
@@ -288,11 +288,11 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
+                        sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
                         // TODO: Loading the smallbank database with multiple threads is broken on OSX
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=1'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
+                        sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=1'
+                        sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
+                        sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
                     }
                     post {
                         cleanup {
@@ -312,10 +312,10 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
+                        sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
+                        sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=4'
+                        sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
+                        sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
                     }
                     post {
                         cleanup {

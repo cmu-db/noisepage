@@ -1,3 +1,5 @@
+#include "optimizer/statistics/stats_calculator.h"
+
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -11,13 +13,12 @@
 #include "optimizer/optimizer_context.h"
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/selectivity.h"
-#include "optimizer/statistics/stats_calculator.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/expression_util.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 
@@ -246,14 +247,15 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
       expr_type = parser::ExpressionUtil::ReverseComparisonExpressionType(expr_type);
     }
 
-    std::unique_ptr<type::TransientValue> value;
+    std::unique_ptr<parser::ConstantValueExpression> value;
     if (expr->GetChild(right_index)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
       auto cve = expr->GetChild(right_index).CastManagedPointerTo<parser::ConstantValueExpression>();
-      value = std::make_unique<type::TransientValue>(cve->GetValue());
+      value = std::unique_ptr<parser::ConstantValueExpression>{
+          reinterpret_cast<parser::ConstantValueExpression *>(cve->Copy().release())};
     } else {
       auto pve = expr->GetChild(right_index).CastManagedPointerTo<parser::ParameterValueExpression>();
-      value =
-          std::make_unique<type::TransientValue>(type::TransientValueFactory::GetParameterOffset(pve->GetValueIdx()));
+      value = std::make_unique<parser::ConstantValueExpression>(type::TypeId::PARAMETER_OFFSET,
+                                                                execution::sql::Integer(pve->GetValueIdx()));
     }
 
     ValueCondition condition(col_name, expr_type, std::move(value));

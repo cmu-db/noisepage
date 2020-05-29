@@ -2,7 +2,6 @@
 #include "execution/compiler/translator_factory.h"
 #include "execution/sql/value.h"
 #include "parser/expression/star_expression.h"
-#include "type/transient_value_peeker.h"
 
 namespace terrier::execution::compiler {
 StarTranslator::StarTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
