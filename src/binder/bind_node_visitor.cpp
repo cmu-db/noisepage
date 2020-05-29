@@ -344,8 +344,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
               cols.emplace_back(pair);
             } else {
               // Make a null value of the right type that we can either compare with the stored expression or insert.
-              auto null_ex = std::make_unique<parser::ConstantValueExpression>(
-                  schema_col.Type(), std::make_unique<execution::sql::Val>(true));
+              auto null_ex =
+                  std::make_unique<parser::ConstantValueExpression>(schema_col.Type(), execution::sql::Val(true));
 
               // TODO(WAN): We thought that you might be able to collapse these two cases into one, since currently
               // the catalog column's stored expression is always a NULL of the right type if not otherwise specified.

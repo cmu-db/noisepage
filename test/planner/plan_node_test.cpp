@@ -22,8 +22,7 @@ namespace terrier::planner {
 class PlanNodeTest : public TerrierTest {
  public:
   static std::unique_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type) {
-    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                                  std::make_unique<execution::sql::BoolVal>(true));
+    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
     std::vector<OutputSchema::Column> cols;
     cols.emplace_back(OutputSchema::Column(std::move(name), type, std::move(pred)));
     return std::make_unique<OutputSchema>(std::move(cols));

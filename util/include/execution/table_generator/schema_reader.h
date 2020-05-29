@@ -179,8 +179,7 @@ class SchemaReader {
   }
 
   terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER,
-                                                    std::make_unique<execution::sql::Integer>(0));
+    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 
  private:

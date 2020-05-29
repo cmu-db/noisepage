@@ -64,8 +64,7 @@ class PlanNodeJsonTest : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN,
-                                                             std::make_unique<execution::sql::BoolVal>(true));
+    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   }
 };
 
@@ -266,7 +265,7 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 
   // CHECK CONSTRAINT
   auto get_check_info = []() {
-    parser::ConstantValueExpression val(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(1));
+    parser::ConstantValueExpression val(type::TypeId::INTEGER, execution::sql::Integer(1));
     std::vector<CheckInfo> checks;
     std::vector<std::string> cks = {"ck_a"};
     checks.emplace_back(cks, "ck_a", parser::ExpressionType::COMPARE_GREATER_THAN, std::move(val));
@@ -672,13 +671,11 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   auto get_values = [&](int offset, int num_cols) {
     std::vector<common::ManagedPointer<parser::AbstractExpression>> tuple;
 
-    auto ptr =
-        new parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(offset));
+    auto ptr = new parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(offset));
     free_exprs.push_back(ptr);
     tuple.emplace_back(ptr);
     for (; num_cols - 1 > 0; num_cols--) {
-      auto cve =
-          new parser::ConstantValueExpression(type::TypeId::BOOLEAN, std::make_unique<execution::sql::BoolVal>(true));
+      auto cve = new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
       free_exprs.push_back(cve);
       tuple.emplace_back(cve);
     }

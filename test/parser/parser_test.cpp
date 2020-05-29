@@ -199,7 +199,7 @@ TEST_F(ParserTestBase, CreateIndexTest) {
   auto ia1l = ia1->GetChild(0).CastManagedPointerTo<ColumnValueExpression>();
   EXPECT_EQ(ia1l->GetColumnName(), "o_w_id");
   auto ia1r = ia1->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
-  EXPECT_EQ(ia1r->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 2);
+  EXPECT_EQ(ia1r->Peek<int64_t>(), 2);
   auto ia2 = create_stmt->GetIndexAttributes()[1].GetExpression();
   EXPECT_EQ(ia2->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
   auto ia2l = ia2->GetChild(0).CastManagedPointerTo<ColumnValueExpression>();
@@ -257,11 +257,7 @@ TEST_F(ParserTestBase, CreateViewTest) {
   EXPECT_EQ(left_child.CastManagedPointerTo<ColumnValueExpression>()->GetColumnName(), "baz");
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(right_child.CastManagedPointerTo<ConstantValueExpression>()
-                ->GetValue()
-                .CastManagedPointerTo<execution::sql::Integer>()
-                ->val_,
-            1);
+  EXPECT_EQ(right_child.CastManagedPointerTo<ConstantValueExpression>()->Peek<int64_t>(), 1);
 }
 
 // NOLINTNEXTLINE
@@ -752,7 +748,7 @@ TEST_F(ParserTestBase, OldGroupByTest) {
 
   EXPECT_EQ("id", name_exp->GetColumnName());
   EXPECT_EQ(type::TypeId::INTEGER, value_exp->GetReturnValueType());
-  EXPECT_EQ(10, value_exp->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+  EXPECT_EQ(10, value_exp->Peek<int64_t>());
 
   auto result2 = parser::PostgresParser::BuildParseTree(query);
   auto statement_2 = result2->GetStatement(0).CastManagedPointerTo<SelectStatement>();
@@ -1051,7 +1047,7 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
     auto right_const = right_child.CastManagedPointerTo<ConstantValueExpression>();
     EXPECT_EQ(right_const->GetReturnValueType(), type::TypeId::INTEGER);
-    EXPECT_EQ(right_const->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 2);
+    EXPECT_EQ(right_const->Peek<int64_t>(), 2);
   }
 }
 
@@ -1067,7 +1063,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(upd0->GetColumnName(), "s_quantity");
   auto constant = upd0->GetUpdateValue().CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::DECIMAL);
-  ASSERT_DOUBLE_EQ(constant->GetValue().CastManagedPointerTo<execution::sql::Real>()->val_, 48.0);
+  ASSERT_DOUBLE_EQ(constant->Peek<double>(), 48.0);
 
   // Test Second Set Condition
   auto upd1 = update_stmt->GetUpdateClauses().at(1);
@@ -1078,7 +1074,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(child1->GetColumnName(), "s_ytd");
   auto child2 = op_expr->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_EQ(child2->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(child2->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 1);
+  EXPECT_EQ(child2->Peek<int64_t>(), 1);
 
   // Test Where clause
   auto where = update_stmt->GetUpdateCondition().CastManagedPointerTo<OperatorExpression>();
@@ -1090,7 +1086,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(column->GetColumnName(), "s_i_id");
   constant = cond1->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(constant->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 68999);
+  EXPECT_EQ(constant->Peek<int64_t>(), 68999);
 
   auto cond2 = where->GetChild(1).CastManagedPointerTo<OperatorExpression>();
   EXPECT_EQ(cond2->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
@@ -1098,7 +1094,7 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   EXPECT_EQ(column->GetColumnName(), "s_w_id");
   constant = cond2->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(constant->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 4);
+  EXPECT_EQ(constant->Peek<int64_t>(), 4);
 }
 
 // NOLINTNEXTLINE
@@ -1142,17 +1138,9 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   EXPECT_EQ(child01->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(child11->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(child01.CastManagedPointerTo<ConstantValueExpression>()->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(child01.CastManagedPointerTo<ConstantValueExpression>()
-                ->GetValue()
-                .CastManagedPointerTo<execution::sql::Integer>()
-                ->val_,
-            2101);
+  EXPECT_EQ(child01.CastManagedPointerTo<ConstantValueExpression>()->Peek<int64_t>(), 2101);
   EXPECT_EQ(child11.CastManagedPointerTo<ConstantValueExpression>()->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(child11.CastManagedPointerTo<ConstantValueExpression>()
-                ->GetValue()
-                .CastManagedPointerTo<execution::sql::Integer>()
-                ->val_,
-            2);
+  EXPECT_EQ(child11.CastManagedPointerTo<ConstantValueExpression>()->Peek<int64_t>(), 2);
 
   // Check update clause
   auto update_clause = update->GetUpdateClauses()[0];
@@ -1160,8 +1148,7 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   auto value = update_clause->GetUpdateValue();
   EXPECT_EQ(value->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   auto value_expr = value.CastManagedPointerTo<ConstantValueExpression>();
-  EXPECT_EQ("2016-11-15 15:07:37",
-            value_expr->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView());
+  EXPECT_EQ("2016-11-15 15:07:37", value_expr->Peek<std::string_view>());
   EXPECT_EQ(type::TypeId::VARCHAR, value_expr->GetReturnValueType());
 }
 
@@ -1206,12 +1193,12 @@ TEST_F(ParserTestBase, OldInsertTest) {
 
   // First item of first tuple is NULL
   auto constant = insert_stmt->GetValues()->at(0).at(0).CastManagedPointerTo<ConstantValueExpression>();
-  EXPECT_TRUE(constant->GetValue()->is_null_);
+  EXPECT_TRUE(constant->IsNull());
 
   // Second item of second tuple == 5
   constant = insert_stmt->GetValues()->at(1).at(1).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(constant->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 5);
+  EXPECT_EQ(constant->Peek<int64_t>(), 5);
 }
 
 // NOLINTNEXTLINE
@@ -1376,10 +1363,7 @@ TEST_F(ParserTestBase, OldCreateViewTest) {
 
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ("Comedy", right_child.CastManagedPointerTo<ConstantValueExpression>()
-                          ->GetValue()
-                          .CastManagedPointerTo<execution::sql::StringVal>()
-                          ->StringView());
+  EXPECT_EQ("Comedy", right_child.CastManagedPointerTo<ConstantValueExpression>()->Peek<std::string_view>());
 }
 
 // NOLINTNEXTLINE
@@ -1428,12 +1412,12 @@ TEST_F(ParserTestBase, OldConstraintTest) {
   auto child0 = default_expr->GetChild(0).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_NE(child0, nullptr);
   EXPECT_EQ(child0->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(child0->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 1);
+  EXPECT_EQ(child0->Peek<int64_t>(), 1);
 
   auto child1 = default_expr->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_NE(child1, nullptr);
   EXPECT_EQ(child1->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(child1->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 2);
+  EXPECT_EQ(child1->Peek<int64_t>(), 2);
 
   // Check Second column
   column = create_stmt->GetColumns()[1];
@@ -1463,12 +1447,12 @@ TEST_F(ParserTestBase, OldConstraintTest) {
   auto plus_child2 = check_child1->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_NE(plus_child2, nullptr);
   EXPECT_EQ(plus_child2->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(plus_child2->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 1);
+  EXPECT_EQ(plus_child2->Peek<int64_t>(), 1);
 
   auto check_child2 = column->GetCheckExpression()->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_NE(check_child2, nullptr);
   EXPECT_EQ(check_child2->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(check_child2->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 0);
+  EXPECT_EQ(check_child2->Peek<int64_t>(), 0);
 
   // Check the foreign key constraint
   column = create_stmt->GetForeignKeys()[0];
@@ -1616,7 +1600,7 @@ TEST_F(ParserTestBase, OldFuncCallTest) {
   auto const_expr = fun_expr->GetChild(0).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(const_expr->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 1);
+  EXPECT_EQ(const_expr->Peek<int64_t>(), 1);
 
   auto tv_expr = fun_expr->GetChild(1).CastManagedPointerTo<ColumnValueExpression>();
   EXPECT_NE(tv_expr, nullptr);
@@ -1644,7 +1628,7 @@ TEST_F(ParserTestBase, OldFuncCallTest) {
   const_expr = op_expr->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(const_expr->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 2);
+  EXPECT_EQ(const_expr->Peek<int64_t>(), 2);
 }
 
 // NOLINTNEXTLINE
@@ -1661,7 +1645,7 @@ TEST_F(ParserTestBase, OldUDFFuncCallTest) {
   auto const_expr = fun_expr->GetChild(0).CastManagedPointerTo<ConstantValueExpression>();
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(const_expr->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 1);
+  EXPECT_EQ(const_expr->Peek<int64_t>(), 1);
 
   auto tv_expr = fun_expr->GetChild(1).CastManagedPointerTo<ColumnValueExpression>();
   EXPECT_NE(tv_expr, nullptr);
@@ -1699,7 +1683,7 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
     auto const_expr = cast_expr->GetChild(0).CastManagedPointerTo<ConstantValueExpression>();
-    EXPECT_EQ("2017-01-01", const_expr->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView());
+    EXPECT_EQ("2017-01-01", const_expr->Peek<std::string_view>());
   }
 
   {
@@ -1748,7 +1732,7 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
     auto const_expr = cast_expr->GetChild(0).CastManagedPointerTo<ConstantValueExpression>();
-    EXPECT_EQ("2018-04-04", const_expr->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView());
+    EXPECT_EQ("2018-04-04", const_expr->Peek<std::string_view>());
   }
 
   {
@@ -1762,10 +1746,10 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
     EXPECT_EQ(type::TypeId::INTEGER, left_child->GetReturnValueType());
 
     auto value_expr = left_child->GetChild(0).CastManagedPointerTo<ConstantValueExpression>();
-    EXPECT_EQ("12345", value_expr->GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView());
+    EXPECT_EQ("12345", value_expr->Peek<std::string_view>());
 
     auto right_child = column->GetChild(1).CastManagedPointerTo<ConstantValueExpression>();
-    EXPECT_EQ(12, right_child->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_);
+    EXPECT_EQ(12, right_child->Peek<int64_t>());
   }
 }
 

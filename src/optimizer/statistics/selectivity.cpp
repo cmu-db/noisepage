@@ -39,7 +39,7 @@ double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, con
   // Convert value type to raw value (double)
   TERRIER_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
                  "It seems like there's an assumption that it's a DECIMAL type.");
-  const auto value = condition.GetPointerToValue()->GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+  const auto value = condition.GetPointerToValue()->Peek<double>();
   if (std::isnan(value)) {
     OPTIMIZER_LOG_TRACE("Error computing less than for non-numeric type");
     return DEFAULT_SELECTIVITY;
@@ -68,7 +68,7 @@ double Selectivity::Equal(common::ManagedPointer<TableStats> table_stats, const 
   // Convert value type to raw value (double)
   TERRIER_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
                  "It seems like there's an assumption that it's a DECIMAL type.");
-  const auto value = condition.GetPointerToValue()->GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
+  const auto value = condition.GetPointerToValue()->Peek<double>();
   if (std::isnan(value) || !table_stats->HasColumnStats(condition.GetColumnID())) {
     OPTIMIZER_LOG_DEBUG("Calculate selectivity: return null");
     return DEFAULT_SELECTIVITY;
