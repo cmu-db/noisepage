@@ -1674,12 +1674,11 @@ VM_OP void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx
 #define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                   \
   VM_OP_HOT void OpGetParam##Name(terrier::execution::sql::SqlType *ret,                                      \
                                   terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) { \
-    const auto val =                                                                                          \
-        exec_ctx->GetParam(param_idx).GetValue().CastManagedPointerTo<terrier::execution::sql::SqlType>();    \
-    if (val->is_null_) {                                                                                      \
+    const auto &cve = exec_ctx->GetParam(param_idx);                                                          \
+    if (cve.IsNull()) {                                                                                       \
       ret->is_null_ = true;                                                                                   \
     } else {                                                                                                  \
-      *ret = terrier::execution::sql::SqlType(val->val_);                                                     \
+      *ret = cve.Get##SqlType();                                                                              \
     }                                                                                                         \
   }
 
@@ -1690,38 +1689,9 @@ GEN_SCALAR_PARAM_GET(Int, Integer)
 GEN_SCALAR_PARAM_GET(BigInt, Integer)
 GEN_SCALAR_PARAM_GET(Real, Real)
 GEN_SCALAR_PARAM_GET(Double, Real)
+GEN_SCALAR_PARAM_GET(DateVal, DateVal)
+GEN_SCALAR_PARAM_GET(TimestampVal, TimestampVal)
+GEN_SCALAR_PARAM_GET(String, StringVal)
 #undef GEN_SCALAR_PARAM_GET
-
-VM_OP_HOT void OpGetParamDateVal(terrier::execution::sql::DateVal *ret,
-                                 terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
-  const auto val = exec_ctx->GetParam(param_idx).GetValue().CastManagedPointerTo<terrier::execution::sql::DateVal>();
-  if (val->is_null_) {
-    ret->is_null_ = true;
-  } else {
-    *ret = terrier::execution::sql::DateVal(*val);
-  }
-}
-
-VM_OP_HOT void OpGetParamTimestampVal(terrier::execution::sql::TimestampVal *ret,
-                                      terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
-  const auto val =
-      exec_ctx->GetParam(param_idx).GetValue().CastManagedPointerTo<terrier::execution::sql::TimestampVal>();
-  if (val->is_null_) {
-    ret->is_null_ = true;
-  } else {
-    *ret = terrier::execution::sql::TimestampVal(*val);
-  }
-}
-
-VM_OP_HOT void OpGetParamString(terrier::execution::sql::StringVal *ret,
-                                terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
-  const auto val = exec_ctx->GetParam(param_idx).GetValue().CastManagedPointerTo<terrier::execution::sql::StringVal>();
-  if (val->is_null_) {
-    ret->is_null_ = true;
-  } else {
-    *ret = terrier::execution::sql::StringVal(val->GetContent(), val->GetLength());
-    ret->is_null_ = false;
-  }
-}
 
 }  // extern "C"

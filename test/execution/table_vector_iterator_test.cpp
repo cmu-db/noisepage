@@ -20,7 +20,7 @@ class TableVectorIteratorTest : public SqlBasedTest {
 
  public:
   parser::ConstantValueExpression DummyExpr() {
-    return parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(0));
+    return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 
  protected:

@@ -585,7 +585,7 @@ TEST_F(BinderCorrectnessTest, UpdateStatementSimpleTest) {
   EXPECT_EQ("a1", update_clause->GetColumnName());
   auto constant = update_clause->GetUpdateValue().CastManagedPointerTo<parser::ConstantValueExpression>();
   EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
-  EXPECT_EQ(constant->GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_, 999);
+  EXPECT_EQ(constant->Peek<int64_t>(), 999);
 
   BINDER_LOG_DEBUG("Checking update condition");
   auto col_expr = update_stmt->GetUpdateCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
