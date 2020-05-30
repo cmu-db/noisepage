@@ -19,9 +19,9 @@ pipeline {
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 1h make check-format'
-                        sh 'cd build && timeout 1h make check-lint'
-                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build && timeout 20m make check-format'
+                        sh 'cd build && timeout 20m make check-lint'
+                        sh 'cd build && timeout 20m make check-censored'
                     }
                     post {
                         cleanup {
@@ -42,9 +42,9 @@ pipeline {
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 1h make check-format'
-                        sh 'cd build && timeout 1h make check-lint'
-                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build && timeout 20m make check-format'
+                        sh 'cd build && timeout 20m make check-lint'
+                        sh 'cd build && timeout 20m make check-censored'
                     }
                     post {
                         cleanup {
@@ -69,9 +69,9 @@ pipeline {
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 1h make check-format'
-                        sh 'cd build && timeout 1h make check-lint'
-                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build && timeout 20m make check-format'
+                        sh 'cd build && timeout 20m make check-lint'
+                        sh 'cd build && timeout 20m make check-censored'
                     }
                     post {
                         cleanup {
@@ -98,7 +98,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && gtimeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -123,7 +123,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -150,7 +150,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
@@ -190,7 +190,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -212,7 +212,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && gtimeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -236,7 +236,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -264,7 +264,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 1h python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
