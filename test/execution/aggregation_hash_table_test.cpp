@@ -27,7 +27,9 @@ struct InputTuple {
 
   explicit InputTuple(uint64_t key, uint64_t col_a) : key_(key), col_a_(col_a) {}
 
-  hash_t Hash() const noexcept { return common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&key_), sizeof(key_)); }
+  hash_t Hash() const noexcept {
+    return common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(&key_), sizeof(key_));
+  }
 };
 
 /**

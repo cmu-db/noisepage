@@ -573,7 +573,8 @@ VM_OP_HOT void OpHashReal(terrier::hash_t *hash_val, terrier::execution::sql::Re
 }
 
 VM_OP_HOT void OpHashString(terrier::hash_t *hash_val, terrier::execution::sql::StringVal *input) {
-  *hash_val = terrier::common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(input->GetContent()), input->GetLength());
+  *hash_val =
+      terrier::common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(input->GetContent()), input->GetLength());
   *hash_val = input->is_null_ ? 0 : *hash_val;
 }
 
