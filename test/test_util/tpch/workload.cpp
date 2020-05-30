@@ -70,7 +70,7 @@ std::vector<parser::ConstantValueExpression> Workload::GetQueryParams(const std:
     const std::string query_val = query_name + "_p" + std::to_string(i + 1);
 
     auto string_val = execution::sql::ValueUtil::CreateStringVal(query_val);
-    params.emplace_back(type::TypeId::VARCHAR, std::move(string_val.first), std::move(string_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
   }
 
   return params;

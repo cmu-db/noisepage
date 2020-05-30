@@ -267,9 +267,9 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
   auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
   std::vector<parser::ConstantValueExpression> params;
-  params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(100));
-  params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(500));
-  params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(3));
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(100));
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(500));
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(3));
   exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
 
   // Run & Check
@@ -2869,8 +2869,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
     std::vector<parser::ConstantValueExpression> params;
-    params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(495));
-    params.emplace_back(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(505));
+    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(495));
+    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(505));
     exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3085,24 +3085,24 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<parser::ConstantValueExpression> params;
     // First parameter list
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
-    params.emplace_back(type::TypeId::VARCHAR, std::move(str1_val.first), std::move(str1_val.second));
-    params.emplace_back(type::TypeId::DATE, std::make_unique<sql::DateVal>(date1.val_));
-    params.emplace_back(type::TypeId::DECIMAL, std::make_unique<sql::Real>(real1));
-    params.emplace_back(type::TypeId::BOOLEAN, std::make_unique<sql::BoolVal>(bool1));
-    params.emplace_back(type::TypeId::TINYINT, std::make_unique<sql::Integer>(tinyint1));
-    params.emplace_back(type::TypeId::SMALLINT, std::make_unique<sql::Integer>(smallint1));
-    params.emplace_back(type::TypeId::INTEGER, std::make_unique<sql::Integer>(int1));
-    params.emplace_back(type::TypeId::BIGINT, std::make_unique<sql::Integer>(bigint1));
+    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(type::TypeId::DATE, sql::DateVal(date1.val_));
+    params.emplace_back(type::TypeId::DECIMAL, sql::Real(real1));
+    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool1));
+    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint1));
+    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint1));
+    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int1));
+    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint1));
     // Second parameter list
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
-    params.emplace_back(type::TypeId::VARCHAR, std::move(str2_val.first), std::move(str2_val.second));
-    params.emplace_back(type::TypeId::DATE, std::make_unique<sql::DateVal>(date2.val_));
-    params.emplace_back(type::TypeId::DECIMAL, std::make_unique<sql::Real>(real2));
-    params.emplace_back(type::TypeId::BOOLEAN, std::make_unique<sql::BoolVal>(bool2));
-    params.emplace_back(type::TypeId::TINYINT, std::make_unique<sql::Integer>(tinyint2));
-    params.emplace_back(type::TypeId::SMALLINT, std::make_unique<sql::Integer>(smallint2));
-    params.emplace_back(type::TypeId::INTEGER, std::make_unique<sql::Integer>(int2));
-    params.emplace_back(type::TypeId::BIGINT, std::make_unique<sql::Integer>(bigint2));
+    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
+    params.emplace_back(type::TypeId::DATE, sql::DateVal(date2.val_));
+    params.emplace_back(type::TypeId::DECIMAL, sql::Real(real2));
+    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool2));
+    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint2));
+    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint2));
+    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int2));
+    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint2));
     exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3283,8 +3283,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<parser::ConstantValueExpression> params;
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
-    params.emplace_back(type::TypeId::VARCHAR, std::move(str1_val.first), std::move(str1_val.second));
-    params.emplace_back(type::TypeId::VARCHAR, std::move(str2_val.first), std::move(str2_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
     exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);

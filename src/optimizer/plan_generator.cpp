@@ -871,7 +871,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
 
     auto val_type = col->GetValueType();
 
-    parser::ConstantValueExpression null_val{val_type, std::make_unique<execution::sql::Val>(true)};
+    parser::ConstantValueExpression null_val{val_type, execution::sql::Val(true)};
     auto &val = col->GetDefaultExpression() != nullptr ? *col->GetDefaultExpression() : null_val;
 
     if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {

@@ -1051,11 +1051,11 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
       if (i.first == type::TypeId::INTEGER) {
         cols.emplace_back(col_name.str(), i.first, false,
                           terrier::parser::ConstantValueExpression(type::TypeId::INTEGER,
-                                                                   std::make_unique<execution::sql::Integer>(0)));
+                                                                   execution::sql::Integer(0)));
       } else {
         cols.emplace_back(col_name.str(), i.first, false,
                           terrier::parser::ConstantValueExpression(type::TypeId::DECIMAL,
-                                                                   std::make_unique<execution::sql::Real>(0.f)));
+                                                                   execution::sql::Real(0.f)));
       }
     }
   }

@@ -28,6 +28,8 @@ namespace terrier::parser {
  */
 class ExpressionUtil {
  public:
+  ExpressionUtil() = delete;
+
   /**
    * Populate the given set with all of the column oids referenced
    * in this expression tree.
