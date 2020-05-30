@@ -48,7 +48,7 @@ int64_t warmup_iterations_num{5};
 /**
  * Limit on num_rows for which queries need warming up
  */
-int64_t warmup_rows_limit{50};
+int64_t warmup_rows_limit{1000};
 
 void InvokeGC() {
   // Perform GC to do any cleanup
