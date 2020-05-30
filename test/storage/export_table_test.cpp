@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "storage/arrow_serializer.h"
 #include "storage/block_access_controller.h"
 #include "storage/block_compactor.h"
 #include "storage/garbage_collector.h"
