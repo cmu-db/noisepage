@@ -310,9 +310,8 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
   return exprs;
 }
 
-<<<<<<< HEAD
 DEFINE_JSON_BODY_DECLARATIONS(ConstantValueExpression);
-=======
+
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Val value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Integer value);
@@ -343,6 +342,5 @@ template double ConstantValueExpression::Peek() const;
 template execution::sql::Date ConstantValueExpression::Peek() const;
 template execution::sql::Timestamp ConstantValueExpression::Peek() const;
 template std::string_view ConstantValueExpression::Peek() const;
->>>>>>> json_library_update
 
 }  // namespace terrier::parser
