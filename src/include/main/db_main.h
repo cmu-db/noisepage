@@ -544,7 +544,7 @@ class DBMain {
     }
 
     /**
-     * @param value Network port
+     * @param port Network port
      * @return self reference for chaining
      */
     Builder &SetNetworkPort(const uint16_t port) {
