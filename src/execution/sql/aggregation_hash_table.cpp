@@ -16,6 +16,9 @@
 #include "libcount/hll.h"
 #include "loggers/execution_logger.h"
 
+/** TODO(WAN): AHT will be rewritten. */
+#define AHT_REWRITE 1
+
 namespace terrier::execution::sql {
 
 AggregationHashTable::AggregationHashTable(MemoryPool *memory, std::size_t payload_size)
@@ -193,7 +196,7 @@ void AggregationHashTable::LookupBatch(ProjectedColumnsIterator *iters[], uint32
                                        AggregationHashTable::KeyEqFn key_eq_fn) const {
   // Compute hash and perform initial lookup
   ComputeHashAndLoadInitial<PCIIsFiltered>(iters, num_elems, hashes, entries, hash_fn);
-
+#if !AHT_REWRITE
   // Determine the indexes of entries that are non-null
   alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
   uint32_t num_groups = util::VectorUtil::FilterNe(reinterpret_cast<intptr_t *>(entries), iters[0]->NumSelected(),
@@ -202,6 +205,7 @@ void AggregationHashTable::LookupBatch(ProjectedColumnsIterator *iters[], uint32
   // Candidate groups in 'entries' may have hash collisions. Follow the chain
   // to check key equality.
   FollowNextLoop<PCIIsFiltered>(iters, num_groups, group_sel, hashes, entries, key_eq_fn);
+#endif
 }
 
 template <bool PCIIsFiltered>
@@ -291,9 +295,9 @@ void AggregationHashTable::CreateMissingGroups(ProjectedColumnsIterator *iters[]
                                                const hash_t hashes[], HashTableEntry *entries[],
                                                AggregationHashTable::KeyEqFn key_eq_fn,
                                                AggregationHashTable::InitAggFn init_agg_fn) {
+#if !AHT_REWRITE
   // Vector storing all the missing group IDs
   alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
-
   // Determine which elements are missing a group
   uint32_t num_groups =
       util::VectorUtil::FilterEq(reinterpret_cast<intptr_t *>(entries), num_elems, intptr_t(0), group_sel, nullptr);
@@ -313,14 +317,15 @@ void AggregationHashTable::CreateMissingGroups(ProjectedColumnsIterator *iters[]
     // Initialize
     init_agg_fn(Insert(hash), iters);
   }
+#endif
 }
 
 template <bool PCIIsFiltered>
 void AggregationHashTable::AdvanceGroups(ProjectedColumnsIterator *iters[], uint32_t num_elems,
                                          HashTableEntry *entries[], AggregationHashTable::AdvanceAggFn advance_agg_fn) {
+#if !AHT_REWRITE
   // Vector storing all valid group indexes
   alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
-
   // All non-null entries are groups that should be updated. Find them now.
   uint32_t num_groups =
       util::VectorUtil::FilterNe(reinterpret_cast<intptr_t *>(entries), num_elems, intptr_t(0), group_sel, nullptr);
@@ -331,6 +336,7 @@ void AggregationHashTable::AdvanceGroups(ProjectedColumnsIterator *iters[], uint
     iters[0]->SetPosition<PCIIsFiltered>(group_sel[idx]);
     advance_agg_fn(entry->payload_, iters);
   }
+#endif
 }
 
 void AggregationHashTable::TransferMemoryAndPartitions(
@@ -435,7 +441,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
                  "No overflow partitions allocated, or no merging function "
                  "allocated. Did you call TransferMemoryAndPartitions() before "
                  "issuing the partitioned scan?");
-
+#if !AHT_REWRITE
   // Determine the non-empty overflow partitions
   alignas(common::Constants::CACHELINE_SIZE) uint32_t nonempty_parts[K_DEFAULT_NUM_PARTITIONS];
   uint32_t num_nonempty_parts =
@@ -452,6 +458,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
     // Scan the partition
     scan_fn(query_state, thread_state, agg_table_part);
   });
+#endif
 }
 
 }  // namespace terrier::execution::sql

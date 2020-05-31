@@ -5,6 +5,9 @@
 
 namespace terrier::execution::sql {
 
+/** TODO(WAN): PCI will be rewritten. */
+#define PCI_REWRITE 1
+
 ProjectedColumnsIterator::ProjectedColumnsIterator() : selection_vector_{0} {
   selection_vector_[0] = ProjectedColumnsIterator::K_INVALID_POS;
 }
@@ -25,6 +28,7 @@ void ProjectedColumnsIterator::SetProjectedColumn(storage::ProjectedColumns *pro
 
 template <typename T, template <typename> typename Op>
 uint32_t ProjectedColumnsIterator::FilterColByColImpl(const uint32_t col_idx_1, const uint32_t col_idx_2) {
+#ifndef PCI_REWRITE
   // Get the input column's data
   const auto *input_1 = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<uint16_t>(col_idx_1)));
   const auto *input_2 = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<uint16_t>(col_idx_2)));
@@ -35,7 +39,7 @@ uint32_t ProjectedColumnsIterator::FilterColByColImpl(const uint32_t col_idx_1, 
   // Filter!
   selection_vector_write_idx_ =
       util::VectorUtil::FilterVectorByVector<T, Op>(input_1, input_2, num_selected_, selection_vector_, sel_vec);
-
+#endif
   // After the filter has been run on the entire vector projection, we need to
   // ensure that we reset it so that clients can query the updated state of the
   // PCI, and subsequent filters operate only on valid tuples potentially
@@ -50,6 +54,7 @@ uint32_t ProjectedColumnsIterator::FilterColByColImpl(const uint32_t col_idx_1, 
 // Filter an entire column's data by the provided constant value
 template <typename T, template <typename> typename Op>
 uint32_t ProjectedColumnsIterator::FilterColByValImpl(uint32_t col_idx, T val) {
+#ifndef PCI_REWRITE
   // Get the input column's data
   const auto *input = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<uint16_t>(col_idx)));
 
@@ -59,7 +64,7 @@ uint32_t ProjectedColumnsIterator::FilterColByValImpl(uint32_t col_idx, T val) {
   // Filter!
   selection_vector_write_idx_ =
       util::VectorUtil::FilterVectorByVal<T, Op>(input, num_selected_, val, selection_vector_, sel_vec);
-
+#endif
   // After the filter has been run on the entire vector projection, we need to
   // ensure that we reset it so that clients can query the updated state of the
   // PCI, and subsequent filters operate only on valid tuples potentially
