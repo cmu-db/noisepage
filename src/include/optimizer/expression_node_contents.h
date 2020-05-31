@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "common/exception.h"
 #include "optimizer/abstract_optimizer_node_contents.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
