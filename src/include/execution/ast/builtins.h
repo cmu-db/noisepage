@@ -244,7 +244,13 @@ namespace terrier::execution::ast {
   F(GetParamString, getParamString)                                     \
                                                                         \
   /* String functions */                                                \
-  F(Lower, lower)
+  F(Lower, lower)                                                       \
+                                                                        \
+  /* Mini runners functions */                                          \
+  F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \
+  F(NpRunnersEmitReal, NpRunnersEmitReal)                               \
+  F(NpRunnersDummyInt, NpRunnersDummyInt)                               \
+  F(NpRunnersDummyReal, NpRunnersDummyReal)
 
 /**
  * Enum of builtins
