@@ -5,6 +5,9 @@
 #include "llvm/Support/ErrorHandling.h"
 #define EXPORT __attribute__((visibility("default")))
 
+/** Selection vector. */
+using sel_t = uint16_t;
+
 //===--------------------------------------------------------------------===//
 // branch predictor hints
 //===--------------------------------------------------------------------===//
