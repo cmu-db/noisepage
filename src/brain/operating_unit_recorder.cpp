@@ -10,6 +10,8 @@
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
+#include "parser/expression/constant_value_expression.h"
+#include "parser/expression/function_expression.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
@@ -153,7 +155,29 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   size_t num_rows = 1;
   size_t cardinality = 1;
-  if (type == ExecutionOperatingUnitType::OUTPUT || type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
+  if (type == ExecutionOperatingUnitType::OUTPUT) {
+    // Uses the network result consumer
+    cardinality = 1;
+
+    auto child_translator = current_translator_->GetChildTranslator();
+    if (child_translator != nullptr) {
+      if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
+        auto output = child_translator->Op()->GetOutputSchema()->GetColumn(0).GetExpr();
+        if (output && output->GetExpressionType() == parser::ExpressionType::FUNCTION) {
+          auto f_expr = output.CastManagedPointerTo<const parser::FunctionExpression>();
+          if (f_expr->GetFuncName() == "nprunnersemitint" || f_expr->GetFuncName() == "nprunnersemitreal") {
+            auto child = f_expr->GetChild(0);
+            TERRIER_ASSERT(child, "NpRunnersEmit should have children");
+            TERRIER_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
+                           "Child should be constants");
+
+            auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
+            num_rows = cve->GetInteger().val_;
+          }
+        }
+      }
+    }
+  } else if (type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
     // If feature is OUTPUT or computation, then cardinality = num_rows
     cardinality = num_rows;
   } else if (type == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
