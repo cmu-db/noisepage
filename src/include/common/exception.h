@@ -35,7 +35,8 @@ enum class ExceptionType : uint8_t {
   PARSER,
   SETTINGS,
   OPTIMIZER,
-  SYNTAX
+  SYNTAX,
+  EXECUTION
 };
 
 /**

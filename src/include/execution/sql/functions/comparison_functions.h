@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "execution/sql/operators/comparison_operators.h"
+#include "execution/sql/value.h"
 #include "execution/sql/value.h"
 
 namespace terrier::execution::sql {
@@ -252,36 +254,38 @@ class EXPORT ComparisonFunctions {
 
 #define BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TYPE, OP)                                   \
   inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const TYPE &v1, const TYPE &v2) { \
-    result->is_null_ = (v1.is_null_ || v2.is_null_);                                             \
-    result->val_ = v1.val_ OP v2.val_;                                                           \
+    using CppType = decltype(v1.val_);                                                            \
+    result->is_null_ = (v1.is_null_ || v2.is_null_);                                                \
+    result->val_ = OP<CppType>{}(v1.val_, v2.val_);                                                 \
   }
 
-#define BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, TYPE, OP)                                    \
-  inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const TYPE &v1, const TYPE &v2) { \
-    if (v1.is_null_ || v2.is_null_) {                                                            \
-      *result = BoolVal::Null();                                                                 \
-      return;                                                                                    \
-    }                                                                                            \
-    *result = BoolVal(Compare(v1, v2) OP 0);                                                     \
+#define BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, TYPE, OP)                       \
+  inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const StringVal &v1, \
+                                              const StringVal &v2) {                \
+    using CppType = decltype(v1.val_);                                               \
+    if (v1.is_null_ || v2.is_null_) {                                                 \
+      *result = BoolVal::Null();                                                    \
+      return;                                                                       \
+    }                                                                               \
+    *result = BoolVal(OP<CppType>{}(v1.val_, v2.val_));                               \
   }
 
-#define BINARY_COMPARISON_ALL_TYPES(NAME, OP)                \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, BoolVal, OP)  \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Integer, OP)  \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Real, OP)     \
-  BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, StringVal, OP) \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, DateVal, OP)  \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TimestampVal, OP)
+#define BINARY_COMPARISONS(NAME, OP)                             \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, BoolVal, OP)      \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Integer, OP)      \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Real, OP)         \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, DateVal, OP)      \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TimestampVal, OP) \
+  BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, StringVal, OP)
 
-BINARY_COMPARISON_ALL_TYPES(Eq, ==);
-BINARY_COMPARISON_ALL_TYPES(Ge, >=);
-BINARY_COMPARISON_ALL_TYPES(Gt, >);
-BINARY_COMPARISON_ALL_TYPES(Le, <=);
-BINARY_COMPARISON_ALL_TYPES(Lt, <);
-BINARY_COMPARISON_ALL_TYPES(Ne, !=);
+BINARY_COMPARISONS(Eq, terrier::execution::sql::Equal);
+BINARY_COMPARISONS(Ge, terrier::execution::sql::GreaterThanEqual);
+BINARY_COMPARISONS(Gt, terrier::execution::sql::GreaterThan);
+BINARY_COMPARISONS(Le, terrier::execution::sql::LessThanEqual);
+BINARY_COMPARISONS(Lt, terrier::execution::sql::LessThan);
+BINARY_COMPARISONS(Ne, terrier::execution::sql::NotEqual);
 
-#undef BINARY_COMPARISON_ALL_TYPES
+#undef BINARY_COMPARISONS
 #undef BINARY_COMPARISON_STRING_FN_HIDE_NULL
 #undef BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL
-#undef BINARY_COMPARISON_DATE_FN_HIDE_NULL
 }  // namespace terrier::execution::sql

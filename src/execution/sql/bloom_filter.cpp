@@ -40,7 +40,7 @@ uint64_t BloomFilter::GetTotalBitsSet() const {
     // performance-critical.
     const auto *const chunk = reinterpret_cast<const uint64_t *>(blocks_[i]);
     for (uint32_t j = 0; j < 4; j++) {
-      count += util::BitUtil::CountBits(chunk[j]);
+      count += util::BitUtil::CountPopulation(chunk[j]);
     }
   }
   return count;
