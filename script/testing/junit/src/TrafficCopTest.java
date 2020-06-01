@@ -37,7 +37,7 @@ public class TrafficCopTest extends TestUtility {
   @Test
   public void test_DisconnectAbort() throws SQLException {
 
-   // create another connection that will take the write lock on a tuple, forcing an about on the default connection's
+   // create another connection that will take the write lock on a tuple, forcing an abort on the default connection's
    // createStatement
    Connection second_conn = makeDefaultConnection();
    second_conn.setAutoCommit(true);
