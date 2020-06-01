@@ -118,6 +118,9 @@ class Statement {
     executable_query_ = std::move(executable_query);
   }
 
+  /**
+   * @return Hash of the query string. The idea is to use this for caching purposes
+   */
   common::hash_t GetQueryHash() const { return query_hash_; };
 
  private:

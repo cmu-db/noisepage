@@ -153,6 +153,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   common::ManagedPointer<network::Statement> GetStatement(const std::string &name) const {
     const auto it = statements_.find(name);
+    // TODO(Matt): more exhaustive comparison in case of a hash collision on the string?
     if (it != statements_.end()) return common::ManagedPointer(it->second);
     return nullptr;
   }
