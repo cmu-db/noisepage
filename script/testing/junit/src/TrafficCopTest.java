@@ -32,6 +32,38 @@ public class TrafficCopTest extends TestUtility {
  }
 
  /**
+   * DisconnectAbortTest
+   */
+  @Test
+  public void test_DisconnectAbort() throws SQLException {
+
+   Connection second_conn = makeDefaultConnection();
+   second_conn.setAutoCommit(true);
+
+   Statement stmt = second_conn.createStatement();
+   stmt.execute("CREATE TABLE FOO (ID INT);");
+   stmt.execute("INSERT INTO FOO VALUES (1),(2),(3);");
+   stmt.execute("BEGIN;");
+   stmt.execute("UPDATE FOO SET ID = 4 WHERE ID = 3;");
+   assertEquals(stmt.getUpdateCount(), 1);
+
+   Statement second_stmt = conn.createStatement();
+   try {
+      second_stmt.execute("UPDATE FOO SET ID = 5 WHERE ID = 3;");
+      fail();
+     } catch (SQLException ex) {
+      assertEquals(ex.getMessage(), "Query failed.");
+     }
+   second_conn.close();
+
+   Statement third_stmt = conn.createStatement();
+   third_stmt.execute("UPDATE FOO SET ID = 5 WHERE ID = 3;");
+   assertEquals(third_stmt.getUpdateCount(), 1);
+
+
+  }
+
+ /**
   * BadParseTest
   */
  @Test
