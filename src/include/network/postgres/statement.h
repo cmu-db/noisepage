@@ -121,7 +121,7 @@ class Statement {
   /**
    * @return Hash of the query string. The idea is to use this for caching purposes
    */
-  common::hash_t GetQueryHash() const { return query_hash_; };
+  common::hash_t GetQueryHash() const { return query_hash_; }
 
  private:
   const std::string query_text_;
