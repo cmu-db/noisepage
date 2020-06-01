@@ -25,8 +25,7 @@ class Portal {
    * text for Simple Query protocol per the spec.
    * @param statement statement that this Portal refers to
    */
-  explicit Portal(std::string &&name, const common::ManagedPointer<Statement> statement)
-      : Portal(std::move(name), statement, {}, {FieldFormat::text}) {}
+  explicit Portal(const common::ManagedPointer<Statement> statement) : Portal(statement, {}, {FieldFormat::text}) {}
 
   /**
    * Constructor that doesnt have params or result_formats, i.e. Extended Query protocol
@@ -34,12 +33,9 @@ class Portal {
    * @param params params for this query
    * @param result_formats output formats for this query
    */
-  Portal(std::string &&name, const common::ManagedPointer<Statement> statement,
-         std::vector<parser::ConstantValueExpression> &&params, std::vector<FieldFormat> &&result_formats)
-      : name_(std::move(name)),
-        statement_(statement),
-        params_(std::move(params)),
-        result_formats_(std::move(result_formats)) {}
+  Portal(const common::ManagedPointer<Statement> statement, std::vector<parser::ConstantValueExpression> &&params,
+         std::vector<FieldFormat> &&result_formats)
+      : statement_(statement), params_(std::move(params)), result_formats_(std::move(result_formats)) {}
 
   /**
    * @return Statement that this Portal references
@@ -63,10 +59,7 @@ class Portal {
     return common::ManagedPointer(&params_);
   }
 
-  const std::string &GetName() const { return name_; }
-
  private:
-  const std::string name_;
   const common::ManagedPointer<network::Statement> statement_;
   const std::vector<parser::ConstantValueExpression> params_;
   const std::vector<FieldFormat> result_formats_;

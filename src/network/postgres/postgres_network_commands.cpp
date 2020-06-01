@@ -75,7 +75,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   auto parse_result = t_cop->ParseQuery(query_text, connection);
 
-  const auto statement = std::make_unique<network::Statement>("", std::move(query_text), std::move(parse_result));
+  const auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result));
 
   // Parsing a SimpleQuery clears the unnamed statement and portal
   postgres_interpreter->CloseStatement("");
@@ -141,7 +141,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
       statement->SetPhysicalPlan(std::move(physical_plan));
 
-      const auto portal = std::make_unique<Portal>("", common::ManagedPointer(statement));
+      const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement));
 
       if (query_type == network::QueryType::QUERY_SELECT) {
         out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
@@ -183,7 +183,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
                  "caught at the protocol interpreter Process() level.");
 
-  auto statement_name = in_.ReadString();
+  const auto statement_name = in_.ReadString();
 
   if (!statement_name.empty() && postgres_interpreter->GetStatement(statement_name) != nullptr) {
     out->WriteErrorResponse(
@@ -200,8 +200,8 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   auto parse_result = t_cop->ParseQuery(query_text, connection);
   auto param_types = PostgresPacketUtil::ReadParamTypes(common::ManagedPointer(&in_));
 
-  auto statement = std::make_unique<network::Statement>(std::move(statement_name), std::move(query_text),
-                                                        std::move(parse_result), std::move(param_types));
+  auto statement =
+      std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result), std::move(param_types));
 
   // Extended Query protocol doesn't allow for more than one statement per query string
   if (!statement->Valid() || statement->ParseResult()->NumStatements() > 1) {
@@ -226,7 +226,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     postgres_interpreter->AddStatementToCache(statement->GetQueryHash(), std::move(statement));
   }
 
-  postgres_interpreter->SetStatement(cached_statement->GetName(), cached_statement);
+  postgres_interpreter->SetStatement(statement_name, cached_statement);
 
   out->WriteParseComplete();
   return Transition::PROCEED;

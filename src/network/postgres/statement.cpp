@@ -11,10 +11,9 @@
 
 namespace terrier::network {
 
-Statement::Statement(std::string &&name, std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
+Statement::Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
                      std::vector<type::TypeId> &&param_types)
-    : name_(std::move(name)),
-      query_text_(std::move(query_text)),
+    : query_text_(std::move(query_text)),
       query_hash_(common::HashUtil::Hash(query_text_)),
       parse_result_(std::move(parse_result)),
       param_types_(std::move(param_types)) {
