@@ -150,12 +150,11 @@ class ReadBufferView {
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
     static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
-    const auto val = ReadRawValue<T>();
-
     if constexpr (std::is_floating_point_v<T>) {
-      const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);
-      return static_cast<double>(be64toh(*double_val));
+      const auto raw_bytes = be64toh(ReadRawValue<uint64_t>());
+      return *(reinterpret_cast<const double *const>(&raw_bytes));
     } else {  // NOLINT: false positive on indentation with clang-tidy, fixed in upstream check-clang-tidy
+      const auto val = ReadRawValue<T>();
       switch (sizeof(T)) {
         case 1:
           return val;
@@ -167,7 +166,7 @@ class ReadBufferView {
           return static_cast<T>(be64toh(static_cast<uint64_t>(val)));
           // Will never be here due to compiler optimization
         default:
-          throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
+          UNREACHABLE("invalid size for integer");
       }
     }
   }
