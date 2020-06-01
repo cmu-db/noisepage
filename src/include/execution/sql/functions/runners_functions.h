@@ -28,17 +28,17 @@ class EXPORT MiniRunnersFunctions {
 
     static_assert(sizeof(Integer) == sizeof(Real));
     auto output_buffer = ctx->GetOutputBuffer();
-    for (auto tuple = 0; tuple < num_tuples.val_ - 2; tuple++) {
+    for (auto row = 0; row < num_tuples.val_ - 2; row++) {
       auto output_alloc = output_buffer->AllocOutputSlot();
 
       auto j = 0;
       for (auto icol = 0; icol < num_int_cols.val_; icol++) {
-        reinterpret_cast<Integer *>(output_alloc)[j] = execution::sql::Integer(tuple);
+        reinterpret_cast<Integer *>(output_alloc)[j] = execution::sql::Integer(row);
         j++;
       }
 
       for (auto rcol = 0; rcol < num_real_cols.val_; rcol++) {
-        reinterpret_cast<Real *>(output_alloc)[j] = execution::sql::Real(tuple * 1.0);
+        reinterpret_cast<Real *>(output_alloc)[j] = execution::sql::Real(row * 1.0);
         j++;
       }
     }
