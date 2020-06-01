@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/container/concurrent_queue.h"
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/managed_pointer.h"
@@ -14,13 +15,13 @@
 #include "common/strong_typedef.h"
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
-#include "storage/write_ahead_log/disk_log_consumer_task.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
-#include "storage/write_ahead_log/log_serializer_task.h"
-#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
+
+class LogSerializerTask;
+class DiskLogConsumerTask;
 
 /**
  * A LogManager is responsible for serializing log records out and keeping track of whether changes from a transaction

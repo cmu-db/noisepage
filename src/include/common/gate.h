@@ -1,6 +1,5 @@
 #pragma once
 
-#include <immintrin.h>
 #include <atomic>
 
 #include "common/macros.h"
@@ -33,11 +32,7 @@ class Gate {
    * Traverses the gate unless there are currently locks emplaced.  If there
    * are locks on the gate, spin until its free.
    */
-  void Traverse() {
-    while (count_.load() > 0) {
-      _mm_pause();
-    }
-  }
+  void Traverse();
 
   /**
    * Scoped locking of the gate that guarantees unlocking on destruction
