@@ -12,7 +12,6 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "storage/storage_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
 

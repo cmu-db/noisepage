@@ -8,7 +8,6 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "storage/storage_defs.h"
 
 namespace terrier::planner {
 
