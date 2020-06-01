@@ -29,12 +29,12 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
 
-#define __SETTING_GFLAGS_DECLARE__     // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DECLARE__      // NOLINT
-
 namespace terrier::runner {
+
+/**
+ * Port
+ */
+uint16_t port = 15721;
 
 /**
  * Static db_main instance
@@ -1569,7 +1569,6 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ4_AggregateRunners)
     ->Apply(GenAggregateArguments);
 
 void InitializeRunnersState() {
-  auto port = FLAGS_port;
   auto db_main_builder = DBMain::Builder()
                              .SetUseGC(true)
                              .SetUseCatalog(true)
@@ -1582,7 +1581,7 @@ void InitializeRunnersState() {
                              .SetUseExecution(true)
                              .SetUseTrafficCop(true)
                              .SetUseNetwork(true)
-                             .SetNetworkPort(port);
+                             .SetNetworkPort(terrier::runner::port);
 
   db_main = db_main_builder.Build().release();
 
@@ -1601,8 +1600,8 @@ void InitializeRunnersState() {
                                                                       nullptr, common::ManagedPointer(accessor));
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
-  // table_gen.GenerateTestTables(true);
-  // table_gen.GenerateMiniRunnerIndexes();
+  table_gen.GenerateTestTables(true);
+  table_gen.GenerateMiniRunnerIndexes();
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
@@ -1644,11 +1643,10 @@ void RunNetworkQueries() {
     network_queries_cv.wait(lk, [] { return network_queries_ready; });
   }
 
-  auto port = FLAGS_port;
   std::string conn;
   {
     std::stringstream conn_ss;
-    conn_ss << "postgresql://127.0.0.1:" << port << "/test_db";
+    conn_ss << "postgresql://127.0.0.1:" << (terrier::runner::port) << "/test_db";
     conn = conn_ss.str();
   }
 
@@ -1750,7 +1748,22 @@ void RunBenchmarkSequence() {
 }
 
 int main(int argc, char **argv) {
-  ::google::ParseCommandLineFlags(&argc, &argv, true);
+  // mini_runners --port=9999 --benchmark_filter=
+  std::pair<bool, int> port_info{false, -1};
+  std::pair<bool, int> filter_info{false, -1};
+  for (int i = 0; i < argc; i++) {
+    if (strstr(argv[i], "--port=") != NULL)
+      port_info = std::make_pair(true, i);
+    else if (strstr(argv[i], "--benchmark_filter=") != NULL)
+      filter_info = std::make_pair(true, i);
+  }
+
+  if (port_info.first) {
+    char *arg = argv[port_info.second];
+    char *equal_sign = strstr(arg, "=") + 1;
+    terrier::runner::port = atoi(equal_sign);
+  }
+
   terrier::LoggersUtil::Initialize();
 
   // Benchmark Config Environment Variables
@@ -1764,13 +1777,13 @@ int main(int argc, char **argv) {
 
   terrier::runner::InitializeRunnersState();
 
-  if (argc > 1) {
+  if (filter_info.first) {
     // Pass straight through to gbenchmark
     benchmark::Initialize(&argc, argv);
     benchmark::RunSpecifiedBenchmarks();
     terrier::runner::EndRunnersState();
   } else {
-    // RunBenchmarkSequence();
+    RunBenchmarkSequence();
     RunNetworkSequence();
   }
 
