@@ -158,21 +158,27 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   }
 
   /**
-   * @param fingerprint key
+   * @param hash key
    * @param statement statement to take ownership of
    */
-  void AddStatementToCache(const std::string &fingerprint, std::unique_ptr<network::Statement> &&statement) {
-    statement_cache_[fingerprint] = std::move(statement);
+  void AddStatementToCache(const common::hash_t hash, std::unique_ptr<network::Statement> &&statement) {
+    statement_cache_[hash] = std::move(statement);
   }
 
   /**
-   * @param fingerprint key
+   * @param hash key
    * @return Statement if it exists in the cache, otherwise nullptr
    */
-  common::ManagedPointer<network::Statement> LookupStatementInCache(const std::string &fingerprint) const {
-    const auto it = statement_cache_.find(fingerprint);
+  common::ManagedPointer<network::Statement> LookupStatementInCache(const common::hash_t hash) const {
+    const auto it = statement_cache_.find(hash);
     if (it != statement_cache_.end()) return common::ManagedPointer(it->second);
     return nullptr;
+  }
+
+  void DropStatementFromCache(const common::hash_t hash) {
+    const auto result UNUSED_ATTRIBUTE = statement_cache_.erase(hash);
+    TERRIER_ASSERT(result == 1,
+                   "Dropping a statement from the cache is somewhat exceptional behavior, so it shouldn't fail.");
   }
 
   /**
@@ -240,8 +246,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 
-  // fingerprint to statement
-  std::unordered_map<std::string, std::unique_ptr<network::Statement>> statement_cache_;
+  // hash to statement
+  std::unordered_map<common::hash_t, std::unique_ptr<network::Statement>> statement_cache_;
 
   // name to statement
   std::unordered_map<std::string, common::ManagedPointer<network::Statement>> statements_;

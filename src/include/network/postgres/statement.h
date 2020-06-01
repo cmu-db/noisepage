@@ -32,8 +32,8 @@ class Statement {
    * @param query_text original query text from the wire
    * @param parse_result output from postgresparser
    */
-  Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result)
-      : Statement(std::move(query_text), std::move(parse_result), {}) {}
+  Statement(std::string &&name, std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result)
+      : Statement(std::move(name), std::move(query_text), std::move(parse_result), {}) {}
 
   /**
    * Constructor that does have parameter types, i.e. Extended Query protocol
@@ -41,7 +41,7 @@ class Statement {
    * @param parse_result output from postgresparser
    * @param param_types types of the values to be bound
    */
-  Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
+  Statement(std::string &&name, std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
             std::vector<type::TypeId> &&param_types);
 
   /**
@@ -118,8 +118,14 @@ class Statement {
     executable_query_ = std::move(executable_query);
   }
 
+  const std::string &GetName() const { return name_; }
+
+  common::hash_t GetQueryHash() const { return query_hash_; };
+
  private:
+  const std::string name_;
   const std::string query_text_;
+  const common::hash_t query_hash_;
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
   const std::vector<type::TypeId> param_types_;
   common::ManagedPointer<parser::SQLStatement> root_statement_ = nullptr;

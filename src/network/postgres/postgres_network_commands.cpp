@@ -75,7 +75,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   auto parse_result = t_cop->ParseQuery(query_text, connection);
 
-  const auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result));
+  const auto statement = std::make_unique<network::Statement>("", std::move(query_text), std::move(parse_result));
 
   // Parsing a SimpleQuery clears the unnamed statement and portal
   postgres_interpreter->CloseStatement("");
@@ -141,7 +141,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
       statement->SetPhysicalPlan(std::move(physical_plan));
 
-      const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement));
+      const auto portal = std::make_unique<Portal>("", common::ManagedPointer(statement));
 
       if (query_type == network::QueryType::QUERY_SELECT) {
         out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
@@ -183,7 +183,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
                  "caught at the protocol interpreter Process() level.");
 
-  const auto statement_name = in_.ReadString();
+  auto statement_name = in_.ReadString();
 
   if (!statement_name.empty() && postgres_interpreter->GetStatement(statement_name) != nullptr) {
     out->WriteErrorResponse(
@@ -200,8 +200,8 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   auto parse_result = t_cop->ParseQuery(query_text, connection);
   auto param_types = PostgresPacketUtil::ReadParamTypes(common::ManagedPointer(&in_));
 
-  auto statement =
-      std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result), std::move(param_types));
+  auto statement = std::make_unique<network::Statement>(std::move(statement_name), std::move(query_text),
+                                                        std::move(parse_result), std::move(param_types));
 
   // Extended Query protocol doesn't allow for more than one statement per query string
   if (!statement->Valid() || statement->ParseResult()->NumStatements() > 1) {
@@ -219,20 +219,16 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  const auto fingerprint_result = pg_query_fingerprint(statement->GetQueryText().c_str());
-
-  auto cached_statement = postgres_interpreter->LookupStatementInCache(fingerprint_result.hexdigest);
+  auto cached_statement = postgres_interpreter->LookupStatementInCache(statement->GetQueryHash());
   if (cached_statement == nullptr) {
     // Not in the cache, add to cache
     cached_statement = common::ManagedPointer(statement);
-    postgres_interpreter->AddStatementToCache(fingerprint_result.hexdigest, std::move(statement));
+    postgres_interpreter->AddStatementToCache(statement->GetQueryHash(), std::move(statement));
   }
-  pg_query_free_fingerprint_result(fingerprint_result);
 
-  postgres_interpreter->SetStatement(statement_name, cached_statement);
+  postgres_interpreter->SetStatement(cached_statement->GetName(), cached_statement);
 
   out->WriteParseComplete();
-
   return Transition::PROCEED;
 }
 
@@ -245,7 +241,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
                  "caught at the protocol interpreter Process() level.");
 
-  const auto portal_name = in_.ReadString();
+  auto portal_name = in_.ReadString();
   const auto statement_name = in_.ReadString();
   const auto statement = postgres_interpreter->GetStatement(statement_name);
 
@@ -303,8 +299,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (query_type <= network::QueryType::QUERY_ROLLBACK) {
     // Don't begin an implicit txn in this case, and don't bind or optimize this statement
-    postgres_interpreter->SetPortal(portal_name,
-                                    std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
+    postgres_interpreter->SetPortal(
+        portal_name,
+        std::make_unique<Portal>(std::move(portal_name), statement, std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
     return Transition::PROCEED;
   }
@@ -312,8 +309,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   if (query_type >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
     // Don't begin an implicit txn in this case, and don't bind or optimize this statement
-    postgres_interpreter->SetPortal(portal_name,
-                                    std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
+    postgres_interpreter->SetPortal(
+        portal_name,
+        std::make_unique<Portal>(std::move(portal_name), statement, std::move(params), std::move(result_formats)));
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
     out->WriteBindComplete();
     return Transition::PROCEED;
@@ -329,15 +327,20 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
       statement->SetPhysicalPlan(std::move(physical_plan));
     }
 
-    postgres_interpreter->SetPortal(portal_name,
-                                    std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
+    postgres_interpreter->SetPortal(
+        portal_name,
+        std::make_unique<Portal>(std::move(portal_name), statement, std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
   } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
     // Binding generated a NOTICE, i.e. IF EXISTS failed, so we're not going to generate a physical plan of nullptr and
     // handle that case in Execute
+    // clear anything cached related to this statement
+    statement->SetPhysicalPlan(nullptr);
+    statement->SetExecutableQuery(nullptr);
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
-    postgres_interpreter->SetPortal(portal_name,
-                                    std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
+    postgres_interpreter->SetPortal(
+        portal_name,
+        std::make_unique<Portal>(std::move(portal_name), statement, std::move(params), std::move(result_formats)));
     out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
     out->WriteBindComplete();
   } else {
@@ -346,6 +349,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
     // failing to bind fails a transaction in postgres
     connection->Transaction()->SetMustAbort();
+    // clear anything cached related to this statement
+    statement->SetPhysicalPlan(nullptr);
+    statement->SetExecutableQuery(nullptr);
     out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
     postgres_interpreter->SetWaitingForSync();
   }
