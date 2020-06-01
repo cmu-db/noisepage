@@ -1,6 +1,7 @@
 #include <common/macros.h>
 #include <gflags/gflags.h>
 #include <pqxx/pqxx>
+
 #include <cstdio>
 #include <functional>
 #include <random>
