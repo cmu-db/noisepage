@@ -166,7 +166,7 @@ class ReadBufferView {
           return static_cast<T>(be64toh(static_cast<uint64_t>(val)));
           // Will never be here due to compiler optimization
         default:
-          UNREACHABLE("invalid size for integer");
+          throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
       }
     }
   }
