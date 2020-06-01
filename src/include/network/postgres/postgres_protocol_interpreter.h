@@ -175,12 +175,6 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
     return nullptr;
   }
 
-  void DropStatementFromCache(const common::hash_t hash) {
-    const auto result UNUSED_ATTRIBUTE = statement_cache_.erase(hash);
-    TERRIER_ASSERT(result == 1,
-                   "Dropping a statement from the cache is somewhat exceptional behavior, so it shouldn't fail.");
-  }
-
   /**
    * @param name key
    * @param statement statement to take ownership of

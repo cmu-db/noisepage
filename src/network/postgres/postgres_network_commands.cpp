@@ -330,8 +330,8 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     out->WriteBindComplete();
   } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
     // Binding generated a NOTICE, i.e. IF EXISTS failed, so we're not going to generate a physical plan of nullptr and
-    // handle that case in Execute
-    // clear anything cached related to this statement
+    // handle that case in Execute. In case it previously bound and compiled, we're gonna throw that away for next
+    // execution
     statement->SetPhysicalPlan(nullptr);
     statement->SetExecutableQuery(nullptr);
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
