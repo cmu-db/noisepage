@@ -61,8 +61,10 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
    */
   void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
-    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
+    std::unique_lock<std::mutex> guard(flush_queue_latch_);
     flush_queue_.push(buffer_segment);
+    flush_queue_size_++;
+    if (flush_queue_.size() >= 10) { flush_queue_cv_.notify_all(); }
   }
 
  private:
@@ -82,9 +84,12 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
   //  optimization we applied to the GC queue.
   // Latch to protect flush queue
-  common::SpinLatch flush_queue_latch_;
+  std::mutex flush_queue_latch_;
   // Stores unserialized buffers handed off by transactions
   std::queue<RecordBufferSegment *> flush_queue_;
+
+  std::condition_variable flush_queue_cv_;
+  std::atomic<uint64_t> flush_queue_size_ = 0;
 
   // Current buffer we are serializing logs to
   BufferedLogWriter *filled_buffer_;
