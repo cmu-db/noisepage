@@ -51,6 +51,8 @@ class RecordBufferSegment {
     return this;
   }
 
+  uint32_t size_ = 0;
+
  private:
   template <class RecordType>
   friend class IterableBufferSegment;
@@ -58,7 +60,6 @@ class RecordBufferSegment {
   friend class UndoBuffer;
 
   byte bytes_[common::Constants::BUFFER_SEGMENT_SIZE];
-  uint32_t size_ = 0;
 };
 
 /**

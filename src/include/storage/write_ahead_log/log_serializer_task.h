@@ -61,10 +61,12 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
    */
   void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
-    std::unique_lock<std::mutex> guard(flush_queue_latch_);
-    flush_queue_.push(buffer_segment);
-    flush_queue_size_++;
-    if (flush_queue_.size() >= 10) { flush_queue_cv_.notify_all(); }
+    {
+      std::unique_lock<std::mutex> guard(flush_queue_latch_);
+      flush_queue_.push(buffer_segment);
+      flush_queue_size_ += buffer_segment->size_;
+      flush_queue_cv_.notify_all();
+    }
   }
 
  private:

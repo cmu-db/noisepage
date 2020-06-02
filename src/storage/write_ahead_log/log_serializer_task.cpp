@@ -14,16 +14,16 @@ namespace terrier::storage {
 void LogSerializerTask::LogSerializerTaskLoop() {
   auto curr_sleep = serialization_interval_;
   // TODO(Gus): Make max back-off a settings manager setting
-  const auto max_sleep =
-      serialization_interval_ * (1u << 10u);  // We cap the back-off in case of long gaps with no transactions
+  const std::chrono::microseconds max_sleep = std::chrono::microseconds(10000);  // We cap the back-off in case of long gaps with no transactions
   do {
     // Serializing is now on the "critical txn path" because txns wait to commit until their logs are serialized. Thus,
     // a sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
     // buffers in our call to Process. Calls to Process will process as long as new buffers are available.
-    if (flush_queue_size_ == 0) {
-      std::unique_lock<std::mutex> guard(flush_queue_latch_);
-      flush_queue_cv_.wait_for(guard, curr_sleep);
-    }
+    std::unique_lock<std::mutex> guard(flush_queue_latch_);
+    flush_queue_cv_.wait_for(guard, curr_sleep, [&] {
+      return flush_queue_size_ >= 11 * 4096;
+    });
+
     // If Process did not find any new buffers, we perform exponential back-off to reduce our rate of polling for new
     // buffers. We cap the maximum back-off, since in the case of large gaps of no txns, we don't want to unboundedly
     // sleep
@@ -65,11 +65,11 @@ bool LogSerializerTask::Process() {
 
         temp_flush_queue_ = std::move(flush_queue_);
         flush_queue_ = std::queue<RecordBufferSegment *>();
+        flush_queue_size_ = 0;
       }
 
       // Loop over all the new buffers we found
       while (!temp_flush_queue_.empty()) {
-        flush_queue_size_--;
         RecordBufferSegment *buffer = temp_flush_queue_.front();
         temp_flush_queue_.pop();
 
