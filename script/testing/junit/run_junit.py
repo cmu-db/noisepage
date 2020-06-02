@@ -25,6 +25,9 @@ if __name__ == "__main__":
     aparser.add_argument("--query-mode",
                          choices=["simple", "extended"],
                          help="Query protocol mode")
+    aparser.add_argument("--extended-threshold",
+                         type=int,
+                         help="Threshold under the 'extened' query mode")
 
     args = vars(aparser.parse_args())
 

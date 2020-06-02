@@ -29,4 +29,11 @@ class TestJUnit(TestServer):
         query_mode_elem = et.SubElement(options, "QueryMode")
         query_mode_elem.text = query_mode_str
 
+        # config ExtendedThreshold
+        if query_mode_str == "extended":
+            extended_threshold_str = str(self.args.get("extended_threshold"))
+            extended_threshold_elem = et.SubElement(options,
+                                                    "ExtendedThreshold")
+            extended_threshold_elem.text = extended_threshold_str
+
         write_file(constants.JUNIT_OPTION_XML, xml_prettify(options))

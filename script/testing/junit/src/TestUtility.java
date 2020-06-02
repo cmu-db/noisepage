@@ -41,6 +41,18 @@ public class TestUtility {
             if (!preferQueryMode.isEmpty()) {
                 props.setProperty("preferQueryMode", preferQueryMode);
             }
+            System.out.println("preferQueryMode = " + preferQueryMode);
+
+            // read the prepareThreshold from the options.xml
+            if (preferQueryMode.equals("extended")) {
+                String prepareThreshold = (String) options.getElementsByTagName("ExtendedThreshold").item(0)
+                        .getTextContent();
+                if (!prepareThreshold.isEmpty()) {
+                    props.setProperty("prepareThreshold", prepareThreshold);
+                }
+                System.out.println("prepareThreshold = " + prepareThreshold);
+            }
+
         } catch (SAXException | IOException | ParserConfigurationException e) {
             e.printStackTrace();
         }
