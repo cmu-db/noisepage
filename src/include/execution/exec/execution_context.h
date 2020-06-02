@@ -3,7 +3,8 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog_accessor.h"
+#include "brain/operating_unit.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
 #include "execution/exec_defs.h"
@@ -12,9 +13,10 @@
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_manager.h"
-#include "type/transient_value.h"
+
+namespace terrier::catalog {
+class CatalogAccessor;
+}
 
 namespace terrier::execution::exec {
 /**
@@ -159,13 +161,15 @@ class EXPORT ExecutionContext {
    * Set the execution parameters.
    * @param params The exection parameters.
    */
-  void SetParams(common::ManagedPointer<const std::vector<type::TransientValue>> params) { params_ = params; }
+  void SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params) {
+    params_ = params;
+  }
 
   /**
    * @param param_idx index of parameter to access
    * @return immutable parameter at provided index
    */
-  const type::TransientValue &GetParam(uint32_t param_idx) const { return (*params_)[param_idx]; }
+  const parser::ConstantValueExpression &GetParam(uint32_t param_idx) const;
 
   /**
    * INSERT, UPDATE, and DELETE queries return a number for the rows affected, so this should be incremented in the root
@@ -190,7 +194,7 @@ class EXPORT ExecutionContext {
   StringAllocator string_allocator_;
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
-  common::ManagedPointer<const std::vector<type::TransientValue>> params_;
+  common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
 };

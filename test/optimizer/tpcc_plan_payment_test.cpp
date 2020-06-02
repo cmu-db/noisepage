@@ -167,10 +167,10 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
     auto set1 = update->GetSetClauses()[1].second.CastManagedPointerTo<parser::ConstantValueExpression>();
     auto set2 = update->GetSetClauses()[2].second.CastManagedPointerTo<parser::ConstantValueExpression>();
     auto set3 = update->GetSetClauses()[3].second.CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(type::TransientValuePeeker::PeekDecimal(set0->GetValue()), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekDecimal(set1->GetValue()), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekSmallInt(set2->GetValue()), 3);
-    EXPECT_EQ(type::TransientValuePeeker::PeekVarChar(set3->GetValue()), "4");
+    EXPECT_EQ(set0->Peek<double>(), 1);
+    EXPECT_EQ(set1->Peek<double>(), 2);
+    EXPECT_EQ(set2->Peek<int64_t>(), 3);
+    EXPECT_EQ(set3->Peek<std::string_view>(), "4");
 
     // Idx Scan, full output schema
     EXPECT_EQ(update->GetChildren().size(), 1);

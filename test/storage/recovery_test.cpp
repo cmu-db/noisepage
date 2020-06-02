@@ -105,9 +105,8 @@ class RecoveryTests : public TerrierTest {
   catalog::table_oid_t CreateTable(transaction::TransactionContext *txn,
                                    common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
                                    const catalog::namespace_oid_t ns_oid, const std::string &table_name) {
-    auto col = catalog::Schema::Column(
-        "attribute", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
+                                       parser::ConstantValueExpression(type::TypeId::INTEGER));
     auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
     auto table_oid = db_catalog->CreateTable(common::ManagedPointer(txn), ns_oid, table_name, table_schema);
     EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);

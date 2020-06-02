@@ -48,7 +48,7 @@ class TrivialCostModel : public AbstractCostModel {
     memo_ = memo;
     txn_ = txn;
     accessor_ = accessor;
-    gexpr_->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+    gexpr_->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
     return output_cost_;
   };
 

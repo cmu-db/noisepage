@@ -246,7 +246,7 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
 TrafficCopResult TrafficCop::BindQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<network::Statement> statement,
-    const common::ManagedPointer<std::vector<type::TransientValue>> parameters) const {
+    const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   try {

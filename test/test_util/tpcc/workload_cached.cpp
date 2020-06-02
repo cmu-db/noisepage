@@ -3,6 +3,7 @@
 #include <random>
 #include <string>
 
+#include "binder/bind_node_visitor.h"
 #include "execution/exec/execution_context.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"

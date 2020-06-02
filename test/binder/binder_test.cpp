@@ -52,8 +52,8 @@ class BinderCorrectnessTest : public TerrierTest {
     BINDER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
     // get default values of the columns
-    auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
-    auto varchar_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
+    auto int_default = parser::ConstantValueExpression(type::TypeId::INTEGER);
+    auto varchar_default = parser::ConstantValueExpression(type::TypeId::VARCHAR);
 
     // TODO(Ling): use mixed case in table name and schema name
     //  for testcases to see if the binder does not differentiate between upper and lower cases
@@ -584,8 +584,8 @@ TEST_F(BinderCorrectnessTest, UpdateStatementSimpleTest) {
   auto update_clause = update_stmt->GetUpdateClauses()[0].Get();
   EXPECT_EQ("a1", update_clause->GetColumnName());
   auto constant = update_clause->GetUpdateValue().CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 999);
+  EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(constant->Peek<int64_t>(), 999);
 
   BINDER_LOG_DEBUG("Checking update condition");
   auto col_expr = update_stmt->GetUpdateCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();

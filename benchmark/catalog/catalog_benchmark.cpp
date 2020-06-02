@@ -15,7 +15,6 @@
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier {
 
@@ -45,10 +44,9 @@ class CatalogBenchmark : public benchmark::Fixture {
 
     // Create the column definition (no OIDs)
     std::vector<catalog::Schema::Column> cols;
-    cols.emplace_back("id", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
     cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+                      parser::ConstantValueExpression(type::TypeId::INTEGER));
     auto tmp_schema = catalog::Schema(cols);
 
     const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -71,10 +69,9 @@ class CatalogBenchmark : public benchmark::Fixture {
 
     // Create the column definition (no OIDs)
     std::vector<catalog::Schema::Column> cols;
-    cols.emplace_back("id", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
     cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+                      parser::ConstantValueExpression(type::TypeId::INTEGER));
     auto tmp_schema = catalog::Schema(cols);
 
     const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
