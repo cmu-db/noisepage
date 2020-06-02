@@ -12,24 +12,77 @@
 
 namespace terrier::parser {
 
-ConstantValueExpression::ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value)
-    : ConstantValueExpression(type, std::move(value), nullptr) {
-  TERRIER_ASSERT(value_ != nullptr, "Didn't provide a value.");
+template <typename T>
+ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const T value)
+    : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(value) {
+  Validate();
 }
 
-ConstantValueExpression::ConstantValueExpression(const type::TypeId type, std::unique_ptr<execution::sql::Val> value,
-                                                 std::unique_ptr<byte> buffer)
-    : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}),
-      value_(std::move(value)),
-      buffer_(std::move(buffer)) {
-  TERRIER_ASSERT(value_ != nullptr, "Didn't provide a value.");
-  TERRIER_ASSERT(value_->is_null_ || (type != type::TypeId::VARCHAR && type != type::TypeId::VARBINARY) ||
-                     (buffer_ == nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ <=
-                                                execution::sql::StringVal::InlineThreshold()) ||
-                     (buffer_ != nullptr && GetValue().CastManagedPointerTo<execution::sql::StringVal>()->len_ >
-                                                execution::sql::StringVal::InlineThreshold()),
-                 "Value should either be NULL, a non-varlen type, or varlen and below the threshold with no owned "
-                 "buffer, or varlen and above the threshold with a provided buffer.");
+ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::StringVal value,
+                                                 std::unique_ptr<byte[]> buffer)
+    : AbstractExpression(ExpressionType::VALUE_CONSTANT, type, {}), value_(value), buffer_(std::move(buffer)) {
+  Validate();
+}
+
+void ConstantValueExpression::Validate() const {
+  if (std::holds_alternative<execution::sql::Val>(value_)) {
+    TERRIER_ASSERT(
+        std::get<execution::sql::Val>(value_).is_null_,
+        "Should have only constructed a base-type Val in the event of a NULL (likely coming out of PostgresParser).");
+  } else if (std::holds_alternative<execution::sql::BoolVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::BOOLEAN, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::Integer>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::TINYINT || return_value_type_ == type::TypeId::SMALLINT ||
+                       return_value_type_ == type::TypeId::INTEGER || return_value_type_ == type::TypeId::BIGINT,
+                   "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::Real>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::DateVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::DATE, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::TimestampVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::TIMESTAMP, "Invalid TypeId for Val type.");
+  } else if (std::holds_alternative<execution::sql::StringVal>(value_)) {
+    TERRIER_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
+                   "Invalid TypeId for Val type.");
+    TERRIER_ASSERT(GetStringVal().is_null_ ||
+                       (buffer_ == nullptr && GetStringVal().len_ <= execution::sql::StringVal::InlineThreshold()) ||
+                       (buffer_ != nullptr && GetStringVal().len_ > execution::sql::StringVal::InlineThreshold()),
+                   "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
+                   "InlineThreshold with a provided buffer.");
+  } else {
+    UNREACHABLE("Unknown Val type!");
+  }
+}
+
+template <typename T>
+T ConstantValueExpression::Peek() const {
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, bool>) {
+    return static_cast<T>(GetBoolVal().val_);
+  }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
+                std::is_same_v<T, int64_t>) {  // NOLINT: bugprone-suspicious-semicolon: seems like a false positive
+                                               // because of constexpr
+    return static_cast<T>(GetInteger().val_);
+  }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    return static_cast<T>(GetReal().val_);
+  }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, execution::sql::Date>) {
+    return GetDateVal().val_;
+  }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, execution::sql::Timestamp>) {
+    return GetTimestampVal().val_;
+  }
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+  if constexpr (std::is_same_v<T, std::string_view>) {
+    return std::get<execution::sql::StringVal>(value_).StringView();
+  }
+  UNREACHABLE("Invalid type for Peek.");
 }
 
 ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueExpression &other) {
@@ -42,58 +95,30 @@ ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueE
     depth_ = other.depth_;
     has_subquery_ = other.has_subquery_;
     // ConstantValueExpression fields
-    if (other.value_->is_null_) {
-      value_ = std::make_unique<execution::sql::Val>(true);
-      buffer_ = nullptr;
+    if (std::holds_alternative<execution::sql::StringVal>(other.value_)) {
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(other.GetStringVal());
+
+      value_ = string_val.first;
+      buffer_ = std::move(string_val.second);
     } else {
-      switch (other.GetReturnValueType()) {
-        case type::TypeId::BOOLEAN: {
-          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-          value_ = std::make_unique<execution::sql::BoolVal>(val);
-          buffer_ = nullptr;
-          break;
-        }
-        case type::TypeId::TINYINT:
-        case type::TypeId::SMALLINT:
-        case type::TypeId::INTEGER:
-        case type::TypeId::BIGINT: {
-          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-          value_ = std::make_unique<execution::sql::Integer>(val);
-          buffer_ = nullptr;
-          break;
-        }
-        case type::TypeId::DECIMAL: {
-          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-          value_ = std::make_unique<execution::sql::Real>(val);
-          buffer_ = nullptr;
-          break;
-        }
-        case type::TypeId::TIMESTAMP: {
-          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-          value_ = std::make_unique<execution::sql::TimestampVal>(val);
-          buffer_ = nullptr;
-          break;
-        }
-        case type::TypeId::DATE: {
-          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-          value_ = std::make_unique<execution::sql::DateVal>(val);
-          buffer_ = nullptr;
-          break;
-        }
-        case type::TypeId::VARCHAR:
-        case type::TypeId::VARBINARY: {
-          const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
-          auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
-          value_ = std::move(string_val.first);
-          buffer_ = std::move(string_val.second);
-          break;
-        }
-        default:
-          UNREACHABLE("Invalid TypeId.");
-      }
+      value_ = other.value_;
+      buffer_ = nullptr;
     }
   }
+  Validate();
   return *this;
+}
+
+ConstantValueExpression::ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
+  if (std::holds_alternative<execution::sql::StringVal>(other.value_)) {
+    auto string_val = execution::sql::ValueUtil::CreateStringVal(other.GetStringVal());
+
+    value_ = string_val.first;
+    buffer_ = std::move(string_val.second);
+  } else {
+    value_ = other.value_;
+  }
+  Validate();
 }
 
 ConstantValueExpression &ConstantValueExpression::operator=(ConstantValueExpression &&other) noexcept {
@@ -106,103 +131,50 @@ ConstantValueExpression &ConstantValueExpression::operator=(ConstantValueExpress
     depth_ = other.depth_;
     has_subquery_ = other.has_subquery_;
     // ConstantValueExpression fields
-    value_ = std::move(other.value_);
+    value_ = other.value_;
     buffer_ = std::move(other.buffer_);
     // Set other to NULL because unclear what else it would be in this case
-    other.value_ = std::make_unique<execution::sql::Val>(true);
+    other.value_ = execution::sql::Val(true);
   }
+  Validate();
   return *this;
 }
 
 ConstantValueExpression::ConstantValueExpression(ConstantValueExpression &&other) noexcept : AbstractExpression(other) {
-  value_ = std::move(other.value_);
+  value_ = other.value_;
   buffer_ = std::move(other.buffer_);
-  other.value_ = std::make_unique<execution::sql::Val>(true);
-}
-
-ConstantValueExpression::ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
-  if (other.value_->is_null_) {
-    value_ = std::make_unique<execution::sql::Val>(true);
-  } else {
-    switch (other.GetReturnValueType()) {
-      case type::TypeId::BOOLEAN: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-        value_ = std::make_unique<execution::sql::BoolVal>(val);
-        break;
-      }
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-        value_ = std::make_unique<execution::sql::Integer>(val);
-        break;
-      }
-      case type::TypeId::DECIMAL: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-        value_ = std::make_unique<execution::sql::Real>(val);
-        break;
-      }
-      case type::TypeId::TIMESTAMP: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-        value_ = std::make_unique<execution::sql::TimestampVal>(val);
-        break;
-      }
-      case type::TypeId::DATE: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-        value_ = std::make_unique<execution::sql::DateVal>(val);
-        break;
-      }
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
-        const auto val = other.GetValue().CastManagedPointerTo<execution::sql::StringVal>();
-
-        auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
-
-        value_ = std::move(string_val.first);
-        buffer_ = std::move(string_val.second);
-
-        break;
-      }
-      default:
-        UNREACHABLE("Invalid TypeId.");
-    }
-  }
+  // Set other to NULL because unclear what else it would be in this case
+  other.value_ = execution::sql::Val(true);
+  Validate();
 }
 
 common::hash_t ConstantValueExpression::Hash() const {
-  const auto hash =
-      common::HashUtil::CombineHashes(AbstractExpression::Hash(), common::HashUtil::Hash(value_->is_null_));
-  if (value_->is_null_) return hash;
+  const auto hash = common::HashUtil::CombineHashes(AbstractExpression::Hash(), common::HashUtil::Hash(IsNull()));
+  if (IsNull()) return hash;
 
   switch (GetReturnValueType()) {
     case type::TypeId::BOOLEAN: {
-      const auto val = GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<bool>()));
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      const auto val = GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<int64_t>()));
     }
     case type::TypeId::DECIMAL: {
-      const auto val = GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<double>()));
     }
     case type::TypeId::TIMESTAMP: {
-      const auto val = GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative();
-      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      return common::HashUtil::CombineHashes(hash,
+                                             common::HashUtil::Hash(Peek<execution::sql::Timestamp>().ToNative()));
     }
     case type::TypeId::DATE: {
-      const auto val = GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative();
-      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<execution::sql::Date>().ToNative()));
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
-      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(val));
+      return common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Peek<std::string_view>()));
     }
     default:
       UNREACHABLE("Invalid TypeId.");
@@ -213,43 +185,31 @@ bool ConstantValueExpression::operator==(const AbstractExpression &other) const 
   if (!AbstractExpression::operator==(other)) return false;
   const auto &other_cve = dynamic_cast<const ConstantValueExpression &>(other);
 
-  if (value_->is_null_ != other_cve.value_->is_null_) return false;
-  if (value_->is_null_ && other_cve.value_->is_null_) return true;
+  if (IsNull() != other_cve.IsNull()) return false;
+  if (IsNull() && other_cve.IsNull()) return true;
 
   switch (other.GetReturnValueType()) {
     case type::TypeId::BOOLEAN: {
-      const auto this_val = GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-      const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-      return this_val == other_val;
+      return Peek<bool>() == other_cve.Peek<bool>();
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      const auto this_val = GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-      const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-      return this_val == other_val;
+      return Peek<int64_t>() == other_cve.Peek<int64_t>();
     }
     case type::TypeId::DECIMAL: {
-      const auto this_val = GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-      const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-      return this_val == other_val;
+      return Peek<double>() == other_cve.Peek<double>();
     }
     case type::TypeId::TIMESTAMP: {
-      const auto this_val = GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-      const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_;
-      return this_val == other_val;
+      return Peek<execution::sql::Timestamp>() == other_cve.Peek<execution::sql::Timestamp>();
     }
     case type::TypeId::DATE: {
-      const auto this_val = GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-      const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_;
-      return this_val == other_val;
+      return Peek<execution::sql::Date>() == other_cve.Peek<execution::sql::Date>();
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      const auto this_val = GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
-      const auto other_val = other_cve.GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
-      return this_val == other_val;
+      return Peek<std::string_view>() == other_cve.Peek<std::string_view>();
     }
     default:
       UNREACHABLE("Invalid TypeId.");
@@ -259,40 +219,34 @@ bool ConstantValueExpression::operator==(const AbstractExpression &other) const 
 nlohmann::json ConstantValueExpression::ToJson() const {
   nlohmann::json j = AbstractExpression::ToJson();
 
-  if (!value_->is_null_) {
+  if (!IsNull()) {
     switch (return_value_type_) {
       case type::TypeId::BOOLEAN: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::BoolVal>()->val_;
-        j["value"] = val;
+        j["value"] = Peek<bool>();
         break;
       }
       case type::TypeId::TINYINT:
       case type::TypeId::SMALLINT:
       case type::TypeId::INTEGER:
       case type::TypeId::BIGINT: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::Integer>()->val_;
-        j["value"] = val;
+        j["value"] = Peek<int64_t>();
         break;
       }
       case type::TypeId::DECIMAL: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::Real>()->val_;
-        j["value"] = val;
+        j["value"] = Peek<double>();
         break;
       }
       case type::TypeId::TIMESTAMP: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::TimestampVal>()->val_.ToNative();
-        j["value"] = val;
+        j["value"] = Peek<execution::sql::Timestamp>().ToNative();
         break;
       }
       case type::TypeId::DATE: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::DateVal>()->val_.ToNative();
-        j["value"] = val;
+        j["value"] = Peek<execution::sql::Date>().ToNative();
         break;
       }
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
-        const auto val = GetValue().CastManagedPointerTo<execution::sql::StringVal>()->StringView();
-        j["value"] = val;
+        j["value"] = Peek<std::string_view>();
         break;
       }
       default:
@@ -311,35 +265,33 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
     // it's not NULL
     switch (return_value_type_) {
       case type::TypeId::BOOLEAN: {
-        value_ = std::make_unique<execution::sql::BoolVal>(j.at("value").get<bool>());
+        value_ = execution::sql::BoolVal(j.at("value").get<bool>());
         break;
       }
       case type::TypeId::TINYINT:
       case type::TypeId::SMALLINT:
       case type::TypeId::INTEGER:
       case type::TypeId::BIGINT: {
-        value_ = std::make_unique<execution::sql::Integer>(j.at("value").get<int64_t>());
+        value_ = execution::sql::Integer(j.at("value").get<int64_t>());
         break;
       }
       case type::TypeId::DECIMAL: {
-        value_ = std::make_unique<execution::sql::Real>(j.at("value").get<double>());
+        value_ = execution::sql::Real(j.at("value").get<double>());
         break;
       }
       case type::TypeId::TIMESTAMP: {
-        value_ = std::make_unique<execution::sql::TimestampVal>(
-            execution::sql::Timestamp::FromNative(j.at("value").get<uint64_t>()));
+        value_ = execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(j.at("value").get<uint64_t>()));
         break;
       }
       case type::TypeId::DATE: {
-        value_ =
-            std::make_unique<execution::sql::DateVal>(execution::sql::Date::FromNative(j.at("value").get<uint32_t>()));
+        value_ = execution::sql::DateVal(execution::sql::Date::FromNative(j.at("value").get<uint32_t>()));
         break;
       }
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
         auto string_val = execution::sql::ValueUtil::CreateStringVal(j.at("value").get<std::string>());
 
-        value_ = std::move(string_val.first);
+        value_ = string_val.first;
         buffer_ = std::move(string_val.second);
 
         break;
@@ -348,9 +300,43 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
         UNREACHABLE("Invalid TypeId.");
     }
   } else {
-    value_ = std::make_unique<execution::sql::Val>(true);
+    value_ = execution::sql::Val(true);
   }
+
+  Validate();
 
   return exprs;
 }
+
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Val value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Integer value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Real value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Decimal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::StringVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::DateVal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::TimestampVal value);
+
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Val value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::BoolVal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Integer value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Real value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Decimal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::StringVal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DateVal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::TimestampVal value);
+
+template bool ConstantValueExpression::Peek() const;
+template int8_t ConstantValueExpression::Peek() const;
+template int16_t ConstantValueExpression::Peek() const;
+template int32_t ConstantValueExpression::Peek() const;
+template int64_t ConstantValueExpression::Peek() const;
+template float ConstantValueExpression::Peek() const;
+template double ConstantValueExpression::Peek() const;
+template execution::sql::Date ConstantValueExpression::Peek() const;
+template execution::sql::Timestamp ConstantValueExpression::Peek() const;
+template std::string_view ConstantValueExpression::Peek() const;
+
 }  // namespace terrier::parser

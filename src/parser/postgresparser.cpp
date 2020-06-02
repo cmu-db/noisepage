@@ -696,15 +696,15 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
   std::unique_ptr<AbstractExpression> result;
   switch (val.type_) {
     case T_Integer: {
-      result = std::make_unique<ConstantValueExpression>(type::TypeId::INTEGER,
-                                                         std::make_unique<execution::sql::Integer>(val.val_.ival_));
+      result =
+          std::make_unique<ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(val.val_.ival_));
       break;
     }
 
     case T_String: {
       const auto string = std::string_view{val.val_.str_};
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      result = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, std::move(string_val.first),
+      result = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
                                                          std::move(string_val.second));
 
       break;
@@ -716,18 +716,17 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
       // For this reason, a quick hack...
       // TODO(WAN): figure out how Postgres does it once we care about floating point
       if (std::strchr(val.val_.str_, '.') == nullptr) {
-        result = std::make_unique<ConstantValueExpression>(
-            type::TypeId::BIGINT, std::make_unique<execution::sql::Integer>(std::stoll(val.val_.str_)));
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
+                                                           execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
-        result = std::make_unique<ConstantValueExpression>(
-            type::TypeId::DECIMAL, std::make_unique<execution::sql::Real>(std::stod(val.val_.str_)));
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
+                                                           execution::sql::Real(std::stod(val.val_.str_)));
       }
       break;
     }
 
     case T_Null: {
-      result =
-          std::make_unique<ConstantValueExpression>(type::TypeId::INVALID, std::make_unique<execution::sql::Val>(true));
+      result = std::make_unique<ConstantValueExpression>(type::TypeId::INVALID, execution::sql::Val(true));
       break;
     }
     default: {

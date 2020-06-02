@@ -142,7 +142,7 @@ class BinderSherpa {
       }
       case type::TypeId::DECIMAL: {
         if (IsRepresentable<double>(int_val)) {
-          value->SetValue(desired_type, std::make_unique<execution::sql::Real>(static_cast<double>(int_val)));
+          value->SetValue(desired_type, execution::sql::Real(static_cast<double>(int_val)));
           return;
         }
         break;
