@@ -61,6 +61,16 @@ namespace terrier::execution::ast {
   F(CteScanTableInsert, cteScanTableInsert)                             \
   F(CteScanFree, cteScanFree)                                           \
                                                                         \
+  /*Iterative Cte Scans*/                                               \
+  F(IterCteScanInit, iterCteScanInit)                                   \
+  F(IterCteScanGetResult, iterCteScanGetResult)                         \
+  F(IterCteScanGetReadTable, iterCteScanGetReadTable)                   \
+  F(IterCteScanGetWriteTable, iterCteScanGetWriteTable)                 \
+  F(IterCteScanGetReadTableOid, iterCteScanGetReadTableOid)             \
+  F(IterCteScanGetInsertTempTablePR, iterCteScanGetInsertTempTablePR)   \
+  F(IterCteScanTableInsert, iterCteScanTableInsert)                     \
+  F(IterCteScanFree, iterCteScanFree)                                   \
+                                                                        \
   /* PCI */                                                             \
   F(PCIIsFiltered, pciIsFiltered)                                       \
   F(PCIHasNext, pciHasNext)                                             \

@@ -202,6 +202,11 @@ class SqlTable {
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
 
   /**
+   * Clears the contents of this table and reinitializes it
+   */
+  void Reset();
+
+  /**
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return table_.data_table_->GetNumTuple(); }

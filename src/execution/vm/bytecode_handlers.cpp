@@ -118,6 +118,42 @@ void OpCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::exec
 void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter) { iter->~CteScanIterator(); }
 
 // ---------------------------------------------------------
+// Iterative CTE Scan
+// ---------------------------------------------------------
+
+void OpIterCteScanInit(terrier::execution::sql::IterCteScanIterator *iter, terrier::execution::exec::ExecutionContext *exec_ctx,
+                   uint32_t *schema_cols_type, uint32_t num_schema_cols) {
+  new (iter) terrier::execution::sql::IterCteScanIterator(exec_ctx, schema_cols_type, num_schema_cols);
+}
+
+void OpIterCteScanGetReadTable(terrier::storage::SqlTable **sql_table, terrier::execution::sql::IterCteScanIterator *iter) {
+  *sql_table = iter->GetReadTable();
+}
+
+void OpIterCteScanGetWriteTable(terrier::storage::SqlTable **sql_table, terrier::execution::sql::IterCteScanIterator *iter) {
+  *sql_table = iter->GetWriteTable();
+}
+
+void OpIterCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid, terrier::execution::sql::IterCteScanIterator *iter) {
+  *table_oid = iter->GetReadTableOid();
+}
+
+void OpIterCteScanGetResult(terrier::execution::sql::CteScanIterator **result, terrier::execution::sql::IterCteScanIterator *iter) {
+  *result = iter->GetResultCTE();
+}
+
+void OpIterCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
+                                   terrier::execution::sql::IterCteScanIterator *iter) {
+  *projected_row = iter->GetInsertTempTablePR();
+}
+
+void OpIterCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::IterCteScanIterator *iter) {
+  *tuple_slot = iter->TableInsert();
+}
+
+void OpIterCteScanFree(terrier::execution::sql::IterCteScanIterator *iter) { iter->~IterCteScanIterator(); }
+
+// ---------------------------------------------------------
 // Filter Manager
 // ---------------------------------------------------------
 

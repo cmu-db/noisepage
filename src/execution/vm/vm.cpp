@@ -638,6 +638,63 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   // -------------------------------------------------------
+  // Iterative Cte Scan operations
+  // -------------------------------------------------------
+
+  OP(IterCteScanInit) : {
+  auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+  auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+  auto num_oids = READ_UIMM4();
+  OpIterCteScanInit(iter, exec_ctx, schema_cols_type, num_oids);
+  DISPATCH_NEXT();
+}
+
+  OP(IterCteScanGetResult) : {
+  auto *result = frame->LocalAt<sql::CteScanIterator **>(READ_LOCAL_ID());
+  auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  OpIterCteScanGetResult(result, iter);
+  DISPATCH_NEXT();
+}
+  OP(IterCteScanGetReadTable) : {
+  auto *table = frame->LocalAt<storage::SqlTable **>(READ_LOCAL_ID());
+  auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  OpIterCteScanGetReadTable(table, iter);
+  DISPATCH_NEXT();
+}
+
+  OP(IterCteScanGetWriteTable) : {
+  auto *table = frame->LocalAt<storage::SqlTable **>(READ_LOCAL_ID());
+  auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  OpIterCteScanGetWriteTable(table, iter);
+  DISPATCH_NEXT();
+}
+  OP(IterCteScanGetReadTableOid) : {
+  auto table_oid = frame->LocalAt<terrier::catalog::table_oid_t *>(READ_LOCAL_ID());
+  auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  OpIterCteScanGetReadTableOid(table_oid, iter);
+  DISPATCH_NEXT();
+}
+
+  OP(IterCteScanGetInsertTempTablePR) : {
+  auto projected_row = frame->LocalAt<terrier::storage::ProjectedRow **>(READ_LOCAL_ID());
+  auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  OpIterCteScanGetInsertTempTablePR(projected_row, iter);
+  DISPATCH_NEXT();
+}
+  OP(IterCteScanTableInsert) : {
+  auto tuple_slot = frame->LocalAt<terrier::storage::TupleSlot *>(READ_LOCAL_ID());
+  auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  OpIterCteScanTableInsert(tuple_slot, iter);
+  DISPATCH_NEXT();
+}
+  OP(IterCteScanFree) : {
+    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+    OpIterCteScanFree(iter);
+    DISPATCH_NEXT();
+  }
+
+  // -------------------------------------------------------
   // PCI iteration operations
   // -------------------------------------------------------
 

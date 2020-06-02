@@ -219,6 +219,11 @@ class DataTable {
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
   /**
+   * Clears the contents of this table and reinitializes it
+   */
+  void Reset();
+
+  /**
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
