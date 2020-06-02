@@ -297,6 +297,23 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
   return true;
 }
 
+void DataTable::Reset() {
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  for (RawBlock *block : blocks_) {
+    StorageUtil::DeallocateVarlens(block, accessor_);
+    for (col_id_t i : accessor_.GetBlockLayout().Varlens())
+      accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
+    block_store_->Release(block);
+  }
+
+  if (block_store_ != nullptr) {
+    RawBlock *new_block = NewBlock();
+    // insert block
+    blocks_.push_back(new_block);
+  }
+  insertion_head_ = blocks_.begin();
+}
+
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                  const TupleSlot slot, RowType *const out_buffer) const {
