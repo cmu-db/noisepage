@@ -1691,8 +1691,10 @@ void RunNetworkSequence() {
   terrier::runner::InvokeGC();
 
   // Concat pipeline.csv into execution_seq0.csv
+  std::string csv_line;
   std::ofstream of("execution_SEQ0.csv", std::ios_base::binary | std::ios_base::app);
   std::ifstream is("pipeline.csv", std::ios_base::binary);
+  std::getline(is, csv_line);
   of.seekp(0, std::ios_base::end);
   of << is.rdbuf();
 
