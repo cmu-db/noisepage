@@ -142,7 +142,7 @@ class ReadBufferView {
    * to the caller to ensure that there are enough bytes available in the read
    * buffer at this point.
    * @tparam T type of value to read off. Has to be size 1, 2, 4, or 8.
-   * @return value of integer switched from network byte order
+   * @return value of numeric switched from network byte order
    */
   template <typename T>
   T ReadValue() {
@@ -164,7 +164,7 @@ class ReadBufferView {
         }
           // Will never be here due to compiler optimization
         default:
-          throw NETWORK_PROCESS_EXCEPTION("invalid size for floating point");
+          throw NETWORK_PROCESS_EXCEPTION("Invalid size for floating point.");
       }
     } else {  // NOLINT: false positive on indentation with clang-tidy, fixed in upstream check-clang-tidy
       const auto val = ReadRawValue<T>();
@@ -179,7 +179,7 @@ class ReadBufferView {
           return static_cast<T>(be64toh(static_cast<uint64_t>(val)));
           // Will never be here due to compiler optimization
         default:
-          throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
+          throw NETWORK_PROCESS_EXCEPTION("Invalid size for integer.");
       }
     }
   }
