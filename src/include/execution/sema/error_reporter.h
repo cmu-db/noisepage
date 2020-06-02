@@ -97,7 +97,6 @@ class ErrorReporter {
     friend class ErrorReporter;
     void FormatMessageArgument(std::string *str) const;
 
-   private:
     std::variant<const char *, int32_t, SourcePosition, parsing::Token::Type, ast::Type *> arg_;
   };
 
