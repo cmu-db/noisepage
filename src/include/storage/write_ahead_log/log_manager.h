@@ -55,7 +55,7 @@ class LogManager : public common::DedicatedThreadOwner {
    * @param thread_registry DedicatedThreadRegistry dependency injection
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
-             std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
+             std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
              common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
@@ -157,7 +157,7 @@ class LogManager : public common::DedicatedThreadOwner {
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
       common::ManagedPointer<DiskLogConsumerTask>(nullptr);
   // Interval used by disk consumer task
-  const std::chrono::milliseconds persist_interval_;
+  const std::chrono::microseconds persist_interval_;
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
 

@@ -69,8 +69,8 @@ SETTING_int(
 // Garbage collector thread interval
 SETTING_int(
     gc_interval,
-    "Garbage collector thread interval (default: 10)",
-    10,
+    "Garbage collector thread interval (us) (default: 1000)",
+    1000,
     1,
     10000,
     false,
@@ -109,8 +109,8 @@ SETTING_int64(
 // Log Serialization interval
 SETTING_int(
     log_serialization_interval,
-    "Log serialization task interval (ms) (default: 10)",
-    10,
+    "Log serialization task interval (us) (default: 100)",
+    100,
     1,
     10000,
     false,
@@ -120,8 +120,8 @@ SETTING_int(
 // Log file persisting interval
 SETTING_int(
     log_persist_interval,
-    "Log file persisiting interval (ms) (default: 10)",
-    10,
+    "Log file persisting interval (us) (default: 100)",
+    100,
     1,
     10000,
     false,

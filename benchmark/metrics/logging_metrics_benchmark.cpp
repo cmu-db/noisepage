@@ -25,14 +25,14 @@ class LoggingMetricsBenchmark : public benchmark::Fixture {
   storage::LogManager *log_manager_ = nullptr;
   storage::GarbageCollector *gc_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
-  const std::chrono::milliseconds metrics_period_{100};
+  const std::chrono::microseconds gc_period_{1000};
+  const std::chrono::microseconds metrics_period_{10000};
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
-  const std::chrono::milliseconds log_serialization_interval_{5};
-  const std::chrono::milliseconds log_persist_interval_{10};
+  const std::chrono::microseconds log_serialization_interval_{100};
+  const std::chrono::microseconds log_persist_interval_{100};
   const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
 };
 
