@@ -43,6 +43,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
         aggregate_data_[int32_t(action.daf_id_)].time_elapsed_ += action.resource_metrics_.elapsed_us_;
       }
     }
+    max_queue_length_ = other_db_metric->max_queue_length_;
   }
 
   /**
