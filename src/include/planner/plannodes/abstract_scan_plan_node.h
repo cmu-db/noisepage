@@ -58,11 +58,20 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param limit scan limit
+     * @param limit number of tuples to limit to
      * @return builder object
      */
     ConcreteType &SetScanLimit(uint32_t limit) {
       scan_limit_ = limit;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
+    /**
+     * @param offset offset for where to limit from
+     * @return builder object
+     */
+    ConcreteType &SetScanOffset(uint32_t offset) {
+      scan_offset_ = offset;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -86,9 +95,13 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     catalog::namespace_oid_t namespace_oid_;
 
     /**
-     * Scan limit
+     * Limit for scan
      */
     uint32_t scan_limit_;
+    /**
+     * Offset for scan
+     */
+    uint32_t scan_offset_;
   };
 
   /**
@@ -100,17 +113,20 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param database_oid database oid for scan
    * @param namespace_oid OID of the namespace
    * @param scan_limit limit of the scan if any
+   * @param scan_offset offset at which to limit from
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
                        common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
-                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, uint32_t scan_limit)
+                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, uint32_t scan_limit,
+                       uint32_t scan_offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(predicate),
         is_for_update_(is_for_update),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
-        scan_limit_(scan_limit) {}
+        scan_limit_(scan_limit),
+        scan_offset_(scan_offset) {}
 
  public:
   /**
@@ -152,9 +168,14 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
   /**
-   * @return The scan limit
+   * @return number to limit to
    */
   uint32_t ScanLimit() const { return scan_limit_; }
+
+  /**
+   * @return offset for where to limit from
+   */
+  uint32_t ScanOffset() const { return scan_offset_; }
 
  private:
   /**
@@ -178,9 +199,13 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   catalog::namespace_oid_t namespace_oid_;
 
   /**
-   * Scan limit
+   * Limit for scan
    */
   uint32_t scan_limit_;
+  /**
+   * Offset for scan
+   */
+  uint32_t scan_offset_;
 };
 
 }  // namespace terrier::planner

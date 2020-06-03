@@ -101,7 +101,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
       return std::unique_ptr<IndexScanPlanNode>(new IndexScanPlanNode(
           std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_), is_for_update_,
           database_oid_, namespace_oid_, index_oid_, table_oid_, scan_type_, std::move(lo_index_cols_),
-          std::move(hi_index_cols_), scan_limit_));
+          std::move(hi_index_cols_), scan_limit_, scan_offset_));
     }
 
    private:
@@ -135,9 +135,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     catalog::table_oid_t table_oid, IndexScanType scan_type,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
-                    uint32_t scan_limit)
+                    uint32_t scan_limit, uint32_t scan_offset)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
-                             namespace_oid, scan_limit),
+                             namespace_oid, scan_limit, scan_offset),
         scan_type_(scan_type),
         index_oid_(index_oid),
         table_oid_(table_oid),
