@@ -22,6 +22,11 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
  public:
   GarbageCollectionMetricRawData() : aggregate_data_(transaction::DAF_TAG_COUNT, AggregateData()) {}
 
+  /**
+   * Currently used in metrics thread to record the start time of each metric interval
+   */
+  void SetGCMetricsWakeUpTime() override { start_ = metrics::MetricsUtil::Now(); }
+
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<GarbageCollectionMetricRawData *>(other);
     if (!other_db_metric->action_data_.empty()) {
@@ -54,31 +59,35 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
                                  [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
                    "Not all files are open.");
+//    std::cout << "to csv " << static_cast<unsigned long>(max_queue_length_) << std::endl;
 
-    auto &daf_event = (*outfiles)[0];
-    auto &daf_agg = (*outfiles)[1];
-    auto &daf_count_agg = (*outfiles)[2];
-    auto &daf_time_agg = (*outfiles)[3];
+    auto &daf_count_agg = (*outfiles)[0];
+    auto &daf_time_agg = (*outfiles)[1];
 
-    for (const auto &data : action_data_) {
-      daf_event << static_cast<int>(data.daf_id_) << ", ";
-      data.resource_metrics_.ToCSV(daf_event);
-      daf_event << std::endl;
-    }
-    daf_count_agg << idx_;
-    daf_time_agg << idx_;
+//    for (const auto &data : action_data_) {
+//      daf_event << static_cast<int>(data.daf_id_) << ", ";
+//      data.resource_metrics_.ToCSV(daf_event);
+//      daf_event << std::endl;
+//    }
+    daf_count_agg << static_cast<unsigned long>(start_);
+    daf_time_agg << static_cast<unsigned long>(start_);
+    uint64_t total_processed = 0;
+    uint64_t total_elapsed = 0;
     for (const auto &data : aggregate_data_) {
-      if (data.daf_id_ != transaction::DafId::INVALID) {
-        daf_agg << data.start_ << ", " << static_cast<int>(data.daf_id_) << ", " << data.num_processed_ << ", "
-                << data.time_elapsed_;
-        daf_agg << std::endl;
-      }
-      daf_count_agg << ", " << static_cast<int>(data.num_processed_);
-      daf_time_agg << ", " << static_cast<int>(data.time_elapsed_);
+//      if (data.daf_id_ != transaction::DafId::INVALID) {
+//        daf_agg << data.start_ << ", " << static_cast<int>(data.daf_id_) << ", " << data.num_processed_ << ", "
+//                << data.time_elapsed_;
+//        daf_agg << std::endl;
+//      }
+      total_processed += data.num_processed_;
+      total_elapsed += data.time_elapsed_;
+      daf_count_agg << ", " << static_cast<unsigned long>(data.num_processed_);
+      daf_time_agg << ", " << static_cast<unsigned long>(data.time_elapsed_);
     }
-    daf_count_agg << std::endl;
-    daf_time_agg << std::endl;
-    idx_++;
+    daf_count_agg << ", " << static_cast<unsigned long>(total_processed) << ", " << static_cast<unsigned long>(max_queue_length_) << std::endl;
+    daf_time_agg << ", " << static_cast<unsigned long>(total_elapsed) << std::endl;
+
+    max_queue_length_ = 0;
     action_data_.clear();
     auto local_agg_data = std::vector<AggregateData>(transaction::DAF_TAG_COUNT, AggregateData());
     aggregate_data_.swap(local_agg_data);
@@ -87,18 +96,24 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   /**
    * Files to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 4> FILES = {"./daf_events.csv", "./daf_aggregate.csv",
-                                                            "./daf_count_agg.csv", "./daf_time_agg.csv"};
+//  static constexpr std::array<std::string_view, 4> FILES = {"./daf_events.csv", "./daf_aggregate.csv",
+//                                                            "./daf_count_agg.csv", "./daf_time_agg.csv"};
+  static constexpr std::array<std::string_view, 2> FILES = {"./daf_count_agg.csv", "./daf_time_agg.csv"};
   /**
    * Columns to use for writing to CSV.
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 4> FEATURE_COLUMNS = {
-      "daf_id", "start_time, daf_id, num_processed, time_elapsed",
-      "idx, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
-      "UNLINK",
-      "idx, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
-      "UNLINK"};
+//  static constexpr std::array<std::string_view, 4> FEATURE_COLUMNS = {
+//      "start_time, daf_id, num_processed, time_elapsed",
+//      "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
+//      "UNLINK, total_num",
+//      "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
+//      "UNLINK, total_time"};
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {
+      "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
+      "UNLINK, INVALID, total_num, max_queue_length",
+      "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
+      "UNLINK, INVALID, total_time"};
 
  private:
   friend class GarbageCollectionMetric;
@@ -108,9 +123,16 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     action_data_.emplace_front(daf_id, resource_metrics);
   }
 
+  void RecordQueueSize(const uint32_t queue_size) {
+//    std::cout << "before record " << max_queue_length_ << std::endl;
+    if (static_cast<uint64_t>(queue_size) > max_queue_length_)
+      max_queue_length_ = queue_size;
+//    std::cout << "record " << max_queue_length_ << std::endl;
+  }
   struct ActionData {
     ActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics)
-        : daf_id_(daf_id), resource_metrics_(resource_metrics) {}
+        : start_(metrics::MetricsUtil::Now()), daf_id_(daf_id), resource_metrics_(resource_metrics) {}
+    const uint64_t start_;
     const transaction::DafId daf_id_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
@@ -132,7 +154,9 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   std::list<ActionData> action_data_;
   std::vector<AggregateData> aggregate_data_;
 
-  int idx_{0};
+  uint64_t start_ = 0;
+
+  uint64_t max_queue_length_ = 0;
 };
 
 /**
@@ -144,6 +168,10 @@ class GarbageCollectionMetric : public AbstractMetric<GarbageCollectionMetricRaw
 
   void RecordActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordActionData(daf_id, resource_metrics);
+  }
+
+  void RecordQueueSize(const uint32_t queue_size) {
+    GetRawData()->RecordQueueSize(queue_size);
   }
 };
 }  // namespace terrier::metrics

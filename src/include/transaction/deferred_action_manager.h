@@ -115,8 +115,8 @@ class DeferredActionManager {
   //  added to the deferred action queue either in a fixed interval or after a threshold number of tombstones
   void ProcessIndexes();
 
-  uint32_t ClearBacklog(timestamp_t oldest_txn);
+  uint32_t ClearBacklog(timestamp_t oldest_txn, bool metrics_enabled);
 
-  uint32_t ProcessNewActions(timestamp_t oldest_txn);
+  uint32_t ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled);
 };
 }  // namespace terrier::transaction

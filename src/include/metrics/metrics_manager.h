@@ -49,6 +49,15 @@ class MetricsManager {
   }
 
   /**
+   * Currently used in metrics thread to record the start time of each metric interval
+   */
+  void SetGCMetricsWakeUpTimeIfExists() {
+    if (enabled_metrics_.test(static_cast<uint8_t>(MetricsComponent::GARBAGECOLLECTION)) && aggregated_metrics_[static_cast<uint8_t>(MetricsComponent::GARBAGECOLLECTION)] != nullptr) {
+      aggregated_metrics_[static_cast<uint8_t>(MetricsComponent::GARBAGECOLLECTION)]->SetGCMetricsWakeUpTime();
+    }
+  }
+
+  /**
    * @param component to be tested
    * @return true if metrics are enabled for this component, false otherwise
    */

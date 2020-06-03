@@ -629,30 +629,30 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLogging)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithMetrics)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLogging)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithMetrics)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(20);
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
 // clang-format on
 
 }  // namespace terrier::tpcc
