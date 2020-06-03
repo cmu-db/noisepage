@@ -76,7 +76,7 @@ class GarbageCollectorThread {
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   volatile bool run_gc_;
   volatile bool gc_paused_;
-  std::chrono::milliseconds gc_period_;
+  std::chrono::microseconds gc_period_;
   std::thread gc_thread_;
 
   void GCThreadLoop() {
