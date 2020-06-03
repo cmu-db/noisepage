@@ -5,6 +5,7 @@
 
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
+#include "execution/sql/vector_projection.h"
 #include "storage/arrow_serializer.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
@@ -156,6 +157,9 @@ class DataTable {
    */
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             ProjectedColumns *out_buffer) const;
+
+  void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+            execution::sql::VectorProjection *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table
