@@ -120,7 +120,7 @@ SETTING_int(
 // Log file persisting interval
 SETTING_int(
     log_persist_interval,
-    "Log file persisiting interval (ms) (default: 1)",
+    "Log file persisting interval (ms) (default: 1)",
     1,
     1,
     10000,
