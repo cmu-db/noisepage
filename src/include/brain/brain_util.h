@@ -64,8 +64,6 @@ class BrainUtil {
         return "OP_BOOL_COMPARE";
       case ExecutionOperatingUnitType::OUTPUT:
         return "OUTPUT";
-      case ExecutionOperatingUnitType::LIMIT:
-        return "LIMIT";
       default:
         UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
         break;
