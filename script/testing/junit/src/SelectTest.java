@@ -246,4 +246,18 @@ public class SelectTest extends TestUtility {
       stmt = conn.createStatement();
       stmt.execute(drop_SQL);
     }
+
+    /**
+     * SELECT without a FROM clause, e.g., "SELECT (2+3)".
+     */
+    @Test
+    public void testSelectWithoutFrom() throws SQLException {
+      String select_SQL = "SELECT 2+3";
+      Statement stmt = conn.createStatement();
+      stmt = conn.createStatement();
+      rs = stmt.executeQuery(select_SQL);
+      rs.next();
+      checkIntRow(rs, new String [] {"?column?"}, new int [] {5});
+      assertNoMoreRows(rs);
+    }
 }

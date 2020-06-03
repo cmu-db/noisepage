@@ -118,8 +118,14 @@ class Statement {
     executable_query_ = std::move(executable_query);
   }
 
+  /**
+   * @return Hash of the query string. The idea is to use this for caching purposes
+   */
+  common::hash_t GetQueryHash() const { return query_hash_; }
+
  private:
   const std::string query_text_;
+  const common::hash_t query_hash_;
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
   const std::vector<type::TypeId> param_types_;
   common::ManagedPointer<parser::SQLStatement> root_statement_ = nullptr;

@@ -1,4 +1,5 @@
 #include "planner/plannodes/create_table_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <utility>

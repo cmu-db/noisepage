@@ -6,7 +6,7 @@
 
 #include "brain/operating_unit.h"
 #include "execution/sql/value.h"
-#include "type/transient_value_peeker.h"
+#include "parser/expression/constant_value_expression.h"
 #include "util/time_util.h"
 
 namespace terrier::execution::compiler {
@@ -289,7 +289,7 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
   ast::Expr *iter_ptr = PointerTo(iter);
   util::RegionVector<ast::Expr *> args({iter_ptr}, Region());
 
-  if (asc_scan) args.push_back(IntLiteral(asc_type));
+  if (asc_scan) args.push_back(IntLiteral(static_cast<int64_t>(asc_type)));
   if (use_limit) args.push_back(IntLiteral(limit));
 
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
@@ -380,11 +380,11 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
-  if (transient_val.Null()) {
+ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) {
+  if (const_val.IsNull()) {
     // NullToSql(&expr) produces a NULL of expr's type.
     ast::Expr *dummy_expr;
-    switch (transient_val.Type()) {
+    switch (const_val.GetReturnValueType()) {
       case type::TypeId::BOOLEAN:
         dummy_expr = BoolLiteral(false);
         break;
@@ -413,48 +413,35 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
     return OneArgCall(ast::Builtin::NullToSql, PointerTo(dummy_expr));
   }
 
-  switch (transient_val.Type()) {
+  switch (const_val.GetReturnValueType()) {
     case type::TypeId::BOOLEAN: {
-      auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
-      return BoolLiteral(val);
+      return BoolLiteral(const_val.Peek<bool>());
     }
-    case type::TypeId::TINYINT: {
-      auto val = type::TransientValuePeeker::PeekTinyInt(transient_val);
-      return IntToSql(val);
-    }
-    case type::TypeId::SMALLINT: {
-      auto val = type::TransientValuePeeker::PeekSmallInt(transient_val);
-      return IntToSql(val);
-    }
-    case type::TypeId::INTEGER: {
-      auto val = type::TransientValuePeeker::PeekInteger(transient_val);
-      return IntToSql(val);
-    }
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
-      return IntToSql(val);
+      return IntToSql(const_val.Peek<int64_t>());
     }
     case type::TypeId::DATE: {
-      auto val = terrier::type::TransientValuePeeker::PeekDate(transient_val);
-      auto ymd = terrier::util::TimeConvertor::YMDFromDate(val);
+      const auto val = const_val.Peek<execution::sql::Date>().ToNative();
+      auto ymd = terrier::util::TimeConvertor::YMDFromDate(static_cast<type::date_t>(val));
       auto year = static_cast<int32_t>(ymd.year());
       auto month = static_cast<uint32_t>(ymd.month());
       auto day = static_cast<uint32_t>(ymd.day());
       return DateToSql(year, month, day);
     }
     case type::TypeId::TIMESTAMP: {
-      auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
-      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(val);
+      const auto val = const_val.Peek<execution::sql::Timestamp>().ToNative();
+      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(static_cast<type::timestamp_t>(val));
       return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {
-      auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
-      return FloatToSql(val);
+      return FloatToSql(const_val.Peek<double>());
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
-      return StringToSql(val);
+      return StringToSql(const_val.Peek<std::string_view>());
     }
     default:
       // TODO(Amadou): Add support for these types.
