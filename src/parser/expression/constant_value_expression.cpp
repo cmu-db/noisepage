@@ -246,7 +246,8 @@ nlohmann::json ConstantValueExpression::ToJson() const {
       }
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
-        j["value"] = Peek<std::string_view>();
+        std::string val{Peek<std::string_view>()};
+        j["value"] = val;
         break;
       }
       default:
