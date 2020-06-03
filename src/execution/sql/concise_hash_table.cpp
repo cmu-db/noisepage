@@ -15,7 +15,7 @@ ConciseHashTable::~ConciseHashTable() {
   }
 }
 
-void ConciseHashTable::SetSize(common::ManagedPointer<MemoryTracker> tracker, const uint32_t num_elems) {
+void ConciseHashTable::SetSize(const uint32_t num_elems, common::ManagedPointer<MemoryTracker> tracker) {
   if (slot_groups_ != nullptr) {
     util::TrackFreeHugeArray(tracker, slot_groups_, num_groups_);
   }

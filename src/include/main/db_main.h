@@ -544,6 +544,15 @@ class DBMain {
     }
 
     /**
+     * @param port Network port
+     * @return self reference for chaining
+     */
+    Builder &SetNetworkPort(const uint16_t port) {
+      network_port_ = port;
+      return *this;
+    }
+
+    /**
      * @param value RecordBufferSegmentPool argument
      * @return self reference for chaining
      */

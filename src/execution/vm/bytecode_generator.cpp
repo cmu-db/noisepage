@@ -2342,6 +2342,34 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
 
+    case ast::Builtin::NpRunnersEmitInt:
+    case ast::Builtin::NpRunnersEmitReal: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar num_tuple = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar num_col = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar int_col = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar real_col = VisitExpressionForRValue(call->Arguments()[4]);
+      if (builtin == ast::Builtin::NpRunnersEmitInt) {
+        Emitter()->Emit(Bytecode::NpRunnersEmitInt, exec_ctx, num_tuple, num_col, int_col, real_col);
+      } else {
+        Emitter()->Emit(Bytecode::NpRunnersEmitReal, exec_ctx, num_tuple, num_col, int_col, real_col);
+      }
+
+      break;
+    }
+
+    case ast::Builtin::NpRunnersDummyInt:
+    case ast::Builtin::NpRunnersDummyReal: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      if (builtin == ast::Builtin::NpRunnersDummyInt) {
+        Emitter()->Emit(Bytecode::NpRunnersDummyInt, exec_ctx);
+      } else {
+        Emitter()->Emit(Bytecode::NpRunnersDummyReal, exec_ctx);
+      }
+
+      break;
+    }
+
     default: {
       UNREACHABLE("Builtin not supported!");
     }

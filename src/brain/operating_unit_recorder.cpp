@@ -10,6 +10,8 @@
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
+#include "parser/expression/constant_value_expression.h"
+#include "parser/expression/function_expression.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
@@ -152,14 +154,36 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   size_t num_rows = 1;
   size_t cardinality = 1;
-  if (type == ExecutionOperatingUnitType::OUTPUT || type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
+  if (type == ExecutionOperatingUnitType::OUTPUT) {
+    // Uses the network result consumer
+    cardinality = 1;
+
+    auto child_translator = current_translator_->GetChildTranslator();
+    if (child_translator != nullptr) {
+      if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
+        auto output = child_translator->Op()->GetOutputSchema()->GetColumn(0).GetExpr();
+        if (output && output->GetExpressionType() == parser::ExpressionType::FUNCTION) {
+          auto f_expr = output.CastManagedPointerTo<const parser::FunctionExpression>();
+          if (f_expr->GetFuncName() == "nprunnersemitint" || f_expr->GetFuncName() == "nprunnersemitreal") {
+            auto child = f_expr->GetChild(0);
+            TERRIER_ASSERT(child, "NpRunnersEmit should have children");
+            TERRIER_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
+                           "Child should be constants");
+
+            auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
+            num_rows = cve->GetInteger().val_;
+          }
+        }
+      }
+    }
+  } else if (type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
     // If feature is OUTPUT or computation, then cardinality = num_rows
     cardinality = num_rows;
   } else if (type == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
     TERRIER_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
     UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(1);
-    num_rows = 0;     // extract from c_plan num_rows (# row to probe)
-    cardinality = 0;  // extract from plan num_rows (# matched rows)
+    num_rows = 1;     // extract from c_plan num_rows (# row to probe)
+    cardinality = 1;  // extract from plan num_rows (# matched rows)
   } else if (type == ExecutionOperatingUnitType::IDX_SCAN) {
     // For IDX_SCAN, the feature is as follows:
     // - num_rows is the size of the index
@@ -199,7 +223,8 @@ void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlan
       // Recording of simple operators
       // - num_keys is always 1
       // - key_size is max() inputs
-      AggregateFeatures(feature.second, type::TypeUtil::GetTypeSize(feature.first), 1, plan, scaling, 1);
+      auto size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(feature.first));
+      AggregateFeatures(feature.second, size, 1, plan, scaling, 1);
     }
   }
 
@@ -557,6 +582,18 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
       auto ref_offset = offset + sizeof(execution::sql::CountAggregate);
       auto translator = current_translator_.CastManagedPointerTo<execution::compiler::AggregateBottomTranslator>();
       mem_factor = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, ref_offset);
+    } else {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
+      for (auto term : plan->GetAggregateTerms()) {
+        if (term->IsDistinct()) {
+          keys.emplace_back(term.Get());
+        }
+      }
+
+      if (!keys.empty()) {
+        key_size = ComputeKeySize(keys);
+        num_keys = keys.size();
+      }
     }
 
     AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1, mem_factor);

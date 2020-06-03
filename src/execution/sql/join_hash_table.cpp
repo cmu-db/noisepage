@@ -63,7 +63,7 @@ void JoinHashTable::BuildGenericHashTableInternal() noexcept {
 
 void JoinHashTable::BuildGenericHashTable() noexcept {
   // Setup based on number of buffered build-size tuples
-  generic_hash_table_.SetSize(tracker_, NumElements());
+  generic_hash_table_.SetSize(NumElements(), tracker_);
 
   // Dispatch to appropriate build code based on GHT size
   uint64_t l3_cache_size = CpuInfo::Instance()->GetCacheSize(CpuInfo::L3_CACHE);
@@ -553,7 +553,7 @@ void JoinHashTable::BuildConciseHashTableInternal() {
 
 void JoinHashTable::BuildConciseHashTable() {
   // Setup based on number of buffered build-size tuples
-  concise_hash_table_.SetSize(tracker_, static_cast<uint32_t>(NumElements()));
+  concise_hash_table_.SetSize(static_cast<uint32_t>(NumElements()), tracker_);
 
   // Dispatch to internal function based on prefetching requirements. If the CHT
   // is larger than L3 then the total size of all buffered build-side tuples is
@@ -701,7 +701,7 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
   EXECUTION_LOG_DEBUG("Global unique count: {}", num_elem_estimate);
 
   // Set size
-  generic_hash_table_.SetSize(tracker_, num_elem_estimate);
+  generic_hash_table_.SetSize(num_elem_estimate, tracker_);
 
   // Resize the owned entries vector now to avoid resizing concurrently during
   // merge. All the thread-local join table data will get placed into our
