@@ -663,13 +663,18 @@ class DBMain {
       block_store_size_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_size));
       block_store_reuse_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_reuse));
 
-      log_file_path_ = settings_manager->GetString(settings::Param::log_file_path);
-      num_log_manager_buffers_ =
-          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers));
-      log_serialization_interval_ = settings_manager->GetInt(settings::Param::log_serialization_interval);
-      log_persist_interval_ = settings_manager->GetInt(settings::Param::log_persist_interval);
-      log_persist_threshold_ =
-          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold));
+      use_logging_ = settings_manager->GetBool(settings::Param::wal);
+      if (use_logging_) {
+        log_file_path_ = settings_manager->GetString(settings::Param::log_file_path);
+        num_log_manager_buffers_ =
+            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers));
+        log_serialization_interval_ = settings_manager->GetInt(settings::Param::log_serialization_interval);
+        log_persist_interval_ = settings_manager->GetInt(settings::Param::log_persist_interval);
+        log_persist_threshold_ =
+            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold));
+      }
+
+      use_metrics_ = use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 

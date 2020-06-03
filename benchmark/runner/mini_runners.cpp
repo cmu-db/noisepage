@@ -6,6 +6,7 @@
 
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
+#include "binder/bind_node_visitor.h"
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
 #include "common/scoped_timer.h"

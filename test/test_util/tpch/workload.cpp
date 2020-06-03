@@ -5,6 +5,7 @@
 #include "common/managed_pointer.h"
 #include "execution/exec/execution_context.h"
 #include "execution/execution_util.h"
+#include "execution/sql/value_util.h"
 #include "execution/table_generator/table_generator.h"
 #include "main/db_main.h"
 
@@ -60,13 +61,17 @@ void Workload::LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, cons
   }
 }
 
-std::vector<type::TransientValue> Workload::GetQueryParams(const std::string &query_name) {
-  std::vector<type::TransientValue> params;
+std::vector<parser::ConstantValueExpression> Workload::GetQueryParams(const std::string &query_name) {
+  std::vector<parser::ConstantValueExpression> params;
   params.reserve(8);
 
   // Add the identifier for each pipeline. At most 8 query pipelines for now
-  for (int i = 0; i < 8; ++i)
-    params.emplace_back(type::TransientValueFactory::GetVarChar(query_name + "_p" + std::to_string(i + 1)));
+  for (int i = 0; i < 8; ++i) {
+    const std::string query_val = query_name + "_p" + std::to_string(i + 1);
+
+    auto string_val = execution::sql::ValueUtil::CreateStringVal(query_val);
+    params.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+  }
 
   return params;
 }

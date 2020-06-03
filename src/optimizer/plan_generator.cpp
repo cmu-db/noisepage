@@ -9,6 +9,7 @@
 
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
+#include "execution/sql/value.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/properties.h"
@@ -47,7 +48,6 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 
@@ -873,7 +873,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
 
     auto val_type = col->GetValueType();
 
-    parser::ConstantValueExpression null_val{type::TransientValueFactory::GetNull(val_type)};
+    parser::ConstantValueExpression null_val{val_type, execution::sql::Val(true)};
     auto &val = col->GetDefaultExpression() != nullptr ? *col->GetDefaultExpression() : null_val;
 
     if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {
