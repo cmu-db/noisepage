@@ -143,20 +143,32 @@ class ReadBufferView {
    * to the caller to ensure that there are enough bytes available in the read
    * buffer at this point.
    * @tparam T type of value to read off. Has to be size 1, 2, 4, or 8.
-   * @return value of integer switched from network byte order
+   * @return value of numeric switched from network byte order
    */
   template <typename T>
   T ReadValue() {
     // We only want to allow for certain type sizes to be used
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
-    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
-    const auto val = ReadRawValue<T>();
-
+    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for numeric.");
     if constexpr (std::is_floating_point_v<T>) {
-      const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);
-      return static_cast<double>(be64toh(*double_val));
+      switch (sizeof(T)) {
+        case 4: {
+          const auto raw_bytes = be32toh(ReadRawValue<uint32_t>());
+          const auto float_bytes = reinterpret_cast<const T *const>(&raw_bytes);
+          return *float_bytes;
+        }
+        case 8: {
+          const auto raw_bytes = be64toh(ReadRawValue<uint64_t>());
+          const auto double_bytes = reinterpret_cast<const T *const>(&raw_bytes);
+          return *double_bytes;
+        }
+          // Will never be here due to compiler optimization
+        default:
+          throw NETWORK_PROCESS_EXCEPTION("Invalid size for floating point.");
+      }
     } else {  // NOLINT: false positive on indentation with clang-tidy, fixed in upstream check-clang-tidy
+      const auto val = ReadRawValue<T>();
       switch (sizeof(T)) {
         case 1:
           return val;
@@ -168,7 +180,7 @@ class ReadBufferView {
           return static_cast<T>(be64toh(static_cast<uint64_t>(val)));
           // Will never be here due to compiler optimization
         default:
-          throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
+          throw NETWORK_PROCESS_EXCEPTION("Invalid size for integer.");
       }
     }
   }
