@@ -19,10 +19,12 @@ void LogSerializerTask::LogSerializerTaskLoop() {
     // Serializing is now on the "critical txn path" because txns wait to commit until their logs are serialized. Thus,
     // a sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
     // buffers in our call to Process. Calls to Process will process as long as new buffers are available.
-    std::unique_lock<std::mutex> guard(flush_queue_latch_);
-    flush_queue_cv_.wait_for(guard, curr_sleep, [&] {
-      return flush_queue_size_ >= 11 * 4096;
-    });
+    if (empty_) {
+      std::unique_lock<std::mutex> guard(flush_queue_latch_);
+      sleeping_ = true;
+      flush_queue_cv_.wait_for(guard, curr_sleep);
+      sleeping_ = false;
+    }
 
     // If Process did not find any new buffers, we perform exponential back-off to reduce our rate of polling for new
     // buffers. We cap the maximum back-off, since in the case of large gaps of no txns, we don't want to unboundedly
@@ -61,11 +63,13 @@ bool LogSerializerTask::Process() {
         std::unique_lock<std::mutex> guard(flush_queue_latch_);
 
         // There are no new buffers, so we can break
-        if (flush_queue_.empty()) break;
+        if (flush_queue_.empty()) {
+          empty_ = true;
+          break;
+        }
 
         temp_flush_queue_ = std::move(flush_queue_);
         flush_queue_ = std::queue<RecordBufferSegment *>();
-        flush_queue_size_ = 0;
       }
 
       // Loop over all the new buffers we found

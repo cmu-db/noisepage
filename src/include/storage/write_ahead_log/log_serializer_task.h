@@ -64,8 +64,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
     {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
       flush_queue_.push(buffer_segment);
-      flush_queue_size_ += buffer_segment->size_;
-      flush_queue_cv_.notify_all();
+      empty_ = false;
+      if (sleeping_) flush_queue_cv_.notify_all();
     }
   }
 
@@ -91,7 +91,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   std::queue<RecordBufferSegment *> flush_queue_;
 
   std::condition_variable flush_queue_cv_;
-  std::atomic<uint64_t> flush_queue_size_ = 0;
+  bool empty_, sleeping_;
 
   // Current buffer we are serializing logs to
   BufferedLogWriter *filled_buffer_;
