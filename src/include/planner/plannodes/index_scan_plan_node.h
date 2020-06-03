@@ -61,14 +61,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-     * Sets the scan limit
-     */
-    Builder &SetScanLimit(uint32_t limit) {
-      scan_limit_ = limit;
-      return *this;
-    }
-
-    /**
      * Sets the index cols.
      */
     Builder &AddIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
@@ -119,7 +111,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     std::vector<catalog::col_oid_t> column_oids_;
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
-    uint32_t scan_limit_{0};
   };
 
  private:
@@ -135,7 +126,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param scan_type Type of the scan
    * @param lo_index_cols lower bound of the scan (or exact key when scan type = Exact).
    * @param hi_index_cols upper bound of the scan
-   * @param scan_limit limit of the scan if any
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema,
@@ -147,14 +137,13 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
                     uint32_t scan_limit)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
-                             namespace_oid),
+                             namespace_oid, scan_limit),
         scan_type_(scan_type),
         index_oid_(index_oid),
         table_oid_(table_oid),
         column_oids_(column_oids),
         lo_index_cols_(std::move(lo_index_cols)),
-        hi_index_cols_(std::move(hi_index_cols)),
-        scan_limit_(scan_limit) {}
+        hi_index_cols_(std::move(hi_index_cols)) {}
 
  public:
   /**
@@ -206,11 +195,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   IndexScanType GetScanType() const { return scan_type_; }
 
   /**
-   * @return The scan limit
-   */
-  uint32_t ScanLimit() const { return scan_limit_; }
-
-  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
@@ -233,7 +217,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   std::vector<catalog::col_oid_t> column_oids_;
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
-  uint32_t scan_limit_;
 };
 
 DEFINE_JSON_DECLARATIONS(IndexScanPlanNode)

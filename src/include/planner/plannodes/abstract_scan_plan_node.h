@@ -57,6 +57,15 @@ class AbstractScanPlanNode : public AbstractPlanNode {
       return *dynamic_cast<ConcreteType *>(this);
     }
 
+    /**
+     * @param limit scan limit
+     * @return builder object
+     */
+    ConcreteType &SetScanLimit(uint32_t limit) {
+      scan_limit_ = limit;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
    protected:
     /**
      * Scan predicate
@@ -75,6 +84,11 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * OID of namespace
      */
     catalog::namespace_oid_t namespace_oid_;
+
+    /**
+     * Scan limit
+     */
+    uint32_t scan_limit_;
   };
 
   /**
@@ -85,16 +99,18 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param is_for_update scan is used for an update
    * @param database_oid database oid for scan
    * @param namespace_oid OID of the namespace
+   * @param scan_limit limit of the scan if any
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
                        common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
-                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
+                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, uint32_t scan_limit)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(predicate),
         is_for_update_(is_for_update),
         database_oid_(database_oid),
-        namespace_oid_(namespace_oid) {}
+        namespace_oid_(namespace_oid),
+        scan_limit_(scan_limit) {}
 
  public:
   /**
@@ -135,6 +151,11 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
+  /**
+   * @return The scan limit
+   */
+  uint32_t ScanLimit() const { return scan_limit_; }
+
  private:
   /**
    * Selection predicate.
@@ -155,6 +176,11 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * Namespace OID for scan
    */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Scan limit
+   */
+  uint32_t scan_limit_;
 };
 
 }  // namespace terrier::planner

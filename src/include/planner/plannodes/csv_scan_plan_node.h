@@ -75,9 +75,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::unique_ptr<CSVScanPlanNode> Build() {
-      return std::unique_ptr<CSVScanPlanNode>(
-          new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
-                              database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, value_types_));
+      return std::unique_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
+          std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_, database_oid_,
+          namespace_oid_, file_name_, delimiter_, quote_, escape_, value_types_, scan_limit_));
     }
 
    protected:
@@ -121,9 +121,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                   catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
-                  char delimiter, char quote, char escape, std::vector<type::TypeId> value_types)
+                  char delimiter, char quote, char escape, std::vector<type::TypeId> value_types, uint32_t scan_limit)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
-                             namespace_oid),
+                             namespace_oid, scan_limit),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),
