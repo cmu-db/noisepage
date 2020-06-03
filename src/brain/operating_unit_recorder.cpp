@@ -224,7 +224,8 @@ void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlan
       // Recording of simple operators
       // - num_keys is always 1
       // - key_size is max() inputs
-      AggregateFeatures(feature.second, type::TypeUtil::GetTypeSize(feature.first), 1, plan, scaling, 1);
+      auto size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(feature.first));
+      AggregateFeatures(feature.second, size, 1, plan, scaling, 1);
     }
   }
 
