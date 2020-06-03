@@ -41,7 +41,6 @@ public class TestUtility {
             if (!preferQueryMode.isEmpty()) {
                 props.setProperty("preferQueryMode", preferQueryMode);
             }
-            System.out.println("preferQueryMode = " + preferQueryMode);
 
             // read the prepareThreshold from the options.xml
             if (preferQueryMode.equals("extended")) {
@@ -50,7 +49,6 @@ public class TestUtility {
                 if (!prepareThreshold.isEmpty()) {
                     props.setProperty("prepareThreshold", prepareThreshold);
                 }
-                System.out.println("prepareThreshold = " + prepareThreshold);
             }
 
         } catch (SAXException | IOException | ParserConfigurationException e) {

@@ -31,7 +31,9 @@ class TestJUnit(TestServer):
 
         # config ExtendedThreshold
         if query_mode_str == "extended":
-            extended_threshold_str = str(self.args.get("extended_threshold"))
+            extended_threshold_str = self.args.get("extended_threshold")
+            if extended_threshold_str is not None:
+                extended_threshold_str = str(extended_threshold_str)
             extended_threshold_elem = et.SubElement(options,
                                                     "ExtendedThreshold")
             extended_threshold_elem.text = extended_threshold_str
