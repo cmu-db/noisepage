@@ -170,12 +170,12 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * @return number to limit to
    */
-  uint32_t ScanLimit() const { return scan_limit_; }
+  uint32_t GetScanLimit() const { return scan_limit_; }
 
   /**
    * @return offset for where to limit from
    */
-  uint32_t ScanOffset() const { return scan_offset_; }
+  uint32_t GetScanOffset() const { return scan_offset_; }
 
  private:
   /**
@@ -205,7 +205,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * Offset for scan
    */
-  uint32_t scan_offset_;
+  uint32_t scan_offset_ = 0;
 };
 
 }  // namespace terrier::planner
