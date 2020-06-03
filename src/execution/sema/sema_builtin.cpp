@@ -2085,8 +2085,8 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
       // First argument must be a pointer to a IndexIterator
-      auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
-      if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
+      auto *cte_scan_type = call->Arguments()[0]->GetType()->GetPointeeType();
+      if (cte_scan_type == nullptr || !cte_scan_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
         ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
         return;
       }
