@@ -17,7 +17,7 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
+  const std::chrono::microseconds gc_period_{1000};
 };
 
 /**
