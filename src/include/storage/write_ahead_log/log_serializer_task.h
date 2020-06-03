@@ -91,8 +91,8 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   std::queue<RecordBufferSegment *> flush_queue_;
 
   std::condition_variable flush_queue_cv_;
-  std::atomic<uint64_t> size_;
-  bool sleeping_;
+  std::atomic<uint64_t> size_ = 0;
+  bool sleeping_ = false;
 
   // Current buffer we are serializing logs to
   BufferedLogWriter *filled_buffer_;

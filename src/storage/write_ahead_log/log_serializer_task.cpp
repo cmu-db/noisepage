@@ -69,11 +69,11 @@ bool LogSerializerTask::Process() {
 
         temp_flush_queue_ = std::move(flush_queue_);
         flush_queue_ = std::queue<RecordBufferSegment *>();
-        size_ = 0;
       }
 
       // Loop over all the new buffers we found
       while (!temp_flush_queue_.empty()) {
+        size_ --;
         RecordBufferSegment *buffer = temp_flush_queue_.front();
         temp_flush_queue_.pop();
 
