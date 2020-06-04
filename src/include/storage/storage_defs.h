@@ -380,6 +380,78 @@ class VarlenEntry {
     }
   }
 
+  /**
+  * Compare two strings ONLY for equality or inequality only.
+  * @tparam EqualCheck
+  * @param left The first string.
+  * @param right The second string.
+  * @return 0 if equal; any non-zero value otherwise.
+  */
+  template <bool EqualityCheck>
+  static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
+    // Compare the size and prefix in one fell swoop.
+    if (std::memcmp(&left, &right, sizeof(size_) + PrefixSize()) == 0) {
+      // Prefix and length are equal.
+      if (left.IsInlined()) {
+        if (std::memcmp(left.prefix_, right.prefix_, left.size_) == 0) {
+          return EqualityCheck ? true : false;
+        }
+      } else {
+        if (std::memcmp(left.content_, right.content_, left.size_) == 0) {
+          return EqualityCheck ? true : false;
+        }
+      }
+    }
+    // Not equal.
+    return EqualityCheck ? false : true;
+  }
+
+  /**
+   * Compare two strings. Returns:
+   * < 0 if left < right
+   *  0  if left == right
+   * > 0 if left > right
+   *
+   * @param left The first string.
+   * @param right The second string.
+   * @return The appropriate signed value indicating comparison order.
+   */
+  static int32_t Compare(const VarlenEntry &left, const VarlenEntry &right) {
+    const auto min_len = std::min(left.Size(), right.Size());
+    const auto result = std::memcmp(left.Content(), right.Content(), min_len);
+    return result != 0 ? result : left.Size() - right.Size();
+  }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator==(const VarlenEntry &that) const { return CompareEqualOrNot<true>(*this, that); }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator!=(const VarlenEntry &that) const { return CompareEqualOrNot<false>(*this, that); }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator<(const VarlenEntry &that) const { return Compare(*this, that) < 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator<=(const VarlenEntry &that) const { return Compare(*this, that) <= 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator>(const VarlenEntry &that) const { return Compare(*this, that) > 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator>=(const VarlenEntry &that) const { return Compare(*this, that) >= 0; }
+
  private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix

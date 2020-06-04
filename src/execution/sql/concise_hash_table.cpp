@@ -31,10 +31,10 @@ void ConciseHashTable::Build() {
 
   // Compute the prefix counts for each slot group
 
-  slot_groups_[0].count_ = util::BitUtil::CountPopulation(slot_groups_[0].bits_);
+  slot_groups_[0].count_ = util::BitUtil::CountBits(slot_groups_[0].bits_);
 
   for (uint32_t i = 1; i < num_groups_; i++) {
-    slot_groups_[i].count_ = slot_groups_[i - 1].count_ + util::BitUtil::CountPopulation(slot_groups_[i].bits_);
+    slot_groups_[i].count_ = slot_groups_[i - 1].count_ + util::BitUtil::CountBits(slot_groups_[i].bits_);
   }
 
   built_ = true;

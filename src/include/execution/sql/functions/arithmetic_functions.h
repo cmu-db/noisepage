@@ -267,7 +267,7 @@ class EXPORT ArithmeticFunctions {
                                         const INPUT_TYPE2 &b) {                  \
     using CppType = decltype(result->val_);                                       \
     result->is_null_ = (a.is_null_ || b.is_null_);                                  \
-    result->val = OP<CppType>{}(a.val_, b.val_);                                   \
+    result->val_ = OP<CppType>{}(a.val_, b.val_);                                   \
   }
 
 #define BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP) \
@@ -275,7 +275,7 @@ class EXPORT ArithmeticFunctions {
                                         const INPUT_TYPE2 &b, bool *overflow) {           \
     using CppType = decltype(result->val_);                                                \
     result->is_null_ = (a.is_null_ || b.is_null_);                                           \
-    *overflow = OP<CppType>{}(a.val_, b.val_, &result->val);                                \
+    *overflow = OP<CppType>{}(a.val_, b.val_, &result->val_);                                \
   }
 
 #define BINARY_MATH_CHECK_ZERO_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP) \

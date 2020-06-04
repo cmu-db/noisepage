@@ -211,7 +211,7 @@ inline uint64_t ConciseHashTable::NumFilledSlotsBefore(const ConciseHashTableSlo
 
   const SlotGroup *slot_group = slot_groups_ + group_idx;
   const uint64_t bits_after_slot = slot_group->bits_ & (uint64_t(-1) << bit_idx);
-  return slot_group->count_ - util::BitUtil::CountPopulation(bits_after_slot);
+  return slot_group->count_ - util::BitUtil::CountBits(bits_after_slot);
 }
 
 inline std::pair<bool, uint64_t> ConciseHashTable::Lookup(const hash_t hash) const {
@@ -223,7 +223,7 @@ inline std::pair<bool, uint64_t> ConciseHashTable::Lookup(const hash_t hash) con
   const uint64_t bits_after_slot = slot_group->bits_ & (uint64_t(-1) << bit_idx);
 
   const auto exists = static_cast<bool>(slot_group->bits_ & (1ull << bit_idx));
-  const uint64_t pos = slot_group->count_ - util::BitUtil::CountPopulation(bits_after_slot);
+  const uint64_t pos = slot_group->count_ - util::BitUtil::CountBits(bits_after_slot);
 
   return std::pair(exists, pos);
 }

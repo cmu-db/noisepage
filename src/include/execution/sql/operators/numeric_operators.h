@@ -4,8 +4,6 @@
 #include <cmath>
 #include <stdexcept>
 
-#include "common/common.h"
-
 namespace terrier::execution::sql {
 
 // This file contains a bunch of templated functors that implement many
