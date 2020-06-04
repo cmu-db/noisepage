@@ -220,7 +220,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  auto cached_statement = postgres_interpreter->LookupStatementInCache(*statement);
+  auto cached_statement = postgres_interpreter->LookupStatementInCache(statement->GetQueryText());
   if (cached_statement == nullptr) {
     // Not in the cache, add to cache
     cached_statement = common::ManagedPointer(statement);
