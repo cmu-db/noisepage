@@ -162,18 +162,23 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param hash key
    * @param statement statement to take ownership of
    */
-  void AddStatementToCache(const common::hash_t hash, std::unique_ptr<network::Statement> &&statement) {
-    statement_cache_[hash] = std::move(statement);
+  void AddStatementToCache(std::unique_ptr<network::Statement> &&statement) {
+    statement_cache_[statement->GetQueryHash()] = std::move(statement);
   }
 
   /**
    * @param hash key
    * @return Statement if it exists in the cache, otherwise nullptr
    */
-  common::ManagedPointer<network::Statement> LookupStatementInCache(const common::hash_t hash) const {
-    const auto it = statement_cache_.find(hash);
+  common::ManagedPointer<network::Statement> LookupStatementInCache(const network::Statement &statement) const {
+    const auto it = statement_cache_.find(statement.GetQueryHash());
     if (it != statement_cache_.end()) return common::ManagedPointer(it->second);
     return nullptr;
+  }
+
+  void RemoveStatementFromCache(const network::Statement &statement) {
+    const auto result UNUSED_ATTRIBUTE = statement_cache_.erase(statement.GetQueryHash());
+    TERRIER_ASSERT(result > 0, "That shouldn't fail.");
   }
 
   /**

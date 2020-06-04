@@ -220,11 +220,11 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  auto cached_statement = postgres_interpreter->LookupStatementInCache(statement->GetQueryHash());
+  auto cached_statement = postgres_interpreter->LookupStatementInCache(*statement);
   if (cached_statement == nullptr) {
     // Not in the cache, add to cache
     cached_statement = common::ManagedPointer(statement);
-    postgres_interpreter->AddStatementToCache(statement->GetQueryHash(), std::move(statement));
+    postgres_interpreter->AddStatementToCache(std::move(statement));
   }
 
   postgres_interpreter->SetStatement(statement_name, cached_statement);
@@ -316,9 +316,13 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     return Transition::PROCEED;
   }
 
+  if (UNLIKELY(NetworkUtil::DDLQueryType(query_type))) {
+    statement->ClearCachedObjects();
+  }
+
   // Bind it, plan it
   const auto bind_result = t_cop->BindQuery(connection, statement, common::ManagedPointer(&params));
-  if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
+  if (LIKELY(bind_result.type_ == trafficcop::ResultType::COMPLETE)) {
     // Binding succeeded, optimize to generate a physical plan
     if (statement->PhysicalPlan() == nullptr || !t_cop->UseQueryCache()) {
       // it's not cached, optimize it
@@ -329,12 +333,11 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
-  } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
+  } else if (UNLIKELY(bind_result.type_ == trafficcop::ResultType::NOTICE)) {
     // Binding generated a NOTICE, i.e. IF EXISTS failed, so we're not going to generate a physical plan of nullptr and
     // handle that case in Execute. In case it previously bound and compiled, we're gonna throw that away for next
     // execution
-    statement->SetPhysicalPlan(nullptr);
-    statement->SetExecutableQuery(nullptr);
+    statement->ClearCachedObjects();
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
@@ -347,8 +350,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     // failing to bind fails a transaction in postgres
     connection->Transaction()->SetMustAbort();
     // clear anything cached related to this statement
-    statement->SetPhysicalPlan(nullptr);
-    statement->SetExecutableQuery(nullptr);
+    statement->ClearCachedObjects();
     out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
     postgres_interpreter->SetWaitingForSync();
   }

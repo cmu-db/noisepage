@@ -130,6 +130,12 @@ class Statement {
 
   const std::vector<type::TypeId> &GetDesiredParamTypes() const { return desired_param_types_; }
 
+  void ClearCachedObjects() {
+    physical_plan_ = nullptr;
+    executable_query_ = nullptr;
+    desired_param_types_ = {};
+  }
+
  private:
   const std::string query_text_;
   const common::hash_t query_hash_;
