@@ -6,6 +6,7 @@
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/sql/cte_scan_iterator.h"
+#include "execution/sql/iter_cte_scan_iterator.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
@@ -73,6 +74,7 @@ class Context;
   NON_PRIM(ProjectedColumnsIterator, terrier::execution::sql::ProjectedColumnsIterator)         \
   NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                               \
   NON_PRIM(CteScanIterator, terrier::execution::sql::CteScanIterator)                           \
+  NON_PRIM(IterCteScanIterator, terrier::execution::sql::IterCteScanIterator)                   \
   NON_PRIM(SqlTable, terrier::storage::SqlTable)                                                \
   NON_PRIM(TableOid, terrier::catalog::table_oid_t)                                             \
                                                                                                 \
