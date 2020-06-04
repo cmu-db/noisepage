@@ -3322,6 +3322,50 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       Emitter()->Emit(Bytecode::CteScanFree, iterator);
       break;
     }
+    case ast::Builtin::IterCteScanInit: {
+      // Execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      auto *arr_type = call->Arguments()[2]->GetType()->As<ast::ArrayType>();
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
+      // Emit the initialization codes
+      Emitter()->CteScanIteratorInit(Bytecode::IterCteScanInit, iterator, exec_ctx, col_oids,
+                                     static_cast<uint32_t>(arr_type->Length()));
+      break;
+    }
+    case ast::Builtin::IterCteScanGetResult: {
+      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IterCteScanGetResult, result, iterator);
+      break;
+    }
+    case ast::Builtin::IterCteScanGetReadTable: {
+      LocalVar read = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IterCteScanGetReadTable, read, iterator);
+      break;
+    }
+    case ast::Builtin::IterCteScanGetWriteTable: {
+      LocalVar write = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IterCteScanGetWriteTable, write, iterator);
+      break;
+    }
+    case ast::Builtin::IterCteScanGetReadTableOid: {
+      LocalVar table_oid = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IterCteScanGetReadTableOid, table_oid, iterator);
+      break;
+    }
+    case ast::Builtin::IterCteScanGetInsertTempTablePR: {
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IterCteScanGetInsertTempTablePR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IterCteScanTableInsert: {
+      LocalVar slot = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IterCteScanTableInsert, slot, iterator);
+      break;
+    }
+    case ast::Builtin::IterCteScanFree: {
+      Emitter()->Emit(Bytecode::CteScanFree, iterator);
+      break;
+    }
 
     default: {
       UNREACHABLE("Impossible bytecode");
