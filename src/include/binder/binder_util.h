@@ -13,10 +13,19 @@ class ConstantValueExpression;
 
 namespace terrier::binder {
 
+/**
+ * Static utility functions for the binder
+ */
 class BinderUtil {
  public:
   BinderUtil() = delete;
 
+  /**
+   * Given a vector of parameters, and their desired types, promote them. This is used to fast-path parameter
+   * casting/promotion for prepared statements to avoid a full binding.
+   * @param parameters to be checked and possibly promoted
+   * @param desired_parameter_types desired parameter types from the initial binding
+   */
   static void PromoteParameters(common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
                                 const std::vector<type::TypeId> &desired_parameter_types);
 

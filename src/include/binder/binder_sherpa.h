@@ -24,6 +24,7 @@ class BinderSherpa {
    * Create a new BinderSherpa.
    * @param parse_result The parse result to be tracked
    * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
+   * @param desired_parameter_types same size as paramaters, can be nullptr if there are no parameters
    */
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
                         const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
@@ -32,7 +33,7 @@ class BinderSherpa {
     TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
     TERRIER_ASSERT((parameters == nullptr && desired_parameter_types == nullptr) ||
                        (parameters != nullptr && desired_parameter_types != nullptr),
-                   "");
+                   "Either need both the parameters vector and desired types vector, or neither.");
   }
 
   /**
@@ -65,6 +66,11 @@ class BinderSherpa {
     desired_expr_types_[reinterpret_cast<uintptr_t>(expr.Get())] = type;
   }
 
+  /**
+   * Stash the desired parameter type for fast-path binding
+   * @param parameter_index offset of the parameter in the statement
+   * @param type desired type to cast to on future bindings
+   */
   void SetDesiredParameterType(const uint32_t parameter_index, const type::TypeId type) {
     (*desired_parameter_types_)[parameter_index] = type;
   }

@@ -159,13 +159,12 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   }
 
   /**
-   * @param hash key
    * @param statement statement to take ownership of
    */
   void AddStatementToCache(std::unique_ptr<network::Statement> &&statement) { cache_.Add(std::move(statement)); }
 
   /**
-   * @param hash key
+   * @param query_text key to look up
    * @return Statement if it exists in the cache, otherwise nullptr
    */
   common::ManagedPointer<network::Statement> LookupStatementInCache(const std::string &query_text) const {

@@ -256,8 +256,8 @@ TrafficCopResult TrafficCop::BindQuery(
       // it's not cached, bind it
       binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
       if (parameters != nullptr && !parameters->empty()) {
-        std::vector<type::TypeId> desired_param_types;
-        desired_param_types.resize(parameters->size());
+        std::vector<type::TypeId> desired_param_types(
+            parameters->size());  // default construction of values is fine, Binding will overwrite it
         visitor.BindNameToNode(statement->ParseResult(), parameters, common::ManagedPointer(&desired_param_types));
         statement->SetDesiredParamTypes(std::move(desired_param_types));
       } else {
