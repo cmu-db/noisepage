@@ -23,10 +23,10 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<GarbageCollectionMetricRawData *>(other);
     if (!other_db_metric->deallocate_data_.empty()) {
-      deallocate_data_.splice(deallocate_data_.cbegin(), other_db_metric->deallocate_data_);
+      deallocate_data_.splice(deallocate_data_.cend(), other_db_metric->deallocate_data_);
     }
     if (!other_db_metric->unlink_data_.empty()) {
-      unlink_data_.splice(unlink_data_.cbegin(), other_db_metric->unlink_data_);
+      unlink_data_.splice(unlink_data_.cend(), other_db_metric->unlink_data_);
     }
   }
 

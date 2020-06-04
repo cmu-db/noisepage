@@ -27,7 +27,7 @@ class ExecuteCommandMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<ExecuteCommandMetricRawData *>(other);
     if (!other_db_metric->execute_command_data_.empty()) {
-      execute_command_data_.splice(execute_command_data_.cbegin(), other_db_metric->execute_command_data_);
+      execute_command_data_.splice(execute_command_data_.cend(), other_db_metric->execute_command_data_);
     }
   }
 

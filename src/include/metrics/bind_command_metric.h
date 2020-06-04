@@ -27,7 +27,7 @@ class BindCommandMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<BindCommandMetricRawData *>(other);
     if (!other_db_metric->bind_command_data_.empty()) {
-      bind_command_data_.splice(bind_command_data_.cbegin(), other_db_metric->bind_command_data_);
+      bind_command_data_.splice(bind_command_data_.cend(), other_db_metric->bind_command_data_);
     }
   }
 
