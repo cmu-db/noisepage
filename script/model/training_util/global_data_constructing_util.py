@@ -157,12 +157,6 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
     sum_adjusted_x = np.sum(adjusted_x_list, axis=0)
     std_adjusted_x = np.std(adjusted_x_list, axis=0)
 
-    # FIXME: Using dummy memory value for now. Eventually we need to transfer the memory estimation between pipelines
-    #memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
-    #adjusted_y[memory_idx] = 1
-    #sum_adjusted_x[memory_idx] = 1
-    #std_adjusted_x[memory_idx] = 1
-
     ratio_error = abs(adjusted_y - sum_adjusted_x) / (adjusted_y + 1e-6)
 
     logging.debug(sum_adjusted_x)
