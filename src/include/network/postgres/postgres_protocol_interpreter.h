@@ -183,7 +183,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   /**
    * @param name key
-   * @param statement statement to take ownership of
+   * @param statement statement to create a mapping to for this name
    */
   void SetStatement(const std::string &name, const common::ManagedPointer<network::Statement> statement) {
     statements_[name] = statement;
