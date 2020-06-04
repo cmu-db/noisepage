@@ -1,6 +1,6 @@
 #include "util/time_util.h"
-#include "test_util/test_harness.h"
 #include "date/date.h"
+#include "test_util/test_harness.h"
 
 namespace terrier {
 

@@ -10,4 +10,4 @@ void Gate::Traverse() {
   }
 }
 
-} // namespace terrier::common
+}  // namespace terrier::common

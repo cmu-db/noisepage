@@ -6,7 +6,7 @@
 #include "type/type_id.h"
 
 namespace date {
-  class year_month_day;
+class year_month_day;
 }
 
 namespace terrier::util {
@@ -60,10 +60,10 @@ class TimeConvertor {
   static std::pair<bool, type::timestamp_t> ParseTimestamp(const std::string &str);
 
   /** @return The @p date formatted as a string. */
-  static std::string FormatDate(const type::date_t date);
+  static std::string FormatDate(type::date_t date);
 
   /** @return The @p timestamp formatted as a string. */
-  static std::string FormatTimestamp(const type::timestamp_t timestamp);
+  static std::string FormatTimestamp(type::timestamp_t timestamp);
 
   /** PostgreSQL function for serializing dates to 32-bit Julian days. */
   static uint32_t PostgresDate2J(int32_t year, uint32_t month, uint32_t day) {

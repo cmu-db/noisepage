@@ -14,7 +14,7 @@ type::date_t TimeConvertor::DateFromYMD(date::year_month_day ymd) {
 date::year_month_day TimeConvertor::YMDFromDate(type::date_t date) { return PostgresJ2Date(!date); }
 
 type::timestamp_t TimeConvertor::TimestampFromHMSu(int32_t year, uint32_t month, uint32_t day, uint8_t hour,
-                                                          uint8_t minute, uint8_t sec, uint64_t usec) {
+                                                   uint8_t minute, uint8_t sec, uint64_t usec) {
   date::year_month_day ymd{date::year(year), date::month(month), date::day(day)};
   auto ts_val = TimestampFromDate(DateFromYMD(ymd));
   ts_val += hour * MICROSECONDS_PER_HOUR;
@@ -120,10 +120,10 @@ date::year_month_day TimeConvertor::PostgresJ2Date(uint32_t julian_days) {
 }
 
 bool TimeConvertor::Parse(const std::string &fmt, const std::string &str,
-                                 date::sys_time<std::chrono::microseconds> *tp) {
+                          date::sys_time<std::chrono::microseconds> *tp) {
   std::istringstream in(str);
   in >> date::parse(fmt, *tp);
   return !in.fail();
 }
 
-} // namespace terrier::util
+}  // namespace terrier::util

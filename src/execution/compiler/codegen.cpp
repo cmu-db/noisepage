@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
-#include "date/date.h"
 #include "brain/operating_unit.h"
+#include "date/date.h"
 #include "execution/sql/value.h"
 #include "parser/expression/constant_value_expression.h"
 #include "util/time_util.h"
