@@ -90,7 +90,7 @@ class MetricsStore {
   }
 
   /**
-   * Record metrics for transaction manager when ending transaction
+   * Record metrics for transaction manager when commiting transaction
    * @param is_readonly first entry of txn datapoint
    * @param resource_metrics second entry of txn datapoint
    */
@@ -98,6 +98,15 @@ class MetricsStore {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::TRANSACTION), "TransactionMetric not enabled.");
     TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
     txn_metric_->RecordCommitData(is_readonly, resource_metrics);
+  }
+
+  /**
+   * Record metrics for transaction manager when aborting transaction
+   */
+  void RecordTxnsProcessed() {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectorMetric not enabled.");
+    TERRIER_ASSERT(txn_metric_ != nullptr, "GarbageCollectorMetric not allocated. Check MetricsStore constructor.");
+    gc_metric_->RecordTxnsProcessed();
   }
 
   /**

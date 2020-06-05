@@ -31,6 +31,8 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
 }
 
 void MetricsManager::Aggregate() {
+//  std::cout << "agg start" << std::endl;
+
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   for (const auto &metrics_store : stores_map_) {
     auto raw_data = metrics_store.second->GetDataToAggregate();
@@ -44,6 +46,8 @@ void MetricsManager::Aggregate() {
       }
     }
   }
+//  std::cout << "agg end" << std::endl;
+
 }
 
 void MetricsManager::ResetMetric(const MetricsComponent component) const {

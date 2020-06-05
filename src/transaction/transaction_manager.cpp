@@ -123,7 +123,10 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
     common::thread_context.metrics_store_->RecordCommitData(static_cast<uint64_t>(txn->IsReadOnly()), resource_metrics);
   }
-
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+    common::thread_context.metrics_store_->RecordTxnsProcessed();
+  }
   return result;
 }
 
@@ -212,7 +215,10 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   if (gc_enabled_ && deferred_action_manager_ != DISABLED) {
     CleanTransaction(txn);
   }
-
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+    common::thread_context.metrics_store_->RecordTxnsProcessed();
+  }
   return abort_time;
 }
 

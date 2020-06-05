@@ -39,11 +39,16 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
         aggregate_data_[int32_t(action.daf_id_)] = {action.resource_metrics_.start_, action.daf_id_, 1,
                                                     action.resource_metrics_.elapsed_us_};
       } else {
-        aggregate_data_[int32_t(action.daf_id_)].num_processed_++;
+        aggregate_data_[int32_t(action.daf_id_)].num_actions_processed_++;
         aggregate_data_[int32_t(action.daf_id_)].time_elapsed_ += action.resource_metrics_.elapsed_us_;
       }
     }
-    max_queue_length_ = other_db_metric->max_queue_length_;
+    if (max_queue_length_ < other_db_metric->max_queue_length_) {
+//      std::cout << "before record " << max_queue_length_ << std::endl;
+      max_queue_length_ = other_db_metric->max_queue_length_;
+//      std::cout << "record " << max_queue_length_ << std::endl;
+    }
+    num_txns_processed_ += other_db_metric->num_txns_processed_;
   }
 
   /**
@@ -60,8 +65,8 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
                                  [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
                    "Not all files are open.");
-//    std::cout << "to csv " << static_cast<unsigned long>(max_queue_length_) << std::endl;
 
+    // get the corresponding number of txn processed in this interval.
     auto &daf_count_agg = (*outfiles)[0];
     auto &daf_time_agg = (*outfiles)[1];
 
@@ -76,19 +81,20 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     uint64_t total_elapsed = 0;
     for (const auto &data : aggregate_data_) {
 //      if (data.daf_id_ != transaction::DafId::INVALID) {
-//        daf_agg << data.start_ << ", " << static_cast<int>(data.daf_id_) << ", " << data.num_processed_ << ", "
+//        daf_agg << data.start_ << ", " << static_cast<int>(data.daf_id_) << ", " << data.num_actions_processed_ << ", "
 //                << data.time_elapsed_;
 //        daf_agg << std::endl;
 //      }
-      total_processed += data.num_processed_;
+      total_processed += data.num_actions_processed_;
       total_elapsed += data.time_elapsed_;
-      daf_count_agg << ", " << static_cast<unsigned long>(data.num_processed_);
+      daf_count_agg << ", " << static_cast<unsigned long>(data.num_actions_processed_);
       daf_time_agg << ", " << static_cast<unsigned long>(data.time_elapsed_);
     }
-    daf_count_agg << ", " << static_cast<unsigned long>(total_processed) << ", " << static_cast<unsigned long>(max_queue_length_) << std::endl;
-    daf_time_agg << ", " << static_cast<unsigned long>(total_elapsed) << std::endl;
+    daf_count_agg << ", " << static_cast<unsigned long>(total_processed) << ", " << static_cast<unsigned long>(max_queue_length_) << ", " << static_cast<unsigned long>(num_txns_processed_) << std::endl;
+    daf_time_agg << ", " << static_cast<unsigned long>(total_elapsed) << ", "  << static_cast<unsigned long>(num_txns_processed_) << std::endl;
 
     max_queue_length_ = 0;
+    num_txns_processed_ = 0;
     action_data_.clear();
     auto local_agg_data = std::vector<AggregateData>(transaction::DAF_TAG_COUNT, AggregateData());
     aggregate_data_.swap(local_agg_data);
@@ -112,9 +118,9 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 //      "UNLINK, total_time"};
   static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {
       "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
-      "UNLINK, INVALID, total_num, max_queue_length",
+      "UNLINK, INVALID, total_num_actions, max_queue_length, total_num_txns",
       "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
-      "UNLINK, INVALID, total_time"};
+      "UNLINK, INVALID, total_time, total_num_txns"};
 
  private:
   friend class GarbageCollectionMetric;
@@ -125,11 +131,14 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   }
 
   void RecordQueueSize(const uint32_t queue_size) {
-//    std::cout << "before record " << max_queue_length_ << std::endl;
     if (static_cast<uint64_t>(queue_size) > max_queue_length_)
       max_queue_length_ = queue_size;
-//    std::cout << "record " << max_queue_length_ << std::endl;
   }
+
+  void RecordTxnsProcessed() {
+    num_txns_processed_++;
+  }
+
   struct ActionData {
     ActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics)
         : start_(metrics::MetricsUtil::Now()), daf_id_(daf_id), resource_metrics_(resource_metrics) {}
@@ -143,12 +152,12 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 
     AggregateData(const uint64_t start, const transaction::DafId daf_id, const uint64_t num_processed,
                   const uint64_t time_elapsed)
-        : start_(start), daf_id_(daf_id), num_processed_(num_processed), time_elapsed_(time_elapsed) {}
+        : start_(start), daf_id_(daf_id), num_actions_processed_(num_processed), time_elapsed_(time_elapsed) {}
 
     AggregateData(const AggregateData &other) = default;
     uint64_t start_{0};
     transaction::DafId daf_id_{transaction::DafId::INVALID};
-    uint64_t num_processed_{0};
+    uint64_t num_actions_processed_{0};
     uint64_t time_elapsed_{0};
   };
 
@@ -158,6 +167,8 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   uint64_t start_ = 0;
 
   uint64_t max_queue_length_ = 0;
+
+  uint64_t num_txns_processed_ = 0;
 };
 
 /**
@@ -173,6 +184,10 @@ class GarbageCollectionMetric : public AbstractMetric<GarbageCollectionMetricRaw
 
   void RecordQueueSize(const uint32_t queue_size) {
     GetRawData()->RecordQueueSize(queue_size);
+  }
+
+  void RecordTxnsProcessed() {
+    GetRawData()->RecordTxnsProcessed();
   }
 };
 }  // namespace terrier::metrics
