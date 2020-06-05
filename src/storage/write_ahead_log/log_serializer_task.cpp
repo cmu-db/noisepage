@@ -14,7 +14,8 @@ namespace terrier::storage {
 void LogSerializerTask::LogSerializerTaskLoop() {
   auto curr_sleep = serialization_interval_;
   // TODO(Gus): Make max back-off a settings manager setting
-  const std::chrono::microseconds max_sleep = std::chrono::microseconds(10000);  // We cap the back-off in case of long gaps with no transactions
+  const std::chrono::microseconds max_sleep =
+      std::chrono::microseconds(10000);  // We cap the back-off in case of long gaps with no transactions
   do {
     // Serializing is now on the "critical txn path" because txns wait to commit until their logs are serialized. Thus,
     // a sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
