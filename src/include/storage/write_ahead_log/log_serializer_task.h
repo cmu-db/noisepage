@@ -90,8 +90,11 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // Stores unserialized buffers handed off by transactions
   std::queue<RecordBufferSegment *> flush_queue_;
 
+  // conditional variable to be notified when there are logs to be processed
   std::condition_variable flush_queue_cv_;
-  bool sleeping_ = false, empty_ = false;
+
+  // bools representing whether the logging thread is sleeping and if the log queue is empty
+  bool sleeping_ = false, empty_ = true;
 
   // Current buffer we are serializing logs to
   BufferedLogWriter *filled_buffer_;

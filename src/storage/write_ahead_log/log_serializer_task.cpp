@@ -18,7 +18,9 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   do {
     // Serializing is now on the "critical txn path" because txns wait to commit until their logs are serialized. Thus,
     // a sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
-    // buffers in our call to Process. Calls to Process will process as long as new buffers are available.
+    // buffers in our call to Process. Calls to Process will process as long as new buffers are available. We only
+    // sleep as part of this exponential backoff when there are logs that need to be processed and we wake up when there
+    // are new logs to be processed.
     if (empty_) {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
       sleeping_ = true;
