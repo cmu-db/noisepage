@@ -2,6 +2,7 @@
 
 #include "spdlog/fmt/fmt.h"
 
+#include "common/exception.h"
 #include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
@@ -68,8 +69,8 @@ void VectorOps::Gather(const Vector &pointers, Vector *result, const std::size_t
       TemplatedGatherOperation<storage::VarlenEntry>(pointers, result, offset);
       break;
     default:
-      throw NotImplementedException(
-          fmt::format("gathering '{}' types not supported", TypeIdToString(result->GetTypeId())));
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("gathering '{}' types not supported", TypeIdToString(result->GetTypeId())).data());
   }
 }
 

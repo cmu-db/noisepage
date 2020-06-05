@@ -2,6 +2,7 @@
 
 #include "spdlog/fmt/fmt.h"
 
+#include "common/exception.h"
 #include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
@@ -58,8 +59,8 @@ void VectorOps::Generate(Vector *vector, int64_t start, int64_t increment) {
       TemplatedGenerateOperation<double>(vector, start, increment);
       break;
     default:
-      throw NotImplementedException(
-          fmt::format("cannot generate into vector type {}", TypeIdToString(vector->GetTypeId())));
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("cannot generate into vector type {}", TypeIdToString(vector->GetTypeId())).data());
   }
 }
 

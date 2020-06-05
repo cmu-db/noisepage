@@ -20,9 +20,9 @@ void StandardTemplatedCastOperation(const Vector &source, Vector *target) {
 
 template <typename InType>
 void CastToStringOperation(const Vector &source, Vector *target) {
-  TPL_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
+  TERRIER_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
   terrier::execution::sql::Cast<InType, std::string> cast_op;
-  UnaryOperationExecutor::Execute<InType, VarlenEntry, true>(source, target, [&](const InType in) {
+  UnaryOperationExecutor::Execute<InType, storage::VarlenEntry, true>(source, target, [&](const InType in) {
     return target->GetMutableStringHeap()->AddVarlen(cast_op(in));
   });
 }
@@ -56,9 +56,9 @@ void CastNumericOperation(const Vector &source, Vector *target, SqlTypeId target
       CastToStringOperation<InType>(source, target);
       break;
     default:
-      throw NotImplementedException(fmt::format("unsupported cast: {} -> {}",
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("unsupported cast: {} -> {}",
                                                 TypeIdToString(source.GetTypeId()),
-                                                TypeIdToString(target->GetTypeId())));
+                                                TypeIdToString(target->GetTypeId())).data());
   }
 }
 
@@ -71,9 +71,9 @@ void CastDateOperation(const Vector &source, Vector *target, SqlTypeId target_ty
       CastToStringOperation<Date>(source, target);
       break;
     default:
-      throw NotImplementedException(fmt::format("unsupported cast: {} -> {}",
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("unsupported cast: {} -> {}",
                                                 TypeIdToString(source.GetTypeId()),
-                                                TypeIdToString(target->GetTypeId())));
+                                                TypeIdToString(target->GetTypeId())).data());
   }
 }
 
@@ -86,39 +86,39 @@ void CastTimestampOperation(const Vector &source, Vector *target, SqlTypeId targ
       CastToStringOperation<Timestamp>(source, target);
       break;
     default:
-      throw NotImplementedException(fmt::format("unsupported cast: {} -> {}",
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("unsupported cast: {} -> {}",
                                                 TypeIdToString(source.GetTypeId()),
-                                                TypeIdToString(target->GetTypeId())));
+                                                TypeIdToString(target->GetTypeId())).data());
   }
 }
 
 void CastStringOperation(const Vector &source, Vector *target, SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Boolean:
-      StandardTemplatedCastOperation<VarlenEntry, bool, true>(source, target);
+      StandardTemplatedCastOperation<storage::VarlenEntry, bool, true>(source, target);
       break;
     case SqlTypeId::TinyInt:
-      StandardTemplatedCastOperation<VarlenEntry, int8_t, true>(source, target);
+      StandardTemplatedCastOperation<storage::VarlenEntry, int8_t, true>(source, target);
       break;
     case SqlTypeId::SmallInt:
-      StandardTemplatedCastOperation<VarlenEntry, int16_t, true>(source, target);
+      StandardTemplatedCastOperation<storage::VarlenEntry, int16_t, true>(source, target);
       break;
     case SqlTypeId::Integer:
-      StandardTemplatedCastOperation<VarlenEntry, int32_t, true>(source, target);
+      StandardTemplatedCastOperation<storage::VarlenEntry, int32_t, true>(source, target);
       break;
     case SqlTypeId::BigInt:
-      StandardTemplatedCastOperation<VarlenEntry, int64_t, true>(source, target);
+      StandardTemplatedCastOperation<storage::VarlenEntry, int64_t, true>(source, target);
       break;
     case SqlTypeId::Real:
-      StandardTemplatedCastOperation<VarlenEntry, float, true>(source, target);
+      StandardTemplatedCastOperation<storage::VarlenEntry, float, true>(source, target);
       break;
     case SqlTypeId::Double:
-      StandardTemplatedCastOperation<VarlenEntry, double, true>(source, target);
+      StandardTemplatedCastOperation<storage::VarlenEntry, double, true>(source, target);
       break;
     default:
-      throw NotImplementedException(fmt::format("unsupported cast: {} -> {}",
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("unsupported cast: {} -> {}",
                                                 TypeIdToString(source.GetTypeId()),
-                                                TypeIdToString(target->GetTypeId())));
+                                                TypeIdToString(target->GetTypeId())).data());
   }
 }
 
@@ -159,9 +159,9 @@ void VectorOps::Cast(const Vector &source, Vector *target, SqlTypeId source_type
       CastStringOperation(source, target, target_type);
       break;
     default:
-      throw NotImplementedException(fmt::format("unsupported cast: {} -> {}",
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("unsupported cast: {} -> {}",
                                                 TypeIdToString(source.GetTypeId()),
-                                                TypeIdToString(target->GetTypeId())));
+                                                TypeIdToString(target->GetTypeId())).data());
   }
 }
 

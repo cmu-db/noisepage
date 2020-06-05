@@ -251,6 +251,23 @@ class VarlenEntry {
   }
 
   /**
+   * Construct a new varlen entry whose contents match the provided string. The varlen DOES NOT
+   * take ownership of the content, but it will store a pointer to it if it cannot apply a small
+   * string optimization. It is the caller's responsibility to ensure the content outlives this
+   * varlen entry.
+   *
+   * @param str The input string.
+   * @return A constructed VarlenEntry object.
+   */
+  static VarlenEntry Create(std::string_view str) {
+    if(str.length() > InlineThreshold()) {
+      return Create(reinterpret_cast<const byte *>(str.data()), str.length(), false);
+    }else{
+      return CreateInline(reinterpret_cast<const byte *>(str.data()), str.length());
+    }
+  }
+
+  /**
    * Constructs a new varlen entry, with the associated varlen value inlined within the struct itself. This is only
    * possible when the inlined value is smaller than InlineThreshold() as defined. The value is copied and the given
    * pointer can be safely deallocated regardless of the state of the system.
@@ -365,6 +382,11 @@ class VarlenEntry {
 
     return vec;
   }
+
+  /**
+   * @return The hash value of this variable-length string.
+   */
+  hash_t Hash() const { return Hash(0); }
 
   /**
    * Compute the hash value of this variable-length string instance.

@@ -9,7 +9,7 @@
 
 namespace terrier::execution::sql {
 
-class BinaryOperationExecutor : public AllStatic {
+ class BinaryOperationExecutor : public common::AllStatic {
  public:
   /**
    * Execute a binary operation on all active elements contained in two input vectors, @em left and
@@ -79,7 +79,7 @@ class BinaryOperationExecutor : public AllStatic {
                   "Binary operation has invalid interface for given template arguments.");
 
     // Ensure at least one of the inputs are vectors.
-    TPL_ASSERT(!left.IsConstant() || !right.IsConstant(),
+    TERRIER_ASSERT(!left.IsConstant() || !right.IsConstant(),
                "Both inputs to binary cannot be constants");
 
     if (left.IsConstant()) {
@@ -174,9 +174,9 @@ class BinaryOperationExecutor : public AllStatic {
             bool IgnoreNull>
   static void ExecuteImpl_Vector_Vector(const Vector &left, const Vector &right, Vector *result,
                                         Op &&op) {
-    TPL_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
+    TERRIER_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
                "Mismatched selection vectors for comparison");
-    TPL_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
+    TERRIER_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
 
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());

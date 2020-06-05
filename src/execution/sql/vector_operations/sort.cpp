@@ -4,6 +4,9 @@
 
 #include "spdlog/fmt/fmt.h"
 
+#include "common/exception.h"
+#include "common/constants.h"
+
 #include "execution/util/exception.h"
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/util/bit_vector.h"
@@ -23,7 +26,8 @@ void TemplatedSort(const Vector &input, const TupleIdList &non_null_selections, 
 }  // namespace
 
 void VectorOps::Sort(const Vector &input, sel_t result[]) {
-  TupleIdList non_nulls(K_DEFAULT_VECTOR_SIZE), nulls(K_DEFAULT_VECTOR_SIZE);
+  TupleIdList non_nulls(common::Constants::K_DEFAULT_VECTOR_SIZE),
+  nulls(common::Constants::K_DEFAULT_VECTOR_SIZE);
   input.GetNonNullSelections(&non_nulls, &nulls);
 
   // Write NULLs indexes first
@@ -69,8 +73,8 @@ void VectorOps::Sort(const Vector &input, sel_t result[]) {
       TemplatedSort<storage::VarlenEntry>(input, non_nulls, non_null_result);
       break;
     default:
-      throw NotImplementedException(
-          fmt::format("cannot sort vector of type {}", TypeIdToString(input.GetTypeId())));
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("cannot sort vector of type {}", TypeIdToString(input.GetTypeId())).data());
   }
 }
 

@@ -3,7 +3,7 @@
 #include <charconv>
 #include <string>
 
-#include "common/exception.h"
+#include "execution/util/exception.h"
 
 #include "execution/sql/sql.h"
 #include "execution/sql/runtime_types.h"

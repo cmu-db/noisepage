@@ -7,6 +7,7 @@
 #include "llvm/Support/MathExtras.h"
 
 #include "common/macros.h"
+#include "common/all_static.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
@@ -14,7 +15,7 @@ namespace terrier::execution::util {
 /**
  * Utility class containing various math/arithmetic functions
  */
-class MathUtil : public AllStatic {
+ class MathUtil : public common::AllStatic {
  public:
   /**
    * Perform a division taking the ceil of the result

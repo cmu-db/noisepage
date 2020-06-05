@@ -1,3 +1,4 @@
+#include <execution/util/settings.h>
 #include "execution/sql/vector_operations/vector_operations.h"
 
 #include "common/settings.h"

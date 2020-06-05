@@ -1,3 +1,4 @@
+#include <execution/util/exception.h>
 #include "execution/sql/vector_operations/vector_operations.h"
 
 #include "common/exception.h"

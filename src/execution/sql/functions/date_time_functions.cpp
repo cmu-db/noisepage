@@ -8,7 +8,7 @@ void DateTimeFunctions::Century(Integer *result, const TimestampVal &time) noexc
     return;
   }
 
-  const auto year = time.val__.ExtractYear();
+  const auto year = time.val_.ExtractYear();
   if (year > 0) {
     *result = Integer((year + 99) / 100);
   } else {
@@ -22,7 +22,7 @@ void DateTimeFunctions::Decade(Integer *result, const TimestampVal &time) noexce
     return;
   }
 
-  const auto year = time.val__.ExtractYear();
+  const auto year = time.val_.ExtractYear();
   if (year >= 0) {
     *result = Integer(year / 10);
   } else {

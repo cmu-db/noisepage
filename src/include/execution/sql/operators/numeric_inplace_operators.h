@@ -1,4 +1,6 @@
 #pragma once
+#include <cmath>
+
 
 #include "common/macros.h"
 
@@ -19,7 +21,7 @@ template <typename T>
 struct ModuloInPlace {
   constexpr void operator()(T *a, T b) const noexcept {
     // Ensure divisor isn't zero. This should have been checked before here!
-    TPL_ASSERT(b != 0, "Divide by zero");
+    TERRIER_ASSERT(b != 0, "Divide by zero");
     *a %= b;
   }
 };
@@ -29,8 +31,8 @@ struct ModuloInPlace {
  */
 template <>
 struct ModuloInPlace<float> {
-  constexpr void operator()(float *a, float b) const noexcept {
-    TPL_ASSERT(b != 0, "Divide by zero");
+  void operator()(float *a, float b) const noexcept {
+    TERRIER_ASSERT(b != 0, "Divide by zero");
     *a = std::fmod(*a, b);
   }
 };
@@ -41,7 +43,7 @@ struct ModuloInPlace<float> {
 template <>
 struct ModuloInPlace<double> {
   void operator()(double *a, double b) const noexcept {
-    TPL_ASSERT(b != 0, "Divide by zero");
+    TERRIER_ASSERT(b != 0, "Divide by zero");
     *a = std::fmod(*a, b);
   }
 };

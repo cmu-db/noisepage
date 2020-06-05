@@ -29,7 +29,7 @@ inline void CheckInplaceOperation(const Vector *result, const Vector &input) {
   }
 }
 
-class InPlaceOperationExecutor : public AllStatic {
+ class InPlaceOperationExecutor : public common::AllStatic {
  public:
   /**
    * Execute an in-place operation on all active elements in two vectors, @em result and @em input,

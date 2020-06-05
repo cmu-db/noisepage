@@ -14,7 +14,7 @@ namespace terrier::execution::sql {
  * unary-operation template parameter to perform the logic of the unary operation. This is likely
  * the most common usage.
  */
-class UnaryOperationExecutor : public AllStatic {
+ class UnaryOperationExecutor : public common::AllStatic {
  public:
   /**
    * Execute a unary function on all active elements in an input vector and store the results into

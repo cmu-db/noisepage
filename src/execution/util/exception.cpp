@@ -34,8 +34,6 @@ std::string Exception::ExceptionTypeToString(ExceptionType type) {
       return "Divide by Zero";
     case ExceptionType::InvalidType:
       return "Invalid type";
-    case ExceptionType::NotImplemented:
-      return "Not implemented";
     case ExceptionType::Execution:
       return "Executor";
     case ExceptionType::Index:

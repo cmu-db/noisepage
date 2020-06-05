@@ -75,7 +75,7 @@ uint32_t VectorUtil::DiffSelected_Scalar(const uint32_t n, const sel_t *sel_vect
 uint32_t VectorUtil::DiffSelected_WithScratchPad(const uint32_t n, const sel_t *sel_vector,
                                                  const uint32_t sel_vector_len,
                                                  sel_t *out_sel_vector, uint8_t *scratch) {
-  TERRIER_ASSERT(n <= K_DEFAULT_VECTOR_SIZE, "Selection vector too large");
+  TERRIER_ASSERT(n <= common::Constants::K_DEFAULT_VECTOR_SIZE, "Selection vector too large");
   std::memset(scratch, 0, n);
   VectorUtil::SelectionVectorToByteVector(sel_vector, sel_vector_len, scratch);
   for (uint32_t i = 0; i < n; i++) {
@@ -86,7 +86,7 @@ uint32_t VectorUtil::DiffSelected_WithScratchPad(const uint32_t n, const sel_t *
 
 uint32_t VectorUtil::DiffSelected(const uint32_t n, const sel_t *sel_vector,
                                   const uint32_t sel_vector_len, sel_t *out_sel_vector) {
-  uint8_t scratch[K_DEFAULT_VECTOR_SIZE];
+  uint8_t scratch[common::Constants::K_DEFAULT_VECTOR_SIZE];
   return DiffSelected_WithScratchPad(n, sel_vector, sel_vector_len, out_sel_vector, scratch);
 }
 
@@ -119,7 +119,7 @@ uint32_t VectorUtil::ByteVectorToSelectionVector(const uint8_t *byte_vector,
     const auto pos_vec = _mm_add_epi16(idx, match_pos);
     idx = _mm_add_epi16(idx, eight);
     _mm_storeu_si128(reinterpret_cast<__m128i *>(sel_vector + k), pos_vec);
-    k += BitUtil::CountPopulation(static_cast<uint32_t>(mask));
+    k += BitUtil::CountBits(static_cast<uint32_t>(mask));
   }
 
   // Tail
@@ -234,7 +234,7 @@ uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX2(const uint64_t *bit_v
       const __m128i pos_vec = _mm_add_epi16(idx, match_pos);
       idx = _mm_add_epi16(idx, eight);
       _mm_storeu_si128(reinterpret_cast<__m128i *>(sel_vector + k), pos_vec);
-      k += BitUtil::CountPopulation(static_cast<uint32_t>(mask));
+      k += BitUtil::CountBits(static_cast<uint32_t>(mask));
     }
   }
 
@@ -301,7 +301,7 @@ uint32_t VectorUtil::BitVectorToSelectionVector(const uint64_t *bit_vector, cons
 
   uint64_t count = 0;
   for (uint64_t i = 0; i < num_words; i++) {
-    count += util::BitUtil::CountPopulation(bit_vector[i]);
+    count += util::BitUtil::CountBits(bit_vector[i]);
   }
 
   // TODO(pmenon): Use settings

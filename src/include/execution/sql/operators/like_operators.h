@@ -12,13 +12,13 @@ static constexpr const char DEFAULT_ESCAPE = '\\';
  * Functor implementing the SQL LIKE() operator
  */
 struct Like {
-  static bool Apply(const char *str, std::size_t str_len, const char *pattern, std::size_t pattern_len,
-                    char escape = DEFAULT_ESCAPE);
+  static bool Impl(const char *str, std::size_t str_len, const char *pattern,
+                   std::size_t pattern_len, char escape = DEFAULT_ESCAPE);
 
-  static bool Apply(const storage::VarlenEntry &str, const storage::VarlenEntry &pattern,
-                    char escape = DEFAULT_ESCAPE) {
-    return Apply(reinterpret_cast<const char *>(str.Content()), str.Size(),
-                 reinterpret_cast<const char *>(pattern.Content()), pattern.Size(), escape);
+  bool operator()(const storage::VarlenEntry &str, const storage::VarlenEntry &pattern,
+                  char escape = DEFAULT_ESCAPE) const {
+    return Impl(reinterpret_cast<const char *>(str.Content()), str.Size(),
+                reinterpret_cast<const char *>(pattern.Content()), pattern.Size(), escape);
   }
 };
 
@@ -26,15 +26,9 @@ struct Like {
  * Functor implementing the SQL NOT LIKE() operator
  */
 struct NotLike {
-  static bool Apply(const char *str, std::size_t str_len, const char *pattern, std::size_t pattern_len,
-                    char escape = DEFAULT_ESCAPE) {
-    return !Like::Apply(str, str_len, pattern, pattern_len, escape);
-  }
-
-  static bool Apply(const storage::VarlenEntry &str, const storage::VarlenEntry &pattern,
-                    char escape = DEFAULT_ESCAPE) {
-    return !Like::Apply(reinterpret_cast<const char *>(str.Content()), str.Size(),
-                        reinterpret_cast<const char *>(pattern.Content()), pattern.Size(), escape);
+  bool operator()(const storage::VarlenEntry &str, const storage::VarlenEntry &pattern,
+                  char escape = DEFAULT_ESCAPE) const {
+    return !Like{}(str, pattern, escape);
   }
 };
 

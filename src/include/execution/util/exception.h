@@ -24,7 +24,6 @@ enum class ExceptionType {
   File,            // file related
   Index,           // index related
   InvalidType,     // incompatible for operation
-  NotImplemented,  // method not implemented
   OutOfRange,      // value out of range error
   TypeMismatch,    // mismatched types
   UnknownType,     // unknown type
@@ -96,15 +95,6 @@ class ConversionException : public Exception {
 class InvalidTypeException : public Exception {
  public:
   InvalidTypeException(sql::TypeId type, const std::string &msg);
-};
-
-/**
- * An exception thrown to indicate some functionality isn't implemented.
- */
-class NotImplementedException : public Exception {
- public:
-  explicit NotImplementedException(const std::string &msg)
-      : Exception(ExceptionType::NotImplemented, msg) {}
 };
 
 /**

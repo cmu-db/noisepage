@@ -1,13 +1,13 @@
 #pragma once
 
-#include "sql/value.h"
+#include "execution/sql/value.h"
 
 namespace terrier::execution::sql {
 
 /**
  * Date/timestamp functions.
  */
-class DateTimeFunctions : public AllStatic {
+ class DateTimeFunctions : public common::AllStatic {
  public:
   /**
    * Compute the century in which the input SQL timestamp @em time falls into.

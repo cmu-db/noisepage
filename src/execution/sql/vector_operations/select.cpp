@@ -1,6 +1,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 
 #include "spdlog/fmt/fmt.h"
+#include "common/exception.h"
 
 #include "execution/util/exception.h"
 #include "execution/util/settings.h"
@@ -181,8 +182,8 @@ void SelectOperation(const Vector &left, const Vector &right, TupleIdList *tid_l
       TemplatedSelectOperation<storage::VarlenEntry, Op>(left, right, tid_list);
       break;
     default:
-      throw NotImplementedException(fmt::format("selections on vector type '{}' not supported",
-                                                TypeIdToString(left.GetTypeId())));
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("selections on vector type '{}' not supported",
+                                                TypeIdToString(left.GetTypeId())).data());
   }
 }
 
