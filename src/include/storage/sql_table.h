@@ -19,6 +19,10 @@ class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
 }  // namespace terrier
 
+namespace terrier::execution::sql {
+class TableVectorIterator;
+}  // namespace terrier::execution::sql
+
 namespace terrier::storage {
 
 /**
@@ -151,6 +155,11 @@ class SqlTable {
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }
 
+  void Scan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *const start_pos,
+            execution::sql::VectorProjection *const out_buffer) const {
+    return table_.data_table_->Scan(txn, start_pos, out_buffer);
+  }
+
   /**
    * @return the first tuple slot contained in the underlying DataTable
    */
@@ -208,11 +217,23 @@ class SqlTable {
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
+  /*
+   * Internals are exposed to the execution::sql::VectorProjection class so that we do not need to do a full recompile
+   * of the storage layer whenever we change something up in execution. The execution engine currently requires the
+   * following:
+   *   (1) catalog::col_oid -> BlockLayout's col_id, and
+   *   (2) catalog::col_oid -> execution::sql::TypeId.
+   * This is exposed via GetColumnMap() below.
+   */
+  friend class execution::sql::TableVectorIterator;
+
   const common::ManagedPointer<BlockStore>
       block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
+
+  const ColumnMap &GetColumnMap() const { return table_.column_map_; }
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
@@ -222,6 +243,7 @@ class SqlTable {
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
   /**
+   * TODO(WAN): currently only used by RecoveryManager::GetOidsForRedoRecord in a O(n^2) way. Refactor + remove?
    * @warning This function is expensive to call and should be used with caution and sparingly.
    * Returns the col oid for the given col id
    * @param col_id given col id

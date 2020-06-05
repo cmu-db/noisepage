@@ -19,6 +19,7 @@
 #include "storage/block_access_controller.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "transaction/transaction_defs.h"
+#include "type/type_id.h"
 
 namespace terrier::storage {
 
@@ -189,6 +190,14 @@ class BlockAllocator {
   void Delete(RawBlock *const ptr) { delete ptr; }
 };
 
+/** ColumnMapInfo maps between col_oids in Schema and useful information that we need about a Column in SqlTable. */
+struct ColumnMapInfo {
+  /** col_id in BlockLayout. */
+  col_id_t col_id_;
+  /** SQL type of the column. */
+  type::TypeId col_type_;
+};
+
 /**
  * A block store is essentially an object pool. However, all blocks should be
  * aligned, so we will need to use the default constructor instead of raw
@@ -196,9 +205,9 @@ class BlockAllocator {
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 /**
- * Used by SqlTable to map between col_oids in Schema and col_ids in BlockLayout
+ * Used by SqlTable to map between col_oids in Schema and useful necessary information.
  */
-using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+using ColumnMap = std::unordered_map<catalog::col_oid_t, ColumnMapInfo>;
 /**
  * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
  */

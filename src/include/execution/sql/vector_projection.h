@@ -11,6 +11,10 @@
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector.h"
 
+namespace terrier::storage {
+class BlockLayout;
+}
+
 namespace terrier::execution::sql {
 
 class ColumnVectorIterator;
@@ -78,13 +82,99 @@ class VectorProjection {
 
  public:
   /**
+   * A view into a row of the ProjectedColumns that has the almost same interface as a ProjectedRow.
+   * This should only be used by DataTable::Scan.
+   */
+  class RowView {
+   public:
+    /**
+     * @return number of columns stored in the ProjectedColumns
+     */
+    uint16_t NumColumns() const { return underlying_->GetColumnCount(); }
+
+    /**
+     * @return pointer to the start of the array of column ids
+     */
+    const std::vector<storage::col_id_t> &ColumnIds() const { return underlying_->ColumnIds(); }
+
+    /**
+     * Set the attribute in the row to be null using the internal bitmap
+     * @param projection_list_index The 0-indexed element to access in this RowView
+     */
+    void SetNull(const uint16_t projection_list_index) {
+      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      underlying_->GetColumn(projection_list_index)->SetNull(row_offset_, true);
+    }
+
+    /**
+     * Set the attribute in the row to be not null using the internal bitmap
+     * @param projection_list_index The 0-indexed element to access in this RowView
+     */
+    void SetNotNull(const uint16_t projection_list_index) {
+      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      underlying_->GetColumn(projection_list_index)->SetNull(row_offset_, false);
+    }
+
+    /**
+     * Check if the attribute in the RowView is null
+     * @param projection_list_index The 0-indexed element to access in this RowView
+     * @return true if null, false otherwise
+     */
+    bool IsNull(const uint16_t projection_list_index) const {
+      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      return underlying_->GetColumn(projection_list_index)->IsNull(row_offset_);
+    }
+
+    /**
+     * Access a single attribute within the RowView with a check of the null bitmap first for nullable types
+     * @param projection_list_index The 0-indexed element to access in this RowView
+     * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value. if attribute is
+     * nullable and set to null, then return value is nullptr
+     */
+    byte *AccessWithNullCheck(const uint16_t projection_list_index) {
+      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      if (IsNull(projection_list_index)) return nullptr;
+      return underlying_->GetColumn(projection_list_index)->GetValuePointer(row_offset_);
+    }
+
+    /**
+     * Access a single attribute within the RowView with a check of the null bitmap first for nullable types
+     * @param projection_list_index The 0-indexed element to access in this RowView
+     * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value. if attribute is
+     * nullable and set to null, then return value is nullptr
+     */
+    const byte *AccessWithNullCheck(const uint16_t projection_list_index) const {
+      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      if (IsNull(projection_list_index)) return nullptr;
+      return underlying_->GetColumn(projection_list_index)->GetValuePointer(row_offset_);
+    }
+
+    /**
+     * Access a single attribute within the RowView without a check of the null bitmap first
+     * @param projection_list_index The 0-indexed element to access in this RowView
+     * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
+     */
+    byte *AccessForceNotNull(const uint16_t projection_list_index) {
+      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      if (IsNull(projection_list_index)) SetNotNull(projection_list_index);
+      return underlying_->GetColumn(projection_list_index)->GetValuePointer(row_offset_);
+    }
+
+   private:
+    friend class VectorProjection;
+    RowView(VectorProjection *underlying, uint32_t row_offset) : underlying_(underlying), row_offset_(row_offset) {}
+    VectorProjection *const underlying_;
+    const uint32_t row_offset_;
+  };
+
+  /**
    * Create an empty and uninitialized vector projection. Users must call @em Initialize() or
    * @em InitializeEmpty() to appropriately initialize the projection with the correct columns.
    *
    * @see Initialize()
    * @see InitializeEmpty()
    */
-  VectorProjection();
+  VectorProjection(std::vector<storage::col_id_t> storage_col_ids);
 
   /**
    * This class cannot be copied or moved.
@@ -258,13 +348,32 @@ class VectorProjection {
    */
   void CheckIntegrity() const;
 
+  /**
+   * @warning don't use these above the storage layer, they have no meaning
+   * @return pointer to the start of the array of column ids
+   */
+  const std::vector<storage::col_id_t> &ColumnIds() const { return storage_col_ids_; }
+
  private:
   // Propagate the active TID list to child vectors, if necessary.
   void RefreshFilteredTupleIdList();
 
+  friend class storage::DataTable;
+  /**
+   * Should only be used by storage::DataTable.
+   * @param row_offset the row offset within the ProjectedColumns to look at
+   * @return a view into the desired row within the ProjectedColumns
+   */
+  RowView InterpretAsRow(uint32_t row_offset) { return {this, row_offset}; }
+
  private:
+  friend class VectorProjectionInitializer;
+
   // Vector containing column data for all columns in this projection.
   std::vector<std::unique_ptr<Vector>> columns_;
+
+  /** The storage column IDs. */
+  std::vector<storage::col_id_t> storage_col_ids_;
 
   // The list of active TIDs in the projection. Non-null only when tuples have
   // been filtered out.
@@ -277,6 +386,40 @@ class VectorProjection {
   // If the vector projection allocates memory for all contained vectors, this
   // pointer owns that memory.
   std::unique_ptr<byte[]> owned_buffer_;
+};
+
+class VectorProjectionInitializer {
+ public:
+  VectorProjectionInitializer(const std::vector<catalog::col_oid_t> &col_oids, const storage::ColumnMap &map,
+                              uint32_t max_tuples);
+
+  VectorProjection *Initialize(void *head) const;
+
+  /**
+   * @return size of the VectorProjection in memory, in bytes, that this initializer constructs.
+   */
+  uint32_t VectorProjectionSize() const { return size_; }
+
+  /**
+   * @return the maximum number of tuples this VectorProjection can hold.
+   */
+  uint32_t MaxTuples() const { return max_tuples_; }
+
+  /**
+   * @return number of columns in the projection list
+   */
+  uint16_t NumColumns() const { return static_cast<uint16_t>(col_ids_.size()); }
+
+  /**
+   * @return column ids at the given offset in the projection list
+   */
+  storage::col_id_t ColId(uint16_t i) const { return col_ids_.at(i); }
+
+ private:
+  uint32_t size_ = 0;
+  uint32_t max_tuples_;
+  std::vector<storage::col_id_t> col_ids_;
+  std::vector<execution::sql::TypeId> type_ids_;
 };
 
 }  // namespace terrier::execution::sql

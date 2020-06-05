@@ -6,15 +6,18 @@
 #include <string>
 #include <vector>
 
-#include "execution/sql/column_vector_iterator.h"
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/vector_operations.h"
+#include "storage/storage_util.h"
 
 namespace terrier::execution::sql {
 
-VectorProjection::VectorProjection()
-    : filter_(nullptr), owned_tid_list_(common::Constants::K_DEFAULT_VECTOR_SIZE), owned_buffer_(nullptr) {
+VectorProjection::VectorProjection(std::vector<storage::col_id_t> storage_col_ids)
+    : storage_col_ids_(std::move(storage_col_ids)),
+      filter_(nullptr),
+      owned_tid_list_(common::Constants::K_DEFAULT_VECTOR_SIZE),
+      owned_buffer_(nullptr) {
   owned_tid_list_.Resize(0);
 }
 
@@ -192,6 +195,25 @@ void VectorProjection::CheckIntegrity() const {
     col->CheckIntegrity();
   }
 #endif
+}
+
+VectorProjectionInitializer::VectorProjectionInitializer(const std::vector<catalog::col_oid_t> &col_oids,
+                                                         const storage::ColumnMap &map, uint32_t max_tuples)
+    : max_tuples_(max_tuples) {
+  size_ = sizeof(VectorProjection);
+
+  for (const auto col_oid : col_oids) {
+    const auto &item = map.at(col_oid);
+    col_ids_.emplace_back(item.col_id_);
+    type_ids_.emplace_back(GetTypeId(item.col_type_));
+  }
+}
+
+VectorProjection *VectorProjectionInitializer::Initialize(void *head) const {
+  auto *result = new (head) VectorProjection(col_ids_);
+  result->Initialize(type_ids_);
+  result->Reset(max_tuples_);
+  return result;
 }
 
 }  // namespace terrier::execution::sql

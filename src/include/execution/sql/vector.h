@@ -376,6 +376,9 @@ class Vector {
   // Destroy the vector, delete any owned data, and reset it to an empty vector.
   void Destroy();
 
+  friend class VectorProjection;
+  byte *GetValuePointer(uint64_t index) { return GetData() + index * GetTypeIdSize(type_); }
+
  private:
   // The type of the elements stored in the vector.
   TypeId type_;

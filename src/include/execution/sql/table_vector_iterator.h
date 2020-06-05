@@ -5,6 +5,7 @@
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "storage/sql_table.h"
 
 namespace terrier::execution::sql {
@@ -94,11 +95,16 @@ class EXPORT TableVectorIterator {
   std::vector<catalog::col_oid_t> col_oids_{};
   // The PCI
   ProjectedColumnsIterator pci_;
+  execution::sql::VectorProjectionIterator vpi_;
+
   // SqlTable to iterate over
   common::ManagedPointer<storage::SqlTable> table_{nullptr};
   // A PC and its buffer.
   void *buffer_ = nullptr;
   storage::ProjectedColumns *projected_columns_ = nullptr;
+  // A VP and its buffer.
+  void *vpbuffer_ = nullptr;
+  execution::sql::VectorProjection *vector_projection_ = nullptr;
   // Iterator of the slots in the PC
   std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
 

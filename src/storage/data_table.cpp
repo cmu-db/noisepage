@@ -62,82 +62,16 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 
 void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
                      execution::sql::VectorProjection *const out_buffer) const {
-  /*
   uint32_t filled = 0;
-  while (filled < out_buffer->MaxTuples() && *start_pos != end()) {
-    // ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
-    const TupleSlot slot = **start_pos;
-
-    if (!accessor_.Allocated(slot)) return false;
-    UndoRecord *version_ptr;
-    bool visible;
-    do {
-      version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-      for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-        TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                       "Output buffer should not read the version pointer column.");
-
-        col_id_t col_id = to->ColumnIds()[projection_list_offset];
-        uint8_t attr_size = accessor.GetBlockLayout().AttrSize(col_id);
-        byte *stored_attr = accessor.AccessWithNullCheck(from, col_id);
-        if (from == nullptr)
-          // this is where you set the null bitmap on the vector projection
-          to->SetNull(projection_list_index);
-        else
-          // otherwise you set the attribute in the vector
-          std::memcpy(to->AccessForceNotNull(projection_list_index), from, size);
-      }
-      visible = Visible(slot, accessor_);
-    } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
-    if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->FinishTime()) {
-      return visible;
-    }
-
-    while (version_ptr != nullptr &&
-           transaction::TransactionUtil::NewerThan(version_ptr->Timestamp().load(), txn->StartTime())) {
-      switch (version_ptr->Type()) {
-        case DeltaRecordType::UPDATE:
-          StorageUtil::ApplyDelta(accessor_.GetBlockLayout(), *(version_ptr->Delta()), out_buffer);
-          break;
-        case DeltaRecordType::INSERT:
-          visible = false;
-          break;
-        case DeltaRecordType::DELETE:
-          visible = true;
-          break;
-        default:
-          throw std::runtime_error("unexpected delta record type");
-      }
-      version_ptr = version_ptr->Next();
-    }
-
-    return visible;
-
-    // Only fill the buffer with valid, visible tuples
-    if (visible < -SelectIntoBuffer(txn, slot, &row)) {
-      out_buffer->TupleSlots()[filled] = slot;
-      filled++;
-    }
-    ++(*start_pos);
-  }
-  out_buffer->SetNumTuples(filled);
-
-  // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
-  // but can be improved if block is read-only, or if we implement version synopsis, to just use std::memcpy when it's
-  // safe
-  uint32_t filled = 0;
-  while (filled < out_buffer->MaxTuples() && *start_pos != end()) {
-    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
+  while (filled < out_buffer->GetTupleCapacity() && *start_pos != end()) {
+    execution::sql::VectorProjection::RowView row = out_buffer->InterpretAsRow(filled);
     const TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
     if (SelectIntoBuffer(txn, slot, &row)) {
-      out_buffer->TupleSlots()[filled] = slot;
       filled++;
     }
     ++(*start_pos);
   }
-  out_buffer->SetNumTuples(filled);
-   */
 }
 
 // for vectors, take out all the values
@@ -427,6 +361,9 @@ template bool DataTable::SelectIntoBuffer<ProjectedRow>(
 template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(
     const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
     ProjectedColumns::RowView *const out_buffer) const;
+template bool DataTable::SelectIntoBuffer<execution::sql::VectorProjection::RowView>(
+    const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
+    execution::sql::VectorProjection::RowView *const out_buffer) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value

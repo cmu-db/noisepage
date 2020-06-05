@@ -29,6 +29,10 @@ bool TableVectorIterator::Init() {
   auto pc_init = table_->InitializerForProjectedColumns(col_oids_, common::Constants::K_DEFAULT_VECTOR_SIZE);
   buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_init.ProjectedColumnsSize(), alignof(uint64_t), false);
   projected_columns_ = pc_init.Initialize(buffer_);
+
+  VectorProjectionInitializer vp_init{col_oids_, table_->GetColumnMap(), common::Constants::K_DEFAULT_VECTOR_SIZE};
+  vpbuffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(vp_init.VectorProjectionSize(), alignof(uint64_t), false);
+  vector_projection_ = vp_init.Initialize(vpbuffer_);
   initialized_ = true;
 
   // Begin iterating
@@ -43,6 +47,15 @@ bool TableVectorIterator::Advance() {
     return false;
   }
   // Scan the table to set the projected column.
+  table_->Scan(exec_ctx_->GetTxn(), iter_.get(), vector_projection_);
+  vpi_.SetVectorProjection(vector_projection_);
+
+  // TODO(WAN): debug code
+  int x = vpi_.GetSelectedTupleCount();
+  (void)x;  // should be 2048 all tuples selected on scan-table.tpl
+  vpi_.GetVectorProjection()->Dump(std::cout);
+  // now the pci should get nothing
+
   table_->Scan(exec_ctx_->GetTxn(), iter_.get(), projected_columns_);
   pci_.SetProjectedColumn(projected_columns_);
   return true;

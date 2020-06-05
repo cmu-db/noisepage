@@ -69,6 +69,11 @@ enum class JoinType : uint8_t { Inner, Outer, Left, Right, Anti, Semi };
 SqlTypeId GetSqlTypeFromInternalType(TypeId type);
 
 /**
+ * @return The execution type ID corresponding to the given frontend type.
+ */
+TypeId GetTypeId(type::TypeId frontend_type);
+
+/**
  * @return The primitive type ID for the C/C++ template type @em T.
  */
 template <class T>

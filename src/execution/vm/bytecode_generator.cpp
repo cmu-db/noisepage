@@ -599,7 +599,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       ast::Identifier table_name = call->Arguments()[2]->As<ast::LitExpr>()->StringVal();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name.GetData());
-      TERRIER_ASSERT(table_oid != terrier::catalog::INVALID_TABLE_OID, "Table does not exists");
+      TERRIER_ASSERT(table_oid != terrier::catalog::INVALID_TABLE_OID, "Table does not exist.");
       // The fourth argument is the array of oids
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
