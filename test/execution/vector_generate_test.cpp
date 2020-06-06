@@ -1,10 +1,11 @@
 #include <vector>
 
-#include "sql/vector.h"
-#include "sql/vector_operations/vector_operations.h"
-#include "util/sql_test_harness.h"
+#include "execution/sql/vector.h"
+#include "execution/sql/vector_operations/vector_operations.h"
 
-namespace tpl::sql {
+#include "execution/sql_test.h"
+
+namespace terrier::execution::sql {
 
 class VectorGenerateTest : public TplTest {};
 
@@ -38,4 +39,4 @@ TEST_F(VectorGenerateTest, Simple) {
 #undef CHECK_SIMPLE_GENERATE
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

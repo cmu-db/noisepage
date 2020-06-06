@@ -1,13 +1,14 @@
 #include <vector>
 
 #include "common/exception.h"
-#include "sql/constant_vector.h"
-#include "sql/tuple_id_list.h"
-#include "sql/vector.h"
-#include "sql/vector_operations/vector_operations.h"
-#include "util/sql_test_harness.h"
+#include "execution/util/exception.h"
+#include "execution/sql/constant_vector.h"
+#include "execution/sql/tuple_id_list.h"
+#include "execution/sql/vector.h"
+#include "execution/sql/vector_operations/vector_operations.h"
+#include "execution/sql_test.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 class VectorSortTest : public TplTest {};
 
@@ -17,7 +18,7 @@ TEST_F(VectorSortTest, NoNullsNoFilter) {
       MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
                         {false, false, false, false, false, false, false, false, false, false});
 
-  sel_t sorted[kDefaultVectorSize];
+  sel_t sorted[common::Constants::K_DEFAULT_VECTOR_SIZE];
   VectorOps::Sort(*vec, sorted);
 
   auto *data = reinterpret_cast<const int32_t *>(vec->GetData());
@@ -37,7 +38,7 @@ TEST_F(VectorSortTest, NoNullsWithFilter) {
   vec->SetFilteredTupleIdList(&selections, selections.GetTupleCount());
 
   // Sorted: vec = [2,8,10]
-  sel_t sorted[kDefaultVectorSize];
+  sel_t sorted[common::Constants::K_DEFAULT_VECTOR_SIZE];
   VectorOps::Sort(*vec, sorted);
 
   auto *data = reinterpret_cast<const int32_t *>(vec->GetData());
@@ -59,7 +60,7 @@ TEST_F(VectorSortTest, NullsNoFilter) {
   vec->SetNull(8, true);
 
   // Sorted: vec = [NULL,NULL,NULL,NULL,2,6,8,9,10], sorted = [0,4,6,7,8,2,9,5,3,1]
-  sel_t sorted[kDefaultVectorSize];
+  sel_t sorted[common::Constants::K_DEFAULT_VECTOR_SIZE];
   VectorOps::Sort(*vec, sorted);
 
   EXPECT_EQ(0u, sorted[0]);
@@ -91,7 +92,7 @@ TEST_F(VectorSortTest, NullsAndFilter) {
   vec->SetFilteredTupleIdList(&selections, selections.GetTupleCount());
 
   // Sorted: vec = [NULL,NULL,-1.2,3.45,123.45], sorted = [1,2,0,3,9]
-  sel_t sorted[kDefaultVectorSize];
+  sel_t sorted[common::Constants::K_DEFAULT_VECTOR_SIZE];
   VectorOps::Sort(*vec, sorted);
 
   EXPECT_EQ(1u, sorted[0]);
@@ -101,4 +102,4 @@ TEST_F(VectorSortTest, NullsAndFilter) {
   EXPECT_EQ(9u, sorted[4]);
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

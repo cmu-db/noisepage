@@ -1,11 +1,13 @@
 #include "common/exception.h"
-#include "sql/constant_vector.h"
-#include "sql/vector.h"
-#include "sql/vector_operations/vector_operations.h"
-#include "util/sql_test_harness.h"
-#include "util/test_harness.h"
+#include "execution/util/exception.h"
 
-namespace tpl::sql {
+#include "execution/sql/constant_vector.h"
+#include "execution/sql/vector.h"
+#include "execution/sql/vector_operations/vector_operations.h"
+#include "execution/sql_test.h"
+#include "execution/tpl_test.h"
+
+namespace terrier::execution::sql {
 
 class VectorArithmeticTest : public TplTest {};
 
@@ -15,13 +17,13 @@ TEST_F(VectorArithmeticTest, InvalidVectorShapes) {
   auto result = Vector(TypeId::SmallInt, true, false);
 
   // Check simple invalid input sizes
-  EXPECT_THROW(VectorOps::Add(*a, *b, &result), tpl::Exception);
+  EXPECT_THROW(VectorOps::Add(*a, *b, &result), terrier::execution::Exception);
 
   a->Resize(10);
   b->Resize(10);
 
   // Check invalid types
-  EXPECT_THROW(VectorOps::Add(*a, *b, &result), tpl::TypeMismatchException);
+  EXPECT_THROW(VectorOps::Add(*a, *b, &result), terrier::execution::TypeMismatchException);
 }
 
 TEST_F(VectorArithmeticTest, Addition) {
@@ -194,4 +196,4 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionFilteredWithNulls) {
   }
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

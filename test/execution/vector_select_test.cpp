@@ -1,13 +1,14 @@
 #include <vector>
 
 #include "common/exception.h"
-#include "sql/constant_vector.h"
-#include "sql/tuple_id_list.h"
-#include "sql/vector.h"
-#include "sql/vector_operations/vector_operations.h"
-#include "util/sql_test_harness.h"
+#include "execution/util/exception.h"
+#include "execution/sql/constant_vector.h"
+#include "execution/sql/tuple_id_list.h"
+#include "execution/sql/vector.h"
+#include "execution/sql/vector_operations/vector_operations.h"
+#include "execution/sql_test.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 class VectorSelectTest : public TplTest {};
 
@@ -253,4 +254,4 @@ TEST_F(VectorSelectTest, IsNullAndIsNotNull) {
   EXPECT_EQ(2u, tid_list[0]);
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

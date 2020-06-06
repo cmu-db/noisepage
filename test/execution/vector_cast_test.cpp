@@ -2,11 +2,14 @@
 #include <vector>
 
 #include "common/exception.h"
-#include "sql/vector.h"
-#include "util/bit_util.h"
-#include "util/sql_test_harness.h"
+#include "execution/util/exception.h"
 
-namespace tpl::sql {
+#include "execution/sql_test.h"
+#include "execution/tpl_test.h"
+#include "execution/sql/vector.h"
+#include "execution/util/bit_util.h"
+
+namespace terrier::execution::sql {
 
 class VectorCastTest : public TplTest {};
 
@@ -166,4 +169,4 @@ TEST_F(VectorCastTest, CastStringToFloat) {
   EXPECT_EQ(GenericValue::CreateFloat(910), a->GetValue(5));
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

@@ -243,6 +243,10 @@ class VarlenEntry {
    */
   static VarlenEntry Create(const byte *content, uint32_t size, bool reclaim) {
     VarlenEntry result;
+    if(size <= InlineThreshold()){
+      TERRIER_ASSERT(!reclaim, "can't reclaim this");
+      return CreateInline(content, size);
+    }
     TERRIER_ASSERT(size > InlineThreshold(), "small varlen values should be inlined");
     result.size_ = reclaim ? size : (INT32_MIN | size);  // the first bit denotes whether we can reclaim it
     std::memcpy(result.prefix_, content, sizeof(uint32_t));

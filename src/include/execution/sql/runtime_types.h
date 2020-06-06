@@ -568,4 +568,6 @@ class Blob {
 /** Converts the provided date into a timestamp. */
 inline Timestamp Date::ConvertToTimestamp() const noexcept { return Timestamp(value_ * US_PER_DAY); }
 
+inline Date Timestamp::ConvertToDate() const { return Date(value_ / US_PER_DAY); }
+
 }  // namespace terrier::execution::sql

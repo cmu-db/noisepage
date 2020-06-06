@@ -1,12 +1,12 @@
 #include <random>
 
-#include "sql/operators/hash_operators.h"
-#include "sql/vector.h"
-#include "sql/vector_operations/vector_operations.h"
-#include "util/sql_test_harness.h"
-#include "util/test_harness.h"
+#include "execution/sql/operators/hash_operators.h"
+#include "execution/sql/vector.h"
+#include "execution/sql/vector_operations/vector_operations.h"
+#include "execution/sql_test.h"
+#include "execution/tpl_test.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 class VectorHashTest : public TplTest {};
 
@@ -82,13 +82,13 @@ TEST_F(VectorHashTest, StringHash) {
   EXPECT_EQ(input->GetCount(), hash->GetCount());
   EXPECT_EQ(nullptr, hash->GetFilteredTupleIdList());
 
-  auto raw_input = reinterpret_cast<const VarlenEntry *>(input->GetData());
+  auto raw_input = reinterpret_cast<const storage::VarlenEntry *>(input->GetData());
   auto raw_hash = reinterpret_cast<hash_t *>(hash->GetData());
-  EXPECT_EQ(Hash<VarlenEntry>{}(raw_input[0], input->IsNull(0)), raw_hash[0]);
-  EXPECT_EQ(Hash<VarlenEntry>{}(raw_input[1], input->IsNull(1)), raw_hash[1]);
+  EXPECT_EQ(Hash<storage::VarlenEntry>{}(raw_input[0], input->IsNull(0)), raw_hash[0]);
+  EXPECT_EQ(Hash<storage::VarlenEntry>{}(raw_input[1], input->IsNull(1)), raw_hash[1]);
   EXPECT_EQ(hash_t{0}, raw_hash[1]);  // The second element is NULL, so hash=0.
-  EXPECT_EQ(Hash<VarlenEntry>{}(raw_input[2], input->IsNull(2)), raw_hash[2]);
-  EXPECT_EQ(Hash<VarlenEntry>{}(raw_input[3], input->IsNull(3)), raw_hash[3]);
+  EXPECT_EQ(Hash<storage::VarlenEntry>{}(raw_input[2], input->IsNull(2)), raw_hash[2]);
+  EXPECT_EQ(Hash<storage::VarlenEntry>{}(raw_input[3], input->IsNull(3)), raw_hash[3]);
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql
