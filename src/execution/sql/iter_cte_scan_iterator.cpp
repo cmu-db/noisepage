@@ -42,13 +42,12 @@ storage::TupleSlot IterCteScanIterator::TableInsert() {
 }
 
 bool IterCteScanIterator::Accumulate() {
-
-  // swap the tables
-  auto temp_table = cte_scan_write_;
-  cte_scan_write_ = cte_scan_read_;
-  cte_scan_read_ = temp_table;
-
   if(written_){
+    // swap the tables
+    auto temp_table = cte_scan_write_;
+    cte_scan_write_ = cte_scan_read_;
+    cte_scan_read_ = temp_table;
+
     // clear new write table
     cte_scan_write_->GetTable()->Reset();
   }
