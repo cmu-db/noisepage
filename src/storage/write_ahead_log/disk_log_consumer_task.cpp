@@ -87,7 +87,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       curr_sleep = std::min(disk_log_writer_thread_cv_.wait_for(lock, curr_sleep,
                                                                 [&] {
                                                                   return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; }) ?
-                            curr_sleep * 2 : persist_interval_), max_sleep)
+                            curr_sleep * 2 : persist_interval_, max_sleep);
     }
 
     // Flush all the buffers to the log file
