@@ -59,7 +59,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
 
   bool logging_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
-          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
 
   if (logging_metrics_enabled) {
     // start the operating unit resource tracker
@@ -84,10 +84,12 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // 2) There is a filled buffer to write to the disk
       // 3) LogManager has shut down the task
       // 4) Our persist interval timed out
-      curr_sleep = std::min(disk_log_writer_thread_cv_.wait_for(lock, curr_sleep,
-                                                                [&] {
-                                                                  return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; }) ?
-                            curr_sleep * 2 : persist_interval_, max_sleep);
+      curr_sleep =
+          std::min(disk_log_writer_thread_cv_.wait_for(
+                       lock, curr_sleep, [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; })
+                       ? curr_sleep * 2
+                       : persist_interval_,
+                   max_sleep);
     }
 
     // Flush all the buffers to the log file
@@ -99,7 +101,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     // 3) We are signaled to persist
     // 4) We are shutting down this task
     bool timeout = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
-        last_persist) > curr_sleep;
+                                                                         last_persist) > curr_sleep;
     if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
       std::unique_lock<std::mutex> lock(persist_lock_);
       num_buffers = PersistLogFile();
