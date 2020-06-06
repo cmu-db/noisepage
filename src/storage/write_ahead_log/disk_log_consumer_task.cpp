@@ -70,12 +70,14 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   current_data_written_ = 0;
   // Initialize sleep period
   auto curr_sleep = persist_interval_;
+  auto next_sleep = curr_sleep;
   const std::chrono::microseconds max_sleep = std::chrono::microseconds(10000);
   // Time since last log file persist
   auto last_persist = std::chrono::high_resolution_clock::now();
   // Disk log consumer task thread spins in this loop. When notified or periodically, we wake up and process serialized
   // buffers
   do {
+    curr_sleep = next_sleep;
     {
       // Wait until we are told to flush buffers
       std::unique_lock<std::mutex> lock(persist_lock_);
@@ -84,7 +86,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // 2) There is a filled buffer to write to the disk
       // 3) LogManager has shut down the task
       // 4) Our persist interval timed out
-      curr_sleep =
+      next_sleep  =
           std::min(disk_log_writer_thread_cv_.wait_for(
                        lock, curr_sleep, [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; })
                        ? curr_sleep * 2
