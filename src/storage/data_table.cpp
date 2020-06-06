@@ -303,13 +303,7 @@ void DataTable::Reset() {
     StorageUtil::DeallocateVarlens(block, accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
       accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
-    block_store_->Release(block);
-  }
-
-  if (block_store_ != nullptr) {
-    RawBlock *new_block = NewBlock();
-    // insert block
-    blocks_.push_back(new_block);
+    accessor_.InitializeRawBlock(this, block, block->layout_version_);
   }
   insertion_head_ = blocks_.begin();
 }
