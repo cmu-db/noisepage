@@ -41,10 +41,8 @@
 #endif  // NDEBUG
 
 /*
- * If you want to use this macro, you need to include "common/performance_counter.h" and use
- * DEFINE_PERFORMANCE_CLASS_HEADER in the .h file. Then you need to include this file in the .cpp
- * file and use DEFINE_PERFORMANCE_CLASS_BODY with the same arguements.
- *
+ * Using this macro also requires using the matching macro DEFINE_PERFORMANCE_CLASS_HEADER
+ * from performance_counter.h.
  */
 
 #define DEFINE_PERFORMANCE_CLASS_BODY(ClassName, MemberList)                            \
