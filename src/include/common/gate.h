@@ -1,7 +1,7 @@
 #pragma once
 
-#include <atomic>
 #include <emmintrin.h>
+#include <atomic>
 
 #include "common/macros.h"
 
