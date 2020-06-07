@@ -8,7 +8,6 @@
 #include "common/json.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/sql_table.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::planner {
 

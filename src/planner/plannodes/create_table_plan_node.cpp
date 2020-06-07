@@ -66,7 +66,7 @@ void CheckInfo::FromJson(const nlohmann::json &j) {
   check_cols_ = j.at("check_cols").get<std::vector<std::string>>();
   constraint_name_ = j.at("constraint_name").get<std::string>();
   expr_type_ = j.at("expr_type").get<parser::ExpressionType>();
-  expr_value_ = j.at("expr_value").get<type::TransientValue>();
+  expr_value_ = j.at("expr_value").get<parser::ConstantValueExpression>();
 }
 
 common::hash_t CreateTablePlanNode::Hash() const {

@@ -219,20 +219,16 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  const auto fingerprint_result = pg_query_fingerprint(statement->GetQueryText().c_str());
-
-  auto cached_statement = postgres_interpreter->LookupStatementInCache(fingerprint_result.hexdigest);
+  auto cached_statement = postgres_interpreter->LookupStatementInCache(statement->GetQueryHash());
   if (cached_statement == nullptr) {
     // Not in the cache, add to cache
     cached_statement = common::ManagedPointer(statement);
-    postgres_interpreter->AddStatementToCache(fingerprint_result.hexdigest, std::move(statement));
+    postgres_interpreter->AddStatementToCache(statement->GetQueryHash(), std::move(statement));
   }
-  pg_query_free_fingerprint_result(fingerprint_result);
 
   postgres_interpreter->SetStatement(statement_name, cached_statement);
 
   out->WriteParseComplete();
-
   return Transition::PROCEED;
 }
 
@@ -334,7 +330,10 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     out->WriteBindComplete();
   } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
     // Binding generated a NOTICE, i.e. IF EXISTS failed, so we're not going to generate a physical plan of nullptr and
-    // handle that case in Execute
+    // handle that case in Execute. In case it previously bound and compiled, we're gonna throw that away for next
+    // execution
+    statement->SetPhysicalPlan(nullptr);
+    statement->SetExecutableQuery(nullptr);
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
@@ -346,6 +345,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
     // failing to bind fails a transaction in postgres
     connection->Transaction()->SetMustAbort();
+    // clear anything cached related to this statement
+    statement->SetPhysicalPlan(nullptr);
+    statement->SetExecutableQuery(nullptr);
     out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
     postgres_interpreter->SetWaitingForSync();
   }

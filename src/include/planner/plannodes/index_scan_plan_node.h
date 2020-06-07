@@ -14,7 +14,6 @@
 #include "parser/expression/column_value_expression.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "type/transient_value.h"
 
 namespace terrier::planner {
 

@@ -17,10 +17,13 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *TableFreeScan::Copy() const { return new TableFreeScan(*this); }
 
-Operator TableFreeScan::Make() { return Operator(std::make_unique<TableFreeScan>()); }
+Operator TableFreeScan::Make() {
+  auto *scan = new TableFreeScan();
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(scan));
+}
 
 bool TableFreeScan::operator==(const BaseOperatorNodeContents &r) {
-  return (r.GetType() == OpType::TABLEFREESCAN);
+  return (r.GetOpType() == OpType::TABLEFREESCAN);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
@@ -38,18 +41,18 @@ BaseOperatorNodeContents *SeqScan::Copy() const { return new SeqScan(*this); }
 Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
                        std::string table_alias, bool is_for_update) {
-  auto scan = std::make_unique<SeqScan>();
+  auto *scan = new SeqScan();
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
   scan->table_oid_ = table_oid;
   scan->predicates_ = std::move(predicates);
   scan->is_for_update_ = is_for_update;
   scan->table_alias_ = std::move(table_alias);
-  return Operator(std::move(scan));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(scan));
 }
 
 bool SeqScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::SEQSCAN) return false;
+  if (r.GetOpType() != OpType::SEQSCAN) return false;
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -83,7 +86,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
                          std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                          planner::IndexScanType scan_type,
                          std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds) {
-  auto scan = std::make_unique<IndexScan>();
+  auto *scan = new IndexScan();
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
   scan->tbl_oid_ = tbl_oid;
@@ -92,11 +95,11 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->predicates_ = std::move(predicates);
   scan->scan_type_ = scan_type;
   scan->bounds_ = std::move(bounds);
-  return Operator(std::move(scan));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(scan));
 }
 
 bool IndexScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INDEXSCAN) return false;
+  if (r.GetOpType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
       tbl_oid_ != node.tbl_oid_ || predicates_.size() != node.predicates_.size() ||
@@ -158,17 +161,17 @@ BaseOperatorNodeContents *ExternalFileScan::Copy() const { return new ExternalFi
 
 Operator ExternalFileScan::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                 char escape) {
-  auto get = std::make_unique<ExternalFileScan>();
+  auto *get = new ExternalFileScan();
   get->format_ = format;
   get->file_name_ = std::move(file_name);
   get->delimiter_ = delimiter;
   get->quote_ = quote;
   get->escape_ = escape;
-  return Operator(std::move(get));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
 
 bool ExternalFileScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::EXTERNALFILESCAN) return false;
+  if (r.GetOpType() != OpType::EXTERNALFILESCAN) return false;
   const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
           quote_ == get.quote_ && escape_ == get.escape_);
@@ -192,15 +195,14 @@ BaseOperatorNodeContents *QueryDerivedScan::Copy() const { return new QueryDeriv
 Operator QueryDerivedScan::Make(
     std::string table_alias,
     std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
-  auto get = std::make_unique<QueryDerivedScan>();
+  auto *get = new QueryDerivedScan();
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = alias_to_expr_map;
-
-  return Operator(std::move(get));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
 
 bool QueryDerivedScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::QUERYDERIVEDSCAN) return false;
+  if (r.GetOpType() != OpType::QUERYDERIVEDSCAN) return false;
   const QueryDerivedScan &node = *static_cast<const QueryDerivedScan *>(&r);
   if (table_alias_ != node.table_alias_) return false;
   return alias_to_expr_map_ == node.alias_to_expr_map_;
@@ -221,10 +223,13 @@ common::hash_t QueryDerivedScan::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *OrderBy::Copy() const { return new OrderBy(*this); }
 
-Operator OrderBy::Make() { return Operator(std::make_unique<OrderBy>()); }
+Operator OrderBy::Make() {
+  auto *order_by = new OrderBy();
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(order_by));
+}
 
 bool OrderBy::operator==(const BaseOperatorNodeContents &r) {
-  return (r.GetType() == OpType::ORDERBY);
+  return (r.GetOpType() == OpType::ORDERBY);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
@@ -242,16 +247,16 @@ BaseOperatorNodeContents *Limit::Copy() const { return new Limit(*this); }
 Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                      std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
-  auto limit_op = std::make_unique<Limit>();
+  auto *limit_op = new Limit();
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;
   limit_op->sort_exprs_ = std::move(sort_columns);
   limit_op->sort_directions_ = std::move(sort_directions);
-  return Operator(std::move(limit_op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(limit_op));
 }
 
 bool Limit::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LIMIT) return false;
+  if (r.GetOpType() != OpType::LIMIT) return false;
   const Limit &node = *static_cast<const Limit *>(&r);
   if (offset_ != node.offset_) return false;
   if (limit_ != node.limit_) return false;
@@ -278,13 +283,13 @@ Operator InnerIndexJoin::Make(
     catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
     std::vector<AnnotatedExpression> join_predicates) {
-  auto join = std::make_unique<InnerIndexJoin>();
+  auto *join = new InnerIndexJoin();
   join->tbl_oid_ = tbl_oid;
   join->idx_oid_ = idx_oid;
   join->join_keys_ = std::move(join_keys);
   join->join_predicates_ = std::move(join_predicates);
   join->scan_type_ = scan_type;
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t InnerIndexJoin::Hash() const {
@@ -320,7 +325,7 @@ common::hash_t InnerIndexJoin::Hash() const {
 }
 
 bool InnerIndexJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INNERINDEXJOIN) return false;
+  if (r.GetOpType() != OpType::INNERINDEXJOIN) return false;
   const InnerIndexJoin &node = *dynamic_cast<const InnerIndexJoin *>(&r);
   if (tbl_oid_ != node.tbl_oid_) return false;
   if (idx_oid_ != node.idx_oid_) return false;
@@ -352,9 +357,9 @@ bool InnerIndexJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
 
 Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<InnerNLJoin>();
+  auto *join = new InnerNLJoin();
   join->join_predicates_ = std::move(join_predicates);
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t InnerNLJoin::Hash() const {
@@ -370,7 +375,7 @@ common::hash_t InnerNLJoin::Hash() const {
 }
 
 bool InnerNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INNERNLJOIN) return false;
+  if (r.GetOpType() != OpType::INNERNLJOIN) return false;
   const InnerNLJoin &node = *dynamic_cast<const InnerNLJoin *>(&r);
   if (join_predicates_.size() != node.join_predicates_.size()) return false;
   if (join_predicates_ != node.join_predicates_) return false;
@@ -383,9 +388,9 @@ bool InnerNLJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LeftNLJoin::Copy() const { return new LeftNLJoin(*this); }
 
 Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<LeftNLJoin>();
+  auto *join = new LeftNLJoin();
   join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LeftNLJoin::Hash() const {
@@ -395,7 +400,7 @@ common::hash_t LeftNLJoin::Hash() const {
 }
 
 bool LeftNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LEFTNLJOIN) return false;
+  if (r.GetOpType() != OpType::LEFTNLJOIN) return false;
   const LeftNLJoin &node = *static_cast<const LeftNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -405,9 +410,9 @@ bool LeftNLJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *RightNLJoin::Copy() const { return new RightNLJoin(*this); }
 
 Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<RightNLJoin>();
+  auto *join = new RightNLJoin();
   join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t RightNLJoin::Hash() const {
@@ -417,7 +422,7 @@ common::hash_t RightNLJoin::Hash() const {
 }
 
 bool RightNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::RIGHTNLJOIN) return false;
+  if (r.GetOpType() != OpType::RIGHTNLJOIN) return false;
   const RightNLJoin &node = *static_cast<const RightNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -428,9 +433,9 @@ bool RightNLJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *OuterNLJoin::Copy() const { return new OuterNLJoin(*this); }
 
 Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<OuterNLJoin>();
+  auto *join = new OuterNLJoin();
   join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t OuterNLJoin::Hash() const {
@@ -440,7 +445,7 @@ common::hash_t OuterNLJoin::Hash() const {
 }
 
 bool OuterNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::OUTERNLJOIN) return false;
+  if (r.GetOpType() != OpType::OUTERNLJOIN) return false;
   const OuterNLJoin &node = *static_cast<const OuterNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -453,11 +458,11 @@ BaseOperatorNodeContents *InnerHashJoin::Copy() const { return new InnerHashJoin
 Operator InnerHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
-  auto join = std::make_unique<InnerHashJoin>();
+  auto *join = new InnerHashJoin();
   join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
   join->right_keys_ = std::move(right_keys);
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t InnerHashJoin::Hash() const {
@@ -475,7 +480,7 @@ common::hash_t InnerHashJoin::Hash() const {
 }
 
 bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INNERHASHJOIN) return false;
+  if (r.GetOpType() != OpType::INNERHASHJOIN) return false;
   const InnerHashJoin &node = *dynamic_cast<const InnerHashJoin *>(&r);
   if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
       join_predicates_.size() != node.join_predicates_.size())
@@ -496,9 +501,9 @@ bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
 
 Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<LeftHashJoin>();
+  auto *join = new LeftHashJoin();
   join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LeftHashJoin::Hash() const {
@@ -508,7 +513,7 @@ common::hash_t LeftHashJoin::Hash() const {
 }
 
 bool LeftHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LEFTHASHJOIN) return false;
+  if (r.GetOpType() != OpType::LEFTHASHJOIN) return false;
   const LeftHashJoin &node = *static_cast<const LeftHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -519,9 +524,9 @@ bool LeftHashJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *RightHashJoin::Copy() const { return new RightHashJoin(*this); }
 
 Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<RightHashJoin>();
+  auto *join = new RightHashJoin();
   join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t RightHashJoin::Hash() const {
@@ -531,7 +536,7 @@ common::hash_t RightHashJoin::Hash() const {
 }
 
 bool RightHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::RIGHTHASHJOIN) return false;
+  if (r.GetOpType() != OpType::RIGHTHASHJOIN) return false;
   const RightHashJoin &node = *static_cast<const RightHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -542,9 +547,9 @@ bool RightHashJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *OuterHashJoin::Copy() const { return new OuterHashJoin(*this); }
 
 Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<OuterHashJoin>();
+  auto *join = new OuterHashJoin();
   join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t OuterHashJoin::Hash() const {
@@ -554,7 +559,7 @@ common::hash_t OuterHashJoin::Hash() const {
 }
 
 bool OuterHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::OUTERHASHJOIN) return false;
+  if (r.GetOpType() != OpType::OUTERHASHJOIN) return false;
   const OuterHashJoin &node = *static_cast<const OuterHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -576,14 +581,14 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
   }
 #endif
 
-  auto op = std::make_unique<Insert>();
+  auto *op = new Insert();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   op->values_ = std::move(values);
   op->index_oids_ = std::move(index_oids);
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t Insert::Hash() const {
@@ -602,7 +607,7 @@ common::hash_t Insert::Hash() const {
 }
 
 bool Insert::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INSERT) return false;
+  if (r.GetOpType() != OpType::INSERT) return false;
   const Insert &node = *dynamic_cast<const Insert *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -619,12 +624,12 @@ BaseOperatorNodeContents *InsertSelect::Copy() const { return new InsertSelect(*
 
 Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                             catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids) {
-  auto insert_op = std::make_unique<InsertSelect>();
+  auto *insert_op = new InsertSelect();
   insert_op->database_oid_ = database_oid;
   insert_op->namespace_oid_ = namespace_oid;
   insert_op->table_oid_ = table_oid;
   insert_op->index_oids_ = index_oids;
-  return Operator(std::move(insert_op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(insert_op));
 }
 
 common::hash_t InsertSelect::Hash() const {
@@ -636,7 +641,7 @@ common::hash_t InsertSelect::Hash() const {
 }
 
 bool InsertSelect::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INSERTSELECT) return false;
+  if (r.GetOpType() != OpType::INSERTSELECT) return false;
   const InsertSelect &node = *dynamic_cast<const InsertSelect *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -651,12 +656,12 @@ BaseOperatorNodeContents *Delete::Copy() const { return new Delete(*this); }
 
 Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                       catalog::table_oid_t table_oid) {
-  auto delete_op = std::make_unique<Delete>();
+  auto *delete_op = new Delete();
   delete_op->database_oid_ = database_oid;
   delete_op->namespace_oid_ = namespace_oid;
   delete_op->table_alias_ = std::move(table_alias);
   delete_op->table_oid_ = table_oid;
-  return Operator(std::move(delete_op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(delete_op));
 }
 
 common::hash_t Delete::Hash() const {
@@ -669,7 +674,7 @@ common::hash_t Delete::Hash() const {
 }
 
 bool Delete::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DELETE) return false;
+  if (r.GetOpType() != OpType::DELETE) return false;
   const Delete &node = *dynamic_cast<const Delete *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -684,13 +689,13 @@ BaseOperatorNodeContents *Update::Copy() const { return new Update(*this); }
 Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                       catalog::table_oid_t table_oid,
                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
-  auto op = std::make_unique<Update>();
+  auto *op = new Update();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
   op->updates_ = updates;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t Update::Hash() const {
@@ -704,7 +709,7 @@ common::hash_t Update::Hash() const {
 }
 
 bool Update::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::UPDATE) return false;
+  if (r.GetOpType() != OpType::UPDATE) return false;
   const Update &node = *dynamic_cast<const Update *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -720,17 +725,17 @@ BaseOperatorNodeContents *ExportExternalFile::Copy() const { return new ExportEx
 
 Operator ExportExternalFile::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                   char escape) {
-  auto export_op = std::make_unique<ExportExternalFile>();
+  auto *export_op = new ExportExternalFile();
   export_op->format_ = format;
   export_op->file_name_ = std::move(file_name);
   export_op->delimiter_ = delimiter;
   export_op->quote_ = quote;
   export_op->escape_ = escape;
-  return Operator(std::move(export_op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(export_op));
 }
 
 bool ExportExternalFile::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::EXPORTEXTERNALFILE) return false;
+  if (r.GetOpType() != OpType::EXPORTEXTERNALFILE) return false;
   const auto &export_op = *dynamic_cast<const ExportExternalFile *>(&r);
   return (format_ == export_op.format_ && file_name_ == export_op.file_name_ && delimiter_ == export_op.delimiter_ &&
           quote_ == export_op.quote_ && escape_ == export_op.escape_);
@@ -753,14 +758,14 @@ BaseOperatorNodeContents *HashGroupBy::Copy() const { return new HashGroupBy(*th
 
 Operator HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
-  auto agg = std::make_unique<HashGroupBy>();
+  auto *agg = new HashGroupBy();
   agg->columns_ = std::move(columns);
   agg->having_ = std::move(having);
-  return Operator(std::move(agg));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(agg));
 }
 
 bool HashGroupBy::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::HASHGROUPBY) return false;
+  if (r.GetOpType() != OpType::HASHGROUPBY) return false;
   const HashGroupBy &node = *static_cast<const HashGroupBy *>(&r);
   if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
@@ -792,14 +797,14 @@ BaseOperatorNodeContents *SortGroupBy::Copy() const { return new SortGroupBy(*th
 
 Operator SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
-  auto agg = std::make_unique<SortGroupBy>();
+  auto *agg = new SortGroupBy();
   agg->columns_ = std::move(columns);
   agg->having_ = move(having);
-  return Operator(std::move(agg));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(agg));
 }
 
 bool SortGroupBy::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::SORTGROUPBY) return false;
+  if (r.GetOpType() != OpType::SORTGROUPBY) return false;
   const SortGroupBy &node = *static_cast<const SortGroupBy *>(&r);
   if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
@@ -830,12 +835,12 @@ common::hash_t SortGroupBy::Hash() const {
 BaseOperatorNodeContents *Aggregate::Copy() const { return new Aggregate(*this); }
 
 Operator Aggregate::Make() {
-  auto agg = std::make_unique<Aggregate>();
-  return Operator(std::move(agg));
+  auto *agg = new Aggregate();
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(agg));
 }
 
 bool Aggregate::operator==(const BaseOperatorNodeContents &r) {
-  return (r.GetType() == OpType::AGGREGATE);
+  return (r.GetOpType() == OpType::AGGREGATE);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
@@ -851,9 +856,9 @@ common::hash_t Aggregate::Hash() const {
 BaseOperatorNodeContents *CreateDatabase::Copy() const { return new CreateDatabase(*this); }
 
 Operator CreateDatabase::Make(std::string database_name) {
-  auto op = std::make_unique<CreateDatabase>();
+  auto *op = new CreateDatabase();
   op->database_name_ = std::move(database_name);
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t CreateDatabase::Hash() const {
@@ -863,7 +868,7 @@ common::hash_t CreateDatabase::Hash() const {
 }
 
 bool CreateDatabase::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATEDATABASE) return false;
+  if (r.GetOpType() != OpType::CREATEDATABASE) return false;
   const CreateDatabase &node = *dynamic_cast<const CreateDatabase *>(&r);
   return node.database_name_ == database_name_;
 }
@@ -876,12 +881,12 @@ BaseOperatorNodeContents *CreateTable::Copy() const { return new CreateTable(*th
 Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
                            std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
                            std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys) {
-  auto op = std::make_unique<CreateTable>();
+  auto *op = new CreateTable();
   op->namespace_oid_ = namespace_oid;
   op->table_name_ = std::move(table_name);
   op->columns_ = std::move(columns);
   op->foreign_keys_ = std::move(foreign_keys);
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t CreateTable::Hash() const {
@@ -895,7 +900,7 @@ common::hash_t CreateTable::Hash() const {
 }
 
 bool CreateTable::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATETABLE) return false;
+  if (r.GetOpType() != OpType::CREATETABLE) return false;
   const CreateTable &node = *dynamic_cast<const CreateTable *>(&r);
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_name_ != node.table_name_) return false;
@@ -931,12 +936,12 @@ BaseOperatorNodeContents *CreateIndex::Copy() const {
 
 Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                            std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema) {
-  auto op = std::make_unique<CreateIndex>();
+  auto *op = new CreateIndex();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->index_name_ = std::move(index_name);
   op->schema_ = std::move(schema);
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t CreateIndex::Hash() const {
@@ -949,7 +954,7 @@ common::hash_t CreateIndex::Hash() const {
 }
 
 bool CreateIndex::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATEINDEX) return false;
+  if (r.GetOpType() != OpType::CREATEINDEX) return false;
   const CreateIndex &node = *dynamic_cast<const CreateIndex *>(&r);
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
@@ -965,9 +970,9 @@ bool CreateIndex::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *CreateNamespace::Copy() const { return new CreateNamespace(*this); }
 
 Operator CreateNamespace::Make(std::string namespace_name) {
-  auto op = std::make_unique<CreateNamespace>();
+  auto *op = new CreateNamespace();
   op->namespace_name_ = std::move(namespace_name);
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t CreateNamespace::Hash() const {
@@ -977,7 +982,7 @@ common::hash_t CreateNamespace::Hash() const {
 }
 
 bool CreateNamespace::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATENAMESPACE) return false;
+  if (r.GetOpType() != OpType::CREATENAMESPACE) return false;
   const CreateNamespace &node = *dynamic_cast<const CreateNamespace *>(&r);
   return node.namespace_name_ == namespace_name_;
 }
@@ -992,7 +997,7 @@ Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_
                              std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
                              std::vector<catalog::col_oid_t> &&trigger_columns,
                              common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type) {
-  auto op = std::make_unique<CreateTrigger>();
+  auto *op = new CreateTrigger();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
@@ -1002,7 +1007,7 @@ Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_
   op->trigger_columns_ = std::move(trigger_columns);
   op->trigger_when_ = trigger_when;
   op->trigger_type_ = trigger_type;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t CreateTrigger::Hash() const {
@@ -1020,7 +1025,7 @@ common::hash_t CreateTrigger::Hash() const {
 }
 
 bool CreateTrigger::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATETRIGGER) return false;
+  if (r.GetOpType() != OpType::CREATETRIGGER) return false;
   const CreateTrigger &node = *dynamic_cast<const CreateTrigger *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -1041,12 +1046,12 @@ BaseOperatorNodeContents *CreateView::Copy() const { return new CreateView(*this
 
 Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
                           common::ManagedPointer<parser::SelectStatement> view_query) {
-  auto op = std::make_unique<CreateView>();
+  auto *op = new CreateView();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->view_name_ = std::move(view_name);
   op->view_query_ = view_query;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t CreateView::Hash() const {
@@ -1059,7 +1064,7 @@ common::hash_t CreateView::Hash() const {
 }
 
 bool CreateView::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATEVIEW) return false;
+  if (r.GetOpType() != OpType::CREATEVIEW) return false;
   const CreateView &node = *dynamic_cast<const CreateView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -1080,7 +1085,7 @@ Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace
                               parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace) {
   TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
                  "Mismatched number of items in vector and number of function parameters");
-  auto op = std::make_unique<CreateFunction>();
+  auto *op = new CreateFunction();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->function_name_ = std::move(function_name);
@@ -1091,7 +1096,7 @@ Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace
   op->param_count_ = param_count;
   op->return_type_ = return_type;
   op->language_ = language;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t CreateFunction::Hash() const {
@@ -1110,7 +1115,7 @@ common::hash_t CreateFunction::Hash() const {
 }
 
 bool CreateFunction::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATEFUNCTION) return false;
+  if (r.GetOpType() != OpType::CREATEFUNCTION) return false;
   const CreateFunction &node = *dynamic_cast<const CreateFunction *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -1130,9 +1135,9 @@ bool CreateFunction::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *DropDatabase::Copy() const { return new DropDatabase(*this); }
 
 Operator DropDatabase::Make(catalog::db_oid_t db_oid) {
-  auto op = std::make_unique<DropDatabase>();
+  auto *op = new DropDatabase();
   op->db_oid_ = db_oid;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t DropDatabase::Hash() const {
@@ -1142,7 +1147,7 @@ common::hash_t DropDatabase::Hash() const {
 }
 
 bool DropDatabase::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPDATABASE) return false;
+  if (r.GetOpType() != OpType::DROPDATABASE) return false;
   const DropDatabase &node = *dynamic_cast<const DropDatabase *>(&r);
   return node.db_oid_ == db_oid_;
 }
@@ -1153,9 +1158,9 @@ bool DropDatabase::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *DropTable::Copy() const { return new DropTable(*this); }
 
 Operator DropTable::Make(catalog::table_oid_t table_oid) {
-  auto op = std::make_unique<DropTable>();
+  auto *op = new DropTable();
   op->table_oid_ = table_oid;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t DropTable::Hash() const {
@@ -1165,7 +1170,7 @@ common::hash_t DropTable::Hash() const {
 }
 
 bool DropTable::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPTABLE) return false;
+  if (r.GetOpType() != OpType::DROPTABLE) return false;
   const DropTable &node = *dynamic_cast<const DropTable *>(&r);
   return node.table_oid_ == table_oid_;
 }
@@ -1176,9 +1181,9 @@ bool DropTable::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *DropIndex::Copy() const { return new DropIndex(*this); }
 
 Operator DropIndex::Make(catalog::index_oid_t index_oid) {
-  auto op = std::make_unique<DropIndex>();
+  auto *op = new DropIndex();
   op->index_oid_ = index_oid;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t DropIndex::Hash() const {
@@ -1188,7 +1193,7 @@ common::hash_t DropIndex::Hash() const {
 }
 
 bool DropIndex::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPINDEX) return false;
+  if (r.GetOpType() != OpType::DROPINDEX) return false;
   const DropIndex &node = *dynamic_cast<const DropIndex *>(&r);
   return node.index_oid_ == index_oid_;
 }
@@ -1199,9 +1204,9 @@ bool DropIndex::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *DropNamespace::Copy() const { return new DropNamespace(*this); }
 
 Operator DropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
-  auto op = std::make_unique<DropNamespace>();
+  auto *op = new DropNamespace();
   op->namespace_oid_ = namespace_oid;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t DropNamespace::Hash() const {
@@ -1211,7 +1216,7 @@ common::hash_t DropNamespace::Hash() const {
 }
 
 bool DropNamespace::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPNAMESPACE) return false;
+  if (r.GetOpType() != OpType::DROPNAMESPACE) return false;
   const DropNamespace &node = *dynamic_cast<const DropNamespace *>(&r);
   return node.namespace_oid_ == namespace_oid_;
 }
@@ -1223,12 +1228,12 @@ BaseOperatorNodeContents *DropTrigger::Copy() const { return new DropTrigger(*th
 
 Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                            catalog::trigger_oid_t trigger_oid, bool if_exists) {
-  auto op = std::make_unique<DropTrigger>();
+  auto *op = new DropTrigger();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->trigger_oid_ = trigger_oid;
   op->if_exists_ = if_exists;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t DropTrigger::Hash() const {
@@ -1241,7 +1246,7 @@ common::hash_t DropTrigger::Hash() const {
 }
 
 bool DropTrigger::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPTRIGGER) return false;
+  if (r.GetOpType() != OpType::DROPTRIGGER) return false;
   const DropTrigger &node = *dynamic_cast<const DropTrigger *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (trigger_oid_ != node.trigger_oid_) return false;
@@ -1256,12 +1261,12 @@ BaseOperatorNodeContents *DropView::Copy() const { return new DropView(*this); }
 
 Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                         catalog::view_oid_t view_oid, bool if_exists) {
-  auto op = std::make_unique<DropView>();
+  auto *op = new DropView();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->view_oid_ = view_oid;
   op->if_exists_ = if_exists;
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t DropView::Hash() const {
@@ -1274,7 +1279,7 @@ common::hash_t DropView::Hash() const {
 }
 
 bool DropView::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPVIEW) return false;
+  if (r.GetOpType() != OpType::DROPVIEW) return false;
   const DropView &node = *dynamic_cast<const DropView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (view_oid_ != node.view_oid_) return false;
@@ -1289,11 +1294,11 @@ BaseOperatorNodeContents *Analyze::Copy() const { return new Analyze(*this); }
 
 Operator Analyze::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                        std::vector<catalog::col_oid_t> &&columns) {
-  auto op = std::make_unique<Analyze>();
+  auto *op = new Analyze();
   op->database_oid_ = database_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t Analyze::Hash() const {
@@ -1305,7 +1310,7 @@ common::hash_t Analyze::Hash() const {
 }
 
 bool Analyze::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::ANALYZE) return false;
+  if (r.GetOpType() != OpType::ANALYZE) return false;
   const Analyze &node = *dynamic_cast<const Analyze *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;

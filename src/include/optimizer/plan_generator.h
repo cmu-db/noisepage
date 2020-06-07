@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/schema.h"
+#include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
 
@@ -58,7 +59,7 @@ class PlanGenerator : public OperatorVisitor {
    * @returns Output plan node
    */
   std::unique_ptr<planner::AbstractPlanNode> ConvertOpNode(
-      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, OperatorNode *op,
+      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, AbstractOptimizerNode *op,
       PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,

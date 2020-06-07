@@ -20,20 +20,6 @@ std::unique_ptr<AbstractExpression> FunctionExpression::CopyWithChildren(
   return expr;
 }
 
-void FunctionExpression::DeriveExpressionName() {
-  bool first = true;
-  std::string name = this->GetFuncName() + "(";
-  for (auto &child : children_) {
-    if (!first) name.append(",");
-
-    child->DeriveExpressionName();
-    name.append(child->GetExpressionName());
-    first = false;
-  }
-  name.append(")");
-  this->SetExpressionName(name);
-}
-
 nlohmann::json FunctionExpression::ToJson() const {
   nlohmann::json j = AbstractExpression::ToJson();
   j["func_name"] = func_name_;

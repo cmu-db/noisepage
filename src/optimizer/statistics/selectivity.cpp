@@ -1,7 +1,8 @@
 #include "optimizer/statistics/selectivity.h"
+
 #include "loggers/optimizer_logger.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/expression_defs.h"
-#include "type/transient_value_util.h"
 
 namespace terrier::optimizer {
 
@@ -36,8 +37,10 @@ double Selectivity::ComputeSelectivity(common::ManagedPointer<TableStats> stats,
 
 double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
   // Convert value type to raw value (double)
-  double v = TransientValueUtil::TransientValueToNumericValue(*condition.GetPointerToValue());
-  if (std::isnan(v)) {
+  TERRIER_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
+                 "It seems like there's an assumption that it's a DECIMAL type.");
+  const auto value = condition.GetPointerToValue()->Peek<double>();
+  if (std::isnan(value)) {
     OPTIMIZER_LOG_TRACE("Error computing less than for non-numeric type");
     return DEFAULT_SELECTIVITY;
   }
@@ -55,14 +58,17 @@ double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, con
   TERRIER_ASSERT(n > 0, "Histogram must have some bounds");
 
   // find correspond bin using binary search
-  auto it = std::lower_bound(histogram.begin(), histogram.end(), v);
+  auto it = std::lower_bound(histogram.begin(), histogram.end(), value);
   double res = static_cast<double>(it - histogram.begin()) / static_cast<double>(n);
   TERRIER_ASSERT(res >= 0 && res <= 1, "res must be within valid range");
   return res;
 }
 
 double Selectivity::Equal(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
-  double value = TransientValueUtil::TransientValueToNumericValue(*condition.GetPointerToValue());
+  // Convert value type to raw value (double)
+  TERRIER_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
+                 "It seems like there's an assumption that it's a DECIMAL type.");
+  const auto value = condition.GetPointerToValue()->Peek<double>();
   if (std::isnan(value) || !table_stats->HasColumnStats(condition.GetColumnID())) {
     OPTIMIZER_LOG_DEBUG("Calculate selectivity: return null");
     return DEFAULT_SELECTIVITY;
@@ -119,7 +125,7 @@ double Selectivity::Equal(common::ManagedPointer<TableStats> table_stats, const 
 // Complete implementation once we support LIKE operator.
 double Selectivity::Like(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
   // Check whether column type is VARCHAR.
-  if ((condition.GetPointerToValue())->Type() != type::TypeId::VARCHAR) {
+  if ((condition.GetPointerToValue())->GetReturnValueType() != type::TypeId::VARCHAR) {
     return DEFAULT_SELECTIVITY;
   }
 

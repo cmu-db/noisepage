@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/json_header.h"
 #include "common/macros.h"
@@ -13,6 +14,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "storage/index/index_defs.h"
 #include "type/type_id.h"
+#include "type/type_util.h"
 
 namespace terrier {
 class StorageTestUtil;

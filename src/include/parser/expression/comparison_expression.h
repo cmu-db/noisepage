@@ -7,7 +7,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
-#include "type/transient_value_factory.h"
+
 #include "type/type_id.h"
 
 namespace terrier::parser {

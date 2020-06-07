@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/strong_typedef.h"
-#include "date/date.h"
 
 namespace terrier::type {
 

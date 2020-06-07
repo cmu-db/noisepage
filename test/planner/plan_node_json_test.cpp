@@ -1,4 +1,5 @@
 #include <catalog/catalog_defs.h>
+
 #include <memory>
 #include <string>
 #include <tuple>
@@ -41,12 +42,9 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
-#include "type/type_id.h"
-
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
+#include "type/type_id.h"
 
 namespace terrier::planner {
 
@@ -67,7 +65,7 @@ class PlanNodeJsonTest : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   }
 };
 
@@ -268,7 +266,7 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 
   // CHECK CONSTRAINT
   auto get_check_info = []() {
-    type::TransientValue val = type::TransientValueFactory::GetInteger(1);
+    parser::ConstantValueExpression val(type::TypeId::INTEGER, execution::sql::Integer(1));
     std::vector<CheckInfo> checks;
     std::vector<std::string> cks = {"ck_a"};
     checks.emplace_back(cks, "ck_a", parser::ExpressionType::COMPARE_GREATER_THAN, std::move(val));
@@ -278,15 +276,11 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   // Columns
   auto get_schema = []() {
     std::vector<catalog::Schema::Column> columns = {
-        catalog::Schema::Column(
-            "a", type::TypeId::INTEGER, false,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
-        catalog::Schema::Column(
-            "u_a", type::TypeId::DECIMAL, false,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
-        catalog::Schema::Column(
-            "u_b", type::TypeId::DATE, true,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
+        catalog::Schema::Column("a", type::TypeId::INTEGER, false,
+                                parser::ConstantValueExpression(type::TypeId::INTEGER)),
+        catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false,
+                                parser::ConstantValueExpression(type::TypeId::DECIMAL)),
+        catalog::Schema::Column("u_b", type::TypeId::DATE, true, parser::ConstantValueExpression(type::TypeId::DATE))};
     StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
     StorageTestUtil::ForceOid(&(columns[1]), catalog::col_oid_t(2));
     StorageTestUtil::ForceOid(&(columns[2]), catalog::col_oid_t(3));
@@ -678,11 +672,11 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   auto get_values = [&](int offset, int num_cols) {
     std::vector<common::ManagedPointer<parser::AbstractExpression>> tuple;
 
-    auto ptr = new parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(offset));
+    auto ptr = new parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(offset));
     free_exprs.push_back(ptr);
     tuple.emplace_back(ptr);
     for (; num_cols - 1 > 0; num_cols--) {
-      auto cve = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+      auto cve = new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
       free_exprs.push_back(cve);
       tuple.emplace_back(cve);
     }

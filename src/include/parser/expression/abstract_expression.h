@@ -11,16 +11,17 @@
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
-#include "type/transient_value.h"
 #include "type/type_id.h"
 
 namespace terrier::optimizer {
 class OptimizerUtil;
 class QueryToOperatorTransformer;
+class ExpressionNodeContents;
 }  // namespace terrier::optimizer
 
 namespace terrier::binder {
 class BindNodeVisitor;
+class BinderSherpa;
 }  // namespace terrier::binder
 
 namespace terrier::parser {
@@ -34,6 +35,7 @@ class ParseResult;
  */
 class AbstractExpression {
   friend class optimizer::OptimizerUtil;
+  friend class optimizer::ExpressionNodeContents;
 
  protected:
   /**
@@ -61,15 +63,21 @@ class AbstractExpression {
         children_(std::move(children)) {}
 
   /**
-   * Copy constructs an abstract expression.
-   * @param other the abstract expression to be copied
-   */
-  AbstractExpression(const AbstractExpression &other) = default;
-
-  /**
    * Default constructor used for json deserialization
    */
   AbstractExpression() = default;
+
+  /**
+   * Copy constructs an abstract expression. Does not do a deep copy of the children
+   * @param other the abstract expression to be copied
+   */
+  AbstractExpression(const AbstractExpression &other)
+      : expression_type_(other.expression_type_),
+        expression_name_(other.expression_name_),
+        alias_(other.alias_),
+        return_value_type_(other.return_value_type_),
+        depth_(other.depth_),
+        has_subquery_(other.has_subquery_) {}
 
   /**
    * @param expression_name Set the expression name of the current expression
@@ -238,6 +246,7 @@ class AbstractExpression {
   // as they each traverse the ast independently and add in necessary information to the ast
   // TODO(Ling): we could look into whether the two traversals can be combined to one in the future
   friend class binder::BindNodeVisitor;
+  friend class binder::BinderSherpa;
   friend class optimizer::QueryToOperatorTransformer;
 
   /**
