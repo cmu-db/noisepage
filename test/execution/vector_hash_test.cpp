@@ -11,26 +11,25 @@ namespace terrier::execution::sql {
 class VectorHashTest : public TplTest {};
 
 TEST_F(VectorHashTest, NumericHashes) {
-#define GEN_HASH_TEST(TYPE_ID, CPP_TYPE)                             \
-  {                                                                  \
-    auto input = Make##TYPE_ID##Vector(257);                         \
-    auto hashes = Vector(TypeId::Hash, true, false);                 \
-    /* Fill input */                                                 \
-    std::random_device r;                                            \
-    for (uint64_t i = 0; i < input->GetSize(); i++) {                \
-      input->SetValue(i, GenericValue::Create##TYPE_ID(r()));        \
-    }                                                                \
-    /* Hash */                                                       \
-    VectorOps::Hash(*input, &hashes);                                \
-    EXPECT_EQ(input->GetSize(), hashes.GetSize());                   \
-    EXPECT_EQ(input->GetCount(), hashes.GetCount());                 \
-    EXPECT_EQ(nullptr, hashes.GetFilteredTupleIdList());             \
-    /* Check output */                                               \
-    auto raw_input = reinterpret_cast<CPP_TYPE *>(input->GetData()); \
-    VectorOps::Exec(*input, [&](uint64_t i, uint64_t k) {            \
-      EXPECT_EQ(reinterpret_cast<hash_t *>(hashes.GetData())[i],     \
-                Hash<CPP_TYPE>{}(raw_input[i], input->IsNull(i)));   \
-    });                                                              \
+#define GEN_HASH_TEST(TYPE_ID, CPP_TYPE)                                                                            \
+  {                                                                                                                 \
+    auto input = Make##TYPE_ID##Vector(257);                                                                        \
+    auto hashes = Vector(TypeId::Hash, true, false);                                                                \
+    /* Fill input */                                                                                                \
+    std::random_device r;                                                                                           \
+    for (uint64_t i = 0; i < input->GetSize(); i++) {                                                               \
+      input->SetValue(i, GenericValue::Create##TYPE_ID(r()));                                                       \
+    }                                                                                                               \
+    /* Hash */                                                                                                      \
+    VectorOps::Hash(*input, &hashes);                                                                               \
+    EXPECT_EQ(input->GetSize(), hashes.GetSize());                                                                  \
+    EXPECT_EQ(input->GetCount(), hashes.GetCount());                                                                \
+    EXPECT_EQ(nullptr, hashes.GetFilteredTupleIdList());                                                            \
+    /* Check output */                                                                                              \
+    auto raw_input = reinterpret_cast<CPP_TYPE *>(input->GetData());                                                \
+    VectorOps::Exec(*input, [&](uint64_t i, uint64_t k) {                                                           \
+      EXPECT_EQ(reinterpret_cast<hash_t *>(hashes.GetData())[i], Hash<CPP_TYPE>{}(raw_input[i], input->IsNull(i))); \
+    });                                                                                                             \
   }
 
   GEN_HASH_TEST(TinyInt, int8_t);
@@ -45,10 +44,9 @@ TEST_F(VectorHashTest, NumericHashes) {
 
 TEST_F(VectorHashTest, HashWithNullInput) {
   // input = [2001-01-01, 2002-01-01, NULL, 2004-01-01, NULL]
-  auto input = MakeDateVector(
-      {Date::FromYMD(2001, 01, 01), Date::FromYMD(2002, 01, 01), Date::FromYMD(2003, 01, 01),
-       Date::FromYMD(2004, 01, 01), Date::FromYMD(2005, 01, 01)},
-      {false, false, true, false, true});
+  auto input = MakeDateVector({Date::FromYMD(2001, 01, 01), Date::FromYMD(2002, 01, 01), Date::FromYMD(2003, 01, 01),
+                               Date::FromYMD(2004, 01, 01), Date::FromYMD(2005, 01, 01)},
+                              {false, false, true, false, true});
   auto hash = Vector(TypeId::Hash, true, false);
 
   VectorOps::Hash(*input, &hash);
@@ -70,9 +68,8 @@ TEST_F(VectorHashTest, HashWithNullInput) {
 
 TEST_F(VectorHashTest, StringHash) {
   // input = [s, NULL, s, s]
-  const char *refs[] = {
-      "short", "medium sized", "quite long indeed, but why, so?",
-      "I'm trying to right my wrongs, but it's funny, them same wrongs help me write this song"};
+  const char *refs[] = {"short", "medium sized", "quite long indeed, but why, so?",
+                        "I'm trying to right my wrongs, but it's funny, them same wrongs help me write this song"};
   auto input = MakeVarcharVector({refs[0], refs[1], refs[2], refs[3]}, {false, true, false, false});
   auto hash = MakeVector(TypeId::Hash, input->GetSize());
 

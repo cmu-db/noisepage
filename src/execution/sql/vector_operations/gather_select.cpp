@@ -3,8 +3,8 @@
 #include "spdlog/fmt/fmt.h"
 
 #include "common/exception.h"
-#include "execution/util/exception.h"
 #include "execution/sql/operators/comparison_operators.h"
+#include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
 
@@ -37,21 +37,19 @@ namespace {
 void CheckGatherAndSelect(const Vector &input, const Vector &pointers, UNUSED_ATTRIBUTE std::size_t offset,
                           TupleIdList *result) {
   if (pointers.GetTypeId() != TypeId::Pointer) {
-    throw TypeMismatchException(pointers.GetTypeId(), TypeId::Pointer,
-                                "pointers vector must be TypeId::Pointer");
+    throw TypeMismatchException(pointers.GetTypeId(), TypeId::Pointer, "pointers vector must be TypeId::Pointer");
   }
   if (input.GetSize() != input.GetSize()) {
     throw Exception(ExceptionType::Execution, "input vectors has mismatched shapes");
   }
   if (result->GetCapacity() != input.GetSize()) {
-    throw Exception(ExceptionType::Execution,
-                    "result list not large enough to store all TIDs in input vector");
+    throw Exception(ExceptionType::Execution, "result list not large enough to store all TIDs in input vector");
   }
 }
 
 template <typename T, typename Op>
-void TemplatedGatherAndSelectOperation_Constant(const Vector &input, const Vector &pointers,
-                                                const std::size_t offset, TupleIdList *tid_list) {
+void TemplatedGatherAndSelectOperation_Constant(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                                TupleIdList *tid_list) {
   // If input is a NULL constant, there aren't any matches.
   if (input.IsNull(0)) {
     tid_list->Clear();
@@ -68,8 +66,8 @@ void TemplatedGatherAndSelectOperation_Constant(const Vector &input, const Vecto
 }
 
 template <typename T, typename Op>
-void TemplatedGatherAndSelectOperation_Vector(const Vector &input, const Vector &pointers,
-                                              const std::size_t offset, TupleIdList *tid_list) {
+void TemplatedGatherAndSelectOperation_Vector(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                              TupleIdList *tid_list) {
   // Strip out NULL inputs now to avoid checking in the loop.
   tid_list->GetMutableBits()->Difference(input.GetNullMask());
 
@@ -83,8 +81,8 @@ void TemplatedGatherAndSelectOperation_Vector(const Vector &input, const Vector 
 }
 
 template <typename T, template <typename> typename Op>
-void TemplatedGatherAndSelectOperation(const Vector &input, const Vector &pointers,
-                                       const std::size_t offset, TupleIdList *tid_list) {
+void TemplatedGatherAndSelectOperation(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                       TupleIdList *tid_list) {
   if (input.IsConstant()) {
     TemplatedGatherAndSelectOperation_Constant<T, Op<T>>(input, pointers, offset, tid_list);
   } else {
@@ -130,9 +128,9 @@ void GatherAndSelectOperation(const Vector &input, const Vector &pointers, const
     case TypeId::Varchar:
       TemplatedGatherAndSelectOperation<storage::VarlenEntry, Op>(input, pointers, offset, tid_list);
       break;
-//    case TypeId::Varbinary:
-//      TemplatedGatherAndSelectOperation<Blob, Op>(input, pointers, offset, tid_list);
-//      break;
+      //    case TypeId::Varbinary:
+      //      TemplatedGatherAndSelectOperation<Blob, Op>(input, pointers, offset, tid_list);
+      //      break;
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(
           fmt::format("gather+select on type {}", TypeIdToString(input.GetTypeId())).data());
@@ -141,33 +139,33 @@ void GatherAndSelectOperation(const Vector &input, const Vector &pointers, const
 
 }  // namespace
 
-void VectorOps::GatherAndSelectEqual(const Vector &input, const Vector &pointers,
-                                     const std::size_t offset, TupleIdList *tid_list) {
+void VectorOps::GatherAndSelectEqual(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                     TupleIdList *tid_list) {
   GatherAndSelectOperation<terrier::execution::sql::Equal>(input, pointers, offset, tid_list);
 }
 
-void VectorOps::GatherAndSelectGreaterThan(const Vector &input, const Vector &pointers,
-                                           const std::size_t offset, TupleIdList *tid_list) {
+void VectorOps::GatherAndSelectGreaterThan(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                           TupleIdList *tid_list) {
   GatherAndSelectOperation<terrier::execution::sql::GreaterThan>(input, pointers, offset, tid_list);
 }
 
-void VectorOps::GatherAndSelectGreaterThanEqual(const Vector &input, const Vector &pointers,
-                                                const std::size_t offset, TupleIdList *tid_list) {
+void VectorOps::GatherAndSelectGreaterThanEqual(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                                TupleIdList *tid_list) {
   GatherAndSelectOperation<terrier::execution::sql::GreaterThanEqual>(input, pointers, offset, tid_list);
 }
 
-void VectorOps::GatherAndSelectLessThan(const Vector &input, const Vector &pointers,
-                                        const std::size_t offset, TupleIdList *tid_list) {
+void VectorOps::GatherAndSelectLessThan(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                        TupleIdList *tid_list) {
   GatherAndSelectOperation<terrier::execution::sql::LessThan>(input, pointers, offset, tid_list);
 }
 
-void VectorOps::GatherAndSelectLessThanEqual(const Vector &input, const Vector &pointers,
-                                             const std::size_t offset, TupleIdList *tid_list) {
+void VectorOps::GatherAndSelectLessThanEqual(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                             TupleIdList *tid_list) {
   GatherAndSelectOperation<terrier::execution::sql::LessThanEqual>(input, pointers, offset, tid_list);
 }
 
-void VectorOps::GatherAndSelectNotEqual(const Vector &input, const Vector &pointers,
-                                        const std::size_t offset, TupleIdList *tid_list) {
+void VectorOps::GatherAndSelectNotEqual(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                        TupleIdList *tid_list) {
   GatherAndSelectOperation<terrier::execution::sql::NotEqual>(input, pointers, offset, tid_list);
 }
 

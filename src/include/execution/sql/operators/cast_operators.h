@@ -5,8 +5,8 @@
 
 #include "execution/util/exception.h"
 
-#include "execution/sql/sql.h"
 #include "execution/sql/runtime_types.h"
+#include "execution/sql/sql.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::execution::sql {
@@ -67,8 +67,7 @@ namespace detail {
 // because it includes the primitive bool type. We want to distinguish only
 // primitive integer types.
 template <typename T>
-struct is_integer_type
-    : std::integral_constant<bool, std::is_integral_v<T> && !std::is_same_v<bool, T>> {};
+struct is_integer_type : std::integral_constant<bool, std::is_integral_v<T> && !std::is_same_v<bool, T>> {};
 
 template <typename T>
 constexpr bool is_integer_type_v = is_integer_type<T>::value;
@@ -82,8 +81,7 @@ constexpr bool is_floating_type_v = is_floating_type<T>::value;
 
 // Is the given type either an integer type or a floating point type?
 template <typename T>
-struct is_number_type
-    : std::integral_constant<bool, is_integer_type_v<T> || std::is_floating_point_v<T>> {};
+struct is_number_type : std::integral_constant<bool, is_integer_type_v<T> || std::is_floating_point_v<T>> {};
 
 template <typename T>
 constexpr bool is_number_type_v = is_number_type<T>::value;
@@ -117,18 +115,16 @@ struct is_integral_signed_to_unsigned {
 };
 
 template <typename InType, typename OutType>
-constexpr bool is_integral_signed_to_unsigned_v =
-    is_integral_signed_to_unsigned<InType, OutType>::value;
+constexpr bool is_integral_signed_to_unsigned_v = is_integral_signed_to_unsigned<InType, OutType>::value;
 
 template <typename InType, typename OutType>
 struct is_integral_unsigned_to_signed {
-  static constexpr bool value = is_integer_type_v<InType> && is_integer_type_v<OutType> &&
-                                std::is_unsigned_v<InType> && std::is_signed_v<OutType>;
+  static constexpr bool value = is_integer_type_v<InType> && is_integer_type_v<OutType> && std::is_unsigned_v<InType> &&
+                                std::is_signed_v<OutType>;
 };
 
 template <typename InType, typename OutType>
-constexpr bool is_integral_unsigned_to_signed_v =
-    is_integral_unsigned_to_signed<InType, OutType>::value;
+constexpr bool is_integral_unsigned_to_signed_v = is_integral_unsigned_to_signed<InType, OutType>::value;
 
 template <typename InType, typename OutType>
 struct is_safe_numeric_cast {
@@ -173,9 +169,7 @@ constexpr bool is_float_truncate_v = is_float_truncate<InType, OutType>::value;
  * @tparam InType The numeric input type.
  */
 template <typename InType>
-struct TryCast<
-    InType, bool,
-    std::enable_if_t<detail::is_number_type_v<InType> && !std::is_same_v<InType, bool>>> {
+struct TryCast<InType, bool, std::enable_if_t<detail::is_number_type_v<InType> && !std::is_same_v<InType, bool>>> {
   bool operator()(const InType input, bool *output) noexcept {
     *output = static_cast<bool>(input);
     return true;
@@ -218,11 +212,11 @@ struct TryCast<bool, OutType, std::enable_if_t<detail::is_number_type_v<OutType>
  * @tparam OutType The numeric output type.  Must satisfy internal::is_number_type_v<OutType>.
  */
 template <typename InType, typename OutType>
-struct TryCast<InType, OutType,
-               std::enable_if_t<detail::is_number_downcast_v<InType, OutType> ||
-                                detail::is_integral_signed_to_unsigned_v<InType, OutType> ||
-                                detail::is_integral_unsigned_to_signed_v<InType, OutType> ||
-                                detail::is_float_truncate_v<InType, OutType>>> {
+struct TryCast<
+    InType, OutType,
+    std::enable_if_t<
+        detail::is_number_downcast_v<InType, OutType> || detail::is_integral_signed_to_unsigned_v<InType, OutType> ||
+        detail::is_integral_unsigned_to_signed_v<InType, OutType> || detail::is_float_truncate_v<InType, OutType>>> {
   bool operator()(const InType input, OutType *output) const noexcept {
     constexpr OutType kMin = std::numeric_limits<OutType>::lowest();
     constexpr OutType kMax = std::numeric_limits<OutType>::max();
@@ -283,9 +277,8 @@ struct TryCast<InType, std::string,
  * @tparam InType The type of the input, either a Date or Timestamp.
  */
 template <typename InType>
-struct TryCast<
-    InType, std::string,
-    std::enable_if_t<std::is_same_v<InType, Date> || std::is_same_v<InType, Timestamp>>> {
+struct TryCast<InType, std::string,
+               std::enable_if_t<std::is_same_v<InType, Date> || std::is_same_v<InType, Timestamp>>> {
   bool operator()(const InType input, std::string *output) const noexcept {
     *output = input.ToString();
     return true;

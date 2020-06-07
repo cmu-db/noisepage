@@ -12,8 +12,8 @@ static constexpr const char DEFAULT_ESCAPE = '\\';
  * Functor implementing the SQL LIKE() operator
  */
 struct Like {
-  static bool Impl(const char *str, std::size_t str_len, const char *pattern,
-                   std::size_t pattern_len, char escape = DEFAULT_ESCAPE);
+  static bool Impl(const char *str, std::size_t str_len, const char *pattern, std::size_t pattern_len,
+                   char escape = DEFAULT_ESCAPE);
 
   bool operator()(const storage::VarlenEntry &str, const storage::VarlenEntry &pattern,
                   char escape = DEFAULT_ESCAPE) const {

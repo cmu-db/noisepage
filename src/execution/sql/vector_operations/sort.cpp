@@ -4,12 +4,12 @@
 
 #include "spdlog/fmt/fmt.h"
 
-#include "common/exception.h"
 #include "common/constants.h"
+#include "common/exception.h"
 
-#include "execution/util/exception.h"
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/util/bit_vector.h"
+#include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
 
@@ -19,15 +19,13 @@ template <typename T>
 void TemplatedSort(const Vector &input, const TupleIdList &non_null_selections, sel_t result[]) {
   const auto *data = reinterpret_cast<const T *>(input.GetData());
   const auto size = non_null_selections.ToSelectionVector(result);
-  ips4o::sort(result, result + size,
-              [&](auto idx1, auto idx2) { return LessThanEqual<T>{}(data[idx1], data[idx2]); });
+  ips4o::sort(result, result + size, [&](auto idx1, auto idx2) { return LessThanEqual<T>{}(data[idx1], data[idx2]); });
 }
 
 }  // namespace
 
 void VectorOps::Sort(const Vector &input, sel_t result[]) {
-  TupleIdList non_nulls(common::Constants::K_DEFAULT_VECTOR_SIZE),
-  nulls(common::Constants::K_DEFAULT_VECTOR_SIZE);
+  TupleIdList non_nulls(common::Constants::K_DEFAULT_VECTOR_SIZE), nulls(common::Constants::K_DEFAULT_VECTOR_SIZE);
   input.GetNonNullSelections(&non_nulls, &nulls);
 
   // Write NULLs indexes first

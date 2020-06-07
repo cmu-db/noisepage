@@ -7,7 +7,6 @@ namespace terrier::common {
  * Declare all system-level constants that cannot change at runtime here.
  */
 struct Constants {
-
   /**
    * Block/RawBlock size, in bytes. Must be a power of 2.
    */

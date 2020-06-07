@@ -39,8 +39,8 @@ TEST_F(VectorLikeTest, InputVerification) {
 }
 
 TEST_F(VectorLikeTest, LikeConstant) {
-  auto strings = MakeVarcharVector({"first", "second", "third", "fourth", "fifth"},
-                                   {false, false, false, false, false});
+  auto strings =
+      MakeVarcharVector({"first", "second", "third", "fourth", "fifth"}, {false, false, false, false, false});
   auto pattern = ConstantVector(GenericValue::CreateVarchar("%d"));
   auto tid_list = TupleIdList(strings->GetSize());
 
@@ -82,10 +82,9 @@ TEST_F(VectorLikeTest, LikeConstant) {
 }
 
 TEST_F(VectorLikeTest, LikeVectorOfPatterns) {
-  auto strings = MakeVarcharVector({"first", "second", "third", "fourth", "fifth"},
-                                   {false, false, false, false, false});
-  auto patterns = MakeVarcharVector({"_%", "s_cnd", "third", "f%%_th", "fifth "},
-                                    {true, false, false, false, false});
+  auto strings =
+      MakeVarcharVector({"first", "second", "third", "fourth", "fifth"}, {false, false, false, false, false});
+  auto patterns = MakeVarcharVector({"_%", "s_cnd", "third", "f%%_th", "fifth "}, {true, false, false, false, false});
   auto tid_list = TupleIdList(strings->GetSize());
 
   // strings == patterns = [2, 3]

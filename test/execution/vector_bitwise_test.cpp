@@ -1,8 +1,9 @@
-#include "excution/sql/constant_vector.h"
-#include "excution/sql/vector.h"
-#include "excution/sql/vector_operations/vector_operations.h"
-#include "excution/util/sql_test_harness.h"
-#include "execution/tpl_test.h'
+#include <execution/tpl_test.h>
+#include "execution/sql/constant_vector.h"
+#include "execution/sql/vector.h"
+#include "execution/sql/vector_operations/vector_operations.h"
+#include "execution/sql_test.h"
+#include "execution/tpl_test.h"
 
 namespace terrier::execution::sql {
 

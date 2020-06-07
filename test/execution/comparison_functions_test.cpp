@@ -20,7 +20,7 @@ TEST_F(ComparisonFunctionsTests, NullComparison) {
     TYPE a = TYPE::Null(), b(INITIAL);            \
     BoolVal result(false);                        \
     ComparisonFunctions::OP##TYPE(&result, a, b); \
-    EXPECT_TRUE(result.is_null_);                  \
+    EXPECT_TRUE(result.is_null_);                 \
   }
 #define CHECK_NULL_FOR_ALL_COMPARISONS(TYPE, INITIAL) \
   CHECK_NULL(TYPE, Eq, INITIAL)                       \
@@ -44,8 +44,8 @@ TEST_F(ComparisonFunctionsTests, NullComparison) {
     TYPE a(INPUT1), b(INPUT2);                       \
     BoolVal result(false);                           \
     ComparisonFunctions::OP##TYPE(&result, a, b);    \
-    EXPECT_FALSE(result.is_null_);                    \
-    EXPECT_EQ(EXPECTED, result.val_);                 \
+    EXPECT_FALSE(result.is_null_);                   \
+    EXPECT_EQ(EXPECTED, result.val_);                \
   }
 #define CHECK_ALL_COMPARISONS(TYPE, INPUT1, INPUT2)      \
   CHECK_OP(TYPE, Eq, INPUT1, INPUT2, (INPUT1 == INPUT2)) \
@@ -85,8 +85,8 @@ TEST_F(ComparisonFunctionsTests, StringComparison) {
     BoolVal result = BoolVal::Null();                  \
     StringVal x(INPUT1), y(INPUT2);                    \
     ComparisonFunctions::OP##StringVal(&result, x, y); \
-    EXPECT_FALSE(result.is_null_);                      \
-    EXPECT_EQ(EXPECTED, result.val_);                   \
+    EXPECT_FALSE(result.is_null_);                     \
+    EXPECT_EQ(EXPECTED, result.val_);                  \
   }
 
   // Same sizes

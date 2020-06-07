@@ -2,6 +2,7 @@
 
 #include <sys/mman.h>
 
+#include <execution/util/simd/avx2.h>
 #include <algorithm>
 #include <random>
 #include <utility>

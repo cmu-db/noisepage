@@ -1,8 +1,8 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 
-#include "execution/util/settings.h"
 #include "execution/sql/operators/numeric_inplace_operators.h"
 #include "execution/sql/vector_operations/inplace_operation_executor.h"
+#include "execution/util/settings.h"
 
 namespace terrier::execution::sql {
 

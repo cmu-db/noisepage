@@ -34,8 +34,7 @@ struct And {
  * (2) Either input is true and the other is NULL.
  */
 struct AndNullMask {
-  bool operator()(const bool left, const bool right, const bool left_null,
-                  const bool right_null) const noexcept {
+  bool operator()(const bool left, const bool right, const bool left_null, const bool right_null) const noexcept {
     return (left_null && (right_null || right)) || (left && right_null);
   }
 };
@@ -65,8 +64,7 @@ struct Or {
  * (2) Either input is false and the other is NULL.
  */
 struct OrNullMask {
-  bool operator()(const bool left, const bool right, const bool left_null,
-                  const bool right_null) const noexcept {
+  bool operator()(const bool left, const bool right, const bool left_null, const bool right_null) const noexcept {
     return (left_null && (right_null || !right)) || (!left && right_null);
   }
 };

@@ -6,8 +6,8 @@
 
 #include "llvm/Support/MathExtras.h"
 
-#include "common/macros.h"
 #include "common/all_static.h"
+#include "common/macros.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
@@ -15,7 +15,7 @@ namespace terrier::execution::util {
 /**
  * Utility class containing various math/arithmetic functions
  */
- class MathUtil : public common::AllStatic {
+class MathUtil : public common::AllStatic {
  public:
   /**
    * Perform a division taking the ceil of the result
@@ -113,8 +113,7 @@ namespace terrier::execution::util {
    * @return The input address aligned to the desired alignment
    */
   static constexpr uintptr_t AlignAddress(uintptr_t addr, std::size_t alignment) {
-    TERRIER_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment),
-               "Alignment is not a power of two!");
+    TERRIER_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment), "Alignment is not a power of two!");
     return (addr + alignment - 1) & ~(alignment - 1);
   }
 

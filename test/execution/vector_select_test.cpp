@@ -1,12 +1,12 @@
 #include <vector>
 
 #include "common/exception.h"
-#include "execution/util/exception.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql_test.h"
+#include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
 
@@ -64,8 +64,8 @@ TEST_F(VectorSelectTest, BasicSelect) {
   auto b = MakeTinyIntVector({0, 1, 4, 3, 5, 5}, {false, true, false, true, false, false});
   auto _2 = ConstantVector(GenericValue::CreateTinyInt(2));
 
-  for (auto type_id : {TypeId::TinyInt, TypeId::SmallInt, TypeId::Integer, TypeId::BigInt,
-                       TypeId::Float, TypeId::Double}) {
+  for (auto type_id :
+       {TypeId::TinyInt, TypeId::SmallInt, TypeId::Integer, TypeId::BigInt, TypeId::Float, TypeId::Double}) {
     a->Cast(type_id);
     b->Cast(type_id);
     _2.Cast(type_id);
@@ -172,18 +172,12 @@ TEST_F(VectorSelectTest, SelectNullConstant) {
 }
 
 TEST_F(VectorSelectTest, StringSelection) {
-  auto a = MakeVarcharVector({"His palm's are sweaty",
-                              {},
-                              "arms are heavy",
-                              "vomit on his sweater already",
-                              "mom's spaghetti"},
-                             {false, true, false, false, false});
-  auto b = MakeVarcharVector({"He's nervous",
-                              "but on the surface he looks calm and ready",
-                              {},
-                              "to drop bombs",
-                              "but he keeps on forgetting"},
-                             {false, false, true, false, false});
+  auto a = MakeVarcharVector(
+      {"His palm's are sweaty", {}, "arms are heavy", "vomit on his sweater already", "mom's spaghetti"},
+      {false, true, false, false, false});
+  auto b = MakeVarcharVector(
+      {"He's nervous", "but on the surface he looks calm and ready", {}, "to drop bombs", "but he keeps on forgetting"},
+      {false, false, true, false, false});
   auto tid_list = TupleIdList(a->GetSize());
 
   // a == b = []
@@ -214,8 +208,7 @@ TEST_F(VectorSelectTest, StringSelection) {
 }
 
 TEST_F(VectorSelectTest, IsNullAndIsNotNull) {
-  auto vec = MakeFloatVector({1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0},
-                             {false, true, false, true, true, false, false});
+  auto vec = MakeFloatVector({1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0}, {false, true, false, true, true, false, false});
   auto tid_list = TupleIdList(vec->GetSize());
 
   // Try first with a full TID list

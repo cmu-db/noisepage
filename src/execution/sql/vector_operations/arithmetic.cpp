@@ -11,13 +11,11 @@ namespace traits {
 
 // Specialized struct to enable full-computation.
 template <template <typename> typename Op, typename T>
-struct ShouldPerformFullCompute<Op<T>,
-                                std::enable_if_t<std::is_same_v<Op<T>, terrier::execution::sql::Add<T>> ||
-                                                 std::is_same_v<Op<T>, terrier::execution::sql::Subtract<T>> ||
-                                                 std::is_same_v<Op<T>, terrier::execution::sql::Multiply<T>>>> {
+struct ShouldPerformFullCompute<Op<T>, std::enable_if_t<std::is_same_v<Op<T>, terrier::execution::sql::Add<T>> ||
+                                                        std::is_same_v<Op<T>, terrier::execution::sql::Subtract<T>> ||
+                                                        std::is_same_v<Op<T>, terrier::execution::sql::Multiply<T>>>> {
   bool operator()(const TupleIdList *tid_list) const {
-    auto full_compute_threshold =
-        Settings::Instance()->GetDouble(Settings::Name::ArithmeticFullComputeOptThreshold);
+    auto full_compute_threshold = Settings::Instance()->GetDouble(Settings::Name::ArithmeticFullComputeOptThreshold);
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
   }
 };
@@ -46,8 +44,7 @@ void CheckBinaryOperation(const Vector &left, const Vector &right, Vector *resul
 }
 
 template <typename T, typename Op>
-void TemplatedDivModOperation_Constant_Vector(const Vector &left, const Vector &right,
-                                              Vector *result, Op op) {
+void TemplatedDivModOperation_Constant_Vector(const Vector &left, const Vector &right, Vector *result, Op op) {
   auto *left_data = reinterpret_cast<T *>(left.GetData());
   auto *right_data = reinterpret_cast<T *>(right.GetData());
   auto *result_data = reinterpret_cast<T *>(result->GetData());
@@ -71,8 +68,7 @@ void TemplatedDivModOperation_Constant_Vector(const Vector &left, const Vector &
 }
 
 template <typename T, typename Op>
-void TemplatedDivModOperation_Vector_Constant(const Vector &left, const Vector &right,
-                                              Vector *result, Op op) {
+void TemplatedDivModOperation_Vector_Constant(const Vector &left, const Vector &right, Vector *result, Op op) {
   auto *left_data = reinterpret_cast<T *>(left.GetData());
   auto *right_data = reinterpret_cast<T *>(right.GetData());
   auto *result_data = reinterpret_cast<T *>(result->GetData());
@@ -96,8 +92,7 @@ void TemplatedDivModOperation_Vector_Constant(const Vector &left, const Vector &
 }
 
 template <typename T, typename Op>
-void TemplatedDivModOperation_Vector_Vector(const Vector &left, const Vector &right, Vector *result,
-                                            Op op) {
+void TemplatedDivModOperation_Vector_Vector(const Vector &left, const Vector &right, Vector *result, Op op) {
   auto *left_data = reinterpret_cast<T *>(left.GetData());
   auto *right_data = reinterpret_cast<T *>(right.GetData());
   auto *result_data = reinterpret_cast<T *>(result->GetData());

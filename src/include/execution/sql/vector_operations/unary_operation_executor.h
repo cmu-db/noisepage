@@ -14,7 +14,7 @@ namespace terrier::execution::sql {
  * unary-operation template parameter to perform the logic of the unary operation. This is likely
  * the most common usage.
  */
- class UnaryOperationExecutor : public common::AllStatic {
+class UnaryOperationExecutor : public common::AllStatic {
  public:
   /**
    * Execute a unary function on all active elements in an input vector and store the results into
@@ -94,11 +94,9 @@ namespace terrier::execution::sql {
         });
       } else {
         if (traits::ShouldPerformFullCompute<Op>{}(input.GetFilteredTupleIdList())) {
-          VectorOps::ExecIgnoreFilter(
-              input, [&](uint64_t i, uint64_t k) { result_data[i] = op(input_data[i]); });
+          VectorOps::ExecIgnoreFilter(input, [&](uint64_t i, uint64_t k) { result_data[i] = op(input_data[i]); });
         } else {
-          VectorOps::Exec(input,
-                          [&](uint64_t i, uint64_t k) { result_data[i] = op(input_data[i]); });
+          VectorOps::Exec(input, [&](uint64_t i, uint64_t k) { result_data[i] = op(input_data[i]); });
         }
       }
     }

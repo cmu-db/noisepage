@@ -15,18 +15,18 @@ namespace terrier::execution {
  * NOTE: Please keep these sorted.
  */
 enum class ExceptionType {
-  Cardinality,     // vectors have different cardinalities
-  CodeGen,         // code generation
-  Conversion,      // conversion/casting error
-  Decimal,         // decimal related
-  DivideByZero,    // divide by 0
-  Execution,       // executor related
-  File,            // file related
-  Index,           // index related
-  InvalidType,     // incompatible for operation
-  OutOfRange,      // value out of range error
-  TypeMismatch,    // mismatched types
-  UnknownType,     // unknown type
+  Cardinality,   // vectors have different cardinalities
+  CodeGen,       // code generation
+  Conversion,    // conversion/casting error
+  Decimal,       // decimal related
+  DivideByZero,  // divide by 0
+  Execution,     // executor related
+  File,          // file related
+  Index,         // index related
+  InvalidType,   // incompatible for operation
+  OutOfRange,    // value out of range error
+  TypeMismatch,  // mismatched types
+  UnknownType,   // unknown type
 };
 
 /**
@@ -85,8 +85,7 @@ class CastException : public Exception {
  */
 class ConversionException : public Exception {
  public:
-  explicit ConversionException(const std::string &msg)
-      : Exception(ExceptionType::Conversion, msg) {}
+  explicit ConversionException(const std::string &msg) : Exception(ExceptionType::Conversion, msg) {}
 };
 
 /**
@@ -113,8 +112,7 @@ class ValueOutOfRangeException : public Exception {
   ValueOutOfRangeException(sql::TypeId src_type, sql::TypeId dest_type);
 
  private:
-  explicit ValueOutOfRangeException(const std::string &message)
-      : Exception(ExceptionType::OutOfRange, message) {}
+  explicit ValueOutOfRangeException(const std::string &message) : Exception(ExceptionType::OutOfRange, message) {}
 };
 
 }  // namespace terrier::execution

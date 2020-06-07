@@ -18,8 +18,7 @@ uint32_t VectorUtil::IntersectSelected(const sel_t *sel_vector_1, const uint32_t
 
   // Canonical-ize; ensure the first vector is smaller than the second
   if (sel_vector_1_len > sel_vector_2_len) {
-    return IntersectSelected(sel_vector_2, sel_vector_2_len, sel_vector_1, sel_vector_1_len,
-                             out_sel_vector);
+    return IntersectSelected(sel_vector_2, sel_vector_2_len, sel_vector_1, sel_vector_1_len, out_sel_vector);
   }
 
   // Run
@@ -57,8 +56,8 @@ uint32_t VectorUtil::IntersectSelected(const sel_t *sel_vector, const uint32_t s
   return k;
 }
 
-uint32_t VectorUtil::DiffSelected_Scalar(const uint32_t n, const sel_t *sel_vector,
-                                         const uint32_t m, sel_t *out_sel_vector) {
+uint32_t VectorUtil::DiffSelected_Scalar(const uint32_t n, const sel_t *sel_vector, const uint32_t m,
+                                         sel_t *out_sel_vector) {
   uint32_t i = 0, j = 0, k = 0;
   for (; i < m; i++, j++) {
     while (j < sel_vector[i]) {
@@ -73,8 +72,8 @@ uint32_t VectorUtil::DiffSelected_Scalar(const uint32_t n, const sel_t *sel_vect
 }
 
 uint32_t VectorUtil::DiffSelected_WithScratchPad(const uint32_t n, const sel_t *sel_vector,
-                                                 const uint32_t sel_vector_len,
-                                                 sel_t *out_sel_vector, uint8_t *scratch) {
+                                                 const uint32_t sel_vector_len, sel_t *out_sel_vector,
+                                                 uint8_t *scratch) {
   TERRIER_ASSERT(n <= common::Constants::K_DEFAULT_VECTOR_SIZE, "Selection vector too large");
   std::memset(scratch, 0, n);
   VectorUtil::SelectionVectorToByteVector(sel_vector, sel_vector_len, scratch);
@@ -84,22 +83,21 @@ uint32_t VectorUtil::DiffSelected_WithScratchPad(const uint32_t n, const sel_t *
   return VectorUtil::ByteVectorToSelectionVector(scratch, n, out_sel_vector);
 }
 
-uint32_t VectorUtil::DiffSelected(const uint32_t n, const sel_t *sel_vector,
-                                  const uint32_t sel_vector_len, sel_t *out_sel_vector) {
+uint32_t VectorUtil::DiffSelected(const uint32_t n, const sel_t *sel_vector, const uint32_t sel_vector_len,
+                                  sel_t *out_sel_vector) {
   uint8_t scratch[common::Constants::K_DEFAULT_VECTOR_SIZE];
   return DiffSelected_WithScratchPad(n, sel_vector, sel_vector_len, out_sel_vector, scratch);
 }
 
-void VectorUtil::SelectionVectorToByteVector(const sel_t *sel_vector, const uint32_t num_elems,
-                                             uint8_t *byte_vector) {
+void VectorUtil::SelectionVectorToByteVector(const sel_t *sel_vector, const uint32_t num_elems, uint8_t *byte_vector) {
   for (uint32_t i = 0; i < num_elems; i++) {
     byte_vector[sel_vector[i]] = 0xff;
   }
 }
 
 // TODO(pmenon): Consider splitting into dense and sparse implementations.
-uint32_t VectorUtil::ByteVectorToSelectionVector(const uint8_t *byte_vector,
-                                                 const uint32_t num_bytes, sel_t *sel_vector) {
+uint32_t VectorUtil::ByteVectorToSelectionVector(const uint8_t *byte_vector, const uint32_t num_bytes,
+                                                 sel_t *sel_vector) {
   // Byte-vector index
   uint32_t i = 0;
 
@@ -113,8 +111,7 @@ uint32_t VectorUtil::ByteVectorToSelectionVector(const uint8_t *byte_vector,
     const auto word = *reinterpret_cast<const uint64_t *>(byte_vector + i);
     const auto mask = _pext_u64(word, 0x202020202020202);
     TERRIER_ASSERT(mask < 256, "Out-of-bounds mask");
-    const auto match_pos_scaled =
-        _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&simd::K8_BIT_MATCH_LUT[mask]));
+    const auto match_pos_scaled = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&simd::K8_BIT_MATCH_LUT[mask]));
     const auto match_pos = _mm_cvtepi8_epi16(match_pos_scaled);
     const auto pos_vec = _mm_add_epi16(idx, match_pos);
     idx = _mm_add_epi16(idx, eight);
@@ -131,8 +128,7 @@ uint32_t VectorUtil::ByteVectorToSelectionVector(const uint8_t *byte_vector,
   return k;
 }
 
-void VectorUtil::ByteVectorToBitVector(const uint8_t *byte_vector, const uint32_t num_bytes,
-                                       uint64_t *bit_vector) {
+void VectorUtil::ByteVectorToBitVector(const uint8_t *byte_vector, const uint32_t num_bytes, uint64_t *bit_vector) {
   // Byte-vector index
   uint32_t i = 0;
 
@@ -156,10 +152,9 @@ void VectorUtil::ByteVectorToBitVector(const uint8_t *byte_vector, const uint32_
   }
 }
 
-void VectorUtil::BitVectorToByteVector(const uint64_t *bit_vector, const uint32_t num_bits,
-                                       uint8_t *byte_vector) {
-  const __m256i shuffle = _mm256_setr_epi64x(0x0000000000000000, 0x0101010101010101,
-                                             0x0202020202020202, 0x0303030303030303);
+void VectorUtil::BitVectorToByteVector(const uint64_t *bit_vector, const uint32_t num_bits, uint8_t *byte_vector) {
+  const __m256i shuffle =
+      _mm256_setr_epi64x(0x0000000000000000, 0x0101010101010101, 0x0202020202020202, 0x0303030303030303);
   const __m256i bit_mask = _mm256_set1_epi64x(0x7fbfdfeff7fbfdfe);
 
   // Byte-vector write index
@@ -194,8 +189,8 @@ void VectorUtil::BitVectorToByteVector(const uint64_t *bit_vector, const uint32_
   }
 }
 
-uint32_t VectorUtil::BitVectorToSelectionVector_Sparse(const uint64_t *bit_vector,
-                                                       uint32_t num_bits, sel_t *sel_vector) {
+uint32_t VectorUtil::BitVectorToSelectionVector_Sparse(const uint64_t *bit_vector, uint32_t num_bits,
+                                                       sel_t *sel_vector) {
   const uint32_t num_words = MathUtil::DivRoundUp(num_bits, 64);
 
   uint32_t k = 0;
@@ -211,8 +206,8 @@ uint32_t VectorUtil::BitVectorToSelectionVector_Sparse(const uint64_t *bit_vecto
   return k;
 }
 
-uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX2(const uint64_t *bit_vector,
-                                                           uint32_t num_bits, sel_t *sel_vector) {
+uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX2(const uint64_t *bit_vector, uint32_t num_bits,
+                                                           sel_t *sel_vector) {
   // Vector of '8's = [8,8,8,8,8,8,8]
   const auto eight = _mm_set1_epi16(8);
 
@@ -242,11 +237,11 @@ uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX2(const uint64_t *bit_v
 }
 
 #if __AVX512VBMI2__
-uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX512(const uint64_t *bit_vector,
-                                                             uint32_t num_bits, sel_t *sel_vector) {
+uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX512(const uint64_t *bit_vector, uint32_t num_bits,
+                                                             sel_t *sel_vector) {
   const __m512i _32 = _mm512_set1_epi16(32);
-  __m512i indexes = _mm512_set_epi16(31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
-                                     15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+  __m512i indexes = _mm512_set_epi16(31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11,
+                                     10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
 
   uint32_t k = 0;
 

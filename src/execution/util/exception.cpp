@@ -7,8 +7,7 @@
 
 namespace terrier::execution {
 
-Exception::Exception(ExceptionType exception_type, const std::string &message)
-    : type_(exception_type) {
+Exception::Exception(ExceptionType exception_type, const std::string &message) : type_(exception_type) {
   exception_message_ = ExceptionTypeToString(type_) + ": " + message;
 }
 
@@ -54,15 +53,13 @@ InvalidTypeException::InvalidTypeException(sql::TypeId type, const std::string &
   Format(TypeIdToString(type));
 }
 
-TypeMismatchException::TypeMismatchException(sql::TypeId src_type, sql::TypeId dest_type,
-                                             const std::string &msg)
+TypeMismatchException::TypeMismatchException(sql::TypeId src_type, sql::TypeId dest_type, const std::string &msg)
     : Exception(ExceptionType::TypeMismatch, "Type '{}' does not match type '{}'. " + msg) {
   Format(TypeIdToString(src_type), TypeIdToString(dest_type));
 }
 
 ValueOutOfRangeException::ValueOutOfRangeException(sql::TypeId src_type, sql::TypeId dest_type)
-    : ValueOutOfRangeException(
-          "Type {} cannot be cast because the value is out of range for the target type {}") {
+    : ValueOutOfRangeException("Type {} cannot be cast because the value is out of range for the target type {}") {
   Format(TypeIdToString(src_type), TypeIdToString(dest_type));
 }
 

@@ -1,7 +1,7 @@
 #include "execution/sql/operators/cast_operators.h"
 
-#include "storage/storage_defs.h"
 #include "execution/util/fast_double_parser.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::execution::sql {
 

@@ -11,8 +11,7 @@ namespace {
 
 void CheckGenerateArguments(const Vector &input) {
   if (!IsTypeNumeric(input.GetTypeId())) {
-    throw InvalidTypeException(input.GetTypeId(),
-                               "sequence generation only allowed on numeric vectors");
+    throw InvalidTypeException(input.GetTypeId(), "sequence generation only allowed on numeric vectors");
   }
 }
 

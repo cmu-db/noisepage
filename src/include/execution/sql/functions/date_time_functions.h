@@ -7,7 +7,7 @@ namespace terrier::execution::sql {
 /**
  * Date/timestamp functions.
  */
- class DateTimeFunctions : public common::AllStatic {
+class DateTimeFunctions : public common::AllStatic {
  public:
   /**
    * Compute the century in which the input SQL timestamp @em time falls into.

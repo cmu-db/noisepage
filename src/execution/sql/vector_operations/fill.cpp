@@ -2,8 +2,8 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 
 #include "common/exception.h"
-#include "execution/util/bit_vector.h"
 #include "execution/sql/generic_value.h"
+#include "execution/util/bit_vector.h"
 
 namespace terrier::execution::sql {
 

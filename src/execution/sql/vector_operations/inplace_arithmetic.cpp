@@ -1,8 +1,8 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 
-#include "execution/util/settings.h"
 #include "execution/sql/operators/numeric_inplace_operators.h"
 #include "execution/sql/vector_operations/inplace_operation_executor.h"
+#include "execution/util/settings.h"
 
 namespace terrier::execution::sql {
 
@@ -11,8 +11,7 @@ namespace traits {
 template <typename T>
 struct ShouldPerformFullCompute<terrier::execution::sql::AddInPlace<T>> {
   bool operator()(const TupleIdList *tid_list) const {
-    auto full_compute_threshold =
-        Settings::Instance()->GetDouble(Settings::Name::ArithmeticFullComputeOptThreshold);
+    auto full_compute_threshold = Settings::Instance()->GetDouble(Settings::Name::ArithmeticFullComputeOptThreshold);
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
   }
 };
@@ -56,8 +55,7 @@ void VectorOps::AddInPlace(Vector *left, const Vector &right) {
       InPlaceOperation<uintptr_t, terrier::execution::sql::AddInPlace>(left, right);
       break;
     default:
-      throw InvalidTypeException(left->GetTypeId(),
-                                 "invalid type for in-place arithmetic operation");
+      throw InvalidTypeException(left->GetTypeId(), "invalid type for in-place arithmetic operation");
   }
 }
 

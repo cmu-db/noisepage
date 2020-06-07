@@ -243,7 +243,7 @@ class VarlenEntry {
    */
   static VarlenEntry Create(const byte *content, uint32_t size, bool reclaim) {
     VarlenEntry result;
-    if(size <= InlineThreshold()){
+    if (size <= InlineThreshold()) {
       TERRIER_ASSERT(!reclaim, "can't reclaim this");
       return CreateInline(content, size);
     }
@@ -264,9 +264,9 @@ class VarlenEntry {
    * @return A constructed VarlenEntry object.
    */
   static VarlenEntry Create(std::string_view str) {
-    if(str.length() > InlineThreshold()) {
+    if (str.length() > InlineThreshold()) {
       return Create(reinterpret_cast<const byte *>(str.data()), str.length(), false);
-    }else{
+    } else {
       return CreateInline(reinterpret_cast<const byte *>(str.data()), str.length());
     }
   }
@@ -407,12 +407,12 @@ class VarlenEntry {
   }
 
   /**
-  * Compare two strings ONLY for equality or inequality only.
-  * @tparam EqualCheck
-  * @param left The first string.
-  * @param right The second string.
-  * @return 0 if equal; any non-zero value otherwise.
-  */
+   * Compare two strings ONLY for equality or inequality only.
+   * @tparam EqualCheck
+   * @param left The first string.
+   * @param right The second string.
+   * @return 0 if equal; any non-zero value otherwise.
+   */
   template <bool EqualityCheck>
   static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
     // Compare the size and prefix in one fell swoop.

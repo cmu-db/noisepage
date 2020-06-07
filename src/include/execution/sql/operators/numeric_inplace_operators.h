@@ -1,7 +1,6 @@
 #pragma once
 #include <cmath>
 
-
 #include "common/macros.h"
 
 namespace terrier::execution::sql {

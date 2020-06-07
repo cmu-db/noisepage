@@ -24,9 +24,8 @@ void TemplatedGatherOperation(const Vector &pointers, Vector *result, const std:
       result_data[i] = null_mask[i] ? T{} : *reinterpret_cast<T *>(ptr + offset);
     });
   } else {
-    VectorOps::ExecTyped<byte *>(pointers, [&](byte *ptr, uint64_t i, uint64_t k) {
-      result_data[i] = *reinterpret_cast<T *>(ptr + offset);
-    });
+    VectorOps::ExecTyped<byte *>(
+        pointers, [&](byte *ptr, uint64_t i, uint64_t k) { result_data[i] = *reinterpret_cast<T *>(ptr + offset); });
   }
 }
 

@@ -4,7 +4,6 @@
 
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/sql/value.h"
-#include "execution/sql/value.h"
 
 namespace terrier::execution::sql {
 
@@ -254,20 +253,19 @@ class EXPORT ComparisonFunctions {
 
 #define BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TYPE, OP)                                   \
   inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const TYPE &v1, const TYPE &v2) { \
-    using CppType = decltype(v1.val_);                                                            \
-    result->is_null_ = (v1.is_null_ || v2.is_null_);                                                \
-    result->val_ = OP<CppType>{}(v1.val_, v2.val_);                                                 \
+    using CppType = decltype(v1.val_);                                                           \
+    result->is_null_ = (v1.is_null_ || v2.is_null_);                                             \
+    result->val_ = OP<CppType>{}(v1.val_, v2.val_);                                              \
   }
 
-#define BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, TYPE, OP)                       \
-  inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const StringVal &v1, \
-                                              const StringVal &v2) {                \
-    using CppType = decltype(v1.val_);                                               \
-    if (v1.is_null_ || v2.is_null_) {                                                 \
-      *result = BoolVal::Null();                                                    \
-      return;                                                                       \
-    }                                                                               \
-    *result = BoolVal(OP<CppType>{}(v1.val_, v2.val_));                               \
+#define BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, TYPE, OP)                                              \
+  inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const StringVal &v1, const StringVal &v2) { \
+    using CppType = decltype(v1.val_);                                                                     \
+    if (v1.is_null_ || v2.is_null_) {                                                                      \
+      *result = BoolVal::Null();                                                                           \
+      return;                                                                                              \
+    }                                                                                                      \
+    *result = BoolVal(OP<CppType>{}(v1.val_, v2.val_));                                                    \
   }
 
 #define BINARY_COMPARISONS(NAME, OP)                             \

@@ -2,14 +2,14 @@
 
 #include <type_traits>
 
-#include "execution/util/exception.h"
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/traits.h"
 #include "execution/sql/vector_operations/vector_operations.h"
+#include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
 
- class BinaryOperationExecutor : public common::AllStatic {
+class BinaryOperationExecutor : public common::AllStatic {
  public:
   /**
    * Execute a binary operation on all active elements contained in two input vectors, @em left and
@@ -39,8 +39,7 @@ namespace terrier::execution::sql {
    * @param right The right input.
    * @param[out] result The result vector.
    */
-  template <typename LeftType, typename RightType, typename ResultType, typename Op,
-            bool IgnoreNull = false>
+  template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull = false>
   static void Execute(const Vector &left, const Vector &right, Vector *result) {
     Execute<LeftType, RightType, ResultType, Op, IgnoreNull>(left, right, result, Op{});
   }
@@ -71,35 +70,31 @@ namespace terrier::execution::sql {
    * @param[out] result The result vector.
    * @param op The binary operation.
    */
-  template <typename LeftType, typename RightType, typename ResultType, typename Op,
-            bool IgnoreNull = false>
+  template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull = false>
   static void Execute(const Vector &left, const Vector &right, Vector *result, Op &&op) {
     // Ensure operator has correct interface.
     static_assert(std::is_invocable_r_v<ResultType, Op, LeftType, RightType>,
                   "Binary operation has invalid interface for given template arguments.");
 
     // Ensure at least one of the inputs are vectors.
-    TERRIER_ASSERT(!left.IsConstant() || !right.IsConstant(),
-               "Both inputs to binary cannot be constants");
+    TERRIER_ASSERT(!left.IsConstant() || !right.IsConstant(), "Both inputs to binary cannot be constants");
 
     if (left.IsConstant()) {
-      ExecuteImpl_Constant_Vector<LeftType, RightType, ResultType, Op, IgnoreNull>(
-          left, right, result, std::forward<Op>(op));
+      ExecuteImpl_Constant_Vector<LeftType, RightType, ResultType, Op, IgnoreNull>(left, right, result,
+                                                                                   std::forward<Op>(op));
     } else if (right.IsConstant()) {
-      ExecuteImpl_Vector_Constant<LeftType, RightType, ResultType, Op, IgnoreNull>(
-          left, right, result, std::forward<Op>(op));
+      ExecuteImpl_Vector_Constant<LeftType, RightType, ResultType, Op, IgnoreNull>(left, right, result,
+                                                                                   std::forward<Op>(op));
     } else {
-      ExecuteImpl_Vector_Vector<LeftType, RightType, ResultType, Op, IgnoreNull>(
-          left, right, result, std::forward<Op>(op));
+      ExecuteImpl_Vector_Vector<LeftType, RightType, ResultType, Op, IgnoreNull>(left, right, result,
+                                                                                 std::forward<Op>(op));
     }
   }
 
  private:
   // Binary operation where the left input is a constant value.
-  template <typename LeftType, typename RightType, typename ResultType, typename Op,
-            bool IgnoreNull>
-  static void ExecuteImpl_Constant_Vector(const Vector &left, const Vector &right, Vector *result,
-                                          Op &&op) {
+  template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
+  static void ExecuteImpl_Constant_Vector(const Vector &left, const Vector &right, Vector *result, Op &&op) {
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());
     auto *RESTRICT result_data = reinterpret_cast<ResultType *>(result->GetData());
@@ -120,23 +115,18 @@ namespace terrier::execution::sql {
         });
       } else {
         if (traits::ShouldPerformFullCompute<Op>()(right.GetFilteredTupleIdList())) {
-          VectorOps::ExecIgnoreFilter(right, [&](uint64_t i, uint64_t k) {
-            result_data[i] = op(left_data[0], right_data[i]);
-          });
+          VectorOps::ExecIgnoreFilter(
+              right, [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[0], right_data[i]); });
         } else {
-          VectorOps::Exec(right, [&](uint64_t i, uint64_t k) {
-            result_data[i] = op(left_data[0], right_data[i]);
-          });
+          VectorOps::Exec(right, [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[0], right_data[i]); });
         }
       }
     }
   }
 
   // Binary operation where the right input is a constant value.
-  template <typename LeftType, typename RightType, typename ResultType, typename Op,
-            bool IgnoreNull>
-  static void ExecuteImpl_Vector_Constant(const Vector &left, const Vector &right, Vector *result,
-                                          Op &&op) {
+  template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
+  static void ExecuteImpl_Vector_Constant(const Vector &left, const Vector &right, Vector *result, Op &&op) {
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());
     auto *RESTRICT result_data = reinterpret_cast<ResultType *>(result->GetData());
@@ -157,25 +147,20 @@ namespace terrier::execution::sql {
         });
       } else {
         if (traits::ShouldPerformFullCompute<Op>()(left.GetFilteredTupleIdList())) {
-          VectorOps::ExecIgnoreFilter(left, [&](uint64_t i, uint64_t k) {
-            result_data[i] = op(left_data[i], right_data[0]);
-          });
+          VectorOps::ExecIgnoreFilter(
+              left, [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[i], right_data[0]); });
         } else {
-          VectorOps::Exec(left, [&](uint64_t i, uint64_t k) {
-            result_data[i] = op(left_data[i], right_data[0]);
-          });
+          VectorOps::Exec(left, [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[i], right_data[0]); });
         }
       }
     }
   }
 
   // Binary operation where both inputs are vectors.
-  template <typename LeftType, typename RightType, typename ResultType, typename Op,
-            bool IgnoreNull>
-  static void ExecuteImpl_Vector_Vector(const Vector &left, const Vector &right, Vector *result,
-                                        Op &&op) {
+  template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
+  static void ExecuteImpl_Vector_Vector(const Vector &left, const Vector &right, Vector *result, Op &&op) {
     TERRIER_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
-               "Mismatched selection vectors for comparison");
+                   "Mismatched selection vectors for comparison");
     TERRIER_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
 
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
@@ -194,13 +179,10 @@ namespace terrier::execution::sql {
       });
     } else {
       if (traits::ShouldPerformFullCompute<Op>()(left.GetFilteredTupleIdList())) {
-        VectorOps::ExecIgnoreFilter(left, [&](uint64_t i, uint64_t k) {
-          result_data[i] = op(left_data[i], right_data[i]);
-        });
+        VectorOps::ExecIgnoreFilter(left,
+                                    [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[i], right_data[i]); });
       } else {
-        VectorOps::Exec(left, [&](uint64_t i, uint64_t k) {
-          result_data[i] = op(left_data[i], right_data[i]);
-        });
+        VectorOps::Exec(left, [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[i], right_data[i]); });
       }
     }
   }

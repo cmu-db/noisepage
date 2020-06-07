@@ -16,47 +16,46 @@ namespace terrier::execution {
 //             Args: setting name, C/C++ primitive type, default value
 // COMPUTED  : Callback function assuming default value is computed at runtime.
 //             Args: setting name, C/C++ primitive type, provider function.
-#define SETTINGS_LIST(CONST, COMPUTED)                                                             \
-  /*                                                                                               \
-   * When performing selections, rather than operating only on active elements                     \
-   * in a TID list, it may be faster to apply the selection on ALL elements and                    \
-   * quickly mask out unselected TIDS. Such an optimization removes branches                       \
-   * from the loop and allows the compiler to auto-vectorize the operation.                        \
-   * However, this optimization wins only when the selectivity of the input TID                    \
-   * list is greater than a threshold value. This threshold can vary between                       \
-   * platforms and data types. Thus, we derive the threshold at database startup                   \
-   * once using the given function.                                                                \
-   */                                                                                              \
-  COMPUTED(SelectOptThreshold, double, DeriveOptimalFullSelectionThreshold)                        \
-                                                                                                   \
-  /*                                                                                               \
-   * When performing arithmetic operations on vectors, this setting determines                     \
-   * the minimum required vector selectivity before switching to a full-compute                    \
-   * implementation. A full computation is one that ignores the selection vector                   \
-   * or filtered TID list of the input vectors and blindly operators on all                        \
-   * vector elements. Though wasteful, the algorithm is amenable to                                \
-   * auto-vectorization by the compiler yielding better overall performance.                       \
-   */                                                                                              \
-  COMPUTED(ArithmeticFullComputeOptThreshold, double, DeriveOptimalArithmeticFullComputeThreshold) \
-                                                                                                   \
-  /*                                                                                               \
-   * The frequency at which to sample statistics when adaptively reordering                        \
-   * predicate clauses falling in the range [0.0, 1.0]. A low frequency incurs                     \
-   * minimal runtime overhead, but is less reactive to changing distributions in                   \
-   * the underlying data. A high re-sampling frequency is more adaptive, but                       \
-   * incurs higher runtime overhead. Thus, there is a trade-off here.                              \
-   */                                                                                              \
-  CONST(AdaptivePredicateOrderSamplingFrequency, float, 0.1)                                       \
-                                                                                                   \
-  /*                                                                                               \
-   * The minimum bit vector density before using a SIMD decoding algorithm.                        \
-   */                                                                                              \
-  COMPUTED(BitDensityThresholdForAVXIndexDecode, float,                                            \
-           DeriveMinBitDensityThresholdForAvxIndexDecode)                                          \
-                                                                                                   \
-  /*                                                                                               \
-   * Flag indicating if parallel execution is supported.                                           \
-   */                                                                                              \
+#define SETTINGS_LIST(CONST, COMPUTED)                                                                 \
+  /*                                                                                                   \
+   * When performing selections, rather than operating only on active elements                         \
+   * in a TID list, it may be faster to apply the selection on ALL elements and                        \
+   * quickly mask out unselected TIDS. Such an optimization removes branches                           \
+   * from the loop and allows the compiler to auto-vectorize the operation.                            \
+   * However, this optimization wins only when the selectivity of the input TID                        \
+   * list is greater than a threshold value. This threshold can vary between                           \
+   * platforms and data types. Thus, we derive the threshold at database startup                       \
+   * once using the given function.                                                                    \
+   */                                                                                                  \
+  COMPUTED(SelectOptThreshold, double, DeriveOptimalFullSelectionThreshold)                            \
+                                                                                                       \
+  /*                                                                                                   \
+   * When performing arithmetic operations on vectors, this setting determines                         \
+   * the minimum required vector selectivity before switching to a full-compute                        \
+   * implementation. A full computation is one that ignores the selection vector                       \
+   * or filtered TID list of the input vectors and blindly operators on all                            \
+   * vector elements. Though wasteful, the algorithm is amenable to                                    \
+   * auto-vectorization by the compiler yielding better overall performance.                           \
+   */                                                                                                  \
+  COMPUTED(ArithmeticFullComputeOptThreshold, double, DeriveOptimalArithmeticFullComputeThreshold)     \
+                                                                                                       \
+  /*                                                                                                   \
+   * The frequency at which to sample statistics when adaptively reordering                            \
+   * predicate clauses falling in the range [0.0, 1.0]. A low frequency incurs                         \
+   * minimal runtime overhead, but is less reactive to changing distributions in                       \
+   * the underlying data. A high re-sampling frequency is more adaptive, but                           \
+   * incurs higher runtime overhead. Thus, there is a trade-off here.                                  \
+   */                                                                                                  \
+  CONST(AdaptivePredicateOrderSamplingFrequency, float, 0.1)                                           \
+                                                                                                       \
+  /*                                                                                                   \
+   * The minimum bit vector density before using a SIMD decoding algorithm.                            \
+   */                                                                                                  \
+  COMPUTED(BitDensityThresholdForAVXIndexDecode, float, DeriveMinBitDensityThresholdForAvxIndexDecode) \
+                                                                                                       \
+  /*                                                                                                   \
+   * Flag indicating if parallel execution is supported.                                               \
+   */                                                                                                  \
   CONST(ParallelQueryExecution, bool, true)
 
 class Settings {

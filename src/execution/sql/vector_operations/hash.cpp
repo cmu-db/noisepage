@@ -3,8 +3,8 @@
 #include "spdlog/fmt/fmt.h"
 
 #include "common/exception.h"
-#include "execution/util/exception.h"
 #include "execution/sql/operators/hash_operators.h"
+#include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
 

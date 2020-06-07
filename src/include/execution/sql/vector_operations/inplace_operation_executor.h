@@ -2,10 +2,10 @@
 
 #include <type_traits>
 
-#include "execution/util/exception.h"
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/traits.h"
 #include "execution/sql/vector_operations/vector_operations.h"
+#include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
 
@@ -19,9 +19,8 @@ namespace terrier::execution::sql {
  */
 inline void CheckInplaceOperation(const Vector *result, const Vector &input) {
   if (result->GetTypeId() != input.GetTypeId()) {
-    throw TypeMismatchException(
-        result->GetTypeId(), input.GetTypeId(),
-        "left and right vector types to inplace operation must be the same");
+    throw TypeMismatchException(result->GetTypeId(), input.GetTypeId(),
+                                "left and right vector types to inplace operation must be the same");
   }
   if (!input.IsConstant() && result->GetCount() != input.GetCount()) {
     throw Exception(ExceptionType::Cardinality,
@@ -29,7 +28,7 @@ inline void CheckInplaceOperation(const Vector *result, const Vector &input) {
   }
 }
 
- class InPlaceOperationExecutor : public common::AllStatic {
+class InPlaceOperationExecutor : public common::AllStatic {
  public:
   /**
    * Execute an in-place operation on all active elements in two vectors, @em result and @em input,
@@ -93,24 +92,20 @@ inline void CheckInplaceOperation(const Vector *result, const Vector &input) {
         result->GetMutableNullMask()->SetAll();
       } else {
         if (traits::ShouldPerformFullCompute<Op>()(result->GetFilteredTupleIdList())) {
-          VectorOps::ExecIgnoreFilter(
-              *result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[0]); });
+          VectorOps::ExecIgnoreFilter(*result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[0]); });
         } else {
-          VectorOps::Exec(*result,
-                          [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[0]); });
+          VectorOps::Exec(*result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[0]); });
         }
       }
     } else {
       TERRIER_ASSERT(result->GetFilteredTupleIdList() == input.GetFilteredTupleIdList(),
-                 "Filter list of inputs to in-place operation do not match");
+                     "Filter list of inputs to in-place operation do not match");
 
       result->GetMutableNullMask()->Union(input.GetNullMask());
       if (traits::ShouldPerformFullCompute<Op>()(result->GetFilteredTupleIdList())) {
-        VectorOps::ExecIgnoreFilter(
-            *result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[i]); });
+        VectorOps::ExecIgnoreFilter(*result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[i]); });
       } else {
-        VectorOps::Exec(*result,
-                        [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[i]); });
+        VectorOps::Exec(*result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[i]); });
       }
     }
   }

@@ -1,17 +1,16 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 
-#include "execution/util/exception.h"
 #include "common/macros.h"
 #include "execution/sql/operators/like_operators.h"
 #include "execution/sql/tuple_id_list.h"
+#include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
 
 namespace {
 
 template <typename Op>
-void TemplatedLikeOperation_Vector_Constant(const Vector &a, const Vector &b,
-                                            TupleIdList *tid_list) {
+void TemplatedLikeOperation_Vector_Constant(const Vector &a, const Vector &b, TupleIdList *tid_list) {
   if (b.IsNull(0)) {
     tid_list->Clear();
     return;
@@ -30,7 +29,7 @@ void TemplatedLikeOperation_Vector_Constant(const Vector &a, const Vector &b,
 template <typename Op>
 void TemplatedLikeOperation_Vector_Vector(const Vector &a, const Vector &b, TupleIdList *tid_list) {
   TERRIER_ASSERT(a.GetSize() == tid_list->GetCapacity() && b.GetSize() == tid_list->GetCapacity(),
-             "Input/output TID list not large enough to store all TIDS from inputs to LIKE()");
+                 "Input/output TID list not large enough to store all TIDS from inputs to LIKE()");
 
   const auto *RESTRICT a_data = reinterpret_cast<const storage::VarlenEntry *>(a.GetData());
   const auto *RESTRICT b_data = reinterpret_cast<const storage::VarlenEntry *>(b.GetData());

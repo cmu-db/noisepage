@@ -79,7 +79,6 @@ static inline std::unique_ptr<sql::Vector> MakeVector(sql::TypeId type_id, uint3
   return vec;
 }
 
-
 #define MAKE_VEC_TYPE(TYPE, CPP_TYPE)                                                              \
   static inline std::unique_ptr<sql::Vector> Make##TYPE##Vector(uint32_t size) {                   \
     return MakeVector(sql::TypeId::TYPE, size);                                                    \

@@ -13,12 +13,10 @@ void TemplatedCopyOperation(const Vector &source, void *target, uint64_t offset,
   auto *src_data = reinterpret_cast<T *>(source.GetData());
   auto *target_data = reinterpret_cast<T *>(target);
   VectorOps::Exec(
-      source, [&](uint64_t i, uint64_t k) { target_data[k - offset] = src_data[i]; }, offset,
-      count);
+      source, [&](uint64_t i, uint64_t k) { target_data[k - offset] = src_data[i]; }, offset, count);
 }
 
-void GenericCopyOperation(const Vector &source, void *target, uint64_t offset,
-                          uint64_t element_count) {
+void GenericCopyOperation(const Vector &source, void *target, uint64_t offset, uint64_t element_count) {
   if (source.GetCount() == 0) {
     return;
   }
@@ -58,8 +56,8 @@ void GenericCopyOperation(const Vector &source, void *target, uint64_t offset,
       TemplatedCopyOperation<Timestamp>(source, target, offset, element_count);
       break;
     default:
-      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("copying vector of type '{}' not supported",
-                                                TypeIdToString(source.GetTypeId())).data());
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("copying vector of type '{}' not supported", TypeIdToString(source.GetTypeId())).data());
   }
 }
 
@@ -79,9 +77,7 @@ void VectorOps::Copy(const Vector &source, Vector *target, uint64_t offset) {
 
   // Copy NULLs
   Exec(
-      source,
-      [&](uint64_t i, uint64_t k) { target->null_mask_[k - offset] = source.null_mask_[i]; },
-      offset);
+      source, [&](uint64_t i, uint64_t k) { target->null_mask_[k - offset] = source.null_mask_[i]; }, offset);
 
   // Copy data
   Copy(source, target->GetData(), offset, target->GetCount());

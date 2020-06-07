@@ -1,13 +1,13 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 
-#include "spdlog/fmt/fmt.h"
 #include "common/exception.h"
+#include "spdlog/fmt/fmt.h"
 
-#include "execution/util/exception.h"
-#include "execution/util/settings.h"
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/tuple_id_list.h"
+#include "execution/util/exception.h"
+#include "execution/util/settings.h"
 
 namespace terrier::execution::sql {
 
@@ -33,10 +33,9 @@ struct is_safe_for_full_compute {
 };
 
 template <typename T>
-struct is_safe_for_full_compute<
-    T, std::enable_if_t<std::is_fundamental_v<T> || std::is_same_v<T, Date> ||
-                        std::is_same_v<T, Timestamp> || std::is_same_v<T, Decimal32> ||
-                        std::is_same_v<T, Decimal64> || std::is_same_v<T, Decimal128>>> {
+struct is_safe_for_full_compute<T, std::enable_if_t<std::is_fundamental_v<T> || std::is_same_v<T, Date> ||
+                                                    std::is_same_v<T, Timestamp> || std::is_same_v<T, Decimal32> ||
+                                                    std::is_same_v<T, Decimal64> || std::is_same_v<T, Decimal128>>> {
   static constexpr bool value = true;
 };
 
@@ -48,28 +47,23 @@ struct is_safe_for_full_compute<
 // 3. The output TID list is sufficiently large to represents all TIDs in both left and right inputs
 void CheckSelection(const Vector &left, const Vector &right, TupleIdList *result) {
   if (left.GetTypeId() != right.GetTypeId()) {
-    throw TypeMismatchException(left.GetTypeId(), right.GetTypeId(),
-                                "input vector types must match for selections");
+    throw TypeMismatchException(left.GetTypeId(), right.GetTypeId(), "input vector types must match for selections");
   }
   if (!left.IsConstant() && !right.IsConstant()) {
     if (left.GetSize() != right.GetSize()) {
-      throw Exception(ExceptionType::Execution,
-                      "left and right vectors to comparison have different sizes");
+      throw Exception(ExceptionType::Execution, "left and right vectors to comparison have different sizes");
     }
     if (left.GetCount() != right.GetCount()) {
-      throw Exception(ExceptionType::Execution,
-                      "left and right vectors to comparison have different counts");
+      throw Exception(ExceptionType::Execution, "left and right vectors to comparison have different counts");
     }
     if (result->GetCapacity() != left.GetSize()) {
-      throw Exception(ExceptionType::Execution,
-                      "result list not large enough to store all TIDs in input vector");
+      throw Exception(ExceptionType::Execution, "result list not large enough to store all TIDs in input vector");
     }
   }
 }
 
 template <typename T, typename Op>
-void TemplatedSelectOperation_Vector_Constant(const Vector &left, const Vector &right,
-                                              TupleIdList *tid_list) {
+void TemplatedSelectOperation_Vector_Constant(const Vector &left, const Vector &right, TupleIdList *tid_list) {
   // If the scalar constant is NULL, all comparisons are NULL.
   if (right.IsNull(0)) {
     tid_list->Clear();
@@ -81,8 +75,7 @@ void TemplatedSelectOperation_Vector_Constant(const Vector &left, const Vector &
 
   // Safe full-compute. Refer to comment at start of file for explanation.
   if constexpr (is_safe_for_full_compute<T>::value) {
-    const auto full_compute_threshold =
-        Settings::Instance()->GetDouble(Settings::Name::SelectOptThreshold);
+    const auto full_compute_threshold = Settings::Instance()->GetDouble(Settings::Name::SelectOptThreshold);
 
     if (full_compute_threshold <= tid_list->ComputeSelectivity()) {
       TupleIdList::BitVectorType *bit_vector = tid_list->GetMutableBits();
@@ -100,15 +93,13 @@ void TemplatedSelectOperation_Vector_Constant(const Vector &left, const Vector &
 }
 
 template <typename T, typename Op>
-void TemplatedSelectOperation_Vector_Vector(const Vector &left, const Vector &right,
-                                            TupleIdList *tid_list) {
+void TemplatedSelectOperation_Vector_Vector(const Vector &left, const Vector &right, TupleIdList *tid_list) {
   auto *left_data = reinterpret_cast<const T *>(left.GetData());
   auto *right_data = reinterpret_cast<const T *>(right.GetData());
 
   // Safe full-compute. Refer to comment at start of file for explanation.
   if constexpr (is_safe_for_full_compute<T>::value) {
-    const auto full_compute_threshold =
-        Settings::Instance()->GetDouble(Settings::Name::SelectOptThreshold);
+    const auto full_compute_threshold = Settings::Instance()->GetDouble(Settings::Name::SelectOptThreshold);
 
     // Only perform the full compute if the TID selectivity is larger than the threshold
     if (full_compute_threshold <= tid_list->ComputeSelectivity()) {
@@ -182,8 +173,8 @@ void SelectOperation(const Vector &left, const Vector &right, TupleIdList *tid_l
       TemplatedSelectOperation<storage::VarlenEntry, Op>(left, right, tid_list);
       break;
     default:
-      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("selections on vector type '{}' not supported",
-                                                TypeIdToString(left.GetTypeId())).data());
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("selections on vector type '{}' not supported", TypeIdToString(left.GetTypeId())).data());
   }
 }
 
@@ -197,8 +188,7 @@ void VectorOps::SelectGreaterThan(const Vector &left, const Vector &right, Tuple
   SelectOperation<terrier::execution::sql::GreaterThan>(left, right, tid_list);
 }
 
-void VectorOps::SelectGreaterThanEqual(const Vector &left, const Vector &right,
-                                       TupleIdList *tid_list) {
+void VectorOps::SelectGreaterThanEqual(const Vector &left, const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::GreaterThanEqual>(left, right, tid_list);
 }
 
@@ -206,8 +196,7 @@ void VectorOps::SelectLessThan(const Vector &left, const Vector &right, TupleIdL
   SelectOperation<terrier::execution::sql::LessThan>(left, right, tid_list);
 }
 
-void VectorOps::SelectLessThanEqual(const Vector &left, const Vector &right,
-                                    TupleIdList *tid_list) {
+void VectorOps::SelectLessThanEqual(const Vector &left, const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::LessThanEqual>(left, right, tid_list);
 }
 

@@ -30,9 +30,7 @@ struct AddWithOverflow {
   /**
    * @return True if a+b overflows; false otherwise. @em result stores the result regardless.
    */
-  constexpr bool operator()(T a, T b, T *result) const {
-    return util::ArithmeticOverflow::Add(a, b, result);
-  }
+  constexpr bool operator()(T a, T b, T *result) const { return util::ArithmeticOverflow::Add(a, b, result); }
 };
 
 /**
@@ -56,9 +54,7 @@ struct SubtractWithOverflow {
   /**
    * @return True if a-b overflows; false otherwise. @em result stores the result regardless.
    */
-  constexpr bool operator()(T a, T b, T *result) const {
-    return util::ArithmeticOverflow::Sub(a, b, result);
-  }
+  constexpr bool operator()(T a, T b, T *result) const { return util::ArithmeticOverflow::Sub(a, b, result); }
 };
 
 /**
@@ -82,9 +78,7 @@ struct MultiplyWithOverflow {
   /**
    * @return True if a*b overflows; false otherwise. @em result stores the result regardless.
    */
-  constexpr bool operator()(T a, T b, T *result) const {
-    return util::ArithmeticOverflow::Mul(a, b, result);
-  }
+  constexpr bool operator()(T a, T b, T *result) const { return util::ArithmeticOverflow::Mul(a, b, result); }
 };
 
 /**

@@ -254,40 +254,39 @@ class EXPORT ArithmeticFunctions {
 
 #define UNARY_MATH_EXPENSIVE_HIDE_NULL(OP, RET_TYPE, INPUT_TYPE)               \
   inline void ArithmeticFunctions::OP(RET_TYPE *result, const INPUT_TYPE &v) { \
-    using CppType = decltype(v.val_);                                           \
-    if (v.is_null_) {                                                           \
+    using CppType = decltype(v.val_);                                          \
+    if (v.is_null_) {                                                          \
       *result = RET_TYPE::Null();                                              \
       return;                                                                  \
     }                                                                          \
-    *result = RET_TYPE(terrier::execution::sql::OP<CppType>{}(v.val_));                        \
+    *result = RET_TYPE(terrier::execution::sql::OP<CppType>{}(v.val_));        \
   }
 
-#define BINARY_MATH_FAST_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP) \
-  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a,  \
-                                        const INPUT_TYPE2 &b) {                  \
-    using CppType = decltype(result->val_);                                       \
-    result->is_null_ = (a.is_null_ || b.is_null_);                                  \
-    result->val_ = OP<CppType>{}(a.val_, b.val_);                                   \
+#define BINARY_MATH_FAST_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                        \
+  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b) { \
+    using CppType = decltype(result->val_);                                                             \
+    result->is_null_ = (a.is_null_ || b.is_null_);                                                      \
+    result->val_ = OP<CppType>{}(a.val_, b.val_);                                                       \
   }
 
-#define BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP) \
-  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a,           \
-                                        const INPUT_TYPE2 &b, bool *overflow) {           \
-    using CppType = decltype(result->val_);                                                \
-    result->is_null_ = (a.is_null_ || b.is_null_);                                           \
-    *overflow = OP<CppType>{}(a.val_, b.val_, &result->val_);                                \
+#define BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)             \
+  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b, \
+                                        bool *overflow) {                                             \
+    using CppType = decltype(result->val_);                                                           \
+    result->is_null_ = (a.is_null_ || b.is_null_);                                                    \
+    *overflow = OP<CppType>{}(a.val_, b.val_, &result->val_);                                         \
   }
 
-#define BINARY_MATH_CHECK_ZERO_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP) \
-  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a,        \
-                                        const INPUT_TYPE2 &b, bool *div_by_zero) {     \
-    using CppType = decltype(result->val_);                                             \
-    if (a.is_null_ || b.is_null_ || b.val_ == 0) {                                        \
-      *div_by_zero = true;                                                             \
-      *result = RET_TYPE::Null();                                                      \
-      return;                                                                          \
-    }                                                                                  \
-    *result = RET_TYPE(OP<CppType>{}(a.val_, b.val_));                                   \
+#define BINARY_MATH_CHECK_ZERO_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                \
+  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b, \
+                                        bool *div_by_zero) {                                          \
+    using CppType = decltype(result->val_);                                                           \
+    if (a.is_null_ || b.is_null_ || b.val_ == 0) {                                                    \
+      *div_by_zero = true;                                                                            \
+      *result = RET_TYPE::Null();                                                                     \
+      return;                                                                                         \
+    }                                                                                                 \
+    *result = RET_TYPE(OP<CppType>{}(a.val_, b.val_));                                                \
   }
 
 BINARY_MATH_FAST_HIDE_NULL(Add, Integer, Integer, Integer, terrier::execution::sql::Add);

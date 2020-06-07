@@ -7,8 +7,7 @@ namespace terrier::execution::sql {
 #define NextByte(p, plen) ((p)++, (plen)--)
 
 // Inspired by Postgres
-bool Like::Impl(const char *str, size_t str_len, const char *pattern, size_t pattern_len,
-                char escape) {
+bool Like::Impl(const char *str, size_t str_len, const char *pattern, size_t pattern_len, char escape) {
   TERRIER_ASSERT(str != nullptr, "Input string cannot be NULL");
   TERRIER_ASSERT(pattern != nullptr, "Pattern cannot be NULL");
 

@@ -14,13 +14,11 @@ void TupleIdList::BuildFromSelectionVector(const sel_t *sel_vector, uint32_t siz
 }
 
 uint32_t TupleIdList::ToSelectionVector(sel_t *sel_vec) const {
-  return util::VectorUtil::BitVectorToSelectionVector(bit_vector_.GetWords(),
-                                                      bit_vector_.GetNumBits(), sel_vec);
+  return util::VectorUtil::BitVectorToSelectionVector(bit_vector_.GetWords(), bit_vector_.GetNumBits(), sel_vec);
 }
 
 std::string TupleIdList::ToString() const {
-  std::string result =
-      "TIDs(" + std::to_string(GetTupleCount()) + "/" + std::to_string(GetCapacity()) + ")=[";
+  std::string result = "TIDs(" + std::to_string(GetTupleCount()) + "/" + std::to_string(GetCapacity()) + ")=[";
   bool first = true;
   ForEach([&](const uint64_t i) {
     if (!first) result += ",";

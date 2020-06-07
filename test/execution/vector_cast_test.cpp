@@ -4,9 +4,9 @@
 #include "common/exception.h"
 #include "execution/util/exception.h"
 
+#include "execution/sql/vector.h"
 #include "execution/sql_test.h"
 #include "execution/tpl_test.h"
-#include "execution/sql/vector.h"
 #include "execution/util/bit_util.h"
 
 namespace terrier::execution::sql {
@@ -131,10 +131,9 @@ TEST_F(VectorCastTest, NumericDowncast) {
 
 TEST_F(VectorCastTest, DateCast) {
   // a = [NULL, "1980-01-01", "2016-01-27", NULL, "2000-01-01", "2015-08-01"]
-  auto a = MakeDateVector(
-      {Date::FromYMD(1980, 1, 1), Date::FromYMD(1980, 1, 1), Date::FromYMD(2016, 1, 27),
-       Date::FromYMD(1980, 1, 1), Date::FromYMD(2000, 1, 1), Date::FromYMD(2015, 8, 1)},
-      {true, false, false, true, false, false});
+  auto a = MakeDateVector({Date::FromYMD(1980, 1, 1), Date::FromYMD(1980, 1, 1), Date::FromYMD(2016, 1, 27),
+                           Date::FromYMD(1980, 1, 1), Date::FromYMD(2000, 1, 1), Date::FromYMD(2015, 8, 1)},
+                          {true, false, false, true, false, false});
 
   EXPECT_THROW(a->Cast(TypeId::TinyInt), NotImplementedException);
   EXPECT_THROW(a->Cast(TypeId::SmallInt), NotImplementedException);
@@ -155,8 +154,7 @@ TEST_F(VectorCastTest, DateCast) {
 
 TEST_F(VectorCastTest, CastStringToFloat) {
   // a = [NULL, "-123.45", "6.75", NULL, "0.8", "910"]
-  auto a = MakeVarcharVector({{}, "-123.45", "6.75", {}, "0.8", "910"},
-                             {true, false, false, true, false, false});
+  auto a = MakeVarcharVector({{}, "-123.45", "6.75", {}, "0.8", "910"}, {true, false, false, true, false, false});
 
   EXPECT_NO_THROW(a->Cast(TypeId::Float));
 

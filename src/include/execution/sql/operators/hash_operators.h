@@ -1,7 +1,7 @@
 #pragma once
 
-#include "execution/sql/runtime_types.h"
 #include "common/hash_util.h"
+#include "execution/sql/runtime_types.h"
 
 namespace terrier::execution::sql {
 
@@ -22,9 +22,7 @@ struct HashCombine {};
  */
 template <typename T>
 struct Hash<T, std::enable_if_t<std::is_arithmetic_v<T>>> {
-  hash_t operator()(T input, bool null) const noexcept {
-    return null ? hash_t(0) : common::HashUtil::HashCrc(input);
-  }
+  hash_t operator()(T input, bool null) const noexcept { return null ? hash_t(0) : common::HashUtil::HashCrc(input); }
 };
 
 /**
@@ -42,9 +40,7 @@ struct HashCombine<T, std::enable_if_t<std::is_arithmetic_v<T>>> {
  */
 template <>
 struct Hash<Date> {
-  hash_t operator()(Date input, bool null) const noexcept {
-    return null ? hash_t(0) : input.Hash();
-  }
+  hash_t operator()(Date input, bool null) const noexcept { return null ? hash_t(0) : input.Hash(); }
 };
 
 /**
@@ -62,9 +58,7 @@ struct HashCombine<Date> {
  */
 template <>
 struct Hash<Timestamp> {
-  hash_t operator()(Timestamp input, bool null) const noexcept {
-    return null ? hash_t(0) : input.Hash();
-  }
+  hash_t operator()(Timestamp input, bool null) const noexcept { return null ? hash_t(0) : input.Hash(); }
 };
 
 /**

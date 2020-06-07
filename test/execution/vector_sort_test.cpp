@@ -1,12 +1,12 @@
 #include <vector>
 
 #include "common/exception.h"
-#include "execution/util/exception.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql_test.h"
+#include "execution/util/exception.h"
 
 namespace terrier::execution::sql {
 
@@ -14,23 +14,21 @@ class VectorSortTest : public TplTest {};
 
 TEST_F(VectorSortTest, NoNullsNoFilter) {
   // All elements selected
-  auto vec =
-      MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
-                        {false, false, false, false, false, false, false, false, false, false});
+  auto vec = MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
+                               {false, false, false, false, false, false, false, false, false, false});
 
   sel_t sorted[common::Constants::K_DEFAULT_VECTOR_SIZE];
   VectorOps::Sort(*vec, sorted);
 
   auto *data = reinterpret_cast<const int32_t *>(vec->GetData());
-  EXPECT_TRUE(std::is_sorted(sorted, sorted + vec->GetSize(),
-                             [&](auto idx1, auto idx2) { return data[idx1] <= data[idx2]; }));
+  EXPECT_TRUE(
+      std::is_sorted(sorted, sorted + vec->GetSize(), [&](auto idx1, auto idx2) { return data[idx1] <= data[idx2]; }));
 }
 
 TEST_F(VectorSortTest, NoNullsWithFilter) {
   // Simple vector
-  auto vec =
-      MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
-                        {false, false, false, false, false, false, false, false, false, false});
+  auto vec = MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
+                               {false, false, false, false, false, false, false, false, false, false});
 
   // Filter: vec = [10,2,8]
   TupleIdList selections(vec->GetSize());
@@ -50,9 +48,8 @@ TEST_F(VectorSortTest, NoNullsWithFilter) {
 
 TEST_F(VectorSortTest, NullsNoFilter) {
   // vec = [NULL,10,2,9,NULL,8,NULL,NULL,NULL,6]
-  auto vec =
-      MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
-                        {false, false, false, false, false, false, false, false, false, false});
+  auto vec = MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
+                               {false, false, false, false, false, false, false, false, false, false});
   vec->SetNull(0, true);
   vec->SetNull(4, true);
   vec->SetNull(6, true);

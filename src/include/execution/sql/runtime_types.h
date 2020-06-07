@@ -217,8 +217,7 @@ class EXPORT Timestamp {
    * @param[out] min The minute corresponding to this date.
    * @param[out] sec The second corresponding to this date.
    */
-  void ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min,
-                         int32_t *sec);
+  void ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min, int32_t *sec);
 
   /**
    * Convert this timestamp instance into a date instance.
