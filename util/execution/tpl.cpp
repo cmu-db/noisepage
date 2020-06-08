@@ -105,7 +105,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   auto *txn = txn_manager->BeginTransaction();
 
   auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), "test_db", true);
-  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid);
+  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   auto ns_oid = accessor->GetDefaultNamespace();
 
   // Make the execution context
