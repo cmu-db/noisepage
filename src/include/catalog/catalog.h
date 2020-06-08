@@ -22,6 +22,7 @@ class GarbageCollector;
 
 namespace terrier::catalog {
 
+class CatalogCache;
 class CatalogAccessor;
 
 /**
@@ -123,7 +124,7 @@ class Catalog {
    * @return a CatalogAccessor object for use with this transaction
    */
   std::unique_ptr<CatalogAccessor> GetAccessor(common::ManagedPointer<transaction::TransactionContext> txn,
-                                               db_oid_t database);
+                                               db_oid_t database, common::ManagedPointer<CatalogCache> cache);
 
   /**
    * @return Catalog's BlockStore

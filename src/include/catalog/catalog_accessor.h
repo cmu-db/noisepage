@@ -27,6 +27,7 @@ class FunctionContext;
 namespace terrier::catalog {
 class Catalog;
 class DatabaseCatalog;
+class CatalogCache;
 
 /**
  * A stateful wrapper around the catalog that provides the primary mechanisms
@@ -383,12 +384,14 @@ class CatalogAccessor {
    * @warning This constructor should never be called directly.  Instead you should get accessors from the catalog.
    */
   CatalogAccessor(const common::ManagedPointer<Catalog> catalog, const common::ManagedPointer<DatabaseCatalog> dbc,
-                  const common::ManagedPointer<transaction::TransactionContext> txn)
+                  const common::ManagedPointer<transaction::TransactionContext> txn,
+                  const common::ManagedPointer<CatalogCache> cache)
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
         search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
-        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
+        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID),
+        cache_(cache) {}
 
  private:
   const common::ManagedPointer<Catalog> catalog_;
@@ -396,6 +399,7 @@ class CatalogAccessor {
   const common::ManagedPointer<transaction::TransactionContext> txn_;
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
+  const common::ManagedPointer<CatalogCache> cache_ = nullptr;
 
   /**
    * A helper function to ensure that user-defined object names are standardized prior to doing catalog operations
