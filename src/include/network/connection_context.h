@@ -36,6 +36,7 @@ class ConnectionContext {
     accessor_ = nullptr;
     callback_ = nullptr;
     callback_arg_ = nullptr;
+    catalog_cache_.Reset();
   }
 
   /**
