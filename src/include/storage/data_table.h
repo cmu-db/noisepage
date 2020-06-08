@@ -1,5 +1,4 @@
 #pragma once
-#include <list>
 #include <unordered_map>
 #include <vector>
 
@@ -96,20 +95,26 @@ class DataTable {
 
    private:
     friend class DataTable;
+
+    /** Indicates that the iterator should advance to the end of the table. */
+    static constexpr int32_t TILL_END = -1;
+
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    SlotIterator(const DataTable *table, std::vector<RawBlock *>::const_iterator curr_block,
-                 std::vector<RawBlock *>::const_iterator end_block, uint32_t offset_in_block)
-        : table_(table), curr_block_(curr_block), end_block_(end_block) {
-      current_slot_ = {curr_block_ == end_block_ ? nullptr : *curr_block_, offset_in_block};
+    SlotIterator(const DataTable *table, uint32_t block_index, int32_t num_advances, uint32_t offset_in_block)
+        : table_(table), block_index_(block_index), num_advances_(num_advances) {
+      current_slot_ = {block_index >= table_->blocks_.size() ? nullptr : table->blocks_[block_index], offset_in_block};
     }
 
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
     // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_;
-    std::vector<RawBlock *>::const_iterator curr_block_;
-    std::vector<RawBlock *>::const_iterator end_block_;
+    // Warning: this implicitly assumes that blocks will only ever be inserted at the right end.
+    uint32_t block_index_;
+    // The remaining number of times that this iterator will advance to the next block,
+    // or ADVANCE_TO_THE_END to advance to the end.
+    int32_t num_advances_;
     TupleSlot current_slot_;
   };
   /**
@@ -164,7 +169,7 @@ class DataTable {
    */
   SlotIterator begin() const {  // NOLINT for STL name compatibility
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {this, blocks_.begin(), blocks_.end(), 0};
+    return {this, 0, SlotIterator::TILL_END, 0};
   }
 
   /**
@@ -177,8 +182,9 @@ class DataTable {
   SlotIterator end() const;  // NOLINT for STL name compatibility
 
   /**
-   * @param start The index of the block to start iterating at.
-   * @param end The index of the block to stop iterating at, non-inclusive.
+   * Return a SlotIterator that will only cover the blocks in the selected range. If the end
+   * @param start The index of the block to start iterating at, starts at 0.
+   * @param end The index of the block to stop iterating at, ends at GetNumBlocks().
    * @return SlotIterator that will iterate over only the blocks in the range [start, end).
    */
   SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const;
@@ -263,10 +269,10 @@ class DataTable {
   mutable common::SpinLatch blocks_latch_;
   // latch used to protect insertion_head_
   mutable common::SpinLatch header_latch_;
-  std::vector<RawBlock *>::iterator insertion_head_;
+  uint32_t insertion_head_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
-  void CheckMoveHead(std::vector<RawBlock *>::iterator block);
+  void CheckMoveHead(uint32_t block_index);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.

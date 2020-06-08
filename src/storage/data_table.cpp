@@ -1,8 +1,9 @@
+#include "storage/data_table.h"
+
 #include <list>
 
 #include "common/allocator.h"
 #include "storage/block_access_controller.h"
-#include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
@@ -21,7 +22,7 @@ DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const Block
     // insert block
     blocks_.push_back(new_block);
   }
-  insertion_head_ = blocks_.begin();
+  insertion_head_ = 0;
 }
 
 DataTable::~DataTable() {
@@ -65,11 +66,18 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
   // Jump to the next block if already the last slot in the block.
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
-    ++curr_block_;
-    // Cannot dereference if the next block is end(), so just use nullptr to denote
-    current_slot_ = {curr_block_ == end_block_ ? nullptr : *curr_block_, 0};
+    if (num_advances_ > 0 || num_advances_ == SlotIterator::TILL_END) {
+      // Advance to the next block.
+      ++block_index_;
+      num_advances_ = num_advances_ == SlotIterator::TILL_END ? num_advances_ : num_advances_ - 1;
+      // Cannot dereference if the next block is end(), so just use nullptr to denote
+      current_slot_ = {block_index_ >= table_->blocks_.size() ? nullptr : table_->blocks_[block_index_], 0};
+    } else {
+      // Done advancing, time to give up.
+      current_slot_ = {nullptr, 0};
+    }
   } else {
-    current_slot_ = {*curr_block_, current_slot_.GetOffset() + 1};
+    current_slot_ = {table_->blocks_[block_index_], current_slot_.GetOffset() + 1};
   }
   return *this;
 }
@@ -81,31 +89,25 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
 
   // The end iterator could either point to an unfilled slot in a block, or point to nothing if every block in the
-  // table is full. In the case that it points to nothing, we will use the end-iterator of the blocks list and
+  // table is full. In the case that it points to nothing, we will use the end of the blocks list and
   // 0 to denote that this is the case. This solution makes increment logic simple and natural.
-  if (blocks_.empty()) return {this, blocks_.end(), blocks_.end(), 0};
-  auto last_block = --blocks_.end();
-  uint32_t insert_head = (*last_block)->GetInsertHead();
+  uint32_t num_blocks = blocks_.size();
+  if (blocks_.empty()) return {this, num_blocks, SlotIterator::TILL_END, 0};
+  uint32_t last_block_index = num_blocks - 1;
+  uint32_t insert_head = blocks_[last_block_index]->GetInsertHead();
   // Last block is full, return the default end iterator that doesn't point to anything
-  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), blocks_.end(), 0};
+  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, num_blocks, SlotIterator::TILL_END, 0};
   // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
-  return {this, last_block, last_block, insert_head};
+  return {this, last_block_index, SlotIterator::TILL_END, insert_head};
 }
 
 DataTable::SlotIterator DataTable::GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
   TERRIER_ASSERT(start <= end, "Start index should come before ending index.");
-  TERRIER_ASSERT(start < blocks_.size() && end < blocks_.size(), "Indexes must be within bounds.");
-  std::vector<RawBlock *>::const_iterator end_block;
+  TERRIER_ASSERT(start <= blocks_.size() && end <= blocks_.size(), "Indexes must be within bounds.");
+  TERRIER_ASSERT(static_cast<int32_t>(end - start - 1) >= 0, "Too many blocks or sign issue.");
 
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-  if (end + 1 == blocks_.size()) {
-    end_block = blocks_.end();
-  } else {
-    end_block = blocks_.begin();
-    // This is constant time for LegacyRandomAccessIterator. Be careful if you change the iterator type.
-    std::advance(end_block, end);
-  }
-  return {this, blocks_.begin(), end_block, 0};
+  return {this, start, static_cast<int32_t>(end - start - 1), 0};
 }
 
 bool DataTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
@@ -150,23 +152,20 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
   return true;
 }
 
-void DataTable::CheckMoveHead(std::vector<RawBlock *>::iterator block) {
-  // Assume block is full
+void DataTable::CheckMoveHead(uint32_t block_index) {
+  // Assume block is full.
   common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
-  if (block == insertion_head_) {
-    // If the header block is full, move the header to point to the next block
+  if (block_index == insertion_head_) {
+    // If the header block is full, move the header to point to the next block.
     insertion_head_++;
   }
 
-  // If there are no more free blocks, create a new empty block and  point the insertion_head to it
-  if (insertion_head_ == blocks_.end()) {
+  // If there are no more free blocks, create a new empty block and point the insertion_head to it.
+  if (insertion_head_ == blocks_.size()) {
     RawBlock *new_block = NewBlock();
-    // take latch
+    // Take the latch and insert the block. The insertion head will already have the right index.
     common::SpinLatch::ScopedSpinLatch guard_block(&blocks_latch_);
-    // insert block
     blocks_.push_back(new_block);
-    // set insertion header to --end()
-    insertion_head_ = --blocks_.end();
   }
 }
 
@@ -185,10 +184,11 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   // If the first bit is 1, it indicates one txn is writing to the block.
 
   TupleSlot result;
-  auto block = insertion_head_;
+  auto block_index = insertion_head_;
+
   while (true) {
     // No free block left
-    if (block == blocks_.end()) {
+    if (block_index == blocks_.size()) {
       RawBlock *new_block = NewBlock();
       TERRIER_ASSERT(accessor_.SetBlockBusyStatus(new_block), "Status of new block should not be busy");
       // No need to flip the busy status bit
@@ -197,29 +197,29 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
       common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
       // insert block
       blocks_.push_back(new_block);
-      block = --blocks_.end();
       break;
     }
 
-    if (accessor_.SetBlockBusyStatus(*block)) {
+    auto block = blocks_[block_index];
+    if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block
-      if (accessor_.Allocate(*block, &result)) {
+      if (accessor_.Allocate(block, &result)) {
         // The block is not full, succeed
         break;
       }
       // Fail to insert into the block, flip back the status bit
-      accessor_.ClearBlockBusyStatus(*block);
+      accessor_.ClearBlockBusyStatus(block);
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
-      CheckMoveHead(block);
+      CheckMoveHead(block_index);
     }
     // The block is full or the block is being inserted by other txn, try next block
-    ++block;
+    ++block_index;
   }
 
   // Do not need to wait unit finish inserting,
   // can flip back the status bit once the thread gets the allocated tuple slot
-  accessor_.ClearBlockBusyStatus(*block);
+  accessor_.ClearBlockBusyStatus(blocks_[block_index]);
   InsertInto(txn, redo, result);
 
   data_table_counter_.IncrementNumInsert(1);
