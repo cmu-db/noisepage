@@ -23,6 +23,8 @@ class CatalogCache {
     indexes_.clear();
   }
 
+  transaction::timestamp_t OldestEntry() const { return oldest_entry_; }
+
  private:
   common::ManagedPointer<storage::SqlTable> GetTable(const table_oid_t table) {
     const auto key = static_cast<uint32_t>(table);

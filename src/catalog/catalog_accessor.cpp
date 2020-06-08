@@ -105,7 +105,7 @@ std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const 
     auto cache_lookup = cache_->GetIndexOids(table);
     if (!cache_lookup.first) {
       // not in the cache, get it from the actual catalog, stash it, and return retrieved value
-      auto index_oids = dbc_->GetIndexOids(txn_, table);
+      const auto index_oids = dbc_->GetIndexOids(txn_, table);
       cache_->PutIndexOids(table, index_oids);
       return index_oids;
     }
