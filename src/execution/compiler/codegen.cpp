@@ -7,6 +7,7 @@
 #include "brain/operating_unit.h"
 #include "execution/sql/value.h"
 #include "parser/expression/constant_value_expression.h"
+#include "storage/index/index_defs.h"
 #include "util/time_util.h"
 
 namespace terrier::execution::compiler {

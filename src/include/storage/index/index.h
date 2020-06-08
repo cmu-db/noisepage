@@ -14,13 +14,6 @@
 
 namespace terrier::storage::index {
 
-enum class ScanType : uint32_t {
-  Closed,   /* [low, high] range scan */
-  OpenLow,  /* [begin(), high] range scan */
-  OpenHigh, /* [low, end()] range scan */
-  OpenBoth  /* [begin(), end()] range scan */
-};
-
 /**
  * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
  * to be modeled as a delete and an insert (see bwtree_index_test.cpp CommitUpdate1, CommitUpdate2, etc.). This

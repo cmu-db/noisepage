@@ -5,6 +5,7 @@
 
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include "storage/index/index.h"
 
 namespace terrier::execution::compiler {
 InsertTranslator::InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen)

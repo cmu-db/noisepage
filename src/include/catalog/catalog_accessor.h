@@ -6,17 +6,27 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
-#include "storage/index/index.h"
-#include "storage/sql_table.h"
 #include "type/type_id.h"
+
+namespace terrier::storage {
+class SqlTable;
+namespace index {
+class Index;
+}
+}  // namespace terrier::storage
+
+namespace terrier::execution::functions {
+class FunctionContext;
+}
 
 namespace terrier::catalog {
 class Catalog;
+class DatabaseCatalog;
 
 /**
  * A stateful wrapper around the catalog that provides the primary mechanisms
