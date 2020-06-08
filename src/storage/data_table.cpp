@@ -83,13 +83,13 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   // The end iterator could either point to an unfilled slot in a block, or point to nothing if every block in the
   // table is full. In the case that it points to nothing, we will use the end-iterator of the blocks list and
   // 0 to denote that this is the case. This solution makes increment logic simple and natural.
-  if (blocks_.empty()) return {this, blocks_.end(), 0};
+  if (blocks_.empty()) return {this, blocks_.end(), blocks_.end(), 0};
   auto last_block = --blocks_.end();
   uint32_t insert_head = (*last_block)->GetInsertHead();
   // Last block is full, return the default end iterator that doesn't point to anything
-  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), 0};
+  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), blocks_.end(), 0};
   // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
-  return {this, last_block, insert_head};
+  return {this, last_block, last_block, insert_head};
 }
 
 DataTable::SlotIterator DataTable::GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
@@ -150,7 +150,7 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
   return true;
 }
 
-void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
+void DataTable::CheckMoveHead(std::vector<RawBlock *>::iterator block) {
   // Assume block is full
   common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
   if (block == insertion_head_) {

@@ -263,10 +263,10 @@ class DataTable {
   mutable common::SpinLatch blocks_latch_;
   // latch used to protect insertion_head_
   mutable common::SpinLatch header_latch_;
-  std::list<RawBlock *>::iterator insertion_head_;
+  std::vector<RawBlock *>::iterator insertion_head_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
-  void CheckMoveHead(std::list<RawBlock *>::iterator block);
+  void CheckMoveHead(std::vector<RawBlock *>::iterator block);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
