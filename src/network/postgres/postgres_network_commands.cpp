@@ -308,7 +308,8 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
 
   if (NetworkUtil::UnsupportedQueryType(query_type)) {
     // We don't yet support query types with values greater than this
-    // Don't begin an implicit txn in this case, and don't bind or optimize this statement
+    // Don't begin an implicit txn in this case, and don't bind or optimize this statement. Just noop with a Notice (not
+    // an Error) and proceed to reading more messages.
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
