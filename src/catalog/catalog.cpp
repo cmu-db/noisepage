@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_cache.h"
 #include "catalog/database_catalog.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_database.h"
@@ -205,6 +206,13 @@ std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(const common::ManagedPoint
                                                       const common::ManagedPointer<CatalogCache> cache) {
   auto dbc = this->GetDatabaseCatalog(common::ManagedPointer(txn), database);
   if (dbc == nullptr) return nullptr;
+  if (cache != DISABLED) {
+    const auto last_ddl_change = dbc->write_lock_.load();
+    const transaction::timestamp_t start_time = txn->StartTime();  // this is the unchanging start time of the txn
+    const bool invalidate_cache = transaction::TransactionUtil::Committed(last_ddl_change) &&
+                                  transaction::TransactionUtil::NewerThan(last_ddl_change, start_time);
+    if (invalidate_cache) cache->Reset(start_time);
+  }
   return std::make_unique<CatalogAccessor>(common::ManagedPointer(this), dbc, txn, cache);
 }
 

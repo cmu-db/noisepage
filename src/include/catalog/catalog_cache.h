@@ -17,6 +17,12 @@ namespace terrier::catalog {
 class CatalogAccessor;
 class CatalogCache {
  public:
+  void Reset(const transaction::timestamp_t now) {
+    oldest_entry_ = now;
+    pointers_.clear();
+    indexes_.clear();
+  }
+
  private:
   common::ManagedPointer<storage::SqlTable> GetTable(const table_oid_t table) {
     const auto key = static_cast<uint32_t>(table);
@@ -65,15 +71,11 @@ class CatalogCache {
     indexes_[table] = std::move(indexes);
   }
 
-  void Reset() {
-    pointers_.clear();
-    indexes_.clear();
-  }
-
   friend class CatalogAccessor;
 
   std::unordered_map<uint32_t, uintptr_t> pointers_;
   std::unordered_map<table_oid_t, std::vector<index_oid_t>> indexes_;
+  transaction::timestamp_t oldest_entry_ = transaction::INITIAL_TXN_TIMESTAMP;
 };
 
 }  // namespace terrier::catalog
