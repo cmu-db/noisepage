@@ -24,7 +24,7 @@ class BinderSherpa {
    * Create a new BinderSherpa.
    * @param parse_result The parse result to be tracked
    * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
-   * @param desired_parameter_types same size as paramaters, can be nullptr if there are no parameters
+   * @param desired_parameter_types same size as parameters, can be nullptr if there are no parameters
    */
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
                         const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
