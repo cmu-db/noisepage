@@ -99,15 +99,17 @@ class DataTable {
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
-        : table_(table), block_(block) {
-      current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
+    SlotIterator(const DataTable *table, std::vector<RawBlock *>::const_iterator curr_block,
+                 std::vector<RawBlock *>::const_iterator end_block, uint32_t offset_in_block)
+        : table_(table), curr_block_(curr_block), end_block_(end_block) {
+      current_slot_ = {curr_block_ == end_block_ ? nullptr : *curr_block_, offset_in_block};
     }
 
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
     // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_;
-    std::list<RawBlock *>::const_iterator block_;
+    std::vector<RawBlock *>::const_iterator curr_block_;
+    std::vector<RawBlock *>::const_iterator end_block_;
     TupleSlot current_slot_;
   };
   /**
@@ -160,9 +162,9 @@ class DataTable {
   /**
    * @return the first tuple slot contained in the data table
    */
-  SlotIterator begin() const {  // NOLINT for STL name compability
+  SlotIterator begin() const {  // NOLINT for STL name compatibility
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {this, blocks_.begin(), 0};
+    return {this, blocks_.begin(), blocks_.end(), 0};
   }
 
   /**
@@ -172,7 +174,14 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const;  // NOLINT for STL name compability
+  SlotIterator end() const;  // NOLINT for STL name compatibility
+
+  /**
+   * @param start The index of the block to start iterating at.
+   * @param end The index of the block to stop iterating at, non-inclusive.
+   * @return SlotIterator that will iterate over only the blocks in the range [start, end).
+   */
+  SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const;
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
@@ -220,6 +229,11 @@ class DataTable {
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
+  /**
+   * @return Number of blocks in the data table.
+   */
+  const uint32_t GetNumBlocks() const { return blocks_.size(); }
+
  private:
   // The ArrowSerializer needs access to its blocks.
   friend class ArrowSerializer;
@@ -244,12 +258,7 @@ class DataTable {
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
   // deleted tuples and recycle slots
-  // TODO(Tianyu): Now that we are switching to a linked list, there probably isn't a reason for it
-  // to be latched. Could just easily write a lock-free one if there's performance gain(probably not). vector->list has
-  // negligible difference in insert performance (within margin of error) when benchmarked.
-  // We also might need our own implementation because we need to handle GC of an unlinked block, as a sequential scan
-  // might be on it
-  std::list<RawBlock *> blocks_;
+  std::vector<RawBlock *> blocks_;
   // latch used to protect block list
   mutable common::SpinLatch blocks_latch_;
   // latch used to protect insertion_head_

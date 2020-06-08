@@ -65,11 +65,11 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
   // Jump to the next block if already the last slot in the block.
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
-    ++block_;
+    ++curr_block_;
     // Cannot dereference if the next block is end(), so just use nullptr to denote
-    current_slot_ = {block_ == table_->blocks_.end() ? nullptr : *block_, 0};
+    current_slot_ = {curr_block_ == end_block_ ? nullptr : *curr_block_, 0};
   } else {
-    current_slot_ = {*block_, current_slot_.GetOffset() + 1};
+    current_slot_ = {*curr_block_, current_slot_.GetOffset() + 1};
   }
   return *this;
 }
@@ -90,6 +90,22 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), 0};
   // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
   return {this, last_block, insert_head};
+}
+
+DataTable::SlotIterator DataTable::GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
+  TERRIER_ASSERT(start <= end, "Start index should come before ending index.");
+  TERRIER_ASSERT(start < blocks_.size() && end < blocks_.size(), "Indexes must be within bounds.");
+  std::vector<RawBlock *>::const_iterator end_block;
+
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  if (end + 1 == blocks_.size()) {
+    end_block = blocks_.end();
+  } else {
+    end_block = blocks_.begin();
+    // This is constant time for LegacyRandomAccessIterator. Be careful if you change the iterator type.
+    std::advance(end_block, end);
+  }
+  return {this, blocks_.begin(), end_block, 0};
 }
 
 bool DataTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
