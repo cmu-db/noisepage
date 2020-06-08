@@ -165,9 +165,14 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       auto create_index_plan = physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>();
       bool concurrent = create_index_plan->GetConcurrent();
       if (concurrent) {
-        connection_ctx->Transaction()->SetMustAbort();
-        return {ResultType::ERROR, "ERROR:  CREATE INDEX CONCURRENTLY not implemented"};
-        // TODO(add_index): Implement this
+        auto *populate_txn = txn_manager_->BeginTransaction();
+        bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
+            physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
+            common::ManagedPointer(populate_txn));
+        if (result) {
+          return {ResultType::COMPLETE, 0};
+        }
+        break;
       }
 
       auto table_oid = create_index_plan->GetTableOid();
@@ -305,15 +310,15 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-                     query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
-                 "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+  query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
+  query_type == network::QueryType::QUERY_DELETE, "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
-  // Block potential inserts on creating indexes
-  std::unordered_set<catalog::table_oid_t> modified_table_oids;
-  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
-  for (const auto table_oid : modified_table_oids) {
-    connection_ctx->Transaction()->LockIfNotLocked(table_oid, connection_ctx->Accessor()->GetTableLock(table_oid));
-  }
+//  // Block potential inserts on creating indexes
+//  std::unordered_set<catalog::table_oid_t> modified_table_oids;
+//  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
+//  for (const auto table_oid : modified_table_oids) {
+//    connection_ctx->Transaction()->LockIfNotLocked(table_oid, connection_ctx->Accessor()->GetTableLock(table_oid));
+//  }
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...

@@ -60,6 +60,9 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
     case terrier::planner::PlanNodeType::LIMIT: {
       return std::make_unique<LimitTranslator>(static_cast<const planner::LimitPlanNode *>(op), codegen);
     }
+    case terrier::planner::PlanNodeType::CREATE_INDEX:{
+      return std::make_unique<CreateIndexTranslator>(static_cast<const planner::CreateIndexPlanNode *>(op), codegen);
+    }
     default:
       UNREACHABLE("Unsupported plan nodes");
   }

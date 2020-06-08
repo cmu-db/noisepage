@@ -48,7 +48,15 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
       connection_ctx->Transaction()->SetMustAbort();
       return;
     }
+    if (query_type == network::QueryType::QUERY_CREATE_INDEX && physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>()->GetConcurrent()) {
+      result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
+
+      //TODO(Wuwen): grab lock for creation
+      result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
+      return;
+    }
     result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
+
   } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_DROP_DB) {
       out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
