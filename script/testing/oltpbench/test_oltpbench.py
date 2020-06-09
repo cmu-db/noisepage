@@ -4,6 +4,7 @@ import sys
 import subprocess
 import json
 import traceback
+import shutil
 from util.constants import ErrorCode
 from util.common import run_command
 from util.test_server import TestServer
@@ -48,6 +49,16 @@ class TestOLTPBench(TestServer):
             # self.test_output_file = os.path.join(
             #     constants.OLTP_DIR_TEST_RESULT, self.result_path)
 
+        # oltpbench test summary, including Throughput/Latency Distribution/Scalefactor/
+        self.oltpbench_summary_file = self.args.get("test_summary_file")
+        if not self.oltpbench_summary_file:
+            self.oltpbench_summary_file = "oltp_summary_{BENCHMARK}_{WEIGHTS}_{SCALEFACTOR}.json".format(
+                BENCHMARK=self.benchmark,
+                WEIGHTS=self.weights.replace(",", "_"),
+                SCALEFACTOR=str(self.scalefactor))
+        self.oltpbench_summary_path = os.path.join(
+            constants.OLTP_DIR_TEST_SUMMARY_FOLDER, self.oltpbench_summary_file)
+
         # oltpbench json format test results
         self.test_output_json_file = self.args.get("test_output_json_file")
         if not self.test_output_json_file:
@@ -74,10 +85,12 @@ class TestOLTPBench(TestServer):
         self.install_oltp()
         self.config_xml_file()
         self.create_result_dir()
+        self.create_summary_dir()
 
     def run_post_test(self):
         # validate the OLTP result
         try:
+            self.store_test_summary()
             self.validate_result()
         except:
             traceback.print_exc(file=sys.stdout)
@@ -86,6 +99,10 @@ class TestOLTPBench(TestServer):
     def create_result_dir(self):
         if not os.path.exists(constants.OLTP_DIR_TEST_RESULT):
             os.mkdir(constants.OLTP_DIR_TEST_RESULT)
+
+    def create_summary_dir(self):
+        if not os.path.exists(constants.OLTP_DIR_TEST_SUMMARY_FOLDER):
+            os.mkdir(constants.OLTP_DIR_TEST_SUMMARY_FOLDER)
 
     def install_oltp(self):
         self.clean_oltp()
@@ -174,3 +191,19 @@ class TestOLTPBench(TestServer):
         else:
             print(str(unexpected_result))
             sys.exit(constants.ErrorCode.ERROR)
+
+    def store_test_summary(self):
+        # Make sure the summary file exists before we try to open it.
+        if not os.path.exists(constants.OLTP_DIR_TEST_SUMMARY):
+            print("=" * 50)
+            print("Directory Contents: {}".format(
+                os.path.dirname(constants.OLTP_DIR_TEST_SUMMARY)))
+            print("\n".join(
+                os.listdir(os.path.dirname(constants.OLTP_DIR_TEST_SUMMARY))))
+            print("=" * 50)
+            msg = "Unable to find OLTP-Bench test summary file '{}'".format(
+                constants.OLTP_DIR_TEST_SUMMARY)
+            raise RuntimeError(msg)
+        else:
+            shutil.copy(constants.OLTP_DIR_TEST_SUMMARY,
+                        self.oltpbench_summary_path)
