@@ -211,6 +211,7 @@ void BinderContext::GenerateAllColumnExpressions(
     auto col_cnt = schema.GetColumns().size();
     for (uint32_t i = 0; i < col_cnt; i++) {
       const auto &col_obj = schema.GetColumn(i);
+      // TODO(jordig) Should this be allocated in a region?
       auto tv_expr = new parser::ColumnValueExpression(std::string(entry.first), std::string(col_obj.Name()));
       tv_expr->SetReturnValueType(col_obj.Type());
       tv_expr->DeriveExpressionName();

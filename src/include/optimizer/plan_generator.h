@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/schema.h"
+#include "network/connection_context.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
@@ -62,6 +63,7 @@ class PlanGenerator : public OperatorVisitor {
       transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, AbstractOptimizerNode *op,
       PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
+      execution::util::Region *region,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
       std::vector<ExprMap> &&children_expr_map);
 
@@ -399,6 +401,11 @@ class PlanGenerator : public OperatorVisitor {
    * Transaction Context executing under
    */
   transaction::TransactionContext *txn_;
+
+  /**
+   * Region used for allocation
+   */
+   execution::util::Region *region_;
 };
 
 }  // namespace optimizer

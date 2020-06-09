@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -7,6 +8,7 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "execution/util/region.h"
 #include "network/network_defs.h"
 
 namespace terrier::transaction {
@@ -42,6 +44,7 @@ class ConnectionContext {
     accessor_ = nullptr;
     callback_ = nullptr;
     callback_arg_ = nullptr;
+    region_->FreeAll(); // TODO: Check sanity of this
   }
 
   /**
@@ -114,6 +117,11 @@ class ConnectionContext {
     }
     return NetworkTransactionStateType::IDLE;
   }
+
+  /**
+   * @return the region used for allocation
+   */
+  execution::util::Region *Region() const { return region_; }
 
   /**
    * @return managed pointer to the connection's current txn (may be nullptr if none running)
@@ -206,6 +214,12 @@ class ConnectionContext {
    * later in the pipeline so this is a reasonable owner and will just hand out ManagedPointers for other components.
    */
   std::unique_ptr<catalog::CatalogAccessor> accessor_ = nullptr;
+
+  /**
+   * Similar philosophy to what's seen in execution/ast/context.{h,cpp})
+   * Bind expressions tied to the lifetime of a connection to a connection-specific region, used for region allocation.
+   */
+  execution::util::Region *region_;
 
   /**
    * ConnectionHandle callback stuff to issue a libevent wakeup in the event of WAIT_ON_TERRIER state. Currently

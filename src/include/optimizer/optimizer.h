@@ -35,7 +35,8 @@ class Optimizer : public AbstractOptimizer {
   /**
    * Disallow copy and move
    */
-  DISALLOW_COPY_AND_MOVE(Optimizer);
+  // TODO(Jordi) figure this stuff out.
+  // DISALLOW_COPY_AND_MOVE(Optimizer);
 
   /**
    * Constructor for Optimizer with a cost_model
@@ -59,7 +60,8 @@ class Optimizer : public AbstractOptimizer {
   std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(transaction::TransactionContext *txn,
                                                            catalog::CatalogAccessor *accessor, StatsStorage *storage,
                                                            QueryInfo query_info,
-                                                           std::unique_ptr<AbstractOptimizerNode> op_tree) override;
+                                                           std::unique_ptr<AbstractOptimizerNode> op_tree,
+                                                           execution::util::Region *region) override;
 
   /**
    * Reset the optimizer state
@@ -88,7 +90,8 @@ class Optimizer : public AbstractOptimizer {
   std::unique_ptr<planner::AbstractPlanNode> ChooseBestPlan(
       transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, group_id_t id,
       PropertySet *required_props,
-      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols);
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+      execution::util::Region *region);
 
   /**
    * Execute elements of given optimization task stack and ensure that we

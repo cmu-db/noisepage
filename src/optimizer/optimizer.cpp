@@ -24,7 +24,8 @@ void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
                                                                     catalog::CatalogAccessor *accessor,
                                                                     StatsStorage *storage, QueryInfo query_info,
-                                                                    std::unique_ptr<AbstractOptimizerNode> op_tree) {
+                                                                    std::unique_ptr<AbstractOptimizerNode> op_tree,
+                                                                    execution::util::Region *region) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
@@ -52,7 +53,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
   }
 
   try {
-    auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs);
+    auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs, region);
 
     // Reset memo after finishing the optimization
     Reset();
@@ -65,7 +66,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
     transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, group_id_t id,
-    PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols) {
+    PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+    execution::util::Region *region) {
   Group *group = context_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
@@ -97,7 +99,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
       child_expr_map[input_cols[i][offset]] = offset;
     }
 
-    auto child_plan = ChooseBestPlan(txn, accessor, child_groups[i], required_input_props[i], input_cols[i]);
+    auto child_plan = ChooseBestPlan(txn, accessor, child_groups[i], required_input_props[i], input_cols[i], region);
     TERRIER_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
 
     children_plans.emplace_back(std::move(child_plan));
@@ -108,7 +110,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   auto *op = new OperatorNode(gexpr->Contents(), {}, txn);
 
   PlanGenerator generator;
-  auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
+  auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols, region,
                                       std::move(children_plans), std::move(children_expr_map));
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group {0}", id);
 

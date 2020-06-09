@@ -164,7 +164,8 @@ class ExpressionUtil {
    * @note the value returned must be freed by the caller
    */
   static std::unique_ptr<AbstractExpression> ConvertExprCVNodes(
-      common::ManagedPointer<AbstractExpression> expr, const std::vector<optimizer::ExprMap> &child_expr_maps) {
+      common::ManagedPointer<AbstractExpression> expr, const std::vector<optimizer::ExprMap> &child_expr_maps,
+      execution::util::Region *region) {
     if (expr.Get() == nullptr) {
       return nullptr;
     }
@@ -183,7 +184,7 @@ class ExpressionUtil {
 
           // Add to children directly because DerivedValueExpression has no children
           auto value_idx = static_cast<int>(iter->second);
-          children.push_back(std::make_unique<DerivedValueExpression>(type, tuple_idx, value_idx));
+          children.push_back(std::unique_ptr<DerivedValueExpression>(new (region) DerivedValueExpression(type, tuple_idx, value_idx)));
 
           did_insert = true;
           break;
@@ -193,12 +194,13 @@ class ExpressionUtil {
       }
 
       if (!did_insert) {
-        children.push_back(ConvertExprCVNodes(child_expr, child_expr_maps));
+        children.push_back(ConvertExprCVNodes(child_expr, child_expr_maps, region));
       }
     }
 
     // Return a copy with new children
     TERRIER_ASSERT(children.size() == expr->GetChildrenSize(), "size not equal after walk");
+    // TODO(jordig) Check if copy is actually necessary before changing allocator
     return expr->CopyWithChildren(std::move(children));
   }
 
@@ -333,7 +335,8 @@ class ExpressionUtil {
    * @returns Evaluated AbstractExpression
    */
   static std::unique_ptr<AbstractExpression> EvaluateExpression(const std::vector<optimizer::ExprMap> &expr_maps,
-                                                                common::ManagedPointer<AbstractExpression> expr) {
+                                                                common::ManagedPointer<AbstractExpression> expr,
+                                                                execution::util::Region *region) {
     // To evaluate the return type, we need a bottom up approach.
     if (expr.Get() == nullptr) {
       return nullptr;
@@ -343,7 +346,7 @@ class ExpressionUtil {
     size_t children_size = expr->GetChildrenSize();
     std::vector<std::unique_ptr<AbstractExpression>> children;
     for (size_t i = 0; i < children_size; i++) {
-      children.push_back(EvaluateExpression(expr_maps, expr->GetChild(i)));
+      children.push_back(EvaluateExpression(expr_maps, expr->GetChild(i), region));
     }
 
     if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
@@ -357,7 +360,7 @@ class ExpressionUtil {
         if (iter != expr_map.end()) {
           // Create DerivedValueExpression (iter->second is value_idx)
           auto type = c_tup_expr->GetReturnValueType();
-          return std::make_unique<DerivedValueExpression>(type, tuple_idx, iter->second);
+          return std::unique_ptr<DerivedValueExpression>(new (region) DerivedValueExpression(type, tuple_idx, iter->second));
         }
         ++tuple_idx;
       }
@@ -418,17 +421,22 @@ class ExpressionUtil {
       // Evaluate against WhenClause condition + result and store new
       std::vector<CaseExpression::WhenClause> clauses;
       for (size_t i = 0; i < case_expr->GetWhenClauseSize(); i++) {
-        auto cond = EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i));
-        auto result = EvaluateExpression(expr_maps, case_expr->GetWhenClauseResult(i));
+        auto cond = EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i), region);
+        auto result = EvaluateExpression(expr_maps, case_expr->GetWhenClauseResult(i), region);
         clauses.emplace_back(CaseExpression::WhenClause{std::move(cond), std::move(result)});
       }
 
       // Create and return new CaseExpression that is evaluated
-      auto def_cond = EvaluateExpression(expr_maps, case_expr->GetDefaultClause());
+      auto def_cond = EvaluateExpression(expr_maps, case_expr->GetDefaultClause(), region);
       auto type = case_expr->GetReturnValueType();
-      return std::make_unique<CaseExpression>(type, std::move(clauses), std::move(def_cond));
+      return std::unique_ptr<CaseExpression>(new (region) CaseExpression(type, std::move(clauses), std::move(def_cond)));
     }
 
+    /*
+     * TODO(Jordig) I *could* make this allocate in a region, and it's probably the easiest way forward
+     * That said, it doesn't seem like the *right* way forward. Since these should be immutable, a copy seems wasteful.
+     * I'd like to dive into alternatives.
+     */
     return expr->CopyWithChildren(std::move(children));
   }
 
@@ -469,7 +477,8 @@ class ExpressionUtil {
    * @note returned expression needs to be freed by the caller
    */
   static std::unique_ptr<AbstractExpression> JoinAnnotatedExprs(
-      const std::vector<optimizer::AnnotatedExpression> &exprs) {
+      const std::vector<optimizer::AnnotatedExpression> &exprs,
+      execution::util::Region *region) {
     if (exprs.empty()) {
       return nullptr;
     }
@@ -479,9 +488,11 @@ class ExpressionUtil {
     for (size_t i = 1; i < exprs.size(); ++i) {
       children.push_back(exprs[i].GetExpr()->Copy());
 
-      auto shared = std::make_unique<ConjunctionExpression>(ExpressionType::CONJUNCTION_AND, std::move(children));
+      auto shared = std::unique_ptr<ConjunctionExpression>(new (region) ConjunctionExpression(
+          ExpressionType::CONJUNCTION_AND, std::move(children)));
 
       // Silence Clang!
+      // TODO(jordig) Sanity-check lifetimes (why is unique_ptr important here? When are things getting deleted?)
       std::vector<std::unique_ptr<AbstractExpression>> new_children;
       new_children.push_back(std::move(shared));
       children = std::move(new_children);

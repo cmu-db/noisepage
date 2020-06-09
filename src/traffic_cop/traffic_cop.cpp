@@ -15,6 +15,7 @@
 #include "execution/exec/output.h"
 #include "execution/executable_query.h"
 #include "execution/sql/ddl_executors.h"
+#include "execution/util/region.h"
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
 #include "network/postgres/portal.h"
@@ -131,7 +132,8 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
 
   return TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), query,
                                   connection_ctx->GetDatabaseOid(), stats_storage_,
-                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
+                                  std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_,
+                                  connection_ctx->Region());
 }
 
 TrafficCopResult TrafficCop::ExecuteCreateStatement(

@@ -5,6 +5,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "execution/util/region.h"
 #include "network/network_defs.h"
 
 namespace terrier::catalog {
@@ -52,7 +53,8 @@ class TrafficCopUtil {
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
       catalog::db_oid_t db_oid, common::ManagedPointer<optimizer::StatsStorage> stats_storage,
-      std::unique_ptr<optimizer::AbstractCostModel> cost_model, uint64_t optimizer_timeout);
+      std::unique_ptr<optimizer::AbstractCostModel> cost_model, uint64_t optimizer_timeout,
+      execution::util::Region *region);
 
   /**
    * Converts parser statement types (which rely on multiple enums) to a single QueryType enum from the network layer
