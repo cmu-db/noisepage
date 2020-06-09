@@ -559,7 +559,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(TableVectorIteratorReset) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
-    OpTableVectorIteratorReset(iter);
+    OpTableVectorIteratorRefreshVectorProjection(iter);
     DISPATCH_NEXT();
   }
 
@@ -569,10 +569,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(TableVectorIteratorGetPCI) : {
-    auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator **>(READ_LOCAL_ID());
+  OP(TableVectorIteratorGetVPI) : {
+    auto *vpi = frame->LocalAt<sql::VectorProjectionIterator **>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
-    OpTableVectorIteratorGetPCI(pci, iter);
+    OpTableVectorIteratorGetVPI(vpi, iter);
     DISPATCH_NEXT();
   }
 

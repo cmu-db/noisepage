@@ -65,7 +65,7 @@ namespace terrier::execution::ast {
   F(TableIterInit, tableIterInit)                                       \
   F(TableIterInitBind, tableIterInitBind)                               \
   F(TableIterAdvance, tableIterAdvance)                                 \
-  F(TableIterGetPCI, tableIterGetPCI)                                   \
+  F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterReset, tableIterReset)                                     \
   F(TableIterParallel, iterateTableParallel)                            \

@@ -111,6 +111,7 @@ class DataTable {
     std::list<RawBlock *>::const_iterator block_;
     TupleSlot current_slot_;
   };
+
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
    * of its storage blocks. The first column must be size 8 and is effectively hidden from upper levels.

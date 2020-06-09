@@ -249,11 +249,11 @@ VM_OP_HOT void OpTableVectorIteratorNext(bool *has_more, terrier::execution::sql
 
 VM_OP void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter);
 
-VM_OP void OpTableVectorIteratorReset(terrier::execution::sql::TableVectorIterator *iter);
+VM_OP void OpTableVectorIteratorRefreshVectorProjection(terrier::execution::sql::TableVectorIterator *iter);
 
-VM_OP_HOT void OpTableVectorIteratorGetPCI(terrier::execution::sql::ProjectedColumnsIterator **pci,
+VM_OP_HOT void OpTableVectorIteratorGetVPI(terrier::execution::sql::VectorProjectionIterator **vpi,
                                            terrier::execution::sql::TableVectorIterator *iter) {
-  *pci = iter->GetProjectedColumnsIterator();
+  *vpi = iter->GetVectorProjectionIterator();
 }
 
 VM_OP_HOT void OpParallelScanTable(const uint32_t db_oid, const uint32_t table_oid, void *const query_state,

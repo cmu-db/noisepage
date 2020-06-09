@@ -32,9 +32,9 @@ void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *ite
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) { iter->Init(); }
 
-void OpTableVectorIteratorReset(terrier::execution::sql::TableVectorIterator *iter) {
+void OpTableVectorIteratorRefreshVectorProjection(terrier::execution::sql::TableVectorIterator *iter) {
   TERRIER_ASSERT(iter != nullptr, "NULL iterator given to reset");
-  iter->Reset();
+  iter->RefreshVectorProjection();
 }
 
 void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter) {

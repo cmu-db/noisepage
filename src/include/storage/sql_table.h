@@ -227,9 +227,6 @@ class SqlTable {
    */
   friend class execution::sql::TableVectorIterator;
 
-  const common::ManagedPointer<BlockStore>
-      block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.
-
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
 

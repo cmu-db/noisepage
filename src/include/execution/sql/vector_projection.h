@@ -359,15 +359,13 @@ class VectorProjection {
   void RefreshFilteredTupleIdList();
 
   friend class storage::DataTable;
+
   /**
    * Should only be used by storage::DataTable.
    * @param row_offset the row offset within the ProjectedColumns to look at
    * @return a view into the desired row within the ProjectedColumns
    */
   RowView InterpretAsRow(uint32_t row_offset) { return {this, row_offset}; }
-
- private:
-  friend class VectorProjectionInitializer;
 
   // Vector containing column data for all columns in this projection.
   std::vector<std::unique_ptr<Vector>> columns_;

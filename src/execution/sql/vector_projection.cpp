@@ -197,23 +197,4 @@ void VectorProjection::CheckIntegrity() const {
 #endif
 }
 
-VectorProjectionInitializer::VectorProjectionInitializer(const std::vector<catalog::col_oid_t> &col_oids,
-                                                         const storage::ColumnMap &map, uint32_t max_tuples)
-    : max_tuples_(max_tuples) {
-  size_ = sizeof(VectorProjection);
-
-  for (const auto col_oid : col_oids) {
-    const auto &item = map.at(col_oid);
-    col_ids_.emplace_back(item.col_id_);
-    type_ids_.emplace_back(GetTypeId(item.col_type_));
-  }
-}
-
-VectorProjection *VectorProjectionInitializer::Initialize(void *head) const {
-  auto *result = new (head) VectorProjection(col_ids_);
-  result->Initialize(type_ids_);
-  result->Reset(max_tuples_);
-  return result;
-}
-
 }  // namespace terrier::execution::sql

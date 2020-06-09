@@ -7,10 +7,10 @@ namespace terrier::execution::sql {
 class ColumnSegment;
 
 /**
- * A vector-at-a-time iterator over the in-memory contents of a column's data. Each iteration
- * returns at most <i>kDefaultVectorSize</i> (i.e., 2048) elements. After construction, callers
- * initialize the iterator through ColumnVectorIterator::Reset() providing a column segment to
- * iterate over.
+ * A vector-at-a-time iterator over the in-memory contents of a column's data.
+ * Each iteration returns at most <i>K_DEFAULT_VECTOR_SIZE</i> (i.e., 2048) elements.
+ * After construction, callers initialize the iterator through ColumnVectorIterator::Reset(),
+ * providing a column segment to iterate over.
  *
  * Use as follows:
  * @code
@@ -24,7 +24,7 @@ class ColumnSegment;
  */
 class ColumnVectorIterator {
  public:
-  explicit ColumnVectorIterator(const catalog::Schema::Column *col_info) noexcept;
+  explicit ColumnVectorIterator(uint32_t column_attr_size) noexcept;
 
   /**
    * Advance this iterator to the next vector of input in the column.
@@ -42,11 +42,6 @@ class ColumnVectorIterator {
    * @param column The column to begin iteration over.
    */
   void Reset(const ColumnSegment *column) noexcept;
-
-  /**
-   * @return The non-null schema of the column we're iterating over.
-   */
-  const catalog::Schema::Column *GetColumnInfo() const noexcept { return col_info_; }
 
   /**
    * @return The current vector chunk's raw untyped column data.
@@ -69,22 +64,22 @@ class ColumnVectorIterator {
   uint32_t *GetColumnNullBitmap() const noexcept { return col_null_bitmap_; }
 
  private:
-  // The schema information for the column this iterator operates on
-  const catalog::Schema::Column *col_info_;
+  // The attribute size for the column this iterator operates on.
+  const uint32_t column_attr_size_;
 
-  // The segment we're currently iterating over
+  // The segment we're currently iterating over.
   const ColumnSegment *column_;
 
-  // The current position in the current block
+  // The current position in the current block.
   uint32_t current_block_pos_;
 
-  // The position in the current block to find the next vector of input
+  // The position in the current block to find the next vector of input.
   uint32_t next_block_pos_;
 
-  // Pointer to column data
+  // Pointer to column data.
   byte *col_data_;
 
-  // Pointer to the column's bitmap
+  // Pointer to the column's bitmap.
   uint32_t *col_null_bitmap_;
 };
 

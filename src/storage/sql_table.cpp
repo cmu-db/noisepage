@@ -10,8 +10,7 @@
 
 namespace terrier::storage {
 
-SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema)
-    : block_store_(store) {
+SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint16_t> attr_sizes;
   attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
@@ -54,7 +53,7 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
   }
 
   auto layout = storage::BlockLayout(attr_sizes);
-  table_ = {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_map};
+  table_ = {new DataTable(store, layout, layout_version_t(0)), layout, col_map};
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const {

@@ -1,19 +1,25 @@
 #pragma once
 
-#include <memory>
 #include <vector>
-#include "catalog/catalog.h"
-#include "execution/exec/execution_context.h"
-#include "execution/sql/projected_columns_iterator.h"
+
+#include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 #include "storage/sql_table.h"
 
+namespace terrier::execution::exec {
+class ExecutionContext;
+}
+
+namespace terrier::storage {
+class SqlTable;
+}
+
 namespace terrier::execution::sql {
+
 class ThreadStateContainer;
 
 /**
  * An iterator over a table's data in vector-wise fashion.
- * TODO(Amadou): Add a Reset() method to avoid reconstructing the object in NL joins.
  */
 class EXPORT TableVectorIterator {
  public:
@@ -38,77 +44,83 @@ class EXPORT TableVectorIterator {
   ~TableVectorIterator();
 
   /**
-   * This class cannot be copied or moved
+   * This class cannot be copied or moved.
    */
   DISALLOW_COPY_AND_MOVE(TableVectorIterator);
 
   /**
-   * Initialize the iterator, returning true if the initialization succeeded
-   * @return True if the initialization succeeded; false otherwise
+   * Initialize the iterator, returning true if the initialization succeeded.
+   * @return True if the initialization succeeded; false otherwise.
    */
   bool Init();
 
   /**
-   * Advance the iterator by a vector of input
-   * @return True if there is more data in the iterator; false otherwise
+   * Advance the iterator by a vector of input.
+   * @return True if there is more data in the iterator; false otherwise.
    */
   bool Advance();
 
   /**
-   * Reset the iterator.
+   * @return True if the iterator has been initialized; false otherwise.
    */
-  void Reset();
+  bool IsInitialized() const { return initialized_; }
 
   /**
-   * @return the iterator over the current active projection
+   * @return The iterator over the current active vector projection.
    */
-  ProjectedColumnsIterator *GetProjectedColumnsIterator() { return &pci_; }
+  VectorProjectionIterator *GetVectorProjectionIterator() { return &vector_projection_iterator_; }
 
   /**
    * Scan function callback used to scan a partition of the table.
-   * Convention: First argument is the opaque query state, second argument is
-   *             the thread state, and last argument is the table vector
-   *             iterator configured to iterate a sub-range of the table. The
-   *             first two arguments are void because their types are only known
-   *             at runtime (i.e., defined in generated code).
+   * Convention: First argument is the opaque query state, second argument is the thread state,
+   *             and last argument is the table vector iterator configured to iterate a sub-range of
+   *             the table. The first two arguments are void because their types are only known at
+   *             runtime (i.e., defined in generated code).
    */
   using ScanFn = void (*)(void *, void *, TableVectorIterator *iter);
 
   /**
-   * Perform a parallel scan over the table with ID @em table_oid using the
-   * callback function @em scanner on each input vector projection from the
-   * source table. This call is blocking, meaning that it only returns after
-   * the whole table has been scanned. Iteration order is non-deterministic.
-   * @param db_oid The ID of the database containing the table
-   * @param table_oid The ID of the table
-   * @param query_state the query state
-   * @param thread_states the thread state container
-   * @param scan_fn The callback function invoked for vectors of table input
-   * @param min_grain_size The minimum number of blocks to give a scan task
+   * Perform a parallel scan over the table with ID @em table_id using the callback function
+   * @em scanner on each input vector projection from the source table. This call is blocking,
+   * meaning that it only returns after the whole table has been scanned. Iteration order is
+   * non-deterministic.
+   * @param db_oid The ID of the database containing the table.
+   * @param table_id The ID of the table to scan.
+   * @param query_state An opaque pointer to some query-specific state. Passed to scan functions.
+   * @param thread_states Container for all thread states. It's assumed that the container has been
+   *                      configured for size, construction, and destruction before this invocation.
+   * @param scan_fn The callback function invoked for vectors of table input.
+   * @param min_grain_size The minimum number of blocks to give a scan task.
    */
   static bool ParallelScan(uint32_t db_oid, uint32_t table_oid, void *query_state, ThreadStateContainer *thread_states,
                            ScanFn scan_fn, uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
+
+  /** When the column iterators receive new vectors of input, we need to refresh the projection with new data too. */
+  void RefreshVectorProjection();
 
  private:
   exec::ExecutionContext *exec_ctx_;
   const catalog::table_oid_t table_oid_;
   std::vector<catalog::col_oid_t> col_oids_{};
-  // The PCI
-  ProjectedColumnsIterator pci_;
-  execution::sql::VectorProjectionIterator vpi_;
 
-  // SqlTable to iterate over
+  // The SqlTable to iterate over.
   common::ManagedPointer<storage::SqlTable> table_{nullptr};
-  // A PC and its buffer.
-  void *buffer_ = nullptr;
-  storage::ProjectedColumns *projected_columns_ = nullptr;
-  // A VP and its buffer.
-  void *vpbuffer_ = nullptr;
-  execution::sql::VectorProjection *vector_projection_ = nullptr;
-  // Iterator of the slots in the PC
+
+  // The vector-wise iterators over each column in the table.
+  std::vector<ColumnVectorIterator> column_iterators_;
+
   std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
 
-  bool initialized_ = false;
+  // TODO(WAN): Matt, does this have to be done for memory tracking reasons?
+  // A vector projection and its buffer.
+  void *vp_buffer_ = nullptr;
+  VectorProjection *vector_projection_ = nullptr;
+
+  // An iterator over the currently active projection.
+  VectorProjectionIterator vector_projection_iterator_;
+
+  // True if the iterator has been initialized.
+  bool initialized_{false};
 };
 
 }  // namespace terrier::execution::sql

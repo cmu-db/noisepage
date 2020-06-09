@@ -60,9 +60,9 @@ class SeqScanTranslator : public OperatorTranslator {
    */
   static bool IsVectorizable(const terrier::parser::AbstractExpression *predicate);
 
-  // Return the pci and its type
+  // Return the vpi and its type
   std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
-    return {&pci_, &pci_type_};
+    return {&vpi_, &vpi_type_};
   }
 
   // Used by column value expression to get a column.
@@ -84,12 +84,12 @@ class SeqScanTranslator : public OperatorTranslator {
   // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
   void GenTVILoop(FunctionBuilder *builder);
 
-  void DeclarePCI(FunctionBuilder *builder);
+  void DeclareVPI(FunctionBuilder *builder);
   void DeclareSlot(FunctionBuilder *builder);
 
-  // var pci = @tableIterGetPCI(&tvi)
-  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
-  void GenPCILoop(FunctionBuilder *builder);
+  // var vpi = @tableIterGetVPI(&tvi)
+  // for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {...}
+  void GenVPILoop(FunctionBuilder *builder);
 
   // if (cond) {...}
   void GenScanCondition(FunctionBuilder *builder);
@@ -128,9 +128,9 @@ class SeqScanTranslator : public OperatorTranslator {
   // Structs, functions and locals
   ast::Identifier tvi_;
   ast::Identifier col_oids_;
-  ast::Identifier pci_;
+  ast::Identifier vpi_;
   ast::Identifier slot_;
-  ast::Identifier pci_type_;
+  ast::Identifier vpi_type_;
 };
 
 }  // namespace terrier::execution::compiler

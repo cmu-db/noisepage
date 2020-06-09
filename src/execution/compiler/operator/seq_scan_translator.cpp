@@ -22,9 +22,9 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
       is_vectorizable_{IsVectorizable(op_->GetScanPredicate().Get())},
       tvi_(codegen->NewIdentifier("tvi")),
       col_oids_(codegen->NewIdentifier("col_oids")),
-      pci_(codegen->NewIdentifier("pci")),
+      vpi_(codegen->NewIdentifier("vpi")),
       slot_(codegen->NewIdentifier("slot")),
-      pci_type_{codegen->Context()->GetIdentifier("ProjectedColumnsIterator")} {}
+      vpi_type_{codegen->Context()->GetIdentifier("VectorProjectionIterator")} {}
 
 void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   SetOids(builder);
@@ -52,14 +52,14 @@ void SeqScanTranslator::Abort(FunctionBuilder *builder) {
 void SeqScanTranslator::DoTableScan(FunctionBuilder *builder) {
   // Start looping over the table
   GenTVILoop(builder);
-  DeclarePCI(builder);
-  // The PCI loop depends on whether we vectorize or not.
+  DeclareVPI(builder);
+  // The VPI loop depends on whether we vectorize or not.
   bool has_if_stmt = false;
   if (is_vectorizable_) {
     if (has_predicate_) GenVectorizedPredicate(builder, op_->GetScanPredicate().Get());
-    GenPCILoop(builder);
+    GenVPILoop(builder);
   } else {
-    GenPCILoop(builder);
+    GenVPILoop(builder);
     if (has_predicate_) {
       GenScanCondition(builder);
       has_if_stmt = true;
@@ -73,7 +73,7 @@ void SeqScanTranslator::DoTableScan(FunctionBuilder *builder) {
   if (has_if_stmt) {
     builder->FinishBlockStmt();
   }
-  // Close PCI loop
+  // Close VPI loop
   builder->FinishBlockStmt();
   // Close TVI loop
   builder->FinishBlockStmt();

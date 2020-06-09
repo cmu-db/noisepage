@@ -1076,10 +1076,10 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::TableIterGetPCI: {
+    case ast::Builtin::TableIterGetVPI: {
       // A single-arg builtin return a pointer to the current PCI
-      const auto pci_kind = ast::BuiltinType::ProjectedColumnsIterator;
-      call->SetType(GetBuiltinType(pci_kind)->PointerTo());
+      const auto vpi_kind = ast::BuiltinType::VectorProjectionIterator;
+      call->SetType(GetBuiltinType(vpi_kind)->PointerTo());
       break;
     }
     case ast::Builtin::TableIterClose: {
@@ -2332,7 +2332,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::TableIterInitBind:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterReset:
-    case ast::Builtin::TableIterGetPCI:
+    case ast::Builtin::TableIterGetVPI:
     case ast::Builtin::TableIterClose: {
       CheckBuiltinTableIterCall(call, builtin);
       break;
