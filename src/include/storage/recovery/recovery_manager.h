@@ -91,21 +91,12 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   /**
    * Starts a background recovery task. Recovery will fully recover until the log provider stops providing logs.
    */
-  void StartRecovery() {
-    TERRIER_ASSERT(recovery_task_ == nullptr, "Recovery already started");
-    recovery_task_ =
-        thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
-  }
+  void StartRecovery();
 
   /**
    * Blocks until recovery finishes, if it has not already, and stops background thread.
    */
-  void WaitForRecoveryToFinish() {
-    TERRIER_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
-    if (!thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>())) {
-      throw std::runtime_error("Recovery task termination failed");
-    }
-  }
+  void WaitForRecoveryToFinish();
 
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);

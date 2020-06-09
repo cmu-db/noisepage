@@ -6,7 +6,6 @@
 
 #include "common/macros.h"
 #include "common/math_util.h"
-#include "date/date.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/util/execution_common.h"

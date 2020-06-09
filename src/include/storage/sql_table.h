@@ -9,7 +9,6 @@
 #include "storage/data_table.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
-#include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_context.h"
 

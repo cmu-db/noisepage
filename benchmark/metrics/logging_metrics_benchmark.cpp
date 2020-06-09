@@ -4,6 +4,7 @@
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
 #include "benchmark_util/data_table_benchmark_util.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/scoped_timer.h"
 #include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"

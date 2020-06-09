@@ -5,6 +5,7 @@
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
 #include "catalog/catalog.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/macros.h"
 #include "common/scoped_timer.h"
 #include "common/worker_pool.h"

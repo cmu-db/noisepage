@@ -3,7 +3,6 @@
 #include "catalog/schema.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
-#include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog::postgres {
