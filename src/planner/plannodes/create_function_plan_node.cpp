@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "common/json.h"
 #include "storage/data_table.h"
 
 namespace terrier::planner {
@@ -113,5 +114,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateFunctionPlanNode:
   param_count_ = j.at("param_count").get<int>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(CreateFunctionPlanNode);
 
 }  // namespace terrier::planner

@@ -100,6 +100,6 @@ class ResultPlanNode : public AbstractPlanNode {
   common::ManagedPointer<parser::AbstractExpression> expr_;
 };
 
-DEFINE_JSON_DECLARATIONS(ResultPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(ResultPlanNode);
 
 }  // namespace terrier::planner

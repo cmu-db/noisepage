@@ -66,6 +66,7 @@ public class TrafficCopTest extends TestUtility {
    Statement third_stmt = conn.createStatement();
    third_stmt.execute("UPDATE FOO SET ID = 5 WHERE ID = 3;");
    assertEquals(third_stmt.getUpdateCount(), 1);
+   third_stmt.execute("DROP TABLE FOO;");
 
 
   }
@@ -96,5 +97,48 @@ public class TrafficCopTest extends TestUtility {
   } catch (SQLException ex) {
    assertEquals(ex.getMessage(), "ERROR:  binding failed");
   }
+ }
+
+
+ /**
+  * DDL Statements
+  */
+ @Test
+ public void test_DDLStatements() {
+ try {
+  Statement stmt = conn.createStatement();
+  stmt.execute("CREATE TABLE FOO (id INT);"); // will succeed
+  try {
+   stmt.execute("CREATE TABLE FOO (id INT);"); // fail for duplicate table name, make sure it re-bound the potentially cached statement
+   fail();
+  } catch (SQLException ex) {
+   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+  }
+  stmt.execute("DROP TABLE FOO;"); // will succeed
+  stmt.execute("DROP TABLE FOO IF EXISTS;");  // will succeed due to IF EXISTS
+  try {
+   stmt.execute("DROP TABLE FOO;");  // fail for table not existing anymore, make sure it re-bound the potentially cached statement
+   fail();
+  } catch (SQLException ex) {
+   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+  }
+  stmt.execute("CREATE TABLE FOO (id INT);"); // will succeed, make sure it re-bound the potentially cached statement
+  try {
+   stmt.execute("CREATE TABLE FOO (id INT);"); // fail for duplicate table name, make sure it re-bound the potentially cached statement
+   fail();
+  } catch (SQLException ex) {
+   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+  }
+  stmt.execute("DROP TABLE FOO;"); // will succeed, make sure it re-bound the potentially cached statement
+  stmt.execute("DROP TABLE FOO IF EXISTS;");  // will succeed due to IF EXISTS, make sure it re-bound the potentially cached statement
+  try {
+   stmt.execute("DROP TABLE FOO;");  // fail for table not existing anymore, make sure it re-bound the potentially cached statement
+   fail();
+  } catch (SQLException ex) {
+   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+  }
+ } catch (SQLException ex) {
+   DumpSQLException(ex);
+ }
  }
 }

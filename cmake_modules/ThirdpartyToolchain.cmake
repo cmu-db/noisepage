@@ -104,7 +104,7 @@ if ("${MAKE}" STREQUAL "")
 endif ()
 
 if (TERRIER_BUILD_TESTS OR TERRIER_BUILD_BENCHMARKS)
-    add_custom_target(unittest ctest -L unittest)
+    add_custom_target(unittest ctest -L unittest --no-compress-output -T Test)
 
     if ("$ENV{GTEST_HOME}" STREQUAL "")
         if (APPLE)

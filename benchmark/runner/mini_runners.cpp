@@ -173,7 +173,7 @@ class MiniRunners : public benchmark::Fixture {
 
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
-    binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
+    binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
     auto out_plan = trafficcop::TrafficCopUtil::Optimize(
         common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,

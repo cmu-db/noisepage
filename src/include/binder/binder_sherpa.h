@@ -1,6 +1,5 @@
 #pragma once
 
-#include <limits>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -25,11 +24,16 @@ class BinderSherpa {
    * Create a new BinderSherpa.
    * @param parse_result The parse result to be tracked
    * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
+   * @param desired_parameter_types same size as parameters, can be nullptr if there are no parameters
    */
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
-                        const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters)
-      : parse_result_(parse_result), parameters_(parameters) {
+                        const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
+                        const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types)
+      : parse_result_(parse_result), parameters_(parameters), desired_parameter_types_(desired_parameter_types) {
     TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
+    TERRIER_ASSERT((parameters == nullptr && desired_parameter_types == nullptr) ||
+                       (parameters != nullptr && desired_parameter_types != nullptr),
+                   "Either need both the parameters vector and desired types vector, or neither.");
   }
 
   /**
@@ -63,6 +67,15 @@ class BinderSherpa {
   }
 
   /**
+   * Stash the desired parameter type for fast-path binding
+   * @param parameter_index offset of the parameter in the statement
+   * @param type desired type to cast to on future bindings
+   */
+  void SetDesiredParameterType(const uint32_t parameter_index, const type::TypeId type) {
+    (*desired_parameter_types_)[parameter_index] = type;
+  }
+
+  /**
    * Convenience function. Common case of wanting the left and right children to have compatible types, where one child
    * currently has the correct type and the other child's type must be derived from the correct child.
    *
@@ -80,81 +93,10 @@ class BinderSherpa {
    */
   void CheckDesiredType(common::ManagedPointer<parser::AbstractExpression> expr) const;
 
-  /**
-   * Attempt to convert the transient value to the desired type.
-   * Note that type promotion could be an upcast or downcast size-wise.
-   *
-   * @param value The transient value to be checked and potentially promoted.
-   * @param desired_type The type to promote the transient value to.
-   */
-  void CheckAndTryPromoteType(common::ManagedPointer<parser::ConstantValueExpression> value,
-                              type::TypeId desired_type) const;
-
-  /**
-   * Convenience function. Used by the visitor sheep to report that an error has occurred, causing BINDER_EXCEPTION.
-   * @param message The error message.
-   */
-  void ReportFailure(const std::string &message) const { throw BINDER_EXCEPTION(message.c_str()); }
-
  private:
-  /**
-   * @return True if the value of @p int_val fits in the Output type, false otherwise.
-   */
-  template <typename Output, typename Input>
-  static bool IsRepresentable(const Input int_val) {
-    return std::numeric_limits<Output>::lowest() <= int_val && int_val <= std::numeric_limits<Output>::max();
-  }
-
-  /**
-   * @return Casted numeric type, or an exception if the cast fails.
-   */
-  template <typename Input>
-  static void TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                const Input int_val, const type::TypeId desired_type) {
-    switch (desired_type) {
-      case type::TypeId::TINYINT: {
-        if (IsRepresentable<int8_t>(int_val)) {
-          value->SetReturnValueType(desired_type);
-          return;
-        }
-        break;
-      }
-      case type::TypeId::SMALLINT: {
-        if (IsRepresentable<int16_t>(int_val)) {
-          value->SetReturnValueType(desired_type);
-          return;
-        }
-        break;
-      }
-      case type::TypeId::INTEGER: {
-        if (IsRepresentable<int32_t>(int_val)) {
-          value->SetReturnValueType(desired_type);
-          return;
-        }
-        break;
-      }
-      case type::TypeId::BIGINT: {
-        if (IsRepresentable<int64_t>(int_val)) {
-          value->SetReturnValueType(desired_type);
-          return;
-        }
-        break;
-      }
-      case type::TypeId::DECIMAL: {
-        if (IsRepresentable<double>(int_val)) {
-          value->SetValue(desired_type, execution::sql::Real(static_cast<double>(int_val)));
-          return;
-        }
-        break;
-      }
-      default:
-        throw BINDER_EXCEPTION("BinderSherpa TryCastNumericAll not a numeric type!");
-    }
-    throw BINDER_EXCEPTION("BinderSherpa TryCastNumericAll value out of bounds!");
-  }
-
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
   const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters_ = nullptr;
+  const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
 };
 }  // namespace terrier::binder

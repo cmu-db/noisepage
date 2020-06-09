@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include <list>
 #include <unordered_map>
 #include <vector>
@@ -33,8 +34,8 @@ class HashIndex;
   f(uint64_t, NumDelete) \
   f(uint64_t, NumNewBlock)
 // clang-format on
-DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
-#undef DataTableCounterMembers
+DEFINE_PERFORMANCE_CLASS_HEADER(DataTableCounter, DataTableCounterMembers)
+// #undef DataTableCounterMembers
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a

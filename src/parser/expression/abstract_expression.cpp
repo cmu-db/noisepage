@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -22,10 +23,57 @@
 
 namespace terrier::parser {
 
-/**
- * Derived expressions should call this base method
- * @return expression serialized to json
- */
+void AbstractExpression::SetMutableStateForCopy(const AbstractExpression &copy_expr) {
+  SetExpressionName(copy_expr.GetExpressionName());
+  SetReturnValueType(copy_expr.GetReturnValueType());
+  SetDepth(copy_expr.GetDepth());
+  has_subquery_ = copy_expr.HasSubquery();
+  alias_ = copy_expr.alias_;
+}
+
+common::hash_t AbstractExpression::Hash() const {
+  common::hash_t hash = common::HashUtil::Hash(expression_type_);
+  for (const auto &child : children_) {
+    hash = common::HashUtil::CombineHashes(hash, child->Hash());
+  }
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_value_type_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expression_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(depth_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(has_subquery_)));
+
+  return hash;
+}
+
+bool AbstractExpression::operator==(const AbstractExpression &rhs) const {
+  if (expression_type_ != rhs.expression_type_) return false;
+  if (alias_ != rhs.alias_) return false;
+  if (expression_name_ != rhs.expression_name_) return false;
+  if (depth_ != rhs.depth_) return false;
+  if (has_subquery_ != rhs.has_subquery_) return false;
+  if (children_.size() != rhs.children_.size()) return false;
+  for (size_t i = 0; i < children_.size(); i++)
+    if (*(children_[i]) != *(rhs.children_[i])) return false;
+  return return_value_type_ == rhs.return_value_type_;
+}
+
+std::vector<common::ManagedPointer<AbstractExpression>> AbstractExpression::GetChildren() const {
+  std::vector<common::ManagedPointer<AbstractExpression>> children;
+  children.reserve(children_.size());
+  for (const auto &child : children_) {
+    children.emplace_back(common::ManagedPointer(child));
+  }
+  return children;
+}
+
+void AbstractExpression::SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
+  if (index >= static_cast<int>(children_.size())) {
+    children_.resize(index + 1);
+  }
+  auto new_child = expr->Copy();
+  children_[index] = std::move(new_child);
+}
+
 nlohmann::json AbstractExpression::ToJson() const {
   nlohmann::json j;
   j["expression_type"] = expression_type_;
@@ -43,10 +91,6 @@ nlohmann::json AbstractExpression::ToJson() const {
   return j;
 }
 
-/**
- * Derived expressions should call this base method
- * @param j json to deserialize
- */
 std::vector<std::unique_ptr<AbstractExpression>> AbstractExpression::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<AbstractExpression>> result_exprs;
 
@@ -210,4 +254,7 @@ void AbstractExpression::DeriveExpressionName() {
   }
   // TODO(WAN): I don't understand why we need to derive an expression name at all. And aliases are known early.
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(AbstractExpression);
+
 }  // namespace terrier::parser

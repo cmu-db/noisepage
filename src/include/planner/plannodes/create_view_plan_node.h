@@ -152,6 +152,6 @@ class CreateViewPlanNode : public AbstractPlanNode {
   std::unique_ptr<parser::SelectStatement> view_query_;
 };
 
-DEFINE_JSON_DECLARATIONS(CreateViewPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(CreateViewPlanNode);
 
 }  // namespace terrier::planner
