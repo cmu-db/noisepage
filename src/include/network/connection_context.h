@@ -36,7 +36,7 @@ class ConnectionContext {
     accessor_ = nullptr;
     callback_ = nullptr;
     callback_arg_ = nullptr;
-    catalog_cache_.Reset();
+    catalog_cache_.Reset(transaction::INITIAL_TXN_TIMESTAMP);
   }
 
   /**
