@@ -207,7 +207,7 @@ std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(const common::ManagedPoint
   auto dbc = this->GetDatabaseCatalog(common::ManagedPointer(txn), database);
   if (dbc == nullptr) return nullptr;
   if (cache != DISABLED) {
-    const auto last_ddl_change = dbc->write_lock_.load();
+    const auto last_ddl_change = dbc->write_lock_;
     const bool invalidate_cache = transaction::TransactionUtil::Committed(last_ddl_change) &&
                                   transaction::TransactionUtil::NewerThan(last_ddl_change, cache->OldestEntry());
     if (invalidate_cache) cache->Reset(txn->StartTime());
