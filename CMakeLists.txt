@@ -403,6 +403,13 @@ set(TERRIER_BENCHMARK_LINK_LIBS
         gflags
         ${CMAKE_DL_LIBS})
 
+# configure settings for ctest
+configure_file(
+        "test/CTestCustom.cmake"
+        "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
+        COPYONLY
+)
+
 # ---[ Subdirectories
 add_subdirectory(src)
 add_subdirectory(test)
