@@ -3,6 +3,7 @@
 #include <random>
 #include <utility>
 
+#include "common/json.h"
 #include "execution/sql/value_util.h"
 #include "test_util/test_harness.h"
 

@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 // TODO(Gus,Wen) Add SetParameters
@@ -57,5 +59,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DeletePlanNode::FromJso
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(DeletePlanNode);
 
 }  // namespace terrier::planner

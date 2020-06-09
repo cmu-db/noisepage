@@ -1,4 +1,5 @@
 #include "optimizer/statistics/column_stats.h"
+#include "common/json.h"
 #include "gtest/gtest.h"
 
 #include "test_util/test_harness.h"
