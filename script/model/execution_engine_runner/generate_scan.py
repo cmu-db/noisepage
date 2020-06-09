@@ -21,10 +21,10 @@ def generate_scan_fun(col_num, row_num, cardinality):
 
     # iterate the table
     print("  for (@tableIterAdvance(&tvi)) {")
-    print("    var pci = @tableIterGetPCI(&tvi)")
-    print("      for (; @pciHasNext(pci); @pciAdvance(pci)) {")
+    print("    var vpi = @tableIterGetVPI(&tvi)")
+    print("      for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {")
     for i in range(0, col_num):
-        print("        var val{} = @pciGetInt(pci, {})".format(i, i))
+        print("        var val{} = @vpiGetInt(vpi, {})".format(i, i))
     print("      }")
     print("  }")
     print("  @tableIterClose(&tvi)")

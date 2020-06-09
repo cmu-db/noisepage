@@ -269,13 +269,13 @@ void BytecodeEmitter::EmitParallelTableScan(uint32_t db_oid, uint32_t table_oid,
   EmitAll(Bytecode::ParallelScanTable, db_oid, table_oid, ctx, thread_states, scan_fn);
 }
 
-void BytecodeEmitter::EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, uint16_t col_idx) {
-  EmitAll(bytecode, out, pci, col_idx);
+void BytecodeEmitter::EmitVPIGet(Bytecode bytecode, LocalVar out, LocalVar vpi, uint16_t col_idx) {
+  EmitAll(bytecode, out, vpi, col_idx);
 }
 
-void BytecodeEmitter::EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, uint32_t col_idx,
+void BytecodeEmitter::EmitVPIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar vpi, uint32_t col_idx,
                                           int8_t type, int64_t val) {
-  EmitAll(bytecode, selected, pci, col_idx, type, val);
+  EmitAll(bytecode, selected, vpi, col_idx, type, val);
 }
 
 void BytecodeEmitter::EmitFilterManagerInsertFlavor(LocalVar fmb, FunctionId func) {

@@ -54,14 +54,14 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var tvi: TableVectorIterator
   @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var cola = @pciGetInt(pci, 0)
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      var cola = @vpiGetInt(vpi, 0)
       if (cola >= 100495 and cola <= 100505) {
         count = count + 1
       }
     }
-    @pciReset(pci)
+    @vpiReset(vpi)
   }
   @tableIterClose(&tvi)
 

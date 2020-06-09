@@ -2,7 +2,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 
 extern "C" {
 
@@ -42,42 +42,42 @@ void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *ite
   iter->~TableVectorIterator();
 }
 
-void OpPCIFilterEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+void OpVPIFilterEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
                       int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::equal_to>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+void OpVPIFilterGreaterThan(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
                             int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::greater>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+void OpVPIFilterGreaterThanEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter,
                                  uint32_t col_idx, int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::greater_equal>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterLessThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+void OpVPIFilterLessThan(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
                          int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::less>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+void OpVPIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
                               int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::less_equal>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+void OpVPIFilterNotEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
                          int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
@@ -104,8 +104,8 @@ void OpFilterManagerInsertFlavor(terrier::execution::sql::FilterManager *filter_
 void OpFilterManagerFinalize(terrier::execution::sql::FilterManager *filter_manager) { filter_manager->Finalize(); }
 
 void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter_manager,
-                               terrier::execution::sql::ProjectedColumnsIterator *pci) {
-  filter_manager->RunFilters(pci);
+                               terrier::execution::sql::VectorProjectionIterator *vpi) {
+  filter_manager->RunFilters(vpi);
 }
 
 void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager) { filter_manager->~FilterManager(); }

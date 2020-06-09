@@ -640,170 +640,170 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   UNREACHABLE("Parallel scan is not implemented yet!");
 }
 
-void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
+void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::Context *ctx = call->GetType()->GetContext();
 
   // The first argument to all calls is a pointer to the TVI
-  LocalVar pci = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar vpi = VisitExpressionForRValue(call->Arguments()[0]);
 
   switch (builtin) {
-    case ast::Builtin::PCIIsFiltered: {
+    case ast::Builtin::VPIIsFiltered: {
       LocalVar is_filtered =
           ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      Emitter()->Emit(Bytecode::PCIIsFiltered, is_filtered, pci);
+      Emitter()->Emit(Bytecode::VPIIsFiltered, is_filtered, vpi);
       ExecutionResult()->SetDestination(is_filtered.ValueOf());
       break;
     }
-    case ast::Builtin::PCIHasNext:
-    case ast::Builtin::PCIHasNextFiltered: {
+    case ast::Builtin::VPIHasNext:
+    case ast::Builtin::VPIHasNextFiltered: {
       const Bytecode bytecode =
-          builtin == ast::Builtin::PCIHasNext ? Bytecode::PCIHasNext : Bytecode::PCIHasNextFiltered;
+          builtin == ast::Builtin::VPIHasNext ? Bytecode::VPIHasNext : Bytecode::VPIHasNextFiltered;
       LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      Emitter()->Emit(bytecode, cond, pci);
+      Emitter()->Emit(bytecode, cond, vpi);
       ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
-    case ast::Builtin::PCIAdvance:
-    case ast::Builtin::PCIAdvanceFiltered: {
+    case ast::Builtin::VPIAdvance:
+    case ast::Builtin::VPIAdvanceFiltered: {
       const Bytecode bytecode =
-          builtin == ast::Builtin::PCIAdvance ? Bytecode::PCIAdvance : Bytecode::PCIAdvanceFiltered;
-      Emitter()->Emit(bytecode, pci);
+          builtin == ast::Builtin::VPIAdvance ? Bytecode::VPIAdvance : Bytecode::VPIAdvanceFiltered;
+      Emitter()->Emit(bytecode, vpi);
       break;
     }
-    case ast::Builtin::PCIMatch: {
+    case ast::Builtin::VPIMatch: {
       LocalVar match = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::PCIMatch, pci, match);
+      Emitter()->Emit(Bytecode::VPIMatch, vpi, match);
       break;
     }
-    case ast::Builtin::PCIReset:
-    case ast::Builtin::PCIResetFiltered: {
-      const Bytecode bytecode = builtin == ast::Builtin::PCIReset ? Bytecode::PCIReset : Bytecode::PCIResetFiltered;
-      Emitter()->Emit(bytecode, pci);
+    case ast::Builtin::VPIReset:
+    case ast::Builtin::VPIResetFiltered: {
+      const Bytecode bytecode = builtin == ast::Builtin::VPIReset ? Bytecode::VPIReset : Bytecode::VPIResetFiltered;
+      Emitter()->Emit(bytecode, vpi);
       break;
     }
-    case ast::Builtin::PCIGetSlot: {
+    case ast::Builtin::VPIGetSlot: {
       LocalVar res = ExecutionResult()->GetOrCreateDestination(call->GetType());
-      Emitter()->Emit(Bytecode::PCIGetSlot, res, pci);
+      Emitter()->Emit(Bytecode::VPIGetSlot, res, vpi);
       break;
     }
-    case ast::Builtin::PCIGetBool: {
+    case ast::Builtin::VPIGetBool: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetBool, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetBool, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetBoolNull: {
+    case ast::Builtin::VPIGetBoolNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetBoolNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetBoolNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetTinyInt: {
+    case ast::Builtin::VPIGetTinyInt: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetTinyInt, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetTinyInt, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetTinyIntNull: {
+    case ast::Builtin::VPIGetTinyIntNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetTinyIntNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetTinyIntNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetSmallInt: {
+    case ast::Builtin::VPIGetSmallInt: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetSmallInt, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetSmallInt, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetSmallIntNull: {
+    case ast::Builtin::VPIGetSmallIntNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetSmallIntNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetSmallIntNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetInt: {
+    case ast::Builtin::VPIGetInt: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetInteger, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetInteger, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetIntNull: {
+    case ast::Builtin::VPIGetIntNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetIntegerNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetIntegerNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetBigInt: {
+    case ast::Builtin::VPIGetBigInt: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetBigInt, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetBigInt, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetBigIntNull: {
+    case ast::Builtin::VPIGetBigIntNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetBigIntNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetBigIntNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetReal: {
+    case ast::Builtin::VPIGetReal: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetReal, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetReal, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetRealNull: {
+    case ast::Builtin::VPIGetRealNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetRealNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetRealNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetDouble: {
+    case ast::Builtin::VPIGetDouble: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetDouble, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetDouble, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetDoubleNull: {
+    case ast::Builtin::VPIGetDoubleNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetDoubleNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetDoubleNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetDate: {
+    case ast::Builtin::VPIGetDate: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetDateVal, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetDateVal, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetDateNull: {
+    case ast::Builtin::VPIGetDateNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetDateValNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetDateValNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetTimestamp: {
+    case ast::Builtin::VPIGetTimestamp: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Timestamp));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetTimestampVal, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetTimestampVal, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetTimestampNull: {
+    case ast::Builtin::VPIGetTimestampNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Timestamp));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetTimestampValNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetTimestampValNull, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetVarlen: {
+    case ast::Builtin::VPIGetVarlen: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetVarlen, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetVarlen, val, vpi, col_idx);
       break;
     }
-    case ast::Builtin::PCIGetVarlenNull: {
+    case ast::Builtin::VPIGetVarlenNull: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitPCIGet(Bytecode::PCIGetVarlenNull, val, pci, col_idx);
+      Emitter()->EmitVPIGet(Bytecode::VPIGetVarlenNull, val, vpi, col_idx);
       break;
     }
     default: {
@@ -876,8 +876,8 @@ void BytecodeGenerator::VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::FilterManagerRunFilters: {
-      LocalVar pci = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::FilterManagerRunFilters, filter_manager, pci);
+      LocalVar vpi = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::FilterManagerRunFilters, filter_manager, vpi);
       break;
     }
     case ast::Builtin::FilterManagerFree: {
@@ -901,7 +901,7 @@ void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin
 
   // Collect the three call arguments
   // Projected Column Iterator
-  LocalVar pci = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar vpi = VisitExpressionForRValue(call->Arguments()[0]);
   // Column index
   auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
   auto col_type = static_cast<int8_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
@@ -911,34 +911,34 @@ void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin
   Bytecode bytecode;
   switch (builtin) {
     case ast::Builtin::FilterEq: {
-      bytecode = Bytecode::PCIFilterEqual;
+      bytecode = Bytecode::VPIFilterEqual;
       break;
     }
     case ast::Builtin::FilterGt: {
-      bytecode = Bytecode::PCIFilterGreaterThan;
+      bytecode = Bytecode::VPIFilterGreaterThan;
       break;
     }
     case ast::Builtin::FilterGe: {
-      bytecode = Bytecode::PCIFilterGreaterThanEqual;
+      bytecode = Bytecode::VPIFilterGreaterThanEqual;
       break;
     }
     case ast::Builtin::FilterLt: {
-      bytecode = Bytecode::PCIFilterLessThan;
+      bytecode = Bytecode::VPIFilterLessThan;
       break;
     }
     case ast::Builtin::FilterLe: {
-      bytecode = Bytecode::PCIFilterLessThanEqual;
+      bytecode = Bytecode::VPIFilterLessThanEqual;
       break;
     }
     case ast::Builtin::FilterNe: {
-      bytecode = Bytecode::PCIFilterNotEqual;
+      bytecode = Bytecode::VPIFilterNotEqual;
       break;
     }
     default: {
       UNREACHABLE("Impossible bytecode");
     }
   }
-  Emitter()->EmitPCIVectorFilter(bytecode, ret_val, pci, col_idx, col_type, val);
+  Emitter()->EmitVPIVectorFilter(bytecode, ret_val, vpi, col_idx, col_type, val);
 }
 
 void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2119,36 +2119,36 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinTableIterParallelCall(call);
       break;
     }
-    case ast::Builtin::PCIIsFiltered:
-    case ast::Builtin::PCIHasNext:
-    case ast::Builtin::PCIHasNextFiltered:
-    case ast::Builtin::PCIAdvance:
-    case ast::Builtin::PCIAdvanceFiltered:
-    case ast::Builtin::PCIMatch:
-    case ast::Builtin::PCIReset:
-    case ast::Builtin::PCIResetFiltered:
-    case ast::Builtin::PCIGetSlot:
-    case ast::Builtin::PCIGetBool:
-    case ast::Builtin::PCIGetBoolNull:
-    case ast::Builtin::PCIGetTinyInt:
-    case ast::Builtin::PCIGetTinyIntNull:
-    case ast::Builtin::PCIGetSmallInt:
-    case ast::Builtin::PCIGetSmallIntNull:
-    case ast::Builtin::PCIGetInt:
-    case ast::Builtin::PCIGetIntNull:
-    case ast::Builtin::PCIGetBigInt:
-    case ast::Builtin::PCIGetBigIntNull:
-    case ast::Builtin::PCIGetReal:
-    case ast::Builtin::PCIGetRealNull:
-    case ast::Builtin::PCIGetDouble:
-    case ast::Builtin::PCIGetDoubleNull:
-    case ast::Builtin::PCIGetDate:
-    case ast::Builtin::PCIGetDateNull:
-    case ast::Builtin::PCIGetTimestamp:
-    case ast::Builtin::PCIGetTimestampNull:
-    case ast::Builtin::PCIGetVarlen:
-    case ast::Builtin::PCIGetVarlenNull: {
-      VisitBuiltinPCICall(call, builtin);
+    case ast::Builtin::VPIIsFiltered:
+    case ast::Builtin::VPIHasNext:
+    case ast::Builtin::VPIHasNextFiltered:
+    case ast::Builtin::VPIAdvance:
+    case ast::Builtin::VPIAdvanceFiltered:
+    case ast::Builtin::VPIMatch:
+    case ast::Builtin::VPIReset:
+    case ast::Builtin::VPIResetFiltered:
+    case ast::Builtin::VPIGetSlot:
+    case ast::Builtin::VPIGetBool:
+    case ast::Builtin::VPIGetBoolNull:
+    case ast::Builtin::VPIGetTinyInt:
+    case ast::Builtin::VPIGetTinyIntNull:
+    case ast::Builtin::VPIGetSmallInt:
+    case ast::Builtin::VPIGetSmallIntNull:
+    case ast::Builtin::VPIGetInt:
+    case ast::Builtin::VPIGetIntNull:
+    case ast::Builtin::VPIGetBigInt:
+    case ast::Builtin::VPIGetBigIntNull:
+    case ast::Builtin::VPIGetReal:
+    case ast::Builtin::VPIGetRealNull:
+    case ast::Builtin::VPIGetDouble:
+    case ast::Builtin::VPIGetDoubleNull:
+    case ast::Builtin::VPIGetDate:
+    case ast::Builtin::VPIGetDateNull:
+    case ast::Builtin::VPIGetTimestamp:
+    case ast::Builtin::VPIGetTimestampNull:
+    case ast::Builtin::VPIGetVarlen:
+    case ast::Builtin::VPIGetVarlenNull: {
+      VisitBuiltinVPICall(call, builtin);
       break;
     }
     case ast::Builtin::Hash: {

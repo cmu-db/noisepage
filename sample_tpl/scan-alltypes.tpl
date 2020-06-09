@@ -22,20 +22,20 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   @tableIterInitBind(&tvi, execCtx, "all_types_table", oids)
   for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-        var col0 = @pciGetBool(pci, 0)
-        var col1 = @pciGetTinyInt(pci, 1)
-//         var col2 = @pciGetSmallInt(pci, 1)
-//         var col3 = @pciGetInt(pci, 2)
-//         var col4 = @pciGetBigInt(pci, 4)
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+        var col0 = @vpiGetBool(vpi, 0)
+        var col1 = @vpiGetTinyInt(vpi, 1)
+//         var col2 = @vpiGetSmallInt(vpi, 1)
+//         var col3 = @vpiGetInt(vpi, 2)
+//         var col4 = @vpiGetBigInt(vpi, 4)
 
         if ((col0 == true) and 
             (col1 >= 0)) { //  or col2 >= 0 or col3 >= 0 or col4 >= 0)) {
         ret = ret + 1
       }
     }
-    @pciReset(pci)
+    @vpiReset(vpi)
   }
   @tableIterClose(&tvi)
   return ret

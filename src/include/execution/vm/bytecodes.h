@@ -121,48 +121,48 @@ namespace terrier::execution::vm {
   F(ParallelScanTable, OperandType::UImm4, OperandType::UImm4, OperandType::Local, OperandType::Local,                \
     OperandType::FunctionId)                                                                                          \
                                                                                                                       \
-  /* ProjectedColumns Iterator (PCI) */                                                                               \
-  F(PCIIsFiltered, OperandType::Local, OperandType::Local)                                                            \
-  F(PCIHasNext, OperandType::Local, OperandType::Local)                                                               \
-  F(PCIHasNextFiltered, OperandType::Local, OperandType::Local)                                                       \
-  F(PCIAdvance, OperandType::Local)                                                                                   \
-  F(PCIAdvanceFiltered, OperandType::Local)                                                                           \
-  F(PCIMatch, OperandType::Local, OperandType::Local)                                                                 \
-  F(PCIReset, OperandType::Local)                                                                                     \
-  F(PCIResetFiltered, OperandType::Local)                                                                             \
-  F(PCIGetSlot, OperandType::Local, OperandType::Local)                                                               \
-  F(PCIGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
-  F(PCIGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
-  F(PCIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
-  F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
-  F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
-  F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetDateVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetTimestampVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
-  F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
-  F(PCIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
-  F(PCIGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
-  F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
-  F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
-  F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
-  F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetDateValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetTimestampValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                               \
-  F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
-  F(PCIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
-  F(PCIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
+  /* ProjectedColumns Iterator (VPI) */                                                                               \
+  F(VPIIsFiltered, OperandType::Local, OperandType::Local)                                                            \
+  F(VPIHasNext, OperandType::Local, OperandType::Local)                                                               \
+  F(VPIHasNextFiltered, OperandType::Local, OperandType::Local)                                                       \
+  F(VPIAdvance, OperandType::Local)                                                                                   \
+  F(VPIAdvanceFiltered, OperandType::Local)                                                                           \
+  F(VPIMatch, OperandType::Local, OperandType::Local)                                                                 \
+  F(VPIReset, OperandType::Local)                                                                                     \
+  F(VPIResetFiltered, OperandType::Local)                                                                             \
+  F(VPIGetSlot, OperandType::Local, OperandType::Local)                                                               \
+  F(VPIGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
+  F(VPIGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(VPIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
+  F(VPIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(VPIGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(VPIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
+  F(VPIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(VPIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(VPIGetDateVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(VPIGetTimestampVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
+  F(VPIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(VPIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
+  F(VPIGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(VPIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
+  F(VPIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(VPIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(VPIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
+  F(VPIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(VPIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(VPIGetDateValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(VPIGetTimestampValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                               \
+  F(VPIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(VPIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
+  F(VPIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
     OperandType::Imm8)                                                                                                \
-  F(PCIFilterGreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,         \
+  F(VPIFilterGreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,         \
     OperandType::Imm8)                                                                                                \
-  F(PCIFilterLessThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,                 \
+  F(VPIFilterLessThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,                 \
     OperandType::Imm8)                                                                                                \
-  F(PCIFilterLessThanEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,            \
+  F(VPIFilterLessThanEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,            \
     OperandType::Imm8)                                                                                                \
-  F(PCIFilterNotEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,                 \
+  F(VPIFilterNotEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,                 \
     OperandType::Imm8)                                                                                                \
                                                                                                                       \
   /* Filter Manager */                                                                                                \

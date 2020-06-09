@@ -10,7 +10,7 @@
 
 namespace terrier::execution::sql {
 
-class ProjectedColumnsIterator;
+class VectorProjectionIterator;
 
 /**
  * An adaptive filter manager that tries to discover the optimal filter
@@ -22,7 +22,7 @@ class EXPORT FilterManager {
    * A generic filtering function over an input projection. Returns the
    * number of tuples that pass the filter.
    */
-  using MatchFn = uint32_t (*)(ProjectedColumnsIterator *);
+  using MatchFn = uint32_t (*)(VectorProjectionIterator *);
 
   /**
    * A clause in a multi-clause filter. Clauses come in multiple flavors.
@@ -74,10 +74,10 @@ class EXPORT FilterManager {
   void Finalize();
 
   /**
-   * Run the filters over the given projection @em pci
-   * @param pci The input vector
+   * Run the filters over the given projection @em vpi
+   * @param vpi The input vector
    */
-  void RunFilters(ProjectedColumnsIterator *pci);
+  void RunFilters(VectorProjectionIterator *vpi);
 
   /**
    * Return the index of the current optimal implementation flavor for the
@@ -89,10 +89,10 @@ class EXPORT FilterManager {
 
  private:
   // Run a specific clause of the filter
-  void RunFilterClause(ProjectedColumnsIterator *pci, uint32_t clause_index);
+  void RunFilterClause(VectorProjectionIterator *vpi, uint32_t clause_index);
 
   // Run the given matching function
-  std::pair<uint32_t, double> RunFilterClauseImpl(ProjectedColumnsIterator *pci, FilterManager::MatchFn func);
+  std::pair<uint32_t, double> RunFilterClauseImpl(VectorProjectionIterator *vpi, FilterManager::MatchFn func);
 
   // Return the clause at the given index in the filter
   const Clause *ClauseAt(uint32_t index) const { return &clauses_[index]; }

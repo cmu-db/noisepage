@@ -12,7 +12,7 @@
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/join_hash_table_vector_probe.h"
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"

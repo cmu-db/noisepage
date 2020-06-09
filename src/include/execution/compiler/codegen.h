@@ -436,25 +436,25 @@ class CodeGen {
   ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::Identifier col_oids);
 
   /**
-   * Call pciGetTypeNullable(pci, idx)
-   * @param pci The identifier of the projected columns iterator
+   * Call vpiGetTypeNullable(vpi, idx)
+   * @param vpi The identifier of the projected columns iterator
    * @param type The type of the column being accessed.
    * @param nullable Whether the column being accessed is nullable.
    * @param idx Index of the column being accessed.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *PCIGet(ast::Identifier pci, terrier::type::TypeId type, bool nullable, uint32_t idx);
+  ast::Expr *VPIGet(ast::Identifier vpi, terrier::type::TypeId type, bool nullable, uint32_t idx);
 
   /**
-   * Call filterCompType(pci, col_idx, col_type, filter_val)
-   * @param pci The identifier of the projected columns iterator
+   * Call filterCompType(vpi, col_idx, col_type, filter_val)
+   * @param vpi The identifier of the projected columns iterator
    * @param comp_type The type of comparison being performed.
    * @param col_idx Index of the column being filtered.
    * @param col_type The type of the column being filtered.
    * @param filter_val The value to filter byc
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *PCIFilter(ast::Identifier pci, terrier::parser::ExpressionType comp_type, uint32_t col_idx,
+  ast::Expr *VPIFilter(ast::Identifier vpi, terrier::parser::ExpressionType comp_type, uint32_t col_idx,
                        terrier::type::TypeId col_type, ast::Expr *filter_val);
 
   /**
@@ -536,7 +536,7 @@ class CodeGen {
    * This is for functions that take one identifier or a pointer to an identifier as their argument.
    * @param builtin builtin function to call
    * @param ident argument to the function
-   * @param take_ptr whether to take the pointer to the identifier (for example, pci calls will set this to false)
+   * @param take_ptr whether to take the pointer to the identifier (for example, vpi calls will set this to false)
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *OneArgCall(ast::Builtin builtin, ast::Identifier ident, bool take_ptr = true);

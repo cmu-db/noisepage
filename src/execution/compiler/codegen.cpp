@@ -122,64 +122,64 @@ ast::Expr *CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable, uint32_t idx) {
+ast::Expr *CodeGen::VPIGet(ast::Identifier vpi, type::TypeId type, bool nullable, uint32_t idx) {
   ast::Builtin builtin;
   ast::Type *ast_type;
   switch (type) {
     case type::TypeId::BOOLEAN:
-      builtin = nullable ? ast::Builtin::PCIGetBoolNull : ast::Builtin::PCIGetBool;
+      builtin = nullable ? ast::Builtin::VPIGetBoolNull : ast::Builtin::VPIGetBool;
       // TODO(WAN): pmenon points out that this should be Boolean, throughout codegen.cpp,
       // but that we will hold off on the change until codegen v2
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Bool);
       break;
     case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::PCIGetTinyIntNull : ast::Builtin::PCIGetTinyInt;
+      builtin = nullable ? ast::Builtin::VPIGetTinyIntNull : ast::Builtin::VPIGetTinyInt;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Integer);
       break;
     case type::TypeId::SMALLINT:
-      builtin = nullable ? ast::Builtin::PCIGetSmallIntNull : ast::Builtin::PCIGetSmallInt;
+      builtin = nullable ? ast::Builtin::VPIGetSmallIntNull : ast::Builtin::VPIGetSmallInt;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Integer);
       break;
     case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::PCIGetIntNull : ast::Builtin::PCIGetInt;
+      builtin = nullable ? ast::Builtin::VPIGetIntNull : ast::Builtin::VPIGetInt;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Integer);
       break;
     case type::TypeId::BIGINT:
-      builtin = nullable ? ast::Builtin::PCIGetBigIntNull : ast::Builtin::PCIGetBigInt;
+      builtin = nullable ? ast::Builtin::VPIGetBigIntNull : ast::Builtin::VPIGetBigInt;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Integer);
       break;
     case type::TypeId::DECIMAL:
-      builtin = nullable ? ast::Builtin ::PCIGetDoubleNull : ast::Builtin::PCIGetDouble;
+      builtin = nullable ? ast::Builtin ::VPIGetDoubleNull : ast::Builtin::VPIGetDouble;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Real);
       break;
     case type::TypeId::DATE:
-      builtin = nullable ? ast::Builtin ::PCIGetDateNull : ast::Builtin::PCIGetDate;
+      builtin = nullable ? ast::Builtin ::VPIGetDateNull : ast::Builtin::VPIGetDate;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Date);
       break;
     case type::TypeId::TIMESTAMP:
-      builtin = nullable ? ast::Builtin ::PCIGetTimestampNull : ast::Builtin::PCIGetTimestamp;
+      builtin = nullable ? ast::Builtin ::VPIGetTimestampNull : ast::Builtin::VPIGetTimestamp;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Timestamp);
       break;
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY:
-      builtin = nullable ? ast::Builtin ::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
+      builtin = nullable ? ast::Builtin ::VPIGetVarlenNull : ast::Builtin::VPIGetVarlen;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::StringVal);
       break;
     default:
-      UNREACHABLE("Cannot @pciGetType unsupported type");
+      UNREACHABLE("Cannot @vpiGetType unsupported type");
   }
   ast::Expr *fun = BuiltinFunction(builtin);
-  ast::Expr *pci_expr = MakeExpr(pci);
+  ast::Expr *vpi_expr = MakeExpr(vpi);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, idx);
-  util::RegionVector<ast::Expr *> args{{pci_expr, idx_expr}, Region()};
+  util::RegionVector<ast::Expr *> args{{vpi_expr, idx_expr}, Region()};
   ast::Expr *ret = Factory()->NewBuiltinCallExpr(fun, std::move(args));
   ret->SetType(ast_type);
   return ret;
 }
 
-ast::Expr *CodeGen::PCIFilter(ast::Identifier pci, parser::ExpressionType comp_type, uint32_t col_idx,
+ast::Expr *CodeGen::VPIFilter(ast::Identifier vpi, parser::ExpressionType comp_type, uint32_t col_idx,
                               type::TypeId col_type, ast::Expr *filter_val) {
-  // Call @FilterComp(pci, col_idx, col_type, filter_val)
+  // Call @FilterComp(vpi, col_idx, col_type, filter_val)
   ast::Builtin builtin;
   switch (comp_type) {
     case parser::ExpressionType::COMPARE_EQUAL:
@@ -204,10 +204,10 @@ ast::Expr *CodeGen::PCIFilter(ast::Identifier pci, parser::ExpressionType comp_t
       UNREACHABLE("Impossible filter comparison!");
   }
   ast::Expr *fun = BuiltinFunction(builtin);
-  ast::Expr *pci_expr = MakeExpr(pci);
+  ast::Expr *vpi_expr = MakeExpr(vpi);
   ast::Expr *idx_expr = IntLiteral(col_idx);
   ast::Expr *type_expr = IntLiteral(static_cast<int8_t>(col_type));
-  util::RegionVector<ast::Expr *> args{{pci_expr, idx_expr, type_expr, filter_val}, Region()};
+  util::RegionVector<ast::Expr *> args{{vpi_expr, idx_expr, type_expr, filter_val}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 

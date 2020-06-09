@@ -13,16 +13,16 @@ fun main(execCtx: *ExecutionContext) -> int {
   oids[2] = 3 // colC
   @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var cola = @pciGetInt(pci, 0)
-      var colb = @pciGetInt(pci, 1)
-      var colc = @pciGetInt(pci, 2)
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      var cola = @vpiGetInt(vpi, 0)
+      var colb = @vpiGetInt(vpi, 1)
+      var colc = @vpiGetInt(vpi, 2)
       if (cola >= 50 and colb < 10000000) {
         ret = ret + 1
       }
     }
-    @pciReset(pci)
+    @vpiReset(vpi)
   }
   @tableIterClose(&tvi)
   return ret

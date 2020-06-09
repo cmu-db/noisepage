@@ -43,13 +43,13 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
 
   // Iterate through table
   for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
       // Fill up the index PR using the current tuple
       // Note that the storage layer reorders columns in test_2
       var index_pr = @indexIteratorGetPR(&index)
-      @prSetSmallInt(index_pr, 1, @pciGetInt(pci, 0))
-      @prSetIntNull(index_pr, 0, @pciGetInt(pci, 1))
+      @prSetSmallInt(index_pr, 1, @vpiGetInt(vpi, 0))
+      @prSetIntNull(index_pr, 0, @vpiGetInt(vpi, 1))
 
       // Iterate through matching tuples
       for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
@@ -57,8 +57,8 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
         // Materialize and output
         var table_pr = @indexIteratorGetTablePR(&index)
         var out = @ptrCast(*Output, @outputAlloc(execCtx))
-        out.test1_colA = @pciGetInt(pci, 0)
-        out.test1_colB = @pciGetInt(pci, 1)
+        out.test1_colA = @vpiGetInt(vpi, 0)
+        out.test1_colB = @vpiGetInt(vpi, 1)
         out.test2_col1 = @prGetSmallInt(table_pr, 3)
         out.test2_col2 = @prGetIntNull(table_pr, 1)
         out.test2_col3 = @prGetBigInt(table_pr, 0)

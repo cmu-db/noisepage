@@ -52,20 +52,20 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = iter.GetVectorProjectionIterator();
 
   uint32_t num_tuples = 0;
   int32_t prev_val{0};
   while (iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
-      auto *val = pci->Get<int32_t, false>(0, nullptr);
+    for (; vpi->HasNext(); vpi->Advance()) {
+      auto *val = vpi->Get<int32_t, false>(0, nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }
       prev_val = *val;
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(sql::TEST1_SIZE, num_tuples);
 }
@@ -81,21 +81,21 @@ TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
   TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = iter.GetVectorProjectionIterator();
 
   uint32_t num_tuples = 0;
   int16_t prev_val{0};
   while (iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       // The serial column is the smallest one (SmallInt type), so it should be the last index in the storage layer.
-      auto *val = pci->Get<int16_t, false>(3, nullptr);
+      auto *val = vpi->Get<int16_t, false>(3, nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }
       prev_val = *val;
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
 }
@@ -110,21 +110,21 @@ TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = iter.GetVectorProjectionIterator();
 
   uint32_t num_tuples = 0;
   int16_t prev_val{0};
   while (iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       // Because we only specified one column, its index is 0 instead of three
-      auto *val = pci->Get<int16_t, false>(0, nullptr);
+      auto *val = vpi->Get<int16_t, false>(0, nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }
       prev_val = *val;
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
 }

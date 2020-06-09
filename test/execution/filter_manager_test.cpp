@@ -34,22 +34,22 @@ class FilterManagerTest : public SqlBasedTest {
 
 enum Col : uint8_t { A = 0, B = 1, C = 2, D = 3 };
 
-uint32_t TaaTLt500(ProjectedColumnsIterator *pci) {
-  pci->RunFilter([pci]() -> bool {
-    auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
+uint32_t TaaTLt500(VectorProjectionIterator *vpi) {
+  vpi->RunFilter([vpi]() -> bool {
+    auto cola = *vpi->Get<int32_t, false>(Col::A, nullptr);
     return cola < 500;
   });
-  return pci->NumSelected();
+  return vpi->NumSelected();
 }
 
-uint32_t HobbledTaaTLt500(ProjectedColumnsIterator *pci) {
+uint32_t HobbledTaaTLt500(VectorProjectionIterator *vpi) {
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
-  return TaaTLt500(pci);
+  return TaaTLt500(vpi);
 }
 
-uint32_t VectorizedLt500(ProjectedColumnsIterator *pci) {
-  ProjectedColumnsIterator::FilterVal param{.i_ = 500};
-  return pci->FilterColByVal<std::less>(Col::A, type::TypeId ::INTEGER, param);
+uint32_t VectorizedLt500(VectorProjectionIterator *vpi) {
+  VectorProjectionIterator::FilterVal param{.i_ = 500};
+  return vpi->FilterColByVal<std::less>(Col::A, type::TypeId ::INTEGER, param);
 }
 
 // NOLINTNEXTLINE
@@ -63,14 +63,14 @@ TEST_F(FilterManagerTest, DISABLED_SimpleFilterManagerTest) {
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
-    auto *pci = tvi.GetProjectedColumnsIterator();
+    auto *vpi = tvi.GetVectorProjectionIterator();
 
     // Run the filters
-    filter.RunFilters(pci);
+    filter.RunFilters(vpi);
 
     // Check
-    pci->ForEach([pci]() {
-      auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
+    vpi->ForEach([vpi]() {
+      auto cola = *vpi->Get<int32_t, false>(Col::A, nullptr);
       EXPECT_LT(cola, 500);
     });
   }
@@ -87,14 +87,14 @@ TEST_F(FilterManagerTest, DISABLED_AdaptiveFilterManagerTest) {
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
-    auto *pci = tvi.GetProjectedColumnsIterator();
+    auto *vpi = tvi.GetVectorProjectionIterator();
 
     // Run the filters
-    filter.RunFilters(pci);
+    filter.RunFilters(vpi);
 
     // Check
-    pci->ForEach([pci]() {
-      auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
+    vpi->ForEach([vpi]() {
+      auto cola = *vpi->Get<int32_t, false>(Col::A, nullptr);
       EXPECT_LT(cola, 500);
     });
   }

@@ -8,7 +8,7 @@
 #include "execution/sql_test.h"
 
 #include "catalog/catalog.h"
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 
 namespace terrier::execution::sql::test {
 
@@ -65,7 +65,7 @@ std::pair<std::unique_ptr<uint32_t[]>, uint32_t> CreateRandomNullBitmap(uint32_t
 
 }  // namespace
 
-class ProjectedColumnsIteratorTest : public SqlBasedTest {
+class VectorProjectionIteratorTest : public SqlBasedTest {
  protected:
   enum ColId : uint8_t { col_a = 0, col_b = 1, col_c = 2, col_d = 3 };
 
@@ -86,7 +86,7 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
   };
 
  public:
-  ProjectedColumnsIteratorTest() : num_tuples_(common::Constants::K_DEFAULT_VECTOR_SIZE) {}
+  VectorProjectionIteratorTest() : num_tuples_(common::Constants::K_DEFAULT_VECTOR_SIZE) {}
 
   void SetUp() override {
     SqlBasedTest::SetUp();
@@ -145,7 +145,7 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
 
     // Create the table in the catalog.
     catalog::Schema tmp_schema({col_a, col_b, col_c, col_d});
-    auto table_oid = exec_ctx_->GetAccessor()->CreateTable(NSOid(), "pci_test_table", tmp_schema);
+    auto table_oid = exec_ctx_->GetAccessor()->CreateTable(NSOid(), "vpi_test_table", tmp_schema);
     auto schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
     auto sql_table = new storage::SqlTable(BlockStore(), schema);
     exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
@@ -163,7 +163,7 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
   }
 
   // Delete allocated objects and remove the created table.
-  ~ProjectedColumnsIteratorTest() override { delete[] buffer_; }
+  ~VectorProjectionIteratorTest() override { delete[] buffer_; }
 
   // Used to test various ProjectedColumn sizes_
   void SetSize(uint32_t size) { projected_columns_->SetNumTuples(size); }
@@ -188,12 +188,12 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(ProjectedColumnsIteratorTest, EmptyIteratorTest) {
+TEST_F(VectorProjectionIteratorTest, EmptyIteratorTest) {
   //
   // Check to see that iteration doesn't begin without an input block
   //
 
-  ProjectedColumnsIterator iter(GetProjectedColumn());
+  VectorProjectionIterator iter(GetProjectedColumn());
   SetSize(0);
 
   for (; iter.HasNext(); iter.Advance()) {
@@ -202,14 +202,14 @@ TEST_F(ProjectedColumnsIteratorTest, EmptyIteratorTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ProjectedColumnsIteratorTest, SimpleIteratorTest) {
+TEST_F(VectorProjectionIteratorTest, SimpleIteratorTest) {
   //
   // Check to see that iteration iterates over all tuples in the projection
   //
 
   {
     uint32_t tuple_count = 0;
-    ProjectedColumnsIterator iter(GetProjectedColumn());
+    VectorProjectionIterator iter(GetProjectedColumn());
     SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     for (; iter.HasNext(); iter.Advance()) {
@@ -225,7 +225,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleIteratorTest) {
   //
 
   {
-    ProjectedColumnsIterator iter(GetProjectedColumn());
+    VectorProjectionIterator iter(GetProjectedColumn());
     SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     bool entered = false;
@@ -245,12 +245,12 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleIteratorTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ProjectedColumnsIteratorTest, ReadNullableColumnsTest) {
+TEST_F(VectorProjectionIteratorTest, ReadNullableColumnsTest) {
   //
   // Check to see that we can correctly count all NULL values in NULLable cols
   //
 
-  ProjectedColumnsIterator iter(GetProjectedColumn());
+  VectorProjectionIterator iter(GetProjectedColumn());
   SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   uint32_t num_nulls = 0;
@@ -265,14 +265,14 @@ TEST_F(ProjectedColumnsIteratorTest, ReadNullableColumnsTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
+TEST_F(VectorProjectionIteratorTest, ManualFilterTest) {
   //
   // Check to see that we can correctly manually apply a single filter on a
   // single column. We apply the filter IS_NOT_NULL(col_b)
   //
 
   {
-    ProjectedColumnsIterator iter(GetProjectedColumn());
+    VectorProjectionIterator iter(GetProjectedColumn());
     SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     for (; iter.HasNext(); iter.Advance()) {
@@ -310,7 +310,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
   //
 
   {
-    ProjectedColumnsIterator iter(GetProjectedColumn());
+    VectorProjectionIterator iter(GetProjectedColumn());
     SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     for (; iter.HasNext(); iter.Advance()) {
@@ -348,13 +348,13 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
+TEST_F(VectorProjectionIteratorTest, ManagedFilterTest) {
   //
   // Check to see that we can correctly apply a single filter on a single
-  // column using PCI's managed filter. We apply the filter IS_NOT_NULL(col_b)
+  // column using VPI's managed filter. We apply the filter IS_NOT_NULL(col_b)
   //
 
-  ProjectedColumnsIterator iter(GetProjectedColumn());
+  VectorProjectionIterator iter(GetProjectedColumn());
   SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   iter.RunFilter([&iter, this]() {
@@ -385,13 +385,13 @@ TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
+TEST_F(VectorProjectionIteratorTest, SimpleVectorizedFilterTest) {
   //
   // Check to see that we can correctly apply a single vectorized filter. Here
   // we just check col_c < 100
   //
 
-  ProjectedColumnsIterator iter(GetProjectedColumn());
+  VectorProjectionIterator iter(GetProjectedColumn());
   SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   // Compute expected result
@@ -405,7 +405,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
 
   // Filter
   iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), type::TypeId::INTEGER,
-                                 ProjectedColumnsIterator::FilterVal{.i_ = 100});
+                                 VectorProjectionIterator::FilterVal{.i_ = 100});
 
   // Check
   uint32_t count = 0;
@@ -419,7 +419,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
+TEST_F(VectorProjectionIteratorTest, MultipleVectorizedFilterTest) {
   //
   // Apply two filters in order:
   //  - col_c < 750
@@ -430,13 +430,13 @@ TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
   // results because it is a monotonically increasing column beginning at 0.
   //
 
-  ProjectedColumnsIterator iter(GetProjectedColumn());
+  VectorProjectionIterator iter(GetProjectedColumn());
   SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), type::TypeId::INTEGER,
-                                 ProjectedColumnsIterator::FilterVal{.i_ = 750});
+                                 VectorProjectionIterator::FilterVal{.i_ = 750});
   iter.FilterColByVal<std::less>(GetColOffset(ColId::col_a), type::TypeId::SMALLINT,
-                                 ProjectedColumnsIterator::FilterVal{.si_ = 10});
+                                 VectorProjectionIterator::FilterVal{.si_ = 10});
 
   // Check
   uint32_t count = 0;

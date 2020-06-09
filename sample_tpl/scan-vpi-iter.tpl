@@ -5,40 +5,40 @@
 // Should return 500 (number of output rows)
 
 
-fun Lt500(pci: *ProjectedColumnsIterator) -> int32 {
+fun Lt500(vpi: *VectorProjectionIterator) -> int32 {
   var param: Integer = @intToSql(500)
   var cola: Integer
-  if (@pciIsFiltered(pci)) {
-    for (; @pciHasNextFiltered(pci); @pciAdvanceFiltered(pci)) {
-      cola = @pciGetInt(pci, 0)
-      @pciMatch(pci, cola < param)
+  if (@vpiIsFiltered(vpi)) {
+    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
+      cola = @vpiGetInt(vpi, 0)
+      @vpiMatch(vpi, cola < param)
     }
   } else {
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      cola = @pciGetInt(pci, 0)
-      @pciMatch(pci, cola < param)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      cola = @vpiGetInt(vpi, 0)
+      @vpiMatch(vpi, cola < param)
     }
   }
-  @pciResetFiltered(pci)
+  @vpiResetFiltered(vpi)
   return 0
 }
 
-fun Lt500_Vec(pci: *ProjectedColumnsIterator) -> int32 {
-  return @filterLt(pci, 0, 4, 500)
+fun Lt500_Vec(vpi: *VectorProjectionIterator) -> int32 {
+  return @filterLt(vpi, 0, 4, 500)
 }
 
-fun count(pci: *ProjectedColumnsIterator) -> int32 {
+fun count(vpi: *VectorProjectionIterator) -> int32 {
   var ret = 0
-  if (@pciIsFiltered(pci)) {
-    for (; @pciHasNextFiltered(pci); @pciAdvanceFiltered(pci)) {
+  if (@vpiIsFiltered(vpi)) {
+    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
       ret = ret + 1
     }
   } else {
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
       ret = ret + 1
     }
   }
-  @pciResetFiltered(pci)
+  @vpiResetFiltered(vpi)
   return ret
 }
 
@@ -54,9 +54,9 @@ fun main(execCtx: *ExecutionContext) -> int {
   var col_oids : [1]uint32
   col_oids[0] = 1
   for (@tableIterInitBind(&tvi, execCtx, "test_1", col_oids); @tableIterAdvance(&tvi); ) {
-    var pci = @tableIterGetPCI(&tvi)
-    @filterManagerRunFilters(&filter, pci)
-    ret = ret + count(pci)
+    var vpi = @tableIterGetVPI(&tvi)
+    @filterManagerRunFilters(&filter, vpi)
+    ret = ret + count(vpi)
   }
 
   @filterManagerFree(&filter)

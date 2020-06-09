@@ -37,15 +37,15 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   oids[1] = 2 // colB
   @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    @filterLt(pci, 0, 4, 2000)
-    for (; @pciHasNextFiltered(pci); @pciAdvanceFiltered(pci)) {
+    var vpi = @tableIterGetVPI(&tvi)
+    @filterLt(vpi, 0, 4, 2000)
+    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
       var row = @ptrCast(*Row, @sorterInsertTopK(sorter, 100))
-      row.a = @pciGetInt(pci, 0)
-      row.b = @pciGetInt(pci, 1)
+      row.a = @vpiGetInt(vpi, 0)
+      row.b = @vpiGetInt(vpi, 1)
       @sorterInsertTopKFinish(sorter, 100)
     }
-    @pciResetFiltered(pci)
+    @vpiResetFiltered(vpi)
   }
   @tableIterClose(&tvi)
 }

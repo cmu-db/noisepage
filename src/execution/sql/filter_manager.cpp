@@ -8,7 +8,7 @@
 #include "execution/bandit/agent.h"
 #include "execution/bandit/multi_armed_bandit.h"
 #include "execution/bandit/policy.h"
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 
@@ -75,16 +75,16 @@ void FilterManager::Finalize() {
   finalized_ = true;
 }
 
-void FilterManager::RunFilters(ProjectedColumnsIterator *const pci) {
+void FilterManager::RunFilters(VectorProjectionIterator *const vpi) {
   TERRIER_ASSERT(finalized_, "Must finalize the filter before it can be used");
 
   // Execute the clauses in what we currently believe to be the optimal order
   for (const uint32_t opt_clause_idx : optimal_clause_order_) {
-    RunFilterClause(pci, opt_clause_idx);
+    RunFilterClause(vpi, opt_clause_idx);
   }
 }
 
-void FilterManager::RunFilterClause(ProjectedColumnsIterator *const pci, const uint32_t clause_index) {
+void FilterManager::RunFilterClause(VectorProjectionIterator *const vpi, const uint32_t clause_index) {
   //
   // This function will execute the clause at the given clause index. But, we'll
   // be smart about it. We'll use our multi-armed bandit agent to predict the
@@ -103,7 +103,7 @@ void FilterManager::RunFilterClause(ProjectedColumnsIterator *const pci, const u
 
   // Run the filter
   // NOLINTNEXTLINE
-  auto [_, exec_ms] = RunFilterClauseImpl(pci, opt_match_func);
+  auto [_, exec_ms] = RunFilterClauseImpl(vpi, opt_match_func);
   (void)_;
 
   // Update the agent's state
@@ -112,13 +112,13 @@ void FilterManager::RunFilterClause(ProjectedColumnsIterator *const pci, const u
   EXECUTION_LOG_DEBUG("Clause {} observed reward {}", clause_index, reward);
 }
 
-std::pair<uint32_t, double> FilterManager::RunFilterClauseImpl(ProjectedColumnsIterator *const pci,
+std::pair<uint32_t, double> FilterManager::RunFilterClauseImpl(VectorProjectionIterator *const vpi,
                                                                const FilterManager::MatchFn func) {
   // Time and execute the match function, returning the number of selected
   // tuples and the execution time in milliseconds
   util::Timer<> timer;
   timer.Start();
-  const uint32_t num_selected = func(pci);
+  const uint32_t num_selected = func(vpi);
   timer.Stop();
   return std::make_pair(num_selected, timer.Elapsed());
 }

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/memory.h"
@@ -531,7 +531,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   // -------------------------------------------------------
-  // Table Vector and ProjectedColumns Iterator (PCI) ops
+  // Table Vector and ProjectedColumns Iterator (VPI) ops
   // -------------------------------------------------------
 
   OP(TableVectorIteratorInit) : {
@@ -589,117 +589,117 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   // -------------------------------------------------------
-  // PCI iteration operations
+  // VPI iteration operations
   // -------------------------------------------------------
 
-  OP(PCIIsFiltered) : {
+  OP(VPIIsFiltered) : {
     auto *is_filtered = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpPCIIsFiltered(is_filtered, iter);
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIIsFiltered(is_filtered, iter);
     DISPATCH_NEXT();
   }
 
-  OP(PCIHasNext) : {
+  OP(VPIHasNext) : {
     auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpPCIHasNext(has_more, iter);
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIHasNext(has_more, iter);
     DISPATCH_NEXT();
   }
 
-  OP(PCIHasNextFiltered) : {
+  OP(VPIHasNextFiltered) : {
     auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpPCIHasNextFiltered(has_more, iter);
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIHasNextFiltered(has_more, iter);
     DISPATCH_NEXT();
   }
 
-  OP(PCIAdvance) : {
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpPCIAdvance(iter);
+  OP(VPIAdvance) : {
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIAdvance(iter);
     DISPATCH_NEXT();
   }
 
-  OP(PCIAdvanceFiltered) : {
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpPCIAdvanceFiltered(iter);
+  OP(VPIAdvanceFiltered) : {
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIAdvanceFiltered(iter);
     DISPATCH_NEXT();
   }
 
-  OP(PCIMatch) : {
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
+  OP(VPIMatch) : {
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
     auto match = frame->LocalAt<bool>(READ_LOCAL_ID());
-    OpPCIMatch(iter, match);
+    OpVPIMatch(iter, match);
     DISPATCH_NEXT();
   }
 
-  OP(PCIReset) : {
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpPCIReset(iter);
+  OP(VPIReset) : {
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIReset(iter);
     DISPATCH_NEXT();
   }
 
-  OP(PCIResetFiltered) : {
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpPCIResetFiltered(iter);
+  OP(VPIResetFiltered) : {
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIResetFiltered(iter);
     DISPATCH_NEXT();
   }
 
-  OP(PCIGetSlot) : {
+  OP(VPIGetSlot) : {
     auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpPCIGetSlot(slot, iter);
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIGetSlot(slot, iter);
     DISPATCH_NEXT();
   }
 
   // -------------------------------------------------------
-  // PCI element access
+  // VPI element access
   // -------------------------------------------------------
 
-#define GEN_PCI_ACCESS(type_str, type)                                            \
-  OP(PCIGet##type_str) : {                                                        \
+#define GEN_VPI_ACCESS(type_str, type)                                            \
+  OP(VPIGet##type_str) : {                                                        \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
-    auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
+    auto *vpi = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                                  \
-    OpPCIGet##type_str(result, pci, col_idx);                                     \
+    OpVPIGet##type_str(result, vpi, col_idx);                                     \
     DISPATCH_NEXT();                                                              \
   }                                                                               \
-  OP(PCIGet##type_str##Null) : {                                                  \
+  OP(VPIGet##type_str##Null) : {                                                  \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
-    auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
+    auto *vpi = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                                  \
-    OpPCIGet##type_str##Null(result, pci, col_idx);                               \
+    OpVPIGet##type_str##Null(result, vpi, col_idx);                               \
     DISPATCH_NEXT();                                                              \
   }
-  GEN_PCI_ACCESS(Bool, sql::BoolVal)
-  GEN_PCI_ACCESS(TinyInt, sql::Integer)
-  GEN_PCI_ACCESS(SmallInt, sql::Integer)
-  GEN_PCI_ACCESS(Integer, sql::Integer)
-  GEN_PCI_ACCESS(BigInt, sql::Integer)
-  GEN_PCI_ACCESS(Real, sql::Real)
-  GEN_PCI_ACCESS(Double, sql::Real)
-  GEN_PCI_ACCESS(Decimal, sql::DecimalVal)
-  GEN_PCI_ACCESS(DateVal, sql::DateVal)
-  GEN_PCI_ACCESS(TimestampVal, sql::TimestampVal)
-  GEN_PCI_ACCESS(Varlen, sql::StringVal)
-#undef GEN_PCI_ACCESS
+  GEN_VPI_ACCESS(Bool, sql::BoolVal)
+  GEN_VPI_ACCESS(TinyInt, sql::Integer)
+  GEN_VPI_ACCESS(SmallInt, sql::Integer)
+  GEN_VPI_ACCESS(Integer, sql::Integer)
+  GEN_VPI_ACCESS(BigInt, sql::Integer)
+  GEN_VPI_ACCESS(Real, sql::Real)
+  GEN_VPI_ACCESS(Double, sql::Real)
+  GEN_VPI_ACCESS(Decimal, sql::DecimalVal)
+  GEN_VPI_ACCESS(DateVal, sql::DateVal)
+  GEN_VPI_ACCESS(TimestampVal, sql::TimestampVal)
+  GEN_VPI_ACCESS(Varlen, sql::StringVal)
+#undef GEN_VPI_ACCESS
 
-#define GEN_PCI_FILTER(Op)                                                         \
-  OP(PCIFilter##Op) : {                                                            \
+#define GEN_VPI_FILTER(Op)                                                         \
+  OP(VPIFilter##Op) : {                                                            \
     auto *size = frame->LocalAt<uint64_t *>(READ_LOCAL_ID());                      \
-    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
+    auto *iter = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM4();                                                   \
     auto type = READ_IMM1();                                                       \
     auto val = READ_IMM8();                                                        \
-    OpPCIFilter##Op(size, iter, col_idx, type, val);                               \
+    OpVPIFilter##Op(size, iter, col_idx, type, val);                               \
     DISPATCH_NEXT();                                                               \
   }
-  GEN_PCI_FILTER(Equal)
-  GEN_PCI_FILTER(GreaterThan)
-  GEN_PCI_FILTER(GreaterThanEqual)
-  GEN_PCI_FILTER(LessThan)
-  GEN_PCI_FILTER(LessThanEqual)
-  GEN_PCI_FILTER(NotEqual)
-#undef GEN_PCI_FILTER
+  GEN_VPI_FILTER(Equal)
+  GEN_VPI_FILTER(GreaterThan)
+  GEN_VPI_FILTER(GreaterThanEqual)
+  GEN_VPI_FILTER(LessThan)
+  GEN_VPI_FILTER(LessThanEqual)
+  GEN_VPI_FILTER(NotEqual)
+#undef GEN_VPI_FILTER
 
   // ------------------------------------------------------
   // Hashing
@@ -765,8 +765,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(FilterManagerRunFilters) : {
     auto *filter_manager = frame->LocalAt<sql::FilterManager *>(READ_LOCAL_ID());
-    auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
-    OpFilterManagerRunFilters(filter_manager, pci);
+    auto *vpi = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpFilterManagerRunFilters(filter_manager, vpi);
     DISPATCH_NEXT();
   }
 
@@ -1017,7 +1017,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(AggregationHashTableProcessBatch) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
-    auto **iters = frame->LocalAt<sql::ProjectedColumnsIterator **>(READ_LOCAL_ID());
+    auto **iters = frame->LocalAt<sql::VectorProjectionIterator **>(READ_LOCAL_ID());
     auto hash_fn_id = READ_FUNC_ID();
     auto key_eq_fn_id = READ_FUNC_ID();
     auto init_agg_fn_id = READ_FUNC_ID();

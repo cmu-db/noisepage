@@ -15,12 +15,12 @@ fun main(execCtx: *ExecutionContext) -> int {
   oids[1] = 2 // col2
   @tableIterInitBind(&tvi, execCtx, "test_2", oids)
   for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      if (@pciGetSmallInt(pci, 1) < 500) {
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      if (@vpiGetSmallInt(vpi, 1) < 500) {
         out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-        out.col1 = @pciGetSmallInt(pci, 1)
-        out.col2 = @pciGetIntNull(pci, 0)
+        out.col1 = @vpiGetSmallInt(vpi, 1)
+        out.col2 = @vpiGetIntNull(vpi, 0)
         count = count + 1
       }
     }

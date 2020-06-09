@@ -28,8 +28,8 @@ fun tearDownState(state: *State) -> nil {
   @joinHTFree(&state.table)
 }
 
-fun checkKey(execCtx: *ExecutionContext, vec: *ProjectedColumnsIterator, tuple: *BuildRow) -> bool {
-  if (@pciGetInt(vec, 1) == tuple.key) {
+fun checkKey(execCtx: *ExecutionContext, vec: *VectorProjectionIterator, tuple: *BuildRow) -> bool {
+  if (@vpiGetInt(vec, 1) == tuple.key) {
     return true
   }
   return false
@@ -43,13 +43,13 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   col_oids[1] = 2
   @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {
-    var vec = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(vec); @pciAdvance(vec)) {
-      if (@pciGetInt(vec, 0) < 1000) {
-        var hash_val = @hash(@pciGetInt(vec, 1))
+    var vec = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
+      if (@vpiGetInt(vec, 0) < 1000) {
+        var hash_val = @hash(@vpiGetInt(vec, 1))
         var elem : *BuildRow = @ptrCast(*BuildRow, @joinHTInsert(jht, hash_val))
-        elem.key = @pciGetInt(vec, 1)
-        elem.val = @pciGetInt(vec, 0)
+        elem.key = @vpiGetInt(vec, 1)
+        elem.val = @vpiGetInt(vec, 0)
       }
     }
   }
@@ -64,17 +64,17 @@ fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
   col_oids[1] = 2
   @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {
-    var vec = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(vec); @pciAdvance(vec)) {
-      if (@pciGetInt(vec, 0) < 1000) {
-        var hash_val = @hash(@pciGetInt(vec, 1))
+    var vec = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
+      if (@vpiGetInt(vec, 0) < 1000) {
+        var hash_val = @hash(@vpiGetInt(vec, 1))
 
         // Iterate through matches.
         var hti: JoinHashTableIterator
         for (@joinHTIterInit(&hti, &state.table, hash_val); @joinHTIterHasNext(&hti, checkKey, execCtx, vec); ) {
           build_row = @ptrCast(*BuildRow, @joinHTIterGetRow(&hti))
           state.num_matches = state.num_matches + 1
-          if (build_row.key != @pciGetInt(vec, 1)) {
+          if (build_row.key != @vpiGetInt(vec, 1)) {
             state.correct = false
           }
         }

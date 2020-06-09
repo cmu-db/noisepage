@@ -11,9 +11,9 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   oids[0] = 1 // colA
   @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   for (; @tableIterAdvance(&tvi);) {
-    var pci = @tableIterGetPCI(&tvi)
-    ret = ret + @filterLt(pci, 0, 4, 3000)
-    @pciReset(pci)
+    var vpi = @tableIterGetVPI(&tvi)
+    ret = ret + @filterLt(vpi, 0, 4, 3000)
+    @vpiReset(vpi)
   }
   @tableIterClose(&tvi)
   return ret

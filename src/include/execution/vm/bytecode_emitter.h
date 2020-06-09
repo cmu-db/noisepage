@@ -327,24 +327,24 @@ class BytecodeEmitter {
 
   // Reading integer values from an iterator
   /**
-   * Emit bytecode to read from a PCI
-   * @param bytecode PCIGet bytecode
+   * Emit bytecode to read from a VPI
+   * @param bytecode VPIGet bytecode
    * @param out destination variable
-   * @param pci PCI to read
+   * @param vpi VPI to read
    * @param col_idx index of the column to read
    */
-  void EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, uint16_t col_idx);
+  void EmitVPIGet(Bytecode bytecode, LocalVar out, LocalVar vpi, uint16_t col_idx);
 
   /**
    * Filter a column in the iterator by a constant value
    * @param bytecode filter bytecode to emit
    * @param selected output variable for the number of selected values
-   * @param pci PCI to filter
+   * @param vpi VPI to filter
    * @param col_idx index of the iterator to filter
    * @param type type of the column
    * @param val filter value
    */
-  void EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, uint32_t col_idx, int8_t type,
+  void EmitVPIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar vpi, uint32_t col_idx, int8_t type,
                            int64_t val);
 
   /**

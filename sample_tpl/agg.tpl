@@ -23,18 +23,18 @@ fun tearDownState(state: *State) -> nil {
   @aggHTFree(&state.table)
 }
 
-fun keyCheck(agg: *Agg, pci: *ProjectedColumnsIterator) -> bool {
-  var key = @pciGetInt(pci, 1)
+fun keyCheck(agg: *Agg, vpi: *VectorProjectionIterator) -> bool {
+  var key = @vpiGetInt(vpi, 1)
   return @sqlToBool(key == agg.key)
 }
 
-fun constructAgg(agg: *Agg, pci: *ProjectedColumnsIterator) -> nil {
-  agg.key = @pciGetInt(pci, 1)
+fun constructAgg(agg: *Agg, vpi: *VectorProjectionIterator) -> nil {
+  agg.key = @vpiGetInt(vpi, 1)
   @aggInit(&agg.count)
 }
 
-fun updateAgg(agg: *Agg, pci: *ProjectedColumnsIterator) -> nil {
-  var input = @pciGetInt(pci, 0)
+fun updateAgg(agg: *Agg, vpi: *VectorProjectionIterator) -> nil {
+  var input = @vpiGetInt(vpi, 0)
   @aggAdvance(&agg.count, &input)
 }
 
@@ -46,9 +46,9 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   col_oids[1] = 2
   @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {
-    var vec = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(vec); @pciAdvance(vec)) {
-      var hash_val = @hash(@pciGetInt(vec, 1))
+    var vec = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
+      var hash_val = @hash(@vpiGetInt(vec, 1))
       var agg = @ptrCast(*Agg, @aggHTLookup(ht, hash_val, keyCheck, vec))
       if (agg == nil) {
         agg = @ptrCast(*Agg, @aggHTInsert(ht, hash_val))

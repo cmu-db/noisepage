@@ -220,10 +220,10 @@ void Sema::CheckBuiltinFilterCall(ast::CallExpr *call) {
 
   const auto &args = call->Arguments();
 
-  // The first call argument must be a pointer to a ProjectedColumnsIterator
-  const auto pci_kind = ast::BuiltinType::ProjectedColumnsIterator;
-  if (!IsPointerToSpecificBuiltin(args[0]->GetType(), pci_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(pci_kind)->PointerTo());
+  // The first call argument must be a pointer to a VectorProjectionIterator
+  const auto vpi_kind = ast::BuiltinType::VectorProjectionIterator;
+  if (!IsPointerToSpecificBuiltin(args[0]->GetType(), vpi_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(vpi_kind)->PointerTo());
     return;
   }
 
@@ -235,7 +235,7 @@ void Sema::CheckBuiltinFilterCall(ast::CallExpr *call) {
   }
 
   // The third call argument must be an type represented by an integer.
-  // TODO(Amadou): This is subject to change. Ideally, there should be a builtin for every type like for PCIGet.
+  // TODO(Amadou): This is subject to change. Ideally, there should be a builtin for every type like for VPIGet.
   if (!args[2]->IsIntegerLiteral()) {
     ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_kind));
     return;
@@ -336,11 +336,11 @@ void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builti
       if (!CheckArgCount(call, 7)) {
         return;
       }
-      // Second argument is the PCIs
-      const auto pci_kind = ast::BuiltinType::Uint64;
+      // Second argument is the VPIs
+      const auto vpi_kind = ast::BuiltinType::Uint64;
       if (!args[1]->GetType()->IsPointerType() ||
-          IsPointerToSpecificBuiltin(args[1]->GetType()->GetPointeeType(), pci_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(pci_kind)->PointerTo());
+          IsPointerToSpecificBuiltin(args[1]->GetType()->GetPointeeType(), vpi_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(vpi_kind)->PointerTo());
         return;
       }
       // Third, fourth, fifth, and sixth are all functions
@@ -1077,7 +1077,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       break;
     }
     case ast::Builtin::TableIterGetVPI: {
-      // A single-arg builtin return a pointer to the current PCI
+      // A single-arg builtin return a pointer to the current VPI
       const auto vpi_kind = ast::BuiltinType::VectorProjectionIterator;
       call->SetType(GetBuiltinType(vpi_kind)->PointerTo());
       break;
@@ -1139,30 +1139,30 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
+void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
 
-  // The first argument must be a *PCI
-  const auto pci_kind = ast::BuiltinType::ProjectedColumnsIterator;
-  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), pci_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(pci_kind)->PointerTo());
+  // The first argument must be a *VPI
+  const auto vpi_kind = ast::BuiltinType::VectorProjectionIterator;
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), vpi_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(vpi_kind)->PointerTo());
     return;
   }
 
   switch (builtin) {
-    case ast::Builtin::PCIIsFiltered:
-    case ast::Builtin::PCIHasNext:
-    case ast::Builtin::PCIHasNextFiltered:
-    case ast::Builtin::PCIAdvance:
-    case ast::Builtin::PCIAdvanceFiltered:
-    case ast::Builtin::PCIReset:
-    case ast::Builtin::PCIResetFiltered: {
+    case ast::Builtin::VPIIsFiltered:
+    case ast::Builtin::VPIHasNext:
+    case ast::Builtin::VPIHasNextFiltered:
+    case ast::Builtin::VPIAdvance:
+    case ast::Builtin::VPIAdvanceFiltered:
+    case ast::Builtin::VPIReset:
+    case ast::Builtin::VPIResetFiltered: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
-    case ast::Builtin::PCIMatch: {
+    case ast::Builtin::VPIMatch: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1180,53 +1180,53 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::PCIGetSlot: {
+    case ast::Builtin::VPIGetSlot: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
       break;
     }
-    case ast::Builtin::PCIGetBool:
-    case ast::Builtin::PCIGetBoolNull: {
+    case ast::Builtin::VPIGetBool:
+    case ast::Builtin::VPIGetBoolNull: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Boolean));
       break;
     }
-    case ast::Builtin::PCIGetTinyInt:
-    case ast::Builtin::PCIGetTinyIntNull:
-    case ast::Builtin::PCIGetSmallInt:
-    case ast::Builtin::PCIGetSmallIntNull:
-    case ast::Builtin::PCIGetInt:
-    case ast::Builtin::PCIGetIntNull:
-    case ast::Builtin::PCIGetBigInt:
-    case ast::Builtin::PCIGetBigIntNull: {
+    case ast::Builtin::VPIGetTinyInt:
+    case ast::Builtin::VPIGetTinyIntNull:
+    case ast::Builtin::VPIGetSmallInt:
+    case ast::Builtin::VPIGetSmallIntNull:
+    case ast::Builtin::VPIGetInt:
+    case ast::Builtin::VPIGetIntNull:
+    case ast::Builtin::VPIGetBigInt:
+    case ast::Builtin::VPIGetBigIntNull: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
       break;
     }
-    case ast::Builtin::PCIGetReal:
-    case ast::Builtin::PCIGetRealNull:
-    case ast::Builtin::PCIGetDouble:
-    case ast::Builtin::PCIGetDoubleNull: {
+    case ast::Builtin::VPIGetReal:
+    case ast::Builtin::VPIGetRealNull:
+    case ast::Builtin::VPIGetDouble:
+    case ast::Builtin::VPIGetDoubleNull: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Real));
       break;
     }
-    case ast::Builtin::PCIGetDate:
-    case ast::Builtin::PCIGetDateNull: {
+    case ast::Builtin::VPIGetDate:
+    case ast::Builtin::VPIGetDateNull: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Date));
       break;
     }
-    case ast::Builtin::PCIGetTimestamp:
-    case ast::Builtin::PCIGetTimestampNull: {
+    case ast::Builtin::VPIGetTimestamp:
+    case ast::Builtin::VPIGetTimestampNull: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
       break;
     }
-    case ast::Builtin::PCIGetVarlen:
-    case ast::Builtin::PCIGetVarlenNull: {
+    case ast::Builtin::VPIGetVarlen:
+    case ast::Builtin::VPIGetVarlenNull: {
       call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
       break;
     }
     default: {
-      UNREACHABLE("Impossible PCI call");
+      UNREACHABLE("Impossible VPI call");
     }
   }
 }
@@ -1274,9 +1274,9 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
         if (arg_type == nullptr ||                                              // not a function
             !arg_type->GetReturnType()->IsIntegerType() ||                        // doesn't return an integer
             arg_type->GetNumParams() != 1 ||                                      // isn't a single-arg func
-            arg_type->GetParams()[0].type_->GetPointeeType() == nullptr ||          // first arg isn't a *PCI
+            arg_type->GetParams()[0].type_->GetPointeeType() == nullptr ||          // first arg isn't a *VPI
             !arg_type->GetParams()[0].type_->GetPointeeType()->IsSpecificBuiltin(
-                ast::BuiltinType::ProjectedColumnsIterator)) {
+                ast::BuiltinType::VectorProjectionIterator)) {
           // error
           GetErrorReporter()->Report(
               call->Position(), ErrorMessages::kIncorrectCallArgType,
@@ -1291,9 +1291,9 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
       break;
     }
     case ast::Builtin::FilterManagerRunFilters: {
-      const auto pci_kind = ast::BuiltinType::ProjectedColumnsIterator;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), pci_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(pci_kind)->PointerTo());
+      const auto vpi_kind = ast::BuiltinType::VectorProjectionIterator;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), vpi_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(vpi_kind)->PointerTo());
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
@@ -2341,36 +2341,36 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinTableIterParCall(call);
       break;
     }
-    case ast::Builtin::PCIIsFiltered:
-    case ast::Builtin::PCIHasNext:
-    case ast::Builtin::PCIHasNextFiltered:
-    case ast::Builtin::PCIAdvance:
-    case ast::Builtin::PCIAdvanceFiltered:
-    case ast::Builtin::PCIGetSlot:
-    case ast::Builtin::PCIMatch:
-    case ast::Builtin::PCIReset:
-    case ast::Builtin::PCIResetFiltered:
-    case ast::Builtin::PCIGetBool:
-    case ast::Builtin::PCIGetBoolNull:
-    case ast::Builtin::PCIGetTinyInt:
-    case ast::Builtin::PCIGetTinyIntNull:
-    case ast::Builtin::PCIGetSmallInt:
-    case ast::Builtin::PCIGetSmallIntNull:
-    case ast::Builtin::PCIGetInt:
-    case ast::Builtin::PCIGetIntNull:
-    case ast::Builtin::PCIGetBigInt:
-    case ast::Builtin::PCIGetBigIntNull:
-    case ast::Builtin::PCIGetReal:
-    case ast::Builtin::PCIGetRealNull:
-    case ast::Builtin::PCIGetDouble:
-    case ast::Builtin::PCIGetDoubleNull:
-    case ast::Builtin::PCIGetDate:
-    case ast::Builtin::PCIGetDateNull:
-    case ast::Builtin::PCIGetTimestamp:
-    case ast::Builtin::PCIGetTimestampNull:
-    case ast::Builtin::PCIGetVarlen:
-    case ast::Builtin::PCIGetVarlenNull: {
-      CheckBuiltinPCICall(call, builtin);
+    case ast::Builtin::VPIIsFiltered:
+    case ast::Builtin::VPIHasNext:
+    case ast::Builtin::VPIHasNextFiltered:
+    case ast::Builtin::VPIAdvance:
+    case ast::Builtin::VPIAdvanceFiltered:
+    case ast::Builtin::VPIGetSlot:
+    case ast::Builtin::VPIMatch:
+    case ast::Builtin::VPIReset:
+    case ast::Builtin::VPIResetFiltered:
+    case ast::Builtin::VPIGetBool:
+    case ast::Builtin::VPIGetBoolNull:
+    case ast::Builtin::VPIGetTinyInt:
+    case ast::Builtin::VPIGetTinyIntNull:
+    case ast::Builtin::VPIGetSmallInt:
+    case ast::Builtin::VPIGetSmallIntNull:
+    case ast::Builtin::VPIGetInt:
+    case ast::Builtin::VPIGetIntNull:
+    case ast::Builtin::VPIGetBigInt:
+    case ast::Builtin::VPIGetBigIntNull:
+    case ast::Builtin::VPIGetReal:
+    case ast::Builtin::VPIGetRealNull:
+    case ast::Builtin::VPIGetDouble:
+    case ast::Builtin::VPIGetDoubleNull:
+    case ast::Builtin::VPIGetDate:
+    case ast::Builtin::VPIGetDateNull:
+    case ast::Builtin::VPIGetTimestamp:
+    case ast::Builtin::VPIGetTimestampNull:
+    case ast::Builtin::VPIGetVarlen:
+    case ast::Builtin::VPIGetVarlenNull: {
+      CheckBuiltinVPICall(call, builtin);
       break;
     }
     case ast::Builtin::Hash: {

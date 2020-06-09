@@ -19,8 +19,8 @@ struct Agg {
   cs : CountStarAggregate
 }
 
-fun keyCheck(agg: *Agg, iters: [*]*ProjectedColumnsIterator) -> bool {
-  var key = @pciGetInt(iters[0], 1)
+fun keyCheck(agg: *Agg, iters: [*]*VectorProjectionIterator) -> bool {
+  var key = @vpiGetInt(iters[0], 1)
   return @sqlToBool(key == agg.key)
 }
 
@@ -28,12 +28,12 @@ fun keyCheckPartial(agg1: *Agg, agg2: *Agg) -> bool {
   return @sqlToBool(agg1.key == agg2.key)
 }
 
-fun hashFn(iters: [*]*ProjectedColumnsIterator) -> uint64 {
-  return @hash(@pciGetInt(iters[0], 1))
+fun hashFn(iters: [*]*VectorProjectionIterator) -> uint64 {
+  return @hash(@vpiGetInt(iters[0], 1))
 }
 
-fun constructAgg(agg: *Agg, iters: [*]*ProjectedColumnsIterator) -> nil {
-  agg.key = @pciGetInt(iters[0], 1)
+fun constructAgg(agg: *Agg, iters: [*]*VectorProjectionIterator) -> nil {
+  agg.key = @vpiGetInt(iters[0], 1)
   @aggInit(&agg.cs)
 }
 
@@ -42,8 +42,8 @@ fun constructAggFromPartial(agg: *Agg, partial: *Agg) -> nil {
   @aggInit(&agg.cs)
 }
 
-fun updateAgg(agg: *Agg, iters: [*]*ProjectedColumnsIterator) -> nil {
-  var input = @pciGetInt(iters[0], 1)
+fun updateAgg(agg: *Agg, iters: [*]*VectorProjectionIterator) -> nil {
+  var input = @vpiGetInt(iters[0], 1)
   @aggAdvance(&agg.cs, &input)
 }
 
@@ -68,7 +68,7 @@ fun p1_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *ThreadStat
 }
 
 fun p1_worker(queryState: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
-  var iters: [1]*ProjectedColumnsIterator
+  var iters: [1]*VectorProjectionIterator
   var ht: *AggregationHashTable = &state.table
 
   for (@tableIterAdvance(tvi)) {

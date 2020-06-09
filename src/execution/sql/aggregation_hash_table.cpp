@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "common/math_util.h"
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/cpu_info.h"
@@ -155,7 +155,7 @@ void AggregationHashTable::AllocateOverflowPartitions() {
   }
 }
 
-void AggregationHashTable::ProcessBatch(ProjectedColumnsIterator *iters[], AggregationHashTable::HashFn hash_fn,
+void AggregationHashTable::ProcessBatch(VectorProjectionIterator *iters[], AggregationHashTable::HashFn hash_fn,
                                         KeyEqFn key_eq_fn, AggregationHashTable::InitAggFn init_agg_fn,
                                         AggregationHashTable::AdvanceAggFn advance_agg_fn) {
   TERRIER_ASSERT(iters != nullptr, "Null input iterators!");
@@ -172,30 +172,30 @@ void AggregationHashTable::ProcessBatch(ProjectedColumnsIterator *iters[], Aggre
   }
 }
 
-template <bool PCIIsFiltered>
-void AggregationHashTable::ProcessBatchImpl(ProjectedColumnsIterator *iters[], uint32_t num_elems, hash_t hashes[],
+template <bool VPIIsFiltered>
+void AggregationHashTable::ProcessBatchImpl(VectorProjectionIterator *iters[], uint32_t num_elems, hash_t hashes[],
                                             HashTableEntry *entries[], AggregationHashTable::HashFn hash_fn,
                                             KeyEqFn key_eq_fn, AggregationHashTable::InitAggFn init_agg_fn,
                                             AggregationHashTable::AdvanceAggFn advance_agg_fn) {
   // Lookup batch
-  LookupBatch<PCIIsFiltered>(iters, num_elems, hashes, entries, hash_fn, key_eq_fn);
+  LookupBatch<VPIIsFiltered>(iters, num_elems, hashes, entries, hash_fn, key_eq_fn);
   iters[0]->Reset();
 
   // Create missing groups
-  CreateMissingGroups<PCIIsFiltered>(iters, num_elems, hashes, entries, key_eq_fn, init_agg_fn);
+  CreateMissingGroups<VPIIsFiltered>(iters, num_elems, hashes, entries, key_eq_fn, init_agg_fn);
   iters[0]->Reset();
 
   // Update valid groups
-  AdvanceGroups<PCIIsFiltered>(iters, num_elems, entries, advance_agg_fn);
+  AdvanceGroups<VPIIsFiltered>(iters, num_elems, entries, advance_agg_fn);
   iters[0]->Reset();
 }
 
-template <bool PCIIsFiltered>
-void AggregationHashTable::LookupBatch(ProjectedColumnsIterator *iters[], uint32_t num_elems, hash_t hashes[],
+template <bool VPIIsFiltered>
+void AggregationHashTable::LookupBatch(VectorProjectionIterator *iters[], uint32_t num_elems, hash_t hashes[],
                                        HashTableEntry *entries[], AggregationHashTable::HashFn hash_fn,
                                        AggregationHashTable::KeyEqFn key_eq_fn) const {
   // Compute hash and perform initial lookup
-  ComputeHashAndLoadInitial<PCIIsFiltered>(iters, num_elems, hashes, entries, hash_fn);
+  ComputeHashAndLoadInitial<VPIIsFiltered>(iters, num_elems, hashes, entries, hash_fn);
 #if !AHT_REWRITE
   // Determine the indexes of entries that are non-null
   alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
@@ -204,29 +204,29 @@ void AggregationHashTable::LookupBatch(ProjectedColumnsIterator *iters[], uint32
 
   // Candidate groups in 'entries' may have hash collisions. Follow the chain
   // to check key equality.
-  FollowNextLoop<PCIIsFiltered>(iters, num_groups, group_sel, hashes, entries, key_eq_fn);
+  FollowNextLoop<VPIIsFiltered>(iters, num_groups, group_sel, hashes, entries, key_eq_fn);
 #endif
 }
 
-template <bool PCIIsFiltered>
-void AggregationHashTable::ComputeHashAndLoadInitial(ProjectedColumnsIterator *iters[], uint32_t num_elems,
+template <bool VPIIsFiltered>
+void AggregationHashTable::ComputeHashAndLoadInitial(VectorProjectionIterator *iters[], uint32_t num_elems,
                                                      hash_t hashes[], HashTableEntry *entries[],
                                                      AggregationHashTable::HashFn hash_fn) const {
   // If the hash table is larger than cache, inject prefetch instructions
   uint64_t l3_cache_size = CpuInfo::Instance()->GetCacheSize(CpuInfo::L3_CACHE);
   if (hash_table_.GetTotalMemoryUsage() > l3_cache_size) {
-    ComputeHashAndLoadInitialImpl<PCIIsFiltered, true>(iters, num_elems, hashes, entries, hash_fn);
+    ComputeHashAndLoadInitialImpl<VPIIsFiltered, true>(iters, num_elems, hashes, entries, hash_fn);
   } else {
-    ComputeHashAndLoadInitialImpl<PCIIsFiltered, false>(iters, num_elems, hashes, entries, hash_fn);
+    ComputeHashAndLoadInitialImpl<VPIIsFiltered, false>(iters, num_elems, hashes, entries, hash_fn);
   }
 }
 
-template <bool PCIIsFiltered, bool Prefetch>
-void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterator *iters[], uint32_t num_elems,
+template <bool VPIIsFiltered, bool Prefetch>
+void AggregationHashTable::ComputeHashAndLoadInitialImpl(VectorProjectionIterator *iters[], uint32_t num_elems,
                                                          hash_t hashes[], HashTableEntry *entries[],
                                                          AggregationHashTable::HashFn hash_fn) const {
   // Compute hash
-  if constexpr (PCIIsFiltered) {
+  if constexpr (VPIIsFiltered) {
     for (uint32_t idx = 0; iters[0]->HasNextFiltered(); iters[0]->AdvanceFiltered()) {
       hashes[idx++] = hash_fn(iters);
     }
@@ -236,7 +236,7 @@ void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterato
     }
   }
 
-  // Reset PCI
+  // Reset VPI
   iters[0]->Reset();
 
   // Load entries
@@ -255,8 +255,8 @@ void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterato
   }
 }
 
-template <bool PCIIsFiltered>
-void AggregationHashTable::FollowNextLoop(ProjectedColumnsIterator *iters[], uint32_t num_elems, uint32_t group_sel[],
+template <bool VPIIsFiltered>
+void AggregationHashTable::FollowNextLoop(VectorProjectionIterator *iters[], uint32_t num_elems, uint32_t group_sel[],
                                           const hash_t hashes[], HashTableEntry *entries[],
                                           AggregationHashTable::KeyEqFn key_eq_fn) const {
   while (num_elems > 0) {
@@ -266,7 +266,7 @@ void AggregationHashTable::FollowNextLoop(ProjectedColumnsIterator *iters[], uin
     // vector projection and check key equality for each. For mismatches,
     // follow the bucket chain.
     for (uint32_t idx = 0; idx < num_elems; idx++) {
-      iters[0]->SetPosition<PCIIsFiltered>(group_sel[idx]);
+      iters[0]->SetPosition<VPIIsFiltered>(group_sel[idx]);
 
       const bool keys_match = entries[group_sel[idx]]->hash_ == hashes[group_sel[idx]] &&
                               key_eq_fn(entries[group_sel[idx]]->payload_, iters);
@@ -276,7 +276,7 @@ void AggregationHashTable::FollowNextLoop(ProjectedColumnsIterator *iters[], uin
       write_idx += static_cast<uint32_t>(!keys_match && has_next);
     }
 
-    // Reset PCI
+    // Reset VPI
     iters[0]->Reset();
 
     // Follow chain
@@ -290,8 +290,8 @@ void AggregationHashTable::FollowNextLoop(ProjectedColumnsIterator *iters[], uin
   }
 }
 
-template <bool PCIIsFiltered>
-void AggregationHashTable::CreateMissingGroups(ProjectedColumnsIterator *iters[], uint32_t num_elems,
+template <bool VPIIsFiltered>
+void AggregationHashTable::CreateMissingGroups(VectorProjectionIterator *iters[], uint32_t num_elems,
                                                const hash_t hashes[], HashTableEntry *entries[],
                                                AggregationHashTable::KeyEqFn key_eq_fn,
                                                AggregationHashTable::InitAggFn init_agg_fn) {
@@ -306,8 +306,8 @@ void AggregationHashTable::CreateMissingGroups(ProjectedColumnsIterator *iters[]
   for (uint32_t idx = 0; idx < num_groups; idx++) {
     hash_t hash = hashes[group_sel[idx]];
 
-    // Move PCI to position of new aggregate
-    iters[0]->SetPosition<PCIIsFiltered>(group_sel[idx]);
+    // Move VPI to position of new aggregate
+    iters[0]->SetPosition<VPIIsFiltered>(group_sel[idx]);
 
     if (HashTableEntry *entry = LookupEntryInternal(hash, key_eq_fn, iters); entry != nullptr) {
       entries[group_sel[idx]] = entry;
@@ -320,8 +320,8 @@ void AggregationHashTable::CreateMissingGroups(ProjectedColumnsIterator *iters[]
 #endif
 }
 
-template <bool PCIIsFiltered>
-void AggregationHashTable::AdvanceGroups(ProjectedColumnsIterator *iters[], uint32_t num_elems,
+template <bool VPIIsFiltered>
+void AggregationHashTable::AdvanceGroups(VectorProjectionIterator *iters[], uint32_t num_elems,
                                          HashTableEntry *entries[], AggregationHashTable::AdvanceAggFn advance_agg_fn) {
 #if !AHT_REWRITE
   // Vector storing all valid group indexes
@@ -333,7 +333,7 @@ void AggregationHashTable::AdvanceGroups(ProjectedColumnsIterator *iters[], uint
   // Group indexes are stored in group_sel, update them now.
   for (uint32_t idx = 0; idx < num_groups; idx++) {
     HashTableEntry *entry = entries[group_sel[idx]];
-    iters[0]->SetPosition<PCIIsFiltered>(group_sel[idx]);
+    iters[0]->SetPosition<VPIIsFiltered>(group_sel[idx]);
     advance_agg_fn(entry->payload_, iters);
   }
 #endif

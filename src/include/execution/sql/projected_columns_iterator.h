@@ -11,32 +11,32 @@
 
 namespace terrier::execution::sql {
 /**
- * An iterator over projections. A ProjectedColumnsIterator allows both
+ * An iterator over projections. A VectorProjectionIterator allows both
  * tuple-at-a-time iteration over a vector projection and vector-at-a-time
  * processing. There are two separate APIs for each and interleaving is
  * supported only to a certain degree. This class exists so that we can iterate
  * over a projection multiples times and ensure processing always only
  * on filtered items.
  */
-class EXPORT ProjectedColumnsIterator {
+class EXPORT VectorProjectionIterator {
   static constexpr const uint32_t K_INVALID_POS = std::numeric_limits<uint32_t>::max();
 
  public:
   /**
    * Create an empty iterator over an empty projection
    */
-  ProjectedColumnsIterator();
+  VectorProjectionIterator();
 
   /**
    * Create an iterator over the given projection @em projected_column
    * @param projected_column The projection to iterate over
    */
-  explicit ProjectedColumnsIterator(storage::ProjectedColumns *projected_column);
+  explicit VectorProjectionIterator(storage::ProjectedColumns *projected_column);
 
   /**
    * This class cannot be copied or moved
    */
-  DISALLOW_COPY_AND_MOVE(ProjectedColumnsIterator);
+  DISALLOW_COPY_AND_MOVE(VectorProjectionIterator);
 
   /**
    * Has this vector projection been filtered? Does it have a selection vector?
@@ -135,8 +135,8 @@ class EXPORT ProjectedColumnsIterator {
    * @tparam F The generic type of the filter function. This can be any
    *           functor-like type including raw function pointer, functor or
    *           std::function
-   * @param filter A function that accepts a const version of this PCI and
-   *               returns true if the tuple pointed to by the PCI is valid
+   * @param filter A function that accepts a const version of this VPI and
+   *               returns true if the tuple pointed to by the VPI is valid
    *               (i.e., passes the filter) or false otherwise
    */
   template <typename F>
@@ -257,7 +257,7 @@ class EXPORT ProjectedColumnsIterator {
 // Retrieve a single column value (and potentially its NULL indicator) from the
 // desired column's input data
 template <typename T, bool Nullable>
-inline const T *ProjectedColumnsIterator::Get(uint32_t col_idx, bool *null) const {
+inline const T *VectorProjectionIterator::Get(uint32_t col_idx, bool *null) const {
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (Nullable) {
     TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
@@ -268,39 +268,39 @@ inline const T *ProjectedColumnsIterator::Get(uint32_t col_idx, bool *null) cons
 }
 
 template <bool Filtered>
-inline void ProjectedColumnsIterator::SetPosition(uint32_t idx) {
+inline void VectorProjectionIterator::SetPosition(uint32_t idx) {
   TERRIER_ASSERT(idx < NumSelected(), "Out of bounds access");
   if constexpr (Filtered) {
-    TERRIER_ASSERT(IsFiltered(), "Attempting to set position in unfiltered PCI");
+    TERRIER_ASSERT(IsFiltered(), "Attempting to set position in unfiltered VPI");
     selection_vector_read_idx_ = idx;
     curr_idx_ = selection_vector_[selection_vector_read_idx_];
   } else {  // NOLINT
-    TERRIER_ASSERT(!IsFiltered(), "Attempting to set position in filtered PCI");
+    TERRIER_ASSERT(!IsFiltered(), "Attempting to set position in filtered VPI");
     curr_idx_ = idx;
   }
 }
 
-inline void ProjectedColumnsIterator::Advance() { curr_idx_++; }
+inline void VectorProjectionIterator::Advance() { curr_idx_++; }
 
-inline void ProjectedColumnsIterator::AdvanceFiltered() { curr_idx_ = selection_vector_[++selection_vector_read_idx_]; }
+inline void VectorProjectionIterator::AdvanceFiltered() { curr_idx_ = selection_vector_[++selection_vector_read_idx_]; }
 
-inline void ProjectedColumnsIterator::Match(bool matched) {
+inline void VectorProjectionIterator::Match(bool matched) {
   selection_vector_[selection_vector_write_idx_] = curr_idx_;
   selection_vector_write_idx_ += matched ? 1 : 0;
 }
 
-inline bool ProjectedColumnsIterator::HasNext() const { return curr_idx_ < projected_column_->NumTuples(); }
+inline bool VectorProjectionIterator::HasNext() const { return curr_idx_ < projected_column_->NumTuples(); }
 
-inline bool ProjectedColumnsIterator::HasNextFiltered() const { return selection_vector_read_idx_ < NumSelected(); }
+inline bool VectorProjectionIterator::HasNextFiltered() const { return selection_vector_read_idx_ < NumSelected(); }
 
-inline void ProjectedColumnsIterator::Reset() {
+inline void VectorProjectionIterator::Reset() {
   const auto next_idx = selection_vector_[0];
   curr_idx_ = (next_idx == K_INVALID_POS ? 0 : next_idx);
   selection_vector_read_idx_ = 0;
   selection_vector_write_idx_ = 0;
 }
 
-inline void ProjectedColumnsIterator::ResetFiltered() {
+inline void VectorProjectionIterator::ResetFiltered() {
   curr_idx_ = selection_vector_[0];
   num_selected_ = selection_vector_write_idx_;
   selection_vector_read_idx_ = 0;
@@ -308,7 +308,7 @@ inline void ProjectedColumnsIterator::ResetFiltered() {
 }
 
 template <typename F>
-inline void ProjectedColumnsIterator::ForEach(const F &fn) {
+inline void VectorProjectionIterator::ForEach(const F &fn) {
   // Ensure function conforms to expected form
   static_assert(std::is_invocable_r_v<void, F>, "Iteration function must be a no-arg void-return function");
 
@@ -326,7 +326,7 @@ inline void ProjectedColumnsIterator::ForEach(const F &fn) {
 }
 
 template <typename F>
-inline void ProjectedColumnsIterator::RunFilter(const F &filter) {
+inline void VectorProjectionIterator::RunFilter(const F &filter) {
   // Ensure filter function conforms to expected form
   static_assert(std::is_invocable_r_v<bool, F>, "Filter function must be a no-arg function returning a bool");
 
@@ -344,7 +344,7 @@ inline void ProjectedColumnsIterator::RunFilter(const F &filter) {
 
   // After the filter has been run on the entire projected column, we need to
   // ensure that we reset it so that clients can query the updated state of the
-  // PCI, and subsequent filters operate only on valid tuples potentially
+  // VPI, and subsequent filters operate only on valid tuples potentially
   // filtered out in this filter.
   ResetFiltered();
 }

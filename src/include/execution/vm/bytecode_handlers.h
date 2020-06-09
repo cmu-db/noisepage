@@ -16,7 +16,7 @@
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/storage_interface.h"
@@ -266,34 +266,34 @@ VM_OP_HOT void OpParallelScanTable(const uint32_t db_oid, const uint32_t table_o
 // Projected Columns Iterator
 // ---------------------------------------------------------
 
-VM_OP_HOT void OpPCIIsFiltered(bool *is_filtered, terrier::execution::sql::ProjectedColumnsIterator *pci) {
-  *is_filtered = pci->IsFiltered();
+VM_OP_HOT void OpVPIIsFiltered(bool *is_filtered, terrier::execution::sql::VectorProjectionIterator *vpi) {
+  *is_filtered = vpi->IsFiltered();
 }
 
-VM_OP_HOT void OpPCIHasNext(bool *has_more, terrier::execution::sql::ProjectedColumnsIterator *pci) {
-  *has_more = pci->HasNext();
+VM_OP_HOT void OpVPIHasNext(bool *has_more, terrier::execution::sql::VectorProjectionIterator *vpi) {
+  *has_more = vpi->HasNext();
 }
 
-VM_OP_HOT void OpPCIHasNextFiltered(bool *has_more, terrier::execution::sql::ProjectedColumnsIterator *pci) {
-  *has_more = pci->HasNextFiltered();
+VM_OP_HOT void OpVPIHasNextFiltered(bool *has_more, terrier::execution::sql::VectorProjectionIterator *vpi) {
+  *has_more = vpi->HasNextFiltered();
 }
 
-VM_OP_HOT void OpPCIAdvance(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->Advance(); }
+VM_OP_HOT void OpVPIAdvance(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->Advance(); }
 
-VM_OP_HOT void OpPCIAdvanceFiltered(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->AdvanceFiltered(); }
+VM_OP_HOT void OpVPIAdvanceFiltered(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->AdvanceFiltered(); }
 
-VM_OP_HOT void OpPCIMatch(terrier::execution::sql::ProjectedColumnsIterator *pci, bool match) { pci->Match(match); }
+VM_OP_HOT void OpVPIMatch(terrier::execution::sql::VectorProjectionIterator *vpi, bool match) { vpi->Match(match); }
 
-VM_OP_HOT void OpPCIReset(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->Reset(); }
+VM_OP_HOT void OpVPIReset(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->Reset(); }
 
-VM_OP_HOT void OpPCIResetFiltered(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->ResetFiltered(); }
+VM_OP_HOT void OpVPIResetFiltered(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->ResetFiltered(); }
 
-VM_OP_HOT void OpPCIGetSlot(terrier::storage::TupleSlot *slot, terrier::execution::sql::ProjectedColumnsIterator *pci) {
-  *slot = pci->CurrentSlot();
+VM_OP_HOT void OpVPIGetSlot(terrier::storage::TupleSlot *slot, terrier::execution::sql::VectorProjectionIterator *vpi) {
+  *slot = vpi->CurrentSlot();
 }
 
-VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
-                            terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetBool(terrier::execution::sql::BoolVal *out,
+                            terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<bool, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
@@ -303,8 +303,8 @@ VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
-                               terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetTinyInt(terrier::execution::sql::Integer *out,
+                               terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<int8_t, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -314,8 +314,8 @@ VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out,
-                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetSmallInt(terrier::execution::sql::Integer *out,
+                                terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<int16_t, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -325,8 +325,8 @@ VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out,
-                               terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetInteger(terrier::execution::sql::Integer *out,
+                               terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<int32_t, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -336,8 +336,8 @@ VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out,
-                              terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetBigInt(terrier::execution::sql::Integer *out,
+                              terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<int64_t, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -347,7 +347,7 @@ VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::ProjectedColumnsIterator *iter,
+VM_OP_HOT void OpVPIGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::VectorProjectionIterator *iter,
                             uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<float, false>(col_idx, nullptr);
@@ -358,8 +358,8 @@ VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out, terrier::executi
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out,
-                              terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetDouble(terrier::execution::sql::Real *out,
+                              terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<double, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
@@ -369,8 +369,8 @@ VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::DecimalVal *out,
-                               UNUSED_ATTRIBUTE terrier::execution::sql::ProjectedColumnsIterator *iter,
+VM_OP_HOT void OpVPIGetDecimal(terrier::execution::sql::DecimalVal *out,
+                               UNUSED_ATTRIBUTE terrier::execution::sql::VectorProjectionIterator *iter,
                                UNUSED_ATTRIBUTE uint16_t col_idx) {
   // TODO(Amadou): Implement once the representation of Decimal is settled upon.
   // The sql::Decimal class does not seem to match the storage layer's DECIMAL type as it needs a precision and
@@ -379,8 +379,8 @@ VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::DecimalVal *out,
   out->val_ = terrier::execution::sql::Decimal64(0);
 }
 
-VM_OP_HOT void OpPCIGetDateVal(terrier::execution::sql::DateVal *out,
-                               terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetDateVal(terrier::execution::sql::DateVal *out,
+                               terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<uint32_t, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
@@ -390,8 +390,8 @@ VM_OP_HOT void OpPCIGetDateVal(terrier::execution::sql::DateVal *out,
   out->val_ = terrier::execution::sql::Date::FromNative(*ptr);
 }
 
-VM_OP_HOT void OpPCIGetTimestampVal(terrier::execution::sql::TimestampVal *out,
-                                    terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetTimestampVal(terrier::execution::sql::TimestampVal *out,
+                                    terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<uint64_t, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
@@ -401,8 +401,8 @@ VM_OP_HOT void OpPCIGetTimestampVal(terrier::execution::sql::TimestampVal *out,
   out->val_ = terrier::execution::sql::Timestamp::FromNative(*ptr);
 }
 
-VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
-                              terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetVarlen(terrier::execution::sql::StringVal *out,
+                              terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   auto *varlen = iter->Get<terrier::storage::VarlenEntry, false>(col_idx, nullptr);
   TERRIER_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
@@ -411,8 +411,8 @@ VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
   *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
 }
 
-VM_OP_HOT void OpPCIGetBoolNull(terrier::execution::sql::BoolVal *out,
-                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetBoolNull(terrier::execution::sql::BoolVal *out,
+                                terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<bool, true>(col_idx, &null);
@@ -423,8 +423,8 @@ VM_OP_HOT void OpPCIGetBoolNull(terrier::execution::sql::BoolVal *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out,
-                                   terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetTinyIntNull(terrier::execution::sql::Integer *out,
+                                   terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<int8_t, true>(col_idx, &null);
@@ -435,8 +435,8 @@ VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetSmallIntNull(terrier::execution::sql::Integer *out,
-                                    terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetSmallIntNull(terrier::execution::sql::Integer *out,
+                                    terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<int16_t, true>(col_idx, &null);
@@ -447,8 +447,8 @@ VM_OP_HOT void OpPCIGetSmallIntNull(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetIntegerNull(terrier::execution::sql::Integer *out,
-                                   terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetIntegerNull(terrier::execution::sql::Integer *out,
+                                   terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<int32_t, true>(col_idx, &null);
@@ -459,8 +459,8 @@ VM_OP_HOT void OpPCIGetIntegerNull(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetBigIntNull(terrier::execution::sql::Integer *out,
-                                  terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetBigIntNull(terrier::execution::sql::Integer *out,
+                                  terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<int64_t, true>(col_idx, &null);
@@ -471,8 +471,8 @@ VM_OP_HOT void OpPCIGetBigIntNull(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetRealNull(terrier::execution::sql::Real *out,
-                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetRealNull(terrier::execution::sql::Real *out,
+                                terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<float, true>(col_idx, &null);
@@ -483,8 +483,8 @@ VM_OP_HOT void OpPCIGetRealNull(terrier::execution::sql::Real *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDoubleNull(terrier::execution::sql::Real *out,
-                                  terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetDoubleNull(terrier::execution::sql::Real *out,
+                                  terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<double, true>(col_idx, &null);
@@ -495,14 +495,14 @@ VM_OP_HOT void OpPCIGetDoubleNull(terrier::execution::sql::Real *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDecimalNull(terrier::execution::sql::DecimalVal *out,
-                                   terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetDecimalNull(terrier::execution::sql::DecimalVal *out,
+                                   terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   out->val_ = terrier::execution::sql::Decimal64(0);
   out->is_null_ = false;
 }
 
-VM_OP_HOT void OpPCIGetDateValNull(terrier::execution::sql::DateVal *out,
-                                   terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetDateValNull(terrier::execution::sql::DateVal *out,
+                                   terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<uint32_t, true>(col_idx, &null);
@@ -513,8 +513,8 @@ VM_OP_HOT void OpPCIGetDateValNull(terrier::execution::sql::DateVal *out,
   out->val_ = null ? terrier::execution::sql::Date() : terrier::execution::sql::Date::FromNative(*ptr);
 }
 
-VM_OP_HOT void OpPCIGetTimestampValNull(terrier::execution::sql::TimestampVal *out,
-                                        terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetTimestampValNull(terrier::execution::sql::TimestampVal *out,
+                                        terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<uint64_t, true>(col_idx, &null);
@@ -525,8 +525,8 @@ VM_OP_HOT void OpPCIGetTimestampValNull(terrier::execution::sql::TimestampVal *o
   out->val_ = null ? terrier::execution::sql::Timestamp() : terrier::execution::sql::Timestamp::FromNative(*ptr);
 }
 
-VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out,
-                                  terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpVPIGetVarlenNull(terrier::execution::sql::StringVal *out,
+                                  terrier::execution::sql::VectorProjectionIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *varlen = iter->Get<terrier::storage::VarlenEntry, true>(col_idx, &null);
@@ -540,22 +540,22 @@ VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out,
   }
 }
 
-VM_OP void OpPCIFilterEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+VM_OP void OpVPIFilterEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
                             int8_t type, int64_t val);
 
-VM_OP void OpPCIFilterGreaterThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+VM_OP void OpVPIFilterGreaterThan(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter,
                                   uint32_t col_idx, int8_t type, int64_t val);
 
-VM_OP void OpPCIFilterGreaterThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+VM_OP void OpVPIFilterGreaterThanEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter,
                                        uint32_t col_idx, int8_t type, int64_t val);
 
-VM_OP void OpPCIFilterLessThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+VM_OP void OpVPIFilterLessThan(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter,
                                uint32_t col_idx, int8_t type, int64_t val);
 
-VM_OP void OpPCIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+VM_OP void OpVPIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter,
                                     uint32_t col_idx, int8_t type, int64_t val);
 
-VM_OP void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+VM_OP void OpVPIFilterNotEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter,
                                uint32_t col_idx, int8_t type, int64_t val);
 
 // ---------------------------------------------------------
@@ -596,7 +596,7 @@ VM_OP void OpFilterManagerInsertFlavor(terrier::execution::sql::FilterManager *f
 VM_OP void OpFilterManagerFinalize(terrier::execution::sql::FilterManager *filter_manager);
 
 VM_OP void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter_manager,
-                                     terrier::execution::sql::ProjectedColumnsIterator *pci);
+                                     terrier::execution::sql::VectorProjectionIterator *vpi);
 
 VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager);
 
@@ -802,7 +802,7 @@ VM_OP_HOT void OpAggregationHashTableLookup(terrier::byte **result,
 
 VM_OP_HOT void OpAggregationHashTableProcessBatch(
     terrier::execution::sql::AggregationHashTable *const agg_hash_table,
-    terrier::execution::sql::ProjectedColumnsIterator *iters[],
+    terrier::execution::sql::VectorProjectionIterator *iters[],
     const terrier::execution::sql::AggregationHashTable::HashFn hash_fn,
     const terrier::execution::sql::AggregationHashTable::KeyEqFn key_eq_fn,
     const terrier::execution::sql::AggregationHashTable::InitAggFn init_agg_fn,

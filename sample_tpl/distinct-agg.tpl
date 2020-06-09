@@ -41,10 +41,10 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   col_oids[1] = 2
   @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {
-    var vec = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(vec); @pciAdvance(vec)) {
+    var vec = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
       var values : Values
-      values.sum = @pciGetInt(vec, 1)
+      values.sum = @vpiGetInt(vec, 1)
 
       // Check if the value is distinct
       var hash_val = @hash(values.sum)

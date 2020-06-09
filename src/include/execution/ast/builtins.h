@@ -70,36 +70,36 @@ namespace terrier::execution::ast {
   F(TableIterReset, tableIterReset)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
                                                                         \
-  /* PCI */                                                             \
-  F(PCIIsFiltered, pciIsFiltered)                                       \
-  F(PCIHasNext, pciHasNext)                                             \
-  F(PCIHasNextFiltered, pciHasNextFiltered)                             \
-  F(PCIAdvance, pciAdvance)                                             \
-  F(PCIAdvanceFiltered, pciAdvanceFiltered)                             \
-  F(PCIGetSlot, pciGetSlot)                                             \
-  F(PCIMatch, pciMatch)                                                 \
-  F(PCIReset, pciReset)                                                 \
-  F(PCIResetFiltered, pciResetFiltered)                                 \
-  F(PCIGetBool, pciGetBool)                                             \
-  F(PCIGetTinyInt, pciGetTinyInt)                                       \
-  F(PCIGetSmallInt, pciGetSmallInt)                                     \
-  F(PCIGetInt, pciGetInt)                                               \
-  F(PCIGetBigInt, pciGetBigInt)                                         \
-  F(PCIGetReal, pciGetReal)                                             \
-  F(PCIGetDouble, pciGetDouble)                                         \
-  F(PCIGetDate, pciGetDate)                                             \
-  F(PCIGetTimestamp, pciGetTimestamp)                                   \
-  F(PCIGetVarlen, pciGetVarlen)                                         \
-  F(PCIGetBoolNull, pciGetBoolNull)                                     \
-  F(PCIGetTinyIntNull, pciGetTinyIntNull)                               \
-  F(PCIGetSmallIntNull, pciGetSmallIntNull)                             \
-  F(PCIGetIntNull, pciGetIntNull)                                       \
-  F(PCIGetBigIntNull, pciGetBigIntNull)                                 \
-  F(PCIGetRealNull, pciGetRealNull)                                     \
-  F(PCIGetDoubleNull, pciGetDoubleNull)                                 \
-  F(PCIGetDateNull, pciGetDateNull)                                     \
-  F(PCIGetTimestampNull, pciGetTimestampNull)                           \
-  F(PCIGetVarlenNull, pciGetVarlenNull)                                 \
+  /* VPI */                                                             \
+  F(VPIIsFiltered, vpiIsFiltered)                                       \
+  F(VPIHasNext, vpiHasNext)                                             \
+  F(VPIHasNextFiltered, vpiHasNextFiltered)                             \
+  F(VPIAdvance, vpiAdvance)                                             \
+  F(VPIAdvanceFiltered, vpiAdvanceFiltered)                             \
+  F(VPIGetSlot, vpiGetSlot)                                             \
+  F(VPIMatch, vpiMatch)                                                 \
+  F(VPIReset, vpiReset)                                                 \
+  F(VPIResetFiltered, vpiResetFiltered)                                 \
+  F(VPIGetBool, vpiGetBool)                                             \
+  F(VPIGetTinyInt, vpiGetTinyInt)                                       \
+  F(VPIGetSmallInt, vpiGetSmallInt)                                     \
+  F(VPIGetInt, vpiGetInt)                                               \
+  F(VPIGetBigInt, vpiGetBigInt)                                         \
+  F(VPIGetReal, vpiGetReal)                                             \
+  F(VPIGetDouble, vpiGetDouble)                                         \
+  F(VPIGetDate, vpiGetDate)                                             \
+  F(VPIGetTimestamp, vpiGetTimestamp)                                   \
+  F(VPIGetVarlen, vpiGetVarlen)                                         \
+  F(VPIGetBoolNull, vpiGetBoolNull)                                     \
+  F(VPIGetTinyIntNull, vpiGetTinyIntNull)                               \
+  F(VPIGetSmallIntNull, vpiGetSmallIntNull)                             \
+  F(VPIGetIntNull, vpiGetIntNull)                                       \
+  F(VPIGetBigIntNull, vpiGetBigIntNull)                                 \
+  F(VPIGetRealNull, vpiGetRealNull)                                     \
+  F(VPIGetDoubleNull, vpiGetDoubleNull)                                 \
+  F(VPIGetDateNull, vpiGetDateNull)                                     \
+  F(VPIGetTimestampNull, vpiGetTimestampNull)                           \
+  F(VPIGetVarlenNull, vpiGetVarlenNull)                                 \
                                                                         \
   /* Hashing */                                                         \
   F(Hash, hash)                                                         \

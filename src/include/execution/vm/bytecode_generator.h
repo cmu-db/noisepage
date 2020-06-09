@@ -69,7 +69,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   void VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinTableIterParallelCall(ast::CallExpr *call);
-  void VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinHashCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin builtin);

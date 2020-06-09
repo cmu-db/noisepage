@@ -9,26 +9,26 @@ struct ThreadState_1 {
   filter: FilterManager
 }
 
-fun _1_Lt500(pci: *ProjectedColumnsIterator) -> int32 {
+fun _1_Lt500(vpi: *VectorProjectionIterator) -> int32 {
   var param: Integer = @intToSql(500)
   var cola: Integer
-  if (@pciIsFiltered(pci)) {
-    for (; @pciHasNextFiltered(pci); @pciAdvanceFiltered(pci)) {
-      cola = @pciGetInt(pci, 0)
-      @pciMatch(pci, cola < param)
+  if (@vpiIsFiltered(vpi)) {
+    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
+      cola = @vpiGetInt(vpi, 0)
+      @vpiMatch(vpi, cola < param)
     }
   } else {
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      cola = @pciGetInt(pci, 0)
-      @pciMatch(pci, cola < param)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      cola = @vpiGetInt(vpi, 0)
+      @vpiMatch(vpi, cola < param)
     }
   }
-  @pciResetFiltered(pci)
+  @vpiResetFiltered(vpi)
   return 0
 }
 
-fun _1_Lt500_Vec(pci: *ProjectedColumnsIterator) -> int32 {
-  return @filterLt(pci, "colA", 500)
+fun _1_Lt500_Vec(vpi: *VectorProjectionIterator) -> int32 {
+  return @filterLt(vpi, "colA", 500)
 }
 
 fun _1_pipelineWorker_InitThreadState(execCtx: *ExecutionContext, state: *ThreadState_1) -> nil {
@@ -44,8 +44,8 @@ fun _1_pipelineWorker_TearDownThreadState(execCtx: *ExecutionContext, state: *Th
 fun _1_pipelineWorker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
   var filter = &state.filter
   for (@tableIterAdvance(tvi)) {
-    var pci = @tableIterGetPCI(tvi)
-    @filtersRun(filter, pci)
+    var vpi = @tableIterGetVPI(tvi)
+    @filtersRun(filter, vpi)
   }
   return
 }

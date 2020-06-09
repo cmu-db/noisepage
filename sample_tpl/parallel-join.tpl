@@ -22,26 +22,26 @@ fun tearDownState(state: *State) -> nil {
   @joinHTFree(&state.jht)
 }
 
-fun _1_Lt500(pci: *ProjectedColumnsIterator) -> int32 {
+fun _1_Lt500(vpi: *VectorProjectionIterator) -> int32 {
   var param: Integer = @intToSql(500)
   var cola: Integer
-  if (@pciIsFiltered(pci)) {
-    for (; @pciHasNextFiltered(pci); @pciAdvanceFiltered(pci)) {
-      cola = @pciGetInt(pci, 0)
-      @pciMatch(pci, cola < param)
+  if (@vpiIsFiltered(vpi)) {
+    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
+      cola = @vpiGetInt(vpi, 0)
+      @vpiMatch(vpi, cola < param)
     }
   } else {
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      cola = @pciGetInt(pci, 0)
-      @pciMatch(pci, cola < param)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      cola = @vpiGetInt(vpi, 0)
+      @vpiMatch(vpi, cola < param)
     }
   }
-  @pciResetFiltered(pci)
+  @vpiResetFiltered(vpi)
   return 0
 }
 
-fun _1_Lt500_Vec(pci: *ProjectedColumnsIterator) -> int32 {
-  return @filterLt(pci, "colA", 500)
+fun _1_Lt500_Vec(vpi: *VectorProjectionIterator) -> int32 {
+  return @filterLt(vpi, "colA", 500)
 }
 
 fun _1_pipelineWorker_InitThreadState(execCtx: *ExecutionContext, state: *ThreadState_1) -> nil {
@@ -62,16 +62,16 @@ fun _1_pipelineWorker(queryState: *State, state: *ThreadState_1, tvi: *TableVect
   var filter = &state.filter
   var jht = &state.jht
   for (@tableIterAdvance(tvi)) {
-    var vec = @tableIterGetPCI(tvi)
+    var vec = @tableIterGetVPI(tvi)
     // Filter
     @filtersRun(filter, vec)
     // Insert into JHT
-    for (; @pciHasNextFiltered(vec); @pciAdvanceFiltered(vec)) {
-      var key = @pciGetInt(vec, 0)
+    for (; @vpiHasNextFiltered(vec); @vpiAdvanceFiltered(vec)) {
+      var key = @vpiGetInt(vec, 0)
       var elem: *BuildRow = @joinHTInsert(jht, @hash(key))
       elem.key = key
     }
-    @pciResetFiltered(vec)
+    @vpiResetFiltered(vec)
   }
   return
 }

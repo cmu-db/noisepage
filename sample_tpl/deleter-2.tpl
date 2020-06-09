@@ -51,11 +51,11 @@ fun table_count(execCtx: *ExecutionContext, oids: *[4]uint32) -> int64 {
   var count : int64
   count = 0
   for (@tableIterAdvance(&tvi)) {
-      var pci = @tableIterGetPCI(&tvi)
-          for (; @pciHasNext(pci); @pciAdvance(pci)) {
+      var vpi = @tableIterGetVPI(&tvi)
+          for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
             count = count + 1
           }
-          @pciReset(pci)
+          @vpiReset(vpi)
     }
   @tableIterClose(&tvi)
   return count

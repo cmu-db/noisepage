@@ -93,11 +93,11 @@ ast::Expr *SeqScanTranslator::GetOutput(uint32_t attr_idx) {
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) {
-  // Call @pciGetType(pci, index)
+  // Call @vpiGetType(vpi, index)
   auto type = schema_.GetColumn(col_oid).Type();
   auto nullable = schema_.GetColumn(col_oid).Nullable();
   uint16_t attr_idx = pm_[col_oid];
-  return codegen_->PCIGet(pci_, type, nullable, attr_idx);
+  return codegen_->VPIGet(vpi_, type, nullable, attr_idx);
 }
 
 void SeqScanTranslator::DeclareTVI(FunctionBuilder *builder) {
@@ -130,28 +130,28 @@ void SeqScanTranslator::GenTVILoop(FunctionBuilder *builder) {
   builder->StartForStmt(nullptr, advance_call, nullptr);
 }
 
-void SeqScanTranslator::DeclarePCI(FunctionBuilder *builder) {
-  // Assign var pci = @tableIterGetPCI(&tvi)
-  ast::Expr *get_pci_call = codegen_->OneArgCall(ast::Builtin::TableIterGetPCI, tvi_, true);
-  builder->Append(codegen_->DeclareVariable(pci_, nullptr, get_pci_call));
+void SeqScanTranslator::DeclareVPI(FunctionBuilder *builder) {
+  // Assign var vpi = @tableIterGetVPI(&tvi)
+  ast::Expr *get_vpi_call = codegen_->OneArgCall(ast::Builtin::TableIterGetVPI, tvi_, true);
+  builder->Append(codegen_->DeclareVariable(vpi_, nullptr, get_vpi_call));
 }
 
 void SeqScanTranslator::DeclareSlot(FunctionBuilder *builder) {
-  // Get var slot = @pciGetSlot(pci)
-  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::PCIGetSlot, pci_, false);
+  // Get var slot = @vpiGetSlot(vpi)
+  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::VPIGetSlot, vpi_, false);
   builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
 }
 
-void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
-  // Generate for(; @pciHasNext(pci); @pciAdvance(pci)) {...} or the Filtered version
+void SeqScanTranslator::GenVPILoop(FunctionBuilder *builder) {
+  // Generate for(; @vpiHasNext(vpi); @vpiAdvance(vpi)) {...} or the Filtered version
   // The HasNext call
   ast::Builtin has_next_fn =
-      (is_vectorizable_ && has_predicate_) ? ast::Builtin::PCIHasNextFiltered : ast::Builtin::PCIHasNext;
-  ast::Expr *has_next_call = codegen_->OneArgCall(has_next_fn, pci_, false);
+      (is_vectorizable_ && has_predicate_) ? ast::Builtin::VPIHasNextFiltered : ast::Builtin::VPIHasNext;
+  ast::Expr *has_next_call = codegen_->OneArgCall(has_next_fn, vpi_, false);
   // The Advance call
   ast::Builtin advance_fn =
-      (is_vectorizable_ && has_predicate_) ? ast::Builtin::PCIAdvanceFiltered : ast::Builtin::PCIAdvance;
-  ast::Expr *advance_call = codegen_->OneArgCall(advance_fn, pci_, false);
+      (is_vectorizable_ && has_predicate_) ? ast::Builtin::VPIAdvanceFiltered : ast::Builtin::VPIAdvance;
+  ast::Expr *advance_call = codegen_->OneArgCall(advance_fn, vpi_, false);
   ast::Stmt *loop_advance = codegen_->MakeStmt(advance_call);
   // Make the for loop.
   builder->StartForStmt(nullptr, has_next_call, loop_advance);
@@ -221,7 +221,7 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder *builder,
       default:
         UNREACHABLE("Impossible vectorized predicate!");
     }
-    ast::Expr *filter_call = codegen_->PCIFilter(pci_, predicate->GetExpressionType(), col_idx, col_type, filter_val);
+    ast::Expr *filter_call = codegen_->VPIFilter(vpi_, predicate->GetExpressionType(), col_idx, col_type, filter_val);
     builder->Append(codegen_->MakeStmt(filter_call));
   }
   UNREACHABLE("This function should not be called on non vectorized predicates!");

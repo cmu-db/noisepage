@@ -13,15 +13,15 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   oids[1] = 2 // col2
   @tableIterInitBind(&tvi, execCtx, "test_2", oids)
   for (; @tableIterAdvance(&tvi); ) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var col1 = @pciGetSmallInt(pci, 1)
-      var col2 = @pciGetIntNull(pci, 0)
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      var col1 = @vpiGetSmallInt(vpi, 1)
+      var col2 = @vpiGetIntNull(vpi, 0)
       if (col1 < col2) {
         ret = ret + 1
       }
     }
-    @pciReset(pci)
+    @vpiReset(vpi)
   }
   @tableIterClose(&tvi)
   return ret

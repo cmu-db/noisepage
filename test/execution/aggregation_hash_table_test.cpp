@@ -13,7 +13,7 @@
 #include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql_test.h"
 
@@ -86,7 +86,7 @@ class AggregationHashTableTest : public SqlBasedTest {
     exec_ctx_ = MakeExecCtx();
   }
 
-  // Helper to make a PCI
+  // Helper to make a VPI
   storage::ProjectedColumns *MakeProjectedColumns() {
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
     // Create column metadata for every column.
@@ -125,7 +125,7 @@ class AggregationHashTableTest : public SqlBasedTest {
 
   AggregationHashTable agg_table_;
 
-  // Helpers to create a table and get an PCI
+  // Helpers to create a table and get an VPI
   storage::ProjectedColumns *projected_columns_{nullptr};
   byte *buffer_{nullptr};
 };
@@ -243,20 +243,20 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
   const uint32_t num_groups = 16;
 
   const auto hash_fn = [](void *x) {
-    auto iters = reinterpret_cast<ProjectedColumnsIterator **>(x);
+    auto iters = reinterpret_cast<VectorProjectionIterator **>(x);
     auto key = iters[0]->Get<uint32_t, false>(0, nullptr);
     return common::HashUtil::Hash(reinterpret_cast<const uint8_t *>(key), sizeof(uint32_t));
   };
 
   const auto key_eq = [](const void *agg, const void *x) {
     auto agg_tuple = reinterpret_cast<const AggTuple *>(agg);
-    auto iters = reinterpret_cast<const ProjectedColumnsIterator *const *>(x);
-    auto pci_key = iters[0]->Get<uint32_t, false>(0, nullptr);
-    return agg_tuple->key_ == *pci_key;
+    auto iters = reinterpret_cast<const VectorProjectionIterator *const *>(x);
+    auto vpi_key = iters[0]->Get<uint32_t, false>(0, nullptr);
+    return agg_tuple->key_ == *vpi_key;
   };
 
   const auto init_agg = [](void *agg, void *x) {
-    auto iters = reinterpret_cast<ProjectedColumnsIterator **>(x);
+    auto iters = reinterpret_cast<VectorProjectionIterator **>(x);
     auto key = iters[0]->Get<uint32_t, false>(0, nullptr);
     auto val = iters[0]->Get<uint32_t, false>(1, nullptr);
     new (agg) AggTuple(InputTuple(*key, *val));
@@ -264,7 +264,7 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
 
   const auto advance_agg = [](void *agg, void *x) {
     auto agg_tuple = reinterpret_cast<AggTuple *>(agg);
-    auto iters = reinterpret_cast<ProjectedColumnsIterator **>(x);
+    auto iters = reinterpret_cast<VectorProjectionIterator **>(x);
     auto key = iters[0]->Get<uint32_t, false>(0, nullptr);
     auto val = iters[0]->Get<uint32_t, false>(1, nullptr);
     agg_tuple->Advance(InputTuple(*key, *val));
@@ -288,8 +288,8 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
     std::memcpy(projected_columns->ColumnStart(1), vals, common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     // Process
-    ProjectedColumnsIterator pci(projected_columns);
-    ProjectedColumnsIterator *iters[] = {&pci};
+    VectorProjectionIterator vpi(projected_columns);
+    VectorProjectionIterator *iters[] = {&vpi};
     AggTable()->ProcessBatch(iters, hash_fn, key_eq, init_agg, advance_agg);
   }
   FreeProjectedColumns();
