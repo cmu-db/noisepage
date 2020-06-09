@@ -6,13 +6,10 @@
 
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
-#include "storage/arrow_serializer.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-
-namespace flatbuf = org::apache::arrow::flatbuf;
 
 namespace terrier::transaction {
 class TransactionContext;

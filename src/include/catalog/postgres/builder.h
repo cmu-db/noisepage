@@ -7,7 +7,6 @@
 #include "catalog/schema.h"
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
-#include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog::postgres {
