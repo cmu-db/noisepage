@@ -11,20 +11,20 @@ constexpr uint32_t NULL_OID = 0;  // error return value
 constexpr uint32_t START_OID = 1001;
 
 // in name order
-STRONG_TYPEDEF(col_oid_t, uint32_t);
-STRONG_TYPEDEF(constraint_oid_t, uint32_t);
-STRONG_TYPEDEF(db_oid_t, uint32_t);
-STRONG_TYPEDEF(index_oid_t, uint32_t);
-STRONG_TYPEDEF(indexkeycol_oid_t, uint32_t);
-STRONG_TYPEDEF(namespace_oid_t, uint32_t);
-STRONG_TYPEDEF(language_oid_t, uint32_t);
-STRONG_TYPEDEF(proc_oid_t, uint32_t);
-STRONG_TYPEDEF(settings_oid_t, uint32_t);
-STRONG_TYPEDEF(table_oid_t, uint32_t);
-STRONG_TYPEDEF(tablespace_oid_t, uint32_t);
-STRONG_TYPEDEF(trigger_oid_t, uint32_t);
-STRONG_TYPEDEF(type_oid_t, uint32_t);
-STRONG_TYPEDEF(view_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(col_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(constraint_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(db_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(index_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(indexkeycol_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(namespace_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(language_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(proc_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(settings_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(table_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(tablespace_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(trigger_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(type_oid_t, uint32_t);
+STRONG_TYPEDEF_HEADER(view_oid_t, uint32_t);
 
 constexpr col_oid_t INVALID_COLUMN_OID = col_oid_t(NULL_OID);
 constexpr constraint_oid_t INVALID_CONSTRAINT_OID = constraint_oid_t(NULL_OID);

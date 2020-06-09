@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t DropTablePlanNode::Hash() const {
@@ -37,5 +39,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropTablePlanNode::From
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(DropTablePlanNode);
 
 }  // namespace terrier::planner

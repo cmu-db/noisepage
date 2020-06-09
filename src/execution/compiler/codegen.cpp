@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "brain/operating_unit.h"
+#include "date/date.h"
 #include "execution/sql/value.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/index/index_defs.h"

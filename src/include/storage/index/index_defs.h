@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include "type/type_id.h"
 
 namespace terrier::storage::index {

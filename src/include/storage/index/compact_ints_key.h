@@ -7,7 +7,6 @@
 #include "portable_endian/portable_endian.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
-#include "storage/storage_defs.h"
 #include "xxHash/xxh3.h"
 
 namespace terrier::storage::index {

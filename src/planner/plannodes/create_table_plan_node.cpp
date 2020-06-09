@@ -5,7 +5,69 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
+
+nlohmann::json PrimaryKeyInfo::ToJson() const {
+  nlohmann::json j;
+  j["primary_key_cols"] = primary_key_cols_;
+  j["constraint_name"] = constraint_name_;
+  return j;
+}
+
+void PrimaryKeyInfo::FromJson(const nlohmann::json &j) {
+  primary_key_cols_ = j.at("primary_key_cols").get<std::vector<std::string>>();
+  constraint_name_ = j.at("constraint_name").get<std::string>();
+}
+
+nlohmann::json ForeignKeyInfo::ToJson() const {
+  nlohmann::json j;
+  j["foreign_key_sources"] = foreign_key_sources_;
+  j["foreign_key_sinks"] = foreign_key_sinks_;
+  j["sink_table_name"] = sink_table_name_;
+  j["constraint_name"] = constraint_name_;
+  j["upd_action"] = upd_action_;
+  j["del_action"] = del_action_;
+  return j;
+}
+
+void ForeignKeyInfo::FromJson(const nlohmann::json &j) {
+  foreign_key_sources_ = j.at("foreign_key_sources").get<std::vector<std::string>>();
+  foreign_key_sinks_ = j.at("foreign_key_sinks").get<std::vector<std::string>>();
+  sink_table_name_ = j.at("sink_table_name").get<std::string>();
+  constraint_name_ = j.at("constraint_name").get<std::string>();
+  upd_action_ = j.at("upd_action").get<parser::FKConstrActionType>();
+  del_action_ = j.at("del_action").get<parser::FKConstrActionType>();
+}
+
+nlohmann::json UniqueInfo::ToJson() const {
+  nlohmann::json j;
+  j["unique_cols"] = unique_cols_;
+  j["constraint_name"] = constraint_name_;
+  return j;
+}
+
+void UniqueInfo::FromJson(const nlohmann::json &j) {
+  unique_cols_ = j.at("unique_cols").get<std::vector<std::string>>();
+  constraint_name_ = j.at("constraint_name").get<std::string>();
+}
+
+nlohmann::json CheckInfo::ToJson() const {
+  nlohmann::json j;
+  j["check_cols"] = check_cols_;
+  j["constraint_name"] = constraint_name_;
+  j["expr_type"] = expr_type_;
+  j["expr_value"] = expr_value_;
+  return j;
+}
+
+void CheckInfo::FromJson(const nlohmann::json &j) {
+  check_cols_ = j.at("check_cols").get<std::vector<std::string>>();
+  constraint_name_ = j.at("constraint_name").get<std::string>();
+  expr_type_ = j.at("expr_type").get<parser::ExpressionType>();
+  expr_value_ = j.at("expr_value").get<parser::ConstantValueExpression>();
+}
 
 common::hash_t CreateTablePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -122,5 +184,11 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTablePlanNode::Fr
 
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(PrimaryKeyInfo);
+DEFINE_JSON_BODY_DECLARATIONS(ForeignKeyInfo);
+DEFINE_JSON_BODY_DECLARATIONS(UniqueInfo);
+DEFINE_JSON_BODY_DECLARATIONS(CheckInfo);
+DEFINE_JSON_BODY_DECLARATIONS(CreateTablePlanNode);
 
 }  // namespace terrier::planner

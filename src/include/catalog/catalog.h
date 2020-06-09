@@ -7,7 +7,6 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "common/managed_pointer.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
@@ -23,6 +22,7 @@ class GarbageCollector;
 namespace terrier::catalog {
 
 class CatalogCache;
+class DatabaseCatalog;
 class CatalogAccessor;
 
 /**

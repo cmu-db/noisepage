@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t SetOpPlanNode::Hash() const {
@@ -37,4 +39,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> SetOpPlanNode::FromJson
   set_op_ = j.at("set_op").get<SetOpType>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(SetOpPlanNode);
+
 }  // namespace terrier::planner
