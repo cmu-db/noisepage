@@ -238,7 +238,7 @@ class DataTable {
   /**
    * @return Number of blocks in the data table.
    */
-  const uint32_t GetNumBlocks() const { return blocks_.size(); }
+  uint32_t GetNumBlocks() const { return blocks_.size(); }
 
  private:
   // The ArrowSerializer needs access to its blocks.
