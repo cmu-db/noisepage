@@ -122,16 +122,7 @@ class ColumnValueExpression : public AbstractExpression {
    * Copies this ColumnValueExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
-    expr->SetMutableStateForCopy(*this);
-    expr->table_name_ = this->table_name_;
-    expr->column_name_ = this->column_name_;
-    expr->SetDatabaseOID(this->database_oid_);
-    expr->SetTableOID(this->table_oid_);
-    expr->SetColumnOID(this->column_oid_);
-    return expr;
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Copies this ColumnValueExpression with new children
@@ -144,65 +135,34 @@ class ColumnValueExpression : public AbstractExpression {
     return Copy();
   }
 
-  common::hash_t Hash() const override {
-    common::hash_t hash = common::HashUtil::Hash(GetExpressionType());
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetReturnValueType()));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_name_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_oid_));
-    return hash;
-  }
+  /**
+   * Hashes the current ColumnValue expression.
+   */
+  common::hash_t Hash() const override;
 
-  bool operator==(const AbstractExpression &rhs) const override {
-    if (GetExpressionType() != rhs.GetExpressionType()) return false;
-    if (GetReturnValueType() != rhs.GetReturnValueType()) return false;
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two expressions are logically equal
+   */
+  bool operator==(const AbstractExpression &rhs) const override;
 
-    auto const &other = dynamic_cast<const ColumnValueExpression &>(rhs);
-    if (GetColumnName() != other.GetColumnName()) return false;
-    if (GetTableName() != other.GetTableName()) return false;
-    if (GetColumnOid() != other.GetColumnOid()) return false;
-    if (GetTableOid() != other.GetTableOid()) return false;
-    return GetDatabaseOid() == other.GetDatabaseOid();
-  }
-
-  void DeriveExpressionName() override {
-    if (!(this->GetAlias().empty()))
-      this->SetExpressionName(this->GetAlias());
-    else
-      this->SetExpressionName(column_name_);
-  }
+  /**
+   * Walks the expression trees and generate the correct expression name
+   */
+  void DeriveExpressionName() override;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /**
    * @return expression serialized to json
    */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["table_name"] = table_name_;
-    j["column_name"] = column_name_;
-    j["database_oid"] = database_oid_;
-    j["table_oid"] = table_oid_;
-    j["column_oid"] = column_oid_;
-    return j;
-  }
+  nlohmann::json ToJson() const override;
 
   /**
    * @param j json to deserialize
    */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    table_name_ = j.at("table_name").get<std::string>();
-    column_name_ = j.at("column_name").get<std::string>();
-    database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
-    table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
-    column_oid_ = j.at("column_oid").get<catalog::col_oid_t>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   friend class binder::BinderContext;
@@ -232,6 +192,6 @@ class ColumnValueExpression : public AbstractExpression {
   catalog::col_oid_t column_oid_ = catalog::INVALID_COLUMN_OID;
 };
 
-DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ColumnValueExpression);
 
 }  // namespace terrier::parser

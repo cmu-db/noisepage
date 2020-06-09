@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
 namespace terrier::planner {
@@ -36,5 +37,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> SeqScanPlanNode::FromJs
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(SeqScanPlanNode);
 
 }  // namespace terrier::planner
