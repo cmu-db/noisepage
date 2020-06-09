@@ -23,13 +23,15 @@ class TestOLTPBench(TestServer):
         self.terminals = int(
             self.args.get("terminals", constants.OLTP_DEFAULT_TERMINALS))
         self.loader_threads = int(
-            self.args.get("loader_threads", constants.OLTP_DEFAULT_LOADER_THREADS))
+            self.args.get("loader_threads",
+                          constants.OLTP_DEFAULT_LOADER_THREADS))
         self.time = int(
             self.args.get("client_time", constants.OLTP_DEFAULT_TIME))
         self.weights = str(self.args.get("weights"))
         self.transaction_isolation = str(
             self.args.get("transaction_isolation",
                           constants.OLTP_DEFAULT_TRANSACTION_ISOLATION))
+        self.query_mode = self.args.get("query_mode")
 
         # oltpbench xml file paths
         xml_file = "{}_config.xml".format(self.benchmark)
@@ -115,15 +117,26 @@ class TestOLTPBench(TestServer):
                 print(stderr)
                 sys.exit(rc)
 
+    def get_db_url(self):
+        """ format the DB URL for the JDBC connection """
+        # format the url base
+        db_url_base = "jdbc:postgresql://{}:{}/terrier".format(
+            self.db_host, self.db_port)
+        # format the url params
+        db_url_params = ""
+        if self.query_mode:
+            db_url_params += "?preferQueryMode={}".format(self.query_mode)
+        # aggregate the url
+        db_url = "{BASE}{PARAMS}".format(BASE=db_url_base,
+                                         PARAMS=db_url_params)
+        return db_url
+
     def config_xml_file(self):
         xml = ElementTree.parse(self.xml_template)
         root = xml.getroot()
         root.find("dbtype").text = constants.OLTP_DEFAULT_DBTYPE
         root.find("driver").text = constants.OLTP_DEFAULT_DRIVER
-        root.find(
-            "DBUrl"
-        ).text = "jdbc:postgresql://{}:{}/terrier?preferQueryMode=simple".format(
-            self.db_host, self.db_port)
+        root.find("DBUrl").text = self.get_db_url()
         root.find("username").text = constants.OLTP_DEFAULT_USERNAME
         root.find("password").text = constants.OLTP_DEFAULT_PASSWORD
         root.find("isolation").text = str(self.transaction_isolation)
@@ -143,7 +156,7 @@ class TestOLTPBench(TestServer):
             root.insert(1, loaderThreads)
         else:
             root.find("loaderThreads").text = str(self.loader_threads)
-        
+
         xml.write(self.xml_config)
 
     def validate_result(self):
