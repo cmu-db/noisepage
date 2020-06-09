@@ -11,6 +11,9 @@
 ##  * macOS
 ## =================================================================
 
+# IMPORTANT: We special case the handling of the llvm package to make sure 
+# to get the correct version that we want. So it is not included in this list.
+# See the 'install_mac' function below.
 OSX_BUILD_PACKAGES=(\
   "cmake" \
   "coreutils" \
@@ -26,7 +29,6 @@ OSX_TEST_PACKAGES=(\
   "ant" \
   "postgresql" \
 )
-
 
 # IMPORTANT: If you change anything listed below, you must 
 # also change it in the Dockerfile in the root directory of the repository!
@@ -59,7 +61,8 @@ LINUX_TEST_PACKAGES=(\
   "lsof" \
 )
 
-
+# These are the packages that we will install with pip3
+# We will install these for both build and test.
 PYTHON_PACKAGES=(\
   "pyarrow" \
   "pandas" \
