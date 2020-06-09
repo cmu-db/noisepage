@@ -11,6 +11,10 @@ class Catalog;
 class DatabaseCatalog;
 }  // namespace terrier::catalog
 
+namespace terrier::execution::sql {
+class StorageInterface;
+}
+
 namespace terrier::storage {
 // TODO(Tianyu): To be consistent with other places, maybe move val_offset fields in front of col_ids
 /**
@@ -259,8 +263,9 @@ class ProjectedRowInitializer {
   static ProjectedRowInitializer Create(std::vector<uint16_t> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
 
  private:
-  friend class catalog::Catalog;          // access to the PRI default constructor
-  friend class catalog::DatabaseCatalog;  // access to the PRI default constructor
+  friend class catalog::Catalog;                  // access to the PRI default constructor
+  friend class catalog::DatabaseCatalog;          // access to the PRI default constructor
+  friend class execution::sql::StorageInterface;  // access to the PRI default constructor
   friend class WriteAheadLoggingTests;
   friend class AbstractLogProvider;
 
