@@ -81,14 +81,14 @@ class TestServer:
     def run_db(self):
         """ Start the DB server """
         
-        # Kill any other terrier processes that our listening on our target port
-        for other_pid in check_port(self.db_port):
-            print("Killing existing server instance listening on port {} [PID={}]".format(self.db_port, other_pid))
-            os.kill(other_pid, signal.SIGKILL)
-        ## FOR
-        
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
+            # Kill any other terrier processes that our listening on our target port
+            for other_pid in check_port(self.db_port):
+                print("Killing existing server instance listening on port {} [PID={}]".format(self.db_port, other_pid))
+                os.kill(other_pid, signal.SIGKILL)
+            ## FOR
+          
             self.db_output_fd = open(self.db_output_file, "w+")
             self.db_process = subprocess.Popen(self.db_path,
                                                stdout=self.db_output_fd,
