@@ -366,7 +366,7 @@ class BytecodeEmitter {
    * @param col_oids column oids
    * @param num_oids length of the array
    */
-  void CteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
+  void EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
 
   /** ONLY FOR TESTING! */
   void EmitTestCatalogIndexLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len);
