@@ -58,10 +58,10 @@ class ResourceTracker {
    * Start the timer and resource monitors
    */
   void Start() {
-    metrics_.start_ = metrics::MetricsUtil::Now();
     perf_monitor_.Start();
     rusage_monitor_.Start();
     metrics_.memory_b_ = 0;
+    metrics_.start_ = metrics::MetricsUtil::Now();
   }
 
   /**

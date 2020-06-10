@@ -227,6 +227,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
   builder.SetIndexOid(op->GetIndexOID());
   builder.SetTableOid(tbl_oid);
   builder.SetColumnOids(std::move(column_ids));
+  builder.SetIndexSize(accessor_->GetTable(tbl_oid)->GetNumTuple());
 
   auto type = op->GetIndexScanType();
   builder.SetScanType(type);
@@ -508,6 +509,7 @@ void PlanGenerator::Visit(const InnerIndexJoin *op) {
       .SetIndexOid(op->GetIndexOID())
       .SetTableOid(op->GetTableOID())
       .SetScanType(op->GetScanType())
+      .SetIndexSize(accessor_->GetTable(op->GetTableOID())->GetNumTuple())
       .AddChild(std::move(children_plans_[0]));
 
   for (auto bound : op->GetJoinKeys()) {
