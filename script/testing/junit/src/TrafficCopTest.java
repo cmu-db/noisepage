@@ -19,7 +19,15 @@ public class TrafficCopTest extends TestUtility {
  }
 
  @After
- public void Teardown() throws SQLException {}
+ public void Teardown() throws SQLException {
+  try {
+    if (conn != null) {
+        conn.close();
+    }
+  } catch (SQLException e) {
+    DumpSQLException(e);
+  }
+ }
 
 
  /**
@@ -115,7 +123,7 @@ public class TrafficCopTest extends TestUtility {
    assertEquals(ex.getMessage(), "ERROR:  binding failed");
   }
   stmt.execute("DROP TABLE FOO;"); // will succeed
-  stmt.execute("DROP TABLE FOO IF EXISTS;");  // will succeed due to IF EXISTS
+  stmt.execute("DROP TABLE IF EXISTS FOO;");  // will succeed due to IF EXISTS
   try {
    stmt.execute("DROP TABLE FOO;");  // fail for table not existing anymore, make sure it re-bound the potentially cached statement
    fail();
@@ -130,7 +138,7 @@ public class TrafficCopTest extends TestUtility {
    assertEquals(ex.getMessage(), "ERROR:  binding failed");
   }
   stmt.execute("DROP TABLE FOO;"); // will succeed, make sure it re-bound the potentially cached statement
-  stmt.execute("DROP TABLE FOO IF EXISTS;");  // will succeed due to IF EXISTS, make sure it re-bound the potentially cached statement
+  stmt.execute("DROP TABLE IF EXISTS FOO;");  // will succeed due to IF EXISTS, make sure it re-bound the potentially cached statement
   try {
    stmt.execute("DROP TABLE FOO;");  // fail for table not existing anymore, make sure it re-bound the potentially cached statement
    fail();
