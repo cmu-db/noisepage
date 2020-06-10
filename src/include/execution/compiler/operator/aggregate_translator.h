@@ -64,6 +64,11 @@ class AggregateBottomTranslator : public OperatorTranslator {
 
   const planner::AbstractPlanNode *Op() override { return op_; }
 
+  /**
+   * @returns struct declaration
+   */
+  ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
  private:
   /**
    * Return the group by output at the given index
@@ -85,6 +90,9 @@ class AggregateBottomTranslator : public OperatorTranslator {
  private:
   const planner::AggregatePlanNode *op_;
   AggregateHelper helper_;
+
+  // Struct Decl
+  ast::StructDecl *struct_decl_;
 };
 
 /**
