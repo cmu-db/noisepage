@@ -6,6 +6,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_cache.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_proc.h"
 
 namespace terrier::catalog {

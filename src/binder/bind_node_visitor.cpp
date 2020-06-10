@@ -13,6 +13,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
 #include "common/managed_pointer.h"
+#include "execution/functions/function_context.h"
 #include "loggers/binder_logger.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
