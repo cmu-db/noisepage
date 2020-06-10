@@ -38,10 +38,21 @@ def _execution_get_grouped_op_unit_data(filename):
             if identifier in query_info.FEATURE_MAP:
                 # Need to deep copy since we're going to add the execution mode after it
                 opunit_features = copy.deepcopy(query_info.FEATURE_MAP[identifier])
+
+                # get memory scaling factor
+                mem_scaling_factor = 1.0
+                if line[0] in query_info.MEM_ADJUST_MAP:
+                    mem_scaling_factor = query_info.MEM_ADJUST_MAP[line[0]]
+
                 # Execution mode is the second element for now...
                 mode = int(line[1])
                 for opunit_feature in opunit_features:
+                    if opunit_feature[0] in data_info.MEM_ADJUST_OPUNITS:
+                        opunit_feature[1].append(mem_scaling_factor)
+                    else:
+                        opunit_feature[1].append(1.0)
                     opunit_feature[1].append(mode)
+
                 line_data = list(map(int, line[2:]))
                 data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data)))
 
