@@ -7,11 +7,16 @@
 #include "execution/sql/data_types.h"
 #include "execution/sql/runtime_types.h"
 
+namespace terrier::execution::exec {
+class ExecutionContext;
+}
+
 namespace terrier::execution::sql {
 
 namespace codegen {
 class ConstantTranslator;
 }  // namespace codegen
+
 
 struct Val;
 
@@ -46,9 +51,10 @@ class GenericValue {
 
   /**
    * Cast this value to the given type.
+   * @param exec_ctx the execution context this is operating in
    * @param type The type to cast to.
    */
-  GenericValue CastTo(TypeId type);
+  GenericValue CastTo(common::ManagedPointer<exec::ExecutionContext> exec_ctx, TypeId type);
 
   /**
    * Copy this value.
@@ -226,13 +232,13 @@ class GenericValue {
   bool is_null_;
   // The value of the object if it's a fixed-length type
   union {
-    bool boolean;
-    int8_t tinyint;
-    int16_t smallint;
-    int32_t integer;
-    int64_t bigint;
-    hash_t hash;
-    uintptr_t pointer;
+    bool boolean_;
+    int8_t tinyint_;
+    int16_t smallint_;
+    int32_t integer_;
+    int64_t bigint_;
+    hash_t hash_;
+    uintptr_t pointer_;
     Date date_;
     Timestamp timestamp_;
     float float_;

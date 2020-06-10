@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_generator.h"

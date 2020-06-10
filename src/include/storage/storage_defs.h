@@ -266,9 +266,8 @@ class VarlenEntry {
   static VarlenEntry Create(std::string_view str) {
     if (str.length() > InlineThreshold()) {
       return Create(reinterpret_cast<const byte *>(str.data()), str.length(), false);
-    } else {
-      return CreateInline(reinterpret_cast<const byte *>(str.data()), str.length());
     }
+    return CreateInline(reinterpret_cast<const byte *>(str.data()), str.length());
   }
 
   /**
@@ -401,9 +400,8 @@ class VarlenEntry {
     // "small" strings use CRC hashing, "long" strings use XXH3.
     if (IsInlined()) {
       return common::HashUtil::HashCrc(reinterpret_cast<const uint8_t *>(Prefix()), Size(), seed);
-    } else {
-      return common::HashUtil::HashXX3(reinterpret_cast<const uint8_t *>(Content()), Size(), seed);
     }
+    return common::HashUtil::HashXX3(reinterpret_cast<const uint8_t *>(Content()), Size(), seed);
   }
 
   /**

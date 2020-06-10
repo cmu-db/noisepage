@@ -89,7 +89,7 @@ CAST_HIDE_NULL_FAST(DateVal, TimestampVal);
 #undef CAST_HIDE_NULL_FAST
 
 //// Something to string.
-//#define CAST_TO_STRING(FROM_TYPE)                                                               \
+// #define CAST_TO_STRING(FROM_TYPE)                                                               \
 //  inline void CastingFunctions::CastToStringVal(StringVal *result, exec::ExecutionContext *const ctx, \
 //                                                const FROM_TYPE &v) {                           \
 //    /*                                                                                          \
@@ -110,6 +110,6 @@ CAST_HIDE_NULL_FAST(DateVal, TimestampVal);
 // CAST_TO_STRING(DateVal);
 // CAST_TO_STRING(TimestampVal);
 //
-//#undef CAST_TO_STRING
+// #undef CAST_TO_STRING
 
 }  // namespace terrier::execution::sql

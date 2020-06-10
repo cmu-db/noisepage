@@ -35,13 +35,13 @@ bool BooleanType::Equals(const SqlType &that) const {
 }
 
 const BooleanType &BooleanType::InstanceNonNullable() {
-  static BooleanType kNonNullableBoolean(false);
-  return kNonNullableBoolean;
+  static BooleanType k_non_nullable_boolean(false);
+  return k_non_nullable_boolean;
 }
 
 const BooleanType &BooleanType::InstanceNullable() {
-  static BooleanType kNullableBoolean(true);
-  return kNullableBoolean;
+  static BooleanType k_nullable_boolean(true);
+  return k_nullable_boolean;
 }
 
 // ---------------------------------------------------------
@@ -63,13 +63,13 @@ bool TinyIntType::Equals(const SqlType &that) const {
 }
 
 const TinyIntType &TinyIntType::InstanceNonNullable() {
-  static TinyIntType kNonNullableTinyInt(false);
-  return kNonNullableTinyInt;
+  static TinyIntType k_non_nullable_tiny_int(false);
+  return k_non_nullable_tiny_int;
 }
 
 const TinyIntType &TinyIntType::InstanceNullable() {
-  static TinyIntType kNullableTinyInt(true);
-  return kNullableTinyInt;
+  static TinyIntType k_nullable_tiny_int(true);
+  return k_nullable_tiny_int;
 }
 
 // ---------------------------------------------------------
@@ -91,13 +91,13 @@ bool SmallIntType::Equals(const SqlType &that) const {
 }
 
 const SmallIntType &SmallIntType::InstanceNonNullable() {
-  static SmallIntType kNonNullableSmallInt(false);
-  return kNonNullableSmallInt;
+  static SmallIntType k_non_nullable_small_int(false);
+  return k_non_nullable_small_int;
 }
 
 const SmallIntType &SmallIntType::InstanceNullable() {
-  static SmallIntType kNullableSmallInt(true);
-  return kNullableSmallInt;
+  static SmallIntType k_nullable_small_int(true);
+  return k_nullable_small_int;
 }
 
 // ---------------------------------------------------------
@@ -119,13 +119,13 @@ bool IntegerType::Equals(const SqlType &that) const {
 }
 
 const IntegerType &IntegerType::InstanceNonNullable() {
-  static IntegerType kNonNullableInt(false);
-  return kNonNullableInt;
+  static IntegerType k_non_nullable_int(false);
+  return k_non_nullable_int;
 }
 
 const IntegerType &IntegerType::InstanceNullable() {
-  static IntegerType kNullableInt(true);
-  return kNullableInt;
+  static IntegerType k_nullable_int(true);
+  return k_nullable_int;
 }
 
 // ---------------------------------------------------------
@@ -147,13 +147,13 @@ bool BigIntType::Equals(const SqlType &that) const {
 }
 
 const BigIntType &BigIntType::InstanceNonNullable() {
-  static BigIntType kNonNullableBigInt(false);
-  return kNonNullableBigInt;
+  static BigIntType k_non_nullable_big_int(false);
+  return k_non_nullable_big_int;
 }
 
 const BigIntType &BigIntType::InstanceNullable() {
-  static BigIntType kNullableBigInt(true);
-  return kNullableBigInt;
+  static BigIntType k_nullable_big_int(true);
+  return k_nullable_big_int;
 }
 
 // ---------------------------------------------------------
@@ -173,13 +173,13 @@ std::string RealType::GetName() const {
 bool RealType::Equals(const SqlType &that) const { return that.Is<RealType>() && IsNullable() == that.IsNullable(); }
 
 const RealType &RealType::InstanceNonNullable() {
-  static RealType kNonNullableBigInt(false);
-  return kNonNullableBigInt;
+  static RealType k_non_nullable_real(false);
+  return k_non_nullable_real;
 }
 
 const RealType &RealType::InstanceNullable() {
-  static RealType kNullableBigInt(true);
-  return kNullableBigInt;
+  static RealType k_nullable_real(true);
+  return k_nullable_real;
 }
 
 // ---------------------------------------------------------
@@ -201,13 +201,13 @@ bool DoubleType::Equals(const SqlType &that) const {
 }
 
 const DoubleType &DoubleType::InstanceNonNullable() {
-  static DoubleType kNonNullableBigInt(false);
-  return kNonNullableBigInt;
+  static DoubleType k_non_nullable_double(false);
+  return k_non_nullable_double;
 }
 
 const DoubleType &DoubleType::InstanceNullable() {
-  static DoubleType kNullableBigInt(true);
-  return kNullableBigInt;
+  static DoubleType k_nullable_double(true);
+  return k_nullable_double;
 }
 
 // ---------------------------------------------------------
@@ -220,7 +220,7 @@ DecimalType::DecimalType(bool nullable, uint32_t precision, uint32_t scale)
 TypeId DecimalType::GetPrimitiveTypeId() const { return TypeId::BigInt; }
 
 std::string DecimalType::GetName() const {
-  std::string str = "Decimal[" + std::to_string(precision()) + "," + std::to_string(scale());
+  std::string str = "Decimal[" + std::to_string(Precision()) + "," + std::to_string(Scale());
   if (IsNullable()) {
     str.append(",NULLABLE");
   }
@@ -230,7 +230,7 @@ std::string DecimalType::GetName() const {
 
 bool DecimalType::Equals(const SqlType &that) const {
   if (auto *other_decimal = that.SafeAs<DecimalType>()) {
-    return precision() == other_decimal->precision() && scale() == other_decimal->scale() &&
+    return Precision() == other_decimal->Precision() && Scale() == other_decimal->Scale() &&
            IsNullable() == that.IsNullable();
   }
   return false;
@@ -242,20 +242,20 @@ bool DecimalType::IsFloatingPoint() const { return true; }
 
 bool DecimalType::IsArithmetic() const { return true; }
 
-uint32_t DecimalType::precision() const { return precision_; }
+uint32_t DecimalType::Precision() const { return precision_; }
 
-uint32_t DecimalType::scale() const { return scale_; }
+uint32_t DecimalType::Scale() const { return scale_; }
 
 template <bool Nullable>
 const DecimalType &DecimalType::InstanceInternal(uint32_t precision, uint32_t scale) {
-  static llvm::DenseMap<std::pair<uint32_t, uint32_t>, std::unique_ptr<DecimalType>> kDecimalTypeMap;
+  static llvm::DenseMap<std::pair<uint32_t, uint32_t>, std::unique_ptr<DecimalType>> k_decimal_type_map;
 
   auto key = std::make_pair(precision, scale);
-  if (auto iter = kDecimalTypeMap.find(key); iter != kDecimalTypeMap.end()) {
+  if (auto iter = k_decimal_type_map.find(key); iter != k_decimal_type_map.end()) {
     return *iter->second;
   }
 
-  auto iter = kDecimalTypeMap.try_emplace(key, new DecimalType(Nullable, precision, scale));
+  auto iter = k_decimal_type_map.try_emplace(key, new DecimalType(Nullable, precision, scale));
   return *iter.first->second;
 }
 
@@ -272,13 +272,13 @@ const DecimalType &DecimalType::InstanceNullable(uint32_t precision, uint32_t sc
 // ---------------------------------------------------------
 
 const DateType &DateType::InstanceNonNullable() {
-  static DateType kNonNullableDate(false);
-  return kNonNullableDate;
+  static DateType k_non_nullable_date(false);
+  return k_non_nullable_date;
 }
 
 const DateType &DateType::InstanceNullable() {
-  static DateType kNullableDate(true);
-  return kNullableDate;
+  static DateType k_nullable_date(true);
+  return k_nullable_date;
 }
 
 TypeId DateType::GetPrimitiveTypeId() const { return TypeId::Date; }
@@ -300,13 +300,13 @@ DateType::DateType(bool nullable) : SqlType(SqlTypeId::Date, nullable) {}
 // ---------------------------------------------------------
 
 const TimestampType &TimestampType::InstanceNonNullable() {
-  static TimestampType kNonNullableTimestamp(false);
-  return kNonNullableTimestamp;
+  static TimestampType k_non_nullable_timestamp(false);
+  return k_non_nullable_timestamp;
 }
 
 const TimestampType &TimestampType::InstanceNullable() {
-  static TimestampType kNullableTimestamp(true);
-  return kNullableTimestamp;
+  static TimestampType k_nullable_timestamp(true);
+  return k_nullable_timestamp;
 }
 
 TypeId TimestampType::GetPrimitiveTypeId() const { return TypeId::Timestamp; }
@@ -331,13 +331,13 @@ TimestampType::TimestampType(bool nullable) : SqlType(SqlTypeId::Timestamp, null
 
 template <bool Nullable>
 const CharType &CharType::InstanceInternal(uint32_t length) {
-  static llvm::DenseMap<uint32_t, std::unique_ptr<CharType>> kCharTypeMap;
+  static llvm::DenseMap<uint32_t, std::unique_ptr<CharType>> k_char_type_map;
 
-  if (auto iter = kCharTypeMap.find(length); iter != kCharTypeMap.end()) {
+  if (auto iter = k_char_type_map.find(length); iter != k_char_type_map.end()) {
     return *iter->second;
   }
 
-  auto iter = kCharTypeMap.try_emplace(length, new CharType(Nullable, length));
+  auto iter = k_char_type_map.try_emplace(length, new CharType(Nullable, length));
   return *iter.first->second;
 }
 
@@ -349,7 +349,7 @@ CharType::CharType(bool nullable, uint32_t length) : SqlType(SqlTypeId::Char, nu
 TypeId CharType::GetPrimitiveTypeId() const { return TypeId::Varchar; }
 
 std::string CharType::GetName() const {
-  std::string str = "Char[" + std::to_string(length());
+  std::string str = "Char[" + std::to_string(Length());
   if (IsNullable()) {
     str.append(",NULLABLE");
   }
@@ -359,12 +359,12 @@ std::string CharType::GetName() const {
 
 bool CharType::Equals(const SqlType &that) const {
   if (auto *other_char = that.SafeAs<CharType>()) {
-    return length() == other_char->length() && IsNullable() == other_char->IsNullable();
+    return Length() == other_char->Length() && IsNullable() == other_char->IsNullable();
   }
   return false;
 }
 
-uint32_t CharType::length() const { return length_; }
+uint32_t CharType::Length() const { return length_; }
 
 // ---------------------------------------------------------
 // Variable-length strings
@@ -372,13 +372,13 @@ uint32_t CharType::length() const { return length_; }
 
 template <bool Nullable>
 const VarcharType &VarcharType::InstanceInternal(uint32_t length) {
-  static llvm::DenseMap<uint32_t, std::unique_ptr<VarcharType>> kVarcharTypeMap;
+  static llvm::DenseMap<uint32_t, std::unique_ptr<VarcharType>> k_varchar_type_map;
 
-  if (auto iter = kVarcharTypeMap.find(length); iter != kVarcharTypeMap.end()) {
+  if (auto iter = k_varchar_type_map.find(length); iter != k_varchar_type_map.end()) {
     return *iter->second;
   }
 
-  auto iter = kVarcharTypeMap.try_emplace(length, new VarcharType(Nullable, length));
+  auto iter = k_varchar_type_map.try_emplace(length, new VarcharType(Nullable, length));
   return *iter.first->second;
 }
 
@@ -391,7 +391,7 @@ VarcharType::VarcharType(bool nullable, uint32_t max_len) : SqlType(SqlTypeId::V
 TypeId VarcharType::GetPrimitiveTypeId() const { return TypeId::Varchar; }
 
 std::string VarcharType::GetName() const {
-  std::string str = "Varchar[" + std::to_string(max_length());
+  std::string str = "Varchar[" + std::to_string(MaxLength());
   if (IsNullable()) {
     str.append(",NULLABLE");
   }
@@ -401,11 +401,11 @@ std::string VarcharType::GetName() const {
 
 bool VarcharType::Equals(const SqlType &that) const {
   if (auto *other_varchar = that.SafeAs<VarcharType>()) {
-    return max_length() == other_varchar->max_length() && IsNullable() == other_varchar->IsNullable();
+    return MaxLength() == other_varchar->MaxLength() && IsNullable() == other_varchar->IsNullable();
   }
   return false;
 }
 
-uint32_t VarcharType::max_length() const { return max_len_; }
+uint32_t VarcharType::MaxLength() const { return max_len_; }
 
 }  // namespace terrier::execution::sql

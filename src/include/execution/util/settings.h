@@ -73,7 +73,7 @@ class Settings {
   /**
    * Number of settings.
    */
-  static constexpr uint32_t kNumSettings = static_cast<uint32_t>(Name::Last);
+  static constexpr uint32_t K_NUM_SETTINGS = static_cast<uint32_t>(Name::Last);
 
   /**
    * Setting values are stored as glorified unions.
@@ -90,8 +90,8 @@ class Settings {
    * @return The only instance of the settings object.
    */
   static Settings *Instance() {
-    static Settings kInstance;
-    return &kInstance;
+    static Settings k_instance;
+    return &k_instance;
   }
 
   /**
@@ -147,12 +147,12 @@ class Settings {
   void SetDouble(Name name, const double val) { settings_[static_cast<uint32_t>(name)] = val; }
 
  private:
-  // Private to force singleton access
-  Settings();
+  // force singleton access
+  Settings();  // NOLINT
 
  private:
   // Container for all settings
-  std::array<Value, kNumSettings> settings_;
+  std::array<Value, K_NUM_SETTINGS> settings_;
 };
 
 }  // namespace terrier::execution

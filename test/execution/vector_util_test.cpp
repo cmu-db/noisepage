@@ -1,82 +1,21 @@
-#include "execution/util/vector_util.h"
-
 #include <sys/mman.h>
-
-#include <execution/util/simd/avx2.h>
 #include <algorithm>
 #include <random>
 #include <utility>
 #include <vector>
 
-#include "common/constants.h"
-#include "execution/sql/memory_pool.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::util::test {
+#include "execution/sql/sql.h"
+#include "execution/util/bit_vector.h"
+#include "execution/util/simd.h"
+#include "execution/util/timer.h"
+#include "execution/util/vector_util.h"
 
-template <typename T>
-class PoolArray {
- public:
-  PoolArray() = default;
-  PoolArray(sql::MemoryPool *memory, uint32_t num_elems)
-      : memory_(memory),
-        arr_(memory_->AllocateArray<T>(num_elems, common::Constants::CACHELINE_SIZE, true)),
-        size_(num_elems) {}
-  PoolArray(PoolArray &&other) noexcept : memory_(other.memory_), arr_(other.arr_), size_(other.size) {
-    other.memory_ = nullptr;
-    other.arr_ = nullptr;
-    other.size_ = 0;
-  }
+namespace terrier::execution::util {
 
-  PoolArray &operator=(PoolArray &&other) noexcept {
-    std::swap(memory_, other.memory_);
-    std::swap(arr_, other.arr_);
-    std::swap(size_, other.size_);
-  }
-
-  DISALLOW_COPY(PoolArray);
-
-  ~PoolArray() {
-    if (arr_ != nullptr) {
-      TERRIER_ASSERT(memory_ != nullptr, "No memory pool to return to!");
-      memory_->DeallocateArray(arr_, size_);
-    }
-    arr_ = nullptr;
-    size_ = 0;
-  }
-
-  T &operator[](std::size_t n) { return arr_[n]; }
-
-  T *Raw() { return arr_; }
-  const T *Raw() const { return arr_; }
-  uint32_t Size() { return size_; }
-
-  T *Begin() { return Raw(); }
-  T *End() { return Raw() + Size(); }
-
- private:
-  sql::MemoryPool *memory_{nullptr};
-  T *arr_{nullptr};
-  uint32_t size_{0};
-};
-
-class VectorUtilTest : public TplTest {
- public:
-  VectorUtilTest() : pool_(nullptr) {}
-
-  template <typename T>
-  PoolArray<T> AllocateArray(const uint32_t num_elems) {
-    return PoolArray<T>(&pool_, num_elems);
-  }
-
- private:
-  sql::MemoryPool pool_;
-};
-
-#if defined(__AVX2__) || defined(__AVX512__)
-
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, AccessTest) {
+class VectorUtilTest : public TplTest {};
+TEST_F(VectorUtilTest, Access) {
   {
     simd::Vec8 in(44);
     for (uint32_t i = 0; i < simd::Vec8::Size(); i++) {
@@ -93,8 +32,7 @@ TEST_F(VectorUtilTest, AccessTest) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, ArithmeticTest) {
+TEST_F(VectorUtilTest, Arithmetic) {
   // Addition
   {
     simd::Vec8 v(1, 2, 3, 4, 5, 6, 7, 8);
@@ -141,8 +79,7 @@ TEST_F(VectorUtilTest, ArithmeticTest) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, BitwiseOperationsTest) {
+TEST_F(VectorUtilTest, BitwiseOperations) {
   // Left shift
   {
     simd::Vec8 v(1, 2, 3, 4, 5, 6, 7, 8);
@@ -174,8 +111,7 @@ TEST_F(VectorUtilTest, BitwiseOperationsTest) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, ComparisonsTest) {
+TEST_F(VectorUtilTest, Comparisons) {
   // Equality
   {
     simd::Vec8 in(10, 20, 30, 40, 50, 60, 70, 80);
@@ -267,8 +203,7 @@ TEST_F(VectorUtilTest, ComparisonsTest) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, MaskToPositionTest) {
+TEST_F(VectorUtilTest, MaskToPosition) {
   simd::Vec8 vec(3, 0, 4, 1, 5, 2, 6, 2);
   simd::Vec8 val(2);
 
@@ -285,221 +220,139 @@ TEST_F(VectorUtilTest, MaskToPositionTest) {
   EXPECT_EQ(6u, positions[3]);
 }
 
-#endif
+TEST_F(VectorUtilTest, ByteToSelectionVector) {
+  constexpr uint32_t n = 14;
+  uint8_t bytes[n] = {0xFF, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00};
+  sel_t sel[n];
 
-template <typename T>
-void SmallScaleNeedleTest() {
-  static_assert(std::is_integral_v<T>, "This only works for integral types");
+  uint32_t size = VectorUtil::ByteVectorToSelectionVector(bytes, n, sel);
+  EXPECT_EQ(8u, size);
+  EXPECT_EQ(0u, sel[0]);
+  EXPECT_EQ(3u, sel[1]);
+  EXPECT_EQ(5u, sel[2]);
+  EXPECT_EQ(7u, sel[3]);
+  EXPECT_EQ(8u, sel[4]);
+  EXPECT_EQ(10u, sel[5]);
+  EXPECT_EQ(11u, sel[6]);
+  EXPECT_EQ(12u, sel[7]);
+}
 
-  constexpr const uint32_t num_elems = 4400;
-  constexpr const uint32_t chunk_size = 1024;
-  constexpr const T needle = 16;
+TEST_F(VectorUtilTest, BitToByteVector) {
+  // Large enough to run through both vector-loop and scalar tail
+  constexpr uint32_t num_bits = 97;
 
-  std::vector<T> arr(num_elems);
+  // The input bit vector output byte vector
+  BitVector bv(num_bits);
+  uint8_t bytes[num_bits];
 
-  uint32_t actual_count = 0;
+  // Set some random bits
+  bv.Set(1);
+  bv.Set(2);
+  bv.Set(7);
+  bv.Set(31);
+  bv.Set(44);
+  bv.Set(73);
 
-  // Load
-  {
-    std::mt19937 gen;
-    std::uniform_int_distribution<T> dist(0, 100);
-    for (uint32_t i = 0; i < num_elems; i++) {
-      arr[i] = dist(gen);
-      if (arr[i] == needle) {
-        actual_count++;
+  util::VectorUtil::BitVectorToByteVector(bv.GetWords(), bv.GetNumBits(), bytes);
+
+  for (uint32_t i = 0; i < bv.GetNumBits(); i++) {
+    EXPECT_EQ(bv[i], bytes[i] == 0xFF);
+  }
+}
+
+TEST_F(VectorUtilTest, BitToSelectionVector) {
+  // 126-bit vector and the output selection vector
+  constexpr uint32_t num_bits = 126;
+  BitVector bv(num_bits);
+  sel_t sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
+
+  // Set even bits
+  for (uint32_t i = 0; i < num_bits; i++) {
+    bv.Set(i, i % 2 == 0);
+  }
+
+  // Transform
+  uint32_t size = util::VectorUtil::BitVectorToSelectionVector(bv.GetWords(), num_bits, sel);
+
+  // Only 63 bits are set (remember there are only 126-bits)
+  EXPECT_EQ(63u, size);
+
+  // Ensure the indexes that are set are even
+  for (uint32_t i = 0; i < size; i++) {
+    EXPECT_EQ(0u, sel[i] % 2);
+  }
+}
+
+TEST_F(VectorUtilTest, BitToSelectionVector_Sparse_vs_Dense) {
+  for (uint32_t density : {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}) {
+    // Create a bit vector with specific density
+    BitVector bv(common::Constants::K_DEFAULT_VECTOR_SIZE);
+    std::random_device r;
+    for (uint32_t i = 0; i < common::Constants::K_DEFAULT_VECTOR_SIZE; i++) {
+      if (r() % 100 < density) {
+        bv[i] = true;
       }
     }
-  }
 
-  uint32_t out[chunk_size] = {0};
+    sel_t sel_1[common::Constants::K_DEFAULT_VECTOR_SIZE], sel_2[common::Constants::K_DEFAULT_VECTOR_SIZE];
 
-  uint32_t count = 0;
-  for (uint32_t offset = 0; offset < num_elems; offset += chunk_size) {
-    auto size = std::min(chunk_size, num_elems - offset);
-    auto found = VectorUtil::FilterEq(&arr[offset], size, needle, out, nullptr);
-    count += found;
+    // Ensure both sparse and dense implementations produce the same output
+    const uint32_t size_1 = util::VectorUtil::BitVectorToSelectionVectorSparse(bv.GetWords(), bv.GetNumBits(), sel_1);
+    const uint32_t size_2 = util::VectorUtil::BitVectorToSelectionVectorDense(bv.GetWords(), bv.GetNumBits(), sel_2);
 
-    // Check each element in this vector
-    for (uint32_t i = 0; i < found; i++) {
-      EXPECT_EQ(needle, arr[offset + out[i]]);
-    }
-  }
-
-  // Ensure total found through vector util matches what we generated
-  EXPECT_EQ(actual_count, count);
-}
-
-template <typename T>
-void SmallScaleMultiFilterTest() {
-  static_assert(std::is_integral_v<T>, "This only works for integral types");
-
-  constexpr const uint32_t num_elems = 4400;
-  constexpr const uint32_t chunk_size = 1024;
-  constexpr const T needle_1 = 16;
-  constexpr const T needle_2 = 10;
-
-  std::vector<T> arr_1(num_elems);
-  std::vector<T> arr_2(num_elems);
-
-  uint32_t actual_count = 0;
-
-  // Load
-  {
-    std::mt19937 gen;
-    std::uniform_int_distribution<T> dist(0, 100);
-    for (uint32_t i = 0; i < num_elems; i++) {
-      arr_1[i] = dist(gen);
-      arr_2[i] = dist(gen);
-      if (arr_1[i] < needle_1 && arr_2[i] < needle_2) {
-        actual_count++;
-      }
-    }
-  }
-
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t out[chunk_size] = {0};
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t sel[chunk_size] = {0};
-
-  uint32_t count = 0;
-  for (uint32_t offset = 0; offset < num_elems; offset += chunk_size) {
-    auto size = std::min(chunk_size, num_elems - offset);
-
-    // Apply first filter
-    auto found = VectorUtil::FilterLt(&arr_1[offset], size, needle_1, sel, nullptr);
-
-    // Apply second filter
-    found = VectorUtil::FilterLt(&arr_2[offset], found, needle_2, out, sel);
-
-    // Count
-    count += found;
-
-    // Check each element in this vector
-    for (uint32_t i = 0; i < found; i++) {
-      EXPECT_LT(arr_1[offset + out[i]], needle_1);
-      EXPECT_LT(arr_2[offset + out[i]], needle_2);
-    }
-  }
-
-  // Ensure total found through vector util matches what we generated
-  EXPECT_EQ(actual_count, count);
-}
-
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, SimpleFilterTest) {
-  SmallScaleNeedleTest<int8_t>();
-  SmallScaleNeedleTest<uint8_t>();
-  SmallScaleNeedleTest<int16_t>();
-  SmallScaleNeedleTest<uint16_t>();
-  SmallScaleNeedleTest<int32_t>();
-  SmallScaleNeedleTest<uint32_t>();
-  SmallScaleNeedleTest<int64_t>();
-  SmallScaleNeedleTest<uint64_t>();
-}
-
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, MultiFilterTest) {
-  SmallScaleMultiFilterTest<int8_t>();
-  SmallScaleMultiFilterTest<uint8_t>();
-  SmallScaleMultiFilterTest<int16_t>();
-  SmallScaleMultiFilterTest<uint16_t>();
-  SmallScaleMultiFilterTest<int32_t>();
-  SmallScaleMultiFilterTest<uint32_t>();
-  SmallScaleMultiFilterTest<int64_t>();
-  SmallScaleMultiFilterTest<uint64_t>();
-}
-
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, VectorVectorFilterTest) {
-  //
-  // Test: two arrays, a1 and a2; a1 contains sequential numbers in the range
-  //       [0, 1000), and s2 contains sequential numbers in range [1,1001).
-  //       - a1 == a2, a1 >= a2, and a1 > a2 should return 0 results
-  //       - a1 <= a2, a1 < a2, and a1 != a2 should return all results
-  //
-
-  const uint32_t num_elems = 10000;
-
-  std::vector<int32_t> arr_1(num_elems);
-  std::vector<int32_t> arr_2(num_elems);
-
-  // Load
-  std::iota(arr_1.begin(), arr_1.end(), 0);
-  std::iota(arr_2.begin(), arr_2.end(), 1);
-
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t out[common::Constants::K_DEFAULT_VECTOR_SIZE] = {0};
-
-#define CHECK(op, expected_count)                                                                       \
-  {                                                                                                     \
-    uint32_t count = 0;                                                                                 \
-    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::K_DEFAULT_VECTOR_SIZE) { \
-      auto size = std::min(common::Constants::K_DEFAULT_VECTOR_SIZE, num_elems - offset);               \
-      auto found = VectorUtil::Filter##op(&arr_1[offset], &arr_2[offset], size, out, nullptr);          \
-      count += found;                                                                                   \
-    }                                                                                                   \
-    EXPECT_EQ(expected_count, count);                                                                   \
-  }
-
-  CHECK(Eq, 0u)
-  CHECK(Ge, 0u)
-  CHECK(Gt, 0u)
-  CHECK(Le, num_elems)
-  CHECK(Lt, num_elems)
-  CHECK(Ne, num_elems)
-
-#undef CHECK
-
-  //
-  // Test: fill a1 and a2 with random data. Verify filter with scalar versions.
-  //
-
-#define CHECK(vec_op, scalar_op)                                                                        \
-  {                                                                                                     \
-    std::random_device random;                                                                          \
-    for (uint32_t idx = 0; idx < num_elems; idx++) {                                                    \
-      arr_1[idx] = (random() % 100);                                                                    \
-      arr_2[idx] = (random() % 100);                                                                    \
-    }                                                                                                   \
-    uint32_t vec_count = 0, scalar_count = 0;                                                           \
-    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::K_DEFAULT_VECTOR_SIZE) { \
-      auto size = std::min(common::Constants::K_DEFAULT_VECTOR_SIZE, num_elems - offset);               \
-      /* Vector filter*/                                                                                \
-      auto found = VectorUtil::Filter##vec_op(&arr_1[offset], &arr_2[offset], size, out, nullptr);      \
-      vec_count += found;                                                                               \
-      /* Scalar filter */                                                                               \
-      for (uint32_t iter = offset, end = iter + size; iter != end; iter++) {                            \
-        scalar_count += arr_1[iter] scalar_op arr_2[iter];                                              \
-      }                                                                                                 \
-    }                                                                                                   \
-    EXPECT_EQ(scalar_count, vec_count);                                                                 \
-  }
-
-  CHECK(Eq, ==)
-  CHECK(Ge, >=)
-  CHECK(Gt, >)
-  CHECK(Le, <=)
-  CHECK(Lt, <)
-  CHECK(Ne, !=)
-
-#undef CHECK
-}
-
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, GatherTest) {
-  auto array = AllocateArray<uint32_t>(800000);
-  auto indexes = AllocateArray<uint32_t>(1000);
-  auto output = AllocateArray<uint32_t>(1000);
-
-  std::iota(array.Begin(), array.End(), 0);
-
-  std::random_device random;
-  std::generate(indexes.Begin(), indexes.End(), [&]() { return random() % array.Size(); });
-
-  // Perform gather
-  VectorUtil::Gather(indexes.Size(), array.Raw(), indexes.Raw(), output.Raw());
-
-  // Check
-  for (uint32_t i = 0; i < indexes.Size(); i++) {
-    EXPECT_EQ(array[indexes[i]], output[i]);
+    ASSERT_EQ(size_1, size_2);
+    ASSERT_TRUE(std::equal(sel_1, sel_1 + size_1, sel_2, sel_2 + size_2));
   }
 }
 
-}  // namespace terrier::execution::util::test
+TEST_F(VectorUtilTest, DiffSelected) {
+  sel_t input[common::Constants::K_DEFAULT_VECTOR_SIZE] = {0, 2, 3, 5, 7, 9};
+  sel_t output[common::Constants::K_DEFAULT_VECTOR_SIZE];
+  uint32_t out_count = VectorUtil::DiffSelectedScalar(10, input, 6, output);
+  EXPECT_EQ(4u, out_count);
+  EXPECT_EQ(1u, output[0]);
+  EXPECT_EQ(4u, output[1]);
+  EXPECT_EQ(6u, output[2]);
+  EXPECT_EQ(8u, output[3]);
+}
+
+TEST_F(VectorUtilTest, DiffSelectedWithScratchPad) {
+  sel_t input[common::Constants::K_DEFAULT_VECTOR_SIZE] = {2, 3, 5, 7, 9};
+  sel_t output[common::Constants::K_DEFAULT_VECTOR_SIZE];
+  uint8_t scratch[common::Constants::K_DEFAULT_VECTOR_SIZE];
+
+  auto count = VectorUtil::DiffSelectedWithScratchPad(10, input, 5, output, scratch);
+  EXPECT_EQ(5u, count);
+  EXPECT_EQ(0u, output[0]);
+  EXPECT_EQ(1u, output[1]);
+  EXPECT_EQ(4u, output[2]);
+  EXPECT_EQ(6u, output[3]);
+  EXPECT_EQ(8u, output[4]);
+}
+
+TEST_F(VectorUtilTest, IntersectSelectionVectors) {
+  sel_t a[] = {2, 3, 5, 7, 9};
+  sel_t b[] = {1, 2, 4, 7, 8, 9, 10, 11};
+  sel_t out[common::Constants::K_DEFAULT_VECTOR_SIZE];
+
+  auto out_count = VectorUtil::IntersectSelected(a, sizeof(a) / sizeof(a[0]), b, sizeof(b) / sizeof(b[0]), out);
+  EXPECT_EQ(3u, out_count);
+  EXPECT_EQ(2u, out[0]);
+  EXPECT_EQ(7u, out[1]);
+  EXPECT_EQ(9u, out[2]);
+
+  // Reverse arguments, should still work
+  out_count = VectorUtil::IntersectSelected(b, sizeof(b) / sizeof(b[0]), a, sizeof(a) / sizeof(a[0]), out);
+  EXPECT_EQ(3u, out_count);
+  EXPECT_EQ(2u, out[0]);
+  EXPECT_EQ(7u, out[1]);
+  EXPECT_EQ(9u, out[2]);
+
+  // Empty arguments should work
+  out_count = VectorUtil::IntersectSelected(nullptr, 0, b, sizeof(b) / sizeof(b[0]), out);
+  EXPECT_EQ(0u, out_count);
+
+  out_count = VectorUtil::IntersectSelected(b, sizeof(b) / sizeof(b[0]), static_cast<sel_t *>(nullptr), 0, out);
+  EXPECT_EQ(0u, out_count);
+}
+}  // namespace terrier::execution::util

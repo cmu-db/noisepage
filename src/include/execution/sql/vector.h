@@ -13,6 +13,10 @@
 #include "execution/util/bit_vector.h"
 #include "execution/util/string_heap.h"
 
+namespace terrier::execution::exec{
+  class ExecutionContext;
+}
+
 namespace terrier::execution::sql {
 
 /**
@@ -285,9 +289,10 @@ class Vector {
   /**
    * Cast this vector to a different type. If the target type is the same as the current type,
    * nothing is done.
+   * @param exec_ctx The execution context being used in this query
    * @param new_type The type to cast this vector into.
    */
-  void Cast(TypeId new_type);
+  void Cast(common::ManagedPointer<exec::ExecutionContext> exec_ctx, TypeId new_type);
 
   /**
    * Append the contents of the provided vector @em other into this vector.

@@ -81,7 +81,7 @@ TEST_F(VectorCastTest, CastWithNulls) {
   }
 }
 
-TEST_F(VectorCastTest, NumericDowncast) {
+TEST_F(VectorCastTest, NumericDowncast) {  // NOLINT the expanded macros make clang-tidy unhappy at the function size
 #define CHECK_CAST(SRC_TYPE, DEST_TYPE, DEST_CPP_TYPE)                                             \
   {                                                                                                \
     const uint32_t num_elems = 20;                                                                 \

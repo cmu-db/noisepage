@@ -48,8 +48,8 @@ void CheckGatherAndSelect(const Vector &input, const Vector &pointers, UNUSED_AT
 }
 
 template <typename T, typename Op>
-void TemplatedGatherAndSelectOperation_Constant(const Vector &input, const Vector &pointers, const std::size_t offset,
-                                                TupleIdList *tid_list) {
+void TemplatedGatherAndSelectOperationConstant(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                               TupleIdList *tid_list) {
   // If input is a NULL constant, there aren't any matches.
   if (input.IsNull(0)) {
     tid_list->Clear();
@@ -66,8 +66,8 @@ void TemplatedGatherAndSelectOperation_Constant(const Vector &input, const Vecto
 }
 
 template <typename T, typename Op>
-void TemplatedGatherAndSelectOperation_Vector(const Vector &input, const Vector &pointers, const std::size_t offset,
-                                              TupleIdList *tid_list) {
+void TemplatedGatherAndSelectOperationVector(const Vector &input, const Vector &pointers, const std::size_t offset,
+                                             TupleIdList *tid_list) {
   // Strip out NULL inputs now to avoid checking in the loop.
   tid_list->GetMutableBits()->Difference(input.GetNullMask());
 
@@ -84,9 +84,9 @@ template <typename T, template <typename> typename Op>
 void TemplatedGatherAndSelectOperation(const Vector &input, const Vector &pointers, const std::size_t offset,
                                        TupleIdList *tid_list) {
   if (input.IsConstant()) {
-    TemplatedGatherAndSelectOperation_Constant<T, Op<T>>(input, pointers, offset, tid_list);
+    TemplatedGatherAndSelectOperationConstant<T, Op<T>>(input, pointers, offset, tid_list);
   } else {
-    TemplatedGatherAndSelectOperation_Vector<T, Op<T>>(input, pointers, offset, tid_list);
+    TemplatedGatherAndSelectOperationVector<T, Op<T>>(input, pointers, offset, tid_list);
   }
 }
 

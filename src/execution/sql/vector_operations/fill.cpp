@@ -37,22 +37,22 @@ void VectorOps::Fill(Vector *vector, const GenericValue &value) {
   // Lift-off
   switch (vector->GetTypeId()) {
     case TypeId::Boolean:
-      TemplatedFillOperation(vector, value.value_.boolean);
+      TemplatedFillOperation(vector, value.value_.boolean_);
       break;
     case TypeId::TinyInt:
-      TemplatedFillOperation(vector, value.value_.tinyint);
+      TemplatedFillOperation(vector, value.value_.tinyint_);
       break;
     case TypeId::SmallInt:
-      TemplatedFillOperation(vector, value.value_.smallint);
+      TemplatedFillOperation(vector, value.value_.smallint_);
       break;
     case TypeId::Integer:
-      TemplatedFillOperation(vector, value.value_.integer);
+      TemplatedFillOperation(vector, value.value_.integer_);
       break;
     case TypeId::BigInt:
-      TemplatedFillOperation(vector, value.value_.bigint);
+      TemplatedFillOperation(vector, value.value_.bigint_);
       break;
     case TypeId::Hash:
-      TemplatedFillOperation(vector, value.value_.hash);
+      TemplatedFillOperation(vector, value.value_.hash_);
       break;
     case TypeId::Float:
       TemplatedFillOperation(vector, value.value_.float_);

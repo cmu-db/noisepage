@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -133,7 +134,7 @@ class BitVector {
    * Create a new bit vector with the specified number of bits, all initially unset.
    * @param num_bits The number of bits in the vector.
    */
-  explicit BitVector(const uint32_t num_bits, Allocator allocator = Allocator())
+  explicit BitVector(uint32_t num_bits, Allocator allocator = Allocator())
       : num_bits_(num_bits), words_(NumNeededWords(num_bits), WordType(0), allocator) {
     TERRIER_ASSERT(num_bits_ > 0, "Cannot create bit vector with zero bits");
   }
@@ -755,7 +756,7 @@ class BitVector {
 
  private:
   // The number of bits in the bit vector.
-  uint32_t num_bits_;
+  uint32_t num_bits_{0};
   // The array of words making up the bit vector.
   std::vector<WordType, Allocator> words_;
 };

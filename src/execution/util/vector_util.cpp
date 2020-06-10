@@ -49,15 +49,14 @@ uint32_t VectorUtil::IntersectSelected(const sel_t *sel_vector, const uint32_t s
   uint32_t k = 0;
   for (uint32_t i = 0; i < sel_vector_len; i++) {
     const auto index = sel_vector[i];
-    const bool bit = bit_vector[index / 64] & (static_cast<uint64_t>(1) << (index % 64));
+    const bool bit = static_cast<bool>(bit_vector[index / 64] & (static_cast<uint64_t>(1) << (index % 64)));
     out_sel_vector[k] = index;
-    k += bit;
+    k += static_cast<uint32_t>(bit);
   }
   return k;
 }
 
-uint32_t VectorUtil::DiffSelected_Scalar(const uint32_t n, const sel_t *sel_vector, const uint32_t m,
-                                         sel_t *out_sel_vector) {
+uint32_t VectorUtil::DiffSelectedScalar(uint32_t n, const sel_t *sel_vector, uint32_t m, sel_t *out_sel_vector) {
   uint32_t i = 0, j = 0, k = 0;
   for (; i < m; i++, j++) {
     while (j < sel_vector[i]) {
@@ -71,9 +70,8 @@ uint32_t VectorUtil::DiffSelected_Scalar(const uint32_t n, const sel_t *sel_vect
   return n - m;
 }
 
-uint32_t VectorUtil::DiffSelected_WithScratchPad(const uint32_t n, const sel_t *sel_vector,
-                                                 const uint32_t sel_vector_len, sel_t *out_sel_vector,
-                                                 uint8_t *scratch) {
+uint32_t VectorUtil::DiffSelectedWithScratchPad(uint32_t n, const sel_t *sel_vector, uint32_t sel_vector_len,
+                                                sel_t *out_sel_vector, uint8_t *scratch) {
   TERRIER_ASSERT(n <= common::Constants::K_DEFAULT_VECTOR_SIZE, "Selection vector too large");
   std::memset(scratch, 0, n);
   VectorUtil::SelectionVectorToByteVector(sel_vector, sel_vector_len, scratch);
@@ -86,7 +84,7 @@ uint32_t VectorUtil::DiffSelected_WithScratchPad(const uint32_t n, const sel_t *
 uint32_t VectorUtil::DiffSelected(const uint32_t n, const sel_t *sel_vector, const uint32_t sel_vector_len,
                                   sel_t *out_sel_vector) {
   uint8_t scratch[common::Constants::K_DEFAULT_VECTOR_SIZE];
-  return DiffSelected_WithScratchPad(n, sel_vector, sel_vector_len, out_sel_vector, scratch);
+  return DiffSelectedWithScratchPad(n, sel_vector, sel_vector_len, out_sel_vector, scratch);
 }
 
 void VectorUtil::SelectionVectorToByteVector(const sel_t *sel_vector, const uint32_t num_elems, uint8_t *byte_vector) {
@@ -189,8 +187,8 @@ void VectorUtil::BitVectorToByteVector(const uint64_t *bit_vector, const uint32_
   }
 }
 
-uint32_t VectorUtil::BitVectorToSelectionVector_Sparse(const uint64_t *bit_vector, uint32_t num_bits,
-                                                       sel_t *sel_vector) {
+uint32_t VectorUtil::BitVectorToSelectionVectorSparse(const uint64_t *bit_vector, uint32_t num_bits,
+                                                      sel_t *sel_vector) {
   const uint32_t num_words = MathUtil::DivRoundUp(num_bits, 64);
 
   uint32_t k = 0;
@@ -206,8 +204,8 @@ uint32_t VectorUtil::BitVectorToSelectionVector_Sparse(const uint64_t *bit_vecto
   return k;
 }
 
-uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX2(const uint64_t *bit_vector, uint32_t num_bits,
-                                                           sel_t *sel_vector) {
+uint32_t VectorUtil::BitVectorToSelectionVectorDenseAvX2(const uint64_t *bit_vector, uint32_t num_bits,
+                                                         sel_t *sel_vector) {
   // Vector of '8's = [8,8,8,8,8,8,8]
   const auto eight = _mm_set1_epi16(8);
 
@@ -270,12 +268,11 @@ uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX512(const uint64_t *bit
 }
 #endif
 
-uint32_t VectorUtil::BitVectorToSelectionVector_Dense(const uint64_t *bit_vector, uint32_t num_bits,
-                                                      sel_t *sel_vector) {
+uint32_t VectorUtil::BitVectorToSelectionVectorDense(const uint64_t *bit_vector, uint32_t num_bits, sel_t *sel_vector) {
 #if __AVX512VBMI2__
   return BitVectorToSelectionVector_Dense_AVX512(bit_vector, num_bits, sel_vector);
 #else
-  return BitVectorToSelectionVector_Dense_AVX2(bit_vector, num_bits, sel_vector);
+  return BitVectorToSelectionVectorDenseAvX2(bit_vector, num_bits, sel_vector);
 #endif
 }
 
@@ -302,8 +299,8 @@ uint32_t VectorUtil::BitVectorToSelectionVector(const uint64_t *bit_vector, cons
   // TODO(pmenon): Use settings
   // Sparse is defined as < 15% ones
   const float density = static_cast<float>(count) / static_cast<float>(num_bits);
-  return density <= 0.15 ? BitVectorToSelectionVector_Sparse(bit_vector, num_bits, sel_vector)
-                         : BitVectorToSelectionVector_Dense(bit_vector, num_bits, sel_vector);
+  return density <= 0.15 ? BitVectorToSelectionVectorSparse(bit_vector, num_bits, sel_vector)
+                         : BitVectorToSelectionVectorDense(bit_vector, num_bits, sel_vector);
 }
 
 }  // namespace terrier::execution::util

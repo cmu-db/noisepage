@@ -124,29 +124,34 @@ class VectorUtil : public common::AllStatic {
                                                            sel_t *sel_vector);
 
  private:
-  [[nodiscard]] static uint32_t BitVectorToSelectionVector_Sparse(const uint64_t *bit_vector, uint32_t num_bits,
-                                                                  sel_t *sel_vector);
+  FRIEND_TEST(VectorUtilTest, BitToSelectionVector_Sparse_vs_Dense);
+  FRIEND_TEST(VectorUtilTest, DiffSelected);
+  FRIEND_TEST(VectorUtilTest, DiffSelectedWithScratchPad);
+  FRIEND_TEST(VectorUtilTest, IntersectScalar);
+  FRIEND_TEST(VectorUtilTest, PerfIntersectSelected);
 
-  [[nodiscard]] static uint32_t BitVectorToSelectionVector_Dense(const uint64_t *bit_vector, uint32_t num_bits,
+  [[nodiscard]] static uint32_t BitVectorToSelectionVectorSparse(const uint64_t *bit_vector, uint32_t num_bits,
                                                                  sel_t *sel_vector);
 
-  [[nodiscard]] static uint32_t BitVectorToSelectionVector_Dense_AVX2(const uint64_t *bit_vector, uint32_t num_bits,
+  [[nodiscard]] static uint32_t BitVectorToSelectionVectorDense(const uint64_t *bit_vector, uint32_t num_bits,
+                                                                sel_t *sel_vector);
+
+  [[nodiscard]] static uint32_t BitVectorToSelectionVectorDenseAvX2(const uint64_t *bit_vector, uint32_t num_bits,
+                                                                    sel_t *sel_vector);
+
+  [[nodiscard]] static uint32_t BitVectorToSelectionVectorDenseAVX512(const uint64_t *bit_vector, uint32_t num_bits,
                                                                       sel_t *sel_vector);
 
-  [[nodiscard]] static uint32_t BitVectorToSelectionVector_Dense_AVX512(const uint64_t *bit_vector, uint32_t num_bits,
-                                                                        sel_t *sel_vector);
-
   /** A sorted-set difference implementation using purely scalar operations. */
-  [[nodiscard]] static uint32_t DiffSelected_Scalar(uint32_t n, const sel_t *sel_vector, uint32_t m,
-                                                    sel_t *out_sel_vector);
+  [[nodiscard]] static uint32_t DiffSelectedScalar(uint32_t n, const sel_t *sel_vector, uint32_t m,
+                                                   sel_t *out_sel_vector);
 
   /**
    * A sorted-set difference implementation that uses a little extra memory (the scratchpad) and executes more
    * instructions, but has better CPI, and is faster in the common case.
    */
-  [[nodiscard]] static uint32_t DiffSelected_WithScratchPad(uint32_t n, const sel_t *sel_vector,
-                                                            uint32_t sel_vector_len, sel_t *out_sel_vector,
-                                                            uint8_t *scratch);
+  [[nodiscard]] static uint32_t DiffSelectedWithScratchPad(uint32_t n, const sel_t *sel_vector, uint32_t sel_vector_len,
+                                                           sel_t *out_sel_vector, uint8_t *scratch);
 };
 
 }  // namespace terrier::execution::util

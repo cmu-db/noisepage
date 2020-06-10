@@ -1,4 +1,3 @@
-#include <execution/tpl_test.h>
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/vector_operations.h"
@@ -10,19 +9,21 @@ namespace terrier::execution::sql {
 class VectorBitwiseTest : public TplTest {};
 
 TEST_F(VectorBitwiseTest, InPlaceBitwiseAND) {
-#define GEN_CASE(TYPE, CPP_TYPE)                                                          \
-  {                                                                                       \
-    auto a = Make##TYPE##Vector(100);                                                     \
-    VectorOps::Generate(a.get(), 0, 2);                                                   \
-    VectorOps::BitwiseAndInPlace(a.get(), ConstantVector(GenericValue::Create##TYPE(3))); \
-    EXPECT_EQ(100, a->GetSize());                                                         \
-    EXPECT_EQ(100, a->GetCount());                                                        \
-    EXPECT_EQ(nullptr, a->GetFilteredTupleIdList());                                      \
-    auto *a_data = reinterpret_cast<CPP_TYPE *>(a->GetData());                            \
-    for (uint64_t i = 0; i < a->GetCount(); i++) {                                        \
-      EXPECT_FALSE(a->IsNull(i));                                                         \
-      EXPECT_LE(a_data[i], 3);                                                            \
-    }                                                                                     \
+  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+#define GEN_CASE(TYPE, CPP_TYPE)                                                                 \
+  {                                                                                              \
+    auto a = Make##TYPE##Vector(100);                                                            \
+    VectorOps::Generate(a.get(), 0, 2);                                                          \
+    VectorOps::BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx_), a.get(), \
+                                 ConstantVector(GenericValue::Create##TYPE(3)));                 \
+    EXPECT_EQ(100, a->GetSize());                                                                \
+    EXPECT_EQ(100, a->GetCount());                                                               \
+    EXPECT_EQ(nullptr, a->GetFilteredTupleIdList());                                             \
+    auto *a_data = reinterpret_cast<CPP_TYPE *>(a->GetData());                                   \
+    for (uint64_t i = 0; i < a->GetCount(); i++) {                                               \
+      EXPECT_FALSE(a->IsNull(i));                                                                \
+      EXPECT_LE(a_data[i], 3);                                                                   \
+    }                                                                                            \
   }
 
   GEN_CASE(TinyInt, int8_t);

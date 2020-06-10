@@ -49,7 +49,12 @@ class EXPORT ExecutionContext {
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
-        accessor_(accessor) {}
+        accessor_(accessor),
+        select_opt_threshold_{common::Constants::SELECT_OPT_THRESHOLD},
+        arithmetic_full_compute_opt_threshold_{common::Constants::ARITHMETIC_FULL_COMPUTE_THRESHOLD},
+        min_bit_density_threshold_for_AVX_index_decode_{common::Constants::BIT_DENSITY_THRESHOLD_FOR_AVX_INDEX_DECODE},
+        adaptive_predicate_order_sampling_frequency_{common::Constants::ADAPTIVE_PRED_ORDER_SAMPLE_FREQ},
+        parallel_query_execution_{common::Constants::IS_PARALLEL_QUERY_EXECUTION} {}
 
   /**
    * @return the transaction used by this query
@@ -148,6 +153,36 @@ class EXPORT ExecutionContext {
     pipeline_operating_units_ = op;
   }
 
+  /**
+   * @return The vector active element threshold past which full auto-vectorization is done on vectors
+   */
+  const constexpr double GetSelectOptThreshold() { return select_opt_threshold_; }
+
+  /**
+   * @return The vector selectivity past which full computation is done
+   */
+  const constexpr double GetArithmeticFullComputeOptThreshold() { return arithmetic_full_compute_opt_threshold_; }
+
+  /**
+   * @return The minimum bit vector density before using a SIMD decoding algorithm
+   */
+  const constexpr float GetMinBitDensityThresholdForAVXIndexDecode() {
+    return min_bit_density_threshold_for_AVX_index_decode_;
+  }
+
+  /**
+   * @return The frequency at which to sample statistics when adaptively reordering
+   * predicate clauses
+   */
+  const constexpr float GetAdaptivePredicateOrderSamplingFrequency() {
+    return adaptive_predicate_order_sampling_frequency_;
+  }
+
+  /**
+   * @return Whether or not parallel query execution is being used
+   */
+  bool GetIsParallelQueryExecution() { return parallel_query_execution_; }
+
  private:
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
@@ -161,5 +196,12 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
+
+  // hardcoded for now
+  double select_opt_threshold_;
+  double arithmetic_full_compute_opt_threshold_;
+  float min_bit_density_threshold_for_AVX_index_decode_;
+  float adaptive_predicate_order_sampling_frequency_;
+  bool parallel_query_execution_{false};
 };
 }  // namespace terrier::execution::exec

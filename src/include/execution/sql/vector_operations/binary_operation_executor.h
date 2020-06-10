@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/traits.h"
@@ -35,13 +36,15 @@ class BinaryOperationExecutor : public common::AllStatic {
    *            first and second input vectors and must produce an element that is stored in the
    *            result vector.
    * @tparam IgnoreNull Flag indicating if the operation should skip NULL values as in either input.
+   * @param exec_ctx The current execution context
    * @param left The left input.
    * @param right The right input.
    * @param[out] result The result vector.
    */
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull = false>
-  static void Execute(const Vector &left, const Vector &right, Vector *result) {
-    Execute<LeftType, RightType, ResultType, Op, IgnoreNull>(left, right, result, Op{});
+  static void Execute(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right,
+                      Vector *result) {
+    Execute<LeftType, RightType, ResultType, Op, IgnoreNull>(exec_ctx, left, right, result, Op{});
   }
 
   /**
@@ -65,13 +68,15 @@ class BinaryOperationExecutor : public common::AllStatic {
    *            first and second input vectors and must produce an element that is stored in the
    *            result vector.
    * @tparam IgnoreNull Flag indicating if the operation should skip NULL values as in either input.
+   * @param exec_ctx The execution context used by this query
    * @param left The left input.
    * @param right The right input.
    * @param[out] result The result vector.
    * @param op The binary operation.
    */
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull = false>
-  static void Execute(const Vector &left, const Vector &right, Vector *result, Op &&op) {
+  static void Execute(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right,
+                      Vector *result, Op &&op) {
     // Ensure operator has correct interface.
     static_assert(std::is_invocable_r_v<ResultType, Op, LeftType, RightType>,
                   "Binary operation has invalid interface for given template arguments.");
@@ -80,21 +85,22 @@ class BinaryOperationExecutor : public common::AllStatic {
     TERRIER_ASSERT(!left.IsConstant() || !right.IsConstant(), "Both inputs to binary cannot be constants");
 
     if (left.IsConstant()) {
-      ExecuteImpl_Constant_Vector<LeftType, RightType, ResultType, Op, IgnoreNull>(left, right, result,
-                                                                                   std::forward<Op>(op));
-    } else if (right.IsConstant()) {
-      ExecuteImpl_Vector_Constant<LeftType, RightType, ResultType, Op, IgnoreNull>(left, right, result,
-                                                                                   std::forward<Op>(op));
-    } else {
-      ExecuteImpl_Vector_Vector<LeftType, RightType, ResultType, Op, IgnoreNull>(left, right, result,
+      ExecuteImplConstantVector<LeftType, RightType, ResultType, Op, IgnoreNull>(exec_ctx, left, right, result,
                                                                                  std::forward<Op>(op));
+    } else if (right.IsConstant()) {
+      ExecuteImplVectorConstant<LeftType, RightType, ResultType, Op, IgnoreNull>(exec_ctx, left, right, result,
+                                                                                 std::forward<Op>(op));
+    } else {
+      ExecuteImplVectorVector<LeftType, RightType, ResultType, Op, IgnoreNull>(exec_ctx, left, right, result,
+                                                                               std::forward<Op>(op));
     }
   }
 
  private:
   // Binary operation where the left input is a constant value.
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
-  static void ExecuteImpl_Constant_Vector(const Vector &left, const Vector &right, Vector *result, Op &&op) {
+  static void ExecuteImplConstantVector(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                        const Vector &right, Vector *result, Op &&op) {
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());
     auto *RESTRICT result_data = reinterpret_cast<ResultType *>(result->GetData());
@@ -114,7 +120,7 @@ class BinaryOperationExecutor : public common::AllStatic {
           }
         });
       } else {
-        if (traits::ShouldPerformFullCompute<Op>()(right.GetFilteredTupleIdList())) {
+        if (traits::ShouldPerformFullCompute<Op>()(exec_ctx, right.GetFilteredTupleIdList())) {
           VectorOps::ExecIgnoreFilter(
               right, [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[0], right_data[i]); });
         } else {
@@ -126,7 +132,8 @@ class BinaryOperationExecutor : public common::AllStatic {
 
   // Binary operation where the right input is a constant value.
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
-  static void ExecuteImpl_Vector_Constant(const Vector &left, const Vector &right, Vector *result, Op &&op) {
+  static void ExecuteImplVectorConstant(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                        const Vector &right, Vector *result, Op &&op) {
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());
     auto *RESTRICT result_data = reinterpret_cast<ResultType *>(result->GetData());
@@ -146,7 +153,7 @@ class BinaryOperationExecutor : public common::AllStatic {
           }
         });
       } else {
-        if (traits::ShouldPerformFullCompute<Op>()(left.GetFilteredTupleIdList())) {
+        if (traits::ShouldPerformFullCompute<Op>()(exec_ctx, left.GetFilteredTupleIdList())) {
           VectorOps::ExecIgnoreFilter(
               left, [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[i], right_data[0]); });
         } else {
@@ -158,7 +165,8 @@ class BinaryOperationExecutor : public common::AllStatic {
 
   // Binary operation where both inputs are vectors.
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
-  static void ExecuteImpl_Vector_Vector(const Vector &left, const Vector &right, Vector *result, Op &&op) {
+  static void ExecuteImplVectorVector(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                      const Vector &right, Vector *result, Op &&op) {
     TERRIER_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
                    "Mismatched selection vectors for comparison");
     TERRIER_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
@@ -178,7 +186,7 @@ class BinaryOperationExecutor : public common::AllStatic {
         }
       });
     } else {
-      if (traits::ShouldPerformFullCompute<Op>()(left.GetFilteredTupleIdList())) {
+      if (traits::ShouldPerformFullCompute<Op>()(exec_ctx, left.GetFilteredTupleIdList())) {
         VectorOps::ExecIgnoreFilter(left,
                                     [&](uint64_t i, uint64_t k) { result_data[i] = op(left_data[i], right_data[i]); });
       } else {

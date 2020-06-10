@@ -10,8 +10,8 @@ namespace traits {
 
 template <typename T>
 struct ShouldPerformFullCompute<terrier::execution::sql::AddInPlace<T>> {
-  bool operator()(const TupleIdList *tid_list) const {
-    auto full_compute_threshold = Settings::Instance()->GetDouble(Settings::Name::ArithmeticFullComputeOptThreshold);
+  bool operator()(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const TupleIdList *tid_list) const {
+    auto full_compute_threshold = exec_ctx->GetArithmeticFullComputeOptThreshold();
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
   }
 };
@@ -21,38 +21,38 @@ struct ShouldPerformFullCompute<terrier::execution::sql::AddInPlace<T>> {
 namespace {
 
 template <typename T, template <typename> typename Op>
-void InPlaceOperation(Vector *left, const Vector &right) {
-  InPlaceOperationExecutor::Execute<T, T, Op<T>>(left, right);
+void InPlaceOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, Vector *left, const Vector &right) {
+  InPlaceOperationExecutor::Execute<T, T, Op<T>>(exec_ctx, left, right);
 }
 
 }  // namespace
 
-void VectorOps::AddInPlace(Vector *left, const Vector &right) {
+void VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext> exec_ctx, Vector *left, const Vector &right) {
   // Sanity check
   CheckInplaceOperation(left, right);
 
   // Lift-off
   switch (left->GetTypeId()) {
     case TypeId::TinyInt:
-      InPlaceOperation<int8_t, terrier::execution::sql::AddInPlace>(left, right);
+      InPlaceOperation<int8_t, terrier::execution::sql::AddInPlace>(exec_ctx, left, right);
       break;
     case TypeId::SmallInt:
-      InPlaceOperation<int16_t, terrier::execution::sql::AddInPlace>(left, right);
+      InPlaceOperation<int16_t, terrier::execution::sql::AddInPlace>(exec_ctx, left, right);
       break;
     case TypeId::Integer:
-      InPlaceOperation<int32_t, terrier::execution::sql::AddInPlace>(left, right);
+      InPlaceOperation<int32_t, terrier::execution::sql::AddInPlace>(exec_ctx, left, right);
       break;
     case TypeId::BigInt:
-      InPlaceOperation<int64_t, terrier::execution::sql::AddInPlace>(left, right);
+      InPlaceOperation<int64_t, terrier::execution::sql::AddInPlace>(exec_ctx, left, right);
       break;
     case TypeId::Float:
-      InPlaceOperation<float, terrier::execution::sql::AddInPlace>(left, right);
+      InPlaceOperation<float, terrier::execution::sql::AddInPlace>(exec_ctx, left, right);
       break;
     case TypeId::Double:
-      InPlaceOperation<double, terrier::execution::sql::AddInPlace>(left, right);
+      InPlaceOperation<double, terrier::execution::sql::AddInPlace>(exec_ctx, left, right);
       break;
     case TypeId::Pointer:
-      InPlaceOperation<uintptr_t, terrier::execution::sql::AddInPlace>(left, right);
+      InPlaceOperation<uintptr_t, terrier::execution::sql::AddInPlace>(exec_ctx, left, right);
       break;
     default:
       throw InvalidTypeException(left->GetTypeId(), "invalid type for in-place arithmetic operation");

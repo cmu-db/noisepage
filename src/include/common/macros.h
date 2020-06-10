@@ -24,7 +24,7 @@
 #endif
 
 // 99% of cache-lines are 64 bytes
-//#define CACHELINE_SIZE 64
+// #define CACHELINE_SIZE 64
 
 #define UNUSED_ATTRIBUTE __attribute__((unused))
 

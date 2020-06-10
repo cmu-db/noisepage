@@ -31,32 +31,32 @@ namespace terrier::execution::util::fast_double_parser {
 #endif  // really_inline
 #endif  // _MSC_VER
 
-struct value128 {
-  uint64_t low;
-  uint64_t high;
+struct Value128 {
+  uint64_t low_;
+  uint64_t high_;
 };
 
-static inline value128 full_multiplication(uint64_t value1, uint64_t value2) {
-  value128 answer;
+static inline Value128 FullMultiplication(uint64_t value1, uint64_t value2) {
+  Value128 answer;
 #ifdef _MSC_VER
   // todo: this might fail under visual studio for ARM
   answer.low = _umul128(value1, value2, &answer.high);
 #else
-  __uint128_t r = ((__uint128_t)value1) * value2;
-  answer.low = r;
-  answer.high = r >> 64;
+  __uint128_t r = (static_cast<__uint128_t>(value1)) * value2;
+  answer.low_ = static_cast<uint64_t>(r);
+  answer.high_ = static_cast<uint64_t>(r >> 64);
 #endif
   return answer;
 }
 
 /* result might be undefined when input_num is zero */
-static inline int leading_zeroes(uint64_t input_num) {
+static inline int LeadingZeroes(uint64_t input_num) {
 #ifdef _MSC_VER
-  unsigned long leading_zero = 0;
+  uint64_t leading_zero = 0;
   // Search the mask data from most significant bit (MSB)
   // to least significant bit (LSB) for a set bit (1).
   if (_BitScanReverse64(&leading_zero, input_num))
-    return (int)(63 - leading_zero);
+    return static_cast<int>(63 - leading_zero);
   else
     return 64;
 #else
@@ -66,20 +66,20 @@ static inline int leading_zeroes(uint64_t input_num) {
 
 // Precomputed powers of ten from 10^0 to 10^22. These
 // can be represented exactly using the double type.
-static const double power_of_ten[] = {1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,  1e8,  1e9,  1e10, 1e11,
+static const double POWER_OF_TEN[] = {1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,  1e8,  1e9,  1e10, 1e11,
                                       1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22};
 
-static inline bool is_integer(char c) {
+static inline bool IsInteger(char c) {
   return (c >= '0' && c <= '9');
   // this gets compiled to (uint8_t)(c - '0') <= 9 on all decent compilers
 }
 
 // the mantissas of powers of ten from FASTFLOAT_SMALLEST_POWER to FASTFLOAT_LARGEST_POWER, extended
 // out to sixty four bits This struct will likely get padded to 16 bytes.
-typedef struct {
-  uint64_t mantissa;
-  int32_t exp;
-} components;
+using components = struct {
+  uint64_t mantissa_;
+  int32_t exp_;
+};
 
 // The array power_of_ten_components contain the powers of ten approximated
 // as a 64-bit mantissa, with an exponent part. It goes from 10^
@@ -87,7 +87,7 @@ typedef struct {
 // 10^FASTFLOAT_LARGEST_POWER (inclusively). The mantissa is truncated, and
 // never rounded up.
 // Uses about 10KB.
-static const components power_of_ten_components[] = {
+static const components POWER_OF_TEN_COMPONENTS[] = {
     {0xa5ced43b7e3e9188L, 7},    {0xcf42894a5dce35eaL, 10},   {0x818995ce7aa0e1b2L, 14},   {0xa1ebfb4219491a1fL, 17},
     {0xca66fa129f9b60a6L, 20},   {0xfd00b897478238d0L, 23},   {0x9e20735e8cb16382L, 27},   {0xc5a890362fddbc62L, 30},
     {0xf712b443bbd52b7bL, 33},   {0x9a6bb0aa55653b2dL, 37},   {0xc1069cd4eabe89f8L, 40},   {0xf148440a256e2c76L, 43},
@@ -250,7 +250,7 @@ static const components power_of_ten_components[] = {
 
 // A complement from power_of_ten_components
 // complete to a 128-bit mantissa.
-const uint64_t mantissa_128[] = {0x419ea3bd35385e2d,
+const uint64_t MANTISSA_128[] = {0x419ea3bd35385e2d,
                                  0x52064cac828675b9,
                                  0x7343efebd1940993,
                                  0x1014ebe6c5f90bf8,
@@ -891,7 +891,7 @@ const uint64_t mantissa_128[] = {0x419ea3bd35385e2d,
 // set to false. This should work *most of the time* (like 99% of the time).
 // We assume that power is in the [FASTFLOAT_SMALLEST_POWER,
 // FASTFLOAT_LARGEST_POWER] interval: the caller is responsible for this check.
-really_inline double compute_float_64(int64_t power, uint64_t i, bool negative, bool *success) {
+really_inline double ComputeFloat64(int64_t power, uint64_t i, bool negative, bool *success) {
   // we start with a fast path
   // It was described in
   // Clinger WD. How to read floating point numbers accurately.
@@ -911,9 +911,9 @@ really_inline double compute_float_64(int64_t power, uint64_t i, bool negative, 
     // and s / p will produce correctly rounded values.
     //
     if (power < 0) {
-      d = d / power_of_ten[-power];
+      d = d / POWER_OF_TEN[-power];
     } else {
-      d = d * power_of_ten[power];
+      d = d * POWER_OF_TEN[power];
     }
     if (negative) {
       d = -d;
@@ -949,21 +949,21 @@ really_inline double compute_float_64(int64_t power, uint64_t i, bool negative, 
 
   // We are going to need to do some 64-bit arithmetic to get a more precise product.
   // We use a table lookup approach.
-  components c = power_of_ten_components[power - FASTFLOAT_SMALLEST_POWER];  // safe because
+  components c = POWER_OF_TEN_COMPONENTS[power - FASTFLOAT_SMALLEST_POWER];  // safe because
   // power >= FASTFLOAT_SMALLEST_POWER
   // and power <= FASTFLOAT_LARGEST_POWER
   // we recover the mantissa of the power, it has a leading 1. It is always
   // rounded down.
-  uint64_t factor_mantissa = c.mantissa;
+  uint64_t factor_mantissa = c.mantissa_;
   // We want the most significant bit of i to be 1. Shift if needed.
-  int lz = leading_zeroes(i);
+  int lz = LeadingZeroes(i);
   i <<= lz;
   // We want the most significant 64 bits of the product. We know
   // this will be non-zero because the most significant bit of i is
   // 1.
-  value128 product = full_multiplication(i, factor_mantissa);
-  uint64_t lower = product.low;
-  uint64_t upper = product.high;
+  Value128 product = FullMultiplication(i, factor_mantissa);
+  uint64_t lower = product.low_;
+  uint64_t upper = product.high_;
   // We know that upper has at most one leading zero because
   // both i and  factor_mantissa have a leading one. This means
   // that the result is at least as large as ((1<<63)*(1<<63))/(1<<64).
@@ -976,12 +976,12 @@ really_inline double compute_float_64(int64_t power, uint64_t i, bool negative, 
   // When (upper & 0x1FF) == 0x1FF, it can be common for
   // lower + i < lower to be true (proba. much higher than 1%).
   if (unlikely((upper & 0x1FF) == 0x1FF) && (lower + i < lower)) {
-    uint64_t factor_mantissa_low = mantissa_128[power - FASTFLOAT_SMALLEST_POWER];
+    uint64_t factor_mantissa_low = MANTISSA_128[power - FASTFLOAT_SMALLEST_POWER];
     // next, we compute the 64-bit x 128-bit multiplication, getting a 192-bit
     // result (three 64-bit values)
-    product = full_multiplication(i, factor_mantissa_low);
-    uint64_t product_low = product.low;
-    uint64_t product_middle2 = product.high;
+    product = FullMultiplication(i, factor_mantissa_low);
+    uint64_t product_low = product.low_;
+    uint64_t product_middle2 = product.high_;
     uint64_t product_middle1 = lower;
     uint64_t product_high = upper;
     uint64_t product_middle = product_middle1 + product_middle2;
@@ -1003,7 +1003,7 @@ really_inline double compute_float_64(int64_t power, uint64_t i, bool negative, 
   ///////
   uint64_t upperbit = upper >> 63;
   uint64_t mantissa = upper >> (upperbit + 9);
-  lz += 1 ^ upperbit;
+  lz += static_cast<int>(1 ^ upperbit);
   // Here we have mantissa < (1<<54).
 
   // We have to round to even. The "to even" part
@@ -1043,21 +1043,21 @@ really_inline double compute_float_64(int64_t power, uint64_t i, bool negative, 
     lz--;  // undo previous addition
   }
   mantissa &= ~(1ULL << 52);
-  uint64_t real_exponent = c.exp - lz;
+  uint64_t real_exponent = c.exp_ - lz;
   // we have to check that real_exponent is in range, otherwise we bail out
   if (unlikely((real_exponent < 1) || (real_exponent > 2046))) {
     *success = false;
     return 0;
   }
   mantissa |= real_exponent << 52;
-  mantissa |= (((uint64_t)negative) << 63);
+  mantissa |= ((static_cast<uint64_t>(negative)) << 63);
   double d;
   memcpy(&d, &mantissa, sizeof(d));
   *success = true;
   return d;
 }
 
-static bool parse_float_strtod(const char *ptr, double *outDouble) {
+static bool ParseFloatStrtod(const char *ptr, double *outDouble) {
   char *endptr;
   *outDouble = strtod(ptr, &endptr);
   // Some libraries will set errno = ERANGE when the value is subnormal,
@@ -1072,10 +1072,7 @@ static bool parse_float_strtod(const char *ptr, double *outDouble) {
   // value, we can represent easily the number of atoms in the universe. We
   // could  also represent the number of ways you can pick any three individual
   // atoms at random in the universe.
-  if ((endptr == ptr) || (!std::isfinite(*outDouble))) {
-    return false;
-  }
-  return true;
+  return !((endptr == ptr) || (!std::isfinite(*outDouble)));
 }
 
 #if (__cplusplus < 201703L)
@@ -1093,7 +1090,7 @@ really_inline bool is_one_of(char v) {
 }
 #else
 template <char... Values>
-bool is_one_of(char v) {
+bool IsOneOf(char v) {
   return ((v == Values) || ...);
 }
 #endif
@@ -1101,29 +1098,38 @@ bool is_one_of(char v) {
 // We need to check that the character following a zero is valid. This is
 // probably frequent and it is hard than it looks. We are building all of this
 // just to differentiate between 0x1 (invalid), 0,1 (valid) 0e1 (valid)...
-const bool structural_or_whitespace_or_exponent_or_decimal_negated[256] = {
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+const bool STRUCTURAL_OR_WHITESPACE_OR_EXPONENT_OR_DECIMAL_NEGATED[256] = {
+    true,  true, true, true, true, true,  true, true, true, false, false, true,  true,  false, true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true,
+    false, true, true, true, true, true,  true, true, true, true,  true,  true,  false, true,  false, true,
+    true,  true, true, true, true, true,  true, true, true, true,  false, true,  true,  true,  true,  true,
+    true,  true, true, true, true, false, true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  false, true,  false, true,  true,
+    true,  true, true, true, true, false, true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  false, true,  false, true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true,
+    true,  true, true, true, true, true,  true, true, true, true,  true,  true,  true,  true,  true,  true};
 
-really_inline bool is_not_structural_or_whitespace_or_exponent_or_decimal(unsigned char c) {
-  return structural_or_whitespace_or_exponent_or_decimal_negated[c];
+really_inline bool IsNotStructuralOrWhitespaceOrExponentOrDecimal(unsigned char c) {
+  return STRUCTURAL_OR_WHITESPACE_OR_EXPONENT_OR_DECIMAL_NEGATED[c];
 }
 
 // parse the number at p
 template <char... DecSeparators>
-really_inline bool parse_number_base(const char *p, double *outDouble) {
+really_inline bool ParseNumberBase(const char *p, double *outDouble) {
   const char *pinit = p;
   bool found_minus = (*p == '-');
   bool negative = false;
   if (found_minus) {
     ++p;
     negative = true;
-    if (!is_integer(*p)) {  // a negative sign must be followed by an integer
+    if (!IsInteger(*p)) {  // a negative sign must be followed by an integer
       return false;
     }
   }
@@ -1132,12 +1138,12 @@ really_inline bool parse_number_base(const char *p, double *outDouble) {
   uint64_t i;       // an unsigned int avoids signed overflows (which are bad)
   if (*p == '0') {  // 0 cannot be followed by an integer
     ++p;
-    if (is_not_structural_or_whitespace_or_exponent_or_decimal(*p)) {
+    if (IsNotStructuralOrWhitespaceOrExponentOrDecimal(*p)) {
       return false;
     }
     i = 0;
   } else {
-    if (!(is_integer(*p))) {  // must start with an integer
+    if (!(IsInteger(*p))) {  // must start with an integer
       return false;
     }
     unsigned char digit = *p - '0';
@@ -1145,7 +1151,7 @@ really_inline bool parse_number_base(const char *p, double *outDouble) {
     p++;
     // the is_made_of_eight_digits_fast routine is unlikely to help here because
     // we rarely see large integer parts like 123456789
-    while (is_integer(*p)) {
+    while (IsInteger(*p)) {
       digit = *p - '0';
       // a multiplication by 10 is cheaper than an arbitrary integer
       // multiplication
@@ -1154,12 +1160,12 @@ really_inline bool parse_number_base(const char *p, double *outDouble) {
     }
   }
   int64_t exponent = 0;
-  const char *first_after_period = NULL;
-  if (is_one_of<DecSeparators...>(*p)) {
+  const char *first_after_period = nullptr;
+  if (IsOneOf<DecSeparators...>(*p)) {
     ++p;
     first_after_period = p;
-    if (is_integer(*p)) {
-      unsigned char digit = *p - '0';
+    if (IsInteger(*p)) {
+      auto digit = static_cast<unsigned char>(*p - '0');
       ++p;
       i = i * 10 + digit;  // might overflow + multiplication by 10 is likely
       // cheaper than arbitrary mult.
@@ -1167,16 +1173,16 @@ really_inline bool parse_number_base(const char *p, double *outDouble) {
     } else {
       return false;
     }
-    while (is_integer(*p)) {
-      unsigned char digit = *p - '0';
+    while (IsInteger(*p)) {
+      auto digit = static_cast<unsigned char>(*p - '0');
       ++p;
       i = i * 10 + digit;  // in rare cases, this will overflow, but that's ok
       // because we have parse_highprecision_float later.
     }
-    exponent = first_after_period - p;
+    exponent = static_cast<int64_t>(first_after_period - p);
   }
-  int digit_count = p - start_digits - 1;  // used later to guard against overflows
-  int64_t exp_number = 0;                  // exponential part
+  int digit_count = static_cast<int>(p - start_digits - 1);  // used later to guard against overflows
+  int64_t exp_number = 0;                                    // exponential part
   if (('e' == *p) || ('E' == *p)) {
     ++p;
     bool neg_exp = false;
@@ -1186,28 +1192,28 @@ really_inline bool parse_number_base(const char *p, double *outDouble) {
     } else if ('+' == *p) {
       ++p;
     }
-    if (!is_integer(*p)) {
+    if (!IsInteger(*p)) {
       return false;
     }
-    unsigned char digit = *p - '0';
+    auto digit = static_cast<unsigned char>(*p - '0');
     exp_number = digit;
     p++;
-    if (is_integer(*p)) {
-      digit = *p - '0';
+    if (IsInteger(*p)) {
+      digit = static_cast<unsigned char>(*p - '0');
       exp_number = 10 * exp_number + digit;
       ++p;
     }
-    if (is_integer(*p)) {
-      digit = *p - '0';
+    if (IsInteger(*p)) {
+      digit = static_cast<unsigned char>(*p - '0');
       exp_number = 10 * exp_number + digit;
       ++p;
     }
-    while (is_integer(*p)) {
+    while (IsInteger(*p)) {
       if (exp_number > 0x100000000) {  // we need to check for overflows
         // we refuse to parse this
         return false;
       }
-      digit = *p - '0';
+      digit = static_cast<unsigned char>(*p - '0');
       exp_number = 10 * exp_number + digit;
       ++p;
     }
@@ -1220,11 +1226,11 @@ really_inline bool parse_number_base(const char *p, double *outDouble) {
     // It is possible that the integer had an overflow.
     // We have to handle the case where we have 0.0000somenumber.
     const char *start = start_digits;
-    while (*start == '0' || is_one_of<DecSeparators...>(*start)) {
+    while (*start == '0' || IsOneOf<DecSeparators...>(*start)) {
       start++;
     }
     // we over-decrement by one when there is a decimal separator
-    digit_count -= (start - start_digits);
+    digit_count -= static_cast<int>((start - start_digits));
     if (digit_count >= 19) {
       // Chances are good that we had an overflow!
       // We start anew.
@@ -1232,33 +1238,33 @@ really_inline bool parse_number_base(const char *p, double *outDouble) {
       // 10000000000000000000000000000000000000000000e+308
       // 3.1415926535897932384626433832795028841971693993751
       //
-      return parse_float_strtod(pinit, outDouble);
+      return ParseFloatStrtod(pinit, outDouble);
     }
   }
   if (unlikely(exponent < FASTFLOAT_SMALLEST_POWER) || (exponent > FASTFLOAT_LARGEST_POWER)) {
     // this is almost never going to get called!!!
     // exponent could be as low as 325
-    return parse_float_strtod(pinit, outDouble);
+    return ParseFloatStrtod(pinit, outDouble);
   }
   // from this point forward, exponent >= FASTFLOAT_SMALLEST_POWER and
   // exponent <= FASTFLOAT_LARGEST_POWER
   bool success = true;
-  *outDouble = compute_float_64(exponent, i, negative, &success);
+  *outDouble = ComputeFloat64(exponent, i, negative, &success);
   if (!success) {
     // we are almost never going to get here.
-    return parse_float_strtod(pinit, outDouble);
+    return ParseFloatStrtod(pinit, outDouble);
   }
   return true;
 }
 
-const auto parse_number = parse_number_base<'.', ','>;
+const auto PARSE_NUMBER = ParseNumberBase<'.', ','>;
 
 namespace decimal_separator_dot {
-const auto parse_number = parse_number_base<'.'>;
+const auto PARSE_NUMBER = ParseNumberBase<'.'>;
 }
 
 namespace decimal_separator_comma {
-const auto parse_number = parse_number_base<','>;
+const auto PARSE_NUMBER = ParseNumberBase<','>;
 }
 
 // Hygiene.

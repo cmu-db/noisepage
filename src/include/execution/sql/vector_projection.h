@@ -268,7 +268,7 @@ class VectorProjection {
 
   // The list of active TIDs in the projection. Non-null only when tuples have
   // been filtered out.
-  const TupleIdList *filter_;
+  const TupleIdList *filter_{nullptr};
 
   // The list of active TIDs in the projection. This is the source of truth and
   // will always represent the list of visible TIDs.

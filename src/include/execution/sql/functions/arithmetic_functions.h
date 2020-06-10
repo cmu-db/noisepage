@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include "execution/sql/value.h"
 #include "execution/util/arithmetic_overflow.h"
 
 #include "execution/sql/operators/numeric_binary_operators.h"
@@ -236,9 +235,9 @@ class EXPORT ArithmeticFunctions {
   static void Log(Real *result, const Real &base, const Real &val);
 
   /**
-   * Exponentiation a ^ b
+   * Exponentiation base ^ val
    */
-  static void Pow(Real *result, const Real &a, const Real &b);
+  static void Pow(Real *result, const Real &base, const Real &val);
 
  private:
   // Cotangent

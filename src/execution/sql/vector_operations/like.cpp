@@ -10,7 +10,7 @@ namespace terrier::execution::sql {
 namespace {
 
 template <typename Op>
-void TemplatedLikeOperation_Vector_Constant(const Vector &a, const Vector &b, TupleIdList *tid_list) {
+void TemplatedLikeOperationVectorConstant(const Vector &a, const Vector &b, TupleIdList *tid_list) {
   if (b.IsNull(0)) {
     tid_list->Clear();
     return;
@@ -27,7 +27,7 @@ void TemplatedLikeOperation_Vector_Constant(const Vector &a, const Vector &b, Tu
 }
 
 template <typename Op>
-void TemplatedLikeOperation_Vector_Vector(const Vector &a, const Vector &b, TupleIdList *tid_list) {
+void TemplatedLikeOperationVectorVector(const Vector &a, const Vector &b, TupleIdList *tid_list) {
   TERRIER_ASSERT(a.GetSize() == tid_list->GetCapacity() && b.GetSize() == tid_list->GetCapacity(),
                  "Input/output TID list not large enough to store all TIDS from inputs to LIKE()");
 
@@ -51,9 +51,9 @@ void TemplatedLikeOperation(const Vector &a, const Vector &b, TupleIdList *tid_l
   }
 
   if (b.IsConstant()) {
-    TemplatedLikeOperation_Vector_Constant<Op>(a, b, tid_list);
+    TemplatedLikeOperationVectorConstant<Op>(a, b, tid_list);
   } else {
-    TemplatedLikeOperation_Vector_Vector<Op>(a, b, tid_list);
+    TemplatedLikeOperationVectorVector<Op>(a, b, tid_list);
   }
 }
 

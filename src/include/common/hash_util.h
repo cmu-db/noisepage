@@ -62,8 +62,8 @@ class EXPORT HashUtil : public common::AllStatic {
    * @return sum of two hashes
    */
   static hash_t SumHashes(const hash_t l, const hash_t r) {
-    static const hash_t PRIME_FACTOR = 10000019;
-    return (l % PRIME_FACTOR + r % PRIME_FACTOR) % PRIME_FACTOR;
+    static const hash_t prime_factor = 10000019;
+    return (l % prime_factor + r % prime_factor) % prime_factor;
   }
 
   /**
@@ -125,12 +125,12 @@ class EXPORT HashUtil : public common::AllStatic {
    */
   static hash_t CombineHashes(const hash_t first_hash, const hash_t second_hash) {
     // Based on Hash128to64() from cityhash.xxh3
-    static constexpr uint64_t kMul = uint64_t(0x9ddfea08eb382d69);
-    hash_t a = (first_hash ^ second_hash) * kMul;
+    static constexpr auto k_mul = uint64_t(0x9ddfea08eb382d69);
+    hash_t a = (first_hash ^ second_hash) * k_mul;
     a ^= (a >> 47u);
-    hash_t b = (second_hash ^ a) * kMul;
+    hash_t b = (second_hash ^ a) * k_mul;
     b ^= (b >> 47u);
-    b *= kMul;
+    b *= k_mul;
     return b;
   }
 
@@ -148,10 +148,10 @@ class EXPORT HashUtil : public common::AllStatic {
   template <typename T>
   static auto HashCrc(T val, hash_t seed) -> std::enable_if_t<std::is_fundamental_v<T>, hash_t> {
     // Thanks HyPer
-    static constexpr hash_t kDefaultCRCSeed = 0x04c11db7ULL;
+    static constexpr hash_t k_default_crc_seed = 0x04c11db7ULL;
 
     uint64_t result1 = _mm_crc32_u64(seed, static_cast<uint64_t>(val));
-    uint64_t result2 = _mm_crc32_u64(kDefaultCRCSeed, static_cast<uint64_t>(val));
+    uint64_t result2 = _mm_crc32_u64(k_default_crc_seed, static_cast<uint64_t>(val));
     return ((result2 << 32u) | result1) * 0x2545f4914f6cdd1dULL;
   }
 

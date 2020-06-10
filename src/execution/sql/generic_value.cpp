@@ -23,19 +23,19 @@ bool GenericValue::Equals(const GenericValue &other) const {
   }
   switch (type_id_) {
     case TypeId::Boolean:
-      return value_.boolean == other.value_.boolean;
+      return value_.boolean_ == other.value_.boolean_;
     case TypeId::TinyInt:
-      return value_.tinyint == other.value_.tinyint;
+      return value_.tinyint_ == other.value_.tinyint_;
     case TypeId::SmallInt:
-      return value_.smallint == other.value_.smallint;
+      return value_.smallint_ == other.value_.smallint_;
     case TypeId::Integer:
-      return value_.integer == other.value_.integer;
+      return value_.integer_ == other.value_.integer_;
     case TypeId::BigInt:
-      return value_.bigint == other.value_.bigint;
+      return value_.bigint_ == other.value_.bigint_;
     case TypeId::Hash:
-      return value_.hash == other.value_.hash;
+      return value_.hash_ == other.value_.hash_;
     case TypeId::Pointer:
-      return value_.pointer == other.value_.pointer;
+      return value_.pointer_ == other.value_.pointer_;
     case TypeId::Float:
       return common::MathUtil::ApproxEqual(value_.float_, other.value_.float_);
     case TypeId::Double:
@@ -50,14 +50,15 @@ bool GenericValue::Equals(const GenericValue &other) const {
   return false;
 }
 
-GenericValue GenericValue::CastTo(TypeId type) {
+GenericValue GenericValue::CastTo(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
+    TypeId type) {
   // Copy if same type
   if (type_id_ == type) {
     return GenericValue(*this);
   }
   // Use vector to cast
   ConstantVector result(*this);
-  result.Cast(type);
+  result.Cast(exec_ctx, type);
   return result.GetValue(0);
 }
 
@@ -67,19 +68,19 @@ std::string GenericValue::ToString() const {
   }
   switch (type_id_) {
     case TypeId::Boolean:
-      return value_.boolean ? "True" : "False";
+      return value_.boolean_ ? "True" : "False";
     case TypeId::TinyInt:
-      return std::to_string(value_.tinyint);
+      return std::to_string(value_.tinyint_);
     case TypeId::SmallInt:
-      return std::to_string(value_.smallint);
+      return std::to_string(value_.smallint_);
     case TypeId::Integer:
-      return std::to_string(value_.integer);
+      return std::to_string(value_.integer_);
     case TypeId::BigInt:
-      return std::to_string(value_.bigint);
+      return std::to_string(value_.bigint_);
     case TypeId::Hash:
-      return std::to_string(value_.hash);
+      return std::to_string(value_.hash_);
     case TypeId::Pointer:
-      return std::to_string(value_.pointer);
+      return std::to_string(value_.pointer_);
     case TypeId::Float:
       return std::to_string(value_.float_);
     case TypeId::Double:
@@ -108,48 +109,48 @@ GenericValue GenericValue::CreateNull(TypeId type_id) {
 
 GenericValue GenericValue::CreateBoolean(const bool value) {
   GenericValue result(TypeId::Boolean);
-  result.value_.boolean = value;
+  result.value_.boolean_ = value;
   result.is_null_ = false;
   return result;
 }
 
 GenericValue GenericValue::CreateTinyInt(const int8_t value) {
   GenericValue result(TypeId::TinyInt);
-  result.value_.tinyint = value;
+  result.value_.tinyint_ = value;
   result.is_null_ = false;
   return result;
 }
 
 GenericValue GenericValue::CreateSmallInt(const int16_t value) {
   GenericValue result(TypeId::SmallInt);
-  result.value_.smallint = value;
+  result.value_.smallint_ = value;
   result.is_null_ = false;
   return result;
 }
 
 GenericValue GenericValue::CreateInteger(const int32_t value) {
   GenericValue result(TypeId::Integer);
-  result.value_.integer = value;
+  result.value_.integer_ = value;
   result.is_null_ = false;
   return result;
 }
 
 GenericValue GenericValue::CreateBigInt(const int64_t value) {
   GenericValue result(TypeId::BigInt);
-  result.value_.bigint = value;
+  result.value_.bigint_ = value;
   result.is_null_ = false;
   return result;
 }
 GenericValue GenericValue::CreateHash(hash_t value) {
   GenericValue result(TypeId::Hash);
-  result.value_.hash = value;
+  result.value_.hash_ = value;
   result.is_null_ = false;
   return result;
 }
 
 GenericValue GenericValue::CreatePointer(uintptr_t value) {
   GenericValue result(TypeId::Pointer);
-  result.value_.pointer = value;
+  result.value_.pointer_ = value;
   result.is_null_ = false;
   return result;
 }
@@ -211,7 +212,8 @@ GenericValue GenericValue::CreateFromRuntimeValue(const TypeId type_id, const Va
     case TypeId::BigInt:
       return GenericValue::CreateBigInt(static_cast<const Integer &>(val).val_);
     case TypeId::Float:
-      return GenericValue::CreateFloat(static_cast<const Real &>(val).val_);
+      // TODO(tanujnay112): not sure if the data loss here would be an issue
+      return GenericValue::CreateFloat(static_cast<float>(static_cast<const Real &>(val).val_));
     case TypeId::Double:
       return GenericValue::CreateDouble(static_cast<const Real &>(val).val_);
     case TypeId::Date:
