@@ -13,6 +13,7 @@
 #include "network/postgres/postgres_network_commands.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
+#include "network/postgres/statement_cache.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -153,32 +154,26 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   common::ManagedPointer<network::Statement> GetStatement(const std::string &name) const {
     const auto it = statements_.find(name);
-    // TODO(Matt): more exhaustive comparison in case of a hash collision on the string?
     if (it != statements_.end()) return common::ManagedPointer(it->second);
     return nullptr;
   }
 
   /**
-   * @param hash key
    * @param statement statement to take ownership of
    */
-  void AddStatementToCache(const common::hash_t hash, std::unique_ptr<network::Statement> &&statement) {
-    statement_cache_[hash] = std::move(statement);
-  }
+  void AddStatementToCache(std::unique_ptr<network::Statement> &&statement) { cache_.Add(std::move(statement)); }
 
   /**
-   * @param hash key
+   * @param query_text key to look up
    * @return Statement if it exists in the cache, otherwise nullptr
    */
-  common::ManagedPointer<network::Statement> LookupStatementInCache(const common::hash_t hash) const {
-    const auto it = statement_cache_.find(hash);
-    if (it != statement_cache_.end()) return common::ManagedPointer(it->second);
-    return nullptr;
+  common::ManagedPointer<network::Statement> LookupStatementInCache(const std::string &query_text) const {
+    return cache_.Lookup(query_text);
   }
 
   /**
    * @param name key
-   * @param statement statement to take ownership of
+   * @param statement statement to create a mapping to for this name
    */
   void SetStatement(const std::string &name, const common::ManagedPointer<network::Statement> statement) {
     statements_[name] = statement;
@@ -241,8 +236,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 
-  // hash to statement
-  std::unordered_map<common::hash_t, std::unique_ptr<network::Statement>> statement_cache_;
+  StatementCache cache_;
 
   // name to statement
   std::unordered_map<std::string, common::ManagedPointer<network::Statement>> statements_;

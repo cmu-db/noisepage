@@ -9,7 +9,6 @@
 #include "storage/data_table.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
-#include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::storage::index {

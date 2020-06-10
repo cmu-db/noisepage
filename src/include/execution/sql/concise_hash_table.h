@@ -70,8 +70,9 @@ class ConciseHashTable {
    * The table will optimize itself in expectation of seeing at most @em
    * num_elems elements without resizing.
    * @param num_elems The expected number of elements
+   * @param tracker MemoryTracker
    */
-  void SetSize(uint32_t num_elems);
+  void SetSize(uint32_t num_elems, common::ManagedPointer<MemoryTracker> tracker);
 
   /**
    * Insert an element with the given hash into the table and return an encoded

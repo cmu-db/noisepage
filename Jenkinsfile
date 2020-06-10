@@ -101,6 +101,10 @@ pipeline {
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -125,6 +129,10 @@ pipeline {
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -162,6 +170,10 @@ pipeline {
                         sh 'cd build && /bin/bash ./codecov.sh -X gcov'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -190,6 +202,10 @@ pipeline {
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -212,6 +228,10 @@ pipeline {
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -235,6 +255,10 @@ pipeline {
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -262,6 +286,10 @@ pipeline {
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }

@@ -8,19 +8,20 @@
 #include <vector>
 
 #include "common/container/concurrent_blocking_queue.h"
+#include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
-#include "storage/write_ahead_log/disk_log_consumer_task.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
-#include "storage/write_ahead_log/log_serializer_task.h"
-#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
+
+class LogSerializerTask;
+class DiskLogConsumerTask;
 
 /**
  * A LogManager is responsible for serializing log records out and keeping track of whether changes from a transaction
@@ -55,7 +56,7 @@ class LogManager : public common::DedicatedThreadOwner {
    * @param thread_registry DedicatedThreadRegistry dependency injection
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
-             std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
+             std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
              common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
@@ -157,7 +158,7 @@ class LogManager : public common::DedicatedThreadOwner {
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
       common::ManagedPointer<DiskLogConsumerTask>(nullptr);
   // Interval used by disk consumer task
-  const std::chrono::milliseconds persist_interval_;
+  const std::chrono::microseconds persist_interval_;
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
 

@@ -1836,6 +1836,42 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 #undef UNARY_REAL_MATH_OP
 
   // -------------------------------------------------------
+  // Mini runners functions
+  // -------------------------------------------------------
+
+  OP(NpRunnersEmitInt) : {
+    auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *num_tuple = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_col = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_int = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_real = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpNpRunnersEmitInt(ctx, num_tuple, num_col, num_int, num_real);
+    DISPATCH_NEXT();
+  }
+
+  OP(NpRunnersEmitReal) : {
+    auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *num_tuple = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_col = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_int = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_real = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpNpRunnersEmitReal(ctx, num_tuple, num_col, num_int, num_real);
+    DISPATCH_NEXT();
+  }
+
+  OP(NpRunnersDummyInt) : {
+    auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpNpRunnersDummyInt(ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(NpRunnersDummyReal) : {
+    auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpNpRunnersDummyReal(ctx);
+    DISPATCH_NEXT();
+  }
+
+  // -------------------------------------------------------
   // String functions
   // -------------------------------------------------------
 
