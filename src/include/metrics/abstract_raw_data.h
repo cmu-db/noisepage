@@ -22,6 +22,7 @@ class AbstractRawData {
   virtual ~AbstractRawData() = default;
 
   virtual void SetGCMetricsWakeUpTime() {}
+  virtual void PrintNeeded() {}
 
   /**
    * Given another AbstractRawData classes, combine the other's content with the

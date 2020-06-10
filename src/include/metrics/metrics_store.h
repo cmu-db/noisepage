@@ -79,6 +79,12 @@ class MetricsStore {
     gc_metric_->RecordQueueSize(queue_size);
   }
 
+  void RecordDafWakeup() {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
+    TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
+    gc_metric_->RecordDafWakeup();
+  }
+
   /**
    * Record metrics for transaction manager when beginning transaction
    * @param resource_metrics first entry of txn datapoint

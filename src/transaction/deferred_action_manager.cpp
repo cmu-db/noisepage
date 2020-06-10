@@ -30,6 +30,7 @@ uint32_t DeferredActionManager::Process() {
   bool daf_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
+  if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordDafWakeup();
 
   uint32_t processed = ClearBacklog(oldest_txn, daf_metrics_enabled);
   // There is no point in draining new actions if we haven't cleared the backlog.
@@ -41,6 +42,9 @@ uint32_t DeferredActionManager::Process() {
   }
   ProcessIndexes();
   visited_slots_.clear();
+//  std::cout << "processed size" << processed << std::endl;
+//  if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(processed);
+
   return processed;
 }
 
@@ -75,6 +79,8 @@ uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn, bool metric
   // TODO(Tianyu): This will not work if somehow the timestamps we compare against has sign bit flipped.
   //  (for uncommitted transactions, or on overflow)
   // Although that should never happen, we need to be aware that this might be a problem in the future.
+  if (metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(back_log_.size());
+//  std::cout << "backlog size" << back_log_.size() << std::endl;
   while (!back_log_.empty() && transaction::TransactionUtil::NewerThan(oldest_txn, back_log_.front().first)) {
     if (metrics_enabled) common::thread_context.resource_tracker_.Start();
     back_log_.front().second.first(oldest_txn);
@@ -82,8 +88,10 @@ uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn, bool metric
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
       common::thread_context.metrics_store_->RecordActionData(back_log_.front().second.second, resource_metrics);
+//      common::thread_context.metrics_store_->RecordQueueSize(1);
     }
     processed++;
+//    if (metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(1);
     back_log_.pop();
   }
   return processed;
@@ -97,6 +105,7 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
   auto curr_size = new_deferred_actions_.unsafe_size();
 
   if (metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(curr_size);
+//  std::cout << "q size" << curr_size << std::endl;
 
   while (processed != curr_size) {
     // Try_pop would pop the front of the queue if there is at least element in queue,
@@ -115,8 +124,10 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
       common::thread_context.metrics_store_->RecordActionData(curr_action.second.second, resource_metrics);
+//      common::thread_context.metrics_store_->RecordQueueSize(1);
     }
     processed++;
+//    if (metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(1);
   }
   if (processed != curr_size && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);
   return processed;

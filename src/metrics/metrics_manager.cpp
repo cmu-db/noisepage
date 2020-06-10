@@ -35,6 +35,8 @@ void MetricsManager::Aggregate() {
 
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   for (const auto &metrics_store : stores_map_) {
+//    if (metrics_store.second->ComponentEnabled(MetricsComponent::GARBAGECOLLECTION))
+////      std::cout << "gc metric thread" << std::endl;
     auto raw_data = metrics_store.second->GetDataToAggregate();
 
     for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
@@ -43,6 +45,7 @@ void MetricsManager::Aggregate() {
           aggregated_metrics_[component] = std::move(raw_data[component]);
         else
           aggregated_metrics_[component]->Aggregate(raw_data[component].get());
+//        aggregated_metrics_[component]->PrintNeeded();
       }
     }
   }

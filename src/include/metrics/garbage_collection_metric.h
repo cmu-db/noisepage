@@ -26,15 +26,18 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
    * Currently used in metrics thread to record the start time of each metric interval
    */
   void SetGCMetricsWakeUpTime() override { start_ = metrics::MetricsUtil::Now(); }
-
+  void PrintNeeded() override { std::cout << num_txns_processed_ << std::endl; }
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<GarbageCollectionMetricRawData *>(other);
-    if (!other_db_metric->action_data_.empty()) {
-      action_data_.splice(action_data_.cbegin(), other_db_metric->action_data_);
-    }
+//    if (!other_db_metric->action_data_.empty()) {
+//      action_data_.splice(action_data_.cbegin(), other_db_metric->action_data_);
+////      std::cout <<"after record, action data size" << action_data_.size() << std::endl;
+//    }
 
+    std::list<ActionData> local;
+    other_db_metric->action_data_.swap(local);
     // aggregate the data by daf type
-    for (const auto action : action_data_) {
+    for (const auto action : local) {
       if (aggregate_data_.at(int32_t(action.daf_id_)).daf_id_ == transaction::DafId::INVALID) {
         aggregate_data_[int32_t(action.daf_id_)] = {action.resource_metrics_.start_, action.daf_id_, 1,
                                                     action.resource_metrics_.elapsed_us_};
@@ -43,12 +46,24 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
         aggregate_data_[int32_t(action.daf_id_)].time_elapsed_ += action.resource_metrics_.elapsed_us_;
       }
     }
+//    other_db_metric->action_data_.clear();
+//    std::cout <<"txn removal action data size " << aggregate_data_[int32_t(transaction::DafId::TXN_REMOVAL)].num_actions_processed_ << std::endl;
+//    std::cout <<"unlink action data size " << aggregate_data_[int32_t(transaction::DafId::UNLINK)].num_actions_processed_ << std::endl;
+//    std::cout <<"index key removal action data size " << aggregate_data_[int32_t(transaction::DafId::INDEX_REMOVE_KEY)].num_actions_processed_ << std::endl;
+//
     if (max_queue_length_ < other_db_metric->max_queue_length_) {
-//      std::cout << "before record " << max_queue_length_ << std::endl;
-      max_queue_length_ = other_db_metric->max_queue_length_;
-//      std::cout << "record " << max_queue_length_ << std::endl;
+      max_queue_length_.store(other_db_metric->max_queue_length_.exchange(0));
     }
-    num_txns_processed_ += other_db_metric->num_txns_processed_;
+//      max_queue_length_ += other_db_metric->max_queue_length_.exchange(0);
+//    max_queue_length_ += local.size();
+//    std::cout << "agg q leng" << max_queue_length_ << std::endl;
+
+//    std::cout << "before record " << num_txns_processed_ << std::endl;
+    num_daf_wakeup_ += other_db_metric->num_daf_wakeup_.exchange(0);
+
+    num_txns_processed_ += other_db_metric->num_txns_processed_.exchange(0);
+//    std::cout << "record " << num_txns_processed_ << std::endl;
+
   }
 
   /**
@@ -90,9 +105,12 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       daf_count_agg << ", " << static_cast<unsigned long>(data.num_actions_processed_);
       daf_time_agg << ", " << static_cast<unsigned long>(data.time_elapsed_);
     }
-    daf_count_agg << ", " << static_cast<unsigned long>(total_processed) << ", " << static_cast<unsigned long>(max_queue_length_) << ", " << static_cast<unsigned long>(num_txns_processed_) << std::endl;
-    daf_time_agg << ", " << static_cast<unsigned long>(total_elapsed) << ", "  << static_cast<unsigned long>(num_txns_processed_) << std::endl;
+    daf_count_agg << ", " << static_cast<unsigned long>(total_processed) << ", " << static_cast<unsigned long>(max_queue_length_) << ", " << static_cast<unsigned long>(num_daf_wakeup_) << ", " << static_cast<unsigned long>(num_txns_processed_) << std::endl;
+    daf_time_agg << ", " << static_cast<unsigned long>(total_elapsed) << ", "  << static_cast<unsigned long>(num_daf_wakeup_) << ", " << static_cast<unsigned long>(num_txns_processed_) << std::endl;
+//    std::cout << "csv daf processed " << static_cast<unsigned long>(max_queue_length_) << std::endl;
+//    std::cout << "csv agg total processed " << static_cast<unsigned long>(total_processed) << std::endl;
 
+    num_daf_wakeup_ = 0;
     max_queue_length_ = 0;
     num_txns_processed_ = 0;
     action_data_.clear();
@@ -118,25 +136,46 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 //      "UNLINK, total_time"};
   static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {
       "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
-      "UNLINK, INVALID, total_num_actions, max_queue_length, total_num_txns",
+      "UNLINK, INVALID, total_num_actions, max_queue_length, num_daf_wakeup, total_num_txns",
       "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
-      "UNLINK, INVALID, total_time, total_num_txns"};
+      "UNLINK, INVALID, total_time, num_daf_wakeup, total_num_txns"};
 
  private:
   friend class GarbageCollectionMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
   void RecordActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics) {
+//    std::cout << "xfxf" << std::endl;
+
+//    auto prev_size = action_data_.size();
     action_data_.emplace_front(daf_id, resource_metrics);
+//    if (prev_size +1 != action_data_.size())
+//      std::cout << "not inserted: prevsize: " << prev_size << " curr size: " << action_data_.size() << std::endl;
+//    max_queue_length_++;
   }
 
-  void RecordQueueSize(const uint32_t queue_size) {
-    if (static_cast<uint64_t>(queue_size) > max_queue_length_)
-      max_queue_length_ = queue_size;
+  void RecordQueueSize(const uint64_t UNUSED_ATTRIBUTE queue_size) {
+//    std::cout << "dfdf " << max_queue_length_ << " " << queue_size << std::endl;
+    if (max_queue_length_ < queue_size) {
+      max_queue_length_.store(queue_size);
+    }
+//    max_queue_length_ += queue_size;
+//    if (max_queue_length_ != action_data_.size()) {
+//      std::cout << "not inserted: q counter: " << max_queue_length_ << " curr size: " << action_data_.size()
+//                << std::endl;
+//      exit(1);
+//    }
+
+//    std::cout << "record q leng" << max_queue_length_ << std::endl;
+
   }
 
   void RecordTxnsProcessed() {
     num_txns_processed_++;
+  }
+
+  void RecordDafWakeup() {
+    num_daf_wakeup_++;
   }
 
   struct ActionData {
@@ -166,9 +205,10 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 
   uint64_t start_ = 0;
 
-  uint64_t max_queue_length_ = 0;
+  std::atomic<uint64_t> max_queue_length_ = 0;
 
-  uint64_t num_txns_processed_ = 0;
+  std::atomic<uint64_t> num_txns_processed_ = 0;
+  std::atomic<uint64_t> num_daf_wakeup_ = 0;
 };
 
 /**
@@ -188,6 +228,10 @@ class GarbageCollectionMetric : public AbstractMetric<GarbageCollectionMetricRaw
 
   void RecordTxnsProcessed() {
     GetRawData()->RecordTxnsProcessed();
+  }
+
+  void RecordDafWakeup() {
+    GetRawData()->RecordDafWakeup();
   }
 };
 }  // namespace terrier::metrics
