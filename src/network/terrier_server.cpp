@@ -1,8 +1,8 @@
 #include "network/terrier_server.h"
 
+#include <unistd.h>
 #include <fstream>
 #include <memory>
-#include <unistd.h>
 
 #include "common/dedicated_thread_registry.h"
 #include "common/settings.h"
