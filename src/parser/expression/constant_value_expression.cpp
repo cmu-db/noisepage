@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "execution/sql/value.h"
 #include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
@@ -308,6 +309,8 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
 
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ConstantValueExpression);
 
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Val value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);

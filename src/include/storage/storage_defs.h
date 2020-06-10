@@ -30,8 +30,8 @@ namespace terrier::storage {
 // are implicit.
 constexpr uint8_t NUM_ATTR_BOUNDARIES = 4;
 
-STRONG_TYPEDEF(col_id_t, uint16_t);
-STRONG_TYPEDEF(layout_version_t, uint16_t);
+STRONG_TYPEDEF_HEADER(col_id_t, uint16_t);
+STRONG_TYPEDEF_HEADER(layout_version_t, uint16_t);
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
