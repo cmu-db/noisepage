@@ -100,6 +100,6 @@ class DropNamespacePlanNode : public AbstractPlanNode {
   catalog::namespace_oid_t namespace_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(DropNamespacePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DropNamespacePlanNode);
 
 }  // namespace terrier::planner

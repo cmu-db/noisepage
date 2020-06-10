@@ -135,7 +135,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
 
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
-  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
+  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
@@ -249,7 +249,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
 
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
-  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
+  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
@@ -327,7 +327,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
 
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
-  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
+  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
@@ -404,7 +404,7 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
 
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
-  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
+  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
@@ -467,7 +467,7 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
 
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
-  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
+  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
@@ -530,7 +530,7 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
 
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
-  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr);
+  binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
   auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(

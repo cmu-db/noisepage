@@ -2,7 +2,9 @@
 #include <unordered_set>
 #include <utility>
 #include "common/macros.h"
+#include "common/thread_context.h"
 #include "loggers/storage_logger.h"
+#include "metrics/metrics_store.h"
 #include "storage/data_table.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"

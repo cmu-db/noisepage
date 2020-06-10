@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t AggregatePlanNode::Hash() const {
@@ -114,5 +116,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AggregatePlanNode::From
   aggregate_strategy_ = j.at("aggregate_strategy").get<AggregateStrategyType>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(AggregatePlanNode);
 
 }  // namespace terrier::planner

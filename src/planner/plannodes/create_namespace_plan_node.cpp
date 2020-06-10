@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "common/json.h"
 #include "parser/parser_defs.h"
 
 namespace terrier::planner {
@@ -38,5 +39,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateNamespacePlanNode
   namespace_name_ = j.at("namespace_name").get<std::string>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(CreateNamespacePlanNode);
 
 }  // namespace terrier::planner
