@@ -156,6 +156,12 @@ class EXPORT Timestamp {
   Timestamp() = default;
 
   /**
+   * Convert this timestamp instance into a date instance.
+   * @return The date instance representing this timestamp.
+   */
+  Date ConvertToDate() const noexcept;
+
+  /**
    * Compute the hash value of this timestamp instance.
    * @param seed The value to seed the hash with.
    * @return The hash value for this timestamp instance.
@@ -253,5 +259,8 @@ class EXPORT Timestamp {
 
 /** Converts the provided date into a timestamp. */
 inline Timestamp Date::ConvertToTimestamp() const noexcept { return Timestamp(value_ * K_US_PER_DAY); }
+
+/** Converts the provided timestamp into a date. */
+inline Date Timestamp::ConvertToDate() const noexcept { return Date(value_ / K_US_PER_DAY); }
 
 }  // namespace terrier::execution::sql

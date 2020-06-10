@@ -1,5 +1,4 @@
 #include "execution/sql/runtime_types.h"
-#include <date/date.h>
 
 #include <string>
 
@@ -73,11 +72,7 @@ void Date::ExtractComponents(int32_t *year, uint32_t *month, uint32_t *day) {
 
 uint32_t Date::ToNative() const noexcept { return value_; }
 
-Date Date::FromNative(Date::NativeType val) {
-  Date d{};
-  d.value_ = val;
-  return d;
-}
+Date Date::FromNative(Date::NativeType val) { return Date {val}; }
 
 Date Date::FromString(const std::string &str) {
   auto result = terrier::util::TimeConvertor::ParseDate(str);
@@ -102,17 +97,11 @@ std::string Timestamp::ToString() const {
 
 uint64_t Timestamp::ToNative() const noexcept { return value_; }
 
-Timestamp Timestamp::FromNative(Timestamp::NativeType val) {
-  Timestamp ts;
-  ts.value_ = val;
-  return ts;
-}
+Timestamp Timestamp::FromNative(Timestamp::NativeType val) { return Timestamp{val}; }
 
 Timestamp Timestamp::FromHMSu(int32_t year, uint32_t month, uint32_t day, uint8_t hour, uint8_t minute, uint8_t sec,
                               uint64_t usec) {
-  Timestamp ts;
-  ts.value_ = !terrier::util::TimeConvertor::TimestampFromHMSu(year, month, day, hour, minute, sec, usec);
-  return ts;
+  return Timestamp{!terrier::util::TimeConvertor::TimestampFromHMSu(year, month, day, hour, minute, sec, usec)};
 }
 
 }  // namespace terrier::execution::sql
