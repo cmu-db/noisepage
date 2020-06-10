@@ -8,7 +8,6 @@
 #include "catalog/catalog_defs.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
-#include "storage/storage_defs.h"
 #include "test_util/tpcc/database.h"
 #include "test_util/tpcc/tpcc_defs.h"
 #include "test_util/tpcc/util.h"

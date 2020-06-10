@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t ExportExternalFilePlanNode::Hash() const {
@@ -69,4 +71,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ExportExternalFilePlanN
   format_ = j.at("format").get<parser::ExternalFileFormat>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ExportExternalFilePlanNode);
+
 }  // namespace terrier::planner

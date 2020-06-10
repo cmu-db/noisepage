@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_node_defs.h"
 
@@ -221,7 +221,7 @@ class AbstractPlanNode {
   }
 };
 
-DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(AbstractPlanNode);
 
 /**
  * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions

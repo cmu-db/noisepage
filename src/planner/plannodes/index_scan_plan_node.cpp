@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 
 namespace terrier::planner {
@@ -43,5 +44,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> IndexScanPlanNode::From
   column_oids_ = j.at("column_oids").get<std::vector<catalog::col_oid_t>>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(IndexScanPlanNode);
 
 }  // namespace terrier::planner

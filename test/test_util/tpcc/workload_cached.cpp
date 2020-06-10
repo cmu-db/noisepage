@@ -67,7 +67,7 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
 
       auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
       binder::BindNodeVisitor visitor(common::ManagedPointer(accessor.get()), db_oid_);
-      visitor.BindNameToNode(common::ManagedPointer<parser::ParseResult>(parse_result), nullptr);
+      visitor.BindNameToNode(common::ManagedPointer<parser::ParseResult>(parse_result), nullptr, nullptr);
 
       // generate plan node
       std::unique_ptr<planner::AbstractPlanNode> plan_node = trafficcop::TrafficCopUtil::Optimize(

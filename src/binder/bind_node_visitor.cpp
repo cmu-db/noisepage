@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "binder/binder_sherpa.h"
+#include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
@@ -47,9 +48,10 @@ BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAc
 
 void BindNodeVisitor::BindNameToNode(
     common::ManagedPointer<parser::ParseResult> parse_result,
-    const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) {
+    const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
+    const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types) {
   TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
-  sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters);
+  sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters, desired_parameter_types);
   TERRIER_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
   sherpa_->GetParseResult()->GetStatement(0)->Accept(
       common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -405,7 +407,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
           if (is_cast_expression) {
             if (ret_type != expected_ret_type) {
-              sherpa_->ReportFailure("BindNodeVisitor tried to cast, but cast result type does not match the schema.");
+              BinderUtil::ReportFailure(
+                  "BindNodeVisitor tried to cast, but cast result type does not match the schema.");
             }
             auto child = ins_val->GetChild(0)->Copy();
             ins_val = common::ManagedPointer(child);
@@ -509,7 +512,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node
     if (is_cast_expression) {
       auto child = expr->GetChild(0)->Copy();
       if (expr->GetReturnValueType() != expected_ret_type) {
-        sherpa_->ReportFailure("BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
+        BinderUtil::ReportFailure("BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
       }
       sherpa_->SetDesiredType(common::ManagedPointer(child), expr->GetReturnValueType());
       update->ResetValue(common::ManagedPointer(child));
@@ -607,7 +610,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConstantValueExpressi
   SqlNodeVisitor::Visit(expr);
 
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
-  sherpa_->CheckAndTryPromoteType(expr, desired_type);
+  BinderUtil::CheckAndTryPromoteType(expr, desired_type);
   expr->DeriveReturnValueType();
 }
 
@@ -656,9 +659,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpress
       common::ManagedPointer(&((*(sherpa_->GetParameters()))[expr->GetValueIdx()]));
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
-  if (desired_type != type::TypeId::INVALID) sherpa_->CheckAndTryPromoteType(param, desired_type);
+  if (desired_type != type::TypeId::INVALID) BinderUtil::CheckAndTryPromoteType(param, desired_type);
 
   expr->return_value_type_ = param->GetReturnValueType();
+  sherpa_->SetDesiredParameterType(expr->GetValueIdx(), param->GetReturnValueType());
 }
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::StarExpression> expr) {

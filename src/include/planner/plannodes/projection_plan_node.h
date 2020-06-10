@@ -71,6 +71,6 @@ class ProjectionPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 };
 
-DEFINE_JSON_DECLARATIONS(ProjectionPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(ProjectionPlanNode);
 
 }  // namespace terrier::planner

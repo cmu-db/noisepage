@@ -1,10 +1,8 @@
-
 #include "binder/binder_sherpa.h"
 
-#include <string>
 #include <unordered_map>
-#include <vector>
 
+#include "binder/binder_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "util/time_util.h"
 
@@ -71,124 +69,6 @@ void BinderSherpa::CheckDesiredType(const common::ManagedPointer<parser::Abstrac
     const auto desired UNUSED_ATTRIBUTE = it->second;
     const auto current UNUSED_ATTRIBUTE = expr->GetReturnValueType();
     throw BINDER_EXCEPTION("BinderSherpa expected expr to have a different type.");
-  }
-}
-
-void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                          const type::TypeId desired_type) const {
-  const auto curr_type = value->GetReturnValueType();
-
-  // Check if types are mismatched, and convert them if possible.
-  if (curr_type != desired_type) {
-    switch (curr_type) {
-      // NULL conversion.
-      case type::TypeId::INVALID: {
-        value->SetValue(desired_type, execution::sql::Val(true));
-        break;
-      }
-
-        // INTEGER casting (upwards and downwards).
-      case type::TypeId::TINYINT: {
-        const auto int_val = value->Peek<int8_t>();
-        TryCastNumericAll(value, int_val, desired_type);
-        break;
-      }
-      case type::TypeId::SMALLINT: {
-        const auto int_val = value->Peek<int16_t>();
-        TryCastNumericAll(value, int_val, desired_type);
-        break;
-      }
-      case type::TypeId::INTEGER: {
-        const auto int_val = value->Peek<int32_t>();
-        TryCastNumericAll(value, int_val, desired_type);
-        break;
-      }
-      case type::TypeId::BIGINT: {
-        const auto int_val = value->Peek<int64_t>();
-        TryCastNumericAll(value, int_val, desired_type);
-        break;
-      }
-
-        // DATE and TIMESTAMP conversion. String to numeric type conversion.
-      case type::TypeId::VARCHAR: {
-        const auto str_view = value->Peek<std::string_view>();
-
-        // TODO(WAN): A bit stupid to take the string view back into a string.
-        switch (desired_type) {
-          case type::TypeId::DATE: {
-            auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
-            if (!parsed_date.first) {
-              ReportFailure("Binder conversion from VARCHAR to DATE failed.");
-            }
-            value->SetValue(
-                type::TypeId::DATE,
-                execution::sql::DateVal(execution::sql::Date::FromNative(static_cast<uint32_t>(parsed_date.second))));
-            break;
-          }
-          case type::TypeId::TIMESTAMP: {
-            auto parsed_timestamp = util::TimeConvertor::ParseTimestamp(std::string(str_view));
-            if (!parsed_timestamp.first) {
-              ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
-            }
-            value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(
-                                                         static_cast<uint64_t>(parsed_timestamp.second))));
-            break;
-          }
-          case type::TypeId::TINYINT: {
-            const auto int_val = std::stol(std::string(str_view));
-            if (!IsRepresentable<int8_t>(int_val)) {
-              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
-            }
-            value->SetValue(type::TypeId::TINYINT, execution::sql::Integer(int_val));
-            break;
-          }
-          case type::TypeId::SMALLINT: {
-            const auto int_val = std::stol(std::string(str_view));
-            if (!IsRepresentable<int16_t>(int_val)) {
-              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
-            }
-            value->SetValue(type::TypeId::SMALLINT, execution::sql::Integer(int_val));
-            break;
-          }
-          case type::TypeId::INTEGER: {
-            const auto int_val = std::stol(std::string(str_view));
-            if (!IsRepresentable<int32_t>(int_val)) {
-              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
-            }
-            value->SetValue(type::TypeId::INTEGER, execution::sql::Integer(int_val));
-            break;
-          }
-          case type::TypeId::BIGINT: {
-            const auto int_val = std::stol(std::string(str_view));
-            if (!IsRepresentable<int64_t>(int_val)) {
-              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
-            }
-            value->SetValue(type::TypeId::BIGINT, execution::sql::Integer(int_val));
-            break;
-          }
-          case type::TypeId::DECIMAL: {
-            {
-              double double_val;
-              try {
-                double_val = std::stod(std::string(str_view));
-              } catch (std::exception &e) {
-                throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
-              }
-              value->SetValue(type::TypeId::DECIMAL, execution::sql::Real(double_val));
-              break;
-            }
-          }
-          default:
-            throw BINDER_EXCEPTION("BinderSherpa VARCHAR cannot be cast to desired type.");
-        }
-
-        break;
-      }
-
-      default: {
-        ReportFailure("Binder conversion of expression type failed.");
-      }
-    }
   }
 }
 

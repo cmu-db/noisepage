@@ -253,6 +253,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   uint64_t index_size_;
 };
 
-DEFINE_JSON_DECLARATIONS(IndexScanPlanNode)
+DEFINE_JSON_HEADER_DECLARATIONS(IndexScanPlanNode);
 
 }  // namespace terrier::planner
