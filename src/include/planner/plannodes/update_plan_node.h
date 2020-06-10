@@ -242,6 +242,6 @@ class UpdatePlanNode : public AbstractPlanNode {
   std::vector<SetClause> sets_;
 };
 
-DEFINE_JSON_DECLARATIONS(UpdatePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(UpdatePlanNode);
 
 }  // namespace terrier::planner

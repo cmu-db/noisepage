@@ -1,4 +1,7 @@
 #include "storage/write_ahead_log/log_manager.h"
+
+#include "common/dedicated_thread_registry.h"
+#include "storage/write_ahead_log/disk_log_consumer_task.h"
 #include "storage/write_ahead_log/log_serializer_task.h"
 #include "transaction/transaction_context.h"
 

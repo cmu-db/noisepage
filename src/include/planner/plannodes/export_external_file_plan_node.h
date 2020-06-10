@@ -187,6 +187,6 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
   char escape_;
 };
 
-DEFINE_JSON_DECLARATIONS(ExportExternalFilePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(ExportExternalFilePlanNode);
 
 }  // namespace terrier::planner

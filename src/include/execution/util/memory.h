@@ -5,6 +5,8 @@
 #include <cstring>
 
 #include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "execution/sql/memory_tracker.h"
 #include "execution/util/execution_common.h"
 
 // Needed for some Darwin machine that don't have MAP_ANONYMOUS
@@ -42,8 +44,10 @@ inline void *MallocHuge() {
 }
 
 template <typename T>
-inline T *MallocHugeArray(std::size_t num_elems) {
+inline T *TrackMallocHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker, std::size_t num_elems) {
   std::size_t size = sizeof(T) * num_elems;
+  if (tracker != nullptr) tracker->Increment(size);
+
   void *ptr = MallocHuge(size);
   return reinterpret_cast<T *>(ptr);
 }
@@ -51,8 +55,11 @@ inline T *MallocHugeArray(std::size_t num_elems) {
 inline void FreeHuge(void *ptr, std::size_t size) { munmap(ptr, size); }
 
 template <typename T>
-inline void FreeHugeArray(T *ptr, std::size_t num_elems) {
-  FreeHuge(static_cast<void *>(ptr), sizeof(T) * num_elems);
+inline void TrackFreeHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker, T *ptr, std::size_t num_elems) {
+  std::size_t size = sizeof(T) * num_elems;
+
+  if (tracker != nullptr) tracker->Decrement(size);
+  FreeHuge(static_cast<void *>(ptr), size);
 }
 
 inline void *MallocAligned(const std::size_t size, const std::size_t alignment) {

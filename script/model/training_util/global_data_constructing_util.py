@@ -1,5 +1,7 @@
 import logging
+import copy
 import glob
+import math
 import os
 import numpy as np
 import tqdm
@@ -204,7 +206,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     :param model_results_path: file path to log the prediction results
     """
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
-    io_util.create_csv_file(prediction_path, ["Pipeline", "Actual Us", "Predicted Us", "", "Ratio Error"])
+    io_util.create_csv_file(prediction_path, ["Pipeline", "Actual Us", "Predicted Us", "Actual Mem", "Predicted Mem", "", "Ratio Error"])
 
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}
@@ -222,16 +224,41 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
             key = (opunit, x.tobytes())
             if key not in prediction_cache:
                 y_pred = opunit_model.predict(x)
-                # subtract scan from certain double-counted opunits
-                if opunit in data_info.SCAN_SUBSTRACT_UNITS:
-                    scan_y_pred = mini_model_map[OpUnit.SEQ_SCAN].predict(x)
-                    y_pred -= scan_y_pred
                 y_pred = np.clip(y_pred, 0, None)
                 prediction_cache[key] = y_pred
             else:
                 y_pred = prediction_cache[key]
             logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                                  x[0], y_pred[0, -1]))
+
+            if opunit in data_info.MEM_ADJUST_OPUNITS:
+                # Compute the number of "slots" (based on row feature or cardinality feature
+                num_tuple = opunit_feature[1][data_info.TUPLE_NUM_INDEX]
+                if opunit == OpUnit.AGG_BUILD:
+                    num_tuple = opunit_feature[1][data_info.CARDINALITY_INDEX]
+
+                # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
+                # that contains the first pow2 larger than num_tuple entries
+                pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
+                buffer_size = pow_high * data_info.POINTER_SIZE
+                if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
+                    # For AGG_BUILD, if slots <= AggregationHashTable::K_DEFAULT_INITIAL_TABLE_SIZE
+                    # the buffer is not recorded as part of the pipeline
+                    buffer_size = 0
+
+                pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
+                if pred_mem <= buffer_size:
+                    logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
+                            .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+
+                # Poorly encapsulated, but memory scaling factor is located as the 2nd last of feature
+                # slightly inaccurate since ignores load factors for hash tables
+                adj_mem = (pred_mem - buffer_size) * opunit_feature[1][-2] + buffer_size
+
+                # Don't modify prediction cache
+                y_pred = copy.deepcopy(y_pred)
+                y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
+
             pipeline_y_pred += y_pred[0]
 
         # Record the predicted
@@ -241,6 +268,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
 
         io_util.write_csv_result(prediction_path, data.name + " " + str(x[0][-1]),
-                                 [y[-1], pipeline_y_pred[-1], "", ratio_error])
+                                 [y[-1], pipeline_y_pred[-1], y[-2], pipeline_y_pred[-2], ""] + list(ratio_error))
 
         logging.debug("")

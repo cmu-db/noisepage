@@ -3,7 +3,9 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
+#include "common/json.h"
 
 namespace terrier::planner {
 

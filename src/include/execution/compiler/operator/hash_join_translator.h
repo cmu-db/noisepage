@@ -47,6 +47,11 @@ class HashJoinLeftTranslator : public OperatorTranslator {
 
   const planner::AbstractPlanNode *Op() override { return op_; }
 
+  /**
+   * @returns struct declaration
+   */
+  ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
  private:
   friend class HashJoinRightTranslator;
 
@@ -70,6 +75,9 @@ class HashJoinLeftTranslator : public OperatorTranslator {
 
   // The hash join plan node
   const planner::HashJoinPlanNode *op_;
+
+  // Struct Decl
+  ast::StructDecl *struct_decl_;
 
   // Structs, functions, and locals
   static constexpr const char *LEFT_ATTR_NAME = "left_attr";

@@ -5,6 +5,7 @@
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
 #include "catalog/catalog.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/macros.h"
 #include "common/scoped_timer.h"
 #include "common/worker_pool.h"
@@ -41,8 +42,8 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
-  const std::chrono::microseconds log_serialization_interval_{5};
-  const std::chrono::milliseconds log_persist_interval_{10};
+  const std::chrono::microseconds log_serialization_interval_{100};
+  const std::chrono::microseconds log_persist_interval_{100};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
   /**
@@ -61,8 +62,8 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   storage::GarbageCollector *gc_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
-  const std::chrono::milliseconds metrics_period_{100};
+  const std::chrono::microseconds gc_period_{1000};
+  const std::chrono::microseconds metrics_period_{10000};
 };
 
 // NOLINTNEXTLINE
