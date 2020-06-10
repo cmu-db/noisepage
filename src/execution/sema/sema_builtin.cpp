@@ -2579,7 +2579,15 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::CteScanGetTableOid:
     case ast::Builtin::CteScanGetInsertTempTablePR:
     case ast::Builtin::CteScanTableInsert:
-    case ast::Builtin::CteScanFree: {
+    case ast::Builtin::CteScanFree:
+    case ast::Builtin::IterCteScanInit:
+    case ast::Builtin::IterCteScanGetResult:
+    case ast::Builtin::IterCteScanGetReadTable:
+    case ast::Builtin::IterCteScanGetWriteTable:
+    case ast::Builtin::IterCteScanGetReadTableOid:
+    case ast::Builtin::IterCteScanGetInsertTempTablePR:
+    case ast::Builtin::IterCteScanTableInsert:
+    case ast::Builtin::IterCteScanFree: {
       CheckBuiltinCteScanCall(call, builtin);
       break;
     }

@@ -57,6 +57,8 @@ static-agg.tpl,true,49995000
 distinct-agg.tpl,true,45
 delete.tpl,true,0
 insert.tpl,true,11
+cte_scan_temp_table_insert.tpl,true,11
+iter_cte_scan_temp_table_insert.tpl,true,0
 update.tpl,true,11
 join.tpl,true,0
 #parallel-join.tpl,true,0 <Parallel scan not yet supported>

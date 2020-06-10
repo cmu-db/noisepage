@@ -1,0 +1,35 @@
+// Test that Accumulate() returns false on empty
+// Returns the number of tuples returned (should be 0)
+
+fun main(exec_ctx: *ExecutionContext) -> int64 {
+  // Initialize CTE Scan Iterator
+
+  var col_oids: [1]uint32
+  col_oids[0] = 1
+  var col_types: [1]uint32
+  col_types[0] = 4
+
+  var cte_scan: IterCteScanIterator
+  @iterCteScanInit(&cte_scan, exec_ctx, col_types)
+
+  var index_iter: IndexIterator
+  @indexIteratorInitBind(&index_iter, exec_ctx, 1, "test_1", "index_1", col_oids)
+  var lo_pr = @indexIteratorGetLoPR(&index_iter)
+  var hi_pr = @indexIteratorGetHiPR(&index_iter)
+  @prSetInt(lo_pr, 0, @intToSql(1))
+  @prSetInt(hi_pr, 0, @intToSql(20))
+
+  for (@indexIteratorScanAscending(&index_iter, 0, 0); @indexIteratorAdvance(&index_iter); ) {
+    var cur_pr = @indexIteratorGetPR(&index_iter)
+    var cur_val = @prGetInt(cur_pr, 0)
+
+    var insert_pr = @iterCteScanGetInsertTempTablePR(&cte_scan)
+    @prSetInt(insert_pr, 0, cur_val)
+    @iterCteScanTableInsert(&cte_scan)
+  }
+  @indexIteratorFree(&index_iter)
+
+  @iterCteScanFree(&cte_scan)
+  var ret = 0
+  return ret
+}

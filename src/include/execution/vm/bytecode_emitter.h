@@ -413,7 +413,7 @@ class BytecodeEmitter {
    * @param col_oids column oids
    * @param num_oids length of the array
    */
-  void CteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
+  void EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
 
   // -------------------------------------------
   // Index Calls
