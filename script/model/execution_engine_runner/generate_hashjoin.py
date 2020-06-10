@@ -115,7 +115,7 @@ def generate_probe_side(col_num, row_num, cardinality, matched_num):
     # Build the join table
     print("  @joinHTBuild(jht)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"HASHJOIN_ITERATE, {}, {}, {}\"))".format(
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"HASHJOIN_PROBE, {}, {}, {}\"))".format(
         row_num, col_num * 4, matched_num))
     print("}")
 
