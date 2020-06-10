@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "nlohmann/json.hpp"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"

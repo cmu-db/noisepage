@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -227,5 +228,7 @@ JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) 
   auto non_owned_exprs = plan_node->FromJson(json);
   return JSONDeserializeNodeIntermediate{std::move(plan_node), std::move(non_owned_exprs)};
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(AbstractPlanNode);
 
 }  // namespace terrier::planner
