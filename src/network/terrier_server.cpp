@@ -1,5 +1,6 @@
 #include "network/terrier_server.h"
 
+#include <unistd.h>
 #include <fstream>
 #include <memory>
 
@@ -74,7 +75,7 @@ void TerrierServer::RunServer() {
       this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.Get()),
       connection_handle_factory_, thread_registry_);
 
-  NETWORK_LOG_INFO("Listening on port {0}", port_);
+  NETWORK_LOG_INFO("Listening on port {0} [PID={1}]", port_, ::getpid());
 
   // Set the running_ flag for any waiting threads
   {
