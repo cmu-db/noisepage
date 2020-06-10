@@ -180,5 +180,5 @@ class AggregatePlanNode : public AbstractPlanNode {
   std::vector<AggregateTerm> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
 };
-DEFINE_JSON_DECLARATIONS(AggregatePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(AggregatePlanNode);
 }  // namespace terrier::planner

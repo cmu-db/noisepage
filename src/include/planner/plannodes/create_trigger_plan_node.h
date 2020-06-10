@@ -318,6 +318,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   int16_t trigger_type_ = 0;
 };
 
-DEFINE_JSON_DECLARATIONS(CreateTriggerPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(CreateTriggerPlanNode);
 
 }  // namespace terrier::planner

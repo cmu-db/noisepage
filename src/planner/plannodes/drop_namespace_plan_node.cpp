@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t DropNamespacePlanNode::Hash() const {
@@ -36,5 +38,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropNamespacePlanNode::
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(DropNamespacePlanNode);
 
 }  // namespace terrier::planner

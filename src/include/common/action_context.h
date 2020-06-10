@@ -13,7 +13,7 @@ namespace terrier::common {
  *
  * <b>Important: action_id_t != timestamp_t</b>
  */
-STRONG_TYPEDEF(action_id_t, uint64_t);
+STRONG_TYPEDEF_HEADER(action_id_t, uint64_t);
 
 /**
  * @enum common::ActionState
