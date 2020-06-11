@@ -1732,7 +1732,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   OP(StorageInterfaceIndexCreate) : {
   auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
   auto index_oid = READ_UIMM4();
-  OpStorageInterfaceIndexDelete(storage_interface, index_oid);
+  OpStorageInterfaceIndexCreate(storage_interface, index_oid);
   DISPATCH_NEXT();
 }
 

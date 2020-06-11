@@ -21,6 +21,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   SEQ_SCAN,
   IDX_SCAN,
 
+  CREATE_INDEX,
   INSERT,
   UPDATE,
   DELETE,

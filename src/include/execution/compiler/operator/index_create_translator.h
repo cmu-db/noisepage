@@ -7,7 +7,7 @@
 namespace terrier::execution::compiler {
 
 /**
- * Index Insert Translator
+ * Create Index Translator
  */
 class CreateIndexTranslator : public OperatorTranslator {
  public:
@@ -40,7 +40,6 @@ class CreateIndexTranslator : public OperatorTranslator {
 
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Inserts don't output anything"); };
   const planner::AbstractPlanNode *Op() override { return op_; }
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
  private:
   // Declare the index_inserter

@@ -1,4 +1,4 @@
-#include "execution/compiler/operator/create_index_translator.h"
+#include "execution/compiler/operator/index_create_translator.h"
 
 #include <utility>
 #include <vector>
@@ -9,7 +9,7 @@
 namespace terrier::execution::compiler {
 // TODO(Wuwen): not sure what is correct for ExecutionOperatingUnitType
 CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndexPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::INSERT),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CREATE_INDEX),
       op_(op),
       index_inserter_(codegen->NewIdentifier("index_inserter")),
       col_oids_(codegen->NewIdentifier("col_oids")),{}
@@ -59,8 +59,4 @@ void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
   Abort(builder);
   builder->FinishBlockStmt();
 }
-
-
-
-
 }  // namespace terrier::execution::compiler
