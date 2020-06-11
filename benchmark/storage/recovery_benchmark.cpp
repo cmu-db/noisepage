@@ -159,7 +159,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Create database, namespace, and table
     auto *txn = txn_manager->BeginTransaction();
     auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), db_name, true);
-    auto catalog_accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto catalog_accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto namespace_oid = catalog_accessor->CreateNamespace(namespace_name);
 
     // Create random table
