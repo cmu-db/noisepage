@@ -16,7 +16,7 @@ StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::ta
       exec_ctx_(exec_ctx),
       col_oids_(col_oids, col_oids + num_oids),
       need_indexes_(need_indexes),
-      pri_(table_->InitializerForProjectedRow(col_oids_)) {
+      pri_(num_oids > 0 ? table_->InitializerForProjectedRow(col_oids_) : storage::ProjectedRowInitializer()) {
   // Initialize the index projected row if needed.
   if (need_indexes_) {
     // Get index pr size
