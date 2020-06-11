@@ -75,4 +75,9 @@ void CreateIndexTranslator::SetOids(FunctionBuilder *builder) {
     builder->Append(codegen_->Assign(lhs, rhs));
   }
 }
+
+ast::Expr *CreateIndexTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
+  TERRIER_ASSERT(child_idx == 0, "Insert plan can only have one child");
+  return child_translator_->GetOutput(attr_idx);
+}
 }  // namespace terrier::execution::compiler
