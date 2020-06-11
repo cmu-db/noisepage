@@ -12,6 +12,7 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
     : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CREATE_INDEX),
       op_(op),
       index_inserter_(codegen->NewIdentifier("index_inserter")),
+      table_schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
       all_oids_(AllColOids(table_schema_)),
       col_oids_(codegen->NewIdentifier("col_oids")),{}
 

@@ -54,6 +54,8 @@ class CreateIndexTranslator : public OperatorTranslator {
   const planner::CreateIndexPlanNode *op_;
   ast::Identifier index_inserter_;
   ast::Identifier col_oids_;
+  const catalog::Schema &table_schema_;
+  std::vector<catalog::col_oid_t> all_oids_;
 
 };
 
