@@ -427,6 +427,7 @@ namespace terrier::execution::vm {
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceIndexCreate, OperandType::Local, OperandType::UImm4)                                              \
   F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \
   /* Trig functions */                                                                                                \

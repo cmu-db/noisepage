@@ -2,7 +2,7 @@
 #include <vector>
 #include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/insert_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 
 namespace terrier::execution::compiler {
 

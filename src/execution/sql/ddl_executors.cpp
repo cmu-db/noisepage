@@ -171,7 +171,7 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
 
     // Communicate to readers that the index is live
 //    accessor->SetIndexLive(index_oid);
-  }
+  //}
   return true;
 }
 }  // namespace terrier::execution::sql

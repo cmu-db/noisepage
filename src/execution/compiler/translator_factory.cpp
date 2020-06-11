@@ -15,6 +15,7 @@
 #include "execution/compiler/expression/star_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
+#include "execution/compiler/operator/create_index_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"

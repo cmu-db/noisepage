@@ -1,5 +1,7 @@
 #include "execution/sql/storage_interface.h"
 
+#include <storage/index/index_builder.h>
+
 #include <algorithm>
 #include <vector>
 
@@ -80,13 +82,15 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 
-void StorageInterface::IndexBulkInsert(catalog::index_oid_t index_oid) {
+void StorageInterface::IndexCreate(catalog::index_oid_t index_oid) {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+
   const auto &schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
-  index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), populate_txn);
+  index_builder.SetSqlTableAndTransactionContext(table_, exec_ctx_->GetTxn());
+  index_builder.BulkInsert(index);
 }
 
 }  // namespace terrier::execution::sql

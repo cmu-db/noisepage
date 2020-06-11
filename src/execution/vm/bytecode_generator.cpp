@@ -1991,6 +1991,12 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       break;
     }
 
+    case ast::Builtin::IndexCreate: {
+      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      Emitter()->EmitStorageInterfaceIndexCreate(Bytecode::StorageInterfaceIndexCreate, storage_interface, index_oid);
+      break;
+    }
+
     case ast::Builtin::StorageInterfaceFree: {
       Emitter()->Emit(Bytecode::StorageInterfaceFree, storage_interface);
       break;
@@ -2319,6 +2325,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
+    case ast::Builtin::IndexCreate:
     case ast::Builtin::StorageInterfaceFree: {
       VisitBuiltinStorageInterfaceCall(call, builtin);
       break;

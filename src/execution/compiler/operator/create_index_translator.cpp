@@ -17,7 +17,7 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
 void CreateIndexTranslator::Produce(FunctionBuilder *builder) {
   DeclareIndexInserter(builder);
 
-
+  GenCreateIndex(builder);
 
   GenIndexInserterFree(builder);
 }
@@ -29,7 +29,7 @@ void CreateIndexTranslator::Abort(FunctionBuilder *builder) {
 }
 
 void CreateIndexTranslator::Consume(FunctionBuilder *builder) {
-  GenCreateIndex(builder);
+
 }
 
 void CreateIndexTranslator::DeclareIndexInserter(terrier::execution::compiler::FunctionBuilder *builder) {
@@ -50,7 +50,7 @@ void CreateIndexTranslator::GenIndexInserterFree(terrier::execution::compiler::F
 }
 
 void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
-  auto index_oid = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), op_->GetSchema());
+  uint32_t index_oid = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), op_->GetSchema());
   // TODO(Wuwen): check if index_oid is valid
   std::vector<ast::Expr *> build_args{codegen_->PointerTo(index_inserter_), index_oid};
   auto index_insert_call = codegen_->BuiltinCall(ast::Builtin::IndexBuild, std::move(build_args));
