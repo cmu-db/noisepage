@@ -1,14 +1,10 @@
 #pragma once
 
 #include <chrono>  // NOLINT
-#include <date/date.h>
 #include <string>
+#include <sstream>
 #include <utility>
 #include "type/type_id.h"
-
-namespace date {
-class year_month_day;
-}
 
 namespace terrier::util {
 
@@ -24,10 +20,10 @@ class TimeConvertor {
 
  public:
   /** Convert @p ymd into the internal date representation. */
-  static type::date_t DateFromYMD(date::year_month_day ymd);
+  static type::date_t DateFromYMD(int32_t year, uint32_t month, uint32_t day);
 
   /** Convert @p date into a year_month_day object. */
-  static date::year_month_day YMDFromDate(type::date_t date);
+  static void YMDFromDate(type::date_t date, int32_t *year, uint32_t *month, uint32_t *day);
 
   /** Instantiate a timestamp with the given parameters. */
   static type::timestamp_t TimestampFromHMSu(int32_t year, uint32_t month, uint32_t day, uint8_t hour, uint8_t minute,
@@ -91,7 +87,7 @@ class TimeConvertor {
   }
 
   /** PostgreSQL functino for deserializing 32-bit Julian days to a date. */
-  static date::year_month_day PostgresJ2Date(uint32_t julian_days);
+  static void PostgresJ2Date(uint32_t julian_days, int32_t *year, uint32_t *month, uint32_t *day);
 
  private:
   static constexpr uint64_t MICROSECONDS_PER_SECOND = 1000 * 1000;

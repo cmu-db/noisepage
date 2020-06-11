@@ -19,13 +19,6 @@ uint32_t BuildJulianDate(int32_t year, uint32_t month, uint32_t day) {
   return terrier::util::TimeConvertor::PostgresDate2J(year, month, day);
 }
 
-uint32_t BuildJulianDate(date::year_month_day ymd) {
-  auto year = static_cast<int32_t>(ymd.year());
-  auto month = static_cast<uint32_t>(ymd.month());
-  auto day = static_cast<uint32_t>(ymd.day());
-  return BuildJulianDate(year, month, day);
-}
-
 void SplitJulianDate(uint32_t julian_date, int32_t *year, uint32_t *month, uint32_t *day) {
   auto ymd = terrier::util::TimeConvertor::PostgresJ2Date(julian_date);
 
