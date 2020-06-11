@@ -1,4 +1,5 @@
 #include "common/stat_registry.h"
+#include "common/stat_registry_test.h"
 
 #include <algorithm>
 #include <functional>
@@ -9,6 +10,7 @@
 
 #include "common/json.h"
 #include "common/macros.h"
+#include "common/performance_counter_body.h"
 #include "gtest/gtest.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
@@ -17,30 +19,9 @@
 
 namespace terrier {
 
-// clang-format off
-/**
- * A simple dummy cache object with four differently typed attributes:
- *   uint64_t NumInsert
- *   uint32_t NumHit
- *   uint16_t NumFailure
- *   uint8_t NumUser
- */
-#define CACHE_MEMBERS(f) \
-  f(uint64_t, NumInsert) \
-  f(uint32_t, NumHit) \
-  f(uint16_t, NumFailure) \
-  f(uint8_t, NumUser)
-// clang-format on
+DEFINE_PERFORMANCE_CLASS_BODY(CacheCounter, CACHE_MEMBERS);
 
-DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
-
-/**
- * A simple dummy network object
- *   uint64_t NumRequest
- */
-#define NETWORK_MEMBERS(f) f(uint64_t, NumRequest)
-
-DEFINE_PERFORMANCE_CLASS(NetworkCounter, NETWORK_MEMBERS)
+DEFINE_PERFORMANCE_CLASS_BODY(NetworkCounter, NETWORK_MEMBERS);
 
 // Test being able to register/deregister a performance counter to the registry
 // NOLINTNEXTLINE

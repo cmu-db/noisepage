@@ -100,5 +100,7 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    */
   std::string namespace_name_;
 };
-DEFINE_JSON_DECLARATIONS(CreateNamespacePlanNode);
+
+DEFINE_JSON_HEADER_DECLARATIONS(CreateNamespacePlanNode);
+
 }  // namespace terrier::planner

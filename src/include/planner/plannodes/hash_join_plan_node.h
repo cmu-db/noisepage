@@ -131,6 +131,6 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_hash_keys_;
 };
 
-DEFINE_JSON_DECLARATIONS(HashJoinPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(HashJoinPlanNode);
 
 }  // namespace terrier::planner

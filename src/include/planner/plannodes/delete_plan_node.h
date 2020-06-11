@@ -155,6 +155,6 @@ class DeletePlanNode : public AbstractPlanNode {
   catalog::table_oid_t table_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(DeletePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DeletePlanNode);
 
 }  // namespace terrier::planner

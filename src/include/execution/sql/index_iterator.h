@@ -7,7 +7,6 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/index/index.h"
-#include "storage/storage_defs.h"
 
 namespace terrier::execution::sql {
 /**

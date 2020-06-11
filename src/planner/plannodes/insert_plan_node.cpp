@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "common/json.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/sql_table.h"
 
@@ -118,5 +119,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> InsertPlanNode::FromJso
   parameter_info_ = j.at("parameter_info").get<std::vector<catalog::col_oid_t>>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(InsertPlanNode);
 
 }  // namespace terrier::planner
