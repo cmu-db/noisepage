@@ -2176,7 +2176,7 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
         ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::IterCteScanIterator)->PointerTo());
         return;
       }
-      call->SetType(GetBuiltinType(ast::BuiltinType::SqlTable)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
     } break;
     case ast::Builtin::IterCteScanGetReadTable: {
       if (!CheckArgCount(call, 1)) {
@@ -2213,6 +2213,18 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::TableOid));
+    } break;
+    case ast::Builtin::IterCteScanAccumulate: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // First argument must be a pointer to a IterCteSCanIterator
+      auto *cte_scan_type = call->Arguments()[0]->GetType()->GetPointeeType();
+      if (cte_scan_type == nullptr || !cte_scan_type->IsSpecificBuiltin(ast::BuiltinType::IterCteScanIterator)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::IterCteScanIterator)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
     } break;
     case ast::Builtin::IterCteScanTableInsert: {
       if (!CheckArgCount(call, 1)) {
@@ -2795,6 +2807,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IterCteScanGetReadTable:
     case ast::Builtin::IterCteScanGetWriteTable:
     case ast::Builtin::IterCteScanGetReadTableOid:
+    case ast::Builtin::IterCteScanAccumulate:
     case ast::Builtin::IterCteScanGetInsertTempTablePR:
     case ast::Builtin::IterCteScanTableInsert:
     case ast::Builtin::IterCteScanFree: {
