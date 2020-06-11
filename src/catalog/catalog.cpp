@@ -13,7 +13,9 @@
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_util.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::catalog {
 
