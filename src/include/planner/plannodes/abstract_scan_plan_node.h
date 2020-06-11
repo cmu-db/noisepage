@@ -63,15 +63,17 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      */
     ConcreteType &SetScanLimit(uint32_t limit) {
       scan_limit_ = limit;
+      scan_has_limit_ = true;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
     /**
-     * @param offset offset for where to limit from
+     * @param offset offset for the scan
      * @return builder object
      */
     ConcreteType &SetScanOffset(uint32_t offset) {
       scan_offset_ = offset;
+      scan_has_offset_ = true;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -97,11 +99,22 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     /**
      * Limit for scan
      */
-    uint32_t scan_limit_;
+    uint32_t scan_limit_{0};
+
+    /**
+     * Flag to indicate if scan_limit_ is set
+     */
+    bool scan_has_limit_{false};
+
     /**
      * Offset for scan
      */
-    uint32_t scan_offset_;
+    uint32_t scan_offset_{0};
+
+    /**
+     * Flag to indicate if scan_offset_ is set
+     */
+    bool scan_has_offset_{false};
   };
 
   /**
@@ -113,20 +126,24 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param database_oid database oid for scan
    * @param namespace_oid OID of the namespace
    * @param scan_limit limit of the scan if any
-   * @param scan_offset offset at which to limit from
+   * @param scan_has_limit flag to indicate if scan limit is set
+   * @param scan_offset offset for scan
+   * @param scan_has_offset flag to indicate if scan offset is set
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
                        common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                        catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, uint32_t scan_limit,
-                       uint32_t scan_offset)
+                       bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(predicate),
         is_for_update_(is_for_update),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         scan_limit_(scan_limit),
-        scan_offset_(scan_offset) {}
+        scan_has_limit_(scan_has_limit),
+        scan_offset_(scan_offset),
+        scan_has_offset_(scan_has_offset) {}
 
  public:
   /**
@@ -173,9 +190,19 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   uint32_t GetScanLimit() const { return scan_limit_; }
 
   /**
-   * @return offset for where to limit from
+   * @return flag to indicate if limit is set
+   */
+  bool GetScanHasLimit() const { return scan_has_limit_; }
+
+  /**
+   * @return offset for the scan
    */
   uint32_t GetScanOffset() const { return scan_offset_; }
+
+  /**
+   * @return flag to indicate if offset is set
+   */
+  bool GetScanHasOffset() const { return scan_has_offset_; }
 
  private:
   /**
@@ -201,11 +228,22 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * Limit for scan
    */
-  uint32_t scan_limit_;
+  uint32_t scan_limit_{0};
+
+  /**
+   * Flag to indicate if scan_limit_ is set
+   */
+  bool scan_has_limit_{false};
+
   /**
    * Offset for scan
    */
-  uint32_t scan_offset_ = 0;
+  uint32_t scan_offset_{0};
+
+  /**
+   * Flag to indicate if scan_offset_ is set
+   */
+  bool scan_has_offset_{false};
 };
 
 }  // namespace terrier::planner
