@@ -4,7 +4,6 @@
 #include <string>
 
 #include "execution/util/hash.h"
-#include "execution/util/string_heap.h"
 
 namespace terrier::execution::sql {
 

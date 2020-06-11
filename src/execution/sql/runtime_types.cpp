@@ -188,7 +188,7 @@ Date Date::FromString(const char *str, std::size_t len) {
   uint32_t year = 0, month = 0, day = 0;
 
 #define ERROR \
-  throw ConversionException(fmt::format("{} is not a valid date", std::string(str, len)));
+  throw CONVERSION_EXCEPTION(fmt::format("{} is not a valid date", std::string(str, len)));
 
   // Year
   while (true) {
@@ -233,12 +233,12 @@ Date Date::FromString(const char *str, std::size_t len) {
 Date Date::FromYMD(int32_t year, int32_t month, int32_t day) {
   // Check calendar date.
   if (!IsValidCalendarDate(year, month, day)) {
-    throw ConversionException(fmt::format("{}-{}-{} is not a valid date", year, month, day));
+    throw CONVERSION_EXCEPTION(fmt::format("{}-{}-{} is not a valid date", year, month, day));
   }
 
   // Check if date would overflow Julian calendar.
   if (!IsValidJulianDate(year, month, day)) {
-    throw ConversionException(fmt::format("{}-{}-{} is not a valid date", year, month, day));
+    throw CONVERSION_EXCEPTION(fmt::format("{}-{}-{} is not a valid date", year, month, day));
   }
 
   return Date(BuildJulianDate(year, month, day));
@@ -375,7 +375,83 @@ Timestamp Timestamp::FromNative(Timestamp::NativeType val) { return Timestamp{va
 
 // TODO(Deepayan): implement FromString
 Timestamp Timestamp::FromString(const char *str, std::size_t len) {
-  throw NotImplementedException("Converting strings to timestamps not implemented.");
+  const char *ptr = str, *limit = ptr + len;
+
+  // Trim leading and trailing whitespace
+  while (ptr != limit && std::isspace(*ptr)) ptr++;
+  while (ptr != limit && std::isspace(*(limit - 1))) limit--;
+
+  uint32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+
+#define ERROR \
+  throw CONVERSION_EXCEPTION(fmt::format("{} is not a valid date", std::string(str, len)));
+
+  // Year
+  while (true) {
+    if (ptr == limit) ERROR;
+    char c = *ptr++;
+    if (std::isdigit(c)) {
+      year = year * 10 + (c - '0');
+    } else if (c == '-') {
+      break;
+    } else {
+      ERROR;
+    }
+  }
+
+  // Month
+  while (true) {
+    if (ptr == limit) ERROR;
+    char c = *ptr++;
+    if (std::isdigit(c)) {
+      month = month * 10 + (c - '0');
+    } else if (c == '-') {
+      break;
+    } else {
+      ERROR;
+    }
+  }
+
+  // Day
+  while (true) {
+    if (ptr == limit) break;
+    char c = *ptr++;
+    if (std::isdigit(c)) {
+      day = day * 10 + (c - '0');
+    } else if (c = ' ' || c = 'T') {
+      break;
+    } else {
+      ERROR;
+    }
+  }
+
+  // Hour
+  while (true) {
+    if (ptr == limit) ERROR;
+    char c = *ptr++;
+    if (std::isdigit(c)) {
+      year = year * 10 + (c - '0');
+    } else if (c == ':') {
+      break;
+    } else {
+      ERROR;
+    }
+  }
+
+  // Minute
+  while (true) {
+    if (ptr == limit) ERROR;
+    char c = *ptr++;
+    if (std::isdigit(c)) {
+      year = year * 10 + (c - '0');
+    } else if (c == ':') {
+      break;
+    } else {
+      ERROR;
+    }
+  }
+
+  return Date::FromYMDHMS(year, month, day, hour, min, sec);
 }
 
 std::string Timestamp::ToString() const {
@@ -417,7 +493,7 @@ Timestamp Timestamp::FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_
                                           year, month, day, hour, min, sec));
   }
 
-  // Loos good.
+  // Looks good.
   return Timestamp(result);
 }
 
