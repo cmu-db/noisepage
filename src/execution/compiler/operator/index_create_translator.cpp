@@ -12,6 +12,7 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
     : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CREATE_INDEX),
       op_(op),
       index_inserter_(codegen->NewIdentifier("index_inserter")),
+      all_oids_(AllColOids(table_schema_)),
       col_oids_(codegen->NewIdentifier("col_oids")),{}
 
 void CreateIndexTranslator::Produce(FunctionBuilder *builder) {
@@ -53,10 +54,23 @@ void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
   uint32_t index_oid = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), op_->GetSchema());
   // TODO(Wuwen): check if index_oid is valid
   std::vector<ast::Expr *> build_args{codegen_->PointerTo(index_inserter_), index_oid};
-  auto index_insert_call = codegen_->BuiltinCall(ast::Builtin::IndexBuild, std::move(build_args));
+  auto index_insert_call = codegen_->BuiltinCall(ast::Builtin::IndexCreate, std::move(build_args));
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   builder->StartIfStmt(cond);
   Abort(builder);
   builder->FinishBlockStmt();
+}
+
+void CreateIndexTranslator::SetOids(FunctionBuilder *builder) {
+  // Declare: var col_oids: [num_cols]uint32
+  ast::Expr *arr_type = codegen_->ArrayType(all_oids_.size(), ast::BuiltinType::Kind::Uint32);
+  builder->Append(codegen_->DeclareVariable(col_oids_, arr_type, nullptr));
+
+  // For each oid, set col_oids[i] = col_oid
+  for (uint16_t i = 0; i < all_oids_.size(); i++) {
+    ast::Expr *lhs = codegen_->ArrayAccess(col_oids_, i);
+    ast::Expr *rhs = codegen_->IntLiteral(!all_oids_[i]);
+    builder->Append(codegen_->Assign(lhs, rhs));
+  }
 }
 }  // namespace terrier::execution::compiler

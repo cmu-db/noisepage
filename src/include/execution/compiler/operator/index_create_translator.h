@@ -40,6 +40,7 @@ class CreateIndexTranslator : public OperatorTranslator {
 
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Inserts don't output anything"); };
   const planner::AbstractPlanNode *Op() override { return op_; }
+  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
  private:
   // Declare the index_inserter
@@ -47,7 +48,7 @@ class CreateIndexTranslator : public OperatorTranslator {
   void GenIndexInserterFree(FunctionBuilder *builder);
   // Insert into table.
   void GenCreateIndex(FunctionBuilder *builder);
-
+  void SetOids(FunctionBuilder *builder);
 
  private:
   const planner::CreateIndexPlanNode *op_;
