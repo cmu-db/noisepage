@@ -62,7 +62,7 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
-  var agg_ht_iter: AggregationHashTableIterator
+  var agg_ht_iter: AHTIterator
   var iter = &agg_ht_iter
 
   for (@aggHTIterInit(iter, &state.table); @aggHTIterHasNext(iter); @aggHTIterNext(iter)) {

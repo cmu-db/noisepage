@@ -174,7 +174,7 @@ class VectorProjection {
    * @see Initialize()
    * @see InitializeEmpty()
    */
-  VectorProjection(std::vector<storage::col_id_t> storage_col_ids);
+  VectorProjection();
 
   /**
    * This class cannot be copied or moved.
@@ -192,6 +192,11 @@ class VectorProjection {
    * @return This vector projection instance.
    */
   VectorProjection &operator=(VectorProjection &&other) = default;
+
+  /**
+   * Set the storage col ids that correspond to the elements of this vector projection.
+   */
+  void SetStorageColIds(std::vector<storage::col_id_t> storage_col_ids);
 
   /**
    * Initialize a vector projection with column vectors of the provided types. This will create one

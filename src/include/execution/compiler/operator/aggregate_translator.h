@@ -142,7 +142,7 @@ class AggregateTopTranslator : public OperatorTranslator {
   const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
-  // Declare var agg_iterator: *AggregationHashTableIterator
+  // Declare var agg_iterator: *AHTIterator
   void DeclareIterator(FunctionBuilder *builder);
 
   // for (@aggHTIterInit(agg_iter, &state.table); @aggHTIterHasNext(&agg_iter); @aggHTIterNext(agg_iter)) {...}

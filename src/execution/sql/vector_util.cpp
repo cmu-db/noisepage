@@ -116,7 +116,7 @@ uint32_t VectorUtil::ByteVectorToSelectionVector(const uint8_t *byte_vector, con
     const auto pos_vec = _mm_add_epi16(idx, match_pos);
     idx = _mm_add_epi16(idx, eight);
     _mm_storeu_si128(reinterpret_cast<__m128i *>(sel_vector + k), pos_vec);
-    k += BitUtil::CountBits(static_cast<uint32_t>(mask));
+    k += BitUtil::CountPopulation(static_cast<uint32_t>(mask));
   }
 
   // Tail
@@ -229,7 +229,7 @@ uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX2(const uint64_t *bit_v
       const __m128i pos_vec = _mm_add_epi16(idx, match_pos);
       idx = _mm_add_epi16(idx, eight);
       _mm_storeu_si128(reinterpret_cast<__m128i *>(sel_vector + k), pos_vec);
-      k += BitUtil::CountBits(static_cast<uint32_t>(mask));
+      k += BitUtil::CountPopulation(static_cast<uint32_t>(mask));
     }
   }
 
@@ -296,7 +296,7 @@ uint32_t VectorUtil::BitVectorToSelectionVector(const uint64_t *bit_vector, cons
 
   uint64_t count = 0;
   for (uint64_t i = 0; i < num_words; i++) {
-    count += util::BitUtil::CountBits(bit_vector[i]);
+    count += util::BitUtil::CountPopulation(bit_vector[i]);
   }
 
   // TODO(pmenon): Use settings

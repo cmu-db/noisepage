@@ -422,7 +422,7 @@ void Sema::CheckBuiltinAggHashTableIterCall(ast::CallExpr *call, ast::Builtin bu
 
   const auto &args = call->Arguments();
 
-  const auto agg_ht_iter_kind = ast::BuiltinType::AggregationHashTableIterator;
+  const auto agg_ht_iter_kind = ast::BuiltinType::AHTIterator;
   if (!IsPointerToSpecificBuiltin(args[0]->GetType(), agg_ht_iter_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(agg_ht_iter_kind)->PointerTo());
     return;
@@ -483,7 +483,7 @@ void Sema::CheckBuiltinAggPartIterCall(ast::CallExpr *call, ast::Builtin builtin
 
   const auto &args = call->Arguments();
 
-  const auto part_iter_kind = ast::BuiltinType::AggOverflowPartIter;
+  const auto part_iter_kind = ast::BuiltinType::AHTOverflowPartitionIterator;
   if (!IsPointerToSpecificBuiltin(args[0]->GetType(), part_iter_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(part_iter_kind)->PointerTo());
     return;

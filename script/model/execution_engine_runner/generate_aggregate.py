@@ -111,7 +111,7 @@ def generate_probe_side(col_num, row_num, cardinality, value_type):
     print("  @execCtxStartResourceTracker(execCtx, 3)")
 
     # construct the iterator
-    print("  var agg_ht_iter: AggregationHashTableIterator")
+    print("  var agg_ht_iter: AHTIterator")
     print("  var iter = &agg_ht_iter")
 
     # iterate through the agg table

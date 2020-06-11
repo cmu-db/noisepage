@@ -116,9 +116,9 @@ ast::Expr *AggregateTopTranslator::GetOutput(uint32_t attr_idx) {
   return translator->DeriveExpr(this);
 }
 
-// Declare var agg_iterator: *AggregationHashTableIterator
+// Declare var agg_iterator: *AHTIterator
 void AggregateTopTranslator::DeclareIterator(FunctionBuilder *builder) {
-  ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::AggregationHashTableIterator);
+  ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::AHTIterator);
   builder->Append(codegen_->DeclareVariable(agg_iterator_, iter_type, nullptr));
 }
 

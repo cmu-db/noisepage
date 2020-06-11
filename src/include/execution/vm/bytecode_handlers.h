@@ -16,12 +16,12 @@
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
-#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/util/execution_common.h"
 #include "metrics/metrics_defs.h"
 #include "parser/expression/constant_value_expression.h"
@@ -826,24 +826,24 @@ VM_OP_HOT void OpAggregationHashTableParallelPartitionedScan(
 
 VM_OP void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *agg_hash_table);
 
-VM_OP void OpAggregationHashTableIteratorInit(terrier::execution::sql::AggregationHashTableIterator *iter,
+VM_OP void OpAggregationHashTableIteratorInit(terrier::execution::sql::AHTIterator *iter,
                                               terrier::execution::sql::AggregationHashTable *agg_hash_table);
 
 VM_OP_HOT void OpAggregationHashTableIteratorHasNext(bool *has_more,
-                                                     terrier::execution::sql::AggregationHashTableIterator *iter) {
+                                                     terrier::execution::sql::AHTIterator *iter) {
   *has_more = iter->HasNext();
 }
 
-VM_OP_HOT void OpAggregationHashTableIteratorNext(terrier::execution::sql::AggregationHashTableIterator *iter) {
+VM_OP_HOT void OpAggregationHashTableIteratorNext(terrier::execution::sql::AHTIterator *iter) {
   iter->Next();
 }
 
 VM_OP_HOT void OpAggregationHashTableIteratorGetRow(const terrier::byte **row,
-                                                    terrier::execution::sql::AggregationHashTableIterator *iter) {
+                                                    terrier::execution::sql::AHTIterator *iter) {
   *row = iter->GetCurrentAggregateRow();
 }
 
-VM_OP void OpAggregationHashTableIteratorFree(terrier::execution::sql::AggregationHashTableIterator *iter);
+VM_OP void OpAggregationHashTableIteratorFree(terrier::execution::sql::AHTIterator *iter);
 
 VM_OP_HOT void OpAggregationOverflowPartitionIteratorHasNext(
     bool *has_more, terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {

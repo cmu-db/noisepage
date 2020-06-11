@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql/value.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
@@ -1065,7 +1065,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(AggregationHashTableIteratorInit) : {
-    auto *iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::AHTIterator *>(READ_LOCAL_ID());
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     OpAggregationHashTableIteratorInit(iter, agg_hash_table);
     DISPATCH_NEXT();
@@ -1073,26 +1073,26 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(AggregationHashTableIteratorHasNext) : {
     auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::AHTIterator *>(READ_LOCAL_ID());
     OpAggregationHashTableIteratorHasNext(has_more, iter);
     DISPATCH_NEXT();
   }
 
   OP(AggregationHashTableIteratorNext) : {
-    auto *agg_hash_table_iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    auto *agg_hash_table_iter = frame->LocalAt<sql::AHTIterator *>(READ_LOCAL_ID());
     OpAggregationHashTableIteratorNext(agg_hash_table_iter);
     DISPATCH_NEXT();
   }
 
   OP(AggregationHashTableIteratorGetRow) : {
     auto *row = frame->LocalAt<const byte **>(READ_LOCAL_ID());
-    auto *iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::AHTIterator *>(READ_LOCAL_ID());
     OpAggregationHashTableIteratorGetRow(row, iter);
     DISPATCH_NEXT();
   }
 
   OP(AggregationHashTableIteratorFree) : {
-    auto *agg_hash_table_iter = frame->LocalAt<sql::AggregationHashTableIterator *>(READ_LOCAL_ID());
+    auto *agg_hash_table_iter = frame->LocalAt<sql::AHTIterator *>(READ_LOCAL_ID());
     OpAggregationHashTableIteratorFree(agg_hash_table_iter);
     DISPATCH_NEXT();
   }

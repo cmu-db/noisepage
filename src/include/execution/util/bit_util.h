@@ -43,7 +43,7 @@ class BitUtil : public common::AllStatic {
    * @return A count of the number of set (i.e., '1') bits in the given integral value @em val.
    */
   template <typename T>
-  static constexpr uint32_t CountBits(T val) {
+  static constexpr uint32_t CountPopulation(T val) {
     return llvm::countPopulation(val);
   }
 

@@ -339,7 +339,7 @@ class BitVector {
   uint32_t CountOnes() const {
     uint32_t count = 0;
     for (uint32_t i = 0; i < GetNumWords(); i++) {
-      count += BitUtil::CountBits(words_[i]);
+      count += BitUtil::CountPopulation(words_[i]);
     }
     return count;
   }
@@ -350,7 +350,7 @@ class BitVector {
   uint32_t NthOne(uint32_t n) const {
     for (uint32_t i = 0; i < GetNumWords(); i++) {
       const WordType word = words_[i];
-      const uint32_t count = BitUtil::CountBits(word);
+      const uint32_t count = BitUtil::CountPopulation(word);
       if (n < count) {
         const WordType mask = _pdep_u64(static_cast<WordType>(1) << n, word);
         const uint32_t pos = BitUtil::CountTrailingZeros(mask);

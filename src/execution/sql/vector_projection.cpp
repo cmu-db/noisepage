@@ -13,12 +13,15 @@
 
 namespace terrier::execution::sql {
 
-VectorProjection::VectorProjection(std::vector<storage::col_id_t> storage_col_ids)
-    : storage_col_ids_(std::move(storage_col_ids)),
-      filter_(nullptr),
+VectorProjection::VectorProjection()
+    : filter_(nullptr),
       owned_tid_list_(common::Constants::K_DEFAULT_VECTOR_SIZE),
       owned_buffer_(nullptr) {
   owned_tid_list_.Resize(0);
+}
+
+void VectorProjection::SetStorageColIds(std::vector<storage::col_id_t> storage_col_ids) {
+  storage_col_ids_ = std::move(storage_col_ids);
 }
 
 void VectorProjection::InitializeEmpty(const std::vector<TypeId> &col_types) {

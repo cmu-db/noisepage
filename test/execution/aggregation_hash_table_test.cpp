@@ -13,8 +13,8 @@
 #include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql/thread_state_container.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql_test.h"
 
 namespace terrier::execution::sql::test {
@@ -205,7 +205,7 @@ TEST_F(AggregationHashTableTest, IterationTest) {
 
   {
     uint32_t group_count = 0;
-    for (AggregationHashTableIterator iter(*AggTable()); iter.HasNext(); iter.Next()) {
+    for (AHTIterator iter(*AggTable()); iter.HasNext(); iter.Next()) {
       auto *agg_tuple = reinterpret_cast<const AggTuple *>(iter.GetCurrentAggregateRow());
       EXPECT_EQ(tuples_per_group, agg_tuple->count1_);
       EXPECT_EQ(tuples_per_group * 2, agg_tuple->count2_);

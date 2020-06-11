@@ -192,7 +192,7 @@ class GenericHashTable {
 template <bool ForRead>
 void GenericHashTable::PrefetchChainHead(hash_t hash) const {
   const uint64_t pos = hash & mask_;
-  util::Prefetch<ForRead, Locality::Low>(entries_ + pos);
+  util::Memory::Prefetch<ForRead, Locality::Low>(entries_ + pos);
 }
 
 inline HashTableEntry *GenericHashTable::FindChainHead(hash_t hash) const {

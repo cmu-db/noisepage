@@ -142,14 +142,14 @@ void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *c
   agg_hash_table->~AggregationHashTable();
 }
 
-void OpAggregationHashTableIteratorInit(terrier::execution::sql::AggregationHashTableIterator *iter,
+void OpAggregationHashTableIteratorInit(terrier::execution::sql::AHTIterator *iter,
                                         terrier::execution::sql::AggregationHashTable *agg_hash_table) {
   TERRIER_ASSERT(agg_hash_table != nullptr, "Null hash table");
-  new (iter) terrier::execution::sql::AggregationHashTableIterator(*agg_hash_table);
+  new (iter) terrier::execution::sql::AHTIterator(*agg_hash_table);
 }
 
-void OpAggregationHashTableIteratorFree(terrier::execution::sql::AggregationHashTableIterator *iter) {
-  iter->~AggregationHashTableIterator();
+void OpAggregationHashTableIteratorFree(terrier::execution::sql::AHTIterator *iter) {
+  iter->~AHTIterator();
 }
 
 // ---------------------------------------------------------

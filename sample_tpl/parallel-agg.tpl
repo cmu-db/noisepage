@@ -106,7 +106,7 @@ fun p2_finalize(qs: *State, ts: *ThreadState_2) -> nil {
 }
 
 fun p2_worker(qs: *State, ts: *ThreadState_2, table: *AggregationHashTable) -> nil {
-  var agg_ht_iter: AggregationHashTableIterator
+  var agg_ht_iter: AHTIterator
   var iter = &agg_ht_iter
   for (@aggHTIterInit(iter, table); @aggHTIterHasNext(iter); @aggHTIterNext(iter)) {
     var agg = @ptrCast(*Agg, @aggHTIterGetRow(iter))

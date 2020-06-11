@@ -55,9 +55,9 @@ class Context;
                                                                                                               \
   /* Non-primitive builtins */                                                                                \
   NON_PRIM(AggregationHashTable, terrier::execution::sql::AggregationHashTable)                               \
-  NON_PRIM(AggregationHashTableIterator, terrier::execution::sql::AggregationHashTableIterator)               \
-  /* TODO(WAN): EXEC PORT needed? NON_PRIM(AHTVectorIterator, tpl::sql::AHTVectorIterator)  */                \
-  NON_PRIM(AggOverflowPartIter, terrier::execution::sql::AggregationOverflowPartitionIterator)                \
+  NON_PRIM(AHTIterator, terrier::execution::sql::AHTIterator)                                                 \
+  NON_PRIM(AHTVectorIterator, terrier::execution::sql::AHTVectorIterator)                                     \
+  NON_PRIM(AHTOverflowPartitionIterator, terrier::execution::sql::AHTOverflowPartitionIterator)               \
   NON_PRIM(BloomFilter, terrier::execution::sql::BloomFilter)                                                 \
   /* TODO(WAN): EXEC PORT NON_PRIM(CSVReader, terrier::execution::util::CSVReader)                         */ \
   NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                                      \
