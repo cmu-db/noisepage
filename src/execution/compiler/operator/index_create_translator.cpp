@@ -5,6 +5,7 @@
 
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include ""
 
 namespace terrier::execution::compiler {
 // TODO(Wuwen): not sure what is correct for ExecutionOperatingUnitType
@@ -14,7 +15,7 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
       index_inserter_(codegen->NewIdentifier("index_inserter")),
       col_oids_(codegen->NewIdentifier("col_oids")),
       table_schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
-      all_oids_(AllColOids(table_schema_)){}
+      all_oids_(AllColOids(table_schema_)) {}
 
 
 void CreateIndexTranslator::Produce(FunctionBuilder *builder) {
@@ -53,7 +54,7 @@ void CreateIndexTranslator::GenIndexInserterFree(terrier::execution::compiler::F
 }
 
 void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
-  uint32_t index_oid = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), op_->GetSchema());
+  uint32_t index_oid = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), &op_->GetSchema());
   // TODO(Wuwen): check if index_oid is valid
   std::vector<ast::Expr *> build_args{codegen_->PointerTo(index_inserter_), index_oid};
   auto index_insert_call = codegen_->BuiltinCall(ast::Builtin::IndexCreate, std::move(build_args));
