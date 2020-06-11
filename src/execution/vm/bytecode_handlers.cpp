@@ -138,6 +138,10 @@ void OpIterCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid, terr
   *table_oid = iter->GetReadTableOid();
 }
 
+void OpIterCteScanAccumulate(bool *accumulate_bool, terrier::execution::sql::IterCteScanIterator *iter) {
+  *accumulate_bool = iter->Accumulate();
+}
+
 void OpIterCteScanGetResult(terrier::execution::sql::CteScanIterator **result, terrier::execution::sql::IterCteScanIterator *iter) {
   *result = iter->GetResultCTE();
 }

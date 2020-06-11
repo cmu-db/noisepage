@@ -675,7 +675,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   OpIterCteScanGetReadTableOid(table_oid, iter);
   DISPATCH_NEXT();
 }
-
+  OP(IterCteScanAccumulate) : {
+  auto table_oid = frame->LocalAt<bool *>(READ_LOCAL_ID());
+  auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  OpIterCteScanAccumulate(table_oid, iter);
+  DISPATCH_NEXT();
+}
   OP(IterCteScanGetInsertTempTablePR) : {
   auto projected_row = frame->LocalAt<terrier::storage::ProjectedRow **>(READ_LOCAL_ID());
   auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());

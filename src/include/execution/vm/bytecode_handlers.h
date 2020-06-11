@@ -302,6 +302,9 @@ VM_OP void OpIterCteScanGetWriteTable(terrier::storage::SqlTable **sql_table,
 VM_OP void OpIterCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid,
     terrier::execution::sql::IterCteScanIterator *iter);
 
+VM_OP void OpIterCteScanAccumulate(bool *accumulate_bool,
+                                   terrier::execution::sql::IterCteScanIterator *iter);
+
 VM_OP void OpIterCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
                                        terrier::execution::sql::IterCteScanIterator *iter);
 

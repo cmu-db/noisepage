@@ -25,11 +25,29 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
 
     var insert_pr = @iterCteScanGetInsertTempTablePR(&cte_scan)
     @prSetInt(insert_pr, 0, cur_val)
-    @iterCteScanTableInsert(&cte_scan)
+    var insert_temp_table_slot = @iterCteScanTableInsert(&cte_scan)
   }
+  var acc_bool = @iterCteScanAccumulate(&cte_scan)
   @indexIteratorFree(&index_iter)
 
+  var count = 0
+  var oids: [1]uint32
+  oids[0] = 1
+
+  var seq_iter : TableVectorIterator
+  var read_cte_scan = @iterCteScanGetResult(&cte_scan)
+
+  @tempTableIterInitBind(&seq_iter, exec_ctx, oids, read_cte_scan)
+  for (@tableIterAdvance(&seq_iter)) {
+    var pci = @tableIterGetPCI(&seq_iter)
+    for (; @pciHasNext(pci); @pciAdvance(pci)) {
+      var entry = @pciGetInt(pci, 0)
+      count = count + 1
+    }
+    @pciReset(pci)
+  }
+  @tableIterClose(&seq_iter)
   @iterCteScanFree(&cte_scan)
-  var ret = 0
-  return ret
+
+  return count
 }

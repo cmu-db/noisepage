@@ -67,6 +67,7 @@ namespace terrier::execution::ast {
   F(IterCteScanGetReadTable, iterCteScanGetReadTable)                   \
   F(IterCteScanGetWriteTable, iterCteScanGetWriteTable)                 \
   F(IterCteScanGetReadTableOid, iterCteScanGetReadTableOid)             \
+  F(IterCteScanAccumulate, iterCteScanAccumulate)                       \
   F(IterCteScanGetInsertTempTablePR, iterCteScanGetInsertTempTablePR)   \
   F(IterCteScanTableInsert, iterCteScanTableInsert)                     \
   F(IterCteScanFree, iterCteScanFree)                                   \
