@@ -161,6 +161,9 @@ class ConnectionContext {
    */
   void *CallbackArg() const { return callback_arg_; }
 
+  /**
+   * @return CatalogCache to be injected into requests for CatalogAcessors
+   */
   common::ManagedPointer<catalog::CatalogCache> GetCatalogCache() { return common::ManagedPointer(&catalog_cache_); }
 
  private:

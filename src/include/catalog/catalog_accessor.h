@@ -381,6 +381,7 @@ class CatalogAccessor {
    * @param catalog pointer to the catalog being accessed
    * @param dbc pointer to the database catalog being accessed
    * @param txn the transaction context for this accessor
+   * @param cache CatalogCache object for this connection, or nullptr if disabled
    * @warning This constructor should never be called directly.  Instead you should get accessors from the catalog.
    */
   CatalogAccessor(const common::ManagedPointer<Catalog> catalog, const common::ManagedPointer<DatabaseCatalog> dbc,

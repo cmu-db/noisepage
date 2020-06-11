@@ -15,14 +15,34 @@ class Index;
 
 namespace terrier::catalog {
 class CatalogAccessor;
+
+/**
+ * Simple cache for DatabaseCatalog lookups that's scoped per connection (ownership and lifecycle). This is designed to
+ * be injected as a dependency of CatalogAccessor at its instantiation, and components requesting information from the
+ * CatalogAccessor will transparently look in a cache first if it exists. If the cache is passed in as nullptr, then the
+ * CatalogAccessor performs its lookup from the DatabaseCatalog as normal. Most operations are expected to only be
+ * performed by CatalogAccessor, which is why most of this class is private and the CatalogAccessor is designated as a
+ * friend class.
+ *
+ * Right now it only caches lookups for table and index pointers, and indexes on a table. In the future if we see other
+ * DatabaseCatalog requests proving expensive, we can add them to the cache.
+ */
 class CatalogCache {
  public:
+  /**
+   * Clear the cache, and stash a timestamp associated with the start time of the transaction that cleared it. This acts
+   * as a watermark for when this snapshot of the DatabaseCatalog is valid.
+   * @param now start time of the TransactionContext performing the reset
+   */
   void Reset(const transaction::timestamp_t now) {
     oldest_entry_ = now;
     pointers_.clear();
     indexes_.clear();
   }
 
+  /**
+   * @return The oldest possible age of an entry in this cache, corresponding to the last cache reset
+   */
   transaction::timestamp_t OldestEntry() const { return oldest_entry_; }
 
  private:
