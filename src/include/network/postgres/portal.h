@@ -8,7 +8,10 @@
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/statement.h"
 #include "parser/expression/constant_value_expression.h"
-#include "planner/plannodes/abstract_plan_node.h"
+
+namespace terrier::planner {
+class AbstractPlanNode;
+} // namespace terrier::planner
 
 namespace terrier::network {
 
