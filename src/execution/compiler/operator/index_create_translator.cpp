@@ -5,7 +5,6 @@
 
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
-#include ""
 
 namespace terrier::execution::compiler {
 // TODO(Wuwen): not sure what is correct for ExecutionOperatingUnitType
