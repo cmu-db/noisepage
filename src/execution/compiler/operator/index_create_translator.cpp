@@ -54,9 +54,8 @@ void CreateIndexTranslator::GenIndexInserterFree(terrier::execution::compiler::F
 
 void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
   auto index_oid = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), *(op_->GetSchema()));
-  uint32_t oid = static_cast<uint32_t>(index_oid);
   // TODO(Wuwen): check if index_oid is valid
-  std::vector<ast::Expr *> build_args{codegen_->PointerTo(index_inserter_), oid};
+  std::vector<ast::Expr *> build_args{codegen_->PointerTo(index_inserter_), codegen_->IntLiteral(!index_oid)};
   auto index_insert_call = codegen_->BuiltinCall(ast::Builtin::IndexCreate, std::move(build_args));
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   builder->StartIfStmt(cond);
