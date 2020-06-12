@@ -3111,7 +3111,7 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
     }
     case ast::Builtin::IterCteScanAccumulate: {
       LocalVar accumulate_bool = ExecutionResult()->GetOrCreateDestination(call->GetType());
-      Emitter()->Emit(Bytecode::IterCteScanGetInsertTempTablePR, accumulate_bool, iterator);
+      Emitter()->Emit(Bytecode::IterCteScanAccumulate, accumulate_bool, iterator);
       break;
     }
     case ast::Builtin::IterCteScanTableInsert: {

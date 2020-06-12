@@ -20,8 +20,9 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
   @prSetInt(hi_pr, 0, @intToSql(20))
 
   for (@indexIteratorScanAscending(&index_iter, 0, 0); @indexIteratorAdvance(&index_iter); ) {
-    var cur_pr = @indexIteratorGetPR(&index_iter)
+    var cur_pr = @indexIteratorGetTablePR(&index_iter)
     var cur_val = @prGetInt(cur_pr, 0)
+    var slot = @indexIteratorGetSlot(&index_iter)
 
     var insert_pr = @iterCteScanGetInsertTempTablePR(&cte_scan)
     @prSetInt(insert_pr, 0, cur_val)
