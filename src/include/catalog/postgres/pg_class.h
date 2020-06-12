@@ -1,10 +1,6 @@
 #pragma once
 
-#include "catalog/index_schema.h"
-#include "catalog/schema.h"
-#include "storage/projected_row.h"
-#include "storage/sql_table.h"
-#include "transaction/transaction_context.h"
+#include "catalog/catalog_defs.h"
 
 namespace terrier::catalog::postgres {
 
