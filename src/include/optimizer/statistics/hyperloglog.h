@@ -29,7 +29,9 @@ class HyperLogLog {
    * The default precision in libcount is 9. That's probably good enough.
    * @param precision what precision level the HLL should record
    */
-  explicit HyperLogLog(const int precision) : precision_{precision} { hll_ = libcount::HLL::Create(precision_); }
+  explicit HyperLogLog(const int precision) : precision_{precision} {
+    hll_ = libcount::HLL::Create(precision_).release();
+  }
 
   /**
    * Deconstructor.
