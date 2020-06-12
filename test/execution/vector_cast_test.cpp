@@ -16,6 +16,8 @@ class VectorCastTest : public TplTest {};
 TEST_F(VectorCastTest, Cast) {
   // vec(i8) = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
   auto vec = MakeTinyIntVector(10);
+  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx_);
   for (uint64_t i = 0; i < vec->GetSize(); i++) {
     vec->SetValue(i, GenericValue::CreateTinyInt(i));
   }
@@ -27,7 +29,7 @@ TEST_F(VectorCastTest, Cast) {
   vec->SetNull(2, true);
 
   // Case 1: try up-cast from int8_t -> int32_t with valid values
-  EXPECT_NO_THROW(vec->Cast(TypeId::Integer));
+  EXPECT_NO_THROW(vec->Cast(managed_ctx, TypeId::Integer));
   EXPECT_EQ(TypeId::Integer, vec->GetTypeId());
   EXPECT_EQ(10u, vec->GetSize());
   EXPECT_EQ(filter.GetTupleCount(), vec->GetCount());
@@ -38,7 +40,7 @@ TEST_F(VectorCastTest, Cast) {
   EXPECT_EQ(GenericValue::CreateInteger(8), vec->GetValue(3));
 
   // Case 2: try down-cast int32_t -> int16_t with valid values
-  EXPECT_NO_THROW(vec->Cast(TypeId::SmallInt));
+  EXPECT_NO_THROW(vec->Cast(managed_ctx, TypeId::SmallInt));
   EXPECT_TRUE(vec->GetTypeId() == TypeId::SmallInt);
   EXPECT_EQ(10u, vec->GetSize());
   EXPECT_EQ(filter.GetTupleCount(), vec->GetCount());
@@ -51,12 +53,14 @@ TEST_F(VectorCastTest, Cast) {
   // Case 3: try down-cast int16_t -> int8_t with one value out-of-range
   // vec = [1, 150, NULL, 8] -- 150 is in an invalid int8_t
   vec->SetValue(1, GenericValue::CreateSmallInt(150));
-  EXPECT_THROW(vec->Cast(TypeId::TinyInt), ValueOutOfRangeException);
+  EXPECT_THROW(vec->Cast(managed_ctx, TypeId::TinyInt), ValueOutOfRangeException);
 }
 
 TEST_F(VectorCastTest, CastWithNulls) {
   // vec(int) = [0, 1, 2, 3, NULL, 5, 6, 7, NULL, 9]
   auto vec = MakeIntegerVector(10);
+  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx_);
   for (uint64_t i = 0; i < vec->GetSize(); i++) {
     vec->SetValue(i, GenericValue::CreateInteger(i));
   }
@@ -66,7 +70,7 @@ TEST_F(VectorCastTest, CastWithNulls) {
   // After casting vec(int) to vec(bigint), the NULL values are retained
   // vec(bigint) = [0, 1, 2, 3, NULL, 5, 6, 7, NULL, 9]
 
-  EXPECT_NO_THROW(vec->Cast(TypeId::BigInt));
+  EXPECT_NO_THROW(vec->Cast(managed_ctx, TypeId::BigInt));
   EXPECT_EQ(TypeId::BigInt, vec->GetTypeId());
   EXPECT_EQ(10u, vec->GetSize());
   EXPECT_EQ(10u, vec->GetCount());
@@ -82,6 +86,9 @@ TEST_F(VectorCastTest, CastWithNulls) {
 }
 
 TEST_F(VectorCastTest, NumericDowncast) {  // NOLINT the expanded macros make clang-tidy unhappy at the function size
+
+  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx_);
 #define CHECK_CAST(SRC_TYPE, DEST_TYPE, DEST_CPP_TYPE)                                             \
   {                                                                                                \
     const uint32_t num_elems = 20;                                                                 \
@@ -89,7 +96,7 @@ TEST_F(VectorCastTest, NumericDowncast) {  // NOLINT the expanded macros make cl
     for (uint32_t i = 0; i < vec->GetSize(); i++) {                                                \
       vec->SetValue(i, GenericValue::Create##SRC_TYPE(i));                                         \
     }                                                                                              \
-    EXPECT_NO_THROW(vec->Cast(TypeId::DEST_TYPE));                                                 \
+    EXPECT_NO_THROW(vec->Cast(managed_ctx, TypeId::DEST_TYPE));                                    \
     EXPECT_EQ(TypeId::DEST_TYPE, vec->GetTypeId());                                                \
     EXPECT_EQ(num_elems, vec->GetSize());                                                          \
     EXPECT_EQ(num_elems, vec->GetCount());                                                         \
@@ -135,13 +142,16 @@ TEST_F(VectorCastTest, DateCast) {
                            Date::FromYMD(1980, 1, 1), Date::FromYMD(2000, 1, 1), Date::FromYMD(2015, 8, 1)},
                           {true, false, false, true, false, false});
 
-  EXPECT_THROW(a->Cast(TypeId::TinyInt), NotImplementedException);
-  EXPECT_THROW(a->Cast(TypeId::SmallInt), NotImplementedException);
-  EXPECT_THROW(a->Cast(TypeId::Integer), NotImplementedException);
-  EXPECT_THROW(a->Cast(TypeId::BigInt), NotImplementedException);
-  EXPECT_THROW(a->Cast(TypeId::Float), NotImplementedException);
-  EXPECT_THROW(a->Cast(TypeId::Double), NotImplementedException);
-  EXPECT_NO_THROW(a->Cast(TypeId::Varchar));
+  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx_);
+
+  EXPECT_THROW(a->Cast(managed_ctx, TypeId::TinyInt), NotImplementedException);
+  EXPECT_THROW(a->Cast(managed_ctx, TypeId::SmallInt), NotImplementedException);
+  EXPECT_THROW(a->Cast(managed_ctx, TypeId::Integer), NotImplementedException);
+  EXPECT_THROW(a->Cast(managed_ctx, TypeId::BigInt), NotImplementedException);
+  EXPECT_THROW(a->Cast(managed_ctx, TypeId::Float), NotImplementedException);
+  EXPECT_THROW(a->Cast(managed_ctx, TypeId::Double), NotImplementedException);
+  EXPECT_NO_THROW(a->Cast(managed_ctx, TypeId::Varchar));
 
   EXPECT_EQ(TypeId::Varchar, a->GetTypeId());
   EXPECT_TRUE(a->IsNull(0));
@@ -155,8 +165,9 @@ TEST_F(VectorCastTest, DateCast) {
 TEST_F(VectorCastTest, CastStringToFloat) {
   // a = [NULL, "-123.45", "6.75", NULL, "0.8", "910"]
   auto a = MakeVarcharVector({{}, "-123.45", "6.75", {}, "0.8", "910"}, {true, false, false, true, false, false});
-
-  EXPECT_NO_THROW(a->Cast(TypeId::Float));
+  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx_);
+  EXPECT_NO_THROW(a->Cast(managed_ctx, TypeId::Float));
 
   EXPECT_EQ(TypeId::Float, a->GetTypeId());
   EXPECT_TRUE(a->IsNull(0));

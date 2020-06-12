@@ -17,7 +17,6 @@ namespace codegen {
 class ConstantTranslator;
 }  // namespace codegen
 
-
 struct Val;
 
 /**

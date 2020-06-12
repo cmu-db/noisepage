@@ -54,8 +54,8 @@ class VectorOps : public common::AllStatic {
    * @param source_type The SQL type of elements in the source vector.
    * @param target_type The SQL type of elements in the target vector.
    */
-  static void Cast(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-      const Vector &source, Vector *target, SqlTypeId source_type, SqlTypeId target_type);
+  static void Cast(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &source, Vector *target,
+                   SqlTypeId source_type, SqlTypeId target_type);
 
   /**
    * Fill the input vector @em vector with sequentially increasing values beginning at @em start and
@@ -186,8 +186,8 @@ class VectorOps : public common::AllStatic {
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-      const Vector &left, const Vector &right, TupleIdList *tid_list);
+  static void SelectEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                          const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are strictly greater than
@@ -197,8 +197,8 @@ class VectorOps : public common::AllStatic {
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectGreaterThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-      const Vector &left, const Vector &right, TupleIdList *tid_list);
+  static void SelectGreaterThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are greater than or equal
@@ -208,8 +208,8 @@ class VectorOps : public common::AllStatic {
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectGreaterThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-      const Vector &left, const Vector &right, TupleIdList *tid_list);
+  static void SelectGreaterThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                     const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are strictly less than
@@ -219,8 +219,8 @@ class VectorOps : public common::AllStatic {
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectLessThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-      const Vector &left, const Vector &right, TupleIdList *tid_list);
+  static void SelectLessThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                             const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are less than or equal to
@@ -230,8 +230,8 @@ class VectorOps : public common::AllStatic {
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectLessThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-      const Vector &left, const Vector &right, TupleIdList *tid_list);
+  static void SelectLessThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                  const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are not equal to elements
@@ -241,8 +241,8 @@ class VectorOps : public common::AllStatic {
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectNotEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-      const Vector &left, const Vector &right, TupleIdList *tid_list);
+  static void SelectNotEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                             const Vector &right, TupleIdList *tid_list);
 
   // -------------------------------------------------------
   //

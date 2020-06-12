@@ -28,16 +28,15 @@ namespace {
 // 3. Input and output vectors have the same type.
 void CheckBinaryOperation(const Vector &left, const Vector &right, Vector *result) {
   if (left.GetTypeId() != right.GetTypeId()) {
-    throw TypeMismatchException(left.GetTypeId(), right.GetTypeId(),
-                                "left and right vector types to binary operation must be the same");
+    throw TYPE_MISMATCH_EXCEPTION(left.GetTypeId(), right.GetTypeId(),
+                                  "left and right vector types to binary operation must be the same");
   }
   if (left.GetTypeId() != result->GetTypeId()) {
-    throw TypeMismatchException(left.GetTypeId(), result->GetTypeId(),
-                                "result type of binary operation must be the same as input types");
+    throw TYPE_MISMATCH_EXCEPTION(left.GetTypeId(), result->GetTypeId(),
+                                  "result type of binary operation must be the same as input types");
   }
   if (!left.IsConstant() && !right.IsConstant() && left.GetCount() != right.GetCount()) {
-    throw Exception(ExceptionType::Cardinality,
-                    "left and right input vectors to binary operation must have the same size");
+    throw CARDINALITY_EXCEPTION("left and right input vectors to binary operation must have the same size");
   }
 }
 
@@ -147,7 +146,7 @@ void DivModOperation(const Vector &left, const Vector &right, Vector *result) {
       XTemplatedDivModOperation<double, Op>(left, right, result);
       break;
     default:
-      throw InvalidTypeException(left.GetTypeId(), "Invalid type for arithmetic operation");
+      throw INVALID_TYPE_EXCEPTION(left.GetTypeId(), "Invalid type for arithmetic operation");
   }
 }
 
@@ -188,7 +187,7 @@ void BinaryArithmeticOperation(common::ManagedPointer<exec::ExecutionContext> ex
       TemplatedBinaryArithmeticOperation<uintptr_t, Op>(exec_ctx, left, right, result);
       break;
     default:
-      throw InvalidTypeException(left.GetTypeId(), "Invalid type for arithmetic operation");
+      throw INVALID_TYPE_EXCEPTION(left.GetTypeId(), "Invalid type for arithmetic operation");
   }
 }
 

@@ -12,7 +12,7 @@ namespace {
 
 void CheckHashArguments(const Vector &input, Vector *result) {
   if (result->GetTypeId() != TypeId::Hash) {
-    throw InvalidTypeException(result->GetTypeId(), "Output of Hash() operation must be hash");
+    throw INVALID_TYPE_EXCEPTION(result->GetTypeId(), "Output of Hash() operation must be hash");
   }
 }
 

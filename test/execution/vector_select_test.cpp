@@ -20,8 +20,8 @@ TEST_F(VectorSelectTest, MismatchedInputTypes) {
   exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   result.AddAll();
-  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_),
-      *a, *b, &result), TypeMismatchException);
+  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+               TypeMismatchException);
 }
 
 TEST_F(VectorSelectTest, MismatchedSizes) {
@@ -32,8 +32,8 @@ TEST_F(VectorSelectTest, MismatchedSizes) {
 
   exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
-  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_),
-      *a, *b, &result), Exception);
+  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+               Exception);
 }
 
 TEST_F(VectorSelectTest, MismatchedCounts) {
@@ -54,8 +54,8 @@ TEST_F(VectorSelectTest, MismatchedCounts) {
 
   exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
-  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_),
-      *a, *b, &result), Exception);
+  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+               Exception);
 }
 
 TEST_F(VectorSelectTest, InvalidTIDListSize) {
@@ -67,8 +67,8 @@ TEST_F(VectorSelectTest, InvalidTIDListSize) {
 
   result.AddAll();
 
-  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_),
-      *a, *b, &result), Exception);
+  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+               Exception);
 }
 
 TEST_F(VectorSelectTest, BasicSelect) {

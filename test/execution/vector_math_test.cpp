@@ -19,8 +19,7 @@ TEST_F(VectorArithmeticTest, InvalidVectorShapes) {
   exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   // Check simple invalid input sizes
-  EXPECT_THROW(VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
-               terrier::execution::Exception);
+  EXPECT_THROW(VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result), Exception);
 
   a->Resize(10);
   b->Resize(10);

@@ -37,13 +37,13 @@ namespace {
 void CheckGatherAndSelect(const Vector &input, const Vector &pointers, UNUSED_ATTRIBUTE std::size_t offset,
                           TupleIdList *result) {
   if (pointers.GetTypeId() != TypeId::Pointer) {
-    throw TypeMismatchException(pointers.GetTypeId(), TypeId::Pointer, "pointers vector must be TypeId::Pointer");
+    throw TYPE_MISMATCH_EXCEPTION(pointers.GetTypeId(), TypeId::Pointer, "pointers vector must be TypeId::Pointer");
   }
   if (input.GetSize() != input.GetSize()) {
-    throw Exception(ExceptionType::Execution, "input vectors has mismatched shapes");
+    throw EXECUTOR_EXCEPTION("input vectors has mismatched shapes");
   }
   if (result->GetCapacity() != input.GetSize()) {
-    throw Exception(ExceptionType::Execution, "result list not large enough to store all TIDs in input vector");
+    throw EXECUTOR_EXCEPTION("result list not large enough to store all TIDs in input vector");
   }
 }
 

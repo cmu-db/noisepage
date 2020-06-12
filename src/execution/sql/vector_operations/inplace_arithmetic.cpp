@@ -55,7 +55,7 @@ void VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext> exec_c
       InPlaceOperation<uintptr_t, terrier::execution::sql::AddInPlace>(exec_ctx, left, right);
       break;
     default:
-      throw InvalidTypeException(left->GetTypeId(), "invalid type for in-place arithmetic operation");
+      throw INVALID_TYPE_EXCEPTION(left->GetTypeId(), "invalid type for in-place arithmetic operation");
   }
 }
 

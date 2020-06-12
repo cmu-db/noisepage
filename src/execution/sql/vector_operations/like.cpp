@@ -44,10 +44,10 @@ void TemplatedLikeOperationVectorVector(const Vector &a, const Vector &b, TupleI
 template <typename Op>
 void TemplatedLikeOperation(const Vector &a, const Vector &b, TupleIdList *tid_list) {
   if (a.GetTypeId() != TypeId::Varchar || b.GetTypeId() != TypeId::Varchar) {
-    throw InvalidTypeException(a.GetTypeId(), "Inputs to (NOT) LIKE must be VARCHAR");
+    throw INVALID_TYPE_EXCEPTION(a.GetTypeId(), "Inputs to (NOT) LIKE must be VARCHAR");
   }
   if (a.IsConstant()) {
-    throw Exception(ExceptionType::Execution, "First input to LIKE cannot be constant");
+    throw EXECUTOR_EXCEPTION("First input to LIKE cannot be constant");
   }
 
   if (b.IsConstant()) {

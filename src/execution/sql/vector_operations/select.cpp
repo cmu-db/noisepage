@@ -47,17 +47,17 @@ struct IsSafeForFullCompute<T, std::enable_if_t<std::is_fundamental_v<T> || std:
 // 3. The output TID list is sufficiently large to represents all TIDs in both left and right inputs
 void CheckSelection(const Vector &left, const Vector &right, TupleIdList *result) {
   if (left.GetTypeId() != right.GetTypeId()) {
-    throw TypeMismatchException(left.GetTypeId(), right.GetTypeId(), "input vector types must match for selections");
+    throw TYPE_MISMATCH_EXCEPTION(left.GetTypeId(), right.GetTypeId(), "input vector types must match for selections");
   }
   if (!left.IsConstant() && !right.IsConstant()) {
     if (left.GetSize() != right.GetSize()) {
-      throw Exception(ExceptionType::Execution, "left and right vectors to comparison have different sizes");
+      throw EXECUTOR_EXCEPTION("left and right vectors to comparison have different sizes");
     }
     if (left.GetCount() != right.GetCount()) {
-      throw Exception(ExceptionType::Execution, "left and right vectors to comparison have different counts");
+      throw EXECUTOR_EXCEPTION("left and right vectors to comparison have different counts");
     }
     if (result->GetCapacity() != left.GetSize()) {
-      throw Exception(ExceptionType::Execution, "result list not large enough to store all TIDs in input vector");
+      throw EXECUTOR_EXCEPTION("result list not large enough to store all TIDs in input vector");
     }
   }
 }
@@ -133,8 +133,8 @@ void TemplatedSelectOperation(common::ManagedPointer<exec::ExecutionContext> exe
 }
 
 template <template <typename> typename Op>
-void SelectOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-    const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void SelectOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right,
+                     TupleIdList *tid_list) {
   // Sanity check
   CheckSelection(left, right, tid_list);
 
@@ -174,8 +174,7 @@ void SelectOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
       TemplatedSelectOperation<Timestamp, Op>(exec_ctx, left, right, tid_list);
       break;
     case TypeId::Varchar:
-      TemplatedSelectOperation<storage::VarlenEntry, Op>(exec_ctx, left, right,
-                                                         tid_list);
+      TemplatedSelectOperation<storage::VarlenEntry, Op>(exec_ctx, left, right, tid_list);
       break;
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(
@@ -185,27 +184,33 @@ void SelectOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
 
 }  // namespace
 
-void VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                            const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::Equal>(exec_ctx, left, right, tid_list);
 }
 
-void VectorOps::SelectGreaterThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectGreaterThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                  const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::GreaterThan>(exec_ctx, left, right, tid_list);
 }
 
-void VectorOps::SelectGreaterThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectGreaterThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                       const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::GreaterThanEqual>(exec_ctx, left, right, tid_list);
 }
 
-void VectorOps::SelectLessThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectLessThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                               const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::LessThan>(exec_ctx, left, right, tid_list);
 }
 
-void VectorOps::SelectLessThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectLessThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                                    const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::LessThanEqual>(exec_ctx, left, right, tid_list);
 }
 
-void VectorOps::SelectNotEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectNotEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+                               const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::NotEqual>(exec_ctx, left, right, tid_list);
 }
 

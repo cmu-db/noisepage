@@ -11,7 +11,7 @@ namespace {
 
 void CheckGatherArguments(const Vector &pointers, UNUSED_ATTRIBUTE Vector *result) {
   if (pointers.GetTypeId() != TypeId::Pointer) {
-    throw InvalidTypeException(pointers.GetTypeId(), "Gather only works on pointer inputs");
+    throw INVALID_TYPE_EXCEPTION(pointers.GetTypeId(), "Gather only works on pointer inputs");
   }
 }
 

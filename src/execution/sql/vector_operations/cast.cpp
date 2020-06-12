@@ -13,26 +13,26 @@ namespace terrier::execution::sql {
 namespace {
 
 template <typename InType, typename OutType, bool IgnoreNull = true>
-void StandardTemplatedCastOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-    const Vector &source, Vector *target) {
-  UnaryOperationExecutor::Execute<InType, OutType, terrier::execution::sql::Cast<InType, OutType>, IgnoreNull>(exec_ctx,
-      source,
-                                                                                                               target);
+void StandardTemplatedCastOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &source,
+                                    Vector *target) {
+  UnaryOperationExecutor::Execute<InType, OutType, terrier::execution::sql::Cast<InType, OutType>, IgnoreNull>(
+      exec_ctx, source, target);
 }
 
 template <typename InType>
-void CastToStringOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-    const Vector &source, Vector *target) {
+void CastToStringOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &source,
+                           Vector *target) {
   TERRIER_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
   terrier::execution::sql::Cast<InType, std::string> cast_op;
-  UnaryOperationExecutor::Execute<InType, storage::VarlenEntry, true>(exec_ctx,
-      source, target, [&](const InType in) { return target->GetMutableStringHeap()->AddVarlen(cast_op(in)); });
+  UnaryOperationExecutor::Execute<InType, storage::VarlenEntry, true>(exec_ctx, source, target, [&](const InType in) {
+    return target->GetMutableStringHeap()->AddVarlen(cast_op(in));
+  });
 }
 
 // Cast from a numeric-ish type into one of the many supported types.
 template <typename InType>
-void CastNumericOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-    const Vector &source, Vector *target, SqlTypeId target_type) {
+void CastNumericOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &source, Vector *target,
+                          SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Boolean:
       StandardTemplatedCastOperation<InType, bool>(exec_ctx, source, target);
@@ -65,8 +65,8 @@ void CastNumericOperation(common::ManagedPointer<exec::ExecutionContext> exec_ct
   }
 }
 
-void CastDateOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-    const Vector &source, Vector *target, SqlTypeId target_type) {
+void CastDateOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &source, Vector *target,
+                       SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Timestamp:
       StandardTemplatedCastOperation<Date, Timestamp>(exec_ctx, source, target);
@@ -81,8 +81,8 @@ void CastDateOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
   }
 }
 
-void CastTimestampOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-    const Vector &source, Vector *target, SqlTypeId target_type) {
+void CastTimestampOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &source,
+                            Vector *target, SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Date:
       StandardTemplatedCastOperation<Timestamp, Date>(exec_ctx, source, target);
@@ -97,8 +97,8 @@ void CastTimestampOperation(common::ManagedPointer<exec::ExecutionContext> exec_
   }
 }
 
-void CastStringOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-    const Vector &source, Vector *target, SqlTypeId target_type) {
+void CastStringOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &source, Vector *target,
+                         SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Boolean:
       StandardTemplatedCastOperation<storage::VarlenEntry, bool, true>(exec_ctx, source, target);
@@ -130,8 +130,8 @@ void CastStringOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx
 
 }  // namespace
 
-void VectorOps::Cast(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-    const Vector &source, Vector *target, SqlTypeId source_type, SqlTypeId target_type) {
+void VectorOps::Cast(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &source, Vector *target,
+                     SqlTypeId source_type, SqlTypeId target_type) {
   switch (source_type) {
     case SqlTypeId::Boolean:
       CastNumericOperation<bool>(exec_ctx, source, target, target_type);

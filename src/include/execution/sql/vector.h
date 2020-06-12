@@ -13,8 +13,8 @@
 #include "execution/util/bit_vector.h"
 #include "execution/util/string_heap.h"
 
-namespace terrier::execution::exec{
-  class ExecutionContext;
+namespace terrier::execution::exec {
+class ExecutionContext;
 }
 
 namespace terrier::execution::sql {

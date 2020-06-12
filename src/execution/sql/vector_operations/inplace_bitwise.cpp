@@ -50,7 +50,7 @@ void VectorOps::BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionContext>
       BitwiseOperation<uintptr_t, terrier::execution::sql::BitwiseANDInPlace>(exec_ctx, left, right);
       break;
     default:
-      throw InvalidTypeException(left->GetTypeId(), "invalid type for in-place bitwise operation");
+      throw INVALID_TYPE_EXCEPTION(left->GetTypeId(), "invalid type for in-place bitwise operation");
   }
 }
 

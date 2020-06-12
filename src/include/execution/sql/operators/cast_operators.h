@@ -42,7 +42,7 @@ struct Cast {
   OutType operator()(InType input) const {
     OutType result;
     if (!TryCast<InType, OutType>{}(input, &result)) {
-      throw ValueOutOfRangeException(GetTypeId<InType>(), GetTypeId<OutType>());
+      throw OUT_OF_RANGE_EXCEPTION(GetTypeId<InType>(), GetTypeId<OutType>());
     }
     return result;  // NOLINT
   }

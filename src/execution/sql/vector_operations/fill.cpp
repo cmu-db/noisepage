@@ -11,7 +11,7 @@ namespace {
 
 void CheckFillArguments(const Vector &input, const GenericValue &value) {
   if (input.GetTypeId() != value.GetTypeId()) {
-    throw TypeMismatchException(input.GetTypeId(), value.GetTypeId(), "invalid types for fill");
+    throw TYPE_MISMATCH_EXCEPTION(input.GetTypeId(), value.GetTypeId(), "invalid types for fill");
   }
 }
 
@@ -70,7 +70,7 @@ void VectorOps::Fill(Vector *vector, const GenericValue &value) {
       TemplatedFillOperation(vector, vector->varlen_heap_.AddVarlen(value.str_value_));
       break;
     default:
-      throw InvalidTypeException(vector->GetTypeId(), "vector cannot be filled");
+      throw INVALID_TYPE_EXCEPTION(vector->GetTypeId(), "vector cannot be filled");
   }
 }
 

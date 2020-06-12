@@ -19,12 +19,11 @@ namespace terrier::execution::sql {
  */
 inline void CheckInplaceOperation(const Vector *result, const Vector &input) {
   if (result->GetTypeId() != input.GetTypeId()) {
-    throw TypeMismatchException(result->GetTypeId(), input.GetTypeId(),
-                                "left and right vector types to inplace operation must be the same");
+    throw TYPE_MISMATCH_EXCEPTION(result->GetTypeId(), input.GetTypeId(),
+                                  "left and right vector types to inplace operation must be the same");
   }
   if (!input.IsConstant() && result->GetCount() != input.GetCount()) {
-    throw Exception(ExceptionType::Cardinality,
-                    "left and right input vectors to binary operation must have the same size");
+    throw CARDINALITY_EXCEPTION("left and right input vectors to binary operation must have the same size");
   }
 }
 
