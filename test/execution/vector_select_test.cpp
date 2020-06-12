@@ -17,10 +17,10 @@ TEST_F(VectorSelectTest, MismatchedInputTypes) {
   auto b = MakeBigIntVector(2);
   auto result = TupleIdList(a->GetSize());
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   result.AddAll();
-  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx), *a, *b, &result),
                TypeMismatchException);
 }
 
@@ -30,9 +30,9 @@ TEST_F(VectorSelectTest, MismatchedSizes) {
   auto result = TupleIdList(a->GetSize());
   result.AddAll();
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
-  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx), *a, *b, &result),
                Exception);
 }
 
@@ -52,9 +52,9 @@ TEST_F(VectorSelectTest, MismatchedCounts) {
   auto result = TupleIdList(a->GetSize());
   result.AddAll();
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
-  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx), *a, *b, &result),
                Exception);
 }
 
@@ -63,11 +63,11 @@ TEST_F(VectorSelectTest, InvalidTIDListSize) {
   auto b = MakeBigIntVector(10);
 
   auto result = TupleIdList(1);
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   result.AddAll();
 
-  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+  EXPECT_THROW(VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext>(&ctx), *a, *b, &result),
                Exception);
 }
 
@@ -78,8 +78,8 @@ TEST_F(VectorSelectTest, BasicSelect) {
   auto b = MakeTinyIntVector({0, 1, 4, 3, 5, 5}, {false, true, false, true, false, false});
   auto vec_2 = ConstantVector(GenericValue::CreateTinyInt(2));
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  auto managed_ctx = common::ManagedPointer<exec::ExecutionContext>(&ctx_);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer<exec::ExecutionContext>(&ctx);
 
   for (auto type_id :
        {TypeId::TinyInt, TypeId::SmallInt, TypeId::Integer, TypeId::BigInt, TypeId::Float, TypeId::Double}) {
@@ -161,8 +161,8 @@ TEST_F(VectorSelectTest, SelectNullConstant) {
   // a = [0, 1, NULL, NULL, 4, 5]
   auto a = MakeIntegerVector({0, 1, 2, 3, 4, 5}, {false, false, true, true, false, false});
   auto null_constant = ConstantVector(GenericValue::CreateNull(a->GetTypeId()));
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  auto managed_ctx = common::ManagedPointer<exec::ExecutionContext>(&ctx_);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer<exec::ExecutionContext>(&ctx);
 
 #define NULL_TEST(OP)                                             \
   /* a <OP> NULL */                                               \
@@ -199,8 +199,8 @@ TEST_F(VectorSelectTest, StringSelection) {
       {false, false, true, false, false});
   auto tid_list = TupleIdList(a->GetSize());
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  auto managed_ctx = common::ManagedPointer<exec::ExecutionContext>(&ctx_);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer<exec::ExecutionContext>(&ctx);
 
   // a == b = []
   tid_list.AddAll();

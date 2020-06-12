@@ -156,17 +156,17 @@ class EXPORT ExecutionContext {
   /**
    * @return The vector active element threshold past which full auto-vectorization is done on vectors
    */
-  const constexpr double GetSelectOptThreshold() { return select_opt_threshold_; }
+  constexpr double GetSelectOptThreshold() { return select_opt_threshold_; }
 
   /**
    * @return The vector selectivity past which full computation is done
    */
-  const constexpr double GetArithmeticFullComputeOptThreshold() { return arithmetic_full_compute_opt_threshold_; }
+  constexpr double GetArithmeticFullComputeOptThreshold() { return arithmetic_full_compute_opt_threshold_; }
 
   /**
    * @return The minimum bit vector density before using a SIMD decoding algorithm
    */
-  const constexpr float GetMinBitDensityThresholdForAVXIndexDecode() {
+  constexpr float GetMinBitDensityThresholdForAVXIndexDecode() {
     return min_bit_density_threshold_for_AVX_index_decode_;
   }
 
@@ -174,7 +174,7 @@ class EXPORT ExecutionContext {
    * @return The frequency at which to sample statistics when adaptively reordering
    * predicate clauses
    */
-  const constexpr float GetAdaptivePredicateOrderSamplingFrequency() {
+  constexpr float GetAdaptivePredicateOrderSamplingFrequency() {
     return adaptive_predicate_order_sampling_frequency_;
   }
 

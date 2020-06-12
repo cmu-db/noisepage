@@ -16,16 +16,16 @@ TEST_F(VectorArithmeticTest, InvalidVectorShapes) {
   auto b = MakeIntegerVector(20);
   auto result = Vector(TypeId::SmallInt, true, false);
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   // Check simple invalid input sizes
-  EXPECT_THROW(VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result), Exception);
+  EXPECT_THROW(VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx), *a, *b, &result), Exception);
 
   a->Resize(10);
   b->Resize(10);
 
   // Check invalid types
-  EXPECT_THROW(VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result),
+  EXPECT_THROW(VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx), *a, *b, &result),
                terrier::execution::TypeMismatchException);
 }
 
@@ -34,7 +34,7 @@ TEST_F(VectorArithmeticTest, Addition) {
   auto b = MakeIntegerVector(100);
   auto result = Vector(TypeId::Integer, true, false);
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   // a = [10,10,10,10,10,...]
   // b = [0,2,4,6,8,10,...]
@@ -44,7 +44,7 @@ TEST_F(VectorArithmeticTest, Addition) {
   {
     // No-nulls, no filter, vector + vector
     // result = a + b = [10,12,14,16,18,...]
-    VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a, *b, &result);
+    VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx), *a, *b, &result);
 
     EXPECT_EQ(a->GetSize(), result.GetSize());
     EXPECT_EQ(a->GetCount(), result.GetCount());
@@ -64,7 +64,7 @@ TEST_F(VectorArithmeticTest, Addition) {
     b->SetFilteredTupleIdList(&tid_list, tid_list.GetTupleCount());
 
     // result = 13 + b = [13,15,17,19,...]
-    VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx_),
+    VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx),
                    ConstantVector(GenericValue::CreateInteger(13)), *b, &result);
 
     EXPECT_EQ(b->GetSize(), result.GetSize());
@@ -81,7 +81,7 @@ TEST_F(VectorArithmeticTest, Addition) {
 
   {
     // Null, filter, vector + constant
-    VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *a,
+    VectorOps::Add(common::ManagedPointer<exec::ExecutionContext>(&ctx), *a,
                    ConstantVector(GenericValue::CreateNull(TypeId::Integer)), &result);
 
     EXPECT_EQ(a->GetSize(), result.GetSize());
@@ -101,7 +101,7 @@ TEST_F(VectorArithmeticTest, DivMod) {
   VectorOps::Generate(a.get(), 0, 2);
   VectorOps::Generate(b.get(), 0, 4);
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   {
     // Nulls, zeros, no filter, vector + vector
@@ -109,7 +109,7 @@ TEST_F(VectorArithmeticTest, DivMod) {
     b->SetNull(9, true);
     a->SetValue(1, GenericValue::CreateSmallInt(0));
     a->SetValue(11, GenericValue::CreateSmallInt(0));
-    VectorOps::Divide(common::ManagedPointer<exec::ExecutionContext>(&ctx_), *b, *a, &result);
+    VectorOps::Divide(common::ManagedPointer<exec::ExecutionContext>(&ctx), *b, *a, &result);
 
     EXPECT_EQ(a->GetSize(), result.GetSize());
     EXPECT_EQ(a->GetCount(), result.GetCount());
@@ -132,22 +132,21 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionInvalid) {
   auto b = MakeBigIntVector(100);
   auto c = MakeSmallIntVector(10);
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   // Mismatched types
-  EXPECT_ANY_THROW(VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx_), a.get(), *b));
+  EXPECT_ANY_THROW(VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx), a.get(), *b));
 
   // Mismatched sizes
-  EXPECT_ANY_THROW(VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx_), a.get(), *c));
+  EXPECT_ANY_THROW(VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx), a.get(), *c));
 }
 
 TEST_F(VectorArithmeticTest, InPlaceAdditionNull) {
   auto a = MakeSmallIntVector(100);
   VectorOps::Generate(a.get(), 0, 2);
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  ;
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
-  VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx_), a.get(),
+  VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx), a.get(),
                         ConstantVector(GenericValue::CreateNull(TypeId::SmallInt)));
 
   EXPECT_EQ(100, a->GetSize());
@@ -157,7 +156,7 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionNull) {
 }
 
 TEST_F(VectorArithmeticTest, InPlaceAdditionSimple) {
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 #define GEN_CASE(TYPE)                                                                         \
   {                                                                                            \
     auto a = Make##TYPE##Vector(100);                                                          \
@@ -168,7 +167,7 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionSimple) {
     VectorOps::Generate(a.get(), 0, 2);                                                        \
     VectorOps::Generate(b.get(), 0, 4);                                                        \
                                                                                                \
-    VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx_), a.get(), *b); \
+    VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx), a.get(), *b); \
                                                                                                \
     EXPECT_EQ(100, a->GetSize());                                                              \
     EXPECT_EQ(100, a->GetCount());                                                             \
@@ -196,14 +195,14 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionFilteredWithNulls) {
   VectorOps::Generate(a.get(), 0, 2);
   VectorOps::Generate(b.get(), 0, 4);
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 
   auto tids = TupleIdList(a->GetSize());
   tids = {0, 2, 4, 6, 8};
   a->SetFilteredTupleIdList(&tids, tids.GetTupleCount());
   b->SetFilteredTupleIdList(&tids, tids.GetTupleCount());
 
-  VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx_), a.get(), *b);
+  VectorOps::AddInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx), a.get(), *b);
 
   EXPECT_EQ(10, a->GetSize());
   EXPECT_EQ(tids.GetTupleCount(), a->GetCount());

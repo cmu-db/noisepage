@@ -350,7 +350,7 @@ void StringFunctions::Like(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, BoolVal
   }
 
   result->is_null_ = false;
-  result->val_ = execution::sql::Like{}(string.val_, pattern.val_);
+  result->val_ = execution::sql::Like {}(string.val_, pattern.val_);
 }
 
 }  // namespace terrier::execution::sql

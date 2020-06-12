@@ -16,8 +16,8 @@ class VectorCastTest : public TplTest {};
 TEST_F(VectorCastTest, Cast) {
   // vec(i8) = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
   auto vec = MakeTinyIntVector(10);
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  auto managed_ctx = common::ManagedPointer(&ctx_);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx);
   for (uint64_t i = 0; i < vec->GetSize(); i++) {
     vec->SetValue(i, GenericValue::CreateTinyInt(i));
   }
@@ -59,8 +59,8 @@ TEST_F(VectorCastTest, Cast) {
 TEST_F(VectorCastTest, CastWithNulls) {
   // vec(int) = [0, 1, 2, 3, NULL, 5, 6, 7, NULL, 9]
   auto vec = MakeIntegerVector(10);
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  auto managed_ctx = common::ManagedPointer(&ctx_);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx);
   for (uint64_t i = 0; i < vec->GetSize(); i++) {
     vec->SetValue(i, GenericValue::CreateInteger(i));
   }
@@ -86,9 +86,8 @@ TEST_F(VectorCastTest, CastWithNulls) {
 }
 
 TEST_F(VectorCastTest, NumericDowncast) {  // NOLINT the expanded macros make clang-tidy unhappy at the function size
-
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  auto managed_ctx = common::ManagedPointer(&ctx_);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx);
 #define CHECK_CAST(SRC_TYPE, DEST_TYPE, DEST_CPP_TYPE)                                             \
   {                                                                                                \
     const uint32_t num_elems = 20;                                                                 \
@@ -142,8 +141,8 @@ TEST_F(VectorCastTest, DateCast) {
                            Date::FromYMD(1980, 1, 1), Date::FromYMD(2000, 1, 1), Date::FromYMD(2015, 8, 1)},
                           {true, false, false, true, false, false});
 
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  auto managed_ctx = common::ManagedPointer(&ctx_);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx);
 
   EXPECT_THROW(a->Cast(managed_ctx, TypeId::TinyInt), NotImplementedException);
   EXPECT_THROW(a->Cast(managed_ctx, TypeId::SmallInt), NotImplementedException);
@@ -165,8 +164,8 @@ TEST_F(VectorCastTest, DateCast) {
 TEST_F(VectorCastTest, CastStringToFloat) {
   // a = [NULL, "-123.45", "6.75", NULL, "0.8", "910"]
   auto a = MakeVarcharVector({{}, "-123.45", "6.75", {}, "0.8", "910"}, {true, false, false, true, false, false});
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
-  auto managed_ctx = common::ManagedPointer(&ctx_);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  auto managed_ctx = common::ManagedPointer(&ctx);
   EXPECT_NO_THROW(a->Cast(managed_ctx, TypeId::Float));
 
   EXPECT_EQ(TypeId::Float, a->GetTypeId());

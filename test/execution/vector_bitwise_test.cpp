@@ -9,12 +9,12 @@ namespace terrier::execution::sql {
 class VectorBitwiseTest : public TplTest {};
 
 TEST_F(VectorBitwiseTest, InPlaceBitwiseAND) {
-  exec::ExecutionContext ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext ctx(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr);
 #define GEN_CASE(TYPE, CPP_TYPE)                                                                 \
   {                                                                                              \
     auto a = Make##TYPE##Vector(100);                                                            \
     VectorOps::Generate(a.get(), 0, 2);                                                          \
-    VectorOps::BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx_), a.get(), \
+    VectorOps::BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionContext>(&ctx), a.get(), \
                                  ConstantVector(GenericValue::Create##TYPE(3)));                 \
     EXPECT_EQ(100, a->GetSize());                                                                \
     EXPECT_EQ(100, a->GetCount());                                                               \

@@ -150,9 +150,7 @@ class Settings {
   // force singleton access
   Settings();  // NOLINT
 
- private:
   // Container for all settings
   std::array<Value, K_NUM_SETTINGS> settings_;
 };
-
 }  // namespace terrier::execution
