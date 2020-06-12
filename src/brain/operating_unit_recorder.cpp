@@ -3,6 +3,7 @@
 #include "brain/operating_unit.h"
 #include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit_util.h"
+#include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/operator/aggregate_translator.h"
