@@ -2,8 +2,9 @@
 
 #include <vector>
 
-#include "execution/exec/execution_context.h"
+#include "catalog/catalog_defs.h"
 #include "execution/util/execution_common.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::storage {
 class ProjectedRow;
@@ -12,11 +13,17 @@ class RedoRecord;
 
 namespace index {
 class Index;
-}
+} // namespace index
 
 }  // namespace terrier::storage
 
-namespace terrier::execution::sql {
+namespace terrier::execution {
+
+namespace exec {
+class ExecutionContext;
+} // namespace exec
+
+namespace sql {
 
 /**
  * Base class to interact with the storage layer (tables and indexes).
@@ -134,4 +141,5 @@ class EXPORT StorageInterface {
    */
   common::ManagedPointer<storage::index::Index> curr_index_{nullptr};
 };
-}  // namespace terrier::execution::sql
+}  // namespace sql
+}  // namespace terrier::execution
