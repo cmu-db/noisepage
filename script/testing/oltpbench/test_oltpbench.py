@@ -18,8 +18,8 @@ class TestOLTPBench(TestServer):
 
         # oltpbench specific attributes
         self.benchmark = str(self.args.get("benchmark"))
-        self.scalefactor = int(
-            self.args.get("scalefactor", constants.OLTP_DEFAULT_SCALEFACTOR))
+        self.scalefactor = float(
+            self.args.get("scale_factor", constants.OLTP_DEFAULT_SCALEFACTOR))
         self.terminals = int(
             self.args.get("terminals", constants.OLTP_DEFAULT_TERMINALS))
         self.loader_threads = int(

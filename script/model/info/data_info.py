@@ -38,7 +38,29 @@ MINI_MODEL_TARGET_NUM = len(MINI_MODEL_TARGET_LIST)
 ARITHMETIC_OPUNITS = {OpUnit.OP_INTEGER_PLUS_OR_MINUS, OpUnit.OP_INTEGER_MULTIPLY, OpUnit.OP_INTEGER_DIVIDE, OpUnit.OP_INTEGER_COMPARE,
                       OpUnit.OP_DECIMAL_PLUS_OR_MINUS, OpUnit.OP_DECIMAL_MULTIPLY, OpUnit.OP_DECIMAL_DIVIDE, OpUnit.OP_DECIMAL_COMPARE}
 
-SCAN_SUBSTRACT_UNITS = {OpUnit.SORT_BUILD, OpUnit.AGG_BUILD, OpUnit.HASHJOIN_BUILD, OpUnit.HASHJOIN_PROBE}
+# Operating units that need memory adjustment
+MEM_ADJUST_OPUNITS = {OpUnit.SORT_BUILD, OpUnit.HASHJOIN_BUILD, OpUnit.AGG_BUILD}
 
-# The index for the tuple num feature in the operating units that has that feature
+# Index for tuple_num in the model input feature vector
 TUPLE_NUM_INDEX = 0
+
+# Index for cardinality in the model input feature vector
+CARDINALITY_INDEX = 3
+
+# Index for execution mode in the model input feature vector
+EXECUTION_MODE_INDEX = 5
+
+# Size of a pointer on the target architecture
+POINTER_SIZE = 8
+
+# Index of features vector in the raw input from CSV
+RAW_FEATURES_VECTOR_INDEX = 4
+
+# Index of execution mode in the raw input from CSV
+RAW_EXECUTION_MODE_INDEX = 2
+
+# End index of model input feature vector
+RECORD_FEATURES_END = 6
+
+# Start index of metrics
+RECORD_METRICS_START = MINI_MODEL_TARGET_NUM

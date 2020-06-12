@@ -1,16 +1,14 @@
 #pragma once
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
-#include "storage/arrow_serializer.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-
-namespace flatbuf = org::apache::arrow::flatbuf;
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -35,8 +33,8 @@ class HashIndex;
   f(uint64_t, NumDelete) \
   f(uint64_t, NumNewBlock)
 // clang-format on
-DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
-#undef DataTableCounterMembers
+DEFINE_PERFORMANCE_CLASS_HEADER(DataTableCounter, DataTableCounterMembers)
+// #undef DataTableCounterMembers
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
@@ -239,6 +237,11 @@ class DataTable {
    * @return Number of blocks in the data table.
    */
   uint32_t GetNumBlocks() const { return blocks_.size(); }
+
+  /**
+   * @return a coarse estimation on the number of tuples in this table
+   */
+  uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
 
  private:
   // The ArrowSerializer needs access to its blocks.

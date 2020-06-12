@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "common/json.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/parser_defs.h"
@@ -144,5 +145,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTriggerPlanNode::
   trigger_type_ = j.at("trigger_type").get<int16_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(CreateTriggerPlanNode);
 
 }  // namespace terrier::planner

@@ -103,6 +103,6 @@ class SetOpPlanNode : public AbstractPlanNode {
   SetOpType set_op_;
 };
 
-DEFINE_JSON_DECLARATIONS(SetOpPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(SetOpPlanNode);
 
 }  // namespace terrier::planner

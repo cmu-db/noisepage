@@ -9,8 +9,9 @@
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
 #include "common/hash_util.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "common/macros.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 
 namespace terrier {
@@ -93,24 +94,12 @@ struct TableInfo {
   /**
    * @return TableInfo serialized to json
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["table_name"] = table_name_;
-    j["namespace_name"] = namespace_name_;
-    j["database_name"] = database_name_;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * @param j json to deserialize
    */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    table_name_ = j.at("table_name").get<std::string>();
-    namespace_name_ = j.at("namespace_name").get<std::string>();
-    database_name_ = j.at("database_name").get<std::string>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   friend class TableRefStatement;
@@ -120,7 +109,7 @@ struct TableInfo {
   std::string database_name_;
 };
 
-DEFINE_JSON_DECLARATIONS(TableInfo);
+DEFINE_JSON_HEADER_DECLARATIONS(TableInfo);
 
 /**
  * Base class for the parsed SQL statements.
@@ -158,26 +147,18 @@ class SQLStatement {
   /**
    * @return statement serialized to json
    */
-  virtual nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["stmt_type"] = stmt_type_;
-    return j;
-  }
+  virtual nlohmann::json ToJson() const;
 
   /**
    * @param j json to deserialize
    */
-  virtual std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
-    std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
-    stmt_type_ = j.at("stmt_type").get<StatementType>();
-    return exprs;
-  }
+  virtual std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   StatementType stmt_type_;
 };
 
-DEFINE_JSON_DECLARATIONS(SQLStatement);
+DEFINE_JSON_HEADER_DECLARATIONS(SQLStatement);
 
 /**
  * Base class for statements that refer to other tables.

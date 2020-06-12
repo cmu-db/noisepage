@@ -41,16 +41,21 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
 }
 
-ExecutableQuery::ExecutableQuery(const std::string &filename,
-                                 const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
-  auto file = llvm::MemoryBuffer::getFile(filename);
-  if (std::error_code error = file.getError()) {
-    EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", filename, error.message());
-    return;
-  }
+ExecutableQuery::ExecutableQuery(const std::string &contents,
+                                 const common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file) {
+  std::string source;
+  if (is_file) {
+    auto file = llvm::MemoryBuffer::getFile(contents);
+    if (std::error_code error = file.getError()) {
+      EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", contents, error.message());
+      return;
+    }
 
-  // Copy the source into a temporary, compile, and run
-  auto source = (*file)->getBuffer().str();
+    // Copy the source into a temporary, compile, and run
+    source = (*file)->getBuffer().str();
+  } else {
+    source = contents;
+  }
 
   // Let's scan the source
   region_ = std::make_unique<util::Region>("repl-ast");
@@ -82,13 +87,16 @@ ExecutableQuery::ExecutableQuery(const std::string &filename,
   auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
   tpl_module_ = std::make_unique<vm::Module>(std::move(bytecode_module));
 
-  // acquire the output format
-  query_name_ = GetFileName(filename);
+  if (is_file) {
+    // acquire the output format
+    query_name_ = GetFileName(contents);
+  }
 }
 
 void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
   TERRIER_ASSERT(tpl_module_ != nullptr, "Trying to run a module that failed to compile.");
   exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
+  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
 
   // Run the main function
   if (!tpl_module_->GetFunction("main", mode, &main_)) {
