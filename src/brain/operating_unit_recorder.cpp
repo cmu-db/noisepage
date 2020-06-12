@@ -13,6 +13,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression_defs.h"
+#include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
