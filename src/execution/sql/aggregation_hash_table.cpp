@@ -222,9 +222,9 @@ void AggregationHashTable::Grow() {
 
 HashTableEntry *AggregationHashTable::AllocateEntryInternal(const hash_t hash) {
   // Allocate an entry
-  auto *entry = reinterpret_cast<HashTableEntry *>(entries_.append());
-  entry->hash = hash;
-  entry->next = nullptr;
+  auto *entry = reinterpret_cast<HashTableEntry *>(entries_.Append());
+  entry->hash_ = hash;
+  entry->next_ = nullptr;
 
   // Insert into table
   hash_table_.Insert<false>(entry);
@@ -248,7 +248,7 @@ byte *AggregationHashTable::AllocInputTuple(const hash_t hash) {
 
 void AggregationHashTable::AllocateOverflowPartitions() {
   TERRIER_ASSERT((partition_heads_ == nullptr) == (partition_tails_ == nullptr),
-             "Head and tail of overflow partitions list are not equally allocated");
+                 "Head and tail of overflow partitions list are not equally allocated");
 
   if (partition_heads_ == nullptr) {
     partition_heads_ = memory_->AllocateArray<HashTableEntry *>(DEFAULT_NUM_PARTITIONS, true);
@@ -262,7 +262,7 @@ void AggregationHashTable::AllocateOverflowPartitions() {
 }
 
 void AggregationHashTable::FlushToOverflowPartitions() {
-  if (TPL_UNLIKELY(partition_heads_ == nullptr)) {
+  if (UNLIKELY(partition_heads_ == nullptr)) {
     AllocateOverflowPartitions();
   }
 
@@ -277,13 +277,13 @@ void AggregationHashTable::FlushToOverflowPartitions() {
   // estimator.
 
   hash_table_.FlushEntries([this](HashTableEntry *entry) {
-    const uint64_t partition_idx = (entry->hash >> partition_shift_bits_);
-    entry->next = partition_heads_[partition_idx];
+    const uint64_t partition_idx = (entry->hash_ >> partition_shift_bits_);
+    entry->next_ = partition_heads_[partition_idx];
     partition_heads_[partition_idx] = entry;
-    if (TPL_UNLIKELY(partition_tails_[partition_idx] == nullptr)) {
+    if (UNLIKELY(partition_tails_[partition_idx] == nullptr)) {
       partition_tails_[partition_idx] = entry;
     }
-    partition_estimates_[partition_idx]->Update(util::HashUtil::ScrambleHash(entry->hash));
+    partition_estimates_[partition_idx]->Update(common::HashUtil::ScrambleHash(entry->hash_));
   });
 
   // Update stats
@@ -351,7 +351,7 @@ void AggregationHashTable::CheckKeyEquality(VectorProjectionIterator *input_batc
 
 void AggregationHashTable::FollowNext() {
   auto *raw_entries = reinterpret_cast<HashTableEntry **>(batch_state_->Entries()->GetData());
-  batch_state_->KeyNotEqual()->Filter([&](uint64_t i) { return (raw_entries[i] = raw_entries[i]->next) != nullptr; });
+  batch_state_->KeyNotEqual()->Filter([&](uint64_t i) { return (raw_entries[i] = raw_entries[i]->next_) != nullptr; });
 }
 
 void AggregationHashTable::FindGroups(VectorProjectionIterator *input_batch, const std::vector<uint32_t> &key_indexes) {
@@ -421,14 +421,13 @@ void FixGrouping(AggregationHashTable::HashToGroupIdMap *groups, const Vector &h
       TemplatedFixGrouping<Timestamp>(groups, hashes, entries, probe_keys, tid_list, f);
       break;
     case TypeId::Varchar:
-      TemplatedFixGrouping<VarlenEntry>(groups, hashes, entries, probe_keys, tid_list, f);
+      TemplatedFixGrouping<storage::VarlenEntry>(groups, hashes, entries, probe_keys, tid_list, f);
       break;
     case TypeId::Varbinary:
       TemplatedFixGrouping<Blob>(groups, hashes, entries, probe_keys, tid_list, f);
       break;
     default:
-      throw NotImplementedException(
-          fmt::format("key comparison on type {} not supported", TypeIdToString(probe_keys.GetTypeId())));
+      throw NOT_IMPLEMENTED_EXCEPTION("Unsupported type for key comparison.");
   }
 }
 
@@ -494,10 +493,10 @@ void AggregationHashTable::ProcessBatch(VectorProjectionIterator *input_batch, c
   }
 
   // Initialize the batch state if need be. Note: this is only performed once.
-  if (TPL_UNLIKELY(batch_state_ == nullptr)) {
+  if (UNLIKELY(batch_state_ == nullptr)) {
     batch_state_ = memory_->MakeObject<BatchProcessState>(
         libcount::HLL::Create(DEFAULT_HLL_PRECISION),  // The Hyper-Log-Log estimator
-        std::make_unique<HashToGroupIdMap>());        // The Hash-to-GroupID map
+        std::make_unique<HashToGroupIdMap>());         // The Hash-to-GroupID map
   }
 
   // Reset state for the incoming batch.
@@ -559,14 +558,14 @@ void AggregationHashTable::TransferMemoryAndPartitions(
     owned_entries_.emplace_back(std::move(table->entries_));
 
     TERRIER_ASSERT(table->owned_entries_.empty(),
-               "A thread-local aggregation table should not have any owned "
-               "entries themselves. Nested/recursive aggregations not supported.");
+                   "A thread-local aggregation table should not have any owned "
+                   "entries themselves. Nested/recursive aggregations not supported.");
 
     // Now, move over their overflow partitions list
     for (uint32_t part_idx = 0; part_idx < DEFAULT_NUM_PARTITIONS; part_idx++) {
       if (table->partition_heads_[part_idx] != nullptr) {
         // Link in the partition list
-        table->partition_tails_[part_idx]->next = partition_heads_[part_idx];
+        table->partition_tails_[part_idx]->next_ = partition_heads_[part_idx];
         partition_heads_[part_idx] = table->partition_heads_[part_idx];
         if (partition_tails_[part_idx] == nullptr) {
           partition_tails_[part_idx] = table->partition_tails_[part_idx];
@@ -581,9 +580,10 @@ void AggregationHashTable::TransferMemoryAndPartitions(
 AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *query_state,
                                                                          const uint32_t partition_idx) {
   TERRIER_ASSERT(partition_idx < DEFAULT_NUM_PARTITIONS, "Out-of-bounds partition access");
-  TERRIER_ASSERT(partition_heads_[partition_idx] != nullptr, "Should not build aggregation table over empty partition!");
+  TERRIER_ASSERT(partition_heads_[partition_idx] != nullptr,
+                 "Should not build aggregation table over empty partition!");
   TERRIER_ASSERT(merge_partition_fn_ != nullptr,
-             "Merging function was not provided! Did you forget to call TransferMemoryAndPartitions()?");
+                 "Merging function was not provided! Did you forget to call TransferMemoryAndPartitions()?");
 
   // If the table has already been built, return it
   if (partition_tables_[partition_idx] != nullptr) {
@@ -603,8 +603,8 @@ AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *q
   merge_partition_fn_(query_state, agg_table, &iter);
 
   timer.Stop();
-  LOG_DEBUG("Overflow Partition {}: estimated size = {}, actual size = {}, build time = {:2f} ms", partition_idx,
-            estimated_size, agg_table->GetTupleCount(), timer.GetElapsed());
+  EXECUTION_LOG_DEBUG("Overflow Partition {}: estimated size = {}, actual size = {}, build time = {:2f} ms",
+                      partition_idx, estimated_size, agg_table->GetTupleCount(), timer.GetElapsed());
 
   // Set it
   partition_tables_[partition_idx] = agg_table;
@@ -615,8 +615,8 @@ AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *q
 
 void AggregationHashTable::ExecutePartitionedScan(void *query_state, AggregationHashTable::ScanPartitionFn scan_fn) {
   TERRIER_ASSERT(partition_heads_ != nullptr && merge_partition_fn_ != nullptr,
-             "No overflow partitions allocated, or no merging function allocated. Did you call "
-             "TransferMemoryAndPartitions() before issuing the partitioned scan?");
+                 "No overflow partitions allocated, or no merging function allocated. Did you call "
+                 "TransferMemoryAndPartitions() before issuing the partitioned scan?");
 
   // Determine the non-empty overflow partitions.
   for (uint32_t part_idx = 0; part_idx < DEFAULT_NUM_PARTITIONS; part_idx++) {
@@ -640,8 +640,8 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
   // scanned in parallel.
 
   TERRIER_ASSERT(partition_heads_ != nullptr && merge_partition_fn_ != nullptr,
-             "No overflow partitions allocated, or no merging function allocated. Did you call "
-             "TransferMemoryAndPartitions() before issuing the partitioned scan?");
+                 "No overflow partitions allocated, or no merging function allocated. Did you call "
+                 "TransferMemoryAndPartitions() before issuing the partitioned scan?");
 
   // Determine the non-empty overflow partitions
   std::vector<uint32_t> nonempty_parts;
@@ -673,8 +673,8 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
                       [&](const auto curr, const auto idx) { return curr + partition_tables_[idx]->GetTupleCount(); });
 
   double tps = (tuple_count / timer.GetElapsed()) / 1000.0;
-  LOG_INFO("Built and scanned {} tables totalling {} tuples in {:.2f} ms ({:.2f} mtps)", nonempty_parts.size(),
-           tuple_count, timer.GetElapsed(), tps);
+  EXECUTION_LOG_INFO("Built and scanned {} tables totalling {} tuples in {:.2f} ms ({:.2f} mtps)",
+                     nonempty_parts.size(), tuple_count, timer.GetElapsed(), tps);
 }
 
 void AggregationHashTable::BuildAllPartitions(void *query_state) {
@@ -712,7 +712,7 @@ void AggregationHashTable::Repartition() {
   for (auto *table : nonempty_tables) {
     for (uint32_t part_idx = 0; part_idx < DEFAULT_NUM_PARTITIONS; part_idx++) {
       if (table->partition_heads_[part_idx] != nullptr) {
-        table->partition_tails_[part_idx]->next = partition_heads_[part_idx];
+        table->partition_tails_[part_idx]->next_ = partition_heads_[part_idx];
         partition_heads_[part_idx] = table->partition_heads_[part_idx];
         if (partition_tails_[part_idx] == nullptr) {
           partition_tails_[part_idx] = table->partition_tails_[part_idx];

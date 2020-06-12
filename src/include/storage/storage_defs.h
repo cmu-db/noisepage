@@ -389,7 +389,46 @@ class VarlenEntry {
     }
   }
 
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator==(const VarlenEntry &that) const { return CompareEqualOrNot<true>(*this, that); }
+
+  /**
+   * @return True if this varlen does not equal @em that varlen; false otherwise.
+   */
+  bool operator!=(const VarlenEntry &that) const { return CompareEqualOrNot<false>(*this, that); }
+
  private:
+  /**
+   * Compare two strings ONLY for equality or inequality only.
+   * @tparam EqualCheck
+   * @param left The first string.
+   * @param right The second string.
+   * @return 0 if equal; any non-zero value otherwise.
+   */
+  template <bool EqualityCheck>
+  static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
+    // Compare the size.
+    if (left.Size() == right.Size()) {
+      // Sizes equal, compare the prefix.
+      if (std::memcmp(left.Prefix(), right.Prefix(), left.PrefixSize()) == 0) {
+        // Sizes and prefixes equal, compare contents.
+        if (left.IsInlined()) {
+          if (std::memcmp(left.prefix_, right.prefix_, left.Size()) == 0) {
+            return EqualityCheck ? true : false;
+          }
+        } else {
+          if (std::memcmp(left.content_, right.content_, left.Size()) == 0) {
+            return EqualityCheck ? true : false;
+          }
+        }
+      }
+    }
+    // Not equal.
+    return EqualityCheck ? false : true;
+  }
+
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined
