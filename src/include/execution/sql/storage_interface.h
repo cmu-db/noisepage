@@ -77,7 +77,7 @@ class EXPORT StorageInterface {
    */
   bool IndexInsertUnique();
 
-  void IndexCreate(catalog::index_oid_t index_oid);
+  bool IndexCreate(catalog::index_oid_t index_oid);
  protected:
   /**
    * Oid of the table being accessed.

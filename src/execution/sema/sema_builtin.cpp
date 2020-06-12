@@ -2163,7 +2163,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
         ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
         return;
       }
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
     case ast::Builtin::StorageInterfaceFree: {

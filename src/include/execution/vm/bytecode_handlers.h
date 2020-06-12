@@ -1660,7 +1660,7 @@ VM_OP void OpStorageInterfaceIndexInsertUnique(bool *result,
 VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);
 
-VM_OP void OpStorageInterfaceIndexCreate(terrier::execution::sql::StorageInterface *storage_interface,
+VM_OP void OpStorageInterfaceIndexCreate(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
                                          uint32_t index_oid);
 
 VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);

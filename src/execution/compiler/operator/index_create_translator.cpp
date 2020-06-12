@@ -42,7 +42,7 @@ void CreateIndexTranslator::DeclareIndexInserter(terrier::execution::compiler::F
   auto storage_interface_type = codegen_->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
   builder->Append(codegen_->DeclareVariable(index_inserter_, storage_interface_type, nullptr));
   // Call @storageInterfaceInit
-  ast::Expr *index_inserter_setup = codegen_->StorageInterfaceInit(index_inserter_, !op_->GetTableOid(), col_oids_, true);
+  ast::Expr *index_inserter_setup = codegen_->StorageInterfaceInit(index_inserter_, !op_->GetTableOid(), col_oids_, false);
   builder->Append(codegen_->MakeStmt(index_inserter_setup));
 }
 

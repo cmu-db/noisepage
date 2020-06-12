@@ -1992,8 +1992,10 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
     }
 
     case ast::Builtin::IndexCreate: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitStorageInterfaceIndexCreate(Bytecode::StorageInterfaceIndexCreate, storage_interface, index_oid);
+      Emitter()->EmitStorageInterfaceIndexCreate(Bytecode::StorageInterfaceIndexCreate, cond, storage_interface, index_oid);
+      ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
 

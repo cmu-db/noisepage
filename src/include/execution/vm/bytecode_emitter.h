@@ -456,7 +456,7 @@ class BytecodeEmitter {
    */
   void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, uint32_t index_oid);
 
-  void EmitStorageInterfaceIndexCreate(Bytecode bytecode, LocalVar storage_interface, uint32_t index_oid);
+  void EmitStorageInterfaceIndexCreate(Bytecode bytecode, LocalVar out, LocalVar storage_interface, uint32_t index_oid);
   /**
    * Copy a scalar immediate value into the bytecode stream
    * @tparam T type of the value

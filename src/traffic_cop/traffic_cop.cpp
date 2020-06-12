@@ -163,17 +163,7 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
       auto create_index_plan = physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>();
-      bool concurrent = create_index_plan->GetConcurrent();
-      if (concurrent) {
-        auto *populate_txn = txn_manager_->BeginTransaction();
-        bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
-            physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
-            common::ManagedPointer(populate_txn));
-        if (result) {
-          return {ResultType::COMPLETE, 0};
-        }
-        break;
-      }
+
 
       auto table_oid = create_index_plan->GetTableOid();
       if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
@@ -351,7 +341,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   const auto query_type = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-                     query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
+                     query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE ||
+                     query_type == network::QueryType::QUERY_CREATE_INDEX,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 

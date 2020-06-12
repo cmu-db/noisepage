@@ -82,15 +82,19 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 
-void StorageInterface::IndexCreate(catalog::index_oid_t index_oid) {
-  TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+bool StorageInterface::IndexCreate(catalog::index_oid_t index_oid) {
+
 
   const auto &schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
+  bool result UNUSED_ATTRIBUTE = exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, index);
+  TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
   index_builder.SetSqlTableAndTransactionContext(table_, exec_ctx_->GetTxn());
   index_builder.BulkInsert(index);
+  exec_ctx_->GetAccessor()->SetIndexLive(index_oid);
+  return true;
 }
 
 }  // namespace terrier::execution::sql
