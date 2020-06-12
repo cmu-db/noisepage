@@ -1,9 +1,15 @@
 #pragma once
+
 #include <unordered_map>
 #include <vector>
-#include "catalog/index_schema.h"
+
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/index_join_plan_node.h"
+
+namespace terrier::catalog {
+class IndexSchema;
+class Schema;
+} // namespace terrier::catalog
 
 namespace terrier::execution::compiler {
 
