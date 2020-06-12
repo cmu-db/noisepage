@@ -106,10 +106,10 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
 
 DataTable::SlotIterator DataTable::GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
   TERRIER_ASSERT(start <= end, "Start index should come before ending index.");
-  TERRIER_ASSERT(start <= blocks_.size() && end <= blocks_.size(), "Indexes must be within bounds.");
   TERRIER_ASSERT(static_cast<int32_t>(end - start - 1) >= 0, "Too many blocks or sign issue.");
 
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  TERRIER_ASSERT(start <= blocks_.size() && end <= blocks_.size(), "Indexes must be within bounds.");
   return {this, start, static_cast<int32_t>(end - start - 1), 0};
 }
 
@@ -158,13 +158,13 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
 void DataTable::CheckMoveHead(uint32_t block_index) {
   // Assume block is full.
   common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
-  if (block_index == insertion_head_) {
+  if (block_index == insertion_head_.load()) {
     // If the header block is full, move the header to point to the next block.
     insertion_head_++;
   }
 
   // If there are no more free blocks, create a new empty block and point the insertion_head to it.
-  if (insertion_head_ == blocks_.size()) {
+  if (insertion_head_.load() == blocks_.size()) {
     RawBlock *new_block = NewBlock();
     // Take the latch and insert the block. The insertion head will already have the right index.
     common::SpinLatch::ScopedSpinLatch guard_block(&blocks_latch_);
@@ -187,7 +187,8 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   // If the first bit is 1, it indicates one txn is writing to the block.
 
   TupleSlot result;
-  auto block_index = insertion_head_;
+  auto block_index = insertion_head_.load();
+  RawBlock *block;
 
   while (true) {
     // No free block left
@@ -200,10 +201,15 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
       common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
       // insert block
       blocks_.push_back(new_block);
+      block = new_block;
       break;
     }
 
-    auto block = blocks_[block_index];
+    {
+      common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+      block = blocks_[block_index];
+    }
+
     if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block
       if (accessor_.Allocate(block, &result)) {
@@ -222,7 +228,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
 
   // Do not need to wait unit finish inserting,
   // can flip back the status bit once the thread gets the allocated tuple slot
-  accessor_.ClearBlockBusyStatus(blocks_[block_index]);
+  accessor_.ClearBlockBusyStatus(block);
   InsertInto(txn, redo, result);
 
   data_table_counter_.IncrementNumInsert(1);

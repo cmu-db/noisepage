@@ -180,7 +180,7 @@ class DataTable {
   SlotIterator end() const;  // NOLINT for STL name compatibility
 
   /**
-   * Return a SlotIterator that will only cover the blocks in the selected range. If the end
+   * Return a SlotIterator that will only cover the blocks in the selected range.
    * @param start The index of the block to start iterating at, starts at 0.
    * @param end The index of the block to stop iterating at, ends at GetNumBlocks().
    * @return SlotIterator that will iterate over only the blocks in the range [start, end).
@@ -272,7 +272,7 @@ class DataTable {
   mutable common::SpinLatch blocks_latch_;
   // latch used to protect insertion_head_
   mutable common::SpinLatch header_latch_;
-  uint32_t insertion_head_;
+  std::atomic<uint32_t> insertion_head_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
   void CheckMoveHead(uint32_t block_index);
