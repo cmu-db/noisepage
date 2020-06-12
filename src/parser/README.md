@@ -57,7 +57,7 @@ In order to port Postgres to C++, we made the following changes:
     non-trivial constructor. The work around is to define the constructor mannually. 
     Details of the cases are as follows:
 
-    * `SharedInvalidationMessage` ar `include/storage/sinval.h`
+    * `SharedInvalidationMessage` at `include/storage/sinval.h`
 
 
 5. Resolve error for missing `operator++`
