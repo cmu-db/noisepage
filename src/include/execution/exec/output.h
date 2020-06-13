@@ -17,11 +17,11 @@
 
 namespace terrier::network {
 class PostgresPacketWriter;
-} // namespace terrier::network
+}  // namespace terrier::network
 
 namespace terrier::planner {
 class OutputSchema;
-} // namespace terrier::planner
+}  // namespace terrier::planner
 
 namespace terrier::execution::exec {
 

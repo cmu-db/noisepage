@@ -12,7 +12,7 @@
 
 namespace terrier::transaction {
 class TransactionContext;
-} // namespace terrier::transaction
+}  // namespace terrier::transaction
 
 namespace terrier::storage::index {
 

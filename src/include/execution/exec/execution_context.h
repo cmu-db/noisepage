@@ -15,19 +15,19 @@
 
 namespace terrier::parser {
 class ConstantValueExpression;
-} // namespace terrier::parser
+}  // namespace terrier::parser
 
 namespace terrier::catalog {
 class CatalogAccessor;
-} // namespace terrier::catalog
+}  // namespace terrier::catalog
 
 namespace terrier::planner {
 class OutputSchema;
-} // namespace terrier::planner
+}  // namespace terrier::planner
 
 namespace terrier::transaction {
 class TransactionContext;
-} // namespace terrier::transaction
+}  // namespace terrier::transaction
 
 namespace terrier::execution::exec {
 /**
@@ -88,7 +88,7 @@ class EXPORT ExecutionContext {
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
-                   const common::ManagedPointer<catalog::CatalogAccessor> accessor);
+                   common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
    * @return the transaction used by this query

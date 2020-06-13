@@ -10,7 +10,7 @@
 
 namespace terrier::storage {
 class SqlTable;
-} // namespace terrier::storage
+}  // namespace terrier::storage
 
 namespace terrier::execution::sql {
 /**

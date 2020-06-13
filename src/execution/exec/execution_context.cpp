@@ -23,8 +23,6 @@ ExecutionContext::ExecutionContext(catalog::db_oid_t db_oid,
       string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
       accessor_(accessor) {}
 
-
-
 char *ExecutionContext::StringAllocator::Allocate(std::size_t size) {
   if (tracker_ != nullptr) tracker_->Increment(size);
   return reinterpret_cast<char *>(region_.Allocate(size));

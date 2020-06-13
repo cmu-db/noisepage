@@ -22,16 +22,16 @@ class OutputSchema;
 
 namespace settings {
 class SettingsManager;
-} // namespace settings
+}  // namespace settings
 
 namespace catalog {
 class CatalogAccessor;
 class Schema;
-} // namespace catalog
+}  // namespace catalog
 
 namespace transaction {
 class TransactionContext;
-} // namespace transaction
+}  // namespace transaction
 
 namespace optimizer {
 

@@ -19,11 +19,11 @@
 
 namespace terrier::parser {
 class ConstantValueExpression;
-} // namespace terrier::parser
+}  // namespace terrier::parser
 
 namespace terrier::catalog {
 class CatalogAccessor;
-} // namespace terrier::catalog
+}  // namespace terrier::catalog
 
 namespace terrier::execution::compiler {
 

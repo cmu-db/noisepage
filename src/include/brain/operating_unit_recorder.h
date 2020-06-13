@@ -15,7 +15,7 @@
 namespace terrier::planner {
 class AbstractJoinPlanNode;
 class AbstractScanPlanNode;
-} // namespace terrier::planner
+}  // namespace terrier::planner
 
 namespace terrier::brain {
 

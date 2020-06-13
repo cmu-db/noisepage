@@ -10,15 +10,15 @@ namespace terrier::catalog {
 class DatabaseCatalog;
 class IndexSchema;
 class Schema;
-} // namespace terrier::catalog
+}  // namespace terrier::catalog
 
 namespace terrier::storage {
 class GarbageCollector;
-} // namespace terrier::storage
+}  // namespace terrier::storage
 
 namespace terrier::storage::index {
 class Index;
-} // namespace terrier::storage::index
+}  // namespace terrier::storage::index
 
 namespace terrier::catalog::postgres {
 /**

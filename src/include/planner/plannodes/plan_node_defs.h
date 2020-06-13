@@ -7,7 +7,7 @@
 
 namespace terrier::parser {
 class AbstractExpression;
-} // namespace terrier::parser
+}  // namespace terrier::parser
 
 namespace terrier::planner {
 

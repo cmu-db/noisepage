@@ -13,7 +13,7 @@ class RedoRecord;
 
 namespace index {
 class Index;
-} // namespace index
+}  // namespace index
 
 }  // namespace terrier::storage
 
@@ -21,7 +21,7 @@ namespace terrier::execution {
 
 namespace exec {
 class ExecutionContext;
-} // namespace exec
+}  // namespace exec
 
 namespace sql {
 

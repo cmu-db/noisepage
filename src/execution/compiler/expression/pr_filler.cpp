@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include <utility>
 
-#include "catalog/schema.h"
 #include "catalog/index_schema.h"
+#include "catalog/schema.h"
 
 namespace terrier::execution::compiler {
 void PRFiller::GenFiller(const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm,

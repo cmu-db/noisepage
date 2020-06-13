@@ -11,7 +11,7 @@
 namespace terrier::catalog {
 class IndexSchema;
 class Schema;
-} // namespace terrier::catalog
+}  // namespace terrier::catalog
 
 namespace terrier::execution::compiler {
 /**

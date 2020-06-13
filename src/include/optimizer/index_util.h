@@ -13,7 +13,7 @@
 namespace terrier::catalog {
 class CatalogAccessor;
 class IndexSchema;
-} // namespace terrier::catalog
+}  // namespace terrier::catalog
 
 namespace terrier::optimizer {
 

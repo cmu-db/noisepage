@@ -11,7 +11,7 @@
 
 namespace terrier::planner {
 class AbstractPlanNode;
-} // namespace terrier::planner
+}  // namespace terrier::planner
 
 namespace terrier::network {
 

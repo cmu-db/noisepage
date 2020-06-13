@@ -5,6 +5,7 @@
 #include "catalog/catalog_accessor.h"
 #include "common/scoped_timer.h"
 #include "main/db_main.h"
+#include "storage/index/index_builder.h"
 #include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/storage_defs.h"
