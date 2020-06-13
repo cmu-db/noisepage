@@ -9,7 +9,6 @@
 #include "network/packet_writer.h"
 #include "network/postgres/postgres_protocol_util.h"
 #include "planner/plannodes/output_schema.h"
-#include "util/time_util.h"
 
 namespace terrier::network {
 

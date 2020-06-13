@@ -11,7 +11,6 @@
 #include "network/postgres/postgres_protocol_util.h"
 #include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"
-#include "util/time_util.h"
 
 namespace terrier::network {
 

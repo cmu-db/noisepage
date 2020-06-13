@@ -251,7 +251,7 @@ class EXPORT Timestamp {
    * @param[out] sec The second corresponding to this date.
    */
   void ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min,
-                         int32_t *sec);
+                         int32_t *sec, double *fsec);
 
   /**
    * Convert this timestamp instance into a date instance.
@@ -270,11 +270,6 @@ class EXPORT Timestamp {
    * @return The hash value of this timestamp instance.
    */
   hash_t Hash() const { return Hash(0); }
-
-  /**
-   * @return A string representation of timestamp in the form "YYYY-MM-DD HH:MM:SS.ZZZ"
-   */
-  std::string ToString() const;
 
   /**
    * @return True if this timestamp equals @em that timestamp; false otherwise.
@@ -317,6 +312,11 @@ class EXPORT Timestamp {
   static Timestamp FromNative(Timestamp::NativeType val);
 
   /**
+   * @return A string representation of timestamp in the form "YYYY-MM-DD HH:MM:SS.ZZZ"
+   */
+  std::string ToString() const;
+
+  /**
    * Convert a C-style string of the form "YYYY-MM-DD HH::MM::SS" into a timestamp. Will attempt to
    * convert the first timestamp-like object it sees, skipping any leading whitespace.
    * @param str The string to convert.
@@ -353,6 +353,22 @@ class EXPORT Timestamp {
    */
   static Timestamp FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
                               int32_t sec);
+
+  /**
+   * Given year, month, day, hour, minute, second, ms, and us components construct a TPL timestamp. If any
+   * component is invalid, this will throw an exception.
+   * @param year The year.
+   * @param month The month.
+   * @param day The day.
+   * @param hour The hour.
+   * @param min The minute.
+   * @param sec The second.
+   * @param milli The millisecond.
+   * @param micro The microsecond.
+   * @return The constructed timestamp if valid.
+   */
+  static Timestamp FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
+                                int32_t sec, int32_t milli, int32_t micro);
 
  private:
   friend class Date;
