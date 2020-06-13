@@ -10,14 +10,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Properties;
 import static org.junit.Assert.assertEquals;
-import java.io.File;
-import java.io.IOException;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import org.w3c.dom.Element;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
 
 public class TestUtility {
     public static Connection makeDefaultConnection() throws SQLException {
@@ -29,30 +21,21 @@ public class TestUtility {
         props.setProperty("user", username);
         props.setProperty("prepareThreshold", "0"); // suppress switchover to binary protocol
 
-        try {
-            File optionsFile = new File("./out/options.xml");
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document document = builder.parse(optionsFile);
-            Element options = document.getDocumentElement();
+        // Set prepferQueryMode
+        String preferQueryMode = System.getenv("QUERY_MODE");
+        System.out.println("preferQueryMode: " + preferQueryMode);
+        if (preferQueryMode == null || preferQueryMode.isEmpty()) {
+            preferQueryMode = "extended";
+        }
+        props.setProperty("preferQueryMode", preferQueryMode);
 
-            // read the preferQueryMode from the options.xml
-            String preferQueryMode = (String) options.getElementsByTagName("QueryMode").item(0).getTextContent();
-            if (!preferQueryMode.isEmpty()) {
-                props.setProperty("preferQueryMode", preferQueryMode);
+        // Set prepareThreshold if the prepferQueryMode is 'extended'
+        if (preferQueryMode.equals("extended")) {
+            String prepareThreshold = System.getenv("PREPARE_THRESHOLD");
+            System.out.println("prepareThreshold: " + prepareThreshold);
+            if (prepareThreshold != null && !prepareThreshold.isEmpty()) {
+                props.setProperty("prepareThreshold", prepareThreshold);
             }
-
-            // read the prepareThreshold from the options.xml
-            if (preferQueryMode.equals("extended")) {
-                String prepareThreshold = (String) options.getElementsByTagName("ExtendedThreshold").item(0)
-                        .getTextContent();
-                if (!prepareThreshold.isEmpty()) {
-                    props.setProperty("prepareThreshold", prepareThreshold);
-                }
-            }
-
-        } catch (SAXException | IOException | ParserConfigurationException e) {
-            e.printStackTrace();
         }
 
         String url = String.format("jdbc:postgresql://%s:%d/", host, port);

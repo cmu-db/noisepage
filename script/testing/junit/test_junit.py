@@ -1,8 +1,7 @@
 #!/usr/bin/python3
+import os
 from junit import constants
 from util.test_server import TestServer
-from util.common import write_file, xml_prettify
-from xml.etree import ElementTree as et
 
 
 class TestJUnit(TestServer):
@@ -19,23 +18,15 @@ class TestJUnit(TestServer):
             self.test_output_file = constants.JUNIT_OUTPUT_FILE
 
     def run_pre_test(self):
-        self.write_config_file()
+        self.set_env_vars()
 
-    def write_config_file(self):
-        options = et.Element("Options")
+    def set_env_vars(self):
+        # set env var for QUERY_MODE
+        query_mode = self.args.get("query_mode", "extended")
+        os.environ["QUERY_MODE"] = query_mode
 
-        # config QueryMode
-        query_mode_str = self.args.get("query_mode")
-        query_mode_elem = et.SubElement(options, "QueryMode")
-        query_mode_elem.text = query_mode_str
-
-        # config ExtendedThreshold
-        if query_mode_str == "extended":
-            extended_threshold_str = self.args.get("extended_threshold")
-            if extended_threshold_str is not None:
-                extended_threshold_str = str(extended_threshold_str)
-            extended_threshold_elem = et.SubElement(options,
-                                                    "ExtendedThreshold")
-            extended_threshold_elem.text = extended_threshold_str
-
-        write_file(constants.JUNIT_OPTION_XML, xml_prettify(options))
+        # set env var for PREPARE_THRESHOLD if the QUERY_MODE is 'extended'
+        if query_mode == "extended":
+            prepare_threshold = self.args.get(
+                "prepare_threshold", constants.DEFAULT_PREPARE_THRESHOLD)
+            os.environ["PREPARE_THRESHOLD"] = str(prepare_threshold)
