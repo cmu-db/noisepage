@@ -4,6 +4,7 @@
 
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
+#include "storage/projected_row.h"
 
 namespace terrier::storage {
 class ProjectedRow;
@@ -129,6 +130,12 @@ class EXPORT StorageInterface {
    * The index PR.
    */
   storage::ProjectedRow *index_pr_{nullptr};
+
+  /**
+   * Reusable ProjectedRowInitializer for this table access
+   */
+  storage::ProjectedRowInitializer pri_;
+
   /**
    * Current index being accessed.
    */
