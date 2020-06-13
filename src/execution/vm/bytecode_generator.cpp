@@ -9,6 +9,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
+#include "execution/parsing/token.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/control_flow_builders.h"

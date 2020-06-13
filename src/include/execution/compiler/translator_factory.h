@@ -7,6 +7,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
+
 namespace terrier::execution::compiler {
 
 class Pipeline;

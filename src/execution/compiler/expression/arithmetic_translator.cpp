@@ -1,4 +1,5 @@
 #include "execution/compiler/expression/arithmetic_translator.h"
+
 #include "execution/compiler/translator_factory.h"
 
 namespace terrier::execution::compiler {
