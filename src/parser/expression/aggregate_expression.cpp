@@ -1,5 +1,7 @@
-#include "parser/expression/aggregate_expression.h"
+#include "spdlog/fmt/fmt.h"
+
 #include "common/json.h"
+#include "parser/expression/aggregate_expression.h"
 
 namespace terrier::parser {
 
@@ -36,8 +38,7 @@ void AggregateExpression::DeriveReturnValueType() {
       this->SetReturnValueType(type::TypeId::DECIMAL);
       break;
     default:
-      throw PARSER_EXCEPTION(
-          ("Not a valid aggregation expression type: " + std::to_string(static_cast<int>(expr_type))).c_str());
+      throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %i", static_cast<int>(expr_type)));
   }
 }
 
