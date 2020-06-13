@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdbool.h>
+#include <cstdbool>
 #include <cstdint>
 
 #include "execution/util/execution_common.h"
