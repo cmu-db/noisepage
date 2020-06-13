@@ -71,24 +71,24 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       return {type, string_val.first, std::move(string_val.second)};
     }
     case type::TypeId::TIMESTAMP: {
-      const auto parse_result = util::TimeConvertor::ParseTimestamp(string);
+      const auto parse_result = execution::sql::Timestamp::FromString(string);
       TERRIER_ASSERT(parse_result.first, "Failed to parse the timestamp.");
       return {type, execution::sql::TimestampVal(static_cast<uint64_t>(parse_result.second))};
     }
     case type::TypeId::DATE: {
-      const auto parse_result = util::TimeConvertor::ParseDate(string);
+      const auto parse_result = execution::sql::Date::FromString(string);
       TERRIER_ASSERT(parse_result.first, "Failed to parse the date.");
       return {type, execution::sql::DateVal(static_cast<uint32_t>(parse_result.second))};
     }
     case type::TypeId::INVALID: {
       // Postgres may not have told us the type in Parse message. Right now in oltpbench the JDBC driver is doing this
       // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
-      const auto ts_parse_result = util::TimeConvertor::ParseTimestamp(string);
+      const auto ts_parse_result =  execution::sql::Timestamp::FromString(string);
       if (ts_parse_result.first) {
         return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(static_cast<uint64_t>(ts_parse_result.second))};
       }
       // try date?
-      const auto date_parse_result = util::TimeConvertor::ParseDate(string);
+      const auto date_parse_result = execution::sql::Date::FromString(string);
       if (date_parse_result.first) {
         return {type::TypeId::DATE, execution::sql::DateVal(static_cast<uint32_t>(date_parse_result.second))};
       }

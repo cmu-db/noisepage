@@ -3021,8 +3021,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   // Keep string longs to avoid inlining
   std::string str1("I am a long string with 37 characters");
   std::string str2("I am a long string with 73 characters");
-  sql::DateVal date1(sql::Date::FromYMD(1937, 3, 7));
-  sql::DateVal date2(sql::Date::FromYMD(1973, 7, 3));
+  sql::DateVal date1(sql::Date::FromYMD(1937, 3, 7).second);
+  sql::DateVal date2(sql::Date::FromYMD(1973, 7, 3).second);
   double real1 = 37.73;
   double real2 = 73.37;
   bool bool1 = true;

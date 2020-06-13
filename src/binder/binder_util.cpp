@@ -62,7 +62,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
         // TODO(WAN): A bit stupid to take the string view back into a string.
         switch (desired_type) {
           case type::TypeId::DATE: {
-            auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
+            auto parsed_date = execution::sql::Date::FromString(std::string(str_view));
             if (!parsed_date.first) {
               ReportFailure("Binder conversion from VARCHAR to DATE failed.");
             }
@@ -72,7 +72,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::TIMESTAMP: {
-            auto parsed_timestamp = util::TimeConvertor::ParseTimestamp(std::string(str_view));
+            auto parsed_timestamp = execution::sql::Timestamp::FromString(std::string(str_view));
             if (!parsed_timestamp.first) {
               ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
             }

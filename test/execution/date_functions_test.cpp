@@ -24,7 +24,7 @@ class DateFunctionsTests : public TplTest {};
 TEST_F(DateFunctionsTests, DateNilTest) {
   DateVal nil_date1(DateVal::Null());
   DateVal nil_date2(DateVal::Null());
-  DateVal date(Date::FromYMD(2019, 8, 11));
+  DateVal date(Date::FromYMD(2019, 8, 11).second);
   BoolVal res{false};
 
   // Nil comparison should return nil
@@ -55,8 +55,8 @@ TEST_F(DateFunctionsTests, DateNilTest) {
 
 // NOLINTNEXTLINE
 TEST_F(DateFunctionsTests, EqualDateTest) {
-  DateVal base1(Date::FromYMD(2019, 8, 11));
-  DateVal base2(Date::FromYMD(2019, 8, 11));
+  DateVal base1(Date::FromYMD(2019, 8, 11).second);
+  DateVal base2(Date::FromYMD(2019, 8, 11).second);
 
   BoolVal res{false};
   // ==, <=, >= should be true
@@ -71,10 +71,10 @@ TEST_F(DateFunctionsTests, EqualDateTest) {
 
 // NOLINTNEXTLINE
 TEST_F(DateFunctionsTests, DifferentDatesTest) {
-  DateVal base(Date::FromYMD(2019, 8, 11));
-  DateVal past_day(Date::FromYMD(2019, 8, 10));
-  DateVal past_month(Date::FromYMD(2019, 7, 28));
-  DateVal past_year(Date::FromYMD(2018, 12, 28));
+  DateVal base(Date::FromYMD(2019, 8, 11).second);
+  DateVal past_day(Date::FromYMD(2019, 8, 10).second);
+  DateVal past_month(Date::FromYMD(2019, 7, 28).second);
+  DateVal past_year(Date::FromYMD(2018, 12, 28).second);
 
   BoolVal res{false};
   // >, >=, != should be true if base is lhs
@@ -124,7 +124,7 @@ TEST_F(DateFunctionsTests, DifferentDatesTest) {
 
 // NOLINTNEXTLINE
 TEST_F(DateFunctionsTests, DateExtractTest) {
-  DateVal date(Date::FromYMD(2019, 8, 11));
+  DateVal date(Date::FromYMD(2019, 8, 11).second);
   ASSERT_EQ(date.val_.ExtractYear(), 2019);
   ASSERT_EQ(date.val_.ExtractMonth(), 8);
   ASSERT_EQ(date.val_.ExtractDay(), 11);

@@ -425,15 +425,13 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
     }
     case type::TypeId::DATE: {
       const auto val = const_val.Peek<execution::sql::Date>().ToNative();
-      auto ymd = terrier::util::TimeConvertor::YMDFromDate(static_cast<type::date_t>(val));
-      auto year = static_cast<int32_t>(ymd.year());
-      auto month = static_cast<uint32_t>(ymd.month());
-      auto day = static_cast<uint32_t>(ymd.day());
+      int32_t year = 0, month = 0 , day = 0;
+      auto ymd = execution::sql::Date(val).ExtractComponents(&year, &month, &day);
       return DateToSql(year, month, day);
     }
     case type::TypeId::TIMESTAMP: {
       const auto val = const_val.Peek<execution::sql::Timestamp>().ToNative();
-      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(static_cast<type::timestamp_t>(val));
+      auto julian_usec = execution::sql::Timestamp::FromNative(val).ToNative();
       return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {

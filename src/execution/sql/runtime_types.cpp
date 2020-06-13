@@ -180,7 +180,7 @@ Date::NativeType Date::ToNative() const { return value_; }
 
 Date Date::FromNative(Date::NativeType val) { return Date {val}; }
 
-Date Date::FromString(const char *str, std::size_t len) {
+std::pair<bool, Date> Date::FromString(const char *str, std::size_t len) {
   const char *ptr = str, *limit = ptr + len;
 
   // Trim leading and trailing whitespace
@@ -189,32 +189,29 @@ Date Date::FromString(const char *str, std::size_t len) {
 
   uint32_t year = 0, month = 0, day = 0;
 
-#define DATE_ERROR \
-  CONVERSION_EXCEPTION("invalid date")
-
   // Year
   while (true) {
-    if (ptr == limit) throw DATE_ERROR;
+    if (ptr == limit) return {false, {}};
     char c = *ptr++;
     if (std::isdigit(c)) {
       year = year * 10 + (c - '0');
     } else if (c == '-') {
       break;
     } else {
-      throw DATE_ERROR;
+      return {false, {}};
     }
   }
 
   // Month
   while (true) {
-    if (ptr == limit) throw DATE_ERROR;
+    if (ptr == limit) return {false, {}};
     char c = *ptr++;
     if (std::isdigit(c)) {
       month = month * 10 + (c - '0');
     } else if (c == '-') {
       break;
     } else {
-      throw DATE_ERROR;
+      return {false, {}};
     }
   }
 
@@ -225,25 +222,25 @@ Date Date::FromString(const char *str, std::size_t len) {
     if (std::isdigit(c)) {
       day = day * 10 + (c - '0');
     } else {
-      throw DATE_ERROR;
+      return {false, {}};
     }
   }
 
   return Date::FromYMD(year, month, day);
 }
 
-Date Date::FromYMD(int32_t year, int32_t month, int32_t day) {
+std::pair<bool, Date> Date::FromYMD(int32_t year, int32_t month, int32_t day) {
   // Check calendar date.
   if (!IsValidCalendarDate(year, month, day)) {
-    throw CONVERSION_EXCEPTION("invalid date");
+    return {false, {}};
   }
 
   // Check if date would overflow Julian calendar.
   if (!IsValidJulianDate(year, month, day)) {
-    throw CONVERSION_EXCEPTION("invalid date");
+    return {false, {}};
   }
 
-  return Date(BuildJulianDate(year, month, day));
+  return {true, Date(BuildJulianDate(year, month, day))};
 }
 
 bool Date::IsValidDate(int32_t year, int32_t month, int32_t day) { return IsValidJulianDate(year, month, day); }
@@ -396,7 +393,7 @@ std::string Timestamp::ToString() const {
   return fmt::format("{}-{:02}-{:02} {:02}:{:02}:{:02}", year, month, day, hour, min, sec);
 }
 
-Timestamp Timestamp::FromString(const char *str, std::size_t len) {
+std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t len) {
   const char *ptr = str, *limit = ptr + len;
 
   // Trim leading and trailing whitespace
@@ -405,39 +402,36 @@ Timestamp Timestamp::FromString(const char *str, std::size_t len) {
 
   uint32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, milli = 0, micro= 0;
 
-#define TS_ERROR \
-  CONVERSION_EXCEPTION("invalid timestamp")
-
   // Year
   while (true) {
-    if (ptr == limit) throw TS_ERROR;
+    if (ptr == limit) return {false, {}};
     char c = *ptr++;
     if (std::isdigit(c)) {
       year = year * 10 + (c - '0');
     } else if (c == '-') {
       break;
     } else {
-      throw TS_ERROR;
+      return {false, {}};
     }
   }
 
   // Month
   while (true) {
-    if (ptr == limit) throw TS_ERROR;
+    if (ptr == limit) return {false, {}};
     char c = *ptr++;
     if (std::isdigit(c)) {
       month = month * 10 + (c - '0');
     } else if (c == '-') {
       break;
     } else {
-      throw TS_ERROR;
+      return {false, {}};
     }
   }
 
   // Day
   while (true) {
     if (ptr == limit) {
-      return Date::FromYMD(year, month, day).ConvertToTimestamp();
+      return (Date::FromYMD(year, month, day).second).ConvertToTimestamp();
     }
     char c = *ptr++;
     if (std::isdigit(c)) {
@@ -445,33 +439,33 @@ Timestamp Timestamp::FromString(const char *str, std::size_t len) {
     } else if (c == ' ' || c == 'T') {
       break;
     } else {
-      throw TS_ERROR;
+      return {false, {}};
     }
   }
 
   // Hour
   while (true) {
-    if (ptr == limit) throw TS_ERROR;
+    if (ptr == limit) return {false, {}};
     char c = *ptr++;
     if (std::isdigit(c)) {
       hour = hour * 10 + (c - '0');
     } else if (c == ':') {
       break;
     } else {
-      throw TS_ERROR;
+      return {false, {}};
     }
   }
 
   // Minute
   while (true) {
-    if (ptr == limit) throw TS_ERROR;
+    if (ptr == limit) return {false, {}};
     char c = *ptr++;
     if (std::isdigit(c)) {
       min = min * 10 + (c - '0');
     } else if (c == ':') {
       break;
     } else {
-      throw TS_ERROR;
+      return {false, {}};
     }
   }
 
@@ -488,7 +482,7 @@ Timestamp Timestamp::FromString(const char *str, std::size_t len) {
     } else if (c == '-' || c == 'Z') {
       return FromYMDHMS(year, month, day, hour, min, sec);
     } else {
-      throw TS_ERROR;
+      return {false, {}};
     }
   }
 
@@ -504,7 +498,7 @@ Timestamp Timestamp::FromString(const char *str, std::size_t len) {
     } else if (c == '-' || c == 'Z') {
       return FromYMDHMS(year, month, day, hour, min, sec);
     } else {
-      throw TS_ERROR;
+      return {false, {}};
     }
     count++;
   }
@@ -521,19 +515,19 @@ Timestamp Timestamp::FromString(const char *str, std::size_t len) {
     } else if (c == '-' || c == 'Z') {
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
     } else {
-      throw TS_ERROR;
+      return {false, {}};
     }
     count++;
   }
 
-  throw TS_ERROR;
+  return {false, {}};
 }
 
-Timestamp Timestamp::FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
+std::pair<bool, Timestamp> Timestamp::FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
                                 int32_t sec) {
   // Check date component.
   if (!IsValidCalendarDate(year, month, day) || !IsValidJulianDate(year, month, day)) {
-    throw CONVERSION_EXCEPTION("date field out of range");
+    return {false, {}};
   }
 
   // Check time component.
@@ -541,7 +535,7 @@ Timestamp Timestamp::FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_
       hour > kHoursPerDay ||
       // Check for > 24:00:00.
       (hour == kHoursPerDay && (min > 0 || sec > 0))) {
-    throw CONVERSION_EXCEPTION("time field out of range");
+    return {false, {}};
   }
 
   const int64_t date = BuildJulianDate(year, month, day);
@@ -550,19 +544,19 @@ Timestamp Timestamp::FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_
 
   // Check for major overflow.
   if ((result - time) / kMicroSecondsPerDay != date) {
-    throw CONVERSION_EXCEPTION("timestamp out of range");
+    return {false, {}};
   }
 
   // Looks good.
-  return Timestamp(result);
+  return {true, Timestamp(result)};
 }
 
 
-Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
+std::pair<bool, Timestamp> Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
                                   int32_t sec, int32_t milli, int32_t micro) {
   // Check date component.
   if (!IsValidCalendarDate(year, month, day) || !IsValidJulianDate(year, month, day)) {
-    throw CONVERSION_EXCEPTION("date field out of range");
+    return {false, {}};
   }
 
   // Check time component.
@@ -571,7 +565,7 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
       micro > kMicrosecondsPerMillisecond - 1 ||
       // Check for > 24:00:00.
       (hour == kHoursPerDay && (min > 0 || sec > 0 || milli > 0 || micro > 0))) {
-    throw CONVERSION_EXCEPTION("time field out of range");
+    return {false, {}};
   }
 
   const int64_t date = BuildJulianDate(year, month, day);
@@ -580,10 +574,11 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
 
   // Check for major overflow.
   if ((result - time) / kMicroSecondsPerDay != date) {
-    throw CONVERSION_EXCEPTION("timestamp out of range");
+    return {false, {}};
   }
 
   // Looks good.
-  return Timestamp(result);
+  return {true, Timestamp(result)};
 }
+
 }  // namespace terrier::execution::sql

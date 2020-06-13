@@ -131,7 +131,7 @@ class EXPORT Date {
    * @param len The length of the string.
    * @return The constructed date. May be invalid.
    */
-  static Date FromString(const char *str, std::size_t len);
+  static std::pair<bool, Date> FromString(const char *str, std::size_t len);
 
   /**
    * Convert a string of the form "YYYY-MM-DD" into a date instance. Will attempt to convert the
@@ -139,7 +139,7 @@ class EXPORT Date {
    * @param str The string to convert.
    * @return The constructed Date. May be invalid.
    */
-  static Date FromString(std::string_view str) { return FromString(str.data(), str.size()); }
+  static std::pair<bool, Date> FromString(std::string_view str) { return FromString(str.data(), str.size()); }
 
   /**
    * Create a Date instance from a specified year, month, and day.
@@ -148,7 +148,7 @@ class EXPORT Date {
    * @param day The day of the date.
    * @return The constructed date. May be invalid.
    */
-  static Date FromYMD(int32_t year, int32_t month, int32_t day);
+  static std::pair<bool, Date> FromYMD(int32_t year, int32_t month, int32_t day);
 
   /**
    * Is the date corresponding to the given year, month, and day a valid date?
@@ -323,7 +323,7 @@ class EXPORT Timestamp {
    * @param len The length of the string.
    * @return The constructed Timestamp. May be invalid.
    */
-  static Timestamp FromString(const char *str, std::size_t len);
+  static std::pair<bool, Timestamp> FromString(const char *str, std::size_t len);
 
   /**
    * Convert a string of the form "YYYY-MM-DD HH::MM::SS" into a timestamp. Will attempt to convert
@@ -331,7 +331,7 @@ class EXPORT Timestamp {
    * @param str The string to convert.
    * @return The constructed Timestamp. May be invalid.
    */
-  static Timestamp FromString(std::string_view str) { return FromString(str.data(), str.size()); }
+  static std::pair<bool, Timestamp> FromString(std::string_view str) { return FromString(str.data(), str.size()); }
 
   /**
    * Instantiate a timestamp with the specified number of microseconds in Julian time.
@@ -351,7 +351,7 @@ class EXPORT Timestamp {
    * @param sec The second.
    * @return The constructed timestamp if valid.
    */
-  static Timestamp FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
+  static std::pair<bool, Timestamp> FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
                               int32_t sec);
 
   /**
@@ -367,8 +367,8 @@ class EXPORT Timestamp {
    * @param micro The microsecond.
    * @return The constructed timestamp if valid.
    */
-  static Timestamp FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
-                                int32_t sec, int32_t milli, int32_t micro);
+  static std::pair<bool, Timestamp> FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int32_t hour,
+                                                      int32_t min, int32_t sec, int32_t milli, int32_t micro);
 
  private:
   friend class Date;
