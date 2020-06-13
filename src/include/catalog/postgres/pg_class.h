@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "catalog/catalog_defs.h"
 
 namespace terrier::catalog::postgres {
