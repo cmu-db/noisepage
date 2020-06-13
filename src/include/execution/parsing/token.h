@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <stdbool.h>
+#include <cstdint>
 
 #include "execution/util/execution_common.h"
 
