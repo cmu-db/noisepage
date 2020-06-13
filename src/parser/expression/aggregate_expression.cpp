@@ -38,7 +38,7 @@ void AggregateExpression::DeriveReturnValueType() {
       this->SetReturnValueType(type::TypeId::DECIMAL);
       break;
     default:
-      throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %i", static_cast<int>(expr_type)));
+      throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));
   }
 }
 
