@@ -2,8 +2,6 @@
 
 #include <gflags/gflags.h>
 #include <tbb/task_scheduler_init.h>
-#undef TRUE
-#undef FALSE
 #include <unistd.h>
 
 #include <algorithm>
@@ -19,6 +17,8 @@
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
+#undef TRUE
+#undef FALSE
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
