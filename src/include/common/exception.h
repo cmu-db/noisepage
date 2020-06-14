@@ -4,6 +4,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <string>
 
 namespace terrier {
 
