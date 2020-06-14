@@ -1,11 +1,11 @@
-#include "execution/sql/codegen/operators/limit_translator.h"
+#include "execution/codegen/operators/limit_translator.h"
 
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/function_builder.h"
-#include "execution/sql/codegen/if.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/plannodes/limit_plan_node.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/function_builder.h"
+#include "execution/codegen/if.h"
+#include "execution/codegen/work_context.h"
+#include "planner/plannodes/limit_plan_node.h"
 
 namespace terrier::execution::codegen {
 

@@ -1,15 +1,15 @@
-#include "execution/sql/codegen/expression/constant_translator.h"
+#include "execution/codegen/expression/constant_translator.h"
 
 #include "spdlog/fmt/fmt.h"
 
 #include "common/exception.h"
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/work_context.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/work_context.h"
 #include "execution/sql/generic_value.h"
 
 namespace terrier::execution::codegen {
 
-ConstantTranslator::ConstantTranslator(const planner::ConstantValueExpression &expr,
+ConstantTranslator::ConstantTranslator(const parser::ConstantValueExpression &expr,
                                        CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {}
 

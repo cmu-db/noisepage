@@ -1,8 +1,11 @@
+#include "brain/operating_unit_recorder.h"
+
 #include <utility>
 
 #include "brain/operating_unit.h"
-#include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit_util.h"
+#include "catalog/catalog_accessor.h"
+#include "execution/codegen/operators/operator_translator.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
@@ -509,7 +512,7 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
 }
 
 ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
-    const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators) {
+    const std::vector<std::unique_ptr<execution::codegen::OperatorTranslator>> &translators) {
   pipeline_features_ = {};
   for (const auto &translator : translators) {
     plan_feature_type_ = translator->GetFeatureType();

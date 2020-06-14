@@ -1,11 +1,11 @@
-#include "execution/sql/codegen/expression/expression_translator.h"
+#include "execution/codegen/expression/expression_translator.h"
 
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/planner/expressions/abstract_expression.h"
+#include "execution/codegen/compilation_context.h"
+#include "parser/expression/abstract_expression.h"
 
 namespace terrier::execution::codegen {
 
-ExpressionTranslator::ExpressionTranslator(const planner::AbstractExpression &expr,
+ExpressionTranslator::ExpressionTranslator(const parser::AbstractExpression &expr,
                                            CompilationContext *compilation_context)
     : expr_(expr), compilation_context_(compilation_context) {}
 

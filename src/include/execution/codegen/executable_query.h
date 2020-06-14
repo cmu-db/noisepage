@@ -9,17 +9,17 @@
 #include "execution/ast/ast_fwd.h"
 #include "execution/vm/vm_defs.h"
 
+namespace terrier::execution::exec {
+class ExecutionContext;
+}  // namespace terrier::execution::exec
+
 namespace terrier::execution::sema {
 class ErrorReporter;
 }  // namespace terrier::execution::sema
 
-namespace terrier::execution::sql {
-class ExecutionContext;
-}  // namespace terrier::execution::sql
-
-namespace terrier::execution::sql::planner {
+namespace terrier::planner {
 class AbstractPlanNode;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::planner
 
 namespace terrier::execution::vm {
 class Module;
@@ -55,7 +55,7 @@ class ExecutableQuery {
      * @param query_state The query state.
      * @param mode The execution mode to run the query with.
      */
-    void Run(byte query_state[], vm::ExecutionMode mode) const;
+    void Run(std::byte query_state[], vm::ExecutionMode mode) const;
 
     /**
      * @return True if this fragment is compiled and executable.
@@ -100,7 +100,7 @@ class ExecutableQuery {
    * @param exec_ctx The context in which to execute the query.
    * @param mode The execution mode to use when running the query. By default, its interpreted.
    */
-  void Run(ExecutionContext *exec_ctx, vm::ExecutionMode mode = vm::ExecutionMode::Interpret);
+  void Run(exec::ExecutionContext *exec_ctx, vm::ExecutionMode mode = vm::ExecutionMode::Interpret);
 
   /**
    * @return The physical plan this executable query implements.

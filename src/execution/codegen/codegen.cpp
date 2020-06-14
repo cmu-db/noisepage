@@ -185,38 +185,38 @@ ast::Expr *CodeGen::TplType(sql::TypeId type) {
   }
 }
 
-ast::Expr *CodeGen::AggregateType(planner::ExpressionType agg_type, TypeId ret_type) const {
+ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type) const {
   switch (agg_type) {
-    case planner::ExpressionType::AGGREGATE_COUNT:
+    case parser::ExpressionType::AGGREGATE_COUNT:
       return BuiltinType(ast::BuiltinType::Kind::CountAggregate);
-    case planner::ExpressionType::AGGREGATE_AVG:
+    case parser::ExpressionType::AGGREGATE_AVG:
       return BuiltinType(ast::BuiltinType::AvgAggregate);
-    case planner::ExpressionType::AGGREGATE_MIN:
+    case parser::ExpressionType::AGGREGATE_MIN:
       if (IsTypeIntegral(ret_type)) {
         return BuiltinType(ast::BuiltinType::IntegerMinAggregate);
       } else if (IsTypeFloatingPoint(ret_type)) {
         return BuiltinType(ast::BuiltinType::RealMinAggregate);
-      } else if (ret_type == TypeId::Date) {
+      } else if (ret_type == sql::TypeId::Date) {
         return BuiltinType(ast::BuiltinType::DateMinAggregate);
-      } else if (ret_type == TypeId::Varchar) {
+      } else if (ret_type == sql::TypeId::Varchar) {
         return BuiltinType(ast::BuiltinType::StringMinAggregate);
       } else {
-        throw NotImplementedException(fmt::format("MIN() aggregates on type {}", TypeIdToString(ret_type)));
+        throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("MIN() aggregates on type {}", TypeIdToString(ret_type)));
       }
-    case planner::ExpressionType::AGGREGATE_MAX:
+    case parser::ExpressionType::AGGREGATE_MAX:
       if (IsTypeIntegral(ret_type)) {
         return BuiltinType(ast::BuiltinType::IntegerMaxAggregate);
       } else if (IsTypeFloatingPoint(ret_type)) {
         return BuiltinType(ast::BuiltinType::RealMaxAggregate);
-      } else if (ret_type == TypeId::Date) {
+      } else if (ret_type == sql::TypeId::Date) {
         return BuiltinType(ast::BuiltinType::DateMaxAggregate);
-      } else if (ret_type == TypeId::Varchar) {
+      } else if (ret_type == sql::TypeId::Varchar) {
         return BuiltinType(ast::BuiltinType::StringMaxAggregate);
       } else {
-        throw NotImplementedException(fmt::format("MAX() aggregates on type {}", TypeIdToString(ret_type)));
+        throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("MAX() aggregates on type {}", TypeIdToString(ret_type)));
       }
-    case planner::ExpressionType::AGGREGATE_SUM:
-      TPL_ASSERT(IsTypeNumeric(ret_type), "Only arithmetic types have sums.");
+    case parser::ExpressionType::AGGREGATE_SUM:
+      TERRIER_ASSERT(IsTypeNumeric(ret_type), "Only arithmetic types have sums.");
       if (IsTypeIntegral(ret_type)) {
         return BuiltinType(ast::BuiltinType::IntegerSumAggregate);
       }
@@ -257,7 +257,7 @@ ast::Expr *CodeGen::PtrCast(ast::Identifier base_name, ast::Expr *arg) const {
 }
 
 ast::Expr *CodeGen::BinaryOp(parsing::Token::Type op, ast::Expr *left, ast::Expr *right) const {
-  TPL_ASSERT(parsing::Token::IsBinaryOp(op), "Provided operation isn't binary");
+  TERRIER_ASSERT(parsing::Token::IsBinaryOp(op), "Provided operation isn't binary");
   return context_->GetNodeFactory()->NewBinaryOpExpr(position_, op, left, right);
 }
 
@@ -328,8 +328,9 @@ ast::Expr *CodeGen::FloatToSql(double num) const {
   return call;
 }
 
-ast::Expr *CodeGen::DateToSql(Date date) const {
-  int32_t year, month, day;
+ast::Expr *CodeGen::DateToSql(sql::Date date) const {
+  int32_t year;
+  uint32_t month, day;
   date.ExtractComponents(&year, &month, &day);
   return DateToSql(year, month, day);
 }
@@ -464,7 +465,7 @@ ast::Expr *CodeGen::VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, u
       ret_kind = ast::BuiltinType::StringVal;
       break;
     default:
-      throw NotImplementedException(
+      throw NOT_IMPLEMENTED_EXCEPTION(
           fmt::format("CodeGen: Reading type {} from VPI not supported.", TypeIdToString(type_id)));
   }
   ast::Expr *call = CallBuiltin(builtin, {vpi, Const32(idx)});
@@ -472,32 +473,32 @@ ast::Expr *CodeGen::VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, u
   return call;
 }
 
-ast::Expr *CodeGen::VPIFilter(ast::Expr *vp, planner::ExpressionType comp_type, uint32_t col_idx, ast::Expr *filter_val,
+ast::Expr *CodeGen::VPIFilter(ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx, ast::Expr *filter_val,
                               ast::Expr *tids) {
   // Call @FilterComp(vpi, col_idx, col_type, filter_val)
   ast::Builtin builtin;
   switch (comp_type) {
-    case planner::ExpressionType::COMPARE_EQUAL:
+    case parser::ExpressionType::COMPARE_EQUAL:
       builtin = ast::Builtin::VectorFilterEqual;
       break;
-    case planner::ExpressionType::COMPARE_NOT_EQUAL:
+    case parser::ExpressionType::COMPARE_NOT_EQUAL:
       builtin = ast::Builtin::VectorFilterNotEqual;
       break;
-    case planner::ExpressionType::COMPARE_LESS_THAN:
+    case parser::ExpressionType::COMPARE_LESS_THAN:
       builtin = ast::Builtin::VectorFilterLessThan;
       break;
-    case planner::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+    case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
       builtin = ast::Builtin::VectorFilterLessThanEqual;
       break;
-    case planner::ExpressionType::COMPARE_GREATER_THAN:
+    case parser::ExpressionType::COMPARE_GREATER_THAN:
       builtin = ast::Builtin::VectorFilterGreaterThan;
       break;
-    case planner::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
       builtin = ast::Builtin::VectorFilterGreaterThanEqual;
       break;
     default:
-      throw NotImplementedException(fmt::format("CodeGen: Vector filter type {} from VPI not supported.",
-                                                planner::ExpressionTypeToString(comp_type, true)));
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("CodeGen: Vector filter type {} from VPI not supported.",
+                                                  parser::ExpressionTypeToString(comp_type, true)));
   }
   ast::Expr *call = CallBuiltin(builtin, {vp, Const32(col_idx), filter_val, tids});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));

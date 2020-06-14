@@ -1,15 +1,15 @@
-#include "execution/sql/codegen/expression/conjunction_translator.h"
+#include "execution/codegen/expression/conjunction_translator.h"
 
 #include "spdlog/fmt/fmt.h"
 
 #include "common/exception.h"
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/work_context.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/work_context.h"
 
 namespace terrier::execution::codegen {
 
-ConjunctionTranslator::ConjunctionTranslator(const planner::ConjunctionExpression &expr,
+ConjunctionTranslator::ConjunctionTranslator(const parser::ConjunctionExpression &expr,
                                              CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
   // Prepare the left and right expression subtrees for translation.
@@ -23,13 +23,13 @@ ast::Expr *ConjunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValu
   auto right_val = ctx->DeriveValue(*GetExpression().GetChild(1), provider);
 
   switch (const auto expr_type = GetExpression().GetExpressionType(); expr_type) {
-    case planner::ExpressionType::CONJUNCTION_AND:
+    case parser::ExpressionType::CONJUNCTION_AND:
       return codegen->BinaryOp(parsing::Token::Type::AND, left_val, right_val);
-    case planner::ExpressionType::CONJUNCTION_OR:
+    case parser::ExpressionType::CONJUNCTION_OR:
       return codegen->BinaryOp(parsing::Token::Type::OR, left_val, right_val);
     default: {
       throw NotImplementedException(
-          fmt::format("Translation of conjunction type {}", planner::ExpressionTypeToString(expr_type, true)));
+          fmt::format("Translation of conjunction type {}", parser::ExpressionTypeToString(expr_type, true)));
     }
   }
 }

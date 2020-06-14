@@ -1,9 +1,9 @@
-#include "execution/sql/codegen/state_descriptor.h"
+#include "execution/codegen/state_descriptor.h"
 
 #include <utility>
 
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/function_builder.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/function_builder.h"
 
 namespace terrier::execution::codegen {
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.h"
-#include "execution/sql/codegen/ast_fwd.h"
+#include "execution/codegen/ast_fwd.h"
 
 namespace terrier::execution::codegen {
 

@@ -5,11 +5,10 @@
 #include <utility>
 #include <vector>
 
-#include "common/common.h"
+#include "execution/ast/ast_fwd.h"
 #include "execution/ast/identifier.h"
-#include "execution/sql/codegen/ast_fwd.h"
-#include "execution/sql/codegen/state_descriptor.h"
-#include "util/region_containers.h"
+#include "execution/codegen/state_descriptor.h"
+#include "execution/util/region_containers.h"
 
 namespace terrier::execution::codegen {
 

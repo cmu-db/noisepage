@@ -5,16 +5,20 @@
 #include <unordered_map>
 #include <vector>
 
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/executable_query.h"
-#include "execution/sql/codegen/expression/expression_translator.h"
-#include "execution/sql/codegen/operators/operator_translator.h"
-#include "execution/sql/codegen/pipeline.h"
-#include "execution/sql/codegen/state_descriptor.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/executable_query.h"
+#include "execution/codegen/expression/expression_translator.h"
+#include "execution/codegen/operators/operator_translator.h"
+#include "execution/codegen/pipeline.h"
+#include "execution/codegen/state_descriptor.h"
 
-namespace terrier::execution::sql::planner {
+namespace terrier::parser {
+class AbstractExpression;
+}  // namespace terrier::parser
+
+namespace terrier::planner {
 class AbstractPlanNode;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 
@@ -66,7 +70,7 @@ class CompilationContext {
    * Prepare compilation for the given expression.
    * @param expression The expression.
    */
-  void Prepare(const planner::AbstractExpression &expression);
+  void Prepare(const parser::AbstractExpression &expression);
 
   /**
    * @return The code generator instance.
@@ -88,7 +92,7 @@ class CompilationContext {
    * @return The translator for the given expression; null if the provided expression does not have
    *         a translator registered in this context.
    */
-  ExpressionTranslator *LookupTranslator(const planner::AbstractExpression &expr) const;
+  ExpressionTranslator *LookupTranslator(const parser::AbstractExpression &expr) const;
 
   /**
    * @return A common prefix for all functions generated in this module.
@@ -149,7 +153,7 @@ class CompilationContext {
 
   // The operator and expression translators.
   std::unordered_map<const planner::AbstractPlanNode *, std::unique_ptr<OperatorTranslator>> ops_;
-  std::unordered_map<const planner::AbstractExpression *, std::unique_ptr<ExpressionTranslator>> expressions_;
+  std::unordered_map<const parser::AbstractExpression *, std::unique_ptr<ExpressionTranslator>> expressions_;
 
   // The pipelines in this context in no specific order.
   std::vector<Pipeline *> pipelines_;

@@ -1,12 +1,12 @@
-#include "execution/sql/codegen/expression/unary_translator.h"
+#include "execution/codegen/expression/unary_translator.h"
 
 #include "common/exception.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/work_context.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/work_context.h"
 
 namespace terrier::execution::codegen {
 
-UnaryTranslator::UnaryTranslator(const planner::OperatorExpression &expr, CompilationContext *compilation_context)
+UnaryTranslator::UnaryTranslator(const parser::OperatorExpression &expr, CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
   compilation_context->Prepare(*expr.GetChild(0));
 }
@@ -17,10 +17,10 @@ ast::Expr *UnaryTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvi
 
   parsing::Token::Type type;
   switch (GetExpression().GetExpressionType()) {
-    case planner::ExpressionType::OPERATOR_UNARY_MINUS:
+    case parser::ExpressionType::OPERATOR_UNARY_MINUS:
       type = parsing::Token::Type::MINUS;
       break;
-    case planner::ExpressionType::OPERATOR_NOT:
+    case parser::ExpressionType::OPERATOR_NOT:
       type = parsing::Token::Type::BANG;
       break;
     default:

@@ -3,10 +3,9 @@
 #include <string>
 #include <utility>
 
-#include "common/common.h"
 #include "execution/ast/identifier.h"
-#include "execution/sql/codegen/ast_fwd.h"
-#include "util/region_containers.h"
+#include "execution/codegen/ast_fwd.h"
+#include "execution/util/region_containers.h"
 
 namespace terrier::execution::codegen {
 

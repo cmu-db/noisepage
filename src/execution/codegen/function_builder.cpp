@@ -1,7 +1,7 @@
-#include "execution/sql/codegen/function_builder.h"
+#include "execution/codegen/function_builder.h"
 
 #include "execution/ast/ast_node_factory.h"
-#include "execution/sql/codegen/codegen.h"
+#include "execution/codegen/codegen.h"
 
 namespace terrier::execution::codegen {
 

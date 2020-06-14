@@ -1,12 +1,12 @@
-#include "execution/sql/codegen/operators/hash_join_translator.h"
+#include "execution/codegen/operators/hash_join_translator.h"
 
 #include "execution/ast/type.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/function_builder.h"
-#include "execution/sql/codegen/if.h"
-#include "execution/sql/codegen/loop.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/plannodes/hash_join_plan_node.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/function_builder.h"
+#include "execution/codegen/if.h"
+#include "execution/codegen/loop.h"
+#include "execution/codegen/work_context.h"
+#include "planner/plannodes/hash_join_plan_node.h"
 
 namespace terrier::execution::codegen {
 
@@ -88,7 +88,7 @@ void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, Functio
 }
 
 ast::Expr *HashJoinTranslator::HashKeys(WorkContext *ctx, FunctionBuilder *function,
-                                        const std::vector<const planner::AbstractExpression *> &hash_keys) const {
+                                        const std::vector<const parser::AbstractExpression *> &hash_keys) const {
   auto codegen = GetCodeGen();
 
   std::vector<ast::Expr *> key_values;

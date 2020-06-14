@@ -99,6 +99,11 @@ enum class LogicalJoinType {
 };
 
 /**
+ * @return A string representation for the provided node type.
+ */
+std::string PlanNodeTypeToString(PlanNodeType type);
+
+/**
  * @return A string representation for the provided join type.
  */
 std::string JoinTypeToString(LogicalJoinType type);

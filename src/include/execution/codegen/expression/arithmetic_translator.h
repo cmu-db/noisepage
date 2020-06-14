@@ -1,7 +1,7 @@
 #pragma once
 
-#include "execution/sql/codegen/expression/expression_translator.h"
-#include "execution/sql/planner/expressions/operator_expression.h"
+#include "execution/codegen/expression/expression_translator.h"
+#include "parser/expression/operator_expression.h"
 
 namespace terrier::execution::codegen {
 
@@ -15,7 +15,7 @@ class ArithmeticTranslator : public ExpressionTranslator {
    * @param expr The expression to translate.
    * @param compilation_context The context in which translation occurs.
    */
-  ArithmeticTranslator(const planner::OperatorExpression &expr, CompilationContext *compilation_context);
+  ArithmeticTranslator(const parser::OperatorExpression &expr, CompilationContext *compilation_context);
 
   /**
    * Derive the value of the expression.

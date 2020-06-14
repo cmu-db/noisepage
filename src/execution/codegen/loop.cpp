@@ -1,7 +1,7 @@
-#include "execution/sql/codegen/loop.h"
+#include "execution/codegen/loop.h"
 
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/function_builder.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/function_builder.h"
 
 namespace terrier::execution::codegen {
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "execution/sql/codegen/expression/expression_translator.h"
-#include "execution/sql/planner/expressions/column_value_expression.h"
+#include "execution/codegen/expression/expression_translator.h"
+#include "parser/expression/column_value_expression.h"
 
 namespace terrier::execution::codegen {
 
@@ -15,7 +15,7 @@ class ColumnValueTranslator : public ExpressionTranslator {
    * @param expr The expression to translate.
    * @param compilation_context The context in which translation occurs.
    */
-  ColumnValueTranslator(const planner::ColumnValueExpression &expr, CompilationContext *compilation_context);
+  ColumnValueTranslator(const parser::ColumnValueExpression &expr, CompilationContext *compilation_context);
 
   /**
    * Derive the value of the expression.

@@ -1,4 +1,4 @@
-#include "execution/sql/codegen/pipeline.h"
+#include "execution/codegen/pipeline.h"
 
 #include <algorithm>
 
@@ -6,15 +6,15 @@
 
 #include "common/macros.h"
 #include "common/settings.h"
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/executable_query_builder.h"
-#include "execution/sql/codegen/function_builder.h"
-#include "execution/sql/codegen/operators/operator_translator.h"
-#include "execution/sql/codegen/pipeline_driver.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/plannodes/abstract_plan_node.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/executable_query_builder.h"
+#include "execution/codegen/function_builder.h"
+#include "execution/codegen/operators/operator_translator.h"
+#include "execution/codegen/pipeline_driver.h"
+#include "execution/codegen/work_context.h"
 #include "logging/logger.h"
+#include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::execution::codegen {
 

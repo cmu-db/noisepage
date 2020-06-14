@@ -1,13 +1,13 @@
-#include "execution/sql/codegen/operators/sort_translator.h"
+#include "execution/codegen/operators/sort_translator.h"
 
 #include <utility>
 
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/function_builder.h"
-#include "execution/sql/codegen/if.h"
-#include "execution/sql/codegen/loop.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/plannodes/order_by_plan_node.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/function_builder.h"
+#include "execution/codegen/if.h"
+#include "execution/codegen/loop.h"
+#include "execution/codegen/work_context.h"
+#include "planner/plannodes/order_by_plan_node.h"
 
 namespace terrier::execution::codegen {
 

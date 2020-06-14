@@ -1,7 +1,7 @@
 #pragma once
 
-#include "execution/sql/codegen/expression/expression_translator.h"
-#include "execution/sql/planner/expressions/comparison_expression.h"
+#include "execution/codegen/expression/expression_translator.h"
+#include "parser/expression/comparison_expression.h"
 
 namespace terrier::execution::codegen {
 
@@ -15,7 +15,7 @@ class ComparisonTranslator : public ExpressionTranslator {
    * @param expr The expression to translate.
    * @param compilation_context The context in which translation occurs.
    */
-  ComparisonTranslator(const planner::ComparisonExpression &expr, CompilationContext *compilation_context);
+  ComparisonTranslator(const parser::ComparisonExpression &expr, CompilationContext *compilation_context);
 
   /**
    * Derive the value of the expression.

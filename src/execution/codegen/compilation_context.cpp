@@ -1,55 +1,54 @@
-#include "execution/sql/codegen/compilation_context.h"
+#include "execution/codegen/compilation_context.h"
 
 #include <algorithm>
 #include <atomic>
 #include <sstream>
 
-#include "spdlog/fmt/fmt.h"
-
 #include "common/exception.h"
 #include "common/macros.h"
 #include "execution/ast/context.h"
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/executable_query.h"
-#include "execution/sql/codegen/executable_query_builder.h"
-#include "execution/sql/codegen/expression//derived_value_translator.h"
-#include "execution/sql/codegen/expression/arithmetic_translator.h"
-#include "execution/sql/codegen/expression/builtin_function_translator.h"
-#include "execution/sql/codegen/expression/column_value_translator.h"
-#include "execution/sql/codegen/expression/comparison_translator.h"
-#include "execution/sql/codegen/expression/conjunction_translator.h"
-#include "execution/sql/codegen/expression/constant_translator.h"
-#include "execution/sql/codegen/expression/null_check_translator.h"
-#include "execution/sql/codegen/expression/unary_translator.h"
-#include "execution/sql/codegen/function_builder.h"
-#include "execution/sql/codegen/operators/csv_scan_translator.h"
-#include "execution/sql/codegen/operators/hash_aggregation_translator.h"
-#include "execution/sql/codegen/operators/hash_join_translator.h"
-#include "execution/sql/codegen/operators/limit_translator.h"
-#include "execution/sql/codegen/operators/nested_loop_join_translator.h"
-#include "execution/sql/codegen/operators/operator_translator.h"
-#include "execution/sql/codegen/operators/output_translator.h"
-#include "execution/sql/codegen/operators/projection_translator.h"
-#include "execution/sql/codegen/operators/seq_scan_translator.h"
-#include "execution/sql/codegen/operators/sort_translator.h"
-#include "execution/sql/codegen/operators/static_aggregation_translator.h"
-#include "execution/sql/codegen/pipeline.h"
-#include "execution/sql/planner/expressions/abstract_expression.h"
-#include "execution/sql/planner/expressions/column_value_expression.h"
-#include "execution/sql/planner/expressions/comparison_expression.h"
-#include "execution/sql/planner/expressions/conjunction_expression.h"
-#include "execution/sql/planner/expressions/derived_value_expression.h"
-#include "execution/sql/planner/expressions/operator_expression.h"
-#include "execution/sql/planner/plannodes/abstract_plan_node.h"
-#include "execution/sql/planner/plannodes/aggregate_plan_node.h"
-#include "execution/sql/planner/plannodes/csv_scan_plan_node.h"
-#include "execution/sql/planner/plannodes/hash_join_plan_node.h"
-#include "execution/sql/planner/plannodes/limit_plan_node.h"
-#include "execution/sql/planner/plannodes/nested_loop_join_plan_node.h"
-#include "execution/sql/planner/plannodes/order_by_plan_node.h"
-#include "execution/sql/planner/plannodes/projection_plan_node.h"
-#include "execution/sql/planner/plannodes/seq_scan_plan_node.h"
-#include "execution/sql/planner/plannodes/set_op_plan_node.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/executable_query.h"
+#include "execution/codegen/executable_query_builder.h"
+#include "execution/codegen/expression//derived_value_translator.h"
+#include "execution/codegen/expression/arithmetic_translator.h"
+#include "execution/codegen/expression/builtin_function_translator.h"
+#include "execution/codegen/expression/column_value_translator.h"
+#include "execution/codegen/expression/comparison_translator.h"
+#include "execution/codegen/expression/conjunction_translator.h"
+#include "execution/codegen/expression/constant_translator.h"
+#include "execution/codegen/expression/null_check_translator.h"
+#include "execution/codegen/expression/unary_translator.h"
+#include "execution/codegen/function_builder.h"
+#include "execution/codegen/operators/csv_scan_translator.h"
+#include "execution/codegen/operators/hash_aggregation_translator.h"
+#include "execution/codegen/operators/hash_join_translator.h"
+#include "execution/codegen/operators/limit_translator.h"
+#include "execution/codegen/operators/nested_loop_join_translator.h"
+#include "execution/codegen/operators/operator_translator.h"
+#include "execution/codegen/operators/output_translator.h"
+#include "execution/codegen/operators/projection_translator.h"
+#include "execution/codegen/operators/seq_scan_translator.h"
+#include "execution/codegen/operators/sort_translator.h"
+#include "execution/codegen/operators/static_aggregation_translator.h"
+#include "execution/codegen/pipeline.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
+#include "parser/expression/comparison_expression.h"
+#include "parser/expression/conjunction_expression.h"
+#include "parser/expression/derived_value_expression.h"
+#include "parser/expression/operator_expression.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/csv_scan_plan_node.h"
+#include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/limit_plan_node.h"
+#include "planner/plannodes/nested_loop_join_plan_node.h"
+#include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/projection_plan_node.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
+#include "planner/plannodes/set_op_plan_node.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::codegen {
 
@@ -159,8 +158,8 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
 }
 
 uint32_t CompilationContext::RegisterPipeline(Pipeline *pipeline) {
-  TPL_ASSERT(std::find(pipelines_.begin(), pipelines_.end(), pipeline) == pipelines_.end(),
-             "Duplicate pipeline in context");
+  TERRIER_ASSERT(std::find(pipelines_.begin(), pipelines_.end(), pipeline) == pipelines_.end(),
+                 "Duplicate pipeline in context");
   pipelines_.push_back(pipeline);
   return pipelines_.size();
 }
@@ -177,7 +176,7 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::AGGREGATE: {
       const auto &aggregation = static_cast<const planner::AggregatePlanNode &>(plan);
       if (aggregation.GetAggregateStrategyType() == planner::AggregateStrategyType::SORTED) {
-        throw NotImplementedException("Code generation for sort-based aggregations");
+        throw NOT_IMPLEMENTED_EXCEPTION("Code generation for sort-based aggregations.");
       }
       if (aggregation.GetGroupByTerms().empty()) {
         translator = std::make_unique<StaticAggregationTranslator>(aggregation, this, pipeline);
@@ -222,81 +221,84 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
       break;
     }
     default: {
-      throw NotImplementedException(fmt::format("code generation for plan node type '{}'",
-                                                planner::PlanNodeTypeToString(plan.GetPlanNodeType())));
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("code generation for plan node type '{}'",
+                                                  planner::PlanNodeTypeToString(plan.GetPlanNodeType())));
     }
   }
 
   ops_[&plan] = std::move(translator);
 }
 
-void CompilationContext::Prepare(const planner::AbstractExpression &expression) {
+void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
   std::unique_ptr<ExpressionTranslator> translator;
 
   switch (expression.GetExpressionType()) {
-    case planner::ExpressionType::COLUMN_VALUE: {
-      const auto &column_value = static_cast<const planner::ColumnValueExpression &>(expression);
+    case parser::ExpressionType::COLUMN_VALUE: {
+      const auto &column_value = static_cast<const parser::ColumnValueExpression &>(expression);
       translator = std::make_unique<ColumnValueTranslator>(column_value, this);
       break;
     }
-    case planner::ExpressionType::COMPARE_EQUAL:
-    case planner::ExpressionType::COMPARE_GREATER_THAN:
-    case planner::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
-    case planner::ExpressionType::COMPARE_LESS_THAN:
-    case planner::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
-    case planner::ExpressionType::COMPARE_NOT_EQUAL:
-    case planner::ExpressionType::COMPARE_LIKE:
-    case planner::ExpressionType::COMPARE_NOT_LIKE: {
-      const auto &comparison = static_cast<const planner::ComparisonExpression &>(expression);
+    case parser::ExpressionType::COMPARE_EQUAL:
+    case parser::ExpressionType::COMPARE_GREATER_THAN:
+    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+    case parser::ExpressionType::COMPARE_LESS_THAN:
+    case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+    case parser::ExpressionType::COMPARE_NOT_EQUAL:
+    case parser::ExpressionType::COMPARE_LIKE:
+    case parser::ExpressionType::COMPARE_NOT_LIKE: {
+      const auto &comparison = static_cast<const parser::ComparisonExpression &>(expression);
       translator = std::make_unique<ComparisonTranslator>(comparison, this);
       break;
     }
-    case planner::ExpressionType::CONJUNCTION_AND:
-    case planner::ExpressionType::CONJUNCTION_OR: {
-      const auto &conjunction = static_cast<const planner::ConjunctionExpression &>(expression);
+    case parser::ExpressionType::CONJUNCTION_AND:
+    case parser::ExpressionType::CONJUNCTION_OR: {
+      const auto &conjunction = static_cast<const parser::ConjunctionExpression &>(expression);
       translator = std::make_unique<ConjunctionTranslator>(conjunction, this);
       break;
     }
-    case planner::ExpressionType::OPERATOR_PLUS:
-    case planner::ExpressionType::OPERATOR_MINUS:
-    case planner::ExpressionType::OPERATOR_MULTIPLY:
-    case planner::ExpressionType::OPERATOR_DIVIDE:
-    case planner::ExpressionType::OPERATOR_MOD: {
-      const auto &operator_expr = static_cast<const planner::OperatorExpression &>(expression);
+    case parser::ExpressionType::OPERATOR_PLUS:
+    case parser::ExpressionType::OPERATOR_MINUS:
+    case parser::ExpressionType::OPERATOR_MULTIPLY:
+    case parser::ExpressionType::OPERATOR_DIVIDE:
+    case parser::ExpressionType::OPERATOR_MOD: {
+      const auto &operator_expr = static_cast<const parser::OperatorExpression &>(expression);
       translator = std::make_unique<ArithmeticTranslator>(operator_expr, this);
       break;
     }
-    case planner::ExpressionType::OPERATOR_NOT:
-    case planner::ExpressionType::OPERATOR_UNARY_MINUS: {
-      const auto &operator_expr = static_cast<const planner::OperatorExpression &>(expression);
+    case parser::ExpressionType::OPERATOR_NOT:
+    case parser::ExpressionType::OPERATOR_UNARY_MINUS: {
+      const auto &operator_expr = static_cast<const parser::OperatorExpression &>(expression);
       translator = std::make_unique<UnaryTranslator>(operator_expr, this);
       break;
     }
-    case planner::ExpressionType::OPERATOR_IS_NULL:
-    case planner::ExpressionType::OPERATOR_IS_NOT_NULL: {
-      const auto &operator_expr = static_cast<const planner::OperatorExpression &>(expression);
+    case parser::ExpressionType::OPERATOR_IS_NULL:
+    case parser::ExpressionType::OPERATOR_IS_NOT_NULL: {
+      const auto &operator_expr = static_cast<const parser::OperatorExpression &>(expression);
       translator = std::make_unique<NullCheckTranslator>(operator_expr, this);
       break;
     }
-    case planner::ExpressionType::VALUE_CONSTANT: {
-      const auto &constant = static_cast<const planner::ConstantValueExpression &>(expression);
+    case parser::ExpressionType::VALUE_CONSTANT: {
+      const auto &constant = static_cast<const parser::ConstantValueExpression &>(expression);
       translator = std::make_unique<ConstantTranslator>(constant, this);
       break;
     }
-    case planner::ExpressionType::VALUE_TUPLE: {
-      const auto &derived_value = static_cast<const planner::DerivedValueExpression &>(expression);
+    case parser::ExpressionType::VALUE_TUPLE: {
+      const auto &derived_value = static_cast<const parser::DerivedValueExpression &>(expression);
       translator = std::make_unique<DerivedValueTranslator>(derived_value, this);
       break;
     }
-    case planner::ExpressionType::BUILTIN_FUNCTION: {
-      const auto &builtin_func = static_cast<const planner::BuiltinFunctionExpression &>(expression);
+    // TODO(WAN): ??
+#if 0
+    case parser::ExpressionType::BUILTIN_FUNCTION: {
+      const auto &builtin_func = static_cast<const parser::BuiltinFunctionExpression &>(expression);
       translator = std::make_unique<BuiltinFunctionTranslator>(builtin_func, this);
       break;
     }
+#endif
     default: {
-      throw NotImplementedException(
-          fmt::format("Code generation for expression type '{}' not supported",
-                      planner::ExpressionTypeToString(expression.GetExpressionType(), false)));
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("Code generation for expression type '{}' not supported.",
+                      parser::ExpressionTypeToString(expression.GetExpressionType(), false)));
     }
   }
 
@@ -310,7 +312,7 @@ OperatorTranslator *CompilationContext::LookupTranslator(const planner::Abstract
   return nullptr;
 }
 
-ExpressionTranslator *CompilationContext::LookupTranslator(const planner::AbstractExpression &expr) const {
+ExpressionTranslator *CompilationContext::LookupTranslator(const parser::AbstractExpression &expr) const {
   if (auto iter = expressions_.find(&expr); iter != expressions_.end()) {
     return iter->second.get();
   }

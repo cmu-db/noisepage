@@ -4,14 +4,13 @@
 #include <unordered_map>
 #include <utility>
 
-#include "common/common.h"
-#include "execution/sql/codegen/ast_fwd.h"
-#include "execution/sql/codegen/expression/expression_translator.h"
-#include "execution/sql/codegen/pipeline.h"
+#include "execution/codegen/ast_fwd.h"
+#include "execution/codegen/expression/expression_translator.h"
+#include "execution/codegen/pipeline.h"
 
-namespace terrier::execution::sql::planner {
+namespace terrier::parser {
 class AbstractExpression;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::parser
 
 namespace terrier::execution::codegen {
 
@@ -38,7 +37,7 @@ class WorkContext {
    * @param expr The expression.
    * @return The TPL value of the expression.
    */
-  ast::Expr *DeriveValue(const planner::AbstractExpression &expr, const ColumnValueProvider *provider);
+  ast::Expr *DeriveValue(const parser::AbstractExpression &expr, const ColumnValueProvider *provider);
 
   /**
    * Push this context through to the next step in the pipeline.
@@ -78,7 +77,7 @@ class WorkContext {
   // The pipeline that this context flows through.
   const Pipeline &pipeline_;
   // Cache of expression results.
-  std::unordered_map<const planner::AbstractExpression *, ast::Expr *> cache_;
+  std::unordered_map<const parser::AbstractExpression *, ast::Expr *> cache_;
   // The current pipeline step and last pipeline step.
   Pipeline::StepIterator pipeline_iter_, pipeline_end_;
   // Whether to cache translated expressions

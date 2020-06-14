@@ -1,12 +1,13 @@
-#include "execution/sql/codegen/executable_query_builder.h"
+#include "execution/codegen/executable_query_builder.h"
 
 #include <iostream>
 
-#include "compiler/compiler.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
+#include "execution/compiler/compiler.h"
+#include "execution/sema/error_reporter.h"
 #include "execution/vm/module.h"
-#include "sema/error_reporter.h"
+#include "loggers/execution_logger.h"
 
 namespace terrier::execution::codegen {
 
@@ -54,8 +55,8 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
   compiler::Compiler::RunCompilation(input, &timer);
   std::unique_ptr<vm::Module> module = callbacks.ReleaseModule();
 
-  LOG_DEBUG("Type-check: {:.2f} ms, Bytecode Gen: {:.2f} ms, Module Gen: {:.2f} ms", timer.GetSemaTimeMs(),
-            timer.GetBytecodeGenTimeMs(), timer.GetModuleGenTimeMs());
+  EXECUTION_LOG_DEBUG("Type-check: {:.2f} ms, Bytecode Gen: {:.2f} ms, Module Gen: {:.2f} ms", timer.GetSemaTimeMs(),
+                      timer.GetBytecodeGenTimeMs(), timer.GetModuleGenTimeMs());
 
   // Create the fragment.
   return std::make_unique<ExecutableQuery::Fragment>(std::move(step_functions_), std::move(module));

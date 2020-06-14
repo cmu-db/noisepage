@@ -1,13 +1,13 @@
-#include "execution/sql/codegen/expression/derived_value_translator.h"
+#include "execution/codegen/expression/derived_value_translator.h"
 
-#include "execution/sql/codegen/operators/operator_translator.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/plannodes/abstract_plan_node.h"
-#include "execution/sql/planner/plannodes/output_schema.h"
+#include "execution/codegen/operators/operator_translator.h"
+#include "execution/codegen/work_context.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace terrier::execution::codegen {
 
-DerivedValueTranslator::DerivedValueTranslator(const planner::DerivedValueExpression &expr,
+DerivedValueTranslator::DerivedValueTranslator(const parser::DerivedValueExpression &expr,
                                                CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {}
 

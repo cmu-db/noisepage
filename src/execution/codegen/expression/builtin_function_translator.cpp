@@ -1,12 +1,14 @@
-#include "execution/sql/codegen/expression/builtin_function_translator.h"
+#include "execution/codegen/expression/builtin_function_translator.h"
 
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/work_context.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/work_context.h"
 
+// TODO(WAN): ??? we have these?
+#if 0
 namespace terrier::execution::codegen {
 
-BuiltinFunctionTranslator::BuiltinFunctionTranslator(const planner::BuiltinFunctionExpression &expr,
+BuiltinFunctionTranslator::BuiltinFunctionTranslator(const parser::BuiltinFunctionExpression &expr,
                                                      CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
   for (const auto &child : expr.GetChildren()) {
@@ -28,5 +30,5 @@ ast::Expr *BuiltinFunctionTranslator::DeriveValue(WorkContext *ctx, const Column
   // Issue the function.
   return codegen->CallBuiltin(func_expr.GetBuiltin(), args);
 }
-
+#endif
 }  // namespace terrier::execution::codegen

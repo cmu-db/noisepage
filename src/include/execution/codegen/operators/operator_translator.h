@@ -3,6 +3,7 @@
 #include <string>
 #include <type_traits>
 
+#include "brain/brain_defs.h"
 #include "common/macros.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/ast/identifier.h"
@@ -11,9 +12,9 @@
 #include "execution/util/region_containers.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::execution::sql::planner {
+namespace terrier::planner {
 class AbstractPlanNode;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 
@@ -83,8 +84,8 @@ class OperatorTranslator : public ColumnValueProvider {
    * @param compilation_context The context this compilation is occurring in.
    * @param pipeline The pipeline this translator is a part of.
    */
-  OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context,
-                     Pipeline *pipeline);
+  OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline,
+                     brain::ExecutionOperatingUnitType feature);
 
   /**
    * This class cannot be copied or moved.
@@ -190,6 +191,12 @@ class OperatorTranslator : public ColumnValueProvider {
    */
   CompilationContext *GetCompilationContext() const { return compilation_context_; }
 
+  /** @return Feature type. */
+  brain::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
+
+  /** @return The plan node as a generic node. */
+  const planner::AbstractPlanNode *Op() const { return &plan_; }
+
  protected:
   // Get the code generator instance.
   CodeGen *GetCodeGen() const;
@@ -231,6 +238,9 @@ class OperatorTranslator : public ColumnValueProvider {
   CompilationContext *compilation_context_;
   // The pipeline the operator belongs to.
   Pipeline *pipeline_;
+
+  /** ExecutionOperatingUnitType. */
+  brain::ExecutionOperatingUnitType feature_type_{brain::ExecutionOperatingUnitType::INVALID};
 };
 
 }  // namespace terrier::execution::codegen

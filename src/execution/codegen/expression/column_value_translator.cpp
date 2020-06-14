@@ -1,10 +1,10 @@
-#include "execution/sql/codegen/expression/column_value_translator.h"
+#include "execution/codegen/expression/column_value_translator.h"
 
-#include "execution/sql/codegen/work_context.h"
+#include "execution/codegen/work_context.h"
 
 namespace terrier::execution::codegen {
 
-ColumnValueTranslator::ColumnValueTranslator(const planner::ColumnValueExpression &expr,
+ColumnValueTranslator::ColumnValueTranslator(const parser::ColumnValueExpression &expr,
                                              CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {}
 

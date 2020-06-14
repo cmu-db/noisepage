@@ -1,18 +1,17 @@
-#include "execution/sql/codegen/operators/operator_translator.h"
-
-#include "spdlog/fmt/fmt.h"
+#include "execution/codegen/operators/operator_translator.h"
 
 #include "common/exception.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/plannodes/abstract_plan_node.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/work_context.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::codegen {
 
 OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context,
-                                       Pipeline *pipeline)
-    : plan_(plan), compilation_context_(compilation_context), pipeline_(pipeline) {
-  TPL_ASSERT(plan.GetOutputSchema() != nullptr, "Output schema shouldn't be null");
+                                       Pipeline *pipeline, brain::ExecutionOperatingUnitType feature)
+    : plan_(plan), compilation_context_(compilation_context), pipeline_(pipeline), feature_(feature) {
+  TERRIER_ASSERT(plan.GetOutputSchema() != nullptr, "Output schema shouldn't be null");
   // Register this operator.
   pipeline->RegisterStep(this);
   // Prepare all output expressions.
@@ -44,7 +43,7 @@ ast::Expr *OperatorTranslator::GetChildOutput(WorkContext *context, uint32_t chi
 
   // Check valid output column from child.
   auto child_translator = compilation_context_->LookupTranslator(*plan_.GetChild(child_idx));
-  TPL_ASSERT(child_translator != nullptr, "Missing translator for child!");
+  TERRIER_ASSERT(child_translator != nullptr, "Missing translator for child!");
   return child_translator->GetOutput(context, attr_idx);
 }
 

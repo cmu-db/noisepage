@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "common/constants.h"
 #include "common/hash_util.h"
 #include "common/json.h"
@@ -153,6 +154,11 @@ class OutputSchema {
    * @return the vector of columns that are part of this schema
    */
   const std::vector<Column> &GetColumns() const { return columns_; }
+
+  /**
+   * @return The number of output columns.
+   */
+  std::size_t NumColumns() const { return columns_.size(); }
 
   /**
    * Make a copy of this OutputSchema

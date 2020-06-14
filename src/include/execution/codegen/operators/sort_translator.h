@@ -2,14 +2,14 @@
 
 #include <vector>
 
-#include "execution/sql/codegen/operators/operator_translator.h"
-#include "execution/sql/codegen/pipeline.h"
-#include "execution/sql/codegen/pipeline_driver.h"
-#include "execution/sql/codegen/state_descriptor.h"
+#include "execution/codegen/operators/operator_translator.h"
+#include "execution/codegen/pipeline.h"
+#include "execution/codegen/pipeline_driver.h"
+#include "execution/codegen/state_descriptor.h"
 
-namespace terrier::execution::sql::planner {
+namespace terrier::parser {
 class OrderByPlanNode;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::parser
 
 namespace terrier::execution::codegen {
 

@@ -2,15 +2,15 @@
 
 #include <vector>
 
-#include "execution/sql/codegen/ast_fwd.h"
-#include "execution/sql/codegen/operators/operator_translator.h"
-#include "execution/sql/codegen/pipeline.h"
-#include "execution/sql/codegen/state_descriptor.h"
+#include "execution/codegen/ast_fwd.h"
+#include "execution/codegen/operators/operator_translator.h"
+#include "execution/codegen/pipeline.h"
+#include "execution/codegen/state_descriptor.h"
 
-namespace terrier::execution::sql::planner {
+namespace terrier::parser {
 class AbstractExpression;
 class HashJoinPlanNode;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::parser
 
 namespace terrier::execution::codegen {
 
@@ -109,7 +109,7 @@ class HashJoinTranslator : public OperatorTranslator {
   // Evaluate the provided hash keys in the provided context and return the
   // results in the provided results output vector.
   ast::Expr *HashKeys(WorkContext *ctx, FunctionBuilder *function,
-                      const std::vector<const planner::AbstractExpression *> &hash_keys) const;
+                      const std::vector<const parser::AbstractExpression *> &hash_keys) const;
 
   // Fill the build row with the columns from the given context.
   void FillBuildRow(WorkContext *ctx, FunctionBuilder *function, ast::Expr *build_row) const;

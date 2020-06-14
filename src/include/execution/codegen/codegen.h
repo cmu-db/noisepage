@@ -17,7 +17,6 @@
 #include "execution/util/region_containers.h"
 #include "llvm/ADT/StringMap.h"
 #include "parser/expression_defs.h"
-#include "type/type_id.h"
 
 namespace terrier::execution::codegen {
 
@@ -204,7 +203,7 @@ class CodeGen {
    * @param type The SQL type.
    * @return The corresponding TPL type.
    */
-  [[nodiscard]] ast::Expr *TplType(type::TypeId type);
+  [[nodiscard]] ast::Expr *TplType(sql::TypeId type);
 
   /**
    * Return the appropriate aggregate type for the given input aggregation expression.
@@ -212,7 +211,7 @@ class CodeGen {
    * @param ret_type The return type of the aggregate.
    * @return The corresponding TPL aggregate type.
    */
-  [[nodiscard]] ast::Expr *AggregateType(planner::ExpressionType agg_type, type::TypeId ret_type) const;
+  [[nodiscard]] ast::Expr *AggregateType(parser::ExpressionType agg_type, sql::TypeId ret_type) const;
 
   /**
    * @return An expression that represents the address of the provided object.
@@ -463,7 +462,7 @@ class CodeGen {
    * @param date The date.
    * @return The SQL date.
    */
-  [[nodiscard]] ast::Expr *DateToSql(Date date) const;
+  [[nodiscard]] ast::Expr *DateToSql(sql::Date date) const;
 
   /**
    * Call @dateToSql(). Convert a date into a SQL date.
@@ -599,7 +598,7 @@ class CodeGen {
    * @param filter_val The filtering value.
    * @param The TID list.
    */
-  ast::Expr *VPIFilter(ast::Expr *vp, planner::ExpressionType comp_type, uint32_t col_idx, ast::Expr *filter_val,
+  ast::Expr *VPIFilter(ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx, ast::Expr *filter_val,
                        ast::Expr *tids);
 
   // -------------------------------------------------------
@@ -1210,17 +1209,17 @@ class CodeGen {
   /**
    * Move to a new line.
    */
-  void NewLine() { position_.line++; }
+  void NewLine() { position_.line_++; }
 
   /**
    * Increase current indentation level.
    */
-  void Indent() { position_.column += 4; }
+  void Indent() { position_.column_ += 4; }
 
   /**
    * Decrease Remove current indentation level.
    */
-  void UnIndent() { position_.column -= 4; }
+  void UnIndent() { position_.column_ -= 4; }
 
  private:
   // Enter a new lexical scope.

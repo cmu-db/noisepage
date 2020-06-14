@@ -1,10 +1,10 @@
-#include "execution/sql/codegen/operators/nested_loop_join_translator.h"
+#include "execution/codegen/operators/nested_loop_join_translator.h"
 
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/if.h"
-#include "execution/sql/codegen/pipeline.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/plannodes/nested_loop_join_plan_node.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/if.h"
+#include "execution/codegen/pipeline.h"
+#include "execution/codegen/work_context.h"
+#include "planner/plannodes/nested_loop_join_plan_node.h"
 
 namespace terrier::execution::codegen {
 

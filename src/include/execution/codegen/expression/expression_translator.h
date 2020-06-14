@@ -2,14 +2,13 @@
 
 #include <type_traits>
 
-#include "common/common.h"
 #include "common/macros.h"
-#include "execution/sql/codegen/ast_fwd.h"
-#include "execution/sql/codegen/expression/column_value_provider.h"
+#include "execution/ast/ast_fwd.h"
+#include "execution/codegen/expression/column_value_provider.h"
 
-namespace terrier::execution::sql::planner {
+namespace terrier::parser {
 class AbstractExpression;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::parser
 
 namespace terrier::execution::codegen {
 
@@ -28,7 +27,7 @@ class ExpressionTranslator {
    * @param expr The expression.
    * @param compilation_context The context the translation occurs in.
    */
-  ExpressionTranslator(const planner::AbstractExpression &expr, CompilationContext *compilation_context);
+  ExpressionTranslator(const parser::AbstractExpression &expr, CompilationContext *compilation_context);
 
   /**
    * This class cannot be copied or moved.
@@ -51,13 +50,13 @@ class ExpressionTranslator {
   /**
    * @return The expression being translated.
    */
-  const planner::AbstractExpression &GetExpression() const { return expr_; }
+  const parser::AbstractExpression &GetExpression() const { return expr_; }
 
  protected:
   // The expression for this translator as its concrete type.
   template <typename T>
   const T &GetExpressionAs() const {
-    static_assert(std::is_base_of_v<planner::AbstractExpression, T>, "Template type is not an expression");
+    static_assert(std::is_base_of_v<parser::AbstractExpression, T>, "Template type is not an expression");
     return static_cast<const T &>(expr_);
   }
 
@@ -66,7 +65,7 @@ class ExpressionTranslator {
 
  private:
   // The expression that's to be translated.
-  const planner::AbstractExpression &expr_;
+  const parser::AbstractExpression &expr_;
   // The context the translation is a part of.
   CompilationContext *compilation_context_;
 };

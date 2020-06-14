@@ -1,15 +1,15 @@
-#include "execution/sql/codegen/expression/comparison_translator.h"
+#include "execution/codegen/expression/comparison_translator.h"
 
 #include "spdlog/fmt/fmt.h"
 
 #include "common/exception.h"
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/work_context.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/work_context.h"
 
 namespace terrier::execution::codegen {
 
-ComparisonTranslator::ComparisonTranslator(const planner::ComparisonExpression &expr,
+ComparisonTranslator::ComparisonTranslator(const parser::ComparisonExpression &expr,
                                            CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
   // Prepare the left and right expression subtrees for translation.
@@ -23,25 +23,25 @@ ast::Expr *ComparisonTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
   auto right_val = ctx->DeriveValue(*GetExpression().GetChild(1), provider);
 
   switch (const auto expr_type = GetExpression().GetExpressionType(); expr_type) {
-    case planner::ExpressionType::COMPARE_EQUAL:
+    case parser::ExpressionType::COMPARE_EQUAL:
       return codegen->Compare(parsing::Token::Type::EQUAL_EQUAL, left_val, right_val);
-    case planner::ExpressionType::COMPARE_GREATER_THAN:
+    case parser::ExpressionType::COMPARE_GREATER_THAN:
       return codegen->Compare(parsing::Token::Type::GREATER, left_val, right_val);
-    case planner::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
       return codegen->Compare(parsing::Token::Type::GREATER_EQUAL, left_val, right_val);
-    case planner::ExpressionType::COMPARE_LESS_THAN:
+    case parser::ExpressionType::COMPARE_LESS_THAN:
       return codegen->Compare(parsing::Token::Type::LESS, left_val, right_val);
-    case planner::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+    case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
       return codegen->Compare(parsing::Token::Type::LESS_EQUAL, left_val, right_val);
-    case planner::ExpressionType::COMPARE_NOT_EQUAL:
+    case parser::ExpressionType::COMPARE_NOT_EQUAL:
       return codegen->Compare(parsing::Token::Type::BANG_EQUAL, left_val, right_val);
-    case planner::ExpressionType::COMPARE_LIKE:
+    case parser::ExpressionType::COMPARE_LIKE:
       return codegen->Like(left_val, right_val);
-    case planner::ExpressionType::COMPARE_NOT_LIKE:
+    case parser::ExpressionType::COMPARE_NOT_LIKE:
       return codegen->NotLike(left_val, right_val);
     default: {
       throw NotImplementedException(
-          fmt::format("Translation of comparison type {}", planner::ExpressionTypeToString(expr_type, true)));
+          fmt::format("Translation of comparison type {}", parser::ExpressionTypeToString(expr_type, true)));
     }
   }
 }

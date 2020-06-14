@@ -1,15 +1,14 @@
-#include "execution/sql/codegen/expression/arithmetic_translator.h"
-
-#include "spdlog/fmt/fmt.h"
+#include "execution/codegen/expression/arithmetic_translator.h"
 
 #include "common/exception.h"
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/work_context.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/work_context.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::codegen {
 
-ArithmeticTranslator::ArithmeticTranslator(const planner::OperatorExpression &expr,
+ArithmeticTranslator::ArithmeticTranslator(const parser::OperatorExpression &expr,
                                            CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
   // Prepare the left and right expression subtrees for translation.
@@ -23,19 +22,19 @@ ast::Expr *ArithmeticTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
   auto right_val = ctx->DeriveValue(*GetExpression().GetChild(1), provider);
 
   switch (auto expr_type = GetExpression().GetExpressionType(); expr_type) {
-    case planner::ExpressionType::OPERATOR_PLUS:
+    case parser::ExpressionType::OPERATOR_PLUS:
       return codegen->BinaryOp(parsing::Token::Type::PLUS, left_val, right_val);
-    case planner::ExpressionType::OPERATOR_MINUS:
+    case parser::ExpressionType::OPERATOR_MINUS:
       return codegen->BinaryOp(parsing::Token::Type::MINUS, left_val, right_val);
-    case planner::ExpressionType::OPERATOR_MULTIPLY:
+    case parser::ExpressionType::OPERATOR_MULTIPLY:
       return codegen->BinaryOp(parsing::Token::Type::STAR, left_val, right_val);
-    case planner::ExpressionType::OPERATOR_DIVIDE:
+    case parser::ExpressionType::OPERATOR_DIVIDE:
       return codegen->BinaryOp(parsing::Token::Type::SLASH, left_val, right_val);
-    case planner::ExpressionType::OPERATOR_MOD:
+    case parser::ExpressionType::OPERATOR_MOD:
       return codegen->BinaryOp(parsing::Token::Type::PERCENT, left_val, right_val);
     default: {
-      throw NotImplementedException(
-          fmt::format("Translation of arithmetic type {}", planner::ExpressionTypeToString(expr_type, true)));
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("Translation of arithmetic type {}", parser::ExpressionTypeToString(expr_type, true)));
     }
   }
 }

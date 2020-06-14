@@ -1,8 +1,8 @@
-#include "execution/sql/codegen/operators/projection_translator.h"
+#include "execution/codegen/operators/projection_translator.h"
 
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/plannodes/projection_plan_node.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/work_context.h"
+#include "planner/plannodes/projection_plan_node.h"
 
 namespace terrier::execution::codegen {
 

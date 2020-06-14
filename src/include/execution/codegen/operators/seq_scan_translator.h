@@ -3,16 +3,15 @@
 #include <string_view>
 #include <vector>
 
-#include "execution/sql/codegen/ast_fwd.h"
-#include "execution/sql/codegen/operators/operator_translator.h"
-#include "execution/sql/codegen/pipeline.h"
-#include "execution/sql/codegen/pipeline_driver.h"
-#include "execution/sql/schema.h"
+#include "execution/codegen/ast_fwd.h"
+#include "execution/codegen/operators/operator_translator.h"
+#include "execution/codegen/pipeline.h"
+#include "execution/codegen/pipeline_driver.h"
 
-namespace terrier::execution::sql::planner {
+namespace terrier::parser {
 class AbstractExpression;
 class SeqScanPlanNode;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::parser
 
 namespace terrier::execution::codegen {
 
@@ -83,12 +82,12 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   std::string_view GetTableName() const;
 
   // Generate a generic filter term.
-  void GenerateGenericTerm(FunctionBuilder *function, const planner::AbstractExpression *term, ast::Expr *vector_proj,
+  void GenerateGenericTerm(FunctionBuilder *function, const parser::AbstractExpression *term, ast::Expr *vector_proj,
                            ast::Expr *tid_list);
 
   // Generate all filter clauses.
   void GenerateFilterClauseFunctions(util::RegionVector<ast::FunctionDecl *> *decls,
-                                     const planner::AbstractExpression *predicate,
+                                     const parser::AbstractExpression *predicate,
                                      std::vector<ast::Identifier> *curr_clause, bool seen_conjunction);
 
   // Perform a table scan using the provided table vector iterator pointer.

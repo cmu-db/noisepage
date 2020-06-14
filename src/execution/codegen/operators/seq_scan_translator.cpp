@@ -1,18 +1,18 @@
-#include "execution/sql/codegen/operators/seq_scan_translator.h"
+#include "execution/codegen/operators/seq_scan_translator.h"
 
 #include "common/exception.h"
+#include "execution/codegen/codegen.h"
+#include "execution/codegen/compilation_context.h"
+#include "execution/codegen/function_builder.h"
+#include "execution/codegen/if.h"
+#include "execution/codegen/loop.h"
+#include "execution/codegen/pipeline.h"
+#include "execution/codegen/work_context.h"
 #include "execution/sql/catalog.h"
-#include "execution/sql/codegen/codegen.h"
-#include "execution/sql/codegen/compilation_context.h"
-#include "execution/sql/codegen/function_builder.h"
-#include "execution/sql/codegen/if.h"
-#include "execution/sql/codegen/loop.h"
-#include "execution/sql/codegen/pipeline.h"
-#include "execution/sql/codegen/work_context.h"
-#include "execution/sql/planner/expressions/column_value_expression.h"
-#include "execution/sql/planner/expressions/expression_util.h"
-#include "execution/sql/planner/plannodes/seq_scan_plan_node.h"
 #include "execution/sql/table.h"
+#include "parser/expression/column_value_expression.h"
+#include "parser/expression/expression_util.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 
 namespace terrier::execution::codegen {
 
@@ -40,7 +40,7 @@ std::string_view SeqScanTranslator::GetTableName() const {
   return Catalog::Instance()->LookupTableById(table_oid)->GetName();
 }
 
-void SeqScanTranslator::GenerateGenericTerm(FunctionBuilder *function, const planner::AbstractExpression *term,
+void SeqScanTranslator::GenerateGenericTerm(FunctionBuilder *function, const parser::AbstractExpression *term,
                                             ast::Expr *vector_proj, ast::Expr *tid_list) {
   auto codegen = GetCodeGen();
 
@@ -75,11 +75,11 @@ void SeqScanTranslator::GenerateGenericTerm(FunctionBuilder *function, const pla
 }
 
 void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::FunctionDecl *> *decls,
-                                                      const planner::AbstractExpression *predicate,
+                                                      const parser::AbstractExpression *predicate,
                                                       std::vector<ast::Identifier> *curr_clause,
                                                       bool seen_conjunction) {
   // The top-most disjunctions in the tree form separate clauses in the filter manager.
-  if (!seen_conjunction && predicate->GetExpressionType() == planner::ExpressionType::CONJUNCTION_OR) {
+  if (!seen_conjunction && predicate->GetExpressionType() == parser::ExpressionType::CONJUNCTION_OR) {
     std::vector<ast::Identifier> next_clause;
     GenerateFilterClauseFunctions(decls, predicate->GetChild(0), &next_clause, false);
     filters_.emplace_back(std::move(next_clause));
@@ -88,7 +88,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
   }
 
   // Consecutive conjunctions are part of the same clause.
-  if (predicate->GetExpressionType() == planner::ExpressionType::CONJUNCTION_AND) {
+  if (predicate->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND) {
     GenerateFilterClauseFunctions(decls, predicate->GetChild(0), curr_clause, true);
     GenerateFilterClauseFunctions(decls, predicate->GetChild(1), curr_clause, true);
     return;
@@ -108,7 +108,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
     ast::Expr *vector_proj = builder.GetParameterByPosition(0);
     ast::Expr *tid_list = builder.GetParameterByPosition(1);
     if (planner::ExpressionUtil::IsColumnCompareWithConst(*predicate)) {
-      auto cve = static_cast<const planner::ColumnValueExpression *>(predicate->GetChild(0));
+      auto cve = static_cast<const parser::ColumnValueExpression *>(predicate->GetChild(0));
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
       auto const_val = translator->DeriveValue(nullptr, nullptr);
       builder.Append(codegen->VPIFilter(vector_proj,                     // The vector projection

@@ -1,7 +1,9 @@
 #pragma once
 
-#include "execution/sql/codegen/expression/expression_translator.h"
-#include "execution/sql/planner/expressions/builtin_function_expression.h"
+// TODO(WAN): ???
+#if 0
+#include "execution/codegen/expression/expression_translator.h"
+#include "parser/expression/builtin_function_expression.h"
 
 namespace terrier::execution::codegen {
 
@@ -15,7 +17,7 @@ class BuiltinFunctionTranslator : public ExpressionTranslator {
    * @param expr The expression.
    * @param compilation_context The context the translation occurs in.
    */
-  BuiltinFunctionTranslator(const planner::BuiltinFunctionExpression &expr, CompilationContext *compilation_context);
+  BuiltinFunctionTranslator(const parser::BuiltinFunctionExpression &expr, CompilationContext *compilation_context);
 
   /**
    * Derive the value of the expression.
@@ -27,3 +29,4 @@ class BuiltinFunctionTranslator : public ExpressionTranslator {
 };
 
 }  // namespace terrier::execution::codegen
+#endif

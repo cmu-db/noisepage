@@ -1,7 +1,7 @@
 #pragma once
 
-#include "execution/sql/codegen/expression/expression_translator.h"
-#include "execution/sql/planner/expressions/conjunction_expression.h"
+#include "execution/codegen/expression/expression_translator.h"
+#include "parser/expression/conjunction_expression.h"
 
 namespace terrier::execution::codegen {
 
@@ -15,7 +15,7 @@ class ConjunctionTranslator : public ExpressionTranslator {
    * @param expr The expression to translate.
    * @param compilation_context The context in which translation occurs.
    */
-  ConjunctionTranslator(const planner::ConjunctionExpression &expr, CompilationContext *compilation_context);
+  ConjunctionTranslator(const parser::ConjunctionExpression &expr, CompilationContext *compilation_context);
 
   /**
    * Derive the value of the expression.

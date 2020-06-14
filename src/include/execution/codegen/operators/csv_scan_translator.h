@@ -1,11 +1,11 @@
 #pragma once
 
-#include "execution/sql/codegen/operators/operator_translator.h"
-#include "execution/sql/codegen/pipeline_driver.h"
+#include "execution/codegen/operators/operator_translator.h"
+#include "execution/codegen/pipeline_driver.h"
 
-namespace terrier::execution::sql::planner {
+namespace terrier::parser {
 class CSVScanPlanNode;
-}  // namespace terrier::execution::sql::planner
+}  // namespace terrier::parser
 
 namespace terrier::execution::codegen {
 
