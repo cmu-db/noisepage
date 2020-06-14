@@ -1,5 +1,7 @@
 #include "execution/sema/sema.h"
 
+#include "llvm/ADT/DenseSet.h"
+
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 
@@ -50,6 +52,26 @@ void Sema::VisitVariableDecl(ast::VariableDecl *node) {
 
 void Sema::VisitFieldDecl(ast::FieldDecl *node) { Visit(node->TypeRepr()); }
 
+namespace {
+
+// Return true if the given list of field declarations contains a duplicate name. If so, the 'dup'
+// output parameter is set to the offending field. Otherwise, return false;
+bool HasDuplicatesNames(const util::RegionVector<ast::FieldDecl *> &fields, const ast::FieldDecl **dup) {
+  llvm::SmallDenseSet<ast::Identifier, 32> seen;
+  for (const auto *field : fields) {
+    // Attempt to insert into the set. If the insertion succeeds it's a unique
+    // name. If the insertion fails, it's a duplicate name.
+    const bool inserted = seen.insert(field->Name()).second;
+    if (!inserted) {
+      *dup = field;
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
 void Sema::VisitFunctionDecl(ast::FunctionDecl *node) {
   // Resolve just the function type (not the body of the function)
   auto *func_type = Resolve(node->TypeRepr());
@@ -69,6 +91,13 @@ void Sema::VisitStructDecl(ast::StructDecl *node) {
   auto *struct_type = Resolve(node->TypeRepr());
 
   if (struct_type == nullptr) {
+    return;
+  }
+
+  // Check for duplicate fields.
+  if (const ast::FieldDecl *dup = nullptr;
+      HasDuplicatesNames(node->TypeRepr()->As<ast::StructTypeRepr>()->Fields(), &dup)) {
+    GetErrorReporter()->Report(node->Position(), ErrorMessages::kDuplicateStructFieldName, dup->Name(), node->Name());
     return;
   }
 

@@ -53,7 +53,7 @@ date-functions.tpl,false,0
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
-static-agg.tpl,true,49995000
+#static-agg.tpl,true,49995000
 distinct-agg.tpl,true,45
 delete.tpl,true,0
 insert.tpl,true,11
