@@ -84,8 +84,10 @@ class CatalogCache {
   std::pair<bool, std::vector<index_oid_t>> GetIndexOids(const table_oid_t table) {
     const auto it = indexes_.find(table);
     if (it != indexes_.end()) {
+      // return true to indicate table was found, but list could still be empty
       return {true, it->second};
     }
+    // return false to indidcate table was not found
     return {false, {}};
   }
 
