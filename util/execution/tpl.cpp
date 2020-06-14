@@ -2,6 +2,8 @@
 
 #include <gflags/gflags.h>
 #include <tbb/task_scheduler_init.h>
+#undef TRUE
+#undef FALSE
 #include <unistd.h>
 
 #include <algorithm>
