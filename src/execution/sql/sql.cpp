@@ -31,7 +31,7 @@ SqlTypeId GetSqlTypeFromInternalType(TypeId type) {
     case TypeId::Varbinary:
       return SqlTypeId::Varchar;
     default:
-      throw std::runtime_error("Type is not a SQL type");
+      throw EXECUTION_EXCEPTION(fmt::format("Not a SQL type, {}.", TypeIdToString(type)));
   }
 }
 

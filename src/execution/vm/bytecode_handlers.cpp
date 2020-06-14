@@ -7,19 +7,6 @@
 extern "C" {
 
 // ---------------------------------------------------------
-// Thread State Container
-// ---------------------------------------------------------
-
-void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *const thread_state_container,
-                                terrier::execution::sql::MemoryPool *const memory) {
-  new (thread_state_container) terrier::execution::sql::ThreadStateContainer(memory);
-}
-
-void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *const thread_state_container) {
-  thread_state_container->~ThreadStateContainer();
-}
-
-// ---------------------------------------------------------
 // Table Vector Iterator
 // ---------------------------------------------------------
 
@@ -30,11 +17,9 @@ void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *ite
   new (iter) terrier::execution::sql::TableVectorIterator(exec_ctx, table_oid, col_oids, num_oids);
 }
 
-void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) { iter->Init(); }
-
-void OpTableVectorIteratorRefreshVectorProjection(terrier::execution::sql::TableVectorIterator *iter) {
-  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to reset");
-  iter->RefreshVectorProjection();
+void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) {
+  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to close");
+  iter->Init();
 }
 
 void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter) {
@@ -42,66 +27,34 @@ void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *ite
   iter->~TableVectorIterator();
 }
 
-void OpVPIFilterEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
-                      int8_t type, int64_t val) {
-  auto sql_type = static_cast<terrier::type::TypeId>(type);
-  auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::equal_to>(col_idx, sql_type, v);
+void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi, terrier::execution::sql::VectorProjection *vp) {
+  new (vpi) terrier::execution::sql::VectorProjectionIterator(vp);
 }
 
-void OpVPIFilterGreaterThan(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
-                            int8_t type, int64_t val) {
-  auto sql_type = static_cast<terrier::type::TypeId>(type);
-  auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::greater>(col_idx, sql_type, v);
+void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
+                       terrier::execution::sql::VectorProjection *vp, terrier::execution::sql::TupleIdList *tid_list) {
+  new (vpi) terrier::execution::sql::VectorProjectionIterator(vp, tid_list);
 }
 
-void OpVPIFilterGreaterThanEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter,
-                                 uint32_t col_idx, int8_t type, int64_t val) {
-  auto sql_type = static_cast<terrier::type::TypeId>(type);
-  auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::greater_equal>(col_idx, sql_type, v);
-}
-
-void OpVPIFilterLessThan(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
-                         int8_t type, int64_t val) {
-  auto sql_type = static_cast<terrier::type::TypeId>(type);
-  auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::less>(col_idx, sql_type, v);
-}
-
-void OpVPIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
-                              int8_t type, int64_t val) {
-  auto sql_type = static_cast<terrier::type::TypeId>(type);
-  auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::less_equal>(col_idx, sql_type, v);
-}
-
-void OpVPIFilterNotEqual(uint64_t *size, terrier::execution::sql::VectorProjectionIterator *iter, uint32_t col_idx,
-                         int8_t type, int64_t val) {
-  auto sql_type = static_cast<terrier::type::TypeId>(type);
-  auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::not_equal_to>(col_idx, sql_type, v);
-}
+void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->~VectorProjectionIterator(); }
 
 // ---------------------------------------------------------
 // Filter Manager
 // ---------------------------------------------------------
 
-void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager) {
-  new (filter_manager) terrier::execution::sql::FilterManager();
+void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager,
+                         terrier::execution::exec::ExecutionContext *exec_ctx) {
+  new (filter_manager) terrier::execution::sql::FilterManager(terrier::common::ManagedPointer(exec_ctx));
 }
 
 void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager) {
   filter_manager->StartNewClause();
 }
 
-void OpFilterManagerInsertFlavor(terrier::execution::sql::FilterManager *filter_manager,
-                                 terrier::execution::sql::FilterManager::MatchFn flavor) {
-  filter_manager->InsertClauseFlavor(flavor);
+void OpFilterManagerInsertFilter(terrier::execution::sql::FilterManager *filter_manager,
+                                 terrier::execution::sql::FilterManager::MatchFn clause) {
+  filter_manager->InsertClauseTerm(clause);
 }
-
-void OpFilterManagerFinalize(terrier::execution::sql::FilterManager *filter_manager) { filter_manager->Finalize(); }
 
 void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter_manager,
                                terrier::execution::sql::VectorProjectionIterator *vpi) {
@@ -115,8 +68,10 @@ void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager)
 // ---------------------------------------------------------
 
 void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
+                         terrier::execution::exec::ExecutionContext *exec_ctx,
                          terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size) {
-  new (join_hash_table) terrier::execution::sql::JoinHashTable(memory, tuple_size);
+  new (join_hash_table)
+      terrier::execution::sql::JoinHashTable(terrier::common::ManagedPointer(exec_ctx), memory, tuple_size);
 }
 
 void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }
@@ -134,8 +89,10 @@ void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table
 // ---------------------------------------------------------
 
 void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *const agg_hash_table,
+                                terrier::execution::exec::ExecutionContext *exec_ctx,
                                 terrier::execution::sql::MemoryPool *const memory, const uint32_t payload_size) {
-  new (agg_hash_table) terrier::execution::sql::AggregationHashTable(memory, payload_size);
+  new (agg_hash_table)
+      terrier::execution::sql::AggregationHashTable(terrier::common::ManagedPointer(exec_ctx), memory, payload_size);
 }
 
 void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *const agg_hash_table) {
@@ -148,9 +105,23 @@ void OpAggregationHashTableIteratorInit(terrier::execution::sql::AHTIterator *it
   new (iter) terrier::execution::sql::AHTIterator(*agg_hash_table);
 }
 
-void OpAggregationHashTableIteratorFree(terrier::execution::sql::AHTIterator *iter) {
-  iter->~AHTIterator();
+void OpAggregationHashTableBuildAllHashTablePartitions(terrier::execution::sql::AggregationHashTable *agg_hash_table,
+                                                       void *query_state) {
+  agg_hash_table->BuildAllPartitions(query_state);
 }
+
+void OpAggregationHashTableRepartition(terrier::execution::sql::AggregationHashTable *agg_hash_table) {
+  agg_hash_table->Repartition();
+}
+
+void OpAggregationHashTableMergePartitions(
+    terrier::execution::sql::AggregationHashTable *agg_hash_table,
+    terrier::execution::sql::AggregationHashTable *target_agg_hash_table, void *query_state,
+    terrier::execution::sql::AggregationHashTable::MergePartitionFn merge_partition_fn) {
+  agg_hash_table->MergePartitions(target_agg_hash_table, query_state, merge_partition_fn);
+}
+
+void OpAggregationHashTableIteratorFree(terrier::execution::sql::AHTIterator *iter) { iter->~AHTIterator(); }
 
 // ---------------------------------------------------------
 // Sorters
@@ -178,84 +149,24 @@ void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
 void OpSorterFree(terrier::execution::sql::Sorter *sorter) { sorter->~Sorter(); }
 
 void OpSorterIteratorInit(terrier::execution::sql::SorterIterator *iter, terrier::execution::sql::Sorter *sorter) {
-  new (iter) terrier::execution::sql::SorterIterator(sorter);
+  new (iter) terrier::execution::sql::SorterIterator(*sorter);
 }
 
 void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter) { iter->~SorterIterator(); }
 
-// -------------------------------------------------------------
-// StorageInterface Calls
-// -------------------------------------------------------------
+// ---------------------------------------------------------
+// CSV Reader
+// ---------------------------------------------------------
 
-void OpStorageInterfaceInit(terrier::execution::sql::StorageInterface *storage_interface,
-                            terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
-                            uint32_t *col_oids, uint32_t num_oids, bool need_indexes) {
-  new (storage_interface) terrier::execution::sql::StorageInterface(exec_ctx, terrier::catalog::table_oid_t(table_oid),
-                                                                    col_oids, num_oids, need_indexes);
+void OpCSVReaderInit(terrier::execution::util::CSVReader *reader, const uint8_t *file_name, uint32_t len) {
+  std::string_view fname(reinterpret_cast<const char *>(file_name), len);
+  new (reader) terrier::execution::util::CSVReader(std::make_unique<terrier::execution::util::CSVFile>(fname));
 }
 
-void OpStorageInterfaceGetTablePR(terrier::storage::ProjectedRow **pr_result,
-                                  terrier::execution::sql::StorageInterface *storage_interface) {
-  *pr_result = storage_interface->GetTablePR();
+void OpCSVReaderPerformInit(bool *result, terrier::execution::util::CSVReader *reader) {
+  *result = reader->Initialize();
 }
 
-void OpStorageInterfaceTableUpdate(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
-                                   terrier::storage::TupleSlot *tuple_slot) {
-  *result = storage_interface->TableUpdate(*tuple_slot);
-}
-
-void OpStorageInterfaceTableDelete(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
-                                   terrier::storage::TupleSlot *tuple_slot) {
-  *result = storage_interface->TableDelete(*tuple_slot);
-}
-
-void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
-                                   terrier::execution::sql::StorageInterface *storage_interface) {
-  *tuple_slot = storage_interface->TableInsert();
-}
-
-void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
-                                  terrier::execution::sql::StorageInterface *storage_interface, uint32_t index_oid) {
-  *pr_result = storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid));
-}
-
-void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
-  *result = storage_interface->IndexInsert();
-}
-
-void OpStorageInterfaceIndexInsertUnique(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
-  *result = storage_interface->IndexInsertUnique();
-}
-
-void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
-                                   terrier::storage::TupleSlot *tuple_slot) {
-  storage_interface->IndexDelete(*tuple_slot);
-}
-
-void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface) {
-  storage_interface->~StorageInterface();
-}
-
-// -------------------------------------------------------------
-// Output
-// ------------------------------------------------------------
-void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, terrier::byte **result) {
-  *result = exec_ctx->GetOutputBuffer()->AllocOutputSlot();
-}
-
-void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Finalize(); }
-
-// -------------------------------------------------------------------
-// Index Iterator
-// -------------------------------------------------------------------
-void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
-                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid,
-                         uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids) {
-  new (iter) terrier::execution::sql::IndexIterator(exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
-}
-
-void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }
-
-void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~IndexIterator(); }
+void OpCSVReaderClose(terrier::execution::util::CSVReader *reader) { std::destroy_at(reader); }
 
 }  //

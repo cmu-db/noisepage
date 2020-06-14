@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <string>
 
-#include "common/hash_util.h"
+#include "execution/util/hash.h"
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"
 
@@ -159,10 +159,71 @@ class EXPORT Timestamp {
   Timestamp() = default;
 
   /**
+   * @return The year of this timestamp.
+   */
+  int32_t ExtractYear() const;
+
+  /**
+   * @return The month of this timestamp.
+   */
+  int32_t ExtractMonth() const;
+
+  /**
+   * @return The day of this timestamp.
+   */
+  int32_t ExtractDay() const;
+
+  /**
+   * @return The year of this timestamp.
+   */
+  int32_t ExtractHour() const;
+
+  /**
+   * @return The month of this timestamp.
+   */
+  int32_t ExtractMinute() const;
+
+  /**
+   * @return The day of this timestamp.
+   */
+  int32_t ExtractSecond() const;
+
+  /**
+   * @return The milliseconds of this timestamp.
+   */
+  int32_t ExtractMillis() const;
+
+  /**
+   * @return The microseconds of this timestamp.
+   */
+  int32_t ExtractMicros() const;
+
+  /**
+   * @return The day-of-the-week (0-6 Sun-Sat) this timestamp falls on.
+   */
+  int32_t ExtractDayOfWeek() const;
+
+  /**
+   * @return THe day-of-the-year this timestamp falls on.
+   */
+  int32_t ExtractDayOfYear() const;
+
+  /**
+   * Extract all components of this timestamp
+   * @param[out] year The year corresponding to this date.
+   * @param[out] month The month corresponding to this date.
+   * @param[out] day The day corresponding to this date.
+   * @param[out] hour The hour corresponding to this date.
+   * @param[out] min The minute corresponding to this date.
+   * @param[out] sec The second corresponding to this date.
+   */
+  void ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min, int32_t *sec);
+
+  /**
    * Convert this timestamp instance into a date instance.
    * @return The date instance representing this timestamp.
    */
-  Date ConvertToDate() const noexcept;
+  Date ConvertToDate() const;
 
   /**
    * Compute the hash value of this timestamp instance.
@@ -506,7 +567,6 @@ class Blob {
 /** Converts the provided date into a timestamp. */
 inline Timestamp Date::ConvertToTimestamp() const noexcept { return Timestamp(value_ * US_PER_DAY); }
 
-/** Converts the provided timestamp into a date. */
-inline Date Timestamp::ConvertToDate() const noexcept { return Date(value_ / US_PER_DAY); }
+inline Date Timestamp::ConvertToDate() const { return Date(value_ / US_PER_DAY); }
 
 }  // namespace terrier::execution::sql

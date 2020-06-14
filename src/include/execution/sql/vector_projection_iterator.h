@@ -71,7 +71,7 @@ namespace terrier::execution::sql {
  */
 class VectorProjectionIterator {
   // Constant marking an invalid index in the selection vector
-  static constexpr sel_t kInvalidPos = std::numeric_limits<sel_t>::max();
+  static constexpr sel_t INVALID_POS = std::numeric_limits<sel_t>::max();
 
  public:
   /**
@@ -85,7 +85,7 @@ class VectorProjectionIterator {
         size_(0),
         sel_vector_read_idx_(0),
         sel_vector_write_idx_(0) {
-    sel_vector_[0] = kInvalidPos;
+    sel_vector_[0] = INVALID_POS;
   }
 
   /**
@@ -119,7 +119,7 @@ class VectorProjectionIterator {
   /**
    * @return True if the vector projection we're iterating over is filtered; false otherwise.
    */
-  bool IsFiltered() const { return sel_vector_[0] != kInvalidPos; }
+  bool IsFiltered() const { return sel_vector_[0] != INVALID_POS; }
 
   /**
    * Reset this iterator to begin iteration over the given projection @em vector_projection.
@@ -268,7 +268,7 @@ class VectorProjectionIterator {
       size_ = tid_list_->ToSelectionVector(sel_vector_);
       curr_idx_ = sel_vector_[0];
     } else {
-      sel_vector_[0] = kInvalidPos;
+      sel_vector_[0] = INVALID_POS;
       size_ = tid_list_->GetCapacity();
       curr_idx_ = 0;
     }

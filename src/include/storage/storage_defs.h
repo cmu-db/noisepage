@@ -252,11 +252,31 @@ class VarlenEntry {
    */
   static VarlenEntry Create(const byte *content, uint32_t size, bool reclaim) {
     VarlenEntry result;
+    if (size <= InlineThreshold()) {
+      TERRIER_ASSERT(!reclaim, "can't reclaim this");
+      return CreateInline(content, size);
+    }
     TERRIER_ASSERT(size > InlineThreshold(), "small varlen values should be inlined");
     result.size_ = reclaim ? size : (INT32_MIN | size);  // the first bit denotes whether we can reclaim it
     std::memcpy(result.prefix_, content, sizeof(uint32_t));
     result.content_ = content;
     return result;
+  }
+
+  /**
+   * Construct a new varlen entry whose contents match the provided string. The varlen DOES NOT
+   * take ownership of the content, but it will store a pointer to it if it cannot apply a small
+   * string optimization. It is the caller's responsibility to ensure the content outlives this
+   * varlen entry.
+   *
+   * @param str The input string.
+   * @return A constructed VarlenEntry object.
+   */
+  static VarlenEntry Create(std::string_view str) {
+    if (str.length() > InlineThreshold()) {
+      return Create(reinterpret_cast<const byte *>(str.data()), str.length(), false);
+    }
+    return CreateInline(reinterpret_cast<const byte *>(str.data()), str.length());
   }
 
   /**
@@ -376,6 +396,11 @@ class VarlenEntry {
   }
 
   /**
+   * @return The hash value of this variable-length string.
+   */
+  hash_t Hash() const { return Hash(0); }
+
+  /**
    * Compute the hash value of this variable-length string instance.
    * @param seed The value to seed the hash with.
    * @return The hash value for this string instance.
@@ -384,22 +409,10 @@ class VarlenEntry {
     // "small" strings use CRC hashing, "long" strings use XXH3.
     if (IsInlined()) {
       return common::HashUtil::HashCrc(reinterpret_cast<const uint8_t *>(Prefix()), Size(), seed);
-    } else {
-      return common::HashUtil::HashXX3(reinterpret_cast<const uint8_t *>(Content()), Size(), seed);
     }
+    return common::HashUtil::HashXX3(reinterpret_cast<const uint8_t *>(Content()), Size(), seed);
   }
 
-  /**
-   * @return True if this varlen equals @em that varlen; false otherwise.
-   */
-  bool operator==(const VarlenEntry &that) const { return CompareEqualOrNot<true>(*this, that); }
-
-  /**
-   * @return True if this varlen does not equal @em that varlen; false otherwise.
-   */
-  bool operator!=(const VarlenEntry &that) const { return CompareEqualOrNot<false>(*this, that); }
-
- private:
   /**
    * Compare two strings ONLY for equality or inequality only.
    * @tparam EqualCheck
@@ -409,19 +422,16 @@ class VarlenEntry {
    */
   template <bool EqualityCheck>
   static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
-    // Compare the size.
-    if (left.Size() == right.Size()) {
-      // Sizes equal, compare the prefix.
-      if (std::memcmp(left.Prefix(), right.Prefix(), left.PrefixSize()) == 0) {
-        // Sizes and prefixes equal, compare contents.
-        if (left.IsInlined()) {
-          if (std::memcmp(left.prefix_, right.prefix_, left.Size()) == 0) {
-            return EqualityCheck ? true : false;
-          }
-        } else {
-          if (std::memcmp(left.content_, right.content_, left.Size()) == 0) {
-            return EqualityCheck ? true : false;
-          }
+    // Compare the size and prefix in one fell swoop.
+    if (std::memcmp(&left, &right, sizeof(size_) + PrefixSize()) == 0) {
+      // Prefix and length are equal.
+      if (left.IsInlined()) {
+        if (std::memcmp(left.prefix_, right.prefix_, left.size_) == 0) {
+          return EqualityCheck ? true : false;
+        }
+      } else {
+        if (std::memcmp(left.content_, right.content_, left.size_) == 0) {
+          return EqualityCheck ? true : false;
         }
       }
     }
@@ -429,6 +439,53 @@ class VarlenEntry {
     return EqualityCheck ? false : true;
   }
 
+  /**
+   * Compare two strings. Returns:
+   * < 0 if left < right
+   *  0  if left == right
+   * > 0 if left > right
+   *
+   * @param left The first string.
+   * @param right The second string.
+   * @return The appropriate signed value indicating comparison order.
+   */
+  static int32_t Compare(const VarlenEntry &left, const VarlenEntry &right) {
+    const auto min_len = std::min(left.Size(), right.Size());
+    const auto result = std::memcmp(left.Content(), right.Content(), min_len);
+    return result != 0 ? result : left.Size() - right.Size();
+  }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator==(const VarlenEntry &that) const { return CompareEqualOrNot<true>(*this, that); }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator!=(const VarlenEntry &that) const { return CompareEqualOrNot<false>(*this, that); }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator<(const VarlenEntry &that) const { return Compare(*this, that) < 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator<=(const VarlenEntry &that) const { return Compare(*this, that) <= 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator>(const VarlenEntry &that) const { return Compare(*this, that) > 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator>=(const VarlenEntry &that) const { return Compare(*this, that) >= 0; }
+
+ private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
   const byte *content_;            // pointer to content of the varlen entry if not inlined

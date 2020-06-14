@@ -7,6 +7,8 @@
 
 /** Selection vector. */
 using sel_t = uint16_t;
+using int128_t = __int128;
+using uint128_t = unsigned __int128;
 
 //===--------------------------------------------------------------------===//
 // branch predictor hints

@@ -264,7 +264,7 @@ class EXPORT MemoryPool {
   common::ManagedPointer<MemoryTracker> tracker_;
 
   // Variable storing the threshold above which to use MMap allocations
-  static std::atomic<std::size_t> kMmapThreshold;
+  static std::atomic<std::size_t> MMAP_THRESHOLD;
 };
 
 /**

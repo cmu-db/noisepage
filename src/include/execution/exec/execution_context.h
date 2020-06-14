@@ -12,6 +12,7 @@
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/memory_tracker.h"
 #include "execution/sql/runtime_types.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
@@ -49,7 +50,12 @@ class EXPORT ExecutionContext {
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
-        accessor_(accessor) {}
+        accessor_(accessor),
+        select_opt_threshold_{common::Constants::SELECT_OPT_THRESHOLD},
+        arithmetic_full_compute_opt_threshold_{common::Constants::ARITHMETIC_FULL_COMPUTE_THRESHOLD},
+        min_bit_density_threshold_for_AVX_index_decode_{common::Constants::BIT_DENSITY_THRESHOLD_FOR_AVX_INDEX_DECODE},
+        adaptive_predicate_order_sampling_frequency_{common::Constants::ADAPTIVE_PRED_ORDER_SAMPLE_FREQ},
+        parallel_query_execution_{common::Constants::IS_PARALLEL_QUERY_EXECUTION} {}
 
   /**
    * @return the transaction used by this query
@@ -60,6 +66,11 @@ class EXPORT ExecutionContext {
    * @return the output buffer used by this query
    */
   OutputBuffer *GetOutputBuffer() { return buffer_.get(); }
+
+  /**
+   * @return The thread state container.
+   */
+  sql::ThreadStateContainer *GetThreadStateContainer() { return thread_state_container_.get(); }
 
   /**
    * @return the memory pool
@@ -148,12 +159,43 @@ class EXPORT ExecutionContext {
     pipeline_operating_units_ = op;
   }
 
+  /**
+   * @return The vector active element threshold past which full auto-vectorization is done on vectors
+   */
+  constexpr double GetSelectOptThreshold() { return select_opt_threshold_; }
+
+  /**
+   * @return The vector selectivity past which full computation is done
+   */
+  constexpr double GetArithmeticFullComputeOptThreshold() { return arithmetic_full_compute_opt_threshold_; }
+
+  /**
+   * @return The minimum bit vector density before using a SIMD decoding algorithm
+   */
+  constexpr float GetMinBitDensityThresholdForAVXIndexDecode() {
+    return min_bit_density_threshold_for_AVX_index_decode_;
+  }
+
+  /**
+   * @return The frequency at which to sample statistics when adaptively reordering
+   * predicate clauses
+   */
+  constexpr float GetAdaptivePredicateOrderSamplingFrequency() { return adaptive_predicate_order_sampling_frequency_; }
+
+  /**
+   * @return Whether or not parallel query execution is being used
+   */
+  bool GetIsParallelQueryExecution() { return parallel_query_execution_; }
+
  private:
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
   std::unique_ptr<sql::MemoryTracker> mem_tracker_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
+  // Container for thread-local state.
+  // During parallel processing, execution threads access their thread-local state from this container.
+  std::unique_ptr<sql::ThreadStateContainer> thread_state_container_;
   // TODO(WAN): EXEC PORT we used to push the memory tracker into the string allocator, do this
   sql::VarlenHeap string_allocator_;
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
@@ -161,5 +203,12 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
+
+  // hardcoded for now
+  double select_opt_threshold_;
+  double arithmetic_full_compute_opt_threshold_;
+  float min_bit_density_threshold_for_AVX_index_decode_;
+  float adaptive_predicate_order_sampling_frequency_;
+  bool parallel_query_execution_{false};
 };
 }  // namespace terrier::execution::exec

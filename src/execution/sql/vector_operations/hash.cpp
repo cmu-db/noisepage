@@ -1,6 +1,7 @@
 #include "common/exception.h"
 #include "execution/sql/operators/hash_operators.h"
 #include "execution/sql/vector_operations/vector_operations.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::sql {
 
@@ -8,7 +9,8 @@ namespace {
 
 void CheckHashArguments(const Vector &input, Vector *result) {
   if (result->GetTypeId() != TypeId::Hash) {
-    throw std::runtime_error("Output of Hash() operation must be hash");
+    throw EXECUTION_EXCEPTION(
+        fmt::format("Output of Hash() operation must be hash, but is type {}.", TypeIdToString(result->GetTypeId())));
   }
 }
 
@@ -23,11 +25,11 @@ void TemplatedHashOperation(const Vector &input, Vector *result) {
 
   if (input.GetNullMask().Any()) {
     VectorOps::Exec(input, [&](uint64_t i, uint64_t k) {
-      result_data[i] = execution::sql::Hash<InputType>{}(input_data[i], input.GetNullMask()[i]);
+      result_data[i] = terrier::execution::sql::Hash<InputType>{}(input_data[i], input.GetNullMask()[i]);
     });
   } else {
     VectorOps::Exec(input, [&](uint64_t i, uint64_t k) {
-      result_data[i] = execution::sql::Hash<InputType>{}(input_data[i], false);
+      result_data[i] = terrier::execution::sql::Hash<InputType>{}(input_data[i], false);
     });
   }
 }
@@ -43,11 +45,12 @@ void TemplatedHashCombineOperation(const Vector &input, Vector *result) {
 
   if (input.GetNullMask().Any()) {
     VectorOps::Exec(input, [&](uint64_t i, uint64_t k) {
-      result_data[i] = execution::sql::HashCombine<InputType>{}(input_data[i], input.GetNullMask()[i], result_data[i]);
+      result_data[i] =
+          terrier::execution::sql::HashCombine<InputType>{}(input_data[i], input.GetNullMask()[i], result_data[i]);
     });
   } else {
     VectorOps::Exec(input, [&](uint64_t i, uint64_t k) {
-      result_data[i] = execution::sql::HashCombine<InputType>{}(input_data[i], false, result_data[i]);
+      result_data[i] = terrier::execution::sql::HashCombine<InputType>{}(input_data[i], false, result_data[i]);
     });
   }
 }
@@ -91,7 +94,8 @@ void VectorOps::Hash(const Vector &input, Vector *result) {
       TemplatedHashOperation<storage::VarlenEntry>(input, result);
       break;
     default:
-      throw NOT_IMPLEMENTED_EXCEPTION("Unsupported vector type for hashing.");
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("hashing vector type '{}'", TypeIdToString(input.GetTypeId())).data());
   }
 }
 
@@ -132,7 +136,8 @@ void VectorOps::HashCombine(const Vector &input, Vector *result) {
       TemplatedHashCombineOperation<storage::VarlenEntry>(input, result);
       break;
     default:
-      throw NOT_IMPLEMENTED_EXCEPTION("Unsupported vector type for hashing.");
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("hashing vector type '{}'", TypeIdToString(input.GetTypeId())).data());
   }
 }
 

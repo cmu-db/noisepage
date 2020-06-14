@@ -80,33 +80,33 @@ template <class T>
 constexpr inline TypeId GetTypeId() {
   if constexpr (std::is_same<T, bool>()) {
     return TypeId::Boolean;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, int8_t>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, int8_t>()) {  // NOLINT
     return TypeId::TinyInt;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, int16_t>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, int16_t>()) {  // NOLINT
     return TypeId::SmallInt;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, int32_t>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, int32_t>()) {  // NOLINT
     return TypeId::Integer;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, int64_t>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, int64_t>()) {  // NOLINT
     return TypeId::BigInt;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, hash_t>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, hash_t>()) {  // NOLINT
     return TypeId::Hash;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, uintptr_t>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, uintptr_t>()) {  // NOLINT
     return TypeId::Pointer;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, float>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, float>()) {  // NOLINT
     return TypeId::Float;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, double>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, double>()) {  // NOLINT
     return TypeId::Double;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, Date>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, Date>()) {  // NOLINT
     return TypeId::Date;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, Timestamp>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, Timestamp>()) {  // NOLINT
     return TypeId::Timestamp;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, char *>() ||
+  } else if constexpr (std::is_same<std::remove_const_t<T>, char *>() ||  // NOLINT
                        std::is_same<std::remove_const_t<T>, const char *>() ||
                        std::is_same<std::remove_const_t<T>, std::string>() ||
                        std::is_same<std::remove_const_t<T>, std::string_view>() ||
                        std::is_same<std::remove_const_t<T>, storage::VarlenEntry>()) {
     return TypeId::Varchar;
-  } else if constexpr (std::is_same<std::remove_const_t<T>, Blob>()) {
+  } else if constexpr (std::is_same<std::remove_const_t<T>, Blob>()) {  // NOLINT
     return TypeId::Varbinary;
   }
   static_assert("Not a valid primitive type");

@@ -52,7 +52,7 @@ void JoinHashTableVectorProbe::Init(VectorProjection *input) {
 
   // Filter out non-null entries, storing the result in the non-null TID list.
   ConstantVector null_ptr(GenericValue::CreatePointer<HashTableEntry>(nullptr));
-  VectorOps::SelectNotEqual(initial_matches_, null_ptr, &initial_match_list_);
+  VectorOps::SelectNotEqual(table_.GetExecutionContext(), initial_matches_, null_ptr, &initial_match_list_);
 
   // At this point, initial-matches contains a list of pointers to bucket chains in the hash table,
   // and the initial-matches-list contains only the TIDS of non-null entries.
@@ -80,7 +80,7 @@ void JoinHashTableVectorProbe::CheckKeyEquality(VectorProjection *input) {
 // Advance all non-null entries in the matches vector to their next element.
 void JoinHashTableVectorProbe::FollowNext() {
   auto *RESTRICT entries = reinterpret_cast<const HashTableEntry **>(curr_matches_.GetData());
-  non_null_entries_.Filter([&](uint64_t i) { return (entries[i] = entries[i]->next) != nullptr; });
+  non_null_entries_.Filter([&](uint64_t i) { return (entries[i] = entries[i]->next_) != nullptr; });
 }
 
 bool JoinHashTableVectorProbe::NextInnerJoin(VectorProjection *input) {
@@ -169,7 +169,7 @@ bool JoinHashTableVectorProbe::NextSemiJoin(VectorProjection *input) { return Ne
 bool JoinHashTableVectorProbe::NextAntiJoin(VectorProjection *input) { return NextSemiOrAntiJoin<false>(input); }
 
 bool JoinHashTableVectorProbe::NextRightJoin(VectorProjection *input) {
-  throw NotImplementedException("Vectorized right outer joins");
+  throw NOT_IMPLEMENTED_EXCEPTION("Vectorized right outer joins");
 }
 
 bool JoinHashTableVectorProbe::Next(VectorProjection *input) {
@@ -188,7 +188,7 @@ bool JoinHashTableVectorProbe::Next(VectorProjection *input) {
       has_next = NextRightJoin(input);
       break;
     default:
-      throw NotImplementedException(fmt::format("join type []", planner::JoinTypeToString(join_type_)));
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("join type []", planner::JoinTypeToString(join_type_)).c_str());
   }
 
   // Filter the match vector now so GetMatches() returns the filtered list.

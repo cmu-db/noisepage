@@ -1,11 +1,12 @@
 #pragma once
 
 #include <charconv>
+#include <limits>
 #include <string>
 
-#include "common/exception.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sql.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::execution::sql {
 
@@ -39,9 +40,11 @@ struct Cast {
   OutType operator()(InType input) const {
     OutType result;
     if (!TryCast<InType, OutType>{}(input, &result)) {
-      throw std::runtime_error("Value out of range.");
+      throw EXECUTION_EXCEPTION(
+          fmt::format("Type {} cannot be cast because the value is out of range for the target type {}.",
+                      TypeIdToString(GetTypeId<InType>()), TypeIdToString(GetTypeId<OutType>())));
     }
-    return result;
+    return result;  // NOLINT
   }
 };
 
@@ -65,31 +68,31 @@ namespace detail {
 // because it includes the primitive bool type. We want to distinguish only
 // primitive integer types.
 template <typename T>
-struct is_integer_type : std::integral_constant<bool, std::is_integral_v<T> && !std::is_same_v<bool, T>> {};
+struct IsIntegerType : std::integral_constant<bool, std::is_integral_v<T> && !std::is_same_v<bool, T>> {};
 
 template <typename T>
-constexpr bool is_integer_type_v = is_integer_type<T>::value;
+constexpr bool IS_INTEGER_TYPE_V = IsIntegerType<T>::value;
 
 // Is the given template type a floating point type?
 template <typename T>
-struct is_floating_type : std::integral_constant<bool, std::is_floating_point_v<T>> {};
+struct IsFloatingType : std::integral_constant<bool, std::is_floating_point_v<T>> {};
 
 template <typename T>
-constexpr bool is_floating_type_v = is_floating_type<T>::value;
+constexpr bool IS_FLOATING_TYPE_V = IsFloatingType<T>::value;
 
 // Is the given type either an integer type or a floating point type?
 template <typename T>
-struct is_number_type : std::integral_constant<bool, is_integer_type_v<T> || std::is_floating_point_v<T>> {};
+struct IsNumberType : std::integral_constant<bool, IS_INTEGER_TYPE_V<T> || std::is_floating_point_v<T>> {};
 
 template <typename T>
-constexpr bool is_number_type_v = is_number_type<T>::value;
+constexpr bool IS_NUMBER_TYPE_V = IsNumberType<T>::value;
 
 // Is the cast from the given input and output types a downward cast?
 template <typename InType, typename OutType>
-struct is_number_downcast {
-  static constexpr bool value =
+struct IsNumberDowncast {
+  static constexpr bool VALUE =
       // Both types are numbers.
-      is_number_type_v<InType> && is_number_type_v<OutType> &&
+      IS_NUMBER_TYPE_V<InType> && IS_NUMBER_TYPE_V<OutType> &&
       // Both have the same signed-ness.
       std::is_signed_v<InType> == std::is_signed_v<OutType> &&
       // Both have the same integer-ness.
@@ -99,36 +102,36 @@ struct is_number_downcast {
 };
 
 template <typename InType, typename OutType>
-constexpr bool is_number_downcast_v = is_number_downcast<InType, OutType>::value;
+constexpr bool IS_NUMBER_DOWNCAST_V = IsNumberDowncast<InType, OutType>::VALUE;
 
 // Is the cast from the given input type to the output type a cast from a signed
 // to an unsigned integer type?
 template <typename InType, typename OutType>
-struct is_integral_signed_to_unsigned {
-  static constexpr bool value =
+struct IsIntegralSignedToUnsigned {
+  static constexpr bool VALUE =
       // Both types are integers (non-bool and non-float).
-      is_integer_type_v<InType> && is_integer_type_v<OutType> &&
+      IS_INTEGER_TYPE_V<InType> && IS_INTEGER_TYPE_V<OutType> &&
       // The input is signed and output is unsigned.
       std::is_signed_v<InType> && std::is_unsigned_v<OutType>;
 };
 
 template <typename InType, typename OutType>
-constexpr bool is_integral_signed_to_unsigned_v = is_integral_signed_to_unsigned<InType, OutType>::value;
+constexpr bool IS_INTEGRAL_SIGNED_TO_UNSIGNED_V = IsIntegralSignedToUnsigned<InType, OutType>::VALUE;
 
 template <typename InType, typename OutType>
-struct is_integral_unsigned_to_signed {
-  static constexpr bool value = is_integer_type_v<InType> && is_integer_type_v<OutType> && std::is_unsigned_v<InType> &&
+struct IsIntegralUnsignedToSigned {
+  static constexpr bool VALUE = IS_INTEGER_TYPE_V<InType> && IS_INTEGER_TYPE_V<OutType> && std::is_unsigned_v<InType> &&
                                 std::is_signed_v<OutType>;
 };
 
 template <typename InType, typename OutType>
-constexpr bool is_integral_unsigned_to_signed_v = is_integral_unsigned_to_signed<InType, OutType>::value;
+constexpr bool IS_INTEGRAL_UNSIGNED_TO_SIGNED_V = IsIntegralUnsignedToSigned<InType, OutType>::VALUE;
 
 template <typename InType, typename OutType>
-struct is_safe_numeric_cast {
-  static constexpr bool value =
+struct IsSafeNumericCast {
+  static constexpr bool VALUE =
       // Both inputs are numbers.
-      is_number_type_v<InType> && is_number_type_v<OutType> &&
+      IS_NUMBER_TYPE_V<InType> && IS_NUMBER_TYPE_V<OutType> &&
       // Both have the same signed-ness.
       std::is_signed_v<InType> == std::is_signed_v<OutType> &&
       // Both have the same integer-ness.
@@ -140,19 +143,19 @@ struct is_safe_numeric_cast {
 };
 
 template <typename InType, typename OutType>
-constexpr bool is_safe_numeric_cast_v = is_safe_numeric_cast<InType, OutType>::value;
+constexpr bool IS_SAFE_NUMERIC_CAST_V = IsSafeNumericCast<InType, OutType>::VALUE;
 
 template <typename InType, typename OutType>
-struct is_float_truncate {
-  static constexpr bool value =
+struct IsFloatTruncate {
+  static constexpr bool VALUE =
       // The input is an integer and the output is a float.
-      (is_integer_type_v<InType> && is_floating_type_v<OutType>) ||
+      (IS_INTEGER_TYPE_V<InType> && IS_FLOATING_TYPE_V<OutType>) ||
       // Or, the input is float and output is an integer.
-      (is_floating_type_v<InType> && is_integer_type_v<OutType>);
+      (IS_FLOATING_TYPE_V<InType> && IS_INTEGER_TYPE_V<OutType>);
 };
 
 template <typename InType, typename OutType>
-constexpr bool is_float_truncate_v = is_float_truncate<InType, OutType>::value;
+constexpr bool IS_FLOAT_TRUNCATE_V = IsFloatTruncate<InType, OutType>::VALUE;
 
 }  // namespace detail
 
@@ -167,7 +170,7 @@ constexpr bool is_float_truncate_v = is_float_truncate<InType, OutType>::value;
  * @tparam InType The numeric input type.
  */
 template <typename InType>
-struct TryCast<InType, bool, std::enable_if_t<detail::is_number_type_v<InType> && !std::is_same_v<InType, bool>>> {
+struct TryCast<InType, bool, std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> && !std::is_same_v<InType, bool>>> {
   bool operator()(const InType input, bool *output) noexcept {
     *output = static_cast<bool>(input);
     return true;
@@ -185,7 +188,7 @@ struct TryCast<InType, bool, std::enable_if_t<detail::is_number_type_v<InType> &
  * @tparam OutType The numeric output type.
  */
 template <typename OutType>
-struct TryCast<bool, OutType, std::enable_if_t<detail::is_number_type_v<OutType>>> {
+struct TryCast<bool, OutType, std::enable_if_t<detail::IS_NUMBER_TYPE_V<OutType>>> {
   bool operator()(const bool input, OutType *output) const noexcept {
     *output = static_cast<OutType>(input);
     return true;
@@ -213,14 +216,14 @@ template <typename InType, typename OutType>
 struct TryCast<
     InType, OutType,
     std::enable_if_t<
-        detail::is_number_downcast_v<InType, OutType> || detail::is_integral_signed_to_unsigned_v<InType, OutType> ||
-        detail::is_integral_unsigned_to_signed_v<InType, OutType> || detail::is_float_truncate_v<InType, OutType>>> {
+        detail::IS_NUMBER_DOWNCAST_V<InType, OutType> || detail::IS_INTEGRAL_SIGNED_TO_UNSIGNED_V<InType, OutType> ||
+        detail::IS_INTEGRAL_UNSIGNED_TO_SIGNED_V<InType, OutType> || detail::IS_FLOAT_TRUNCATE_V<InType, OutType>>> {
   bool operator()(const InType input, OutType *output) const noexcept {
-    constexpr OutType kMin = std::numeric_limits<OutType>::lowest();
-    constexpr OutType kMax = std::numeric_limits<OutType>::max();
+    constexpr OutType k_min = std::numeric_limits<OutType>::lowest();
+    constexpr OutType k_max = std::numeric_limits<OutType>::max();
 
     *output = static_cast<OutType>(input);
-    return input >= kMin && input <= kMax;
+    return input >= k_min && input <= k_max;
   }
 };
 
@@ -231,8 +234,8 @@ struct TryCast<
  */
 template <typename InType, typename OutType>
 struct TryCast<InType, OutType,
-               std::enable_if_t<detail::is_safe_numeric_cast_v<InType, OutType> &&
-                                !detail::is_number_downcast_v<InType, OutType>>> {
+               std::enable_if_t<detail::IS_SAFE_NUMERIC_CAST_V<InType, OutType> &&
+                                !detail::IS_NUMBER_DOWNCAST_V<InType, OutType>>> {
   bool operator()(const InType input, OutType *output) const noexcept {
     *output = static_cast<OutType>(input);
     return true;
@@ -244,7 +247,7 @@ struct TryCast<InType, OutType,
  * @tparam InType The numeric input type. Must satisfy internal::is_number_type_v<InType>
  */
 template <typename InType>
-struct TryCast<InType, Date, std::enable_if_t<detail::is_integer_type_v<InType>>> {
+struct TryCast<InType, Date, std::enable_if_t<detail::IS_INTEGER_TYPE_V<InType>>> {
   bool operator()(const InType input, Date *output) const noexcept {
     *output = Date(input);
     return true;
@@ -257,7 +260,7 @@ struct TryCast<InType, Date, std::enable_if_t<detail::is_integer_type_v<InType>>
  */
 template <typename InType>
 struct TryCast<InType, std::string,
-               std::enable_if_t<detail::is_number_type_v<InType> || std::is_same_v<InType, bool>>> {
+               std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> || std::is_same_v<InType, bool>>> {
   bool operator()(const InType input, std::string *output) const noexcept {
     *output = std::to_string(input);
     return true;
@@ -338,7 +341,7 @@ struct TryCast<storage::VarlenEntry, bool> {
  * @tparam OutType The input type. Either a number or a boolean.
  */
 template <typename OutType>
-struct TryCast<storage::VarlenEntry, OutType, std::enable_if_t<detail::is_integer_type_v<OutType>>> {
+struct TryCast<storage::VarlenEntry, OutType, std::enable_if_t<detail::IS_INTEGER_TYPE_V<OutType>>> {
   bool operator()(const storage::VarlenEntry &input, OutType *output) const {
     const auto buf = reinterpret_cast<const char *>(input.Content());
     const auto len = input.Size();
@@ -369,8 +372,7 @@ struct TryCast<storage::VarlenEntry, double> {
 template <>
 struct TryCast<storage::VarlenEntry, Date> {
   bool operator()(const storage::VarlenEntry &input, Date *output) const {
-    // TODO(WAN): fix the stringview
-    *output = Date::FromString(std::string(input.StringView()));
+    *output = Date::FromString(input.StringView().data());
     return true;
   }
 };
@@ -381,8 +383,7 @@ struct TryCast<storage::VarlenEntry, Date> {
 template <>
 struct TryCast<storage::VarlenEntry, Timestamp> {
   bool operator()(const storage::VarlenEntry &input, Timestamp *output) const {
-    // TODO(WAN): fix the stringview
-    *output = Timestamp::FromString(std::string(input.StringView()));
+    *output = Timestamp::FromString(input.StringView().data());
     return true;
   }
 };

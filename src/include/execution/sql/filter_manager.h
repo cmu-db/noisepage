@@ -6,7 +6,12 @@
 #include <vector>
 
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "execution/sql/tuple_id_list.h"
+
+namespace terrier::execution::exec {
+class ExecutionContext;
+}
 
 namespace terrier::execution::sql {
 
@@ -103,8 +108,7 @@ class FilterManager {
       // The current rank.
       double rank;
       // Create a new term with no rank.
-      Term(uint32_t insertion_index, MatchFn term_fn)
-          : insertion_index(insertion_index), fn(term_fn), rank(0.0) {}
+      Term(uint32_t insertion_index, MatchFn term_fn) : insertion_index(insertion_index), fn(term_fn), rank(0.0) {}
     };
 
    private:
@@ -128,7 +132,8 @@ class FilterManager {
   /**
    * Construct an empty filter.
    */
-  explicit FilterManager(bool adapt = true, void *context = nullptr);
+  explicit FilterManager(common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool adapt = true,
+                         void *context = nullptr);
 
   /**
    * This class cannot be copied or moved.
@@ -199,6 +204,8 @@ class FilterManager {
   }
 
  private:
+  // The execution context to run with.
+  common::ManagedPointer<exec::ExecutionContext> exec_ctx_;
   // Flag indicating if the filter should try to optimize itself.
   bool adapt_;
   // An injected context object.

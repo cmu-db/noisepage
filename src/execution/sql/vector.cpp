@@ -123,27 +123,27 @@ void Vector::SetValue(const uint64_t index, const GenericValue &val) {
   const uint64_t actual_index = tid_list_ != nullptr ? (*tid_list_)[index] : index;
   switch (type_) {
     case TypeId::Boolean: {
-      const auto new_boolean = val.IsNull() ? false : val.value_.boolean;
+      const auto new_boolean = val.IsNull() ? false : val.value_.boolean_;
       reinterpret_cast<bool *>(data_)[actual_index] = new_boolean;
       break;
     }
     case TypeId::TinyInt: {
-      const auto new_tinyint = val.IsNull() ? 0 : val.value_.tinyint;
+      const auto new_tinyint = val.IsNull() ? 0 : val.value_.tinyint_;
       reinterpret_cast<int8_t *>(data_)[actual_index] = new_tinyint;
       break;
     }
     case TypeId::SmallInt: {
-      const auto new_smallint = val.IsNull() ? 0 : val.value_.smallint;
+      const auto new_smallint = val.IsNull() ? 0 : val.value_.smallint_;
       reinterpret_cast<int16_t *>(data_)[actual_index] = new_smallint;
       break;
     }
     case TypeId::Integer: {
-      const auto new_integer = val.IsNull() ? 0 : val.value_.integer;
+      const auto new_integer = val.IsNull() ? 0 : val.value_.integer_;
       reinterpret_cast<int32_t *>(data_)[actual_index] = new_integer;
       break;
     }
     case TypeId::BigInt: {
-      const auto new_bigint = val.IsNull() ? 0 : val.value_.bigint;
+      const auto new_bigint = val.IsNull() ? 0 : val.value_.bigint_;
       reinterpret_cast<int64_t *>(data_)[actual_index] = new_bigint;
       break;
     }
@@ -163,12 +163,12 @@ void Vector::SetValue(const uint64_t index, const GenericValue &val) {
       break;
     }
     case TypeId::Hash: {
-      const auto new_hash = val.IsNull() ? 0 : val.value_.hash;
+      const auto new_hash = val.IsNull() ? 0 : val.value_.hash_;
       reinterpret_cast<hash_t *>(data_)[actual_index] = new_hash;
       break;
     }
     case TypeId::Pointer: {
-      const auto new_pointer = val.IsNull() ? 0 : val.value_.pointer;
+      const auto new_pointer = val.IsNull() ? 0 : val.value_.pointer_;
       reinterpret_cast<uintptr_t *>(data_)[actual_index] = new_pointer;
       break;
     }
@@ -199,23 +199,23 @@ void Vector::Reference(GenericValue *value) {
 
   switch (value->GetTypeId()) {
     case TypeId::Boolean: {
-      data_ = reinterpret_cast<byte *>(&value->value_.boolean);
+      data_ = reinterpret_cast<byte *>(&value->value_.boolean_);
       break;
     }
     case TypeId::TinyInt: {
-      data_ = reinterpret_cast<byte *>(&value->value_.tinyint);
+      data_ = reinterpret_cast<byte *>(&value->value_.tinyint_);
       break;
     }
     case TypeId::SmallInt: {
-      data_ = reinterpret_cast<byte *>(&value->value_.smallint);
+      data_ = reinterpret_cast<byte *>(&value->value_.smallint_);
       break;
     }
     case TypeId::Integer: {
-      data_ = reinterpret_cast<byte *>(&value->value_.integer);
+      data_ = reinterpret_cast<byte *>(&value->value_.integer_);
       break;
     }
     case TypeId::BigInt: {
-      data_ = reinterpret_cast<byte *>(&value->value_.bigint);
+      data_ = reinterpret_cast<byte *>(&value->value_.bigint_);
       break;
     }
     case TypeId::Float: {
@@ -231,11 +231,11 @@ void Vector::Reference(GenericValue *value) {
       break;
     }
     case TypeId::Hash: {
-      data_ = reinterpret_cast<byte *>(&value->value_.hash);
+      data_ = reinterpret_cast<byte *>(&value->value_.hash_);
       break;
     }
     case TypeId::Pointer: {
-      data_ = reinterpret_cast<byte *>(&value->value_.pointer);
+      data_ = reinterpret_cast<byte *>(&value->value_.pointer_);
       break;
     }
     case TypeId::Varchar: {
@@ -375,13 +375,13 @@ void Vector::CopyTo(Vector *other, uint64_t offset) {
   }
 }
 
-void Vector::Cast(TypeId new_type) {
+void Vector::Cast(common::ManagedPointer<exec::ExecutionContext> exec_ctx, TypeId new_type) {
   if (type_ == new_type) {
     return;
   }
 
   Vector new_vector(new_type, true, false);
-  VectorOps::Cast(*this, &new_vector);
+  VectorOps::Cast(exec_ctx, *this, &new_vector);
   new_vector.MoveTo(this);
 }
 

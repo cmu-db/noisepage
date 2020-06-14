@@ -7,35 +7,35 @@
 namespace terrier::execution::vm {
 
 // static
-const char *Bytecodes::k_bytecode_names[] = {
+const char *Bytecodes::kBytecodeNames[] = {
 #define ENTRY(name, ...) #name,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
 };
 
 // static
-uint32_t Bytecodes::k_bytecode_operand_counts[] = {
-#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::K_OPERAND_COUNT,
+uint32_t Bytecodes::kBytecodeOperandCounts[] = {
+#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::kOperandCount,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
 };
 
 // static
-const OperandType *Bytecodes::k_bytecode_operand_types[] = {
-#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::k_operand_types,
+const OperandType *Bytecodes::kBytecodeOperandTypes[] = {
+#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::kOperandTypes,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
 };
 
 // static
-const OperandSize *Bytecodes::k_bytecode_operand_sizes[] = {
-#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::k_operand_sizes,
+const OperandSize *Bytecodes::kBytecodeOperandSizes[] = {
+#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::kOperandSizes,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
 };
 
 // static
-const char *Bytecodes::k_bytecode_handler_name[] = {
+const char *Bytecodes::kBytecodeHandlerName[] = {
 #define ENTRY(name, ...) "Op" #name,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
@@ -43,12 +43,12 @@ const char *Bytecodes::k_bytecode_handler_name[] = {
 
 // static
 uint32_t Bytecodes::MaxBytecodeNameLength() {
-  static constexpr const uint32_t k_max_inst_name_length = std::max({
+  static constexpr const uint32_t kMaxInstNameLength = std::max({
 #define ENTRY(name, ...) sizeof(#name),
       BYTECODE_LIST(ENTRY)
 #undef ENTRY
   });
-  return k_max_inst_name_length;
+  return kMaxInstNameLength;
 }
 
 uint32_t Bytecodes::GetNthOperandOffset(Bytecode bytecode, uint32_t operand_index) {

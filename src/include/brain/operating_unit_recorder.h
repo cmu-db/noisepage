@@ -7,9 +7,20 @@
 
 #include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
-#include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
+
+namespace terrier::catalog {
+class CatalogAccessor;
+}  // namespace terrier::catalog
+
+namespace terrier::execution::codegen {
+class OperatorTranslator;
+}  // namespace terrier::execution::codegen
+
+namespace terrier::planner {
+class AbstractScanPlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::brain {
 
@@ -31,7 +42,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @returns Vector of extracted features (ExecutionOperatingUnitFeature)
    */
   ExecutionOperatingUnitFeatureVector RecordTranslators(
-      const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators);
+      const std::vector<std::unique_ptr<execution::codegen::OperatorTranslator>> &translators);
 
  private:
   /**

@@ -7,10 +7,10 @@ namespace terrier::execution::sql {
 class ColumnSegment;
 
 /**
- * A vector-at-a-time iterator over the in-memory contents of a column's data.
- * Each iteration returns at most <i>K_DEFAULT_VECTOR_SIZE</i> (i.e., 2048) elements.
- * After construction, callers initialize the iterator through ColumnVectorIterator::Reset(),
- * providing a column segment to iterate over.
+ * A vector-at-a-time iterator over the in-memory contents of a column's data. Each iteration
+ * returns at most <i>kDefaultVectorSize</i> (i.e., 2048) elements. After construction, callers
+ * initialize the iterator through ColumnVectorIterator::Reset() providing a column segment to
+ * iterate over.
  *
  * Use as follows:
  * @code
@@ -64,7 +64,7 @@ class ColumnVectorIterator {
   uint32_t *GetColumnNullBitmap() const noexcept { return col_null_bitmap_; }
 
  private:
-  // The attribute size for the column this iterator operates on.
+  // The size of the attributes stored in this column.
   const uint32_t column_attr_size_;
 
   // The segment we're currently iterating over.

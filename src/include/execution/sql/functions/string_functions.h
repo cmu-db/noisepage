@@ -15,115 +15,57 @@ namespace terrier::execution::sql {
 /**
  * Utility class to handle SQL string manipulations.
  */
-class EXPORT StringFunctions : public common::AllStatic {
+class StringFunctions : public common::AllStatic {
  public:
-  /**
-   * Return the string length
-   */
-  static void CharLength(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
-    Length(ctx, result, str);
+  static void CharLength(Integer *result, exec::ExecutionContext *ctx, const StringVal &str) {
+    Length(result, ctx, str);
   }
 
-  /**
-   * First min(length, n) characters
-   */
-  static void Left(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n);
+  static void Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &left, const StringVal &right);
 
-  /**
-   * Return the length of the string
-   */
-  static void Length(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
+  static void Left(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
 
-  /**
-   * Set the string to lower case
-   */
-  static void Lower(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  static void Length(Integer *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * Pads the left side of the string with min(pad_length, len) characters
-   */
-  static void Lpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &len,
+  static void Lower(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
+
+  static void Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                    const StringVal &pad);
 
-  /**
-   * Perform left trim of the given chars
-   */
-  static void Ltrim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &chars);
+  static void Ltrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
 
-  /**
-   * Perform left trim of blank chars
-   */
-  static void Ltrim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  static void Ltrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * Repeat a string n times
-   */
-  static void Repeat(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n);
+  static void Repeat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
 
-  /**
-   * Reverse a string
-   */
-  static void Reverse(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  static void Reverse(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * Last min(length, n) characters of the string
-   */
-  static void Right(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n);
+  static void Right(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
 
-  /**
-   * Pads the right side of the string with min(pad_length, len) characters
-   */
-  static void Rpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &len,
+  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n,
                    const StringVal &pad);
 
-  /**
-   * Perform right trim of the given chars
-   */
-  static void Rtrim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &chars);
+  static void Rtrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
 
-  /**
-   * Perform right trim of blank chars
-   */
-  static void Rtrim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  static void Rtrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * Split the string and return the split at the given index
-   */
-  static void SplitPart(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &delim,
+  static void SplitPart(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &delim,
                         const Integer &field);
 
-  /**
-   * Return the substring starting at pos of length len
-   */
-  static void Substring(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &pos,
+  static void Substring(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &pos,
                         const Integer &len);
 
-  /**
-   * Return the suffix starting at pos
-   */
-  static void Substring(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &pos) {
-    Substring(ctx, result, str, pos, Integer(std::numeric_limits<int64_t>::max()));
+  static void Substring(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &pos) {
+    Substring(result, ctx, str, pos, Integer(std::numeric_limits<int64_t>::max()));
   }
 
-  /**
-   * Perform a trim of the given characters on both sides
-   */
-  static void Trim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &chars);
+  static void Trim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
 
-  /**
-   * Perform a trim of blank spaces on both sides
-   */
-  static void Trim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  static void Trim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * Converts the string to upper case
-   */
-  static void Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  static void Upper(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * The SQL LIKE operation.
-   */
-  static void Like(exec::ExecutionContext *ctx, BoolVal *result, const StringVal &string, const StringVal &pattern);
+  static void Like(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &string, const StringVal &pattern);
 };
 
 }  // namespace terrier::execution::sql

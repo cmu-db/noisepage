@@ -77,7 +77,7 @@ struct HashCombine<Timestamp> {
 template <>
 struct Hash<storage::VarlenEntry> {
   hash_t operator()(const storage::VarlenEntry &input, bool null) const noexcept {
-    return null ? hash_t(0) : input.Hash(0);
+    return null ? hash_t(0) : input.Hash();
   }
 };
 

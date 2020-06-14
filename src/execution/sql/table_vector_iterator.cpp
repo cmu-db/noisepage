@@ -50,7 +50,8 @@ bool TableVectorIterator::Init() {
 
   // Create a referencing vector.
   vp_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(sizeof(VectorProjection), alignof(uint64_t), false);
-  vector_projection_ = new (vp_buffer_) VectorProjection(col_ids);
+  vector_projection_ = new (vp_buffer_) VectorProjection();
+  vector_projection_->SetStorageColIds(col_ids);
   vector_projection_->InitializeEmpty(col_types);
 
   // All good.

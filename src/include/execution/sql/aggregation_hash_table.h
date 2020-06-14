@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/schema.h"
+#include "common/managed_pointer.h"
 #include "execution/sql/chaining_hash_table.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/vector.h"
@@ -105,20 +106,24 @@ class EXPORT AggregationHashTable {
   /**
    * Construct an aggregation hash table using the provided memory pool, and configured to store
    * aggregates of size @em payload_size in bytes.
+   * @param exec_ctx The execution context to run with.
    * @param memory The memory pool to allocate memory from.
    * @param payload_size The size of the elements in the hash table, in bytes.
    */
-  AggregationHashTable(MemoryPool *memory, std::size_t payload_size);
+  AggregationHashTable(common::ManagedPointer<exec::ExecutionContext> exec_ctx, MemoryPool *memory,
+                       std::size_t payload_size);
 
   /**
    * Construct an aggregation hash table using the provided memory pool, configured to store
    * aggregates of size @em payload_size in bytes, and whose initial size allows for
    * @em initial_size aggregates.
+   * @param exec_ctx The execution context to run with.
    * @param memory The memory pool to allocate memory from.
    * @param payload_size The size of the elements in the hash table, in bytes.
    * @param initial_size The initial number of aggregates to support.
    */
-  AggregationHashTable(MemoryPool *memory, std::size_t payload_size, uint32_t initial_size);
+  AggregationHashTable(common::ManagedPointer<exec::ExecutionContext> exec_ctx, MemoryPool *memory,
+                       std::size_t payload_size, uint32_t initial_size);
 
   /**
    * This class cannot be copied or moved.
@@ -348,6 +353,9 @@ class EXPORT AggregationHashTable {
   };
 
  private:
+  // Execution context
+  common::ManagedPointer<exec::ExecutionContext> exec_ctx_;
+
   // Memory allocator.
   MemoryPool *memory_;
 

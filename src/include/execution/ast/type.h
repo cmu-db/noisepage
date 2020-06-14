@@ -63,17 +63,16 @@ class Context;
   NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                                      \
   NON_PRIM(FilterManager, terrier::execution::sql::FilterManager)                                             \
   NON_PRIM(HashTableEntry, terrier::execution::sql::HashTableEntry)                                           \
-  /* TODO(WAN): EXEC PORT needed? NON_PRIM(HashTableEntryIterator, tpl::sql::HashTableEntryIterator)     */   \
+  NON_PRIM(HashTableEntryIterator, terrier::execution::sql::HashTableEntryIterator)                           \
   NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                                             \
   NON_PRIM(JoinHashTable, terrier::execution::sql::JoinHashTable)                                             \
-  NON_PRIM(JoinHashTableIterator, terrier::execution::sql::JoinHashTableIterator)                             \
   NON_PRIM(MemoryPool, terrier::execution::sql::MemoryPool)                                                   \
   NON_PRIM(VectorProjectionIterator, terrier::execution::sql::VectorProjectionIterator)                       \
   NON_PRIM(Sorter, terrier::execution::sql::Sorter)                                                           \
   NON_PRIM(SorterIterator, terrier::execution::sql::SorterIterator)                                           \
   NON_PRIM(TableVectorIterator, terrier::execution::sql::TableVectorIterator)                                 \
   NON_PRIM(ThreadStateContainer, terrier::execution::sql::ThreadStateContainer)                               \
-  /* TODO(WAN): EXEC PORT needed? NON_PRIM(TupleIdList, tpl::sql::TupleIdList)                        */      \
+  NON_PRIM(TupleIdList, terrier::execution::sql::TupleIdList)                                                 \
                                                                                                               \
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */                                      \
   NON_PRIM(CountAggregate, terrier::execution::sql::CountAggregate)                                           \
@@ -86,12 +85,10 @@ class Context;
   NON_PRIM(RealMaxAggregate, terrier::execution::sql::RealMaxAggregate)                                       \
   NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                                       \
   NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                                       \
-  /*TODO(WAN): EXEC PORT implement these                                                                      \
-    NON_PRIM(DateMinAggregate, terrier::execution::sql::DateMinAggregate)                                     \
-    NON_PRIM(DateMaxAggregate, terrier::execution::sql::DateMaxAggregate)                                     \
-    NON_PRIM(StringMinAggregate, terrier::execution::sql::StringMinAggregate)                                 \
-    NON_PRIM(StringMaxAggregate, terrier::execution::sql::StringMaxAggregate)                                 \
-  */                                                                                                          \
+  NON_PRIM(DateMinAggregate, terrier::execution::sql::DateMinAggregate)                                       \
+  NON_PRIM(DateMaxAggregate, terrier::execution::sql::DateMaxAggregate)                                       \
+  NON_PRIM(StringMinAggregate, terrier::execution::sql::StringMinAggregate)                                   \
+  NON_PRIM(StringMaxAggregate, terrier::execution::sql::StringMaxAggregate)                                   \
                                                                                                               \
   /* SQL Table operations */                                                                                  \
   NON_PRIM(ProjectedRow, terrier::storage::ProjectedRow)                                                      \

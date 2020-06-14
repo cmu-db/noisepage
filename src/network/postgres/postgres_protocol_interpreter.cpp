@@ -133,6 +133,13 @@ void PostgresProtocolInterpreter::Teardown(const common::ManagedPointer<ReadBuff
                                            const common::ManagedPointer<WriteQueue> out,
                                            const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                            const common::ManagedPointer<ConnectionContext> context) {
+  // Close any open transaction
+  if (context->Transaction() != nullptr) {
+    t_cop->EndTransaction(context, QueryType::QUERY_ROLLBACK);
+    // We're about to destruct this object (probably), but reset state anyway
+    ResetTransactionState();
+  }
+
   // Drop the temp namespace (if it exists) for this connection.
 
   // It's possible that the client provided an invalid database name, in which case there's nothing to do

@@ -742,12 +742,16 @@ void Sema::CheckBuiltinJoinHashTableIterInit(ast::CallExpr *call) {
 
   const auto &args = call->Arguments();
 
+  // TODO(WAN)
+  UNREACHABLE("PORT ME");
+#if 0
   // First argument is a pointer to a JoinHashTableIterator
   const auto jht_iterator_kind = ast::BuiltinType::JoinHashTableIterator;
   if (!IsPointerToSpecificBuiltin(args[0]->GetType(), jht_iterator_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_iterator_kind)->PointerTo());
     return;
   }
+#endif
 
   // Second argument is a pointer to a JoinHashTable
   const auto jht_kind = ast::BuiltinType::JoinHashTable;
@@ -773,12 +777,16 @@ void Sema::CheckBuiltinJoinHashTableIterHasNext(ast::CallExpr *call) {
 
   const auto &args = call->Arguments();
 
+  // TODO(WAN): port
+  UNREACHABLE("PORT ME");
+#if 0
   // First argument is a pointer to a JoinHashTableIterator
   const auto jht_iterator_kind = ast::BuiltinType::JoinHashTableIterator;
   if (!IsPointerToSpecificBuiltin(args[0]->GetType(), jht_iterator_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_iterator_kind)->PointerTo());
     return;
   }
+#endif
 
   // Second argument is a key equality function
   auto *const key_eq_type = args[1]->GetType()->SafeAs<ast::FunctionType>();
@@ -812,6 +820,9 @@ void Sema::CheckBuiltinJoinHashTableIterGetRow(execution::ast::CallExpr *call) {
     return;
   }
 
+  // TODO(WAN): port
+  UNREACHABLE("PORT ME");
+#if 0
   const auto &args = call->Arguments();
 
   // The first argument is a pointer to a JoinHashTableIterator
@@ -820,6 +831,7 @@ void Sema::CheckBuiltinJoinHashTableIterGetRow(execution::ast::CallExpr *call) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_iterator_kind)->PointerTo());
     return;
   }
+#endif
 
   // This call returns a byte pointer
   const auto byte_kind = ast::BuiltinType::Uint8;
@@ -831,6 +843,9 @@ void Sema::CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call) {
     return;
   }
 
+  // TODO(WAN): port
+  UNREACHABLE("PORT ME");
+#if 0
   const auto &args = call->Arguments();
 
   // The first argument is a pointer to a JoinHashTableIterator
@@ -839,6 +854,7 @@ void Sema::CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_iterator_kind)->PointerTo());
     return;
   }
+#endif
 
   // This call returns nothing
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));

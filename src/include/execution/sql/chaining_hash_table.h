@@ -233,7 +233,7 @@ inline void ChainingHashTableBase::InsertTagged(HashTableEntry *const entry, con
     HashTableEntry *old_entry = entries_[pos];
     HashTableEntry *new_entry = nullptr;
     do {
-      entry->next_ = UntagPointer(old_entry);    // Un-tag the old entry and link.
+      entry->next_ = UntagPointer(old_entry);   // Un-tag the old entry and link.
       new_entry = UpdateTag(old_entry, entry);  // Tag the new entry.
     } while (!COMPARE_EXCHANGE_WEAK(&entries_[pos], &old_entry, new_entry));
   } else {

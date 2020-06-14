@@ -1,6 +1,8 @@
-#include "common/exception.h"
 #include "execution/sql/vector_operations/vector_operations.h"
+
 #include "spdlog/fmt/fmt.h"
+
+#include "common/exception.h"
 
 namespace terrier::execution::sql {
 
@@ -54,7 +56,8 @@ void GenericCopyOperation(const Vector &source, void *target, uint64_t offset, u
       TemplatedCopyOperation<Timestamp>(source, target, offset, element_count);
       break;
     default:
-      throw NOT_IMPLEMENTED_EXCEPTION("Copying vector of unsupported type.");
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("copying vector of type '{}' not supported", TypeIdToString(source.GetTypeId())).data());
   }
 }
 

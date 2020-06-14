@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/constants.h"
 #include "tbb/enumerable_thread_specific.h"
 #include "tbb/parallel_for_each.h"
 
@@ -16,12 +17,11 @@ namespace terrier::execution::sql {
 
 ThreadStateContainer::TLSHandle::TLSHandle() : container_(nullptr), state_(nullptr) {}
 
-ThreadStateContainer::TLSHandle::TLSHandle(ThreadStateContainer *container)
-    : container_(container) {
-  TPL_ASSERT(container_ != nullptr, "Container must be non-null");
+ThreadStateContainer::TLSHandle::TLSHandle(ThreadStateContainer *container) : container_(container) {
+  TERRIER_ASSERT(container_ != nullptr, "Container must be non-null");
   const auto state_size = container_->state_size_;
   state_ =
-      static_cast<byte *>(container_->memory_->AllocateAligned(state_size, CACHELINE_SIZE, true));
+      static_cast<byte *>(container_->memory_->AllocateAligned(state_size, common::Constants::CACHELINE_SIZE, true));
 
   if (auto init_fn = container_->init_fn_; init_fn != nullptr) {
     init_fn(container_->ctx_, state_);
@@ -68,10 +68,8 @@ ThreadStateContainer::~ThreadStateContainer() { Clear(); }
 
 void ThreadStateContainer::Clear() { impl_->states.clear(); }
 
-void ThreadStateContainer::Reset(const std::size_t state_size,
-                                 const ThreadStateContainer::InitFn init_fn,
-                                 const ThreadStateContainer::DestroyFn destroy_fn,
-                                 void *const ctx) {
+void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadStateContainer::InitFn init_fn,
+                                 const ThreadStateContainer::DestroyFn destroy_fn, void *const ctx) {
   // Ensure we clean before resetting sizes, functions, context
   Clear();
 
@@ -104,17 +102,14 @@ void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *
   }
 }
 
-void ThreadStateContainer::IterateStates(void *const ctx,
-                                         ThreadStateContainer::IterateFn iterate_fn) const {
+void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
   for (auto &tls_handle : impl_->states) {
     iterate_fn(ctx, tls_handle.State());
   }
 }
 
-void ThreadStateContainer::IterateStatesParallel(void *const ctx,
-                                                 ThreadStateContainer::IterateFn iterate_fn) const {
-  tbb::parallel_for_each(impl_->states,
-                         [&](auto &tls_handle) { iterate_fn(ctx, tls_handle.State()); });
+void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
+  tbb::parallel_for_each(impl_->states, [&](auto &tls_handle) { iterate_fn(ctx, tls_handle.State()); });
 }
 
 uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states.size(); }

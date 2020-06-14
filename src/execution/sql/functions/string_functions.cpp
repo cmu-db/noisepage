@@ -9,17 +9,34 @@
 
 namespace terrier::execution::sql {
 
-void StringFunctions::Substring(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &left,
+                             const StringVal &right) {
+  if (left.is_null_ || right.is_null_) {
+    *result = StringVal::Null();
+    return;
+  }
+
+  const std::size_t length = left.GetLength() + right.GetLength();
+  char *const ptr = ctx->GetStringAllocator()->PreAllocate(length);
+
+  // Copy contents into result.
+  std::memcpy(ptr, left.GetContent(), left.GetLength());
+  std::memcpy(ptr + left.GetLength(), right.GetContent(), right.GetLength());
+  *result = StringVal(ptr, length);
+}
+
+void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                                 const Integer &pos, const Integer &len) {
   if (str.is_null_ || pos.is_null_ || len.is_null_) {
     *result = StringVal::Null();
     return;
   }
 
-  const auto start = std::max(pos.val_, static_cast<int64_t>(1));
+  const auto start = std::max(pos.val_, int64_t{1});
   const auto end = pos.val_ + std::min(static_cast<int64_t>(str.GetLength()), len.val_);
 
-  // The end can be before the start only if the length was negative. This is an error.
+  // The end can be before the start only if the length was negative. This is an
+  // error.
   if (end < pos.val_) {
     *result = StringVal::Null();
     return;
@@ -32,18 +49,18 @@ void StringFunctions::Substring(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, St
   }
 
   // All good
-  *result = StringVal(str.GetContent() + start - 1, static_cast<uint32_t>(end - start));
+  *result = StringVal(str.GetContent() + start - 1, end - start);
 }
 
 namespace {
 
-const char *SearchSubstring(const char *text, const std::size_t text_len, const char *pattern,
-                            const std::size_t pattern_len) {
-  TERRIER_ASSERT(pattern != nullptr, "No search string provided");
-  TERRIER_ASSERT(pattern_len > 0, "No search string provided");
-  for (uint32_t i = 0; i < text_len + pattern_len; i++) {
-    const auto pos = text + i;
-    if (strncmp(pos, pattern, pattern_len) == 0) {
+const char *SearchSubstring(const char *haystack, const std::size_t hay_len, const char *needle,
+                            const std::size_t needle_len) {
+  TERRIER_ASSERT(needle != nullptr, "No search string provided");
+  TERRIER_ASSERT(needle_len > 0, "No search string provided");
+  for (uint32_t i = 0; i < hay_len + needle_len; i++) {
+    const auto pos = haystack + i;
+    if (strncmp(pos, needle, needle_len) == 0) {
       return pos;
     }
   }
@@ -52,7 +69,7 @@ const char *SearchSubstring(const char *text, const std::size_t text_len, const 
 
 }  // namespace
 
-void StringFunctions::SplitPart(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::SplitPart(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                                 const StringVal &delim, const Integer &field) {
   if (str.is_null_ || delim.is_null_ || field.is_null_) {
     *result = StringVal::Null();
@@ -81,7 +98,7 @@ void StringFunctions::SplitPart(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, St
     const auto next_delim = SearchSubstring(curr, remaining_len, delimiter, delim.GetLength());
     if (next_delim == nullptr) {
       if (index == field.val_) {
-        *result = StringVal(curr, static_cast<uint32_t>(remaining_len));
+        *result = StringVal(curr, remaining_len);
       } else {
         *result = StringVal("");
       }
@@ -89,7 +106,7 @@ void StringFunctions::SplitPart(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, St
     }
     // Are we at the correct field?
     if (index == field.val_) {
-      *result = StringVal(curr, static_cast<uint32_t>(next_delim - curr));
+      *result = StringVal(curr, next_delim - curr);
       return;
     }
     // We haven't reached the field yet, move along
@@ -97,7 +114,7 @@ void StringFunctions::SplitPart(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, St
   }
 }
 
-void StringFunctions::Repeat(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n) {
+void StringFunctions::Repeat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n) {
   if (str.is_null_ || n.is_null_) {
     *result = StringVal::Null();
     return;
@@ -123,7 +140,7 @@ void StringFunctions::Repeat(exec::ExecutionContext *ctx, StringVal *result, con
   *result = StringVal(target, result_len);
 }
 
-void StringFunctions::Lpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &len,
+void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                            const StringVal &pad) {
   if (str.is_null_ || len.is_null_ || pad.is_null_ || len.val_ < 0) {
     *result = StringVal::Null();
@@ -161,7 +178,7 @@ void StringFunctions::Lpad(exec::ExecutionContext *ctx, StringVal *result, const
   *result = StringVal(target, len.val_);
 }
 
-void StringFunctions::Rpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &len,
+void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                            const StringVal &pad) {
   if (str.is_null_ || len.is_null_ || pad.is_null_ || len.val_ < 0) {
     *result = StringVal::Null();
@@ -200,12 +217,12 @@ void StringFunctions::Rpad(exec::ExecutionContext *ctx, StringVal *result, const
   *result = StringVal(target, len.val_);
 }
 
-void StringFunctions::Length(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
+void StringFunctions::Length(Integer *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str) {
   result->is_null_ = str.is_null_;
   result->val_ = str.GetLength();
 }
 
-void StringFunctions::Lower(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Lower(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str) {
   if (str.is_null_) {
     *result = StringVal::Null();
     return;
@@ -216,7 +233,7 @@ void StringFunctions::Lower(exec::ExecutionContext *ctx, StringVal *result, cons
   *result = StringVal(target, str.GetLength());
 }
 
-void StringFunctions::Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Upper(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str) {
   if (str.is_null_) {
     *result = StringVal::Null();
     return;
@@ -227,7 +244,7 @@ void StringFunctions::Upper(exec::ExecutionContext *ctx, StringVal *result, cons
   *result = StringVal(target, str.GetLength());
 }
 
-void StringFunctions::Reverse(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Reverse(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str) {
   if (str.is_null_) {
     *result = StringVal::Null();
     return;
@@ -288,34 +305,34 @@ void DoTrim(StringVal *result, const StringVal &str, const StringVal &chars) {
 
 }  // namespace
 
-void StringFunctions::Trim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Trim(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str) {
   DoTrim<true, true>(result, str, StringVal(" "));
 }
 
-void StringFunctions::Trim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Trim(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                            const StringVal &chars) {
   DoTrim<true, true>(result, str, chars);
 }
 
-void StringFunctions::Ltrim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Ltrim(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str) {
   DoTrim<true, false>(result, str, StringVal(" "));
 }
 
-void StringFunctions::Ltrim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Ltrim(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                             const StringVal &chars) {
   DoTrim<true, false>(result, str, chars);
 }
 
-void StringFunctions::Rtrim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Rtrim(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str) {
   DoTrim<false, true>(result, str, StringVal(" "));
 }
 
-void StringFunctions::Rtrim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Rtrim(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                             const StringVal &chars) {
   DoTrim<false, true>(result, str, chars);
 }
 
-void StringFunctions::Left(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Left(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                            const Integer &n) {
   if (str.is_null_ || n.is_null_) {
     *result = StringVal::Null();
@@ -327,7 +344,7 @@ void StringFunctions::Left(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringV
   *result = StringVal(str.GetContent(), len);
 }
 
-void StringFunctions::Right(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Right(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                             const Integer &n) {
   if (str.is_null_ || n.is_null_) {
     *result = StringVal::Null();
@@ -342,7 +359,7 @@ void StringFunctions::Right(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, String
   }
 }
 
-void StringFunctions::Like(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, BoolVal *result, const StringVal &string,
+void StringFunctions::Like(BoolVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &string,
                            const StringVal &pattern) {
   if (string.is_null_ || pattern.is_null_) {
     *result = BoolVal::Null();
@@ -350,7 +367,7 @@ void StringFunctions::Like(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, BoolVal
   }
 
   result->is_null_ = false;
-  result->val_ = Like::Apply(string.GetContent(), string.GetLength(), pattern.GetContent(), pattern.GetLength());
+  result->val_ = sql::Like{}(string.val_, pattern.val_);
 }
 
 }  // namespace terrier::execution::sql

@@ -3,10 +3,11 @@
 #include <algorithm>
 
 #include "common/settings.h"
-#include "loggers/execution_logger.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/util/timer.h"
+#include "loggers/execution_logger.h"
 
 #define COLLECT_OVERHEAD 0
 
@@ -20,16 +21,16 @@ namespace terrier::execution::sql {
 
 FilterManager::Clause::Clause(void *opaque_context, double stat_sample_freq)
     : opaque_context_(opaque_context),
-      input_copy_(kDefaultVectorSize),
-      temp_(kDefaultVectorSize),
+      input_copy_(common::Constants::K_DEFAULT_VECTOR_SIZE),
+      temp_(common::Constants::K_DEFAULT_VECTOR_SIZE),
       sample_freq_(stat_sample_freq),
       sample_count_(0),
       overhead_micros_(0),
 #ifndef NDEBUG
-    // In DEBUG mode, use a fixed seed so we get repeatable randomness
+      // In DEBUG mode, use a fixed seed so we get repeatable randomness
       gen_(0),
 #else
-    gen_(std::random_device()()),
+      gen_(std::random_device()()),
 #endif
       dist_(0, 1) {
   terms_.reserve(4);
@@ -61,7 +62,7 @@ void FilterManager::Clause::RunFilter(VectorProjection *input_batch, TupleIdList
     return;
   }
 
-  if (TPL_UNLIKELY(input_copy_.GetCapacity() != tid_list->GetCapacity())) {
+  if (UNLIKELY(input_copy_.GetCapacity() != tid_list->GetCapacity())) {
     input_copy_.Resize(tid_list->GetCapacity());
     temp_.Resize(tid_list->GetCapacity());
   }
@@ -93,24 +94,22 @@ void FilterManager::Clause::RunFilter(VectorProjection *input_batch, TupleIdList
     const auto term_selectivity = temp_.ComputeSelectivity();
     const auto term_cost = exec_ns / tuple_count;
     term->rank = (input_selectivity - term_selectivity) / term_cost;
-    LOG_TRACE("Term [{}]: term-selectivity={:04.3f}, cost={:>06.3f}, rank={:.8f}",
-              term->insertion_index, term_selectivity, term_cost, term->rank);
+    EXECUTION_LOG_TRACE("Term [{}]: term-selectivity={:04.3f}, cost={:>06.3f}, rank={:.8f}", term->insertion_index,
+                        term_selectivity, term_cost, term->rank);
     tid_list->IntersectWith(temp_);
   }
 
 #ifndef NDEBUG
   // Log a message if the term ordering after re-ranking has changed.
   const auto old_order = GetOptimalTermOrder();
-  std::sort(terms_.begin(), terms_.end(),
-            [](const auto &a, const auto &b) { return a->rank > b->rank; });
+  std::sort(terms_.begin(), terms_.end(), [](const auto &a, const auto &b) { return a->rank > b->rank; });
   const auto new_order = GetOptimalTermOrder();
   if (old_order != new_order) {
-    LOG_DEBUG("Order Change: old={}, new={}", fmt::join(old_order, ","), fmt::join(new_order, ","));
+    EXECUTION_LOG_DEBUG("Order Change: old={}, new={}", fmt::join(old_order, ","), fmt::join(new_order, ","));
   }
 #else
   // Reorder the terms based on their updated ranking.
-  std::sort(terms_.begin(), terms_.end(),
-            [](const auto &a, const auto &b) { return a->rank > b->rank; });
+  std::sort(terms_.begin(), terms_.end(), [](const auto &a, const auto &b) { return a->rank > b->rank; });
 #endif
 
   // Update sample count.
@@ -137,26 +136,24 @@ std::vector<uint32_t> FilterManager::Clause::GetOptimalTermOrder() const {
 //
 //===----------------------------------------------------------------------===//
 
-FilterManager::FilterManager(bool adapt, void *context)
-    : adapt_(adapt),
+FilterManager::FilterManager(common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool adapt, void *context)
+    : exec_ctx_(exec_ctx),
+      adapt_(adapt),
       opaque_context_(context),
-      input_list_(kDefaultVectorSize),
-      output_list_(kDefaultVectorSize),
-      tmp_list_(kDefaultVectorSize) {
+      input_list_(common::Constants::K_DEFAULT_VECTOR_SIZE),
+      output_list_(common::Constants::K_DEFAULT_VECTOR_SIZE),
+      tmp_list_(common::Constants::K_DEFAULT_VECTOR_SIZE) {
   clauses_.reserve(4);
 }
 
 void FilterManager::StartNewClause() {
-  TPL_ASSERT(!finalized_, "Cannot modify filter manager after finalization");
-  double sample_freq =
-      Settings::Instance()->GetDouble(Settings::Name::AdaptivePredicateOrderSamplingFrequency);
+  double sample_freq = exec_ctx_->GetAdaptivePredicateOrderSamplingFrequency();
   if (!IsAdaptive()) sample_freq = 0.0;
   clauses_.emplace_back(std::make_unique<Clause>(opaque_context_, sample_freq));
 }
 
 void FilterManager::InsertClauseTerm(const FilterManager::MatchFn term) {
-  TPL_ASSERT(!finalized_, "Cannot modify filter manager after finalization");
-  TPL_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
+  TERRIER_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
   clauses_.back()->AddTerm(term);
 }
 
@@ -169,8 +166,6 @@ void FilterManager::InsertClauseTerms(const std::vector<MatchFn> &terms) {
 }
 
 void FilterManager::RunFilters(VectorProjection *input_batch) {
-  TPL_ASSERT(IsFinalized(), "Must finalize the filter before it can be used");
-
   // Initialize the input, output, and temporary tuple ID lists for processing
   // this projection. This check just ensures they're all the same shape.
   if (const uint32_t projection_size = input_batch->GetTotalTupleCount();

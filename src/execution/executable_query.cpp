@@ -91,7 +91,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
 
   // Run the main function
-  if (!tpl_module_->GetFunction("main", mode, &main_)) {
+  if (!tpl_module_->GetFunction("main", mode, main_)) {
     EXECUTION_LOG_ERROR(
         "Missing 'main' entry function with signature "
         "(*ExecutionContext)->int32");

@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
-#include "common/math_util.h"
 #include "execution/ast/type.h"
+#include "execution/util/math_util.h"
 
 namespace terrier::execution::vm {
 
@@ -35,8 +35,8 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalI
   TERRIER_ASSERT(!name.empty(), "Local name cannot be empty");
 
   // Bump size to account for the alignment of the new local
-  if (!common::MathUtil::IsAligned(frame_size_, type->GetAlignment())) {
-    frame_size_ = common::MathUtil::AlignTo(frame_size_, type->GetAlignment());
+  if (!util::MathUtil::IsAligned(frame_size_, type->GetAlignment())) {
+    frame_size_ = util::MathUtil::AlignTo(frame_size_, type->GetAlignment());
   }
 
   const auto offset = static_cast<uint32_t>(frame_size_);
@@ -50,7 +50,7 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalI
 LocalVar FunctionInfo::NewParameterLocal(ast::Type *type, const std::string &name) {
   const LocalVar local = NewLocal(type, name, LocalInfo::Kind::Parameter);
   num_params_++;
-  params_size_ = FrameSize();
+  params_size_ = GetFrameSize();
   return local;
 }
 
@@ -70,29 +70,20 @@ LocalVar FunctionInfo::GetReturnValueLocal() const {
   return LocalVar(0u, LocalVar::AddressMode::Address);
 }
 
-LocalVar FunctionInfo::LookupLocal(const std::string &name) const {
-  for (const auto &local_info : Locals()) {
-    if (local_info.Name() == name) {
-      return LocalVar(local_info.Offset(), LocalVar::AddressMode::Address);
-    }
-  }
-
-  return LocalVar();
+const LocalInfo *FunctionInfo::LookupLocalInfoByName(const std::string &name) const {
+  const auto iter =
+      std::find_if(locals_.begin(), locals_.end(), [&](const auto &info) { return info.GetName() == name; });
+  return iter == locals_.end() ? nullptr : &*iter;
 }
 
-const LocalInfo *FunctionInfo::LookupLocalInfoByName(const std::string &name) const {
-  for (const auto &local_info : Locals()) {
-    if (local_info.Name() == name) {
-      return &local_info;
-    }
-  }
-
-  return nullptr;
+LocalVar FunctionInfo::LookupLocal(const std::string &name) const {
+  const LocalInfo *local_info = LookupLocalInfoByName(name);
+  return local_info == nullptr ? LocalVar() : LocalVar(local_info->GetOffset(), LocalVar::AddressMode::Address);
 }
 
 const LocalInfo *FunctionInfo::LookupLocalInfoByOffset(uint32_t offset) const {
-  for (const auto &local_info : Locals()) {
-    if (local_info.Offset() == offset) {
+  for (const auto &local_info : GetLocals()) {
+    if (local_info.GetOffset() == offset) {
       return &local_info;
     }
   }
