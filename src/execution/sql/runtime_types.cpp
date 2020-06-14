@@ -12,15 +12,6 @@ namespace {
 constexpr int64_t kMonthsPerYear = 12;
 constexpr int32_t kDaysPerMonth[2][12] = {{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
                                           {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
-constexpr const char *const kMonthNames[] = {"January",   "February", "March",    "April",
-                                             "May",       "June",     "July",     "August",
-                                             "September", "October",  "November", "December"};
-constexpr const char *const kShortMonthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-constexpr const char *const kShortDayNames[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-constexpr const char *const kDayNames[] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
-                                                "Thursday", "Friday", "Saturday"};
-
 constexpr int64_t kHoursPerDay = 24;
 constexpr int64_t kMinutesPerHour = 60;
 constexpr int64_t kSecondsPerMinute = 60;
@@ -42,10 +33,8 @@ constexpr int64_t kMicrosecondsPerMillisecond = 1000;
 
 constexpr int64_t kJulianMinYear = -4713;
 constexpr int64_t kJulianMinMonth = 11;
-constexpr int64_t kJulianMinDay = 24;
 constexpr int64_t kJulianMaxYear = 5874898;
 constexpr int64_t kJulianMaxMonth = 6;
-constexpr int64_t kJulianMaxDay = 3;
 
 // Is the provided year a leap year?
 bool IsLeapYear(int32_t year) { return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0); }
@@ -431,7 +420,12 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   // Day
   while (true) {
     if (ptr == limit) {
-      return (Date::FromYMD(year, month, day).second).ConvertToTimestamp();
+      auto date = Date::FromYMD(year, month, day);
+      if (date.first == true) {
+        return {true, date.second.ConvertToTimestamp()};
+      } else {
+        return {false, {}};
+      }
     }
     char c = *ptr++;
     if (std::isdigit(c)) {

@@ -62,11 +62,6 @@ class ExpressionMaker {
   }
 
   /**
-   * Create a date constant expression
-   */
-  ManagedExpression Constant(date::year_month_day ymd);
-
-  /**
    * Create a column value expression
    */
   ManagedExpression CVE(catalog::col_oid_t column_oid, type::TypeId type) {

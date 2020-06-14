@@ -68,7 +68,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             }
             value->SetValue(
                 type::TypeId::DATE,
-                execution::sql::DateVal(execution::sql::Date::FromNative(static_cast<uint32_t>(parsed_date.second))));
+                execution::sql::DateVal(execution::sql::Date::FromNative(static_cast<uint32_t>(parsed_date.second.ToNative()))));
             break;
           }
           case type::TypeId::TIMESTAMP: {
@@ -77,7 +77,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
             }
             value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(
-                                                         static_cast<uint64_t>(parsed_timestamp.second))));
+                                                         static_cast<uint64_t>(parsed_timestamp.second.ToNative()))));
             break;
           }
           case type::TypeId::TINYINT: {
