@@ -1,11 +1,16 @@
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "execution/ast/ast_builder.h"
 #include "execution/tpl_test.h"
 
 #include "execution/ast/ast_node_factory.h"
+#include "execution/ast/context.h"
+#include "execution/ast/type.h"
 #include "execution/sema/sema.h"
+#include "execution/util/region_containers.h"
 
 namespace terrier::execution::sema::test {
 

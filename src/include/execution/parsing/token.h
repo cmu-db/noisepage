@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdbool>
 #include <cstdint>
 
 #include "execution/util/execution_common.h"

@@ -1,8 +1,6 @@
 #include "execution/compiler/operator/aggregate_util.h"
-
 #include <utility>
 #include <vector>
-
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 

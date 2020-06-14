@@ -1,5 +1,4 @@
 #include "execution/compiler/expression/comparison_translator.h"
-
 #include "execution/compiler/translator_factory.h"
 
 namespace terrier::execution::compiler {

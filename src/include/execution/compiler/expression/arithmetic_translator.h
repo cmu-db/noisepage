@@ -1,7 +1,5 @@
 #pragma once
-
 #include <memory>
-
 #include "execution/compiler/expression/expression_translator.h"
 #include "parser/expression/operator_expression.h"
 

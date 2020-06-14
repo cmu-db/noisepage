@@ -1,9 +1,7 @@
 #include "execution/compiler/operator/sort_translator.h"
-
 #include <memory>
 #include <utility>
 #include <vector>
-
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/order_by_plan_node.h"

@@ -11,7 +11,6 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/compiler_defs.h"
-#include "execution/parsing/token.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region.h"
 #include "parser/expression_defs.h"

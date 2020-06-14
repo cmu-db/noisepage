@@ -1,5 +1,4 @@
 #include "execution/compiler/expression/conjunction_translator.h"
-
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/translator_factory.h"
 

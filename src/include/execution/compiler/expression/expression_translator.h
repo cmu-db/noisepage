@@ -2,10 +2,8 @@
 
 #include <unordered_map>
 #include <utility>
-
 #include "execution/ast/ast.h"
 #include "execution/compiler/codegen.h"
-
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::execution::compiler {
