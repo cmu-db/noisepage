@@ -19,7 +19,7 @@ configure_file(
 )
 
 # Find CLANG
-set(SUPPORTED_CLANGS "clang++-11" "clang++")
+set(SUPPORTED_CLANGS "clang++-8" "clang++")
 
 find_program(CLANG NAMES ${SUPPORTED_CLANGS})
 if (NOT EXISTS ${CLANG})
