@@ -19,6 +19,7 @@
 #include "nlohmann/json.hpp"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
