@@ -1,3 +1,5 @@
+OLTP_TERMINALS = ['1','2','4','8','16']
+
 pipeline {
     agent none
 
@@ -6,24 +8,17 @@ pipeline {
         parallelsAlwaysFailFast()
     }
 
-    triggers {
-        cron('H H(0-1) * * *')
-    }
+    // triggers {
+    //     cron('H H(0-1) * * *')
+    // }
 
     stages {
         stage('Performance') {
             agent { label 'benchmark' }
-            when { branch 'master' }
+            // TODO remove when merge
+            // when { branch 'master' } 
             steps {
-                sh 'echo $NODE_NAME'
-                sh 'echo y | sudo ./script/installation/packages.sh'
-                sh 'mkdir build'
-                sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
-                sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=4'
-                sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
-                sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
-                archiveArtifacts 'build/oltpsummary/*.json'
+                loop_terminals_run_oltp(OLTP_TERMINALS)
             }
             post {
                 cleanup {
@@ -34,15 +29,19 @@ pipeline {
 
         stage('Microbenchmark') {
             agent { label 'benchmark' }
-            when { branch 'master' }
+            // TODO remove when merge
+            // when { branch 'master' }
             steps {
-                echo 'echo y | sudo ./script/installation/packages.sh'
-                echo 'sudo apt-get install -q -y curl numactl'
-                echo 'mkdir build && cd build'
-                echo 'cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WARNING_LEVEL=Production -DTERRIER_USE_JEMALLOC=ON ..'
-                echo 'make gflags_ep -j 4 && make googletest_ep -j 4 && make gbenchmark_ep -j 4 && make -j4 all'
-                echo 'cd ../script/micro_bench'
-                echo './run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh all'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
+                // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
+                //  # of Threads: 4
+                //  WAL Path: Ramdisk
+                sh 'cd script/micro_bench ./run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
+                archiveArtifacts 'script/micro_bench/*.json'
+                junit 'script/micro_bench/*.xml'
             }
             post {
                 cleanup {
@@ -52,4 +51,22 @@ pipeline {
         }
     }
     
+}
+
+def loop_terminals_run_oltp(list){
+    sh 'echo $NODE_NAME'
+    sh 'echo y | sudo ./script/installation/packages.sh all'
+    sh 'mkdir build'
+    sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
+    // for all the nightly benchmarks, we scale the number of terminals: 1,2,4,8,16
+    for(int i=0; i< list.size(); i++){
+        // tatp/smallbank/noop/ycsb are running with the default config: --scale-factor=1
+        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4 --terminals=${item}'
+        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=4 --terminals=${item}'
+        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release --terminals=${item}'
+        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --loader-threads=4 --terminals=${item}'
+        // for TPC-C, --scale-factor=4
+        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4 --scale-factor=4 --terminals=${item}' 
+    }
+    archiveArtifacts 'build/oltpsummary/*.json'
 }
