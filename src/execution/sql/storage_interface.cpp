@@ -83,8 +83,6 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
 }
 
 bool StorageInterface::IndexCreate(catalog::index_oid_t index_oid) {
-
-
   const auto &schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(schema);
