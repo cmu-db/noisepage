@@ -38,26 +38,28 @@ class MetricsStore {
    * Record metrics from the LogSerializerTask
    * @param num_bytes first entry of metrics datapoint
    * @param num_records second entry of metrics datapoint
+   * @param interval third entry of metrics datapoint
    * @param resource_metrics third entry of metrics datapoint
    */
-  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records,
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
                             const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
-    logging_metric_->RecordSerializerData(num_bytes, num_records, resource_metrics);
+    logging_metric_->RecordSerializerData(num_bytes, num_records, interval, resource_metrics);
   }
 
   /**
    * Record metrics from the LogConsumerTask
    * @param num_bytes first entry of metrics datapoint
    * @param num_records second entry of metrics datapoint
+   * @param interval third entry of metrics datapoint
    * @param resource_metrics third entry of metrics datapoint
    */
-  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_records,
+  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
-    logging_metric_->RecordConsumerData(num_bytes, num_records, resource_metrics);
+    logging_metric_->RecordConsumerData(num_bytes, num_records, interval, resource_metrics);
   }
 
   /**

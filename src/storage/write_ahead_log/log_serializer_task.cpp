@@ -40,7 +40,8 @@ void LogSerializerTask::LogSerializerTaskLoop() {
       // Stop the resource tracker for this operating unit
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records, resource_metrics);
+      common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records,
+                                                                  serialization_interval_.count(), resource_metrics);
       num_bytes = num_records = 0;
       // start the operating unit resource tracker
       common::thread_context.resource_tracker_.Start();

@@ -120,7 +120,8 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // Stop the resource tracker for this operating unit
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, resource_metrics);
+      common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers,
+                                                                persist_interval_.count(), resource_metrics);
       num_bytes = num_buffers = 0;
       // start the operating unit resource tracker
       common::thread_context.resource_tracker_.Start();
