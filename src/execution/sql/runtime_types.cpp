@@ -2,21 +2,21 @@
 
 #include <string>
 
-#include "spdlog/fmt/fmt.h"
 #include "common/exception.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::sql {
 
 namespace {
 
-constexpr int64_t kMonthsPerYear = 12;
-constexpr int32_t kDaysPerMonth[2][12] = {{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+constexpr int64_t K_MONTHS_PER_YEAR = 12;
+constexpr int32_t K_DAYS_PER_MONTH[2][12] = {{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
                                           {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
-constexpr int64_t kHoursPerDay = 24;
-constexpr int64_t kMinutesPerHour = 60;
-constexpr int64_t kSecondsPerMinute = 60;
-constexpr int64_t kMillisecondsPerSecond = 1000;
-constexpr int64_t kMicrosecondsPerMillisecond = 1000;
+constexpr int64_t K_HOURS_PER_DAY = 24;
+constexpr int64_t K_MINUTES_PER_HOUR = 60;
+constexpr int64_t K_SECONDS_PER_MINUTE = 60;
+constexpr int64_t K_MILLISECONDS_PER_SECOND = 1000;
+constexpr int64_t K_MICROSECONDS_PER_MILLISECOND = 1000;
 
 // Like Postgres, TPL stores dates as Julian Date Numbers. Julian dates are
 // commonly used in astronomical applications and in software since it's
@@ -31,18 +31,18 @@ constexpr int64_t kMicrosecondsPerMillisecond = 1000;
 // Postgres. Specifically, we use the algorithms date2j() and j2date()
 // in src/backend/utils/adt/datetime.c.
 
-constexpr int64_t kJulianMinYear = -4713;
-constexpr int64_t kJulianMinMonth = 11;
-constexpr int64_t kJulianMaxYear = 5874898;
-constexpr int64_t kJulianMaxMonth = 6;
+constexpr int64_t K_JULIAN_MIN_YEAR = -4713;
+constexpr int64_t K_JULIAN_MIN_MONTH = 11;
+constexpr int64_t K_JULIAN_MAX_YEAR = 5874898;
+constexpr int64_t K_JULIAN_MAX_MONTH = 6;
 
 // Is the provided year a leap year?
 bool IsLeapYear(int32_t year) { return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0); }
 
 // Does the provided date fall into the Julian date range?
 bool IsValidJulianDate(int32_t y, int32_t m, int32_t d) {
-  return (y > kJulianMinYear || (y == kJulianMinYear && m >= kJulianMinMonth)) &&
-      (y < kJulianMaxYear || (y == kJulianMaxYear && m < kJulianMaxMonth));
+  return (y > K_JULIAN_MIN_YEAR || (y == K_JULIAN_MIN_YEAR && m >= K_JULIAN_MIN_MONTH)) &&
+         (y < K_JULIAN_MAX_YEAR || (y == K_JULIAN_MAX_YEAR && m < K_JULIAN_MAX_MONTH));
 }
 
 // Is the provided date a valid calendar date?
@@ -51,10 +51,10 @@ bool IsValidCalendarDate(int32_t year, int32_t month, int32_t day) {
   if (year == 0) return false;
 
   // Month.
-  if (month < 1 || month > kMonthsPerYear) return false;
+  if (month < 1 || month > K_MONTHS_PER_YEAR) return false;
 
   // Day.
-  if (day < 1 || day > kDaysPerMonth[IsLeapYear(year)][month - 1]) return false;
+  if (day < 1 || day > K_DAYS_PER_MONTH[IsLeapYear(year)][month - 1]) return false;
 
   // Looks good.
   return true;
@@ -93,20 +93,20 @@ void SplitJulianDate(int32_t jd, int32_t *year, int32_t *month, int32_t *day) {
   *year = y - 4800;
   quad = julian * 2141 / 65536;
   *day = julian - 7834 * quad / 256;
-  *month = (quad + 10) % kMonthsPerYear + 1;
+  *month = (quad + 10) % K_MONTHS_PER_YEAR + 1;
 }
 
 // Split a Julian time (i.e., Julian date in microseconds) into a time and date
 // component.
 void StripTime(int64_t jd, int64_t *date, int64_t *time) {
-  *date = jd / kMicroSecondsPerDay;
-  *time = jd - (*date * kMicroSecondsPerDay);
+  *date = jd / K_MICRO_SECONDS_PER_DAY;
+  *time = jd - (*date * K_MICRO_SECONDS_PER_DAY);
 }
 
 // Given hour, minute, second, millisecond, and microsecond components, build a time in microseconds.
 int64_t BuildTime(int32_t hour, int32_t min, int32_t sec, int32_t milli = 0, int32_t micro = 0) {
-  return (((hour * kMinutesPerHour + min) * kSecondsPerMinute) * kMicroSecondsPerSecond) +
-      sec * kMicroSecondsPerSecond + milli * kMillisecondsPerSecond + micro;
+  return (((hour * K_MINUTES_PER_HOUR + min) * K_SECONDS_PER_MINUTE) * K_MICRO_SECONDS_PER_SECOND) +
+         sec * K_MICRO_SECONDS_PER_SECOND + milli * K_MILLISECONDS_PER_SECOND + micro;
 }
 
 // Given a time in microseconds, split it into hour, minute, second, and
@@ -114,12 +114,12 @@ int64_t BuildTime(int32_t hour, int32_t min, int32_t sec, int32_t milli = 0, int
 void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, double *fsec) {
   int64_t time = jd;
 
-  *hour = time / kMicroSecondsPerHour;
-  time -= (*hour) * kMicroSecondsPerHour;
-  *min = time / kMicroSecondsPerMinute;
-  time -= (*min) * kMicroSecondsPerMinute;
-  *sec = time / kMicroSecondsPerSecond;
-  *fsec = time - (*sec * kMicroSecondsPerSecond);
+  *hour = time / K_MICRO_SECONDS_PER_HOUR;
+  time -= (*hour) * K_MICRO_SECONDS_PER_HOUR;
+  *min = time / K_MICRO_SECONDS_PER_MINUTE;
+  time -= (*min) * K_MICRO_SECONDS_PER_MINUTE;
+  *sec = time / K_MICRO_SECONDS_PER_SECOND;
+  *fsec = time - (*sec * K_MICRO_SECONDS_PER_SECOND);
 }
 
 }  // namespace
@@ -129,7 +129,6 @@ void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, double *fs
 // Date
 //
 //===----------------------------------------------------------------------===//
-
 
 bool Date::IsValid() const {
   int32_t year, month, day;
@@ -161,13 +160,11 @@ int32_t Date::ExtractDay() const {
   return day;
 }
 
-void Date::ExtractComponents(int32_t *year, int32_t *month, int32_t *day) {
-  SplitJulianDate(value_, year, month, day);
-}
+void Date::ExtractComponents(int32_t *year, int32_t *month, int32_t *day) { SplitJulianDate(value_, year, month, day); }
 
 Date::NativeType Date::ToNative() const { return value_; }
 
-Date Date::FromNative(Date::NativeType val) { return Date {val}; }
+Date Date::FromNative(Date::NativeType val) { return Date{val}; }
 
 std::pair<bool, Date> Date::FromString(const char *str, std::size_t len) {
   const char *ptr = str, *limit = ptr + len;
@@ -356,7 +353,7 @@ int32_t Timestamp::ExtractDayOfYear() const {
 }
 
 void Timestamp::ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min,
-                                  int32_t *sec, double *fsec){
+                                  int32_t *sec, double *fsec) {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
@@ -389,7 +386,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   while (ptr != limit && std::isspace(*ptr)) ptr++;
   while (ptr != limit && std::isspace(*(limit - 1))) limit--;
 
-  uint32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, milli = 0, micro= 0;
+  uint32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, milli = 0, micro = 0;
 
   // Year
   while (true) {
@@ -518,26 +515,25 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
 }
 
 std::pair<bool, Timestamp> Timestamp::FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
-                                int32_t sec) {
+                                                 int32_t sec) {
   // Check date component.
   if (!IsValidCalendarDate(year, month, day) || !IsValidJulianDate(year, month, day)) {
     return {false, {}};
   }
 
   // Check time component.
-  if (hour < 0 || min < 0 || min > kMinutesPerHour - 1 || sec < 0 || sec > kSecondsPerMinute ||
-      hour > kHoursPerDay ||
+  if (hour < 0 || min < 0 || min > K_MINUTES_PER_HOUR - 1 || sec < 0 || sec > K_SECONDS_PER_MINUTE || hour > K_HOURS_PER_DAY ||
       // Check for > 24:00:00.
-      (hour == kHoursPerDay && (min > 0 || sec > 0))) {
+      (hour == K_HOURS_PER_DAY && (min > 0 || sec > 0))) {
     return {false, {}};
   }
 
   const int64_t date = BuildJulianDate(year, month, day);
   const int64_t time = BuildTime(hour, min, sec);
-  const int64_t result = date * kMicroSecondsPerDay + time;
+  const int64_t result = date * K_MICRO_SECONDS_PER_DAY + time;
 
   // Check for major overflow.
-  if ((result - time) / kMicroSecondsPerDay != date) {
+  if ((result - time) / K_MICRO_SECONDS_PER_DAY != date) {
     return {false, {}};
   }
 
@@ -545,29 +541,28 @@ std::pair<bool, Timestamp> Timestamp::FromYMDHMS(int32_t year, int32_t month, in
   return {true, Timestamp(result)};
 }
 
-
 std::pair<bool, Timestamp> Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
-                                  int32_t sec, int32_t milli, int32_t micro) {
+                                                   int32_t sec, int32_t milli, int32_t micro) {
   // Check date component.
   if (!IsValidCalendarDate(year, month, day) || !IsValidJulianDate(year, month, day)) {
     return {false, {}};
   }
 
   // Check time component.
-  if (hour < 0 || hour > kHoursPerDay || min < 0 || min > kMinutesPerHour - 1 || sec < 0 ||
-      sec > kSecondsPerMinute - 1 || milli < 0 || milli > kMillisecondsPerSecond - 1 || micro < 0 ||
-      micro > kMicrosecondsPerMillisecond - 1 ||
+  if (hour < 0 || hour > K_HOURS_PER_DAY || min < 0 || min > K_MINUTES_PER_HOUR - 1 || sec < 0 ||
+      sec > K_SECONDS_PER_MINUTE - 1 || milli < 0 || milli > K_MILLISECONDS_PER_SECOND - 1 || micro < 0 ||
+      micro > K_MICROSECONDS_PER_MILLISECOND - 1 ||
       // Check for > 24:00:00.
-      (hour == kHoursPerDay && (min > 0 || sec > 0 || milli > 0 || micro > 0))) {
+      (hour == K_HOURS_PER_DAY && (min > 0 || sec > 0 || milli > 0 || micro > 0))) {
     return {false, {}};
   }
 
   const int64_t date = BuildJulianDate(year, month, day);
   const int64_t time = BuildTime(hour, min, sec, milli, micro);
-  const int64_t result = date * kMicroSecondsPerDay + time;
+  const int64_t result = date * K_MICRO_SECONDS_PER_DAY + time;
 
   // Check for major overflow.
-  if ((result - time) / kMicroSecondsPerDay != date) {
+  if ((result - time) / K_MICRO_SECONDS_PER_DAY != date) {
     return {false, {}};
   }
 

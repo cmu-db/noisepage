@@ -1,8 +1,8 @@
 #pragma once
 
 #include <chrono>  // NOLINT
-#include <string>
 #include <sstream>
+#include <string>
 #include <utility>
 #include "type/type_id.h"
 

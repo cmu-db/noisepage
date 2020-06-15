@@ -6,7 +6,7 @@ namespace terrier {
 struct TimeUtilTests : public TerrierTest {};
 
 TEST_F(TimeUtilTests, DateTest) {
-  auto ymd_res = terrier::execution::sql::Date::FromYMD(2020,1,1);
+  auto ymd_res = terrier::execution::sql::Date::FromYMD(2020, 1, 1);
   auto res = terrier::execution::sql::Date::FromString("2020-01-01");
   EXPECT_TRUE(res.first);
   EXPECT_TRUE(ymd_res.first);

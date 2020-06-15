@@ -655,8 +655,8 @@ VM_OP_HOT void OpInitTimestamp(terrier::execution::sql::TimestampVal *result, ui
 }
 
 VM_OP_HOT void OpInitTimestampYMDHMSMU(terrier::execution::sql::TimestampVal *result, int32_t year, int32_t month,
-                                    int32_t day, int32_t hour, int32_t minute, int32_t sec, int32_t milli,
-                                    int32_t micro) {
+                                       int32_t day, int32_t hour, int32_t minute, int32_t sec, int32_t milli,
+                                       int32_t micro) {
   result->is_null_ = false;
   auto res = terrier::execution::sql::Timestamp::FromYMDHMSMU(year, month, day, hour, minute, sec, milli, micro);
   if (res.first) {

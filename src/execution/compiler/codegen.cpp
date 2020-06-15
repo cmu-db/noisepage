@@ -425,7 +425,7 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
     }
     case type::TypeId::DATE: {
       const auto val = const_val.Peek<execution::sql::Date>().ToNative();
-      int32_t year = 0, month = 0 , day = 0;
+      int32_t year = 0, month = 0, day = 0;
       execution::sql::Date::FromNative(val).ExtractComponents(&year, &month, &day);
       return DateToSql(year, month, day);
     }

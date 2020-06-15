@@ -83,7 +83,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     case type::TypeId::INVALID: {
       // Postgres may not have told us the type in Parse message. Right now in oltpbench the JDBC driver is doing this
       // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
-      const auto ts_parse_result =  execution::sql::Timestamp::FromString(string);
+      const auto ts_parse_result = execution::sql::Timestamp::FromString(string);
       if (ts_parse_result.first) {
         return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(ts_parse_result.second.ToNative())};
       }

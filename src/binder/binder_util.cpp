@@ -66,9 +66,8 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             if (!parsed_date.first) {
               ReportFailure("Binder conversion from VARCHAR to DATE failed.");
             }
-            value->SetValue(
-                type::TypeId::DATE,
-                execution::sql::DateVal(execution::sql::Date::FromNative(static_cast<uint32_t>(parsed_date.second.ToNative()))));
+            value->SetValue(type::TypeId::DATE, execution::sql::DateVal(execution::sql::Date::FromNative(
+                                                    static_cast<uint32_t>(parsed_date.second.ToNative()))));
             break;
           }
           case type::TypeId::TIMESTAMP: {

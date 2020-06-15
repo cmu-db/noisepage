@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 
 #include "execution/util/hash.h"
 
@@ -15,10 +16,10 @@ class Timestamp;
 //
 //===----------------------------------------------------------------------===//
 
-static constexpr int64_t kMicroSecondsPerSecond = 1000 * 1000;
-static constexpr int64_t kMicroSecondsPerMinute = 60UL * kMicroSecondsPerSecond;
-static constexpr int64_t kMicroSecondsPerHour = 60UL * kMicroSecondsPerMinute;
-static constexpr int64_t kMicroSecondsPerDay = 24UL * kMicroSecondsPerHour;
+static constexpr int64_t K_MICRO_SECONDS_PER_SECOND = 1000 * 1000;
+static constexpr int64_t K_MICRO_SECONDS_PER_MINUTE = 60UL * K_MICRO_SECONDS_PER_SECOND;
+static constexpr int64_t K_MICRO_SECONDS_PER_HOUR = 60UL * K_MICRO_SECONDS_PER_MINUTE;
+static constexpr int64_t K_MICRO_SECONDS_PER_DAY = 24UL * K_MICRO_SECONDS_PER_HOUR;
 
 /** A SQL date. */
 class EXPORT Date {
@@ -192,8 +193,8 @@ class EXPORT Timestamp {
   Timestamp() = default;
 
   /**
- * @return The year of this timestamp.
- */
+   * @return The year of this timestamp.
+   */
   int32_t ExtractYear() const;
 
   /**
@@ -250,8 +251,8 @@ class EXPORT Timestamp {
    * @param[out] min The minute corresponding to this date.
    * @param[out] sec The second corresponding to this date.
    */
-  void ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min,
-                         int32_t *sec, double *fsec);
+  void ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min, int32_t *sec,
+                         double *fsec);
 
   /**
    * Convert this timestamp instance into a date instance.
@@ -352,7 +353,7 @@ class EXPORT Timestamp {
    * @return The constructed timestamp if valid.
    */
   static std::pair<bool, Timestamp> FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
-                              int32_t sec);
+                                               int32_t sec);
 
   /**
    * Given year, month, day, hour, minute, second, ms, and us components construct a TPL timestamp. If any
@@ -367,8 +368,8 @@ class EXPORT Timestamp {
    * @param micro The microsecond.
    * @return The constructed timestamp if valid.
    */
-  static std::pair<bool, Timestamp> FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int32_t hour,
-                                                      int32_t min, int32_t sec, int32_t milli, int32_t micro);
+  static std::pair<bool, Timestamp> FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
+                                                 int32_t sec, int32_t milli, int32_t micro);
 
  private:
   friend class Date;
@@ -382,10 +383,8 @@ class EXPORT Timestamp {
 };
 
 /** Converts the provided date into a timestamp. */
-inline Timestamp Date::ConvertToTimestamp() const {
-  return Timestamp(value_ * kMicroSecondsPerDay);
-}
+inline Timestamp Date::ConvertToTimestamp() const { return Timestamp(value_ * K_MICRO_SECONDS_PER_DAY); }
 /** Converts the provided timestamp into a date. */
-inline Date Timestamp::ConvertToDate() const { return Date(value_ / kMicroSecondsPerDay); }
+inline Date Timestamp::ConvertToDate() const { return Date(value_ / K_MICRO_SECONDS_PER_DAY); }
 
 }  // namespace terrier::execution::sql

@@ -249,7 +249,7 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
 void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3,
                            LocalVar operand_4, LocalVar operand_5, LocalVar operand_6, LocalVar operand_7,
                            LocalVar operand_8, LocalVar operand_9) {
-  TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 8, "Incorrect operand count for bytecode");
+  TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 9, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
                  "Incorrect operand type at index 0 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
