@@ -14,14 +14,14 @@ constexpr char kAggAttrPrefix[] = "agg_term_attr";
 
 StaticAggregationTranslator::StaticAggregationTranslator(const planner::AggregatePlanNode &plan,
                                                          CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::STATIC_AGGREGATE),
       agg_row_var_(GetCodeGen()->MakeFreshIdentifier("aggRow")),
       agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
       merge_func_(GetCodeGen()->MakeFreshIdentifier("MergeAggregates")),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
-  TPL_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
-  TPL_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
+  TERRIER_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
+  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
   // The produce-side is serial since it only generates one output tuple.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
 
@@ -58,7 +58,7 @@ ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
     auto name = codegen->MakeIdentifier(kAggAttrPrefix + std::to_string(term_idx++));
-    auto type = codegen->AggregateType(term->GetExpressionType(), term->GetReturnValueType());
+    auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(name, type));
   }
   return codegen->DeclareStruct(agg_payload_type_, std::move(fields));
@@ -72,7 +72,7 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
     auto field_name = codegen->MakeIdentifier(kAggAttrPrefix + std::to_string(term_idx));
-    auto type = codegen->TplType(term->GetReturnValueType());
+    auto type = codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
@@ -184,9 +184,9 @@ void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, F
   }
 }
 
-ast::Expr *StaticAggregationTranslator::GetChildOutput(WorkContext *context, UNUSED uint32_t child_idx,
+ast::Expr *StaticAggregationTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE uint32_t child_idx,
                                                        uint32_t attr_idx) const {
-  TPL_ASSERT(child_idx == 0, "Aggregations can only have a single child.");
+  TERRIER_ASSERT(child_idx == 0, "Aggregations can only have a single child.");
   if (IsProducePipeline(context->GetPipeline())) {
     auto codegen = GetCodeGen();
     return codegen->AggregatorResult(GetAggregateTermPtr(codegen->MakeExpr(agg_row_var_), attr_idx));

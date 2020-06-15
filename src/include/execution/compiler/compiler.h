@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "execution/util/timer.h"
 
 namespace terrier::execution {
@@ -14,6 +15,10 @@ namespace ast {
 class AstNode;
 class Context;
 }  // namespace ast
+
+namespace exec {
+class ExecutionContext;
+}  // namespace exec
 
 namespace sema {
 class ErrorReporter;
@@ -150,14 +155,16 @@ class Compiler {
    * @param input The input into the compiler.
    * @param callbacks The callbacks.
    */
-  static void RunCompilation(const Input &input, Callbacks *callbacks);
+  static void RunCompilation(const Input &input, Callbacks *callbacks,
+                             common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
   /**
    * Compile the given input into a module.
    * @param input The input to compilation.
    * @return The generated module. If there was an error, returns NULL.
    */
-  static std::unique_ptr<vm::Module> RunCompilationSimple(const Input &input);
+  static std::unique_ptr<vm::Module> RunCompilationSimple(const Input &input,
+                                                          common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
   /**
    * @return A string name for the given compilation phase.
@@ -197,7 +204,7 @@ class Compiler {
   ~Compiler();
 
   // Driver
-  void Run(Compiler::Callbacks *callbacks);
+  void Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
  private:
   // The input to compilation

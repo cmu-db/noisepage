@@ -25,7 +25,9 @@ class Callbacks : public compiler::Compiler::Callbacks {
   Callbacks() : module_(nullptr) {}
 
   void OnError(compiler::Compiler::Phase phase, compiler::Compiler *compiler) override {
-    compiler->GetErrorReporter()->PrintErrors(std::cout);
+    // TODO(WAN): how should we report errors?
+    UNREACHABLE("Figure out how we want to report errors.");
+    // compiler->GetErrorReporter()->PrintErrors(std::cout);
   }
 
   void TakeOwnership(std::unique_ptr<vm::Module> module) override { module_ = std::move(module); }
@@ -38,7 +40,8 @@ class Callbacks : public compiler::Compiler::Callbacks {
 
 }  // namespace
 
-std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compile() {
+std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compile(
+    common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
   // Build up the declaration list for the file.
   util::RegionVector<ast::Decl *> decls(ctx_->GetRegion());
   decls.reserve(structs_.size() + functions_.size());
@@ -52,7 +55,7 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
   compiler::Compiler::Input input("", ctx_, generated_file);
   Callbacks callbacks;
   compiler::TimePasses timer(&callbacks);
-  compiler::Compiler::RunCompilation(input, &timer);
+  compiler::Compiler::RunCompilation(input, &timer, exec_ctx);
   std::unique_ptr<vm::Module> module = callbacks.ReleaseModule();
 
   EXECUTION_LOG_DEBUG("Type-check: {:.2f} ms, Bytecode Gen: {:.2f} ms, Module Gen: {:.2f} ms", timer.GetSemaTimeMs(),

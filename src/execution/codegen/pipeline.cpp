@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-#include "spdlog/fmt/fmt.h"
-
 #include "common/macros.h"
 #include "common/settings.h"
 #include "execution/codegen/codegen.h"
@@ -13,8 +11,9 @@
 #include "execution/codegen/operators/operator_translator.h"
 #include "execution/codegen/pipeline_driver.h"
 #include "execution/codegen/work_context.h"
-#include "logging/logger.h"
+#include "loggers/execution_logger.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::codegen {
 
@@ -33,7 +32,7 @@ Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : 
 }
 
 void Pipeline::RegisterStep(OperatorTranslator *op) {
-  TPL_ASSERT(std::count(steps_.begin(), steps_.end(), op) == 0, "Duplicate registration of operator in pipeline.");
+  TERRIER_ASSERT(std::count(steps_.begin(), steps_.end(), op) == 0, "Duplicate registration of operator in pipeline.");
   steps_.push_back(op);
 }
 
@@ -51,8 +50,8 @@ void Pipeline::UpdateParallelism(Pipeline::Parallelism parallelism) {
 void Pipeline::SetParallelCheck(bool check) { check_parallelism_ = check; }
 
 void Pipeline::RegisterExpression(ExpressionTranslator *expression) {
-  TPL_ASSERT(std::find(expressions_.begin(), expressions_.end(), expression) == expressions_.end(),
-             "Expression already registered in pipeline");
+  TERRIER_ASSERT(std::find(expressions_.begin(), expressions_.end(), expression) == expressions_.end(),
+                 "Expression already registered in pipeline");
   expressions_.push_back(expression);
 }
 
@@ -90,7 +89,7 @@ util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
 }
 
 void Pipeline::LinkSourcePipeline(Pipeline *dependency) {
-  TPL_ASSERT(dependency != nullptr, "Source cannot be null");
+  TERRIER_ASSERT(dependency != nullptr, "Source cannot be null");
   dependencies_.push_back(dependency);
 }
 
@@ -101,7 +100,7 @@ void Pipeline::CollectDependencies(std::vector<Pipeline *> *deps) {
   deps->push_back(this);
 }
 
-void Pipeline::Prepare() {
+void Pipeline::Prepare(common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
   // Finalize the pipeline state.
   state_.ConstructFinalType(codegen_);
 
@@ -111,7 +110,7 @@ void Pipeline::Prepare() {
   //  2. If the consumer doesn't support parallel execution.
   //  3. If ANY operator in the pipeline explicitly requested serial execution.
 
-  const bool parallel_exec_disabled = !Settings::Instance()->GetBool(Settings::Name::ParallelQueryExecution);
+  const bool parallel_exec_disabled = exec_ctx->GetIsParallelQueryExecution();
   const bool parallel_consumer = true;
   if (parallel_exec_disabled || !parallel_consumer || parallelism_ == Pipeline::Parallelism::Serial) {
     parallelism_ = Pipeline::Parallelism::Serial;
@@ -130,7 +129,8 @@ void Pipeline::Prepare() {
       std::transform(plan_type.begin(), plan_type.end(), plan_type.begin(), ::tolower);
       result.append(plan_type);
     }
-    LOG_INFO("Pipeline-{}: parallel={}, vectorized={}, steps=[{}]", id_, IsParallel(), IsVectorized(), result);
+    EXECUTION_LOG_INFO("Pipeline-{}: parallel={}, vectorized={}, steps=[{}]", id_, IsParallel(), IsVectorized(),
+                       result);
   }
 }
 

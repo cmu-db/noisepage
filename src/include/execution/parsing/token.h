@@ -4,6 +4,8 @@
 
 namespace terrier::execution::parsing {
 
+#undef NIL  // pg_list.h defined this symbol, but TPL uses it as a different symbol so need to undef it
+
 /*
  * List of all tokens + keywords that accepts two callback functions. T() is
  * invoked for all symbol tokens, and K() is invoked for all keyword tokens.
@@ -77,12 +79,19 @@ namespace terrier::execution::parsing {
   /* End of stream */                              \
   T(EOS, "eos", 0)
 
+/**
+ * Stores information about TPL tokens.
+ */
 class Token {
  public:
+  /**
+   * Enum of possible tokens
+   */
   enum class Type : uint8_t {
 #define T(name, str, precedence) name,
     TOKENS(T, T)
 #undef T
+  // Set Last to the number of tokens - 1.
 #define T(name, str, precedence) +1
         Last = -1 TOKENS(T, T)
 #undef T
@@ -96,17 +105,17 @@ class Token {
   /**
    * @return The name of the given token.
    */
-  static const char *GetName(Type type) { return kTokenNames[static_cast<uint32_t>(type)]; }
+  static const char *GetName(Type type) { return TOKEN_NAMES[static_cast<uint32_t>(type)]; }
 
   /**
    * @return The stringified version of a given token, i.e., GetString(Type::TOKEN_EQUAL) = "=".
    */
-  static const char *GetString(Type type) { return kTokenStrings[static_cast<uint32_t>(type)]; }
+  static const char *GetString(Type type) { return TOKEN_STRINGS[static_cast<uint32_t>(type)]; }
 
   /**
    * @return The precedence of a given token.
    */
-  static uint32_t GetPrecedence(Type type) { return kTokenPrecedence[static_cast<uint32_t>(type)]; }
+  static uint32_t GetPrecedence(Type type) { return TOKEN_PRECEDENCES[static_cast<uint32_t>(type)]; }
 
   /**
    * @return The lowest precedence of all tokens.
@@ -143,9 +152,9 @@ class Token {
   }
 
  private:
-  static const char *kTokenNames[];
-  static const char *kTokenStrings[];
-  static const uint32_t kTokenPrecedence[];
+  static const char *TOKEN_NAMES[];
+  static const char *TOKEN_STRINGS[];
+  static const uint32_t TOKEN_PRECEDENCES[];
 };
 
 }  // namespace terrier::execution::parsing

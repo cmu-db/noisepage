@@ -72,7 +72,7 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    * @return The value (or value vector) of the column with the provided column OID in the table
    *         this sequential scan is operating over.
    */
-  ast::Expr *GetTableColumn(uint16_t col_oid) const override;
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
  private:
   // Does the scan have a predicate?
@@ -82,12 +82,12 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   std::string_view GetTableName() const;
 
   // Generate a generic filter term.
-  void GenerateGenericTerm(FunctionBuilder *function, const parser::AbstractExpression *term, ast::Expr *vector_proj,
-                           ast::Expr *tid_list);
+  void GenerateGenericTerm(FunctionBuilder *function, common::ManagedPointer<parser::AbstractExpression> term,
+                           ast::Expr *vector_proj, ast::Expr *tid_list);
 
   // Generate all filter clauses.
   void GenerateFilterClauseFunctions(util::RegionVector<ast::FunctionDecl *> *decls,
-                                     const parser::AbstractExpression *predicate,
+                                     common::ManagedPointer<parser::AbstractExpression> predicate,
                                      std::vector<ast::Identifier> *curr_clause, bool seen_conjunction);
 
   // Perform a table scan using the provided table vector iterator pointer.

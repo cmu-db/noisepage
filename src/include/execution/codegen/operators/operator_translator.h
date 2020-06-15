@@ -85,7 +85,7 @@ class OperatorTranslator : public ColumnValueProvider {
    * @param pipeline The pipeline this translator is a part of.
    */
   OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline,
-                     brain::ExecutionOperatingUnitType feature);
+                     brain::ExecutionOperatingUnitType feature_type);
 
   /**
    * This class cannot be copied or moved.

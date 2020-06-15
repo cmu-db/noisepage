@@ -86,7 +86,7 @@ class HashJoinTranslator : public OperatorTranslator {
   /**
    * Hash-joins do not produce columns from base tables.
    */
-  ast::Expr *GetTableColumn(uint16_t col_oid) const override {
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("Hash-joins do not produce columns from base tables.");
   }
 
@@ -109,7 +109,7 @@ class HashJoinTranslator : public OperatorTranslator {
   // Evaluate the provided hash keys in the provided context and return the
   // results in the provided results output vector.
   ast::Expr *HashKeys(WorkContext *ctx, FunctionBuilder *function,
-                      const std::vector<const parser::AbstractExpression *> &hash_keys) const;
+                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &hash_keys) const;
 
   // Fill the build row with the columns from the given context.
   void FillBuildRow(WorkContext *ctx, FunctionBuilder *function, ast::Expr *build_row) const;

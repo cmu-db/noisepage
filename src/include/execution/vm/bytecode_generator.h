@@ -52,7 +52,8 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
    * @param name The (optional) name of the program.
    * @return A compiled bytecode module.
    */
-  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, exec::ExecutionContext *exec_ctx,
+  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root,
+                                                 common::ManagedPointer<exec::ExecutionContext> exec_ctx,
                                                  const std::string &name);
 
   /**

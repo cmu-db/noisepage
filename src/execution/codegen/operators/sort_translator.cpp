@@ -17,7 +17,7 @@ constexpr const char kSortRowAttrPrefix[] = "attr";
 
 SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, CompilationContext *compilation_context,
                                Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SORT),
       sort_row_var_(GetCodeGen()->MakeFreshIdentifier("sortRow")),
       sort_row_type_(GetCodeGen()->MakeFreshIdentifier("SortRow")),
       lhs_row_(GetCodeGen()->MakeIdentifier("lhs")),
@@ -25,7 +25,7 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
       compare_func_(GetCodeGen()->MakeFreshIdentifier(pipeline->CreatePipelineFunctionName("Compare"))),
       build_pipeline_(this, Pipeline::Parallelism::Parallel),
       current_row_(CurrentRow::Child) {
-  TPL_ASSERT(plan.GetChildrenSize() == 1, "Sorts expected to have a single child.");
+  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Sorts expected to have a single child.");
   // Register this as the source for the pipeline. It must be serial to maintain
   // sorted output order.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
@@ -67,7 +67,7 @@ void SortTranslator::GenerateComparisonFunction(FunctionBuilder *function) {
   context.SetExpressionCacheEnable(false);
   int32_t ret_value;
   for (const auto &[expr, sort_order] : GetPlanAs<planner::OrderByPlanNode>().GetSortKeys()) {
-    if (sort_order == planner::OrderByOrderingType::ASC) {
+    if (sort_order == optimizer::OrderByOrderingType::ASC) {
       ret_value = -1;
     } else {
       ret_value = 1;
@@ -208,7 +208,7 @@ void SortTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *func
   if (IsScanPipeline(ctx->GetPipeline())) {
     ScanSorter(ctx, function);
   } else {
-    TPL_ASSERT(IsBuildPipeline(ctx->GetPipeline()), "Pipeline is unknown to sort translator");
+    TERRIER_ASSERT(IsBuildPipeline(ctx->GetPipeline()), "Pipeline is unknown to sort translator");
     InsertIntoSorter(ctx, function);
   }
 }
@@ -234,12 +234,13 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
   }
 }
 
-ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED uint32_t child_idx, uint32_t attr_idx) const {
+ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE uint32_t child_idx,
+                                          uint32_t attr_idx) const {
   if (IsScanPipeline(context->GetPipeline())) {
     return GetSortRowAttribute(sort_row_var_, attr_idx);
   }
 
-  TPL_ASSERT(IsBuildPipeline(context->GetPipeline()), "Pipeline not known to sorter");
+  TERRIER_ASSERT(IsBuildPipeline(context->GetPipeline()), "Pipeline not known to sorter");
   switch (current_row_) {
     case CurrentRow::Lhs:
       return GetSortRowAttribute(lhs_row_, attr_idx);

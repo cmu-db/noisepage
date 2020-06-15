@@ -28,8 +28,6 @@ namespace terrier::parser {
  */
 class ExpressionUtil {
  public:
-  ExpressionUtil() = delete;
-
   /**
    * Populate the given set with all of the column oids referenced
    * in this expression tree.
@@ -115,6 +113,54 @@ class ExpressionUtil {
         return false;
     }
   }
+
+  /**
+   * @return True if the given expression type is a comparison expression; false otherwise.
+   */
+  static bool IsComparisonExpression(ExpressionType type) {
+    switch (type) {
+      case ExpressionType::COMPARE_EQUAL:
+      case ExpressionType::COMPARE_NOT_EQUAL:
+      case ExpressionType::COMPARE_LESS_THAN:
+      case ExpressionType::COMPARE_GREATER_THAN:
+      case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+      case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+      case ExpressionType::COMPARE_LIKE:
+      case ExpressionType::COMPARE_NOT_LIKE:
+      case ExpressionType::COMPARE_IN:
+      case ExpressionType::COMPARE_IS_DISTINCT_FROM:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @return True if the given expression type is an arithmetic expression; false otherwise.
+   */
+  static bool IsArithmeticExpression(ExpressionType type) {
+    switch (type) {
+      case ExpressionType::OPERATOR_PLUS:
+      case ExpressionType::OPERATOR_MINUS:
+      case ExpressionType::OPERATOR_MULTIPLY:
+      case ExpressionType::OPERATOR_DIVIDE:
+      case ExpressionType::OPERATOR_CONCAT:
+      case ExpressionType::OPERATOR_MOD:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @return True if the given expression type is a column-reference expression; false otherwise.
+   */
+  static bool IsColumnRefExpression(ExpressionType type) { return type == ExpressionType::COLUMN_VALUE; }
+
+  /**
+   * @return True if the given expression type is a constant value expression; false otherwise.
+   */
+  static bool IsConstantExpression(ExpressionType type) { return type == ExpressionType::VALUE_CONSTANT; }
 
   /**
    * For a given comparison operator, reverses the comparison.
@@ -365,9 +411,6 @@ class ExpressionUtil {
       // Technically, EvaluateExpression should replace all ColumnValueExpressions with
       // DerivedValueExpressions using expr_maps in order for execution to make sense,
       // otherwise we have ColumnValues that don't point into previous tuples....
-      //
-      // However, there are other cases where EvaluateExpression will result in an unbound
-      // ColumnValueExpression particularly when dealing with InnerIndexJoin.
       OPTIMIZER_LOG_WARN("EvaluateExpression resulted in an unbound ColumnValueExpression");
       // TERRIER_ASSERT(0, "EvaluateExpression resulted in an unbound ColumnValueExpression");
     } else if (IsAggregateExpression(expr->GetExpressionType())) {
@@ -489,6 +532,30 @@ class ExpressionUtil {
 
     TERRIER_ASSERT(children.size() == 1, "children should have exactly 1 AbstractExpression");
     return std::move(children[0]);
+  }
+
+  /**
+   * @return True if the given expression is of the form: col <op> const_val. False otherwise.
+   */
+  static bool IsColumnCompareWithConst(const parser::AbstractExpression &expr) {
+    if (expr.GetChildrenSize() != 2) {
+      return false;
+    }
+    return IsComparisonExpression(expr.GetExpressionType()) &&
+           IsColumnRefExpression(expr.GetChild(0)->GetExpressionType()) &&
+           IsConstantExpression(expr.GetChild(1)->GetExpressionType());
+  }
+
+  /**
+   * @return True if the given expression is of the form: const <op> col. False otherwise.
+   */
+  static bool IsConstCompareWithColumn(const parser::AbstractExpression &expr) {
+    if (expr.GetChildrenSize() != 2) {
+      return false;
+    }
+    return IsComparisonExpression(expr.GetExpressionType()) &&
+           IsConstantExpression(expr.GetChild(0)->GetExpressionType()) &&
+           IsColumnRefExpression(expr.GetChild(1)->GetExpressionType());
   }
 };
 

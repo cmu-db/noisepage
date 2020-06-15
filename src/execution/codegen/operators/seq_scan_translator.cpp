@@ -8,17 +8,15 @@
 #include "execution/codegen/loop.h"
 #include "execution/codegen/pipeline.h"
 #include "execution/codegen/work_context.h"
-#include "execution/sql/catalog.h"
-#include "execution/sql/table.h"
 #include "parser/expression/column_value_expression.h"
-#include "parser/expression/expression_util.h"
+#include "parser/expression_util.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
 namespace terrier::execution::codegen {
 
 SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SEQ_SCAN),
       tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
       vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
@@ -36,11 +34,14 @@ bool SeqScanTranslator::HasPredicate() const {
 }
 
 std::string_view SeqScanTranslator::GetTableName() const {
-  const auto table_oid = GetPlanAs<planner::SeqScanPlanNode>().GetTableOid();
-  return Catalog::Instance()->LookupTableById(table_oid)->GetName();
+  // TODO(WAN): ???
+  UNREACHABLE("We shouldn't be doing catalog lookups at this point!! Go stuff it into the plan.");
+  // const auto table_oid = GetPlanAs<planner::SeqScanPlanNode>().GetTableOid();
+  // return Catalog::Instance()->LookupTableById(table_oid)->GetName();
 }
 
-void SeqScanTranslator::GenerateGenericTerm(FunctionBuilder *function, const parser::AbstractExpression *term,
+void SeqScanTranslator::GenerateGenericTerm(FunctionBuilder *function,
+                                            common::ManagedPointer<parser::AbstractExpression> term,
                                             ast::Expr *vector_proj, ast::Expr *tid_list) {
   auto codegen = GetCodeGen();
 
@@ -75,7 +76,7 @@ void SeqScanTranslator::GenerateGenericTerm(FunctionBuilder *function, const par
 }
 
 void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::FunctionDecl *> *decls,
-                                                      const parser::AbstractExpression *predicate,
+                                                      common::ManagedPointer<parser::AbstractExpression> predicate,
                                                       std::vector<ast::Identifier> *curr_clause,
                                                       bool seen_conjunction) {
   // The top-most disjunctions in the tree form separate clauses in the filter manager.
@@ -107,17 +108,17 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
   {
     ast::Expr *vector_proj = builder.GetParameterByPosition(0);
     ast::Expr *tid_list = builder.GetParameterByPosition(1);
-    if (planner::ExpressionUtil::IsColumnCompareWithConst(*predicate)) {
-      auto cve = static_cast<const parser::ColumnValueExpression *>(predicate->GetChild(0));
+    if (parser::ExpressionUtil::IsColumnCompareWithConst(*predicate)) {
+      auto cve = predicate->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
       auto const_val = translator->DeriveValue(nullptr, nullptr);
       builder.Append(codegen->VPIFilter(vector_proj,                     // The vector projection
                                         predicate->GetExpressionType(),  // Comparison type
-                                        cve->GetColumnOid(),             // Column index
+                                        !cve->GetColumnOid(),            // Column index
                                         const_val,                       // Constant value
                                         tid_list));                      // TID list
-    } else if (planner::ExpressionUtil::IsConstCompareWithColumn(*predicate)) {
-      throw NotImplementedException("const <op> col vector filter comparison not implemented");
+    } else if (parser::ExpressionUtil::IsConstCompareWithColumn(*predicate)) {
+      throw NOT_IMPLEMENTED_EXCEPTION("const <op> col vector filter comparison not implemented");
     } else {
       // If we ever reach this point, the current node in the expression tree
       // violates strict DNF. Its subtree is treated as a generic,
@@ -224,12 +225,16 @@ void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier wo
       GetCodeGen()->IterateTableParallel(GetTableName(), GetQueryStatePtr(), GetThreadStateContainer(), work_func));
 }
 
-ast::Expr *SeqScanTranslator::GetTableColumn(uint16_t col_oid) const {
+ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
+  // TODO(WAN): ??
+  UNREACHABLE("Should we still be doing catalog lookups here?");
+#if 0
   const auto table_oid = GetPlanAs<planner::SeqScanPlanNode>().GetTableOid();
   const auto schema = &Catalog::Instance()->LookupTableById(table_oid)->GetSchema();
   auto type = schema->GetColumnInfo(col_oid)->sql_type.GetPrimitiveTypeId();
   auto nullable = schema->GetColumnInfo(col_oid)->sql_type.IsNullable();
   return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), type, nullable, col_oid);
+#endif
 }
 
 }  // namespace terrier::execution::codegen

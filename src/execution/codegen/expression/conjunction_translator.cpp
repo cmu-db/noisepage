@@ -28,7 +28,7 @@ ast::Expr *ConjunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValu
     case parser::ExpressionType::CONJUNCTION_OR:
       return codegen->BinaryOp(parsing::Token::Type::OR, left_val, right_val);
     default: {
-      throw NotImplementedException(
+      throw NOT_IMPLEMENTED_EXCEPTION(
           fmt::format("Translation of conjunction type {}", parser::ExpressionTypeToString(expr_type, true)));
     }
   }

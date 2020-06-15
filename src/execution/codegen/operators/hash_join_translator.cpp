@@ -16,14 +16,14 @@ const char *kBuildRowAttrPrefix = "attr";
 
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
                                        Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::HASH_JOIN),
       build_row_var_(GetCodeGen()->MakeFreshIdentifier("buildRow")),
       build_row_type_(GetCodeGen()->MakeFreshIdentifier("BuildRow")),
       build_mark_(GetCodeGen()->MakeFreshIdentifier("buildMark")),
       left_pipeline_(this, Pipeline::Parallelism::Parallel) {
-  TPL_ASSERT(!plan.GetLeftHashKeys().empty(), "Hash-join must have join keys from left input");
-  TPL_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
-  TPL_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
+  TERRIER_ASSERT(!plan.GetLeftHashKeys().empty(), "Hash-join must have join keys from left input");
+  TERRIER_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
+  TERRIER_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
   // Probe pipeline begins after build pipeline.
   pipeline->LinkSourcePipeline(&left_pipeline_);
   // Register left and right child in their appropriate pipelines.
@@ -87,8 +87,9 @@ void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, Functio
   }
 }
 
-ast::Expr *HashJoinTranslator::HashKeys(WorkContext *ctx, FunctionBuilder *function,
-                                        const std::vector<const parser::AbstractExpression *> &hash_keys) const {
+ast::Expr *HashJoinTranslator::HashKeys(
+    WorkContext *ctx, FunctionBuilder *function,
+    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &hash_keys) const {
   auto codegen = GetCodeGen();
 
   std::vector<ast::Expr *> key_values;
@@ -253,7 +254,7 @@ void HashJoinTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *
   if (IsLeftPipeline(ctx->GetPipeline())) {
     InsertIntoJoinHashTable(ctx, function);
   } else {
-    TPL_ASSERT(IsRightPipeline(ctx->GetPipeline()), "Pipeline is unknown to join translator");
+    TERRIER_ASSERT(IsRightPipeline(ctx->GetPipeline()), "Pipeline is unknown to join translator");
     ProbeJoinHashTable(ctx, function);
   }
 }

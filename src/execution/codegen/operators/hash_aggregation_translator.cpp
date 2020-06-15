@@ -16,7 +16,7 @@ constexpr char kAggregateTermAttrPrefix[] = "agg_term_attr";
 
 HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePlanNode &plan,
                                                      CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::HASH_AGGREGATE),
       agg_row_var_(GetCodeGen()->MakeFreshIdentifier("aggRow")),
       agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
@@ -24,10 +24,10 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
       key_check_partial_fn_(GetCodeGen()->MakeFreshIdentifier(pipeline->CreatePipelineFunctionName("KeyCheckPartial"))),
       merge_partitions_fn_(GetCodeGen()->MakeFreshIdentifier(pipeline->CreatePipelineFunctionName("MergePartitions"))),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
-  TPL_ASSERT(!plan.GetGroupByTerms().empty(), "Hash aggregation should have grouping keys");
-  TPL_ASSERT(plan.GetAggregateStrategyType() == planner::AggregateStrategyType::HASH,
-             "Expected hash-based aggregation plan node");
-  TPL_ASSERT(plan.GetChildrenSize() == 1, "Hash aggregations should only have one child");
+  TERRIER_ASSERT(!plan.GetGroupByTerms().empty(), "Hash aggregation should have grouping keys");
+  TERRIER_ASSERT(plan.GetAggregateStrategyType() == planner::AggregateStrategyType::HASH,
+                 "Expected hash-based aggregation plan node");
+  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Hash aggregations should only have one child");
   // The produce pipeline begins after the build.
   pipeline->LinkSourcePipeline(&build_pipeline_);
 
@@ -71,7 +71,7 @@ ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetGroupByTerms()) {
     auto field_name = codegen->MakeIdentifier(kGroupByTermAttrPrefix + std::to_string(term_idx));
-    auto type = codegen->TplType(term->GetReturnValueType());
+    auto type = codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
@@ -80,7 +80,7 @@ ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
   term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
     auto field_name = codegen->MakeIdentifier(kAggregateTermAttrPrefix + std::to_string(term_idx));
-    auto type = codegen->AggregateType(term->GetExpressionType(), term->GetReturnValueType());
+    auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
@@ -97,7 +97,7 @@ ast::StructDecl *HashAggregationTranslator::GenerateInputValuesStruct() {
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetGroupByTerms()) {
     auto field_name = codegen->MakeIdentifier(kGroupByTermAttrPrefix + std::to_string(term_idx));
-    auto type = codegen->TplType(term->GetReturnValueType());
+    auto type = codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
@@ -106,7 +106,7 @@ ast::StructDecl *HashAggregationTranslator::GenerateInputValuesStruct() {
   term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
     auto field_name = codegen->MakeIdentifier(kAggregateTermAttrPrefix + std::to_string(term_idx));
-    auto type = codegen->TplType(term->GetChild(0)->GetReturnValueType());
+    auto type = codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
@@ -423,7 +423,7 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     const auto &agg_ht = build_pipeline_.IsParallel() ? local_agg_ht_ : global_agg_ht_;
     UpdateAggregates(context, function, agg_ht.GetPtr(codegen));
   } else {
-    TPL_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
+    TERRIER_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
     if (GetPipeline()->IsParallel()) {
       // In parallel-mode, we would've issued a parallel partitioned scan. In
       // this case, the aggregation hash table we're to scan is provided as a
@@ -451,7 +451,7 @@ void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, Fun
 
 ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx,
                                                      uint32_t attr_idx) const {
-  TPL_ASSERT(child_idx == 0, "Aggregations can only have a single child.");
+  TERRIER_ASSERT(child_idx == 0, "Aggregations can only have a single child.");
   if (IsProducePipeline(context->GetPipeline())) {
     if (child_idx == 0) {
       return GetGroupByTerm(agg_row_var_, attr_idx);
@@ -463,14 +463,14 @@ ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint3
 }
 
 util::RegionVector<ast::FieldDecl *> HashAggregationTranslator::GetWorkerParams() const {
-  TPL_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
+  TERRIER_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
   auto codegen = GetCodeGen();
   return codegen->MakeFieldList({codegen->MakeField(codegen->MakeIdentifier("aggHashTable"),
                                                     codegen->PointerType(ast::BuiltinType::AggregationHashTable))});
 }
 
 void HashAggregationTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const {
-  TPL_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
+  TERRIER_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
   auto codegen = GetCodeGen();
   function->Append(codegen->AggHashTableParallelScan(global_agg_ht_.GetPtr(codegen), GetQueryStatePtr(),
                                                      GetThreadStateContainer(), work_func_name));

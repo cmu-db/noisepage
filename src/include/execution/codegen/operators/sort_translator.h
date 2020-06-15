@@ -100,7 +100,7 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   /**
    * Order-by operators do not produce columns from base tables.
    */
-  ast::Expr *GetTableColumn(uint16_t col_oid) const override {
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("Order-by operators do not produce columns from base tables");
   }
 

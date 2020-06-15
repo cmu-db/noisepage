@@ -23,7 +23,7 @@ ast::Expr *NullCheckTranslator::DeriveValue(WorkContext *ctx, const ColumnValueP
     case parser::ExpressionType::OPERATOR_IS_NOT_NULL:
       return codegen->UnaryOp(parsing::Token::Type::BANG, codegen->CallBuiltin(ast::Builtin::IsValNull, {input}));
     default:
-      throw NotImplementedException(
+      throw NOT_IMPLEMENTED_EXCEPTION(
           fmt::format("operator expression type {}", parser::ExpressionTypeToString(type, false)));
   }
 }

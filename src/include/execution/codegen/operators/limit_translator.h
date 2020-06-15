@@ -46,7 +46,7 @@ class LimitTranslator : public OperatorTranslator {
   /**
    * Limits never touch raw table data.
    */
-  ast::Expr *GetTableColumn(uint16_t col_oid) const override {
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("NLJ are never the root of a plan and, thus, cannot be launched in parallel.");
   }
 

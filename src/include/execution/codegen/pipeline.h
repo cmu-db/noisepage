@@ -5,10 +5,15 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/ast/identifier.h"
 #include "execution/codegen/state_descriptor.h"
 #include "execution/util/region_containers.h"
+
+namespace terrier::execution::exec {
+class ExecutionContext;
+}  // namespace terrier::execution::exec
 
 namespace terrier::execution::codegen {
 
@@ -115,8 +120,9 @@ class Pipeline {
 
   /**
    * Perform initialization logic before code generation.
+   * @param exec_ctx The execution context to be used for query compilation, can be different from the one for running.
    */
-  void Prepare();
+  void Prepare(common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
   /**
    * Generate all functions to execute this pipeline in the provided container.

@@ -53,7 +53,7 @@ class CSVScanTranslator : public OperatorTranslator, public PipelineDriver {
    * @param col_oid The ID of the column to read.
    * @return The value of the column.
    */
-  ast::Expr *GetTableColumn(uint16_t col_oid) const override;
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
  private:
   // Return the plan.

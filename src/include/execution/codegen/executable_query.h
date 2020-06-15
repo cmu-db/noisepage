@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/vm/vm_defs.h"
 
@@ -73,8 +74,9 @@ class ExecutableQuery {
   /**
    * Create a query object.
    * @param plan The physical plan.
+   * @param exec_ctx The execution context for code generation, can differ from the one used in Run.
    */
-  explicit ExecutableQuery(const planner::AbstractPlanNode &plan);
+  ExecutableQuery(const planner::AbstractPlanNode &plan, common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
   /**
    * This class cannot be copied or moved.
@@ -112,9 +114,16 @@ class ExecutableQuery {
    */
   ast::Context *GetContext() { return ast_context_.get(); }
 
+  /** @return The execution context to be used for code generation. */
+  common::ManagedPointer<exec::ExecutionContext> GetExecutionContextForCompilation() const {
+    return exec_ctx_compilation_;
+  }
+
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
+  // The execution context used for code generation.
+  common::ManagedPointer<exec::ExecutionContext> exec_ctx_compilation_;
   // The AST error reporter.
   std::unique_ptr<sema::ErrorReporter> errors_;
   // The AST context used to generate the TPL AST.

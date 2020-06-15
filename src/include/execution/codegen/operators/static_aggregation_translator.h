@@ -83,7 +83,7 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
    */
   ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override;
 
-  ast::Expr *GetTableColumn(uint16_t col_oid) const override {
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("Static aggregations do not produce columns from base tables.");
   }
 

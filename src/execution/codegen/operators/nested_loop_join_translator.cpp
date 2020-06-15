@@ -10,8 +10,8 @@ namespace terrier::execution::codegen {
 
 NestedLoopJoinTranslator::NestedLoopJoinTranslator(const planner::NestedLoopJoinPlanNode &plan,
                                                    CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline) {
-  TPL_ASSERT(plan.GetChildrenSize() == 2, "NLJ expected to have only two children.");
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::NL_JOIN) {
+  TERRIER_ASSERT(plan.GetChildrenSize() == 2, "NLJ expected to have only two children.");
 
   // In a nested loop, only the outer most loop determines the parallelism level.
   // So disable the parallelism check until the last child.

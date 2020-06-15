@@ -51,7 +51,9 @@ class OutputTranslator : public OperatorTranslator {
   /**
    * Does not interact with tables.
    */
-  ast::Expr *GetTableColumn(uint16_t col_oid) const override { UNREACHABLE("Output does not interact with tables."); }
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
+    UNREACHABLE("Output does not interact with tables.");
+  }
 
  private:
   ast::Identifier output_var_;

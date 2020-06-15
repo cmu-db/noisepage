@@ -12,7 +12,7 @@ DerivedValueTranslator::DerivedValueTranslator(const parser::DerivedValueExpress
     : ExpressionTranslator(expr, compilation_context) {}
 
 ast::Expr *DerivedValueTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
-  const auto &derived_expr = GetExpressionAs<planner::DerivedValueExpression>();
+  const auto &derived_expr = GetExpressionAs<parser::DerivedValueExpression>();
   return provider->GetChildOutput(ctx, derived_expr.GetTupleIdx(), derived_expr.GetValueIdx());
 }
 

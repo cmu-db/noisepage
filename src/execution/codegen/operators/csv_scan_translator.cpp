@@ -1,7 +1,5 @@
 #include "execution/codegen/operators/csv_scan_translator.h"
 
-#include "spdlog/fmt/fmt.h"
-
 #include "common/exception.h"
 #include "execution/codegen/codegen.h"
 #include "execution/codegen/compilation_context.h"
@@ -10,6 +8,7 @@
 #include "execution/codegen/pipeline.h"
 #include "execution/codegen/work_context.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::codegen {
 
@@ -19,7 +18,7 @@ constexpr const char kFieldPrefix[] = "field";
 
 CSVScanTranslator::CSVScanTranslator(const planner::CSVScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CSV_SCAN),
       base_row_type_(GetCodeGen()->MakeFreshIdentifier("CSVRow")) {
   // CSV scans are serial, for now.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
@@ -39,7 +38,7 @@ void CSVScanTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *
   // Add columns to output.
   for (uint32_t idx = 0; idx < output_schema->NumColumns(); idx++) {
     auto field_name = codegen->MakeIdentifier(kFieldPrefix + std::to_string(idx));
-    fields.emplace_back(codegen->MakeField(field_name, codegen->TplType(TypeId::Varchar)));
+    fields.emplace_back(codegen->MakeField(field_name, codegen->TplType(sql::TypeId::Varchar)));
   }
 
   decls->push_back(codegen->DeclareStruct(base_row_type_, std::move(fields)));
@@ -79,35 +78,35 @@ void CSVScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   function->Append(codegen->CSVReaderClose(codegen->MakeExpr(reader_var)));
 }
 
-ast::Expr *CSVScanTranslator::GetTableColumn(uint16_t col_oid) const {
+ast::Expr *CSVScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   const auto output_schema = GetPlan().GetOutputSchema();
-  if (col_oid > output_schema->NumColumns()) {
-    throw Exception(ExceptionType::CodeGen, fmt::format("out-of-bounds CSV column access @ idx={}", col_oid));
+  if ((!col_oid) > output_schema->NumColumns()) {
+    throw EXECUTION_EXCEPTION(fmt::format("Codegen: out-of-bounds CSV column access @ idx={}", !col_oid));
   }
 
   // Return the field converted to the appropriate type.
-  auto codegen = GetCodeGen();
-  auto field = GetField(col_oid);
-  auto output_type = GetPlan().GetOutputSchema()->GetColumn(col_oid).GetType();
+  auto *codegen = GetCodeGen();
+  auto *field = GetField(!col_oid);
+  auto output_type = sql::GetTypeId(GetPlan().GetOutputSchema()->GetColumn(!col_oid).GetType());
   switch (output_type) {
-    case TypeId::Boolean:
+    case sql::TypeId::Boolean:
       return codegen->CallBuiltin(ast::Builtin::ConvertStringToBool, {field});
-    case TypeId::TinyInt:
-    case TypeId::SmallInt:
-    case TypeId::Integer:
-    case TypeId::BigInt:
+    case sql::TypeId::TinyInt:
+    case sql::TypeId::SmallInt:
+    case sql::TypeId::Integer:
+    case sql::TypeId::BigInt:
       return codegen->CallBuiltin(ast::Builtin::ConvertStringToInt, {field});
-    case TypeId::Float:
-    case TypeId::Double:
+    case sql::TypeId::Float:
+    case sql::TypeId::Double:
       return codegen->CallBuiltin(ast::Builtin::ConvertStringToReal, {field});
-    case TypeId::Date:
+    case sql::TypeId::Date:
       return codegen->CallBuiltin(ast::Builtin::ConvertStringToDate, {field});
-    case TypeId::Timestamp:
+    case sql::TypeId::Timestamp:
       return codegen->CallBuiltin(ast::Builtin::ConvertStringToTime, {field});
-    case TypeId::Varchar:
+    case sql::TypeId::Varchar:
       return field;
     default:
-      throw NotImplementedException(fmt::format("converting from string to {}", TypeIdToString(output_type)));
+      throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("Converting from string to {}", TypeIdToString(output_type)));
   }
 }
 

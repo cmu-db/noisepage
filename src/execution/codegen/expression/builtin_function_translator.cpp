@@ -18,7 +18,7 @@ BuiltinFunctionTranslator::BuiltinFunctionTranslator(const parser::BuiltinFuncti
 
 ast::Expr *BuiltinFunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
   auto codegen = GetCodeGen();
-  auto func_expr = GetExpressionAs<planner::BuiltinFunctionExpression>();
+  auto func_expr = GetExpressionAs<parser::BuiltinFunctionExpression>();
 
   // Evaluate the arguments to the function.
   std::vector<ast::Expr *> args;
@@ -30,5 +30,6 @@ ast::Expr *BuiltinFunctionTranslator::DeriveValue(WorkContext *ctx, const Column
   // Issue the function.
   return codegen->CallBuiltin(func_expr.GetBuiltin(), args);
 }
-#endif
+
 }  // namespace terrier::execution::codegen
+#endif

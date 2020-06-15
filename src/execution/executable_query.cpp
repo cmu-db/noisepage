@@ -1,18 +1,111 @@
-#include "execution/executable_query.h"
+#include "execution/codegen/executable_query.h"
 
-#include "execution/ast/ast_dump.h"
-#include "execution/compiler/codegen.h"
-#include "execution/compiler/compiler.h"
-#include "execution/parsing/parser.h"
-#include "execution/parsing/scanner.h"
-#include "execution/sema/sema.h"
-#include "execution/util/region.h"
-#include "execution/vm/bytecode_generator.h"
+#include <algorithm>
+
+#include "common/exception.h"
+#include "execution/ast/context.h"
+#include "execution/exec/execution_context.h"
+#include "execution/sema/error_reporter.h"
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution {
+namespace terrier::execution::codegen {
 
+//===----------------------------------------------------------------------===//
+//
+// Executable Query Fragment
+//
+//===----------------------------------------------------------------------===//
+
+ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::unique_ptr<vm::Module> module)
+    : functions_(std::move(functions)), module_(std::move(module)) {}
+
+ExecutableQuery::Fragment::~Fragment() = default;
+
+void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) const {
+  using Function = std::function<void(void *)>;
+  for (const auto &func_name : functions_) {
+    Function func;
+    if (!module_->GetFunction(func_name, mode, func)) {
+      throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name));
+    }
+    func(query_state);
+  }
+}
+
+//===----------------------------------------------------------------------===//
+//
+// Executable Query
+//
+//===----------------------------------------------------------------------===//
+
+std::atomic<query_id_t> ExecutableQuery::query_identifier{query_id_t{0}};
+
+ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                 const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+  // Generate a query id using std::atomic<>.fetch_add()
+  query_id_ = ExecutableQuery::query_identifier++;
+
+  // Compile and check for errors
+  compiler::CodeGen codegen(exec_ctx.Get());
+  compiler::Compiler compiler(query_id_, &codegen, physical_plan.Get());
+  auto root = compiler.Compile();
+  if (codegen.Reporter()->HasErrors()) {
+    EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
+    EXECUTION_LOG_ERROR("Dumping AST:");
+    EXECUTION_LOG_ERROR(execution::ast::AstDump::Dump(root));
+    return;
+  }
+
+  // Convert to bytecode
+  auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
+
+  tpl_module_ = std::make_unique<vm::Module>(std::move(bytecode_module));
+  region_ = codegen.ReleaseRegion();
+  ast_ctx_ = codegen.ReleaseContext();
+  pipeline_operating_units_ = codegen.ReleasePipelineOperatingUnits();
+  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
+}
+
+ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan,
+                                 const common::ManagedPointer<exec::ExecutionContext> exec_ctx)
+    : plan_(plan),
+      exec_ctx_compilation_(exec_ctx),
+      errors_(std::make_unique<sema::ErrorReporter>()),
+      ast_context_(std::make_unique<ast::Context>(errors_.get())),
+      query_state_size_(0) {}
+
+// Needed because we forward-declare classes used as template types to std::unique_ptr<>
+ExecutableQuery::~ExecutableQuery() = default;
+
+void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size) {
+  TERRIER_ASSERT(
+      std::all_of(fragments.begin(), fragments.end(), [](const auto &fragment) { return fragment->IsCompiled(); }),
+      "All query fragments are not compiled!");
+  TERRIER_ASSERT(query_state_size >= sizeof(void *),
+                 "Query state must be large enough to store at least an ExecutionContext pointer.");
+
+  fragments_ = std::move(fragments);
+  query_state_size_ = query_state_size;
+
+  EXECUTION_LOG_INFO("Query has {} fragment{} with {}-byte query state.", fragments_.size(),
+                     fragments_.size() > 1 ? "s" : "", query_state_size_);
+}
+
+void ExecutableQuery::Run(exec::ExecutionContext *exec_ctx, vm::ExecutionMode mode) {
+  // First, allocate the query state and move the execution context into it.
+  auto query_state = std::make_unique<byte[]>(query_state_size_);
+  *reinterpret_cast<exec::ExecutionContext **>(query_state.get()) = exec_ctx;
+
+  // Now run through fragments.
+  for (const auto &fragment : fragments_) {
+    fragment->Run(query_state.get(), mode);
+  }
+}
+
+// -------------
+
+#if 0
 std::atomic<query_id_t> ExecutableQuery::query_identifier{query_id_t{0}};
 
 ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
@@ -91,7 +184,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
 
   // Run the main function
-  if (!tpl_module_->GetFunction("main", mode, main_)) {
+  if (!tpl_module_->GetFunction("main", mode, &main_)) {
     EXECUTION_LOG_ERROR(
         "Missing 'main' entry function with signature "
         "(*ExecutionContext)->int32");
@@ -101,4 +194,6 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   exec_ctx->SetPipelineOperatingUnits(nullptr);
 }
 
-}  // namespace terrier::execution
+#endif
+
+}  // namespace terrier::execution::codegen

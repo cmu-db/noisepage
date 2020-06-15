@@ -12,8 +12,8 @@ namespace terrier::execution::codegen {
 
 ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlanNode &plan,
                                            CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline) {
-  TPL_ASSERT(plan.GetChildrenSize() == 1, "Projections expected to have one child");
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::PROJECTION) {
+  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Projections expected to have one child");
   // Prepare children for codegen.
   compilation_context->Prepare(*plan.GetChild(0), pipeline);
 }

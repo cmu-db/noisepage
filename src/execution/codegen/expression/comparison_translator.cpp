@@ -40,7 +40,7 @@ ast::Expr *ComparisonTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
     case parser::ExpressionType::COMPARE_NOT_LIKE:
       return codegen->NotLike(left_val, right_val);
     default: {
-      throw NotImplementedException(
+      throw NOT_IMPLEMENTED_EXCEPTION(
           fmt::format("Translation of comparison type {}", parser::ExpressionTypeToString(expr_type, true)));
     }
   }

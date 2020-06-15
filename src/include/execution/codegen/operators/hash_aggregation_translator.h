@@ -101,7 +101,7 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   /**
    * Hash-based aggregations do not produce columns from base tables.
    */
-  ast::Expr *GetTableColumn(uint16_t col_oid) const override {
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("Hash-based aggregations do not produce columns from base tables.");
   }
 

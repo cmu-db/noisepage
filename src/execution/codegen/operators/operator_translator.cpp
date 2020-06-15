@@ -9,8 +9,8 @@
 namespace terrier::execution::codegen {
 
 OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context,
-                                       Pipeline *pipeline, brain::ExecutionOperatingUnitType feature)
-    : plan_(plan), compilation_context_(compilation_context), pipeline_(pipeline), feature_(feature) {
+                                       Pipeline *pipeline, brain::ExecutionOperatingUnitType feature_type)
+    : plan_(plan), compilation_context_(compilation_context), pipeline_(pipeline), feature_type_(feature_type) {
   TERRIER_ASSERT(plan.GetOutputSchema() != nullptr, "Output schema shouldn't be null");
   // Register this operator.
   pipeline->RegisterStep(this);
@@ -24,9 +24,9 @@ ast::Expr *OperatorTranslator::GetOutput(WorkContext *context, uint32_t attr_idx
   // Check valid output column.
   const auto output_schema = plan_.GetOutputSchema();
   if (attr_idx >= output_schema->NumColumns()) {
-    throw Exception(ExceptionType::CodeGen,
-                    fmt::format("Cannot read column {} from '{}' with output schema {}", attr_idx,
-                                planner::PlanNodeTypeToString(plan_.GetPlanNodeType()), output_schema->ToString()));
+    throw EXECUTION_EXCEPTION(fmt::format("Codegen: Cannot read column {} from '{}' with output schema {}", attr_idx,
+                                          planner::PlanNodeTypeToString(plan_.GetPlanNodeType()),
+                                          output_schema->ToJson().dump()));
   }
 
   const auto output_expression = output_schema->GetColumn(attr_idx).GetExpr();
@@ -36,9 +36,8 @@ ast::Expr *OperatorTranslator::GetOutput(WorkContext *context, uint32_t attr_idx
 ast::Expr *OperatorTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {
   // Check valid child.
   if (child_idx >= plan_.GetChildrenSize()) {
-    throw Exception(ExceptionType::CodeGen,
-                    fmt::format("Plan type '{}' does not have child at index {}",
-                                planner::PlanNodeTypeToString(plan_.GetPlanNodeType()), child_idx));
+    throw EXECUTION_EXCEPTION(fmt::format("Codegen: Plan type '{}' does not have child at index {}",
+                                          planner::PlanNodeTypeToString(plan_.GetPlanNodeType()), child_idx));
   }
 
   // Check valid output column from child.
@@ -77,7 +76,7 @@ void OperatorTranslator::GetAllChildOutputFields(const uint32_t child_index, con
   uint32_t attr_idx = 0;
   for (const auto &col : plan_.GetChild(child_index)->GetOutputSchema()->GetColumns()) {
     auto field_name = codegen->MakeIdentifier(field_name_prefix + std::to_string(attr_idx++));
-    auto type = codegen->TplType(col.GetExpr()->GetReturnValueType());
+    auto type = codegen->TplType(sql::GetTypeId(col.GetExpr()->GetReturnValueType()));
     fields->emplace_back(codegen->MakeField(field_name, type));
   }
 }

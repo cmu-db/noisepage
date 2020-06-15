@@ -15,7 +15,7 @@ constexpr char kOutputColPrefix[] = "out";
 
 OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::OUTPUT),
       output_var_(GetCodeGen()->MakeFreshIdentifier("outRow")),
       output_struct_(GetCodeGen()->MakeFreshIdentifier("OutputStruct")) {
   // Prepare the child.
@@ -57,7 +57,7 @@ void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *>
   uint32_t attr_idx = 0;
   for (const auto &col : output_schema->GetColumns()) {
     auto field_name = codegen->MakeIdentifier(kOutputColPrefix + std::to_string(attr_idx++));
-    auto type = codegen->TplType(col.GetExpr()->GetReturnValueType());
+    auto type = codegen->TplType(sql::GetTypeId(col.GetExpr()->GetReturnValueType()));
     fields.emplace_back(codegen->MakeField(field_name, type));
   }
 

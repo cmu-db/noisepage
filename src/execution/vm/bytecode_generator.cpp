@@ -2457,8 +2457,10 @@ Bytecode BytecodeGenerator::GetFloatTypedBytecode(Bytecode bytecode, ast::Type *
 }
 
 // static
-std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, const std::string &name) {
-  BytecodeGenerator generator;
+std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root,
+                                                           common::ManagedPointer<exec::ExecutionContext> exec_ctx,
+                                                           const std::string &name) {
+  BytecodeGenerator generator{exec_ctx};
   generator.Visit(root);
 
   // Create the bytecode module. Note that we move the bytecode and functions
