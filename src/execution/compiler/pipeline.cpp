@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "metrics/metrics_defs.h"
+
 namespace terrier::execution::compiler {
 void Pipeline::Initialize(util::RegionVector<ast::Decl *> *decls, util::RegionVector<ast::FieldDecl *> *state_fields,
                           util::RegionVector<ast::Stmt *> *setup_stmts,
