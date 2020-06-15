@@ -1,11 +1,12 @@
 #pragma once
 
 #include <unordered_map>
-#include "storage/storage_defs.h"
 
 namespace terrier::storage {
 class DataTable;
 class BlockCompactor;
+class RawBlock;
+
 // TODO(Tianyu): Probably need to be smarter than this to identify true hot or cold data, but this
 // will do for now.
 // Specifically, when the system is under load, and the GC does not get its own dedicated physical core,

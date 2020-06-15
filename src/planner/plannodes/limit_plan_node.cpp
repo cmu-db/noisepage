@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "common/json.h"
 
 namespace terrier::planner {
 
@@ -48,5 +49,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> LimitPlanNode::FromJson
   offset_ = j.at("offset").get<size_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(LimitPlanNode);
 
 }  // namespace terrier::planner

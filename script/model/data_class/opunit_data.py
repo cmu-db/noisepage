@@ -23,7 +23,7 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
         write_csv_result(output_path, key, value)
 
 
-def get_mini_runner_data(filename, model_map, predict_cache):
+def get_mini_runner_data(filename, model_map={}, predict_cache={}):
     """Get the training data from the mini runner
 
     :param filename: the input data file
@@ -52,7 +52,6 @@ def _default_get_mini_runner_data(filename):
 
     logging.info("Loaded file: {}".format(OpUnit[file_name]))
     return [OpUnitData(OpUnit[file_name], x, y)]
-
 
 def _execution_get_mini_runner_data(filename, model_map, predict_cache):
     # Get the mini runner data for the execution engine

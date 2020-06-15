@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {

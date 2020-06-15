@@ -268,10 +268,13 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
   uint32_t scan_limit_;
+<<<<<<< HEAD
   uint64_t table_num_tuple_;
+=======
+>>>>>>> upstream/master
   uint64_t index_size_;
 };
 
-DEFINE_JSON_DECLARATIONS(IndexScanPlanNode)
+DEFINE_JSON_HEADER_DECLARATIONS(IndexScanPlanNode);
 
 }  // namespace terrier::planner

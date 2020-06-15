@@ -6,6 +6,7 @@
 
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
+#include "network/network_util.h"
 #include "network/postgres/postgres_packet_util.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
@@ -30,21 +31,21 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   const auto physical_plan = portal->PhysicalPlan();
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (query_type <= network::QueryType::QUERY_DELETE) {
+  if (NetworkUtil::DMLQueryType(query_type)) {
     // DML query to put through codegen
     result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
 
     // TODO(Matt): do something with result here in case codegen fails
 
     result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
-  } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
+  } else if (NetworkUtil::CreateQueryType(query_type)) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_CREATE_DB) {
       out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
       connection_ctx->Transaction()->SetMustAbort();
       return;
     }
     result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
-  } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
+  } else if (NetworkUtil::DropQueryType(query_type)) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_DROP_DB) {
       out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
       connection_ctx->Transaction()->SetMustAbort();
@@ -119,7 +120,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
+  if (NetworkUtil::TransactionalQueryType(query_type)) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
     if (query_type == network::QueryType::QUERY_BEGIN) {
       postgres_interpreter->SetExplicitTransactionBlock();
@@ -130,7 +131,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (query_type >= network::QueryType::QUERY_RENAME) {
+  if (NetworkUtil::UnsupportedQueryType(query_type)) {
     // We don't yet support query types with values greater than this
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
     out->WriteCommandComplete(query_type, 0);
@@ -221,11 +222,11 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  auto cached_statement = postgres_interpreter->LookupStatementInCache(statement->GetQueryHash());
+  auto cached_statement = postgres_interpreter->LookupStatementInCache(statement->GetQueryText());
   if (cached_statement == nullptr) {
     // Not in the cache, add to cache
     cached_statement = common::ManagedPointer(statement);
-    postgres_interpreter->AddStatementToCache(statement->GetQueryHash(), std::move(statement));
+    postgres_interpreter->AddStatementToCache(std::move(statement));
   }
 
   postgres_interpreter->SetStatement(statement_name, cached_statement);
@@ -306,7 +307,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
+  if (NetworkUtil::TransactionalQueryType(query_type)) {
     // Don't begin an implicit txn in this case, and don't bind or optimize this statement
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
@@ -314,9 +315,10 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     return Transition::PROCEED;
   }
 
-  if (query_type >= network::QueryType::QUERY_RENAME) {
+  if (NetworkUtil::UnsupportedQueryType(query_type)) {
     // We don't yet support query types with values greater than this
-    // Don't begin an implicit txn in this case, and don't bind or optimize this statement
+    // Don't begin an implicit txn in this case, and don't bind or optimize this statement. Just noop with a Notice (not
+    // an Error) and proceed to reading more messages.
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
@@ -324,9 +326,13 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     return Transition::PROCEED;
   }
 
+  if (UNLIKELY(NetworkUtil::DDLQueryType(query_type))) {
+    statement->ClearCachedObjects();
+  }
+
   // Bind it, plan it
   const auto bind_result = t_cop->BindQuery(connection, statement, common::ManagedPointer(&params));
-  if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
+  if (LIKELY(bind_result.type_ == trafficcop::ResultType::COMPLETE)) {
     // Binding succeeded, optimize to generate a physical plan
     if (statement->PhysicalPlan() == nullptr || !t_cop->UseQueryCache()) {
       // it's not cached, optimize it
@@ -337,12 +343,11 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
-  } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
+  } else if (UNLIKELY(bind_result.type_ == trafficcop::ResultType::NOTICE)) {
     // Binding generated a NOTICE, i.e. IF EXISTS failed, so we're not going to generate a physical plan of nullptr and
     // handle that case in Execute. In case it previously bound and compiled, we're gonna throw that away for next
     // execution
-    statement->SetPhysicalPlan(nullptr);
-    statement->SetExecutableQuery(nullptr);
+    statement->ClearCachedObjects();
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
@@ -355,8 +360,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     // failing to bind fails a transaction in postgres
     connection->Transaction()->SetMustAbort();
     // clear anything cached related to this statement
-    statement->SetPhysicalPlan(nullptr);
-    statement->SetExecutableQuery(nullptr);
+    statement->ClearCachedObjects();
     out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
     postgres_interpreter->SetWaitingForSync();
   }
@@ -448,7 +452,7 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
   // TODO(Matt): Probably handle EmptyStatement around here somewhere, maybe somewhere more general purpose though?
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
+  if (NetworkUtil::TransactionalQueryType(query_type)) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
     if (query_type == network::QueryType::QUERY_BEGIN) {
       postgres_interpreter->SetExplicitTransactionBlock();
@@ -458,7 +462,7 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     return Transition::PROCEED;
   }
 
-  if (query_type >= network::QueryType::QUERY_RENAME) {
+  if (NetworkUtil::UnsupportedQueryType(query_type)) {
     // We don't yet support query types with values greater than this
     out->WriteCommandComplete(query_type, 0);
     return Transition::PROCEED;

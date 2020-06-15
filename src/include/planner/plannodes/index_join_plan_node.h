@@ -235,6 +235,6 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   uint64_t index_size_;
 };
 
-DEFINE_JSON_DECLARATIONS(IndexJoinPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(IndexJoinPlanNode);
 
 }  // namespace terrier::planner

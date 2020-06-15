@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "binder/bind_node_visitor.h"
+#include "binder/binder_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
@@ -249,9 +250,23 @@ TrafficCopResult TrafficCop::BindQuery(
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
+
   try {
-    binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
-    visitor.BindNameToNode(statement->ParseResult(), parameters);
+    if (statement->PhysicalPlan() == nullptr || !UseQueryCache()) {
+      // it's not cached, bind it
+      binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
+      if (parameters != nullptr && !parameters->empty()) {
+        std::vector<type::TypeId> desired_param_types(
+            parameters->size());  // default construction of values is fine, Binding will overwrite it
+        visitor.BindNameToNode(statement->ParseResult(), parameters, common::ManagedPointer(&desired_param_types));
+        statement->SetDesiredParamTypes(std::move(desired_param_types));
+      } else {
+        visitor.BindNameToNode(statement->ParseResult(), nullptr, nullptr);
+      }
+    } else {
+      // it's cached. use the desired_param_types to fast-path the binding
+      binder::BinderUtil::PromoteParameters(parameters, statement->GetDesiredParamTypes());
+    }
   } catch (...) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
@@ -262,6 +277,7 @@ TrafficCopResult TrafficCop::BindQuery(
     }
     return {ResultType::ERROR, "ERROR:  binding failed"};
   }
+
   return {ResultType::COMPLETE, 0};
 }
 

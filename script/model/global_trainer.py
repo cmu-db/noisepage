@@ -176,7 +176,7 @@ if __name__ == '__main__':
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["huber"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
-    aparser.add_argument('--impact_model_ratio', type=float, default=0.01, help=
+    aparser.add_argument('--impact_model_ratio', type=float, default=1, help=
                          'Sample ratio to train the global impact model')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()

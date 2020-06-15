@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "parser/select_statement.h"
 
 namespace terrier::parser {
@@ -78,6 +79,8 @@ std::vector<std::unique_ptr<AbstractExpression>> JoinDefinition::FromJson(const 
   return exprs;
 }
 
+DEFINE_JSON_BODY_DECLARATIONS(JoinDefinition);
+
 std::unique_ptr<JoinDefinition> JoinDefinition::Copy() {
   return std::make_unique<JoinDefinition>(type_, left_->Copy(), right_->Copy(), condition_);
 }
@@ -138,6 +141,8 @@ std::vector<std::unique_ptr<AbstractExpression>> TableRef::FromJson(const nlohma
 
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(TableRef);
 
 common::hash_t TableRef::Hash() const {
   common::hash_t hash = common::HashUtil::Hash(type_);

@@ -176,6 +176,6 @@ class OrderByPlanNode : public AbstractPlanNode {
   size_t offset_;
 };
 
-DEFINE_JSON_DECLARATIONS(OrderByPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(OrderByPlanNode);
 
 }  // namespace terrier::planner
