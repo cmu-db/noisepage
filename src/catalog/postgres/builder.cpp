@@ -18,6 +18,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "storage/index/index_builder.h"
 
 namespace terrier::catalog::postgres {
 
@@ -771,6 +772,20 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
   IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
 
   return schema;
+}
+
+storage::index::Index *Builder::BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
+  TERRIER_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(key_schema);
+  return index_builder.Build();
+}
+
+storage::index::Index *Builder::BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
+  TERRIER_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(key_schema);
+  return index_builder.Build();
 }
 
 }  // namespace terrier::catalog::postgres

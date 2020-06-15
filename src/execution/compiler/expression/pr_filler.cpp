@@ -4,6 +4,9 @@
 #include <unordered_map>
 #include <utility>
 
+#include "catalog/index_schema.h"
+#include "catalog/schema.h"
+
 namespace terrier::execution::compiler {
 void PRFiller::GenFiller(const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm,
                          const catalog::IndexSchema &index_schema, ast::Expr *index_pr, FunctionBuilder *builder) {
@@ -38,6 +41,13 @@ std::pair<ast::File *, std::string> PRFiller::GenFiller(
   // Return the file.
   util::RegionVector<ast::Decl *> top_level({builder.Finish()}, codegen_->Region());
   return {codegen_->Compile(std::move(top_level)), fn_name.Data()};
+}
+
+ast::Expr *PRFiller::GetTableColumn(const catalog::col_oid_t &col_oid) {
+  auto type = table_schema_.GetColumn(col_oid).Type();
+  auto nullable = table_schema_.GetColumn(col_oid).Nullable();
+  uint16_t attr_idx = table_pm_.at(col_oid);
+  return codegen_->PRGet(codegen_->MakeExpr(table_pr_), type, nullable, attr_idx);
 }
 
 }  // namespace terrier::execution::compiler
