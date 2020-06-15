@@ -1,10 +1,17 @@
 #pragma once
+
 #include <string>
 #include <unordered_map>
 #include <utility>
+
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
+
+namespace terrier::catalog {
+class IndexSchema;
+class Schema;
+}  // namespace terrier::catalog
 
 namespace terrier::execution::compiler {
 /**
@@ -58,12 +65,7 @@ class PRFiller : public ExpressionEvaluator {
    * @param col_oid oid of the column
    * @return the expression that accesses the table PR.
    */
-  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override {
-    auto type = table_schema_.GetColumn(col_oid).Type();
-    auto nullable = table_schema_.GetColumn(col_oid).Nullable();
-    uint16_t attr_idx = table_pm_.at(col_oid);
-    return codegen_->PRGet(codegen_->MakeExpr(table_pr_), type, nullable, attr_idx);
-  }
+  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
 
   /**
    * Unreachable: this cannot handle DerivedValueExpression.

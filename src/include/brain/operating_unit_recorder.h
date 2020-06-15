@@ -10,8 +10,12 @@
 #include "execution/ast/ast.h"
 #include "execution/ast/context.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
+
+namespace terrier::planner {
+class AbstractJoinPlanNode;
+class AbstractScanPlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::brain {
 
