@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/index_schema.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_proc.h"
@@ -20,6 +19,8 @@
 #include "transaction/transaction_defs.h"
 
 namespace terrier::catalog {
+
+class IndexSchema;
 
 /**
  * The catalog stores all of the metadata about user tables and user defined

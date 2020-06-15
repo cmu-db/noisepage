@@ -37,10 +37,10 @@ GBENCHMARK_VERSION=1.4.1
 # commit hash date: 16 Nov 2018
 
 # libcount
-# url: https://github.com/dialtr/libcount.git
+# url: https://github.com/pmenon/libcount.git
 # branch: master
-# commit hash: 476492b3763e850ad61e28e24d3448175348076d
-# commit hash date: 20 Mar 2018
+# commit hash: 6eef9d048d4577f144506ffc076c1913f8faf3ef
+# commit hash date: 14 Sep 2019
 
 # xxhash
 # url: https://github.com/Cyan4973/xxHash

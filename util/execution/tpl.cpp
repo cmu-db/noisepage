@@ -17,6 +17,10 @@
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
+// This is needed because one of the header files above uses boolean.h on OSX which
+// redefines TRUE to 1 and FALSE to 0, which causes issues.
+#undef TRUE
+#undef FALSE
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"

@@ -8,6 +8,10 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/index/index.h"
 
+namespace terrier::storage {
+class SqlTable;
+}  // namespace terrier::storage
+
 namespace terrier::execution::sql {
 /**
  * Allows iteration for indices from TPL.

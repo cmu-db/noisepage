@@ -9,6 +9,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/util/execution_common.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {
