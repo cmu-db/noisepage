@@ -11,7 +11,6 @@
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
 #include "traffic_cop/traffic_cop.h"
-#include "traffic_cop/traffic_cop_util.h"
 
 namespace terrier::network {
 

@@ -1,5 +1,4 @@
 #include "storage/write_ahead_log/log_serializer_task.h"
-#include <algorithm>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -17,6 +16,15 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   // We cap the back-off in case of long gaps with no transactions, currently hard-coded as 10000us
   const auto max_sleep = std::chrono::microseconds{10000};
 
+  bool logging_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+  if (logging_metrics_enabled) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+  uint64_t num_bytes = 0, num_records = 0;
+
   do {
     // Serializing is now on the "critical txn path" because txns wait to commit until their logs are serialized. Thus,
     // a sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
@@ -25,22 +33,26 @@ void LogSerializerTask::LogSerializerTaskLoop() {
     // If Process did not find any new buffers, we perform exponential back-off to reduce our rate of polling for new
     // buffers. We cap the maximum back-off, since in the case of large gaps of no txns, we don't want to unboundedly
     // sleep
-    curr_sleep = std::min(Process() ? serialization_interval_ : curr_sleep * 2, max_sleep);
+    std::tie(num_bytes, num_records) = Process();
+    curr_sleep = std::min(num_bytes > 0 ? serialization_interval_ : curr_sleep * 2, max_sleep);
+
+    if (logging_metrics_enabled) {
+      // Stop the resource tracker for this operating unit
+      common::thread_context.resource_tracker_.Stop();
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records, resource_metrics);
+      num_bytes = num_records = 0;
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
+    }
   } while (run_task_);
   // To be extra sure we processed everything
   Process();
   TERRIER_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
 }
 
-bool LogSerializerTask::Process() {
+std::pair<uint64_t, uint64_t> LogSerializerTask::Process() {
   uint64_t num_bytes = 0, num_records = 0;
-  bool logging_metrics_enabled =
-      common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
-  if (logging_metrics_enabled) {
-    // start the operating unit resource tracker
-    common::thread_context.resource_tracker_.Start();
-  }
 
   bool buffers_processed = false;
 
@@ -95,16 +107,9 @@ bool LogSerializerTask::Process() {
     serialized_txns_.clear();
   }
 
-  if (logging_metrics_enabled) {
-    // Stop the resource tracker for this operating unit
-    common::thread_context.resource_tracker_.Stop();
-    if (num_bytes > 0) {
-      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records, resource_metrics);
-    }
-  }
 
-  return buffers_processed;
+
+  return {num_bytes, num_records};
 }
 
 /**
