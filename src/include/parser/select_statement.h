@@ -386,6 +386,8 @@ class SelectStatement : public SQLStatement {
    */
   void SetUnionSelect(std::unique_ptr<SelectStatement> select_stmt) { union_select_ = std::move(select_stmt); }
 
+  common::ManagedPointer<SelectStatement> GetUnionSelect() { return common::ManagedPointer<SelectStatement>(union_select_); }
+
   /**
    * @return the hashed value of this select statement
    */

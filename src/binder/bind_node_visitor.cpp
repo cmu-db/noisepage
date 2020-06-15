@@ -651,11 +651,22 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     TERRIER_ASSERT(cte_table_name_.empty(), "cte table name should not be set.");
     cte_table_name_ = node->GetSelectWith()->GetAlias();
 
+//    // current hack to see if we are in a recursive/iterative query DO NOT KEEP THIS
+//    if((node->GetSelectWith()->GetSelect() != nullptr) &&
+//        (node->GetSelectWith()->GetSelect()->GetUnionSelect() != nullptr)){
+//      // get schema
+//      auto union_larg = node->GetSelectWith()->GetSelect();
+//      union_larg->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+//      auto &sel_cols = union_larg->GetSelectColumns();
+//      context.AddNestedTable(cte_table_name_, sel_cols);
+//    }
+
     node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
 
-  if (node->GetSelectTable() != nullptr)
+  if (node->GetSelectTable() != nullptr) {
     node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  }
 
   if (node->GetSelectCondition() != nullptr) {
     node->GetSelectCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -691,6 +702,20 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     new_select_list.push_back(select_element);
   }
   node->SetSelectColumns(new_select_list);
+
+  if (node->GetUnionSelect() != nullptr) {
+    node->GetUnionSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+
+    auto &union_cols = node->GetUnionSelect()->GetSelectColumns();
+    if(new_select_list.size() != union_cols.size()){
+      BINDER_EXCEPTION("Mismatched schemas in union");
+    }
+    for(uint32_t ind = 0;ind <= new_select_list.size();ind++){
+      if(new_select_list[ind]->GetExpressionType() != union_cols[ind]->GetExpressionType()){
+        BINDER_EXCEPTION("Mismatched schemas in union");
+      }
+    }
+  }
   node->SetDepth(context_->GetDepth());
 
   if (node->GetSelectOrderBy() != nullptr) {
