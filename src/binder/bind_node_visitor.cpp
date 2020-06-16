@@ -105,14 +105,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
   switch (create_type) {
     case parser::CreateStatement::CreateType::kDatabase:
       if (catalog_accessor_->GetDatabaseOid(node->GetDatabaseName()) != catalog::INVALID_DATABASE_OID) {
-        throw BINDER_EXCEPTION("Database name already exists");
+        throw BINDER_EXCEPTION(fmt::format("database \"{}\" already exists", node->GetDatabaseName()));
       }
       break;
     case parser::CreateStatement::CreateType::kTable:
       ValidateDatabaseName(node->GetDatabaseName());
 
       if (catalog_accessor_->GetTableOid(node->GetTableName()) != catalog::INVALID_TABLE_OID) {
-        throw BINDER_EXCEPTION("Table name already exists");
+        throw BINDER_EXCEPTION(fmt::format("relation \"{}\" already exists", node->GetTableName()));
       }
       context_->AddNewTable(node->GetTableName(), node->GetColumns());
       for (const auto &col : node->GetColumns()) {

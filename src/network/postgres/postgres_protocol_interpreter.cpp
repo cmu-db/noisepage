@@ -64,7 +64,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
   // Process startup packet
   if (PROTO_MAJOR_VERSION(proto_version) != 3) {
     NETWORK_LOG_TRACE("Protocol error: only protocol version 3 is supported");
-    writer.WriteErrorResponse("ERROR:  Unsupported protocol version.");
+    writer.WriteErrorResponse("Unsupported protocol version.");
     return Transition::TERMINATE;
   }
 
@@ -107,14 +107,14 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
 
   if (oids.first == catalog::INVALID_DATABASE_OID) {
     // Invalid database name
-    writer.WriteErrorResponse("ERROR:  Specified database does not exist.");
+    writer.WriteErrorResponse("Specified database does not exist.");
     return Transition::TERMINATE;
   }
   if (oids.second == catalog::INVALID_NAMESPACE_OID) {
     // Failed to create temporary namespace. Client should retry.
     writer.WriteErrorResponse(
-        "ERROR:  Failed to create a temporary namespace for this connection. There may be a concurrent DDL change. "
-        "Please retry.");
+        "Failed to create a temporary namespace for this connection. There may be a concurrent DDL change. Please "
+        "retry.");
     return Transition::TERMINATE;
   }
 
