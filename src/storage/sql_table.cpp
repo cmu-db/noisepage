@@ -1,7 +1,6 @@
 #include "storage/sql_table.h"
 
 #include <map>
-#include <set>
 #include <string>
 #include <vector>
 
