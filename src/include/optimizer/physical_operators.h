@@ -5,21 +5,23 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
-#include "catalog/index_schema.h"
-#include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node_contents.h"
-#include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
 #include "parser/statements.h"
 #include "parser/update_statement.h"
-#include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/plan_node_defs.h"
 
 namespace terrier {
+
+namespace catalog {
+class IndexSchema;
+class Schema;
+} // namespace catalog
 
 namespace parser {
 class AbstractExpression;

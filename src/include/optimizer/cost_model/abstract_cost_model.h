@@ -4,6 +4,10 @@
 
 namespace terrier {
 
+namespace catalog {
+class CatalogAccessor;
+}
+
 namespace transaction {
 class TransactionContext;
 }
