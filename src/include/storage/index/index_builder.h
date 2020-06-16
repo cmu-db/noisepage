@@ -16,6 +16,7 @@
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
+#include "storage/sql_table.h"
 
 namespace terrier::storage::index {
 

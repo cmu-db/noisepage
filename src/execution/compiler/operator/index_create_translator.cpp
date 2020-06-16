@@ -2,7 +2,7 @@
 
 #include <utility>
 #include <vector>
-
+#include "catalog/catalog_accessor.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 
@@ -11,9 +11,9 @@ namespace terrier::execution::compiler {
 CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndexPlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CREATE_INDEX),
       op_(op),
-      index_inserter_(codegen->NewIdentifier("index_inserter")),
-      col_oids_(codegen->NewIdentifier("col_oids")),
-      table_schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
+      index_inserter_(codegen_->NewIdentifier("index_inserter")),
+      col_oids_(codegen_->NewIdentifier("col_oids")),
+      table_schema_(codegen_->Accessor()->GetSchema(op_->GetTableOid())),
       all_oids_(AllColOids(table_schema_)) {}
 
 
@@ -81,7 +81,7 @@ ast::Expr *CreateIndexTranslator::GetChildOutput(uint32_t child_idx, uint32_t at
   return child_translator_->GetOutput(attr_idx);
 }
 
-static std::vector<catalog::col_oid_t> CreateIndexTranslator::AllColOids(const catalog::Schema &table_schema_) {
+std::vector<catalog::col_oid_t> CreateIndexTranslator::AllColOids(const catalog::Schema &table_schema_) {
   std::vector<catalog::col_oid_t> oids;
   for (const auto &col : table_schema_.GetColumns()) {
     oids.emplace_back(col.Oid());

@@ -10,6 +10,7 @@
 #include "network/postgres/statement.h"
 #include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/traffic_cop_util.h"
+#include "planner/plannodes/create_index_plan_node.h"
 
 namespace terrier::network {
 
@@ -258,7 +259,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   if (cached_statement == nullptr) {
     // Not in the cache, add to cache
     cached_statement = common::ManagedPointer(statement);
-    postgres_interpreter->AddStatementToCache(fingerprint_result.hexdigest, std::move(statement));
+    postgres_interpreter->AddStatementToCache(std::move(statement));
   }
 
   postgres_interpreter->SetStatement(statement_name, cached_statement);

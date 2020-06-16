@@ -937,7 +937,7 @@ BaseOperatorNodeContents *CreateIndex::Copy() const {
 
 Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                            std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema, bool concurrent) {
-  auto op = std::make_unique<CreateIndex>();
+  auto *op = new CreateIndex();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->index_name_ = std::move(index_name);
