@@ -11,7 +11,7 @@ namespace {
 
 constexpr int64_t K_MONTHS_PER_YEAR = 12;
 constexpr int32_t K_DAYS_PER_MONTH[2][12] = {{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-                                          {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
+                                             {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
 constexpr int64_t K_HOURS_PER_DAY = 24;
 constexpr int64_t K_MINUTES_PER_HOUR = 60;
 constexpr int64_t K_SECONDS_PER_MINUTE = 60;
@@ -512,7 +512,8 @@ std::pair<bool, Timestamp> Timestamp::FromYMDHMS(int32_t year, int32_t month, in
   }
 
   // Check time component.
-  if (hour < 0 || min < 0 || min > K_MINUTES_PER_HOUR - 1 || sec < 0 || sec > K_SECONDS_PER_MINUTE || hour > K_HOURS_PER_DAY ||
+  if (hour < 0 || min < 0 || min > K_MINUTES_PER_HOUR - 1 || sec < 0 || sec > K_SECONDS_PER_MINUTE ||
+      hour > K_HOURS_PER_DAY ||
       // Check for > 24:00:00.
       (hour == K_HOURS_PER_DAY && (min > 0 || sec > 0))) {
     return {false, {}};
