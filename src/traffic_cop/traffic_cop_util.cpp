@@ -9,9 +9,9 @@
 #include "optimizer/property_set.h"
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
-#include "parser/expression/constant_value_expression.h"
 
 namespace terrier::trafficcop {
 
@@ -50,14 +50,20 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
       auto exprs = order_by->GetOrderByExpressions();
       for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
         if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
-          common::ManagedPointer<parser::ConstantValueExpression> constant_value_expression =  exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
+          common::ManagedPointer<parser::ConstantValueExpression> constant_value_expression =
+              exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
           int64_t column_id = constant_value_expression->GetInteger().val_;
-          common::ManagedPointer<parser::SelectStatement> select_statement =  query->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
-          common::ManagedPointer<parser::AbstractExpression> column = select_statement->GetSelectColumns()[column_id-1];
-          common::ManagedPointer<parser::ColumnValueExpression> column_value_expression =  column.CastManagedPointerTo<parser::ColumnValueExpression>();
-          common::ManagedPointer<parser::AbstractExpression> column_value_expr = common::ManagedPointer<parser::AbstractExpression>(
-              new parser::ColumnValueExpression(column_value_expression->GetTableName(), column_value_expression->GetColumnName(),
-              db_oid, accessor->GetTableOid(sel_stmt->GetSelectTable()->GetTableName()), (catalog::col_oid_t)column_id, column_value_expression->GetReturnValueType()));
+          common::ManagedPointer<parser::SelectStatement> select_statement =
+              query->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+          common::ManagedPointer<parser::AbstractExpression> column =
+              select_statement->GetSelectColumns()[column_id - 1];
+          common::ManagedPointer<parser::ColumnValueExpression> column_value_expression =
+              column.CastManagedPointerTo<parser::ColumnValueExpression>();
+          common::ManagedPointer<parser::AbstractExpression> column_value_expr =
+              common::ManagedPointer<parser::AbstractExpression>(new parser::ColumnValueExpression(
+                  column_value_expression->GetTableName(), column_value_expression->GetColumnName(), db_oid,
+                  accessor->GetTableOid(sel_stmt->GetSelectTable()->GetTableName()), (catalog::col_oid_t)column_id,
+                  column_value_expression->GetReturnValueType()));
           exprs[idx] = column_value_expr;
         }
         sort_exprs.emplace_back(exprs[idx]);
