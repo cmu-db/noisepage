@@ -177,11 +177,11 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       break;
     }
     default: {
-      return {ResultType::ERROR, "ERROR:  unsupported CREATE statement type"};
+      return {ResultType::ERROR, "unsupported CREATE statement type"};
     }
   }
   connection_ctx->Transaction()->SetMustAbort();
-  return {ResultType::ERROR, "ERROR:  failed to execute CREATE"};
+  return {ResultType::ERROR, "failed to execute CREATE"};
 }
 
 TrafficCopResult TrafficCop::ExecuteDropStatement(
@@ -226,11 +226,11 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       break;
     }
     default: {
-      return {ResultType::ERROR, "ERROR:  unsupported DROP statement type"};
+      return {ResultType::ERROR, "unsupported DROP statement type"};
     }
   }
   connection_ctx->Transaction()->SetMustAbort();
-  return {ResultType::ERROR, "ERROR:  failed to execute DROP"};
+  return {ResultType::ERROR, "failed to execute DROP"};
 }
 
 std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
@@ -268,15 +268,15 @@ TrafficCopResult TrafficCop::BindQuery(
       // it's cached. use the desired_param_types to fast-path the binding
       binder::BinderUtil::PromoteParameters(parameters, statement->GetDesiredParamTypes());
     }
-  } catch (...) {
+  } catch (const BinderException &e) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
     // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
     if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
          statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-      return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
+      return {ResultType::NOTICE, "binding failed with an IF EXISTS clause, skipping statement"};
     }
-    return {ResultType::ERROR, "ERROR:  binding failed"};
+    return {ResultType::ERROR, std::string(e.what())};
   }
 
   return {ResultType::COMPLETE, 0};

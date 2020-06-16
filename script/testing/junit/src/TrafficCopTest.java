@@ -65,7 +65,7 @@ public class TrafficCopTest extends TestUtility {
       second_stmt.execute("UPDATE FOO SET ID = 5 WHERE ID = 3;");
       fail();
      } catch (SQLException ex) {
-      assertEquals(ex.getMessage(), "Query failed.");
+      assertEquals(ex.getMessage(), "ERROR:  Query failed.");
      }
    // close the second connection, forcing the explicit txn that has the write lock to abort
    second_conn.close();
@@ -103,7 +103,7 @@ public class TrafficCopTest extends TestUtility {
    stmt.execute("INSERT INTO FOO VALUES (1,1);");
    fail();
   } catch (SQLException ex) {
-   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+   assertEquals(ex.getMessage(), "ERROR:  relation \"foo\" does not exist");
   }
  }
 
@@ -120,7 +120,7 @@ public class TrafficCopTest extends TestUtility {
    stmt.execute("CREATE TABLE FOO (id INT);"); // fail for duplicate table name, make sure it re-bound the potentially cached statement
    fail();
   } catch (SQLException ex) {
-   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+   assertEquals(ex.getMessage(), "ERROR:  relation \"foo\" already exists");
   }
   stmt.execute("DROP TABLE FOO;"); // will succeed
   stmt.execute("DROP TABLE IF EXISTS FOO;");  // will succeed due to IF EXISTS
@@ -128,14 +128,14 @@ public class TrafficCopTest extends TestUtility {
    stmt.execute("DROP TABLE FOO;");  // fail for table not existing anymore, make sure it re-bound the potentially cached statement
    fail();
   } catch (SQLException ex) {
-   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+   assertEquals(ex.getMessage(), "ERROR:  relation \"foo\" does not exist");
   }
   stmt.execute("CREATE TABLE FOO (id INT);"); // will succeed, make sure it re-bound the potentially cached statement
   try {
    stmt.execute("CREATE TABLE FOO (id INT);"); // fail for duplicate table name, make sure it re-bound the potentially cached statement
    fail();
   } catch (SQLException ex) {
-   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+   assertEquals(ex.getMessage(), "ERROR:  relation \"foo\" already exists");
   }
   stmt.execute("DROP TABLE FOO;"); // will succeed, make sure it re-bound the potentially cached statement
   stmt.execute("DROP TABLE IF EXISTS FOO;");  // will succeed due to IF EXISTS, make sure it re-bound the potentially cached statement
@@ -143,7 +143,7 @@ public class TrafficCopTest extends TestUtility {
    stmt.execute("DROP TABLE FOO;");  // fail for table not existing anymore, make sure it re-bound the potentially cached statement
    fail();
   } catch (SQLException ex) {
-   assertEquals(ex.getMessage(), "ERROR:  binding failed");
+   assertEquals(ex.getMessage(), "ERROR:  relation \"foo\" does not exist");
   }
  } catch (SQLException ex) {
    DumpSQLException(ex);
