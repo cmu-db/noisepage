@@ -6,6 +6,7 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include "storage/index/index.h"
 
 namespace terrier::execution::compiler {
 DeleteTranslator::DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen)

@@ -11,8 +11,6 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
-#include "storage/index/index.h"
-#include "storage/sql_table.h"
 #include "type/type_id.h"
 
 namespace terrier::catalog {
