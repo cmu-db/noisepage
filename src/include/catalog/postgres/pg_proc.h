@@ -1,15 +1,8 @@
 #pragma once
 
-#include <memory>
-#include <string>
+#include <array>
 
-#include "catalog/index_schema.h"
-#include "catalog/schema.h"
-#include "parser/expression/abstract_expression.h"
-#include "storage/projected_row.h"
-#include "storage/sql_table.h"
-#include "transaction/transaction_context.h"
-#include "type/type_id.h"
+#include "catalog/catalog_defs.h"
 
 #define HIGHEST_BUILTIN_PROC_ID catalog::postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID
 #define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
