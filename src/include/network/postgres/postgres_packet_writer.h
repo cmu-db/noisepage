@@ -182,7 +182,14 @@ class PostgresPacketWriter : public PacketWriter {
    * @param tag records the which kind of query it is. (INSERT? DELETE? SELECT?) and the number of rows.
    */
   void WriteCommandComplete(const std::string &tag) {
-    BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendString(tag).EndPacket();
+    BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendString(tag, true).EndPacket();
+  }
+
+  void WriteCommandComplete(const std::string_view tag, const uint32_t num_rows) {
+    BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE)
+        .AppendStringView(tag)
+        .AppendString(std::to_string(num_rows))
+        .EndPacket();
   }
 
   /**
@@ -202,16 +209,16 @@ class PostgresPacketWriter : public PacketWriter {
         WriteCommandComplete("ROLLBACK");
         break;
       case QueryType::QUERY_INSERT:
-        WriteCommandComplete("INSERT 0 " + std::to_string(num_rows));
+        WriteCommandComplete("INSERT 0 ", num_rows);
         break;
       case QueryType::QUERY_DELETE:
-        WriteCommandComplete("DELETE " + std::to_string(num_rows));
+        WriteCommandComplete("DELETE ", num_rows);
         break;
       case QueryType::QUERY_UPDATE:
-        WriteCommandComplete("UPDATE " + std::to_string(num_rows));
+        WriteCommandComplete("UPDATE ", num_rows);
         break;
       case QueryType::QUERY_SELECT:
-        WriteCommandComplete("SELECT " + std::to_string(num_rows));
+        WriteCommandComplete("SELECT ", num_rows);
         break;
       case QueryType::QUERY_CREATE_DB:
         WriteCommandComplete("CREATE DATABASE");

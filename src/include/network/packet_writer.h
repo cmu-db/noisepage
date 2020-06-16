@@ -138,7 +138,7 @@ class PacketWriter {
   /**
    * Append a string onto the write queue.
    * @param str the string to append
-   * @param nul_terminate whether the nul terminaor should be written as well
+   * @param nul_terminate whether the nul terminator should be written as well
    * @return self-reference for chaining
    */
   PacketWriter &AppendString(const std::string &str, bool nul_terminate = true) {
@@ -148,12 +148,9 @@ class PacketWriter {
   /**
    * Append a string_view onto the write queue.
    * @param str the string to append
-   * @param nul_terminate whether the nul terminaor should be written as well
    * @return self-reference for chaining
    */
-  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate = true) {
-    return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
-  }
+  PacketWriter &AppendStringView(const std::string_view str) { return AppendRaw(str.data(), str.size()); }
 
   /**
    * Writes the startup message, used by clients
