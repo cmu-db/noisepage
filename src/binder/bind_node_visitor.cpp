@@ -13,6 +13,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
 #include "common/managed_pointer.h"
+#include "execution/functions/function_context.h"
 #include "loggers/binder_logger.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
@@ -26,7 +27,6 @@
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
-#include "parser/sql_statement.h"
 
 namespace terrier::binder {
 
