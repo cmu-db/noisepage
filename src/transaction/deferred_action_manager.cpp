@@ -30,7 +30,9 @@ uint32_t DeferredActionManager::Process() {
   bool daf_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
-  if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordDafWakeup();
+  if (daf_metrics_enabled) {
+    common::thread_context.metrics_store_->RecordDafWakeup();
+  }
 
   uint32_t processed = ClearBacklog(oldest_txn, daf_metrics_enabled);
   // There is no point in draining new actions if we haven't cleared the backlog.
@@ -42,9 +44,6 @@ uint32_t DeferredActionManager::Process() {
   }
   ProcessIndexes();
   visited_slots_.clear();
-//  std::cout << "processed size" << processed << std::endl;
-//  if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(processed);
-
   return processed;
 }
 
@@ -101,12 +100,10 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
   uint32_t processed = 0;
   std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = {
       timestamp_t(0), {[=](timestamp_t /*unused*/) {}, DafId::INVALID}};
-  // bool reinsert = false;
   auto curr_size = new_deferred_actions_.unsafe_size();
-
-  if (metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(curr_size);
-//  std::cout << "q size" << curr_size << std::endl;
-
+  if (metrics_enabled) {
+    common::thread_context.metrics_store_->RecordQueueSize(back_log_.size() + curr_size);
+  }
   while (processed != curr_size) {
     // Try_pop would pop the front of the queue if there is at least element in queue,
     // Since currently the deferred action queue only has one consumer, if the while loop condition is satifsfied
@@ -124,12 +121,15 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
       common::thread_context.metrics_store_->RecordActionData(curr_action.second.second, resource_metrics);
-//      common::thread_context.metrics_store_->RecordQueueSize(1);
     }
     processed++;
-//    if (metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(1);
   }
   if (processed != curr_size && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);
+  if (metrics_enabled) {
+//    if (!common::thread_context.metrics_store_->CheckWakeUp())
+////      std::cout << "dfdfd" << std::endl;
+    common::thread_context.metrics_store_->RecordAfterQueueSize(back_log_.size() + curr_size - processed);
+  }
   return processed;
 }
 
