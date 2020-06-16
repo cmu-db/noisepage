@@ -131,7 +131,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   std::vector<Pipeline *> execution_order;
   main_pipeline.CollectDependencies(&execution_order);
   for (auto *pipeline : execution_order) {
-    pipeline->Prepare(query_->GetExecutionContextForCompilation());
+    pipeline->Prepare(query_->GetExecutionSettings());
     pipeline->GeneratePipeline(&main_builder);
   }
 
@@ -139,16 +139,16 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   main_builder.RegisterStep(GenerateTearDownFunction());
 
   // Compile and finish.
-  fragments.emplace_back(main_builder.Compile(query_->GetExecutionContextForCompilation()));
+  fragments.emplace_back(main_builder.Compile(query_->GetExecutionSettings()));
   query_->Setup(std::move(fragments), query_state_.GetSize());
 }
 
 // static
-std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::AbstractPlanNode &plan,
-                                                             common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-                                                             const CompilationMode mode) {
+std::unique_ptr<ExecutableQuery> CompilationContext::Compile(
+    const planner::AbstractPlanNode &plan, common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+    const CompilationMode mode) {
   // The query we're generating code for.
-  auto query = std::make_unique<ExecutableQuery>(plan, exec_ctx);
+  auto query = std::make_unique<ExecutableQuery>(plan, exec_settings);
 
   // Generate the plan for the query
   CompilationContext ctx(query.get(), mode);

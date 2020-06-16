@@ -28,7 +28,7 @@ struct Like {
 struct NotLike {
   bool operator()(const storage::VarlenEntry &str, const storage::VarlenEntry &pattern,
                   char escape = DEFAULT_ESCAPE) const {
-    return !Like{}(str, pattern, escape);
+    return !Like{}(str, pattern, escape);  // NOLINT
   }
 };
 

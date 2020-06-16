@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "execution/executable_query.h"
+#include "execution/codegen/executable_query.h"
 #include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -100,7 +100,7 @@ class Statement {
   /**
    * @return the compiled executable query
    */
-  common::ManagedPointer<execution::ExecutableQuery> GetExecutableQuery() const {
+  common::ManagedPointer<execution::codegen::ExecutableQuery> GetExecutableQuery() const {
     return common::ManagedPointer(executable_query_);
   }
 
@@ -114,7 +114,7 @@ class Statement {
   /**
    * @param executable_query executable query to take ownership of
    */
-  void SetExecutableQuery(std::unique_ptr<execution::ExecutableQuery> &&executable_query) {
+  void SetExecutableQuery(std::unique_ptr<execution::codegen::ExecutableQuery> &&executable_query) {
     executable_query_ = std::move(executable_query);
   }
 
@@ -132,7 +132,7 @@ class Statement {
   enum QueryType type_ = QueryType::QUERY_INVALID;
 
   std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;
-  std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;
+  std::unique_ptr<execution::codegen::ExecutableQuery> executable_query_ = nullptr;
 };
 
 }  // namespace terrier::network

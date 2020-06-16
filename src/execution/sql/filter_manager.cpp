@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "common/settings.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/util/timer.h"
@@ -136,8 +136,8 @@ std::vector<uint32_t> FilterManager::Clause::GetOptimalTermOrder() const {
 //
 //===----------------------------------------------------------------------===//
 
-FilterManager::FilterManager(common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool adapt, void *context)
-    : exec_ctx_(exec_ctx),
+FilterManager::FilterManager(common::ManagedPointer<exec::ExecutionSettings> exec_settings, bool adapt, void *context)
+    : exec_settings_(exec_settings),
       adapt_(adapt),
       opaque_context_(context),
       input_list_(common::Constants::K_DEFAULT_VECTOR_SIZE),
@@ -147,7 +147,7 @@ FilterManager::FilterManager(common::ManagedPointer<exec::ExecutionContext> exec
 }
 
 void FilterManager::StartNewClause() {
-  double sample_freq = exec_ctx_->GetAdaptivePredicateOrderSamplingFrequency();
+  double sample_freq = exec_settings_->GetAdaptivePredicateOrderSamplingFrequency();
   if (!IsAdaptive()) sample_freq = 0.0;
   clauses_.emplace_back(std::make_unique<Clause>(opaque_context_, sample_freq));
 }

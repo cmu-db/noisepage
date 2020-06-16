@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "common/all_static.h"
 #include "execution/sql/operators/cast_operators.h"
 #include "execution/sql/value.h"
@@ -96,10 +98,8 @@ CAST_HIDE_NULL(StringVal, TimestampVal);
 #define CAST_TO_STRING(FROM_TYPE)                                                                     \
   inline void CastingFunctions::CastToStringVal(StringVal *result, exec::ExecutionContext *const ctx, \
                                                 const FROM_TYPE &v) {                                 \
-    /*                                                                                                \
-     * TODO(pmenon): Perform an explicit if-check here because we expect string                       \
-     *               parsing to be costlier than a branch mis-prediction. Check!                      \
-     */                                                                                               \
+    /* TODO(pmenon): Perform an explicit if-check here because we expect string */                    \
+    /*               parsing to be costlier than a branch mis-prediction. Check! */                   \
     if (v.is_null_) {                                                                                 \
       *result = StringVal::Null();                                                                    \
       return;                                                                                         \

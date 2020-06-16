@@ -148,9 +148,10 @@ void AggregationHashTable::BatchProcessState::Reset(VectorProjectionIterator *in
 // Aggregation Hash Table
 // ---------------------------------------------------------
 
-AggregationHashTable::AggregationHashTable(common::ManagedPointer<exec::ExecutionContext> exec_ctx, MemoryPool *memory,
-                                           const std::size_t payload_size, const uint32_t initial_size)
-    : exec_ctx_(exec_ctx),
+AggregationHashTable::AggregationHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+                                           MemoryPool *memory, const std::size_t payload_size,
+                                           const uint32_t initial_size)
+    : exec_settings_(exec_settings),
       memory_(memory),
       payload_size_(payload_size),
       entries_(HashTableEntry::ComputeEntrySize(payload_size_), MemoryPoolAllocator<byte>(memory_)),
@@ -173,9 +174,9 @@ AggregationHashTable::AggregationHashTable(common::ManagedPointer<exec::Executio
   flush_threshold_ = std::max(uint64_t{256}, common::MathUtil::PowerOf2Floor(flush_threshold_));
 }
 
-AggregationHashTable::AggregationHashTable(common::ManagedPointer<exec::ExecutionContext> exec_ctx, MemoryPool *memory,
-                                           std::size_t payload_size)
-    : AggregationHashTable(exec_ctx, memory, payload_size, DEFAULT_INITIAL_TABLE_SIZE) {}
+AggregationHashTable::AggregationHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+                                           MemoryPool *memory, std::size_t payload_size)
+    : AggregationHashTable(exec_settings, memory, payload_size, DEFAULT_INITIAL_TABLE_SIZE) {}
 
 AggregationHashTable::~AggregationHashTable() {
   if (batch_state_ != nullptr) {
@@ -312,13 +313,13 @@ void AggregationHashTable::LookupInitial() {
   //               use SIMD gathers if hashes vector is full. For some reason it
   //               isn't. Investigate why.
   UnaryOperationExecutor::Execute<hash_t, const HashTableEntry *>(
-      exec_ctx_, *batch_state_->Hashes(),
+      exec_settings_, *batch_state_->Hashes(),
       batch_state_->Entries(), [&](const hash_t hash) noexcept { return hash_table_.FindChainHead(hash); });
 
   // Find non-null entries whose keys must be checked and place them in the
   // key-not-equal list which is used during key equality checking.
   ConstantVector null_ptr(GenericValue::CreatePointer(0));
-  VectorOps::SelectNotEqual(exec_ctx_, *batch_state_->Entries(), null_ptr, batch_state_->KeyNotEqual());
+  VectorOps::SelectNotEqual(exec_settings_, *batch_state_->Entries(), null_ptr, batch_state_->KeyNotEqual());
 }
 
 void AggregationHashTable::CheckKeyEquality(VectorProjectionIterator *input_batch,
@@ -595,7 +596,7 @@ AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *q
   // Create it
   auto estimated_size = partition_estimates_[partition_idx]->Estimate();
   auto *agg_table = new (memory_->AllocateAligned(sizeof(AggregationHashTable), alignof(AggregationHashTable), false))
-      AggregationHashTable(exec_ctx_, memory_, payload_size_, estimated_size);
+      AggregationHashTable(exec_settings_, memory_, payload_size_, estimated_size);
 
   util::Timer<std::milli> timer;
   timer.Start();

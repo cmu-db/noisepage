@@ -367,7 +367,7 @@ void StringFunctions::Like(BoolVal *result, UNUSED_ATTRIBUTE exec::ExecutionCont
   }
 
   result->is_null_ = false;
-  result->val_ = sql::Like{}(string.val_, pattern.val_);
+  result->val_ = sql::Like{}(string.val_, pattern.val_);  // NOLINT
 }
 
 }  // namespace terrier::execution::sql

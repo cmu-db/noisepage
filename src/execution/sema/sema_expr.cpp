@@ -3,7 +3,6 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
-
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sema {
@@ -22,7 +21,6 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   switch (node->Op()) {
     case parsing::Token::Type::AND:
     case parsing::Token::Type::OR: {
-      // NOLINTNEXTLINE
       auto [result_type, left, right] = CheckLogicalOperands(node->Op(), node->Position(), node->Left(), node->Right());
       node->SetType(result_type);
       if (node->Left() != left) node->SetLeft(left);
@@ -37,7 +35,6 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
     case parsing::Token::Type::STAR:
     case parsing::Token::Type::SLASH:
     case parsing::Token::Type::PERCENT: {
-      // NOLINTNEXTLINE
       auto [result_type, left, right] =
           CheckArithmeticOperands(node->Op(), node->Position(), node->Left(), node->Right());
       node->SetType(result_type);
@@ -67,7 +64,6 @@ void Sema::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
     case parsing::Token::Type::GREATER_EQUAL:
     case parsing::Token::Type::LESS:
     case parsing::Token::Type::LESS_EQUAL: {
-      // NOLINTNEXTLINE
       auto [result_type, left, right] =
           CheckComparisonOperands(node->Op(), node->Position(), node->Left(), node->Right());
       node->SetType(result_type);
@@ -125,7 +121,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
     // Function application simplifies to performing an assignment of the
     // actual call arguments to the function parameters. Do the check now, which
     // may apply an implicit cast to make the assignment work.
-    if (!CheckAssignmentConstraints(expected_type, &arg)) {
+    if (!CheckAssignmentConstraints(expected_type, arg)) {
       has_errors = true;
       error_reporter_->Report(arg->Position(), ErrorMessages::kIncorrectCallArgType, node->GetFuncName(), expected_type,
                               arg_num, arg->GetType());
@@ -164,7 +160,7 @@ void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
 
   // Declare function parameters in scope
   for (const auto &param : func_type->GetParams()) {
-    CurrentScope()->Declare(param.name_, param.type_);
+    GetCurrentScope()->Declare(param.name_, param.type_);
   }
 
   // Recurse into the function body
@@ -179,14 +175,14 @@ void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
       return;
     }
 
-    ast::ReturnStmt *empty_ret = GetContext()->GetNodeFactory()->NewReturnStmt(node->Position(), nullptr);
-    node->Body()->statements_.push_back(empty_ret);
+    auto *empty_ret = GetContext()->GetNodeFactory()->NewReturnStmt(node->Position(), nullptr);
+    node->Body()->AppendStatement(empty_ret);
   }
 }
 
 void Sema::VisitIdentifierExpr(ast::IdentifierExpr *node) {
   // Check the current context
-  if (auto *type = CurrentScope()->Lookup(node->Name())) {
+  if (auto *type = GetCurrentScope()->Lookup(node->Name())) {
     node->SetType(type);
     return;
   }
@@ -242,13 +238,13 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      // Literal floats default to float64
-      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float64));
+      // Literal floats default to float32
+      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float32));
       break;
     }
     case ast::LitExpr::LitKind::Int: {
-      // Literal integers default to int64
-      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int64));
+      // Literal integers default to int32
+      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int32));
       break;
     }
     case ast::LitExpr::LitKind::String: {

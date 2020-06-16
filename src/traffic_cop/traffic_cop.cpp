@@ -10,9 +10,10 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
+#include "execution/codegen/executable_query.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
-#include "execution/executable_query.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
@@ -282,17 +283,9 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     return {ResultType::COMPLETE, 0};
   }
 
-  // TODO(Matt): We should get rid of the need of an OutputWriter to ExecutionContext since we just throw this one away
-  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
-
-  // TODO(Matt): We should get rid of the need of an ExecutionContext to perform codegen since we just throw this one
-  // away
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor());
-
-  auto exec_query = std::make_unique<execution::ExecutableQuery>(common::ManagedPointer(physical_plan),
-                                                                 common::ManagedPointer(exec_ctx));
+  auto exec_settings = std::make_unique<execution::exec::ExecutionSettings>();
+  auto exec_query =
+      std::make_unique<execution::codegen::ExecutableQuery>(*physical_plan, common::ManagedPointer(exec_settings));
 
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));

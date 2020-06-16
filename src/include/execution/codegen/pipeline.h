@@ -12,7 +12,7 @@
 #include "execution/util/region_containers.h"
 
 namespace terrier::execution::exec {
-class ExecutionContext;
+class ExecutionSettings;
 }  // namespace terrier::execution::exec
 
 namespace terrier::execution::codegen {
@@ -120,9 +120,9 @@ class Pipeline {
 
   /**
    * Perform initialization logic before code generation.
-   * @param exec_ctx The execution context to be used for query compilation, can be different from the one for running.
+   * @param exec_settings The execution settings used for query compilation.
    */
-  void Prepare(common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+  void Prepare(common::ManagedPointer<exec::ExecutionSettings> exec_settings);
 
   /**
    * Generate all functions to execute this pipeline in the provided container.

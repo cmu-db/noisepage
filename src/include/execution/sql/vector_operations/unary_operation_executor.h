@@ -30,15 +30,16 @@ class UnaryOperationExecutor : public common::AllStatic {
    * @tparam ResultType The native CPP type of the values in the result vector.
    * @tparam Op The unary operation to perform on each element in the input.
    * @tparam IgnoreNull Flag indicating if the operation should skip NULL values in the input.
-   * @param exec_ctx The execution context used in this query
+   * @param exec_settings The execution settings used in this query.
    * @param input The input vector to read values from.
    * @param[out] result The output vector where the results of the unary operation are written into.
    *                    The result vector will have the same set of NULLs, selection vector, and
    *                    count as the input vector.
    */
   template <typename InputType, typename ResultType, typename Op, bool IgnoreNull = false>
-  static void Execute(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &input, Vector *result) {
-    ExecuteImpl<InputType, ResultType, Op, IgnoreNull>(exec_ctx, input, result, Op{});
+  static void Execute(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &input,
+                      Vector *result) {
+    ExecuteImpl<InputType, ResultType, Op, IgnoreNull>(exec_settings, input, result, Op{});
   }
 
   /**
@@ -54,16 +55,16 @@ class UnaryOperationExecutor : public common::AllStatic {
    * @tparam ResultType The native CPP type of the values in the result vector.
    * @tparam IgnoreNull Flag indicating if the operation should skip NULL values in the input.
    * @tparam Op The type of the unary functor.
-   * @param exec_ctx The execution context being used in this query
+   * @param exec_settings The execution settings for this query.
    * @param input The input vector to read values from.
    * @param[out] result The output vector where the results of the unary operation are written into.
    *                    The result vector will have the same set of NULLs, selection vector, and
    *                    count as the input vector.
    */
   template <typename InputType, typename ResultType, bool IgnoreNull = false, typename Op>
-  static void Execute(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &input, Vector *result,
-                      Op &&op) {
-    ExecuteImpl<InputType, ResultType, Op, IgnoreNull>(exec_ctx, input, result, std::forward<Op>(op));
+  static void Execute(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &input,
+                      Vector *result, Op &&op) {
+    ExecuteImpl<InputType, ResultType, Op, IgnoreNull>(exec_settings, input, result, std::forward<Op>(op));
   }
 
  private:
@@ -72,7 +73,7 @@ class UnaryOperationExecutor : public common::AllStatic {
   // common base for unary operations that rely on templates and those that rely
   // on functors.
   template <typename InputType, typename ResultType, typename Op, bool IgnoreNull>
-  static inline void ExecuteImpl(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &input,
+  static inline void ExecuteImpl(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &input,
                                  Vector *result, Op &&op) {
     // Ensure operator has correct interface.
     static_assert(std::is_invocable_r_v<ResultType, Op, InputType>,
@@ -98,7 +99,7 @@ class UnaryOperationExecutor : public common::AllStatic {
           }
         });
       } else {
-        if (traits::ShouldPerformFullCompute<Op>{}(exec_ctx, input.GetFilteredTupleIdList())) {
+        if (traits::ShouldPerformFullCompute<Op>{}(exec_settings, input.GetFilteredTupleIdList())) {
           VectorOps::ExecIgnoreFilter(input, [&](uint64_t i, uint64_t k) { result_data[i] = op(input_data[i]); });
         } else {
           VectorOps::Exec(input, [&](uint64_t i, uint64_t k) { result_data[i] = op(input_data[i]); });

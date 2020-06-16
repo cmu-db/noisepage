@@ -1,4 +1,5 @@
 #include "common/exception.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/tuple_id_list.h"
@@ -67,8 +68,8 @@ void CheckSelection(const Vector &left, const Vector &right, TupleIdList *result
 }
 
 template <typename T, typename Op>
-void TemplatedSelectOperationVectorConstant(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
-                                            const Vector &right, TupleIdList *tid_list) {
+void TemplatedSelectOperationVectorConstant(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+                                            const Vector &left, const Vector &right, TupleIdList *tid_list) {
   // If the scalar constant is NULL, all comparisons are NULL.
   if (right.IsNull(0)) {
     tid_list->Clear();
@@ -80,7 +81,7 @@ void TemplatedSelectOperationVectorConstant(common::ManagedPointer<exec::Executi
 
   // Safe full-compute. Refer to comment at start of file for explanation.
   if constexpr (IsSafeForFullCompute<T>::VALUE) {  // NOLINT
-    const auto full_compute_threshold = exec_ctx->GetSelectOptThreshold();
+    const auto full_compute_threshold = exec_settings->GetSelectOptThreshold();
 
     if (full_compute_threshold <= tid_list->ComputeSelectivity()) {
       TupleIdList::BitVectorType *bit_vector = tid_list->GetMutableBits();
@@ -98,14 +99,14 @@ void TemplatedSelectOperationVectorConstant(common::ManagedPointer<exec::Executi
 }
 
 template <typename T, typename Op>
-void TemplatedSelectOperationVectorVector(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
-                                          const Vector &right, TupleIdList *tid_list) {
+void TemplatedSelectOperationVectorVector(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+                                          const Vector &left, const Vector &right, TupleIdList *tid_list) {
   auto *left_data = reinterpret_cast<const T *>(left.GetData());
   auto *right_data = reinterpret_cast<const T *>(right.GetData());
 
   // Safe full-compute. Refer to comment at start of file for explanation.
   if constexpr (IsSafeForFullCompute<T>::VALUE) {  // NOLINT
-    const auto full_compute_threshold = exec_ctx->GetSelectOptThreshold();
+    const auto full_compute_threshold = exec_settings->GetSelectOptThreshold();
 
     // Only perform the full compute if the TID selectivity is larger than the threshold
     if (full_compute_threshold <= tid_list->ComputeSelectivity()) {
@@ -124,61 +125,61 @@ void TemplatedSelectOperationVectorVector(common::ManagedPointer<exec::Execution
 }
 
 template <typename T, template <typename> typename Op>
-void TemplatedSelectOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+void TemplatedSelectOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                               const Vector &right, TupleIdList *tid_list) {
   if (right.IsConstant()) {
-    TemplatedSelectOperationVectorConstant<T, Op<T>>(exec_ctx, left, right, tid_list);
+    TemplatedSelectOperationVectorConstant<T, Op<T>>(exec_settings, left, right, tid_list);
   } else if (left.IsConstant()) {
     // NOLINTNEXTLINE re-arrange arguments
-    TemplatedSelectOperationVectorConstant<T, typename Op<T>::SymmetricOp>(exec_ctx, right, left, tid_list);
+    TemplatedSelectOperationVectorConstant<T, typename Op<T>::SymmetricOp>(exec_settings, right, left, tid_list);
   } else {
-    TemplatedSelectOperationVectorVector<T, Op<T>>(exec_ctx, left, right, tid_list);
+    TemplatedSelectOperationVectorVector<T, Op<T>>(exec_settings, left, right, tid_list);
   }
 }
 
 template <template <typename> typename Op>
-void SelectOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left, const Vector &right,
-                     TupleIdList *tid_list) {
+void SelectOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
+                     const Vector &right, TupleIdList *tid_list) {
   // Sanity check
   CheckSelection(left, right, tid_list);
 
   // Lift-off
   switch (left.GetTypeId()) {
     case TypeId::Boolean:
-      TemplatedSelectOperation<bool, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<bool, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::TinyInt:
-      TemplatedSelectOperation<int8_t, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<int8_t, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::SmallInt:
-      TemplatedSelectOperation<int16_t, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<int16_t, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Integer:
-      TemplatedSelectOperation<int32_t, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<int32_t, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::BigInt:
-      TemplatedSelectOperation<int64_t, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<int64_t, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Hash:
-      TemplatedSelectOperation<hash_t, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<hash_t, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Pointer:
-      TemplatedSelectOperation<uintptr_t, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<uintptr_t, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Float:
-      TemplatedSelectOperation<float, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<float, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Double:
-      TemplatedSelectOperation<double, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<double, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Date:
-      TemplatedSelectOperation<Date, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<Date, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Timestamp:
-      TemplatedSelectOperation<Timestamp, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<Timestamp, Op>(exec_settings, left, right, tid_list);
       break;
     case TypeId::Varchar:
-      TemplatedSelectOperation<storage::VarlenEntry, Op>(exec_ctx, left, right, tid_list);
+      TemplatedSelectOperation<storage::VarlenEntry, Op>(exec_settings, left, right, tid_list);
       break;
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(
@@ -188,34 +189,34 @@ void SelectOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, co
 
 }  // namespace
 
-void VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+void VectorOps::SelectEqual(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                             const Vector &right, TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::Equal>(exec_ctx, left, right, tid_list);
+  SelectOperation<terrier::execution::sql::Equal>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectGreaterThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+void VectorOps::SelectGreaterThan(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                                   const Vector &right, TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::GreaterThan>(exec_ctx, left, right, tid_list);
+  SelectOperation<terrier::execution::sql::GreaterThan>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectGreaterThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
-                                       const Vector &right, TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::GreaterThanEqual>(exec_ctx, left, right, tid_list);
+void VectorOps::SelectGreaterThanEqual(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+                                       const Vector &left, const Vector &right, TupleIdList *tid_list) {
+  SelectOperation<terrier::execution::sql::GreaterThanEqual>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectLessThan(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+void VectorOps::SelectLessThan(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                                const Vector &right, TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::LessThan>(exec_ctx, left, right, tid_list);
+  SelectOperation<terrier::execution::sql::LessThan>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectLessThanEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+void VectorOps::SelectLessThanEqual(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                                     const Vector &right, TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::LessThanEqual>(exec_ctx, left, right, tid_list);
+  SelectOperation<terrier::execution::sql::LessThanEqual>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectNotEqual(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const Vector &left,
+void VectorOps::SelectNotEqual(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                                const Vector &right, TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::NotEqual>(exec_ctx, left, right, tid_list);
+  SelectOperation<terrier::execution::sql::NotEqual>(exec_settings, left, right, tid_list);
 }
 
 }  // namespace terrier::execution::sql

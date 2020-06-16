@@ -18,6 +18,10 @@ namespace libcount {
 class HLL;
 }  // namespace libcount
 
+namespace terrier::execution::exec {
+class ExecutionSettings;
+}  // namespace terrier::execution::exec
+
 namespace terrier::execution::sql {
 
 class ThreadStateContainer;
@@ -106,23 +110,23 @@ class EXPORT AggregationHashTable {
   /**
    * Construct an aggregation hash table using the provided memory pool, and configured to store
    * aggregates of size @em payload_size in bytes.
-   * @param exec_ctx The execution context to run with.
+   * @param exec_settings The execution settings to run with.
    * @param memory The memory pool to allocate memory from.
    * @param payload_size The size of the elements in the hash table, in bytes.
    */
-  AggregationHashTable(common::ManagedPointer<exec::ExecutionContext> exec_ctx, MemoryPool *memory,
+  AggregationHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings, MemoryPool *memory,
                        std::size_t payload_size);
 
   /**
    * Construct an aggregation hash table using the provided memory pool, configured to store
    * aggregates of size @em payload_size in bytes, and whose initial size allows for
    * @em initial_size aggregates.
-   * @param exec_ctx The execution context to run with.
+   * @param exec_settings The execution settings to run with.
    * @param memory The memory pool to allocate memory from.
    * @param payload_size The size of the elements in the hash table, in bytes.
    * @param initial_size The initial number of aggregates to support.
    */
-  AggregationHashTable(common::ManagedPointer<exec::ExecutionContext> exec_ctx, MemoryPool *memory,
+  AggregationHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings, MemoryPool *memory,
                        std::size_t payload_size, uint32_t initial_size);
 
   /**
@@ -354,7 +358,7 @@ class EXPORT AggregationHashTable {
 
  private:
   // Execution context
-  common::ManagedPointer<exec::ExecutionContext> exec_ctx_;
+  common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
 
   // Memory allocator.
   MemoryPool *memory_;

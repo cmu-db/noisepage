@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "execution/exec/execution_context.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector.h"
@@ -20,9 +19,9 @@
 
 namespace terrier::execution::sql {
 
-JoinHashTable::JoinHashTable(common::ManagedPointer<exec::ExecutionContext> exec_ctx, MemoryPool *memory,
+JoinHashTable::JoinHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings, MemoryPool *memory,
                              uint32_t tuple_size, bool use_concise_ht)
-    : exec_ctx_(exec_ctx),
+    : exec_settings_(exec_settings),
       entries_(HashTableEntry::ComputeEntrySize(tuple_size), MemoryPoolAllocator<byte>(memory)),
       owned_(memory),
       concise_hash_table_(0),
@@ -512,13 +511,13 @@ void JoinHashTable::Build() {
 
 void JoinHashTable::LookupBatchInChainingHashTable(const Vector &hashes, Vector *results) const {
   UnaryOperationExecutor::Execute<hash_t, const HashTableEntry *>(
-      exec_ctx_, hashes,
+      exec_settings_, hashes,
       results, [&](const hash_t hash_val) noexcept { return chaining_hash_table_.FindChainHead(hash_val); });
 }
 
 void JoinHashTable::LookupBatchInConciseHashTable(const Vector &hashes, Vector *results) const {
   UnaryOperationExecutor::Execute<hash_t, const HashTableEntry *>(
-      exec_ctx_, hashes, results, [&](const hash_t hash_val) noexcept {
+      exec_settings_, hashes, results, [&](const hash_t hash_val) noexcept {
         const auto [found, entry_idx] = concise_hash_table_.Lookup(hash_val);
         return (found ? EntryAt(entry_idx) : nullptr);
       });

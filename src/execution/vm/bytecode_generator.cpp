@@ -134,7 +134,8 @@ class BytecodeGenerator::BytecodePositionScope {
 // Bytecode Generator begins
 // ---------------------------------------------------------
 
-BytecodeGenerator::BytecodeGenerator() noexcept : emitter_(&code_), execution_result_(nullptr), exec_ctx_(nullptr) {}
+BytecodeGenerator::BytecodeGenerator(common::ManagedPointer<exec::ExecutionSettings> exec_settings) noexcept
+    : emitter_(&code_), execution_result_(nullptr), exec_settings_(exec_settings) {}
 
 void BytecodeGenerator::VisitIfStmt(ast::IfStmt *node) {
   IfThenElseBuilder if_builder(this);
@@ -721,7 +722,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
 #define GEN_CASE(BuiltinName, Bytecode)                                              \
   case ast::Builtin::BuiltinName: {                                                  \
     LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType()); \
-    const uint32_t col_idx = call->Arguments()[1]->As<ast::LitExpr>()->Int32Val();   \
+    const uint32_t col_idx = call->Arguments()[1]->As<ast::LitExpr>()->Int64Val();   \
     GetEmitter()->EmitVPIGet(Bytecode, result, vpi, col_idx);                        \
     break;                                                                           \
   }
@@ -742,7 +743,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
 #define GEN_CASE(BuiltinName, Bytecode)                                  \
   case ast::Builtin::BuiltinName: {                                      \
     auto input = VisitExpressionForLValue(call->Arguments()[1]);         \
-    auto col_idx = call->Arguments()[2]->As<ast::LitExpr>()->Int32Val(); \
+    auto col_idx = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val(); \
     GetEmitter()->EmitVPISet(Bytecode, vpi, input, col_idx);             \
     break;                                                               \
   }
@@ -1786,6 +1787,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       Visit(call->Arguments()[1]);
       break;
     }
+    default:
+      // TODO(WAN): IMPLEMENT
+      UNREACHABLE("PORTING IMPLEMENT TODO");
   }
 }
 
@@ -1819,7 +1823,7 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
 
   // Emit call
   const auto func_id = LookupFuncIdByName(call->GetFuncName().GetData());
-  TERRIER_ASSERT(func_id != FunctionInfo::kInvalidFuncId, "Function not found!");
+  TERRIER_ASSERT(func_id != FunctionInfo::K_INVALID_FUNC_ID, "Function not found!");
   GetEmitter()->EmitCall(func_id, params);
 }
 
@@ -1860,12 +1864,12 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Int: {
-      GetEmitter()->EmitAssignImm4(target, node->Int32Val());
+      GetEmitter()->EmitAssignImm4(target, node->Int64Val());
       GetExecutionResult()->SetDestination(target.ValueOf());
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      GetEmitter()->EmitAssignImm4F(target, node->Float32Val());
+      GetEmitter()->EmitAssignImm4F(target, node->Float64Val());
       GetExecutionResult()->SetDestination(target.ValueOf());
       break;
     }
@@ -1875,7 +1879,7 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
       GetExecutionResult()->SetDestination(string.ValueOf());
     }
     default: {
-      LOG_ERROR("Non-bool or non-integer literals not supported in bytecode");
+      EXECUTION_LOG_ERROR("Non-bool or non-integer literals not supported in bytecode");
       break;
     }
   }
@@ -2352,7 +2356,7 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
 
   // Register parameters
   for (const auto &param : func_type->GetParams()) {
-    func->NewParameterLocal(param.type, param.name.GetData());
+    func->NewParameterLocal(param.type_, param.name_.GetData());
   }
 
   // Cache
@@ -2364,7 +2368,7 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
 FunctionId BytecodeGenerator::LookupFuncIdByName(const std::string &name) const {
   auto iter = func_map_.find(name);
   if (iter == func_map_.end()) {
-    return FunctionInfo::kInvalidFuncId;
+    return FunctionInfo::K_INVALID_FUNC_ID;
   }
   return iter->second;
 }
@@ -2372,8 +2376,8 @@ FunctionId BytecodeGenerator::LookupFuncIdByName(const std::string &name) const 
 LocalVar BytecodeGenerator::NewStatic(const std::string &name, ast::Type *type, const void *contents) {
   std::size_t offset = data_.size();
 
-  if (!util::MathUtil::IsAligned(offset, type->GetAlignment())) {
-    offset = util::MathUtil::AlignTo(offset, type->GetAlignment());
+  if (!common::MathUtil::IsAligned(offset, type->GetAlignment())) {
+    offset = common::MathUtil::AlignTo(offset, type->GetAlignment());
   }
 
   const std::size_t padded_len = type->GetSize() + (offset - data_.size());
@@ -2457,10 +2461,9 @@ Bytecode BytecodeGenerator::GetFloatTypedBytecode(Bytecode bytecode, ast::Type *
 }
 
 // static
-std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root,
-                                                           common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-                                                           const std::string &name) {
-  BytecodeGenerator generator{exec_ctx};
+std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(
+    ast::AstNode *root, common::ManagedPointer<exec::ExecutionSettings> exec_settings, const std::string &name) {
+  BytecodeGenerator generator{exec_settings};
   generator.Visit(root);
 
   // Create the bytecode module. Note that we move the bytecode and functions

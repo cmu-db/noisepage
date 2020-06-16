@@ -375,13 +375,13 @@ void Vector::CopyTo(Vector *other, uint64_t offset) {
   }
 }
 
-void Vector::Cast(common::ManagedPointer<exec::ExecutionContext> exec_ctx, TypeId new_type) {
+void Vector::Cast(common::ManagedPointer<exec::ExecutionSettings> exec_settings, TypeId new_type) {
   if (type_ == new_type) {
     return;
   }
 
   Vector new_vector(new_type, true, false);
-  VectorOps::Cast(exec_ctx, *this, &new_vector);
+  VectorOps::Cast(exec_settings, *this, &new_vector);
   new_vector.MoveTo(this);
 }
 

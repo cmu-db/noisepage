@@ -17,7 +17,7 @@ class Context;
 }  // namespace ast
 
 namespace exec {
-class ExecutionContext;
+class ExecutionSettings;
 }  // namespace exec
 
 namespace sema {
@@ -156,15 +156,15 @@ class Compiler {
    * @param callbacks The callbacks.
    */
   static void RunCompilation(const Input &input, Callbacks *callbacks,
-                             common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+                             common::ManagedPointer<exec::ExecutionSettings> exec_settings);
 
   /**
    * Compile the given input into a module.
    * @param input The input to compilation.
    * @return The generated module. If there was an error, returns NULL.
    */
-  static std::unique_ptr<vm::Module> RunCompilationSimple(const Input &input,
-                                                          common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+  static std::unique_ptr<vm::Module> RunCompilationSimple(
+      const Input &input, common::ManagedPointer<exec::ExecutionSettings> exec_settings);
 
   /**
    * @return A string name for the given compilation phase.
@@ -204,7 +204,7 @@ class Compiler {
   ~Compiler();
 
   // Driver
-  void Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+  void Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::ExecutionSettings> exec_settings);
 
  private:
   // The input to compilation

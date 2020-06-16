@@ -1,5 +1,7 @@
 #include "planner/plannodes/plan_node_defs.h"
 
+#include "execution/util/execution_common.h"
+
 namespace terrier::planner {
 
 std::string PlanNodeTypeToString(PlanNodeType type) {
@@ -73,7 +75,6 @@ std::string PlanNodeTypeToString(PlanNodeType type) {
     case PlanNodeType::MOCK:
       return "Mock";
   }
-
   UNREACHABLE("Impossible to reach. All plan node types handled.");
 }
 

@@ -1,5 +1,3 @@
-#include <memory>
-
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
@@ -17,7 +15,7 @@ void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
 
   // Check assignment
   ast::Expr *source = node->Source();
-  if (!CheckAssignmentConstraints(dest_type, &source)) {
+  if (!CheckAssignmentConstraints(dest_type, source)) {
     error_reporter_->Report(node->Position(), ErrorMessages::kInvalidAssignment, src_type, dest_type);
     return;
   }
@@ -113,7 +111,7 @@ void Sema::VisitIfStmt(ast::IfStmt *node) {
 void Sema::VisitDeclStmt(ast::DeclStmt *node) { Visit(node->Declaration()); }
 
 void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
-  if (CurrentFunction() == nullptr) {
+  if (GetCurrentFunction() == nullptr) {
     error_reporter_->Report(node->Position(), ErrorMessages::kReturnOutsideFunction);
     return;
   }
@@ -129,7 +127,7 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   // If the function has a nil-type, we just need to make sure this return
   // statement doesn't have an attached expression. If it does, that's an error
 
-  auto *func_type = CurrentFunction()->GetType()->As<ast::FunctionType>();
+  auto *func_type = GetCurrentFunction()->GetType()->As<ast::FunctionType>();
 
   if (func_type->GetReturnType()->IsNilType()) {
     if (return_type != nullptr) {
@@ -149,13 +147,12 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   }
 
   ast::Expr *ret = node->Ret();
-  if (!CheckAssignmentConstraints(func_type->GetReturnType(), &ret)) {
+  if (!CheckAssignmentConstraints(func_type->GetReturnType(), ret)) {
     error_reporter_->Report(node->Position(), ErrorMessages::kMismatchedReturnType, return_type,
                             func_type->GetReturnType());
     return;
   }
 
-  // Cast if necessary
   if (ret != node->Ret()) {
     node->SetRet(ret);
   }

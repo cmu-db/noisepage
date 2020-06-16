@@ -10,7 +10,7 @@
 #include "execution/sql/tuple_id_list.h"
 
 namespace terrier::execution::exec {
-class ExecutionContext;
+class ExecutionSettings;
 }
 
 namespace terrier::execution::sql {
@@ -132,7 +132,7 @@ class FilterManager {
   /**
    * Construct an empty filter.
    */
-  explicit FilterManager(common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool adapt = true,
+  explicit FilterManager(common::ManagedPointer<exec::ExecutionSettings> exec_settings, bool adapt = true,
                          void *context = nullptr);
 
   /**
@@ -204,8 +204,8 @@ class FilterManager {
   }
 
  private:
-  // The execution context to run with.
-  common::ManagedPointer<exec::ExecutionContext> exec_ctx_;
+  // The execution settings to run with.
+  common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
   // Flag indicating if the filter should try to optimize itself.
   bool adapt_;
   // An injected context object.

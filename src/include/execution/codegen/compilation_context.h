@@ -51,7 +51,7 @@ class CompilationContext {
    * @param mode The compilation mode.
    */
   static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
-                                                  common::ManagedPointer<exec::ExecutionContext> exec_ctx,
+                                                  common::ManagedPointer<exec::ExecutionSettings> exec_settings,
                                                   CompilationMode mode = CompilationMode::Interleaved);
 
   /**

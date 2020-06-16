@@ -17,7 +17,7 @@ class Type;
 }  // namespace terrier::execution::ast
 
 namespace terrier::execution::exec {
-class ExecutionContext;
+class ExecutionSettings;
 }  // namespace terrier::execution::exec
 
 namespace terrier::execution::vm {
@@ -53,7 +53,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
    * @return A compiled bytecode module.
    */
   static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root,
-                                                 common::ManagedPointer<exec::ExecutionContext> exec_ctx,
+                                                 common::ManagedPointer<exec::ExecutionSettings> exec_settings,
                                                  const std::string &name);
 
   /**
@@ -64,7 +64,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
  private:
   // Private constructor to force users to call Compile()
   BytecodeGenerator() noexcept;
-  explicit BytecodeGenerator(exec::ExecutionContext *exec_ctx) noexcept;
+  explicit BytecodeGenerator(common::ManagedPointer<exec::ExecutionSettings> exec_settings) noexcept;
 
   class ExpressionResultScope;
   class LValueResultScope;
@@ -195,8 +195,8 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   // RAII struct to capture semantics of expression evaluation
   ExpressionResultScope *execution_result_;
 
-  // The execution context for catalog queries
-  exec::ExecutionContext *exec_ctx_;
+  /** Settings to be used for execution. */
+  common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
 };
 
 }  // namespace terrier::execution::vm

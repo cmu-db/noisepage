@@ -8,14 +8,10 @@
 #include "execution/sql/runtime_types.h"
 
 namespace terrier::execution::exec {
-class ExecutionContext;
-}
+class ExecutionSettings;
+}  // namespace terrier::execution::exec
 
 namespace terrier::execution::sql {
-
-namespace codegen {
-class ConstantTranslator;
-}  // namespace codegen
 
 struct Val;
 
@@ -28,7 +24,6 @@ class GenericValue {
   friend class Vector;
   friend class VectorOps;
   friend class GenericValueTests;
-  friend class codegen::ConstantTranslator;
 
  public:
   /**
@@ -53,7 +48,7 @@ class GenericValue {
    * @param exec_ctx the execution context this is operating in
    * @param type The type to cast to.
    */
-  GenericValue CastTo(common::ManagedPointer<exec::ExecutionContext> exec_ctx, TypeId type);
+  GenericValue CastTo(common::ManagedPointer<exec::ExecutionSettings> exec_settings, TypeId type);
 
   /**
    * Copy this value.

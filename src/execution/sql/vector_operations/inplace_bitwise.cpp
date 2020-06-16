@@ -1,3 +1,4 @@
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/operators/numeric_inplace_operators.h"
 #include "execution/sql/vector_operations/inplace_operation_executor.h"
 #include "execution/sql/vector_operations/vector_operations.h"
@@ -9,8 +10,8 @@ namespace traits {
 
 template <typename T>
 struct ShouldPerformFullCompute<terrier::execution::sql::BitwiseANDInPlace<T>> {
-  bool operator()(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const TupleIdList *tid_list) const {
-    auto full_compute_threshold = exec_ctx->GetArithmeticFullComputeOptThreshold();
+  bool operator()(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const TupleIdList *tid_list) const {
+    auto full_compute_threshold = exec_settings->GetArithmeticFullComputeOptThreshold();
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
   }
 };
@@ -20,13 +21,14 @@ struct ShouldPerformFullCompute<terrier::execution::sql::BitwiseANDInPlace<T>> {
 namespace {
 
 template <typename T, template <typename> typename Op>
-void BitwiseOperation(common::ManagedPointer<exec::ExecutionContext> exec_ctx, Vector *left, const Vector &right) {
-  InPlaceOperationExecutor::Execute<T, T, Op<T>>(exec_ctx, left, right, Op<T>{});
+void BitwiseOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, Vector *left,
+                      const Vector &right) {
+  InPlaceOperationExecutor::Execute<T, T, Op<T>>(exec_settings, left, right, Op<T>{});
 }
 
 }  // namespace
 
-void VectorOps::BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionContext> exec_ctx, Vector *left,
+void VectorOps::BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionSettings> exec_settings, Vector *left,
                                   const Vector &right) {
   // Sanity check
   CheckInplaceOperation(left, right);
@@ -34,19 +36,19 @@ void VectorOps::BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionContext>
   // Lift-off
   switch (left->GetTypeId()) {
     case TypeId::TinyInt:
-      BitwiseOperation<int8_t, terrier::execution::sql::BitwiseANDInPlace>(exec_ctx, left, right);
+      BitwiseOperation<int8_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     case TypeId::SmallInt:
-      BitwiseOperation<int16_t, terrier::execution::sql::BitwiseANDInPlace>(exec_ctx, left, right);
+      BitwiseOperation<int16_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     case TypeId::Integer:
-      BitwiseOperation<int32_t, terrier::execution::sql::BitwiseANDInPlace>(exec_ctx, left, right);
+      BitwiseOperation<int32_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     case TypeId::BigInt:
-      BitwiseOperation<int64_t, terrier::execution::sql::BitwiseANDInPlace>(exec_ctx, left, right);
+      BitwiseOperation<int64_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     case TypeId::Pointer:
-      BitwiseOperation<uintptr_t, terrier::execution::sql::BitwiseANDInPlace>(exec_ctx, left, right);
+      BitwiseOperation<uintptr_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     default:
       throw EXECUTION_EXCEPTION(

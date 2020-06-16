@@ -39,7 +39,7 @@ Compiler::~Compiler() = default;
 
 sema::ErrorReporter *Compiler::GetErrorReporter() const { return GetContext()->GetErrorReporter(); }
 
-void Compiler::Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+void Compiler::Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
   // -------------------------------------------------------
   // Phase 1 : Parsing
   // -------------------------------------------------------
@@ -87,7 +87,7 @@ void Compiler::Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::
     return;
   }
 
-  auto bytecode_module = vm::BytecodeGenerator::Compile(root_, exec_ctx, input_.name_);
+  auto bytecode_module = vm::BytecodeGenerator::Compile(root_, exec_settings, input_.name_);
   bytecode_module_ = bytecode_module.get();
 
   if (GetErrorReporter()->HasErrors()) {
@@ -123,10 +123,10 @@ void Compiler::Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::
 }
 
 void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks *callbacks,
-                              common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+                              common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
   TERRIER_ASSERT(callbacks != nullptr, "Must provide callbacks");
   Compiler compiler(input);
-  compiler.Run(callbacks, exec_ctx);
+  compiler.Run(callbacks, exec_settings);
 }
 
 namespace {
@@ -144,10 +144,10 @@ class NoOpCallbacks : public Compiler::Callbacks {
 
 }  // namespace
 
-std::unique_ptr<vm::Module> Compiler::RunCompilationSimple(const Compiler::Input &input,
-                                                           common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+std::unique_ptr<vm::Module> Compiler::RunCompilationSimple(
+    const Compiler::Input &input, common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
   NoOpCallbacks no_op_callbacks;
-  RunCompilation(input, &no_op_callbacks, exec_ctx);
+  RunCompilation(input, &no_op_callbacks, exec_settings);
   return no_op_callbacks.TakeModule();
 }
 

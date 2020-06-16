@@ -75,10 +75,10 @@ class ExecutableQueryFragmentBuilder {
 
   /**
    * Compile the code in the container.
-   * @param exec_ctx The execution context used for compilation, can differ from the one used to run.
+   * @param exec_settings The execution settings used for compilation.
    * @return True if the compilation was successful; false otherwise.
    */
-  std::unique_ptr<ExecutableQuery::Fragment> Compile(common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+  std::unique_ptr<ExecutableQuery::Fragment> Compile(common::ManagedPointer<exec::ExecutionSettings> exec_settings);
 
  private:
   // The AST context used to generate the TPL ast

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include "common/macros.h"
 #include "execution/exec/execution_context.h"
@@ -420,7 +421,7 @@ VM_OP_HOT void OpHashCombine(terrier::hash_t *hash_val, terrier::hash_t new_hash
 // ---------------------------------------------------------
 
 VM_OP void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager,
-                               terrier::execution::exec::ExecutionContext *exec_ctx);
+                               terrier::execution::exec::ExecutionSettings *exec_settings);
 
 VM_OP void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager);
 
@@ -436,20 +437,20 @@ VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter);
 // Vector Filter Executor
 // ---------------------------------------------------------
 
-#define GEN_VECTOR_FILTER(Name)                                                                                       \
-  VM_OP_HOT void OpVectorFilter##Name(                                                                                \
-      terrier::common::ManagedPointer<terrier::execution::exec::ExecutionContext> exec_ctx,                           \
-      terrier::execution::sql::VectorProjection *vector_projection, const uint32_t left_col_idx,                      \
-      const uint32_t right_col_idx, terrier::execution::sql::TupleIdList *tid_list) {                                 \
-    terrier::execution::sql::VectorFilterExecutor::Select##Name(exec_ctx, vector_projection, left_col_idx,            \
-                                                                right_col_idx, tid_list);                             \
-  }                                                                                                                   \
-  VM_OP_HOT void OpVectorFilter##Name##Val(                                                                           \
-      terrier::common::ManagedPointer<terrier::execution::exec::ExecutionContext> exec_ctx,                           \
-      terrier::execution::sql::VectorProjection *vector_projection, const uint32_t left_col_idx,                      \
-      const terrier::execution::sql::Val *val, terrier::execution::sql::TupleIdList *tid_list) {                      \
-    terrier::execution::sql::VectorFilterExecutor::Select##Name##Val(exec_ctx, vector_projection, left_col_idx, *val, \
-                                                                     tid_list);                                       \
+#define GEN_VECTOR_FILTER(Name)                                                                                      \
+  VM_OP_HOT void OpVectorFilter##Name(                                                                               \
+      terrier::common::ManagedPointer<terrier::execution::exec::ExecutionSettings> exec_settings,                    \
+      terrier::execution::sql::VectorProjection *vector_projection, const uint32_t left_col_idx,                     \
+      const uint32_t right_col_idx, terrier::execution::sql::TupleIdList *tid_list) {                                \
+    terrier::execution::sql::VectorFilterExecutor::Select##Name(exec_settings, vector_projection, left_col_idx,      \
+                                                                right_col_idx, tid_list);                            \
+  }                                                                                                                  \
+  VM_OP_HOT void OpVectorFilter##Name##Val(                                                                          \
+      terrier::common::ManagedPointer<terrier::execution::exec::ExecutionSettings> exec_settings,                    \
+      terrier::execution::sql::VectorProjection *vector_projection, const uint32_t left_col_idx,                     \
+      const terrier::execution::sql::Val *val, terrier::execution::sql::TupleIdList *tid_list) {                     \
+    terrier::execution::sql::VectorFilterExecutor::Select##Name##Val(exec_settings, vector_projection, left_col_idx, \
+                                                                     *val, tid_list);                                \
   }
 
 GEN_VECTOR_FILTER(Equal)
@@ -489,13 +490,8 @@ VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year
   result->val_ = terrier::execution::sql::Date::FromYMD(year, month, day);
 }
 
-VM_OP_HOT void OpInitString(terrier::execution::sql::StringVal *result, uint64_t length, uintptr_t data) {
-  *result = terrier::execution::sql::StringVal(reinterpret_cast<char *>(data), static_cast<uint32_t>(length));
-}
-
-VM_OP_HOT void OpInitVarlen(terrier::execution::sql::StringVal *result, uintptr_t data) {
-  auto *varlen = reinterpret_cast<terrier::storage::VarlenEntry *>(data);
-  *result = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
+VM_OP_HOT void OpInitString(terrier::execution::sql::StringVal *result, const uint8_t *str, uint32_t length) {
+  *result = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(str), length);
 }
 
 VM_OP_WARM void OpBoolToInteger(terrier::execution::sql::Integer *result,
@@ -695,7 +691,7 @@ VM_OP_HOT void OpRemReal(terrier::execution::sql::Real *const result, const terr
 // ---------------------------------------------------------
 
 VM_OP void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *agg_hash_table,
-                                      terrier::execution::exec::ExecutionContext *exec_ctx,
+                                      terrier::execution::exec::ExecutionSettings *exec_settings,
                                       terrier::execution::sql::MemoryPool *memory, uint32_t payload_size);
 
 VM_OP_HOT void OpAggregationHashTableAllocTuple(terrier::byte **result,
@@ -1142,7 +1138,7 @@ VM_OP_HOT void OpAvgAggregateFree(terrier::execution::sql::AvgAggregate *agg) { 
 // ---------------------------------------------------------
 
 VM_OP void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
-                               terrier::execution::exec::ExecutionContext *exec_ctx,
+                               terrier::execution::exec::ExecutionSettings *exec_settings,
                                terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size);
 
 VM_OP_HOT void OpJoinHashTableAllocTuple(terrier::byte **result,
@@ -1228,11 +1224,11 @@ VM_OP void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter);
 // Output
 // ---------------------------------------------------------
 
-VM_OP_WARM void OpOutputBufferAllocOutputRow(terrier::byte **result, terrier::execution::exec::ExecutionContext *ctx) {
+VM_OP_WARM void OpResultBufferAllocOutputRow(terrier::byte **result, terrier::execution::exec::ExecutionContext *ctx) {
   *result = ctx->GetOutputBuffer()->AllocOutputSlot();
 }
 
-VM_OP_WARM void OpOutputBufferFinalize(terrier::execution::exec::ExecutionContext *ctx) {
+VM_OP_WARM void OpResultBufferFinalize(terrier::execution::exec::ExecutionContext *ctx) {
   ctx->GetOutputBuffer()->Finalize();
 }
 

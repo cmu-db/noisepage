@@ -7,6 +7,8 @@
 #include <string>
 #include <utility>
 
+#include "loggers/execution_logger.h"
+
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak.h"
 
@@ -118,11 +120,11 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // argument
     const ast::Type *return_type = func_.GetFuncType()->GetReturnType();
     if (!return_type->IsNilType()) {
-      required_stack_space += util::MathUtil::AlignTo(return_type->GetSize(), sizeof(intptr_t));
+      required_stack_space += common::MathUtil::AlignTo(return_type->GetSize(), sizeof(intptr_t));
     }
 
     // Always align to cacheline boundary
-    return util::MathUtil::AlignTo(required_stack_space, CACHELINE_SIZE);
+    return common::MathUtil::AlignTo(required_stack_space, common::Constants::CACHELINE_SIZE);
   }
 
   void Prologue() { push(rbx); }
@@ -162,7 +164,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     const Xbyak::Reg arg_regs[][6] = {{edi, esi, edx, ecx, r8d, r9d}, {rdi, rsi, rdx, rcx, r8, r9}};
 
     const ast::FunctionType *func_type = func_.GetFuncType();
-    TPL_ASSERT(func_type->GetNumParams() < sizeof(arg_regs), "Too many function arguments");
+    TERRIER_ASSERT(func_type->GetNumParams() < sizeof(arg_regs), "Too many function arguments");
 
     uint32_t displacement = 0;
     uint32_t local_idx = 0;
@@ -170,7 +172,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // The first argument to the TBC function is a pointer to the return value.
     // If the function returns a non-void value, insert the pointer now.
     if (const ast::Type *return_type = func_type->GetReturnType(); !return_type->IsNilType()) {
-      displacement = util::MathUtil::AlignTo(return_type->GetSize(), sizeof(intptr_t));
+      displacement = common::MathUtil::AlignTo(return_type->GetSize(), sizeof(intptr_t));
       mov(ptr[rsp + displacement], rsp);
       local_idx++;
     }
@@ -188,7 +190,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     const ast::Type *ret_type = func_type->GetReturnType();
     uint32_t ret_type_size = 0;
     if (!ret_type->IsNilType()) {
-      ret_type_size = util::MathUtil::AlignTo(ret_type->GetSize(), sizeof(intptr_t));
+      ret_type_size = common::MathUtil::AlignTo(ret_type->GetSize(), sizeof(intptr_t));
     }
 
     // Set up the arguments to VM::InvokeFunction(module, function ID, args)
@@ -220,14 +222,14 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
 
 void Module::CreateFunctionTrampoline(const FunctionInfo &func, Trampoline *trampoline) {
   // TODO(pmenon): Is 4KB too large? Should it be dynamic?
-  static constexpr std::size_t kDefaultCodeSize = 4 * KB;
+  static constexpr std::size_t kDefaultCodeSize = 4 * common::Constants::KB;
 
   // Allocate memory for the trampoline.
   std::error_code error;
   const int32_t rw_flags = llvm::sys::Memory::MF_READ | llvm::sys::Memory::MF_WRITE;
   llvm::sys::MemoryBlock memory = llvm::sys::Memory::allocateMappedMemory(kDefaultCodeSize, nullptr, rw_flags, error);
   if (error) {
-    LOG_ERROR("There was an error allocating executable memory {}", error.message());
+    EXECUTION_LOG_ERROR("There was an error allocating executable memory {}", error.message());
     return;
   }
 
@@ -247,7 +249,7 @@ void Module::CreateFunctionTrampoline(const FunctionInfo &func, Trampoline *tram
 void Module::CreateFunctionTrampoline(FunctionId func_id) {
   // If a trampoline has already been setup, don't bother.
   if (bytecode_trampolines_[func_id].GetCode() != nullptr) {
-    LOG_DEBUG("Function {} has a trampoline; will not recreate", func_id);
+    EXECUTION_LOG_DEBUG("Function {} has a trampoline; will not recreate", func_id);
     return;
   }
 
@@ -277,7 +279,7 @@ void Module::CompileToMachineCode() {
     // previous implementation.
     for (const auto &func_info : bytecode_module_->GetFunctionsInfo()) {
       auto *jit_function = jit_module_->GetFunctionPointer(func_info.GetName());
-      TPL_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
+      TERRIER_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
       functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
     }
   });

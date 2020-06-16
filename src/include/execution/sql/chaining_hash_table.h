@@ -202,7 +202,7 @@ inline void ChainingHashTableBase::PrefetchChainHead(hash_t hash) const {
                                true,             /* Weak exchange? Yes, for performance. */    \
                                __ATOMIC_RELEASE, /* Use release semantics for success */       \
                                __ATOMIC_RELAXED  /* Use relaxed semantics for failure */       \
-                               ))
+                               ))                // NOLINT
 
 template <bool Concurrent>
 inline void ChainingHashTableBase::InsertUntagged(HashTableEntry *const entry, const hash_t hash) {

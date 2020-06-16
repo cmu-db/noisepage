@@ -1,6 +1,8 @@
 #pragma once
 
-#include "execution/exec/execution_context.h"
+namespace terrier::execution::exec {
+class ExecutionSettings;
+}  // namespace terrier::execution::exec
 
 namespace terrier::execution::sql {
 
@@ -55,12 +57,12 @@ struct ShouldPerformFullCompute {
   /**
    * Call operator used by vector infrastructure to check if the given operator should be executed
    * in full-compute on inputs with the given TID list.
-   * @param exec_ctx The execution context that is being used
+   * @param exec_settings The execution settings to use.
    * @param tid_list The TID list that the operator will use. Potentially NULL.
    * @return True if full-compute is enabled; false otherwise.
    */
-  constexpr bool operator()(common::ManagedPointer<exec::ExecutionContext> exec_ctx, const TupleIdList *tid_list) const
-      noexcept {
+  constexpr bool operator()(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+                            const TupleIdList *tid_list) const noexcept {
     return false;
   }
 };

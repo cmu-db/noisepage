@@ -11,6 +11,7 @@
 #include "execution/codegen/operators/operator_translator.h"
 #include "execution/codegen/pipeline_driver.h"
 #include "execution/codegen/work_context.h"
+#include "execution/exec/execution_settings.h"
 #include "loggers/execution_logger.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "spdlog/fmt/fmt.h"
@@ -100,7 +101,7 @@ void Pipeline::CollectDependencies(std::vector<Pipeline *> *deps) {
   deps->push_back(this);
 }
 
-void Pipeline::Prepare(common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+void Pipeline::Prepare(common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
   // Finalize the pipeline state.
   state_.ConstructFinalType(codegen_);
 
@@ -110,7 +111,7 @@ void Pipeline::Prepare(common::ManagedPointer<exec::ExecutionContext> exec_ctx) 
   //  2. If the consumer doesn't support parallel execution.
   //  3. If ANY operator in the pipeline explicitly requested serial execution.
 
-  const bool parallel_exec_disabled = exec_ctx->GetIsParallelQueryExecution();
+  const bool parallel_exec_disabled = exec_settings->GetIsParallelQueryExecution();
   const bool parallel_consumer = true;
   if (parallel_exec_disabled || !parallel_consumer || parallelism_ == Pipeline::Parallelism::Serial) {
     parallelism_ = Pipeline::Parallelism::Serial;

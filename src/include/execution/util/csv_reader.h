@@ -133,7 +133,7 @@ class CSVString : public CSVSource {
    * @param data The CSV data.
    */
   explicit CSVString(std::string data)
-      : data_(data.append(kNumExtraPaddingChars, char(0))),
+      : data_(data.append(kNumExtraPaddingChars, static_cast<char>(0))),
         p_(data_.data()),
         pend_(data_.data() + data_.length() - kNumExtraPaddingChars) {}
 

@@ -12,6 +12,7 @@
 
 namespace terrier::execution::exec {
 class ExecutionContext;
+class ExecutionSettings;
 }  // namespace terrier::execution::exec
 
 namespace terrier::execution::sema {
@@ -74,9 +75,9 @@ class ExecutableQuery {
   /**
    * Create a query object.
    * @param plan The physical plan.
-   * @param exec_ctx The execution context for code generation, can differ from the one used in Run.
+   * @param exec_settings The execution settings used for this query.
    */
-  ExecutableQuery(const planner::AbstractPlanNode &plan, common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+  ExecutableQuery(const planner::AbstractPlanNode &plan, common::ManagedPointer<exec::ExecutionSettings> exec_settings);
 
   /**
    * This class cannot be copied or moved.
@@ -102,7 +103,8 @@ class ExecutableQuery {
    * @param exec_ctx The context in which to execute the query.
    * @param mode The execution mode to use when running the query. By default, its interpreted.
    */
-  void Run(exec::ExecutionContext *exec_ctx, vm::ExecutionMode mode = vm::ExecutionMode::Interpret);
+  void Run(common::ManagedPointer<exec::ExecutionContext> exec_ctx,
+           vm::ExecutionMode mode = vm::ExecutionMode::Interpret);
 
   /**
    * @return The physical plan this executable query implements.
@@ -114,16 +116,14 @@ class ExecutableQuery {
    */
   ast::Context *GetContext() { return ast_context_.get(); }
 
-  /** @return The execution context to be used for code generation. */
-  common::ManagedPointer<exec::ExecutionContext> GetExecutionContextForCompilation() const {
-    return exec_ctx_compilation_;
-  }
+  /** @return The execution settings used for this query. */
+  common::ManagedPointer<exec::ExecutionSettings> GetExecutionSettings() const { return exec_settings_; }
 
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
   // The execution context used for code generation.
-  common::ManagedPointer<exec::ExecutionContext> exec_ctx_compilation_;
+  common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
   // The AST error reporter.
   std::unique_ptr<sema::ErrorReporter> errors_;
   // The AST context used to generate the TPL AST.

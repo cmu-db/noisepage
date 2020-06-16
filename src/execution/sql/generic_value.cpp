@@ -50,14 +50,14 @@ bool GenericValue::Equals(const GenericValue &other) const {
   return false;
 }
 
-GenericValue GenericValue::CastTo(common::ManagedPointer<exec::ExecutionContext> exec_ctx, TypeId type) {
+GenericValue GenericValue::CastTo(common::ManagedPointer<exec::ExecutionSettings> exec_settings, TypeId type) {
   // Copy if same type
   if (type_id_ == type) {
     return GenericValue(*this);
   }
   // Use vector to cast
   ConstantVector result(*this);
-  result.Cast(exec_ctx, type);
+  result.Cast(exec_settings, type);
   return result.GetValue(0);
 }
 

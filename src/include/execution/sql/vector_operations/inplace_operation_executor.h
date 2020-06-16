@@ -2,6 +2,7 @@
 
 #include <type_traits>
 
+#include "common/exception.h"
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/traits.h"
 #include "execution/sql/vector_operations/vector_operations.h"
@@ -49,13 +50,14 @@ class InPlaceOperationExecutor : public common::AllStatic {
    * @tparam Op The binary operation to perform. Each invocation will receive an element from the
    *            result and input input vectors and must produce an element that is stored back into
    *            the result vector.
-   * @param exec_ctx The execution context being used in this query
+   * @param exec_settings The execution settings for the query.
    * @param[in,out] result The result vector.
    * @param input The right input.
    */
   template <typename ResultType, typename InputType, class Op>
-  static void Execute(common::ManagedPointer<exec::ExecutionContext> exec_ctx, Vector *result, const Vector &input) {
-    Execute<ResultType, InputType, Op>(exec_ctx, result, input, Op{});
+  static void Execute(common::ManagedPointer<exec::ExecutionSettings> exec_settings, Vector *result,
+                      const Vector &input) {
+    Execute<ResultType, InputType, Op>(exec_settings, result, input, Op{});
   }
 
   /**
@@ -76,14 +78,14 @@ class InPlaceOperationExecutor : public common::AllStatic {
    * @tparam Op The binary operation to perform. Each invocation will receive an element from the
    *            result and input input vectors and must produce an element that is stored back into
    *            the result vector.
-   * @param exec_ctx The execution context being use in this query
+   * @param exec_settings The execution settings for the query.
    * @param[in,out] result The result vector.
    * @param input The right input.
    * @param op The operation to perform.
    */
   template <typename ResultType, typename InputType, class Op>
-  static void Execute(common::ManagedPointer<exec::ExecutionContext> exec_ctx, Vector *result, const Vector &input,
-                      Op &&op) {
+  static void Execute(common::ManagedPointer<exec::ExecutionSettings> exec_settings, Vector *result,
+                      const Vector &input, Op &&op) {
     // Ensure operator has correct interface.
     static_assert(std::is_invocable_v<Op, ResultType *, InputType>,
                   "In-place operation has invalid interface for given template arguments.");
@@ -95,7 +97,7 @@ class InPlaceOperationExecutor : public common::AllStatic {
       if (input.IsNull(0)) {
         result->GetMutableNullMask()->SetAll();
       } else {
-        if (traits::ShouldPerformFullCompute<Op>()(exec_ctx, result->GetFilteredTupleIdList())) {
+        if (traits::ShouldPerformFullCompute<Op>()(exec_settings, result->GetFilteredTupleIdList())) {
           VectorOps::ExecIgnoreFilter(*result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[0]); });
         } else {
           VectorOps::Exec(*result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[0]); });
@@ -106,7 +108,7 @@ class InPlaceOperationExecutor : public common::AllStatic {
                      "Filter list of inputs to in-place operation do not match");
 
       result->GetMutableNullMask()->Union(input.GetNullMask());
-      if (traits::ShouldPerformFullCompute<Op>()(exec_ctx, result->GetFilteredTupleIdList())) {
+      if (traits::ShouldPerformFullCompute<Op>()(exec_settings, result->GetFilteredTupleIdList())) {
         VectorOps::ExecIgnoreFilter(*result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[i]); });
       } else {
         VectorOps::Exec(*result, [&](uint64_t i, uint64_t k) { op(&result_data[i], input_data[i]); });
