@@ -645,7 +645,7 @@ VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year
   if (res.first) {
     result->val_ = res.second;
   } else {
-    throw terrier::CONVERSION_EXCEPTION("invalid timestamp");
+    throw terrier::CONVERSION_EXCEPTION("invalid date");
   }
 }
 
