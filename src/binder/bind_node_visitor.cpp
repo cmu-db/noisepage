@@ -244,13 +244,13 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
     case parser::DropStatement::DropType::kTable:
       ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
-        throw BINDER_EXCEPTION("Table does not exist");
+        throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()));
       }
       break;
     case parser::DropStatement::DropType::kIndex:
       ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetIndexOid(node->GetIndexName()) == catalog::INVALID_INDEX_OID) {
-        throw BINDER_EXCEPTION("Index does not exist");
+        throw BINDER_EXCEPTION(fmt::format("index \"{}\" does not exist", node->GetTableName()));
       }
       break;
     case parser::DropStatement::DropType::kTrigger:
