@@ -3,9 +3,9 @@
 
 namespace terrier {
 
-struct TimeUtilTests : public TerrierTest {};
+struct RuntimeTypesTests : public TerrierTest {};
 
-TEST_F(TimeUtilTests, DateTest) {
+TEST_F(RuntimeTypesTests, DateTest) {
   auto ymd_res = terrier::execution::sql::Date::FromYMD(2020, 1, 1);
   auto res = terrier::execution::sql::Date::FromString("2020-01-01");
   EXPECT_TRUE(res.first);
@@ -15,10 +15,10 @@ TEST_F(TimeUtilTests, DateTest) {
   EXPECT_EQ(ymd_res.second.ToString(), "2020-01-01");
 }
 
-TEST_F(TimeUtilTests, TimestampTest) {
+TEST_F(RuntimeTypesTests, TimestampTest) {
   auto res = terrier::execution::sql::Timestamp::FromString("2020-01-01 11:22:33.123");
   EXPECT_TRUE(res.first);
-  EXPECT_EQ(res.second.ToString(), "2020-01-01 11:22:33");
+  EXPECT_EQ(res.second.ToString(), "2020-01-01 11:22:33.123000");
 }
 
 // TODO(WAN): throw in some timezone tests

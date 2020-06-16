@@ -111,7 +111,7 @@ int64_t BuildTime(int32_t hour, int32_t min, int32_t sec, int32_t milli = 0, int
 
 // Given a time in microseconds, split it into hour, minute, second, and
 // fractional second components.
-void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, double *fsec) {
+void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *fsec) {
   int64_t time = jd;
 
   *hour = time / K_MICRO_SECONDS_PER_HOUR;
@@ -170,8 +170,8 @@ std::pair<bool, Date> Date::FromString(const char *str, std::size_t len) {
   const char *ptr = str, *limit = ptr + len;
 
   // Trim leading and trailing whitespace
-  while (ptr != limit && std::isspace(*ptr)) ptr++;
-  while (ptr != limit && std::isspace(*(limit - 1))) limit--;
+  while (ptr != limit && static_cast<bool>(std::isspace(*ptr))) ptr++;
+  while (ptr != limit && static_cast<bool>(std::isspace(*(limit - 1)))) limit--;
 
   uint32_t year = 0, month = 0, day = 0;
 
@@ -179,7 +179,7 @@ std::pair<bool, Date> Date::FromString(const char *str, std::size_t len) {
   while (true) {
     if (ptr == limit) return {false, {}};
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       year = year * 10 + (c - '0');
     } else if (c == '-') {
       break;
@@ -192,7 +192,7 @@ std::pair<bool, Date> Date::FromString(const char *str, std::size_t len) {
   while (true) {
     if (ptr == limit) return {false, {}};
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       month = month * 10 + (c - '0');
     } else if (c == '-') {
       break;
@@ -205,7 +205,7 @@ std::pair<bool, Date> Date::FromString(const char *str, std::size_t len) {
   while (true) {
     if (ptr == limit) break;
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       day = day * 10 + (c - '0');
     } else {
       return {false, {}};
@@ -275,9 +275,8 @@ int32_t Timestamp::ExtractHour() const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
-  // Extract month from date.
-  int32_t hour, min, sec;
-  double fsec;
+  // Extract hour from time.
+  int32_t hour, min, sec, fsec;
   SplitTime(time, &hour, &min, &sec, &fsec);
   return hour;
 }
@@ -287,9 +286,8 @@ int32_t Timestamp::ExtractMinute() const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
-  // Extract month from date.
-  int32_t hour, min, sec;
-  double fsec;
+  // Extract minute from time.
+  int32_t hour, min, sec, fsec;
   SplitTime(time, &hour, &min, &sec, &fsec);
   return min;
 }
@@ -299,9 +297,8 @@ int32_t Timestamp::ExtractSecond() const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
-  // Extract month from date.
-  int32_t hour, min, sec;
-  double fsec;
+  // Extract second from time.
+  int32_t hour, min, sec, fsec;
   SplitTime(time, &hour, &min, &sec, &fsec);
   return sec;
 }
@@ -311,9 +308,8 @@ int32_t Timestamp::ExtractMillis() const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
-  // Extract month from date.
-  int32_t hour, min, sec;
-  double fsec;
+  // Extract millisecond from time.
+  int32_t hour, min, sec, fsec;
   SplitTime(time, &hour, &min, &sec, &fsec);
   return sec * 1000.0 + fsec / 1000.0;
 }
@@ -323,9 +319,8 @@ int32_t Timestamp::ExtractMicros() const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
-  // Extract month from date.
-  int32_t hour, min, sec;
-  double fsec;
+  // Extract microsecond from time.
+  int32_t hour, min, sec, fsec;
   SplitTime(time, &hour, &min, &sec, &fsec);
   return sec + fsec / 1000000.0;
 }
@@ -353,7 +348,7 @@ int32_t Timestamp::ExtractDayOfYear() const {
 }
 
 void Timestamp::ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min,
-                                  int32_t *sec, double *fsec) {
+                                  int32_t *sec, int32_t *fsec) const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
@@ -369,22 +364,18 @@ std::string Timestamp::ToString() const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
-  int32_t year, month, day;
-  SplitJulianDate(date, &year, &month, &day);
+  int32_t year, month, day, hour, min, sec, fsec;
+  ExtractComponents(&year, &month, &day, &hour, &min, &sec, &fsec);
 
-  int32_t hour, min, sec;
-  double fsec;
-  SplitTime(time, &hour, &min, &sec, &fsec);
-
-  return fmt::format("{}-{:02}-{:02} {:02}:{:02}:{:02}", year, month, day, hour, min, sec);
+  return fmt::format("{}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}", year, month, day, hour, min, sec, fsec);
 }
 
 std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t len) {
   const char *ptr = str, *limit = ptr + len;
 
   // Trim leading and trailing whitespace
-  while (ptr != limit && std::isspace(*ptr)) ptr++;
-  while (ptr != limit && std::isspace(*(limit - 1))) limit--;
+  while (ptr != limit && static_cast<bool>(std::isspace(*ptr))) ptr++;
+  while (ptr != limit && static_cast<bool>(std::isspace(*(limit - 1)))) limit--;
 
   uint32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, milli = 0, micro = 0;
 
@@ -392,7 +383,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   while (true) {
     if (ptr == limit) return {false, {}};
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       year = year * 10 + (c - '0');
     } else if (c == '-') {
       break;
@@ -405,7 +396,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   while (true) {
     if (ptr == limit) return {false, {}};
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       month = month * 10 + (c - '0');
     } else if (c == '-') {
       break;
@@ -418,14 +409,13 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   while (true) {
     if (ptr == limit) {
       auto date = Date::FromYMD(year, month, day);
-      if (date.first == true) {
+      if (date.first) {
         return {true, date.second.ConvertToTimestamp()};
-      } else {
-        return {false, {}};
       }
+      return {false, {}};
     }
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       day = day * 10 + (c - '0');
     } else if (c == ' ' || c == 'T') {
       break;
@@ -438,7 +428,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   while (true) {
     if (ptr == limit) return {false, {}};
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       hour = hour * 10 + (c - '0');
     } else if (c == ':') {
       break;
@@ -451,7 +441,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   while (true) {
     if (ptr == limit) return {false, {}};
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       min = min * 10 + (c - '0');
     } else if (c == ':') {
       break;
@@ -466,7 +456,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
       return FromYMDHMS(year, month, day, hour, min, sec);
     }
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       sec = sec * 10 + (c - '0');
     } else if (c == '.') {
       break;
@@ -484,7 +474,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
     }
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       milli = milli + (c - '0') * pow(10, 2 - count);
     } else if (c == '-' || c == 'Z') {
       return FromYMDHMS(year, month, day, hour, min, sec);
@@ -501,7 +491,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
     }
     char c = *ptr++;
-    if (std::isdigit(c)) {
+    if (static_cast<bool>(std::isdigit(c))) {
       micro = micro + (c - '0') * pow(10, 2 - count);
     } else if (c == '-' || c == 'Z') {
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
