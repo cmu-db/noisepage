@@ -68,11 +68,16 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
 
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
+  // Initialize sleep period
+  auto curr_sleep = persist_interval_;
+  auto next_sleep = curr_sleep;
+  const std::chrono::microseconds max_sleep = std::chrono::microseconds(10000);
   // Time since last log file persist
   auto last_persist = std::chrono::high_resolution_clock::now();
   // Disk log consumer task thread spins in this loop. When notified or periodically, we wake up and process serialized
   // buffers
   do {
+    curr_sleep = next_sleep;
     {
       // Wait until we are told to flush buffers
       std::unique_lock<std::mutex> lock(persist_lock_);
@@ -81,8 +86,11 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // 2) There is a filled buffer to write to the disk
       // 3) LogManager has shut down the task
       // 4) Our persist interval timed out
-      disk_log_writer_thread_cv_.wait_for(lock, persist_interval_,
-                                          [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
+
+      bool signaled = disk_log_writer_thread_cv_.wait_for(
+          lock, curr_sleep, [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
+      next_sleep = signaled ? persist_interval_ : curr_sleep * 2;
+      next_sleep = std::min(next_sleep, max_sleep);
     }
 
     // Flush all the buffers to the log file
@@ -93,8 +101,9 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     // 2) We have written more data since the last persist than the threshold
     // 3) We are signaled to persist
     // 4) We are shutting down this task
-    bool timeout = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
-                                                                         last_persist) > persist_interval_;
+    bool timeout = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() -
+                                                                         last_persist) > curr_sleep;
+
     if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
       std::unique_lock<std::mutex> lock(persist_lock_);
       num_buffers = PersistLogFile();

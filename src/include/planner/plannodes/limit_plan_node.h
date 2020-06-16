@@ -123,6 +123,6 @@ class LimitPlanNode : public AbstractPlanNode {
   size_t offset_;
 };
 
-DEFINE_JSON_DECLARATIONS(LimitPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(LimitPlanNode);
 
 }  // namespace terrier::planner

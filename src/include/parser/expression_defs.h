@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include "common/exception.h"
 #include "common/macros.h"
 
 namespace terrier::parser {

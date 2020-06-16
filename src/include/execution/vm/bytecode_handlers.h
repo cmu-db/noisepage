@@ -12,6 +12,7 @@
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/functions/comparison_functions.h"
 #include "execution/sql/functions/is_null_predicate.h"
+#include "execution/sql/functions/runners_functions.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
@@ -24,6 +25,7 @@
 #include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
 #include "metrics/metrics_defs.h"
+#include "parser/expression/constant_value_expression.h"
 #include "util/time_util.h"
 
 // All VM terrier::bytecode op handlers must use this macro
@@ -1342,6 +1344,30 @@ VM_OP_WARM void OpValIsNotNull(bool *result, const terrier::execution::sql::Val 
 }
 
 // ---------------------------------------------------------
+// Internal mini-runner functions
+// ---------------------------------------------------------
+
+VM_OP_WARM void OpNpRunnersEmitInt(terrier::execution::exec::ExecutionContext *ctx,
+                                   const terrier::execution::sql::Integer *num_tuples,
+                                   const terrier::execution::sql::Integer *num_cols,
+                                   const terrier::execution::sql::Integer *num_int_cols,
+                                   const terrier::execution::sql::Integer *num_real_cols) {
+  terrier::execution::sql::MiniRunnersFunctions::EmitTuples(ctx, *num_tuples, *num_cols, *num_int_cols, *num_real_cols);
+}
+
+VM_OP_WARM void OpNpRunnersEmitReal(terrier::execution::exec::ExecutionContext *ctx,
+                                    const terrier::execution::sql::Integer *num_tuples,
+                                    const terrier::execution::sql::Integer *num_cols,
+                                    const terrier::execution::sql::Integer *num_int_cols,
+                                    const terrier::execution::sql::Integer *num_real_cols) {
+  terrier::execution::sql::MiniRunnersFunctions::EmitTuples(ctx, *num_tuples, *num_cols, *num_int_cols, *num_real_cols);
+}
+
+VM_OP_WARM void OpNpRunnersDummyInt(UNUSED_ATTRIBUTE terrier::execution::exec::ExecutionContext *ctx) {}
+
+VM_OP_WARM void OpNpRunnersDummyReal(UNUSED_ATTRIBUTE terrier::execution::exec::ExecutionContext *ctx) {}
+
+// ---------------------------------------------------------
 // String functions
 // ---------------------------------------------------------
 
@@ -1674,62 +1700,27 @@ VM_OP void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, t
 VM_OP void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx);
 
 // Parameter calls
-#define GEN_SCALAR_PARAM_GET(Name, SqlType, PeekType)                                                         \
+#define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                   \
   VM_OP_HOT void OpGetParam##Name(terrier::execution::sql::SqlType *ret,                                      \
                                   terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) { \
-    const auto &trans_val = exec_ctx->GetParam(param_idx);                                                    \
-    if (trans_val.Null()) {                                                                                   \
+    const auto &cve = exec_ctx->GetParam(param_idx);                                                          \
+    if (cve.IsNull()) {                                                                                       \
       ret->is_null_ = true;                                                                                   \
     } else {                                                                                                  \
-      auto val = terrier::type::TransientValuePeeker::PeekType(trans_val);                                    \
-      ret->val_ = val;                                                                                        \
-      ret->is_null_ = false;                                                                                  \
+      *ret = cve.Get##SqlType();                                                                              \
     }                                                                                                         \
   }
 
-GEN_SCALAR_PARAM_GET(Bool, BoolVal, PeekBoolean)
-GEN_SCALAR_PARAM_GET(TinyInt, Integer, PeekTinyInt)
-GEN_SCALAR_PARAM_GET(SmallInt, Integer, PeekSmallInt)
-GEN_SCALAR_PARAM_GET(Int, Integer, PeekInteger)
-GEN_SCALAR_PARAM_GET(BigInt, Integer, PeekBigInt)
-GEN_SCALAR_PARAM_GET(Real, Real, PeekDecimal)
-GEN_SCALAR_PARAM_GET(Double, Real, PeekDecimal)
+GEN_SCALAR_PARAM_GET(Bool, BoolVal)
+GEN_SCALAR_PARAM_GET(TinyInt, Integer)
+GEN_SCALAR_PARAM_GET(SmallInt, Integer)
+GEN_SCALAR_PARAM_GET(Int, Integer)
+GEN_SCALAR_PARAM_GET(BigInt, Integer)
+GEN_SCALAR_PARAM_GET(Real, Real)
+GEN_SCALAR_PARAM_GET(Double, Real)
+GEN_SCALAR_PARAM_GET(DateVal, DateVal)
+GEN_SCALAR_PARAM_GET(TimestampVal, TimestampVal)
+GEN_SCALAR_PARAM_GET(String, StringVal)
 #undef GEN_SCALAR_PARAM_GET
-
-VM_OP_HOT void OpGetParamDateVal(terrier::execution::sql::DateVal *ret,
-                                 terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
-  const auto &trans_val = exec_ctx->GetParam(param_idx);
-  if (trans_val.Null()) {
-    ret->is_null_ = true;
-  } else {
-    auto date = terrier::type::TransientValuePeeker::PeekDate(trans_val);
-    *ret = terrier::execution::sql::DateVal(!date);
-    ret->is_null_ = false;
-  }
-}
-
-VM_OP_HOT void OpGetParamTimestampVal(terrier::execution::sql::TimestampVal *ret,
-                                      terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
-  const auto &trans_val = exec_ctx->GetParam(param_idx);
-  if (trans_val.Null()) {
-    ret->is_null_ = true;
-  } else {
-    auto ts = terrier::type::TransientValuePeeker::PeekTimestamp(trans_val);
-    *ret = terrier::execution::sql::TimestampVal(!ts);
-    ret->is_null_ = false;
-  }
-}
-
-VM_OP_HOT void OpGetParamString(terrier::execution::sql::StringVal *ret,
-                                terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
-  const auto &trans_val = exec_ctx->GetParam(param_idx);
-  if (trans_val.Null()) {
-    ret->is_null_ = true;
-  } else {
-    auto val = terrier::type::TransientValuePeeker::PeekVarChar(trans_val);
-    *ret = terrier::execution::sql::StringVal(val.data(), static_cast<uint32_t>(val.size()));
-    ret->is_null_ = false;
-  }
-}
 
 }  // extern "C"

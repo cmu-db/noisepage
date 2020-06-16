@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -162,16 +161,8 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
 
-  /**
-   * Obtain the pointer to the read/write lock for the given table. This must be taken in read mode for
-   * any updates to the table contents (e.g. INSERT, DELETE, UPDATE), and in write mode for CREATE INDEX
-   *
-   * @param table to which we want the read/write lock, this must be a valid oid from GetTableOid. Invalid input will
-   * trigger an assert
-   * @return a pointer to the read/write lock for the given table.
-   */
   common::ManagedPointer<std::shared_mutex> GetTableLock(table_oid_t table) const;
-
+  common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
    * schema as provided by the catalog.  There is no guarantee that the OIDs for
@@ -350,22 +341,22 @@ class CatalogAccessor {
    * @param udf_context The context object to set to
    * @return False if the given proc_oid is invalid, True if else
    */
-  bool SetProcCtxPtr(proc_oid_t proc_oid, const execution::udf::UDFContext *udf_context);
+  bool SetProcCtxPtr(proc_oid_t proc_oid, const execution::functions::FunctionContext *udf_context);
 
   /**
    * Gets the proc context pointer column of proc_oid to udf_context
    * @param proc_oid The proc_oid whose pointer column we are getting here
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
    */
-  common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(proc_oid_t proc_oid);
+  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(proc_oid_t proc_oid);
 
   /**
-   * Gets a udf context object for a given proc if it is null for a valid proc id then the udf context
+   * Gets a functions context object for a given proc if it is null for a valid proc id then the functions context
    * object is reconstructed, put in pg_proc and returned
-   * @param proc_oid The proc_oid whose udfcontext object we are returning here
-   * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
+   * @param proc_oid The proc_oid whose FunctionContext object we are returning here
+   * @return nullptr if proc_oid is invalid else a valid functions context object for this proc_oid
    */
-  common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(proc_oid_t proc_oid);
+  common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(proc_oid_t proc_oid);
 
   /**
    * Returns the type oid of the given TypeId in pg_type
@@ -380,9 +371,9 @@ class CatalogAccessor {
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
   /**
-   * @return The transaction that this accessor was initialized with
+   * @return managed pointer to transaction context
    */
-  common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
+  common::ManagedPointer<transaction::TransactionContext> GetTxn() const { return txn_; }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

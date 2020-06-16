@@ -28,6 +28,8 @@ namespace terrier::parser {
  */
 class ExpressionUtil {
  public:
+  ExpressionUtil() = delete;
+
   /**
    * Populate the given set with all of the column oids referenced
    * in this expression tree.
@@ -363,8 +365,10 @@ class ExpressionUtil {
       // Technically, EvaluateExpression should replace all ColumnValueExpressions with
       // DerivedValueExpressions using expr_maps in order for execution to make sense,
       // otherwise we have ColumnValues that don't point into previous tuples....
-      OPTIMIZER_LOG_WARN("EvaluateExpression resulted in an unbound ColumnValueExpression");
-      // TERRIER_ASSERT(0, "EvaluateExpression resulted in an unbound ColumnValueExpression");
+      //
+      // However, there are other cases where EvaluateExpression will result in an unbound
+      // ColumnValueExpression particularly when dealing with InnerIndexJoin.
+      OPTIMIZER_LOG_TRACE("EvaluateExpression resulted in an unbound ColumnValueExpression");
     } else if (IsAggregateExpression(expr->GetExpressionType())) {
       /*
       TODO(wz2, [ExecutionEngine]): If value_idx is somehow needed during aggregation, reviist this

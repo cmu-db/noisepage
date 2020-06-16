@@ -11,7 +11,8 @@
 apt-get update && apt-get -y install default-jdk-headless
 
 # add the jenkins user and put the swarm.sh script in place
-useradd -m -s/bin/bash -c jenkins jenkins && echo 'jenkins ALL=(ALL)       NOPASSWD: ALL' > /etc/sudoers.d/jenkins
+groupadd -g 99 jenkins
+useradd -m -s/bin/bash -u 99 -g jenkins -c jenkins jenkins && echo 'jenkins ALL=(ALL)       NOPASSWD: ALL' > /etc/sudoers.d/jenkins
 install -m 755 -o jenkins -g jenkins /proj/CMUDB-CI/data/swarm.sh ~jenkins
 
 # add the jenkins service and enable it
@@ -50,8 +51,8 @@ chmod 1777 /mnt/ramdisk
 
 # setup nat
 route delete default
-route add default gw 10.92.0.4
-route add -net 128.2.0.0/16 gw 10.92.0.1
+route add default gw 10.111.0.4
+route add -net 128.2.0.0/16 gw 10.111.0.1
 
 # now that everything is in place, start the jenkins service
 systemctl start jenkins

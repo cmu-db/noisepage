@@ -1,9 +1,11 @@
 #include "planner/plannodes/analyze_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "common/json.h"
 
 namespace terrier::planner {
 

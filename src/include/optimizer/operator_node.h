@@ -1,12 +1,13 @@
 #pragma once
 
-#include "optimizer/operator_node_contents.h"
-
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "optimizer/abstract_optimizer_node.h"
+#include "optimizer/operator_node_contents.h"
+#include "transaction/transaction_context.h"
 namespace terrier::optimizer {
 
 /**
@@ -14,25 +15,55 @@ namespace terrier::optimizer {
  * by the binder by visiting the abstract syntax tree (AST) produced by the parser and servers
  * as the input to the query optimizer.
  */
-class OperatorNode {
+class OperatorNode : public AbstractOptimizerNode {
  public:
   /**
    * Create an OperatorNode
-   * @param op an operator to bind to this OperatorNode node
+   * @param contents an AbstractOperatorNodeContents to bind to this node
    * @param children children of this OperatorNode
+   * @param txn transaction context for memory management
    */
-  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<OperatorNode>> &&children)
-      : op_(std::move(op)), children_(std::move(children)) {}
+  explicit OperatorNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
+                        std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children,
+                        transaction::TransactionContext *txn)
+      : contents_(contents), children_(std::move(children)), txn_(common::ManagedPointer(txn)) {}
+
+  /**
+   * Operator-based constructor for an OperatorNode
+   * @param op an operator to bind to this OperatorNode
+   * @param children Children of this OperatorNode
+   * @param txn transaction context for memory management
+   */
+  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children,
+                        transaction::TransactionContext *txn)
+      : contents_(common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)))),
+        children_(std::move(children)),
+        txn_(common::ManagedPointer(txn)) {
+    auto *op_node = reinterpret_cast<Operator *>(contents_.Get());
+    if (txn_ != nullptr) {
+      txn_->RegisterCommitAction([=]() { delete op_node; });
+      txn_->RegisterAbortAction([=]() { delete op_node; });
+    }
+  }
+
+  /**
+   * Default destructor
+   */
+  ~OperatorNode() override = default;
 
   /**
    * Copy
    */
-  std::unique_ptr<OperatorNode> Copy() {
-    std::vector<std::unique_ptr<OperatorNode>> child;
-    for (const auto &op : children_) {
-      child.emplace_back(op->Copy());
+  std::unique_ptr<AbstractOptimizerNode> Copy() override {
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> new_children;
+    for (auto &op : children_) {
+      TERRIER_ASSERT(op != nullptr, "OperatorNode should not have null children");
+      TERRIER_ASSERT(op->Contents()->GetOpType() != OpType::UNDEFINED, "OperatorNode should have operator children");
+
+      new_children.emplace_back(op->Copy());
     }
-    return std::make_unique<OperatorNode>(Operator(op_), std::move(child));
+    auto result = std::make_unique<OperatorNode>(contents_, std::move(new_children), txn_.Get());
+    return std::move(result);
   }
 
   /**
@@ -41,18 +72,25 @@ class OperatorNode {
    * @returns true if equal
    */
   bool operator==(const OperatorNode &other) const {
-    if (op_ != other.op_) return false;
+    if (contents_->GetOpType() != other.contents_->GetOpType()) return false;
+    if (contents_->GetExpType() != other.contents_->GetExpType()) return false;
     if (children_.size() != other.children_.size()) return false;
 
     for (size_t idx = 0; idx < children_.size(); idx++) {
       auto &child = children_[idx];
       auto &other_child = other.children_[idx];
+
       TERRIER_ASSERT(child != nullptr, "OperatorNode should not have null children");
+      TERRIER_ASSERT(child->Contents()->GetOpType() != OpType::UNDEFINED, "OperatorNode should have operator children");
       TERRIER_ASSERT(other_child != nullptr, "OperatorNode should not have null children");
+      TERRIER_ASSERT(other_child->Contents()->GetOpType() != OpType::UNDEFINED,
+                     "OperatorNode should have operator children");
 
-      if (*child != *other_child) return false;
+      auto *child_op = dynamic_cast<OperatorNode *>(child.get());
+      auto *other_child_op = dynamic_cast<OperatorNode *>(other_child.get());
+
+      if (*child_op != *other_child_op) return false;
     }
-
     return true;
   }
 
@@ -67,39 +105,46 @@ class OperatorNode {
    * Move constructor
    * @param op other to construct from
    */
-  OperatorNode(OperatorNode &&op) noexcept : op_(std::move(op.op_)), children_(std::move(op.children_)) {}
+  OperatorNode(OperatorNode &&op) noexcept : contents_(op.contents_), children_(std::move(op.children_)) {}
 
   /**
    * @return vector of children
    */
-  std::vector<common::ManagedPointer<OperatorNode>> GetChildren() const {
-    std::vector<common::ManagedPointer<OperatorNode>> result;
-    result.reserve(children_.size());
-    for (auto &i : children_) result.emplace_back(i);
+  std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
+    std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
+    for (const std::unique_ptr<AbstractOptimizerNode> &child : children_) {
+      result.emplace_back(common::ManagedPointer(child));
+    }
     return result;
   }
 
   /**
    * @return underlying operator
    */
-  const Operator &GetOp() const { return op_; }
+  common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const override { return contents_; }
 
   /**
    * Add a operator expression as child
-   * @param child_op The operator expression to be added as child
+   * @param child The operator expression to be added as child
    */
-  void PushChild(std::unique_ptr<OperatorNode> child_op) { children_.emplace_back(std::move(child_op)); }
+  void PushChild(std::unique_ptr<AbstractOptimizerNode> child) override { children_.emplace_back(std::move(child)); }
 
  private:
   /**
    * Underlying operator
    */
-  Operator op_;
+  common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
 
   /**
    * Vector of children
    */
-  std::vector<std::unique_ptr<OperatorNode>> children_;
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> children_;
+
+  /**
+   * Transaction context for managing memory, both in terms of eventually freeing the on-the-fly operators created
+   * and for eventually freeing copies made of this node.
+   */
+  common::ManagedPointer<transaction::TransactionContext> txn_;
 };
 
 }  // namespace terrier::optimizer

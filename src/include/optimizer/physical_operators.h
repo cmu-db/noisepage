@@ -18,7 +18,6 @@
 #include "parser/update_statement.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/plan_node_defs.h"
-#include "type/transient_value.h"
 
 namespace terrier {
 
@@ -478,6 +477,87 @@ class Limit : public OperatorNodeContents<Limit> {
 };
 
 /**
+ * Physical operator for inner index join
+ */
+class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
+ public:
+  /**
+   * @param tbl_oid Table OID
+   * @param idx_oid Index OID
+   * @param scan_type IndexScanType
+   * @param join_keys Join Keys
+   * @param join_predicates predicates for join
+   * @return an InnerIndexJoin operator
+   */
+  static Operator Make(catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid, planner::IndexScanType scan_type,
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys,
+                       std::vector<AnnotatedExpression> join_predicates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+
+  common::hash_t Hash() const override;
+
+  /**
+   * @return Table OID
+   */
+  catalog::table_oid_t GetTableOID() const { return tbl_oid_; }
+
+  /**
+   * @return Index OID
+   */
+  catalog::index_oid_t GetIndexOID() const { return idx_oid_; }
+
+  /**
+   * @return scan type
+   */
+  planner::IndexScanType GetScanType() const { return scan_type_; }
+
+  /**
+   * @return Join Keys
+   */
+  const std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> &GetJoinKeys() const {
+    return join_keys_;
+  }
+
+  /**
+   * @return Predicates for the Join
+   */
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
+
+ private:
+  /**
+   * Table OID
+   */
+  catalog::table_oid_t tbl_oid_;
+
+  /**
+   * Index OID
+   */
+  catalog::index_oid_t idx_oid_;
+
+  /**
+   * Scan Type
+   */
+  planner::IndexScanType scan_type_;
+
+  /**
+   * Join Keys
+   */
+  std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> join_keys_;
+
+  /**
+   * Predicates for join
+   */
+  std::vector<AnnotatedExpression> join_predicates_;
+};
+
+/**
  * Physical operator for inner nested loop join
  */
 class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {
@@ -618,7 +698,7 @@ class InnerHashJoin : public OperatorNodeContents<InnerHashJoin> {
    * @param join_predicates predicates for join
    * @param left_keys left keys to join
    * @param right_keys right keys to join
-   * @return an IneerNLJoin operator
+   * @return an InnerNLJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
@@ -1889,6 +1969,7 @@ class DropIndex : public OperatorNodeContents<DropIndex> {
 class DropNamespace : public OperatorNodeContents<DropNamespace> {
  public:
   /**
+   * @param namespace_oid OID of namespace to drop
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid);
@@ -1920,6 +2001,10 @@ class DropNamespace : public OperatorNodeContents<DropNamespace> {
 class DropTrigger : public OperatorNodeContents<DropTrigger> {
  public:
   /**
+   * @param database_oid OID of database
+   * @param namespace_oid OID of namespace
+   * @param trigger_oid OID of trigger to drop
+   * @param if_exists existence flag
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -1982,6 +2067,10 @@ class DropTrigger : public OperatorNodeContents<DropTrigger> {
 class DropView : public OperatorNodeContents<DropView> {
  public:
   /**
+   * @param database_oid OID of database
+   * @param namespace_oid OID of namespace
+   * @param view_oid OID of view to drop
+   * @param if_exists existence flag
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,

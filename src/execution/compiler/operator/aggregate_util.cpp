@@ -68,7 +68,7 @@ void AggregateHelper::DeclareAHTs(util::RegionVector<ast::FieldDecl *> *fields) 
   }
 }
 
-void AggregateHelper::GenAHTStructs(util::RegionVector<ast::Decl *> *decls) {
+void AggregateHelper::GenAHTStructs(ast::StructDecl **global_decl, util::RegionVector<ast::Decl *> *decls) {
   // Generic function to add a struct
   auto gen_struct = [&](const AHTInfo *info) {
     // First make the fields
@@ -97,7 +97,15 @@ void AggregateHelper::GenAHTStructs(util::RegionVector<ast::Decl *> *decls) {
   };
 
   // Add the global hash table's struct.
-  if (!op_->GetGroupByTerms().empty()) gen_struct(&global_info_);
+  if (!op_->GetGroupByTerms().empty()) {
+    gen_struct(&global_info_);
+    if (global_decl != nullptr) {
+      auto *decl = decls->back();
+      TERRIER_ASSERT(ast::StructDecl::classof(decl), "Expected StructDecl");
+      *global_decl = reinterpret_cast<ast::StructDecl *>(decl);
+    }
+  }
+
   // Add each distinct hash table's struct.
   for (const auto &distinct_info : distinct_aggs_) {
     gen_struct(distinct_info.second.get());

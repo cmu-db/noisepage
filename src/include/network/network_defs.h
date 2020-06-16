@@ -1,21 +1,8 @@
 #pragma once
 
-#include <unistd.h>
-
-#include <bitset>
-#include <climits>
-#include <cstdint>
-#include <functional>
-#include <limits>
-#include <map>
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
-#include "common/macros.h"
-#include "type/type_id.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::trafficcop {
 class TrafficCop;
@@ -27,7 +14,7 @@ class ReadBuffer;
 
 // This is to be stashed in a ConnectionContext as a unique identifier. This is really just the socket, but we don't
 // want anyone using it to directly access the socket downstream
-STRONG_TYPEDEF(connection_id_t, uint16_t);
+STRONG_TYPEDEF_HEADER(connection_id_t, uint16_t);
 
 // Number of seconds to timeout on a client read
 #define READ_TIMEOUT (20 * 60)

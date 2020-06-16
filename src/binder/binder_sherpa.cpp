@@ -1,10 +1,8 @@
-
 #include "binder/binder_sherpa.h"
 
-#include <string>
 #include <unordered_map>
-#include <vector>
 
+#include "binder/binder_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "util/time_util.h"
 
@@ -71,86 +69,6 @@ void BinderSherpa::CheckDesiredType(const common::ManagedPointer<parser::Abstrac
     const auto desired UNUSED_ATTRIBUTE = it->second;
     const auto current UNUSED_ATTRIBUTE = expr->GetReturnValueType();
     throw BINDER_EXCEPTION("BinderSherpa expected expr to have a different type.");
-  }
-}
-
-void BinderSherpa::CheckAndTryPromoteType(const common::ManagedPointer<type::TransientValue> value,
-                                          const type::TypeId desired_type) const {
-  const auto curr_type = value->Type();
-
-  // Check if types are mismatched, and convert them if possible.
-  if (curr_type != desired_type) {
-    switch (curr_type) {
-      // NULL conversion.
-      case type::TypeId::INVALID: {
-        *value = type::TransientValueFactory::GetNull(desired_type);
-        break;
-      }
-
-        // INTEGER casting (upwards and downwards).
-      case type::TypeId::TINYINT: {
-        auto int_val = type::TransientValuePeeker::PeekTinyInt(*value);
-        *value = TryCastNumericAll(int_val, desired_type);
-        break;
-      }
-      case type::TypeId::SMALLINT: {
-        auto int_val = type::TransientValuePeeker::PeekSmallInt(*value);
-        *value = TryCastNumericAll(int_val, desired_type);
-        break;
-      }
-      case type::TypeId::INTEGER: {
-        auto int_val = type::TransientValuePeeker::PeekInteger(*value);
-        *value = TryCastNumericAll(int_val, desired_type);
-        break;
-      }
-      case type::TypeId::BIGINT: {
-        auto int_val = type::TransientValuePeeker::PeekBigInt(*value);
-        *value = TryCastNumericAll(int_val, desired_type);
-        break;
-      }
-
-        // DATE and TIMESTAMP conversion. String to numeric type conversion.
-        // TODO(WAN): float-type numerics are probably broken.
-      case type::TypeId::VARCHAR: {
-        const auto str_view = type::TransientValuePeeker::PeekVarChar(*value);
-
-        // TODO(WAN): A bit stupid to take the string view back into a string.
-        switch (desired_type) {
-          case type::TypeId::DATE: {
-            auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
-            if (!parsed_date.first) {
-              ReportFailure("Binder conversion from VARCHAR to DATE failed.");
-            }
-            *value = type::TransientValueFactory::GetDate(parsed_date.second);
-            break;
-          }
-          case type::TypeId::TIMESTAMP: {
-            auto parsed_timestamp = util::TimeConvertor::ParseTimestamp(std::string(str_view));
-            if (!parsed_timestamp.first) {
-              ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
-            }
-            *value = type::TransientValueFactory::GetTimestamp(parsed_timestamp.second);
-            break;
-          }
-          case type::TypeId::TINYINT:
-          case type::TypeId::SMALLINT:
-          case type::TypeId::INTEGER:
-          case type::TypeId::BIGINT: {
-            auto int_val = std::stol(std::string(str_view));
-            *value = TryCastNumericAll(int_val, desired_type);
-            break;
-          }
-          default:
-            throw BINDER_EXCEPTION("BinderSherpa VARCHAR cannot be cast to desired type.");
-        }
-
-        break;
-      }
-
-      default: {
-        ReportFailure("Binder conversion of expression type failed.");
-      }
-    }
   }
 }
 

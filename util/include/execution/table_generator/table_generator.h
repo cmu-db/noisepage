@@ -11,7 +11,6 @@
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::execution::sql {
 
@@ -57,6 +56,25 @@ class TableGenerator {
     std::stringstream table_name;
     auto type_name = type::TypeUtil::TypeIdToString(type);
     table_name << type_name << "Col" << col << "Row" << row << "Car" << car;
+    return table_name.str();
+  }
+
+  /**
+   * Generate Mixed Table Name
+   * @param types Number of types
+   * @param cols Number of columns per type
+   * @param row Number of rows
+   * @param car Cardinality
+   * @return table name
+   */
+  static std::string GenerateMixedTableName(std::vector<type::TypeId> types, std::vector<uint32_t> cols, size_t row,
+                                            size_t car) {
+    std::stringstream table_name;
+    for (size_t idx = 0; idx < cols.size(); idx++) {
+      table_name << type::TypeUtil::TypeIdToString(types[idx]);
+      table_name << "Col" << cols[idx];
+    }
+    table_name << "Row" << row << "Car" << car;
     return table_name.str();
   }
 
@@ -132,32 +150,25 @@ class TableGenerator {
      */
     uint64_t serial_counter_{0};
     /**
-     * Duplicate another column data
+     * Whether is copy
      */
-    bool is_clone_;
+    bool is_clone_ = false;
     /**
-     * Index to duplicate
+     * Clone idx
      */
-    size_t clone_idx_;
+    size_t clone_idx_ = 0;
 
     /**
      * Constructor
      */
     ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
-        : name_(std::move(name)),
-          type_(type),
-          nullable_(nullable),
-          dist_(dist),
-          min_(min),
-          max_(max),
-          is_clone_(false) {}
+        : name_(std::move(name)), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
 
-    ColumnInsertMeta(const ColumnInsertMeta &other, std::string name, size_t clone_idx)
-        : name_(std::move(name)),
-          type_(other.type_),
-          nullable_(other.nullable_),
-          is_clone_(true),
-          clone_idx_(clone_idx) {}
+    /**
+     * Clone Constructor
+     */
+    ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, size_t clone_idx)
+        : name_(std::move(name)), type_(type), nullable_(nullable), is_clone_(true), clone_idx_(clone_idx) {}
   };
 
   /**
@@ -271,6 +282,17 @@ class TableGenerator {
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
 
   /**
+   * Clone Column Data
+   * T - underlying type of original
+   * S - underlying type of copied data
+   * @param orig original
+   * @param num_rows number of rows
+   * @returns cloned column data
+   */
+  template <typename T, typename S>
+  std::pair<byte *, uint32_t *> CloneColumnData(std::pair<byte *, uint32_t *> orig, uint32_t num_rows);
+
+  /**
    * Create table
    * @param metadata TableInsertMeta
    */
@@ -297,7 +319,7 @@ class TableGenerator {
                  const catalog::Schema &table_schema);
 
   terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 };
 

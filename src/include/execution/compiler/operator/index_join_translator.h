@@ -1,9 +1,15 @@
 #pragma once
+
 #include <unordered_map>
 #include <vector>
-#include "catalog/index_schema.h"
+
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/index_join_plan_node.h"
+
+namespace terrier::catalog {
+class IndexSchema;
+class Schema;
+}  // namespace terrier::catalog
 
 namespace terrier::execution::compiler {
 
@@ -52,7 +58,8 @@ class IndexJoinTranslator : public OperatorTranslator {
   // Set the column oids to scan
   void SetOids(FunctionBuilder *builder);
   // Fill the key with table data
-  void FillKey(FunctionBuilder *builder);
+  void FillKey(FunctionBuilder *builder, ast::Identifier pr,
+               const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs);
   // Generate the index iteration loop
   void GenForLoop(FunctionBuilder *builder);
   // Generate the join predicate's if statement
@@ -76,7 +83,8 @@ class IndexJoinTranslator : public OperatorTranslator {
   // Structs and local variables
   ast::Identifier index_iter_;
   ast::Identifier col_oids_;
-  ast::Identifier index_pr_;
+  ast::Identifier lo_index_pr_;
+  ast::Identifier hi_index_pr_;
   ast::Identifier table_pr_;
   ast::Identifier slot_;
 };

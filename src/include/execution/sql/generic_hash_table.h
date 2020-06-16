@@ -72,8 +72,9 @@ class GenericHashTable {
    * Explicitly set the size of the hash table to support at least @em new_size
    * elements with good performance.
    * @param new_size The expected number of elements to size the table for
+   * @param tracker MemoryTracker
    */
-  void SetSize(uint64_t new_size);
+  void SetSize(uint64_t new_size, common::ManagedPointer<MemoryTracker> tracker);
 
   /**
    * Prefetch the head of the bucket chain for the hash \a hash

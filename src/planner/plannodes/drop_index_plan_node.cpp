@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t DropIndexPlanNode::Hash() const {
@@ -36,5 +38,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropIndexPlanNode::From
   index_oid_ = j.at("index_oid").get<catalog::index_oid_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(DropIndexPlanNode);
 
 }  // namespace terrier::planner

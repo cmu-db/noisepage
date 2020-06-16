@@ -17,12 +17,17 @@
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
+// This is needed because one of the header files above uses boolean.h on OSX which
+// redefines TRUE to 1 and FALSE to 0, which causes issues.
+#undef TRUE
+#undef FALSE
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/value.h"
+#include "execution/sql/value_util.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
@@ -38,6 +43,7 @@
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "metrics/metrics_thread.h"
+#include "parser/expression/constant_value_expression.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
@@ -111,13 +117,13 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::ExecutionContext exec_ctx{db_oid, common::ManagedPointer(txn), printer, output_schema,
                                   common::ManagedPointer(accessor)};
   // Add dummy parameters for tests
-  sql::DateVal date(sql::Date::FromYMD(1937, 3, 7));
-  std::vector<type::TransientValue> params;
-  params.emplace_back(type::TransientValueFactory::GetInteger(37));
-  params.emplace_back(type::TransientValueFactory::GetDecimal(37.73));
-  params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date.val_.ToNative())));
-  params.emplace_back(type::TransientValueFactory::GetVarChar("37 Strings"));
-  exec_ctx.SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+  std::vector<parser::ConstantValueExpression> params;
+  params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
+  params.emplace_back(type::TypeId::DECIMAL, sql::Real(37.73));
+  params.emplace_back(type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
+  auto string_val = sql::ValueUtil::CreateStringVal(std::string_view("37 Strings"));
+  params.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+  exec_ctx.SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
 
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};

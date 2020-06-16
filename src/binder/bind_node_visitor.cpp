@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "binder/binder_sherpa.h"
+#include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
@@ -26,7 +27,6 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/sql_statement.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::binder {
 
@@ -46,10 +46,12 @@ BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAc
                                  const catalog::db_oid_t db_oid)
     : catalog_accessor_(catalog_accessor), db_oid_(db_oid) {}
 
-void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result,
-                                     const common::ManagedPointer<std::vector<type::TransientValue>> parameters) {
+void BindNodeVisitor::BindNameToNode(
+    common::ManagedPointer<parser::ParseResult> parse_result,
+    const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
+    const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types) {
   TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
-  sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters);
+  sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters, desired_parameter_types);
   TERRIER_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
   sherpa_->GetParseResult()->GetStatement(0)->Accept(
       common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -344,8 +346,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
               cols.emplace_back(pair);
             } else {
               // Make a null value of the right type that we can either compare with the stored expression or insert.
-              auto null_tv = type::TransientValueFactory::GetNull(schema_col.Type());
-              auto null_ex = std::make_unique<parser::ConstantValueExpression>(std::move(null_tv));
+              auto null_ex =
+                  std::make_unique<parser::ConstantValueExpression>(schema_col.Type(), execution::sql::Val(true));
 
               // TODO(WAN): We thought that you might be able to collapse these two cases into one, since currently
               // the catalog column's stored expression is always a NULL of the right type if not otherwise specified.
@@ -405,7 +407,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
           if (is_cast_expression) {
             if (ret_type != expected_ret_type) {
-              sherpa_->ReportFailure("BindNodeVisitor tried to cast, but cast result type does not match the schema.");
+              BinderUtil::ReportFailure(
+                  "BindNodeVisitor tried to cast, but cast result type does not match the schema.");
             }
             auto child = ins_val->GetChild(0)->Copy();
             ins_val = common::ManagedPointer(child);
@@ -509,7 +512,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node
     if (is_cast_expression) {
       auto child = expr->GetChild(0)->Copy();
       if (expr->GetReturnValueType() != expected_ret_type) {
-        sherpa_->ReportFailure("BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
+        BinderUtil::ReportFailure("BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
       }
       sherpa_->SetDesiredType(common::ManagedPointer(child), expr->GetReturnValueType());
       update->ResetValue(common::ManagedPointer(child));
@@ -607,7 +610,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConstantValueExpressi
   SqlNodeVisitor::Visit(expr);
 
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
-  sherpa_->CheckAndTryPromoteType(common::ManagedPointer(&expr->value_), desired_type);
+  BinderUtil::CheckAndTryPromoteType(expr, desired_type);
   expr->DeriveReturnValueType();
 }
 
@@ -637,10 +640,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
     throw BINDER_EXCEPTION("Procedure not registered");
   }
 
-  auto udf_context = catalog_accessor_->GetUDFContext(proc_oid);
+  auto func_context = catalog_accessor_->GetFunctionContext(proc_oid);
 
   expr->SetProcOid(proc_oid);
-  expr->SetReturnValueType(udf_context->GetFunctionReturnType());
+  expr->SetReturnValueType(func_context->GetFunctionReturnType());
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::OperatorExpression> expr) {
@@ -652,13 +655,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::OperatorExpression> e
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) {
   BINDER_LOG_TRACE("Visiting ParameterValueExpression ...");
   SqlNodeVisitor::Visit(expr);
-  const common::ManagedPointer<type::TransientValue> param =
+  const common::ManagedPointer<parser::ConstantValueExpression> param =
       common::ManagedPointer(&((*(sherpa_->GetParameters()))[expr->GetValueIdx()]));
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
-  if (desired_type != type::TypeId::INVALID) sherpa_->CheckAndTryPromoteType(param, desired_type);
+  if (desired_type != type::TypeId::INVALID) BinderUtil::CheckAndTryPromoteType(param, desired_type);
 
-  expr->return_value_type_ = param->Type();
+  expr->return_value_type_ = param->GetReturnValueType();
+  sherpa_->SetDesiredParameterType(expr->GetValueIdx(), param->GetReturnValueType());
 }
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::StarExpression> expr) {

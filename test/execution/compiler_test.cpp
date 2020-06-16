@@ -18,6 +18,7 @@
 #include "execution/execution_util.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/value.h"
+#include "execution/sql/value_util.h"
 #include "execution/sql_test.h"  // NOLINT
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_module.h"
@@ -36,8 +37,6 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::compiler::test {
@@ -55,7 +54,7 @@ class CompilerTest : public SqlBasedTest {
                                   const std::vector<brain::ExecutionOperatingUnitType> &vec_b) {
     std::unordered_set<brain::ExecutionOperatingUnitType> set_a;
     std::unordered_set<brain::ExecutionOperatingUnitType> set_b;
-    for (auto e : vec_a) {
+    for (const auto &e : vec_a) {
       set_a.insert(e.GetExecutionOperatingUnitType());
     }
 
@@ -130,10 +129,8 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-  };
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
 
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
@@ -209,11 +206,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN,
-      brain::ExecutionOperatingUnitType::PROJECTION,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-  };
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
 
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
@@ -272,11 +266,11 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
   auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-  std::vector<type::TransientValue> params;
-  params.emplace_back(type::TransientValueFactory::GetInteger(100));
-  params.emplace_back(type::TransientValueFactory::GetInteger(500));
-  params.emplace_back(type::TransientValueFactory::GetInteger(3));
-  exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+  std::vector<parser::ConstantValueExpression> params;
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(100));
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(500));
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(3));
+  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
 
   // Run & Check
   auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
@@ -289,10 +283,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-  };
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
 
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
@@ -349,7 +341,8 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -428,7 +421,8 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -506,7 +500,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -584,7 +579,8 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -662,7 +658,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -750,7 +747,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
       brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::SEQ_SCAN,
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1061,7 +1059,8 @@ TEST_F(CompilerTest, StaticDistinctAggregateTest) {
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
       brain::ExecutionOperatingUnitType::SEQ_SCAN};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1163,7 +1162,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
       brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                                                                 brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE};
+                                                                 brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1368,7 +1368,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, brain::ExecutionOperatingUnitType::SEQ_SCAN,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE};
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1556,7 +1556,7 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
   auto exp_vec2 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, brain::ExecutionOperatingUnitType::SEQ_SCAN,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE};
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec2, exp_vec2));
@@ -1670,7 +1670,8 @@ TEST_F(CompilerTest, SimpleSortTest) {
       brain::ExecutionOperatingUnitType::SORT_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SORT_ITERATE, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
+      brain::ExecutionOperatingUnitType::SORT_ITERATE, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+      brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -2082,7 +2083,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN,
+      brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
@@ -2149,10 +2151,12 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid1)
                      .SetTableOid(table_oid1)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
                      .SetOutputSchema(std::move(schema))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(predicate)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .Build();
   }
   // Compile and Run
@@ -2198,8 +2202,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::IDXJOIN,
+      brain::ExecutionOperatingUnitType::OUTPUT, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::IDX_SCAN,
       brain::ExecutionOperatingUnitType::SEQ_SCAN};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
@@ -2263,8 +2267,11 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid2)
                      .SetTableOid(table_oid2)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetOutputSchema(std::move(schema))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(nullptr)
@@ -2310,8 +2317,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::IDXJOIN, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::SEQ_SCAN};
+      brain::ExecutionOperatingUnitType::OUTPUT, brain::ExecutionOperatingUnitType::IDX_SCAN,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
@@ -2861,10 +2868,10 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
-    params.emplace_back(type::TransientValueFactory::GetInteger(495));
-    params.emplace_back(type::TransientValueFactory::GetInteger(505));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+    std::vector<parser::ConstantValueExpression> params;
+    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(495));
+    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(505));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
 
@@ -3075,26 +3082,28 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
+    std::vector<parser::ConstantValueExpression> params;
     // First parameter list
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.val_.ToNative())));
-    params.emplace_back(type::TransientValueFactory::GetDecimal(real1));
-    params.emplace_back(type::TransientValueFactory::GetBoolean(bool1));
-    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint1));
-    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint1));
-    params.emplace_back(type::TransientValueFactory::GetInteger(int1));
-    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint1));
+    auto str1_val = sql::ValueUtil::CreateStringVal(str1);
+    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(type::TypeId::DATE, sql::DateVal(date1.val_));
+    params.emplace_back(type::TypeId::DECIMAL, sql::Real(real1));
+    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool1));
+    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint1));
+    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint1));
+    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int1));
+    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint1));
     // Second parameter list
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.val_.ToNative())));
-    params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
-    params.emplace_back(type::TransientValueFactory::GetBoolean(bool2));
-    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint2));
-    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint2));
-    params.emplace_back(type::TransientValueFactory::GetInteger(int2));
-    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint2));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+    auto str2_val = sql::ValueUtil::CreateStringVal(str2);
+    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
+    params.emplace_back(type::TypeId::DATE, sql::DateVal(date2.val_));
+    params.emplace_back(type::TypeId::DECIMAL, sql::Real(real2));
+    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool2));
+    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint2));
+    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint2));
+    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int2));
+    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint2));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
 
@@ -3271,10 +3280,12 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
+    std::vector<parser::ConstantValueExpression> params;
+    auto str1_val = sql::ValueUtil::CreateStringVal(str1);
+    auto str2_val = sql::ValueUtil::CreateStringVal(str2);
+    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();

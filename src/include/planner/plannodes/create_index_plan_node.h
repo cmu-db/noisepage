@@ -192,6 +192,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   bool concurrent_ = false;
 };
 
-DEFINE_JSON_DECLARATIONS(CreateIndexPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(CreateIndexPlanNode);
 
 }  // namespace terrier::planner

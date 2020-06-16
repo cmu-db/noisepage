@@ -3,6 +3,7 @@
 #include <random>
 #include <string>
 
+#include "binder/bind_node_visitor.h"
 #include "execution/exec/execution_context.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -66,7 +67,7 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
 
       auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
       binder::BindNodeVisitor visitor(common::ManagedPointer(accessor.get()), db_oid_);
-      visitor.BindNameToNode(common::ManagedPointer<parser::ParseResult>(parse_result), nullptr);
+      visitor.BindNameToNode(common::ManagedPointer<parser::ParseResult>(parse_result), nullptr, nullptr);
 
       // generate plan node
       std::unique_ptr<planner::AbstractPlanNode> plan_node = trafficcop::TrafficCopUtil::Optimize(

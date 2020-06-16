@@ -9,7 +9,6 @@
 #include "execution/executable_query.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/vm/module.h"
-#include "storage/storage_defs.h"
 
 namespace terrier::execution::exec {
 class ExecutionContext;
@@ -49,7 +48,7 @@ class Workload {
 
   void LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, const std::vector<std::string> &queries);
 
-  std::vector<type::TransientValue> GetQueryParams(const std::string &query_name);
+  std::vector<parser::ConstantValueExpression> GetQueryParams(const std::string &query_name);
 
   common::ManagedPointer<DBMain> db_main_;
   common::ManagedPointer<storage::BlockStore> block_store_;

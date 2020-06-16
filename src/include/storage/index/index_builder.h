@@ -25,8 +25,8 @@ namespace terrier::storage::index {
 class IndexBuilder {
  private:
   catalog::IndexSchema key_schema_;
-  common::ManagedPointer<storage::SqlTable> sql_table_;
-  common::ManagedPointer<transaction::TransactionContext> txn_;
+  common::ManagedPointer<storage::SqlTable> sql_table_{};
+  common::ManagedPointer<transaction::TransactionContext> txn_{};
 
  public:
   IndexBuilder() = default;

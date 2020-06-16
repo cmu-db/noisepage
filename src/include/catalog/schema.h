@@ -11,7 +11,6 @@
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "parser/expression/abstract_expression.h"
-#include "storage/storage_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
 
@@ -198,33 +197,13 @@ class Schema {
     /**
      * @return column serialized to json
      */
-    nlohmann::json ToJson() const {
-      nlohmann::json j;
-      j["name"] = name_;
-      j["type"] = type_;
-      j["attr_size"] = attr_size_;
-      j["max_varlen_size"] = max_varlen_size_;
-      j["nullable"] = nullable_;
-      j["oid"] = oid_;
-      j["default_value"] = default_value_->ToJson();
-      return j;
-    }
+    nlohmann::json ToJson() const;
 
     /**
      * Deserializes a column
      * @param j serialized column
      */
-    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
-      name_ = j.at("name").get<std::string>();
-      type_ = j.at("type").get<type::TypeId>();
-      attr_size_ = j.at("attr_size").get<uint16_t>();
-      max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
-      nullable_ = j.at("nullable").get<bool>();
-      oid_ = j.at("oid").get<col_oid_t>();
-      auto deserialized = parser::DeserializeExpression(j.at("default_value"));
-      default_value_ = std::move(deserialized.result_);
-      return std::move(deserialized.non_owned_exprs_);
-    }
+    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j);
 
    private:
     std::string name_;
@@ -310,29 +289,19 @@ class Schema {
   /**
    * @return serialized schema
    */
-  nlohmann::json ToJson() const {
-    // Only need to serialize columns_ because col_oid_to_offset is derived from columns_
-    nlohmann::json j;
-    j["columns"] = columns_;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * Should not be used. See TERRIER_ASSERT
    */
-  void FromJson(const nlohmann::json &j) {
-    TERRIER_ASSERT(false, "Schema::FromJson should never be invoked directly; use DeserializeSchema");
-  }
+  void FromJson(const nlohmann::json &j);
 
   /**
    * Deserialize a schema
    * @param j json containing serialized schema
    * @return deserialized schema object
    */
-  std::unique_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
-    auto columns = j.at("columns").get<std::vector<Schema::Column>>();
-    return std::make_unique<Schema>(columns);
-  }
+  std::unique_ptr<Schema> static DeserializeSchema(const nlohmann::json &j);
 
   /**
    * @return the hashed value of this schema
@@ -363,7 +332,7 @@ class Schema {
   std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset_;
 };
 
-DEFINE_JSON_DECLARATIONS(Schema::Column);
-DEFINE_JSON_DECLARATIONS(Schema);
+DEFINE_JSON_HEADER_DECLARATIONS(Schema::Column);
+DEFINE_JSON_HEADER_DECLARATIONS(Schema);
 
 }  // namespace terrier::catalog

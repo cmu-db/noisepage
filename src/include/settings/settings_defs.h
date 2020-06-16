@@ -36,8 +36,8 @@ SETTING_int(
 // RecordBufferSegmentPool reuse limit
 SETTING_int(
     record_buffer_segment_reuse,
-    "The minimum number of record buffer segments to keep allocated in the system (default: 1000)",
-    1000,
+    "The minimum number of record buffer segments to keep allocated in the system (default: 10000)",
+    10000,
     1,
     1000000,
     true,
@@ -69,10 +69,19 @@ SETTING_int(
 // Garbage collector thread interval
 SETTING_int(
     gc_interval,
-    "Garbage collector thread interval (default: 10)",
-    10,
+    "Garbage collector thread interval (us) (default: 1000)",
+    1000,
     1,
     10000,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
+// Write ahead logging
+SETTING_bool(
+    wal,
+    "Whether WAL is enabled (default: true)",
+    true,
     false,
     terrier::settings::Callbacks::NoOp
 )
@@ -100,8 +109,8 @@ SETTING_int64(
 // Log Serialization interval
 SETTING_int(
     log_serialization_interval,
-    "Log serialization task interval (ms) (default: 10)",
-    10,
+    "Log serialization task interval (us) (default: 100)",
+    100,
     1,
     10000,
     false,
@@ -111,8 +120,8 @@ SETTING_int(
 // Log file persisting interval
 SETTING_int(
     log_persist_interval,
-    "Log file persisiting interval (ms) (default: 10)",
-    10,
+    "Log file persisting interval (us) (default: 100)",
+    100,
     1,
     10000,
     false,
@@ -146,8 +155,16 @@ SETTING_int64(
 )
 
 SETTING_bool(
+    metrics,
+    "Metrics sub-system for various components (default: true).",
+    true,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
     metrics_logging,
-    "Metrics collection for the Logging component.",
+    "Metrics collection for the Logging component (default: false).",
     false,
     true,
     terrier::settings::Callbacks::MetricsLogging
@@ -155,7 +172,7 @@ SETTING_bool(
 
 SETTING_bool(
     metrics_transaction,
-    "Metrics collection for the TransactionManager component.",
+    "Metrics collection for the TransactionManager component (default: false).",
     false,
     true,
     terrier::settings::Callbacks::MetricsTransaction
@@ -163,7 +180,7 @@ SETTING_bool(
 
 SETTING_bool(
     metrics_pipeline,
-    "Metrics collection for the ExecutionEngine pipelines.",
+    "Metrics collection for the ExecutionEngine pipelines (default: false).",
     false,
     true,
     terrier::settings::Callbacks::MetricsPipeline

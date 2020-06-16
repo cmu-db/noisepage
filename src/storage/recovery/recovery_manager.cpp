@@ -16,10 +16,24 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
+#include "common/dedicated_thread_registry.h"
 #include "storage/index/index_builder.h"
 #include "storage/write_ahead_log/log_io.h"
 
 namespace terrier::storage {
+
+void RecoveryManager::StartRecovery() {
+  TERRIER_ASSERT(recovery_task_ == nullptr, "Recovery already started");
+  recovery_task_ =
+      thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
+}
+
+void RecoveryManager::WaitForRecoveryToFinish() {
+  TERRIER_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
+  if (!thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>())) {
+    throw std::runtime_error("Recovery task termination failed");
+  }
+}
 
 void RecoveryManager::RecoverFromLogs() {
   // Replay logs until the log provider no longer gives us logs
