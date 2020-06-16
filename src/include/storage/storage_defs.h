@@ -17,7 +17,6 @@
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
 #include "storage/block_access_controller.h"
-#include "storage/write_ahead_log/log_io.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
@@ -218,17 +217,6 @@ enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
  * Types of LogRecords
  */
 enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT, ABORT };
-
-/**
- * Callback function and arguments to be called when record is persisted
- */
-using CommitCallback = std::pair<transaction::callback_fn, void *>;
-
-/**
- * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are
- * serialized in this BufferedLogWriter
- */
-using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
 
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,
