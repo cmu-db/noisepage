@@ -8,8 +8,11 @@
 #include "date/date.h"
 #include "execution/sql/value.h"
 #include "parser/expression/constant_value_expression.h"
+#include "storage/index/index.h"
 
 namespace terrier::execution::compiler {
+
+catalog::CatalogAccessor *CodeGen::Accessor() { return exec_ctx_->GetAccessor(); }
 
 CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
     : region_(std::make_unique<util::Region>("QueryRegion")),
