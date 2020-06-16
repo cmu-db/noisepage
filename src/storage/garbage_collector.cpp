@@ -16,9 +16,10 @@
 
 namespace terrier::storage {
 
-GarbageCollector::GarbageCollector(const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
-                 const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
-                 const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer)
+GarbageCollector::GarbageCollector(
+    const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
+    const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+    const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer)
     : timestamp_manager_(timestamp_manager),
       deferred_action_manager_(deferred_action_manager),
       txn_manager_(txn_manager),

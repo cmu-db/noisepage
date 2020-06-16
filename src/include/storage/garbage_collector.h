@@ -12,7 +12,7 @@
 namespace terrier::transaction {
 class TimestampManager;
 class TransactionManager;
-} // namespace terrier::transaction
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 
@@ -37,9 +37,9 @@ class GarbageCollector {
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
-  GarbageCollector(const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
-                   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
-                   const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer);
+  GarbageCollector(common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
+                   common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+                   common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer);
 
   ~GarbageCollector() {
     TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");

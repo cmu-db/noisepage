@@ -20,11 +20,11 @@
 
 namespace terrier {
 class RecoveryBenchmark;
-} // namespace terrier
+}  // namespace terrier
 
 namespace terrier::transaction {
 class TransactionManager;
-} // namespace terrier::transaction
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 

@@ -8,6 +8,8 @@
 #include <cerrno>
 #include <cstring>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "common/constants.h"
 #include "common/macros.h"

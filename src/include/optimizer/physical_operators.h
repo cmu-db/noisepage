@@ -21,7 +21,7 @@ namespace terrier {
 namespace catalog {
 class IndexSchema;
 class Schema;
-} // namespace catalog
+}  // namespace catalog
 
 namespace parser {
 class AbstractExpression;
