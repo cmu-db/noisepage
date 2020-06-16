@@ -39,12 +39,12 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
 
     table_id = accessor->GetTableOid(namespace_id, table_name);
     if (table_id == catalog::INVALID_TABLE_OID) {
-      throw BINDER_EXCEPTION(("Unknown table name " + table_name).c_str());
+      throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", table_name));
     }
   } else {
     table_id = accessor->GetTableOid(table_name);
     if (table_id == catalog::INVALID_TABLE_OID) {
-      throw BINDER_EXCEPTION(("Unknown table name " + table_name).c_str());
+      throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", table_name));
     }
   }
 
