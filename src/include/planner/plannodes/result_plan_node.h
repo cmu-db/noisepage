@@ -8,7 +8,6 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "storage/storage_defs.h"
 
 namespace terrier::planner {
 
@@ -101,6 +100,6 @@ class ResultPlanNode : public AbstractPlanNode {
   common::ManagedPointer<parser::AbstractExpression> expr_;
 };
 
-DEFINE_JSON_DECLARATIONS(ResultPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(ResultPlanNode);
 
 }  // namespace terrier::planner

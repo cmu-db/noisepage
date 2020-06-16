@@ -31,11 +31,7 @@ class DerivedValueExpression : public AbstractExpression {
    * Copies this DerivedValueExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Copies this DerivedValueExpression with new children
@@ -54,39 +50,18 @@ class DerivedValueExpression : public AbstractExpression {
   /** @return offset of the value in the tuple */
   int GetValueIdx() const { return value_idx_; }
 
-  common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(tuple_idx_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
-    return hash;
-  }
+  /** Hashes the expression **/
+  common::hash_t Hash() const override;
 
-  bool operator==(const AbstractExpression &rhs) const override {
-    if (!AbstractExpression::operator==(rhs)) return false;
-    auto const &other = dynamic_cast<const DerivedValueExpression &>(rhs);
-    if (GetTupleIdx() != other.GetTupleIdx()) return false;
-    return GetValueIdx() == other.GetValueIdx();
-  }
+  bool operator==(const AbstractExpression &rhs) const override;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["tuple_idx"] = tuple_idx_;
-    j["value_idx"] = value_idx_;
-    return j;
-  }
+  nlohmann::json ToJson() const override;
 
   /** @param j json to deserialize */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    tuple_idx_ = j.at("tuple_idx").get<int>();
-    value_idx_ = j.at("value_idx").get<int>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /** Index of the tuple. */
@@ -95,6 +70,6 @@ class DerivedValueExpression : public AbstractExpression {
   int value_idx_;
 };
 
-DEFINE_JSON_DECLARATIONS(DerivedValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(DerivedValueExpression);
 
 }  // namespace terrier::parser

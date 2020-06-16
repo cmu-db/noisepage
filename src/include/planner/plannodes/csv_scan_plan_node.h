@@ -190,6 +190,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   std::vector<type::TypeId> value_types_;
 };
 
-DEFINE_JSON_DECLARATIONS(CSVScanPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(CSVScanPlanNode);
 
 }  // namespace terrier::planner

@@ -74,6 +74,6 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 };
 
-DEFINE_JSON_DECLARATIONS(NestedLoopJoinPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(NestedLoopJoinPlanNode);
 
 }  // namespace terrier::planner

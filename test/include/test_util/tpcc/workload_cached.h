@@ -10,7 +10,6 @@
 #include "execution/executable_query.h"
 #include "execution/vm/module.h"
 #include "planner/plannodes/abstract_plan_node.h"
-#include "storage/storage_defs.h"
 #include "test_util/tpcc/database.h"
 
 namespace terrier::execution::exec {

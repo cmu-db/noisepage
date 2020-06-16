@@ -6,13 +6,12 @@
 #include <vector>
 #include "common/constants.h"
 #include "common/hash_util.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "storage/storage_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
 
@@ -99,29 +98,12 @@ class OutputSchema {
     /**
      * @return column serialized to json
      */
-    nlohmann::json ToJson() const {
-      nlohmann::json j;
-      j["name"] = name_;
-      j["type"] = type_;
-      j["expr"] = expr_->ToJson();
-      return j;
-    }
+    nlohmann::json ToJson() const;
 
     /**
      * @param j json to deserialize
      */
-    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
-      name_ = j.at("name").get<std::string>();
-      type_ = j.at("type").get<type::TypeId>();
-
-      if (!j.at("expr").is_null()) {
-        auto deserialized = parser::DeserializeExpression(j.at("expr"));
-        expr_ = std::move(deserialized.result_);
-        return std::move(deserialized.non_owned_exprs_);
-      }
-
-      return {};
-    }
+    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j);
 
    private:
     std::string name_;
@@ -194,38 +176,18 @@ class OutputSchema {
   /**
    * @return derived column serialized to json
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    std::vector<nlohmann::json> columns;
-    for (const auto &col : columns_) {
-      columns.emplace_back(col.ToJson());
-    }
-    j["columns"] = columns;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * @param j json to deserialize
    */
-  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
-    std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
-
-    std::vector<nlohmann::json> columns_json = j.at("columns");
-    for (const auto &j : columns_json) {
-      Column c;
-      auto nonowned = c.FromJson(j);
-      columns_.emplace_back(std::move(c));
-      exprs.insert(exprs.end(), std::make_move_iterator(nonowned.begin()), std::make_move_iterator(nonowned.end()));
-    }
-
-    return exprs;
-  }
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   std::vector<Column> columns_;
 };
 
-DEFINE_JSON_DECLARATIONS(OutputSchema::Column);
-DEFINE_JSON_DECLARATIONS(OutputSchema);
+DEFINE_JSON_HEADER_DECLARATIONS(OutputSchema::Column);
+DEFINE_JSON_HEADER_DECLARATIONS(OutputSchema);
 
 }  // namespace terrier::planner

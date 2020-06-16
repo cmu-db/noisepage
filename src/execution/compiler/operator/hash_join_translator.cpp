@@ -52,7 +52,11 @@ void HashJoinLeftTranslator::InitializeStructs(util::RegionVector<ast::Decl *> *
     fields.emplace_back(codegen_->MakeField(mark_, codegen_->BuiltinType(ast::BuiltinType::Bool)));
   }
   // Make the struct
-  decls->emplace_back(codegen_->MakeStruct(build_struct_, std::move(fields)));
+  auto *decl = codegen_->MakeStruct(build_struct_, std::move(fields));
+  TERRIER_ASSERT(ast::StructDecl::classof(decl), "Expected StructDecl");
+
+  struct_decl_ = reinterpret_cast<ast::StructDecl *>(decl);
+  decls->emplace_back(struct_decl_);
 }
 
 // Call @joinHTInit on the hash table

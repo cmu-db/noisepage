@@ -103,6 +103,6 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
   std::string database_name_;
 };
 
-DEFINE_JSON_DECLARATIONS(CreateDatabasePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(CreateDatabasePlanNode);
 
 }  // namespace terrier::planner

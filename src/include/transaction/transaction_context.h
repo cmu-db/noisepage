@@ -7,7 +7,6 @@
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
-#include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 #include "storage/write_ahead_log/log_record.h"
