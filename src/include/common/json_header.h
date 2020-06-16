@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include "common/managed_pointer.h"
 #include "nlohmann/json_fwd.hpp"
 
