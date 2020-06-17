@@ -39,11 +39,10 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     // aggregate the data by daf type
     for (const auto action : local) {
       if (aggregate_data_.at(int32_t(action.daf_id_)).daf_id_ == transaction::DafId::INVALID) {
-        aggregate_data_[int32_t(action.daf_id_)] = {action.resource_metrics_.start_, action.daf_id_, 1,
-                                                    action.resource_metrics_.elapsed_us_};
+        aggregate_data_[int32_t(action.daf_id_)] = {action.daf_id_, 1, action.resource_metrics_};
       } else {
         aggregate_data_[int32_t(action.daf_id_)].num_actions_processed_++;
-        aggregate_data_[int32_t(action.daf_id_)].time_elapsed_ += action.resource_metrics_.elapsed_us_;
+        aggregate_data_[int32_t(action.daf_id_)].resource_metrics_;
       }
     }
 //    other_db_metric->action_data_.clear();
@@ -94,24 +93,32 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 //      data.resource_metrics_.ToCSV(daf_event);
 //      daf_event << std::endl;
 //    }
-    start_ = metrics::MetricsUtil::Now();
+    start_ = metrics::MetricsUtil::Now() % 1000000000;
     daf_count_agg << static_cast<unsigned long>(start_);
     daf_time_agg << static_cast<unsigned long>(start_);
     uint64_t total_processed = 0;
     uint64_t total_elapsed = 0;
+    common::ResourceTracker::Metrics resource_metrics = {};
     for (const auto &data : aggregate_data_) {
 //      if (data.daf_id_ != transaction::DafId::INVALID) {
 //        daf_agg << data.start_ << ", " << static_cast<int>(data.daf_id_) << ", " << data.num_actions_processed_ << ", "
 //                << data.time_elapsed_;
 //        daf_agg << std::endl;
 //      }
+      if (data.daf_id_ != transaction::DafId::INVALID) {
+        resource_metrics += data.resource_metrics_;
+      }
       total_processed += data.num_actions_processed_;
-      total_elapsed += data.time_elapsed_;
+      total_elapsed += data.resource_metrics_.elapsed_us_;
       daf_count_agg << ", " << static_cast<unsigned long>(data.num_actions_processed_);
-      daf_time_agg << ", " << static_cast<unsigned long>(data.time_elapsed_);
+      daf_time_agg << ", " << static_cast<unsigned long>(data.resource_metrics_.elapsed_us_);
     }
-    daf_count_agg << ", " << static_cast<unsigned long>(total_processed) << ", " << static_cast<unsigned long>(before_queue_length_) << ", " << static_cast<unsigned long>(after_queue_length_) << ", " << static_cast<unsigned long>(num_daf_wakeup_) << ", " << static_cast<unsigned long>(num_txns_processed_) << std::endl;
-    daf_time_agg << ", " << static_cast<unsigned long>(total_elapsed) << ", "  << static_cast<unsigned long>(num_daf_wakeup_) << ", " << static_cast<unsigned long>(num_txns_processed_) << std::endl;
+    daf_count_agg << ", " << static_cast<unsigned long>(total_processed) << ", " << static_cast<unsigned long>(before_queue_length_) << ", " << static_cast<unsigned long>(after_queue_length_) << ", " << static_cast<unsigned long>(num_daf_wakeup_) << ", " << static_cast<unsigned long>(num_txns_processed_);
+    resource_metrics.ToCSV(daf_count_agg);
+    daf_count_agg << std::endl;
+    daf_time_agg << ", " << static_cast<unsigned long>(total_elapsed) << ", "  << static_cast<unsigned long>(num_daf_wakeup_) << ", " << static_cast<unsigned long>(num_txns_processed_);
+    resource_metrics.ToCSV(daf_time_agg);
+    daf_time_agg << std::endl;
 
     num_daf_wakeup_ = 0;
     before_queue_length_ = 0;
@@ -190,15 +197,15 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   struct AggregateData {
     AggregateData() = default;
 
-    AggregateData(const uint64_t start, const transaction::DafId daf_id, const uint64_t num_processed,
-                  const uint64_t time_elapsed)
-        : start_(start), daf_id_(daf_id), num_actions_processed_(num_processed), time_elapsed_(time_elapsed) {}
+    AggregateData(const transaction::DafId daf_id, const uint64_t num_processed, const common::ResourceTracker::Metrics &resource_metrics)
+        : daf_id_(daf_id), num_actions_processed_(num_processed), resource_metrics_(resource_metrics) {}
 
     AggregateData(const AggregateData &other) = default;
-    uint64_t start_{0};
+//    uint64_t start_{0};
     transaction::DafId daf_id_{transaction::DafId::INVALID};
     uint64_t num_actions_processed_{0};
-    uint64_t time_elapsed_{0};
+//    uint64_t time_elapsed_{0};
+    common::ResourceTracker::Metrics resource_metrics_;
   };
 
   std::list<ActionData> action_data_;

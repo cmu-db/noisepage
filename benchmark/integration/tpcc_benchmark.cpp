@@ -449,9 +449,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     thread_pool.Startup();
     unlink(terrier::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
