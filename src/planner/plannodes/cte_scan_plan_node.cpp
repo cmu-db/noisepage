@@ -26,4 +26,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CteScanPlanNode::FromJs
   return exprs;
 }
 
+DEFINE_JSON_BODY_DECLARATIONS(CteScanPlanNode);
+
 }  // namespace terrier::planner

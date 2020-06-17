@@ -139,6 +139,4 @@ class CteScanPlanNode : public AbstractPlanNode {
   std::unique_ptr<OutputSchema> table_output_schema_;
 };
 
-DEFINE_JSON_BODY_DECLARATIONS(CteScanPlanNode);
-
 }  // namespace terrier::planner
