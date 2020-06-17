@@ -10,8 +10,11 @@
 
 namespace terrier::parser {
 class AbstractExpression;
-class SeqScanPlanNode;
 }  // namespace terrier::parser
+
+namespace terrier::planner {
+class SeqScanPlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 

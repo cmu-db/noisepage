@@ -42,7 +42,7 @@ CodeGen::CodeGen(ast::Context *context) : context_(context), position_{0, 0}, nu
   for (auto &scope : scope_cache_) {
     scope = std::make_unique<Scope>(nullptr);
   }
-  num_cached_scopes_ = kDefaultScopeCacheSize;
+  num_cached_scopes_ = DEFAULT_SCOPE_CACHE_SIZE;
   EnterScope();
 }
 
@@ -976,7 +976,7 @@ void CodeGen::ExitScope() {
   Scope *scope = scope_;
   scope_ = scope->Previous();
 
-  if (num_cached_scopes_ < kDefaultScopeCacheSize) {
+  if (num_cached_scopes_ < DEFAULT_SCOPE_CACHE_SIZE) {
     scope_cache_[num_cached_scopes_++].reset(scope);
   } else {
     delete scope;

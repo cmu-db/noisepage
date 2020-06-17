@@ -12,8 +12,8 @@ namespace terrier::execution::util {
  */
 class ArithmeticOverflow : public common::AllStatic {
  public:
-  static constexpr int128_t kMinInt128 = std::numeric_limits<int128_t>::min();
-  static constexpr int128_t kMaxInt128 = std::numeric_limits<int128_t>::max();
+  static constexpr int128_t MIN_INT128 = std::numeric_limits<int128_t>::min();
+  static constexpr int128_t MAX_INT128 = std::numeric_limits<int128_t>::max();
 
   /**
    * Add two integral values and store their result in @em res. Return true if
@@ -25,7 +25,7 @@ class ArithmeticOverflow : public common::AllStatic {
    * @return True if the addition overflowed; false otherwise.
    */
   template <typename T>
-  static bool Add(const T a, const T b, T *res) {
+  static bool Add(T a, T b, T *res) {
     return __builtin_add_overflow(a, b, res);
   }
 
@@ -59,7 +59,7 @@ class ArithmeticOverflow : public common::AllStatic {
    */
   static bool Add(const int128_t a, const int128_t b, int128_t *res) {
     *res = a + b;
-    return (b > 0 && a > kMaxInt128 - b) || (b < 0 && a < kMinInt128 - b);
+    return (b > 0 && a > MAX_INT128 - b) || (b < 0 && a < MIN_INT128 - b);
   }
 
   /**
@@ -92,7 +92,7 @@ class ArithmeticOverflow : public common::AllStatic {
    */
   static bool Add(const uint128_t a, const uint128_t b, uint128_t *res) {
     *res = a + b;
-    return (a > kMaxInt128 - b);
+    return (a > MAX_INT128 - b);
   }
 
   /**
@@ -104,7 +104,7 @@ class ArithmeticOverflow : public common::AllStatic {
    * @return True if the subtraction overflowed; false otherwise.
    */
   template <typename T>
-  static bool Sub(const T a, const T b, T *res) {
+  static bool Sub(T a, T b, T *res) {
     return __builtin_sub_overflow(a, b, res);
   }
 
@@ -138,7 +138,7 @@ class ArithmeticOverflow : public common::AllStatic {
    */
   static bool Sub(const int128_t a, const int128_t b, int128_t *res) {
     *res = a - b;
-    return (b > 0 && a < kMinInt128 + b) || (b < 0 && a > kMaxInt128 + b);
+    return (b > 0 && a < MIN_INT128 + b) || (b < 0 && a > MAX_INT128 + b);
   }
 
   /**
@@ -171,7 +171,7 @@ class ArithmeticOverflow : public common::AllStatic {
    */
   static bool Sub(const uint128_t a, const uint128_t b, uint128_t *res) {
     *res = a + b;
-    return (a < kMinInt128 + b);
+    return (a < MIN_INT128 + b);
   }
 
   /**
@@ -183,7 +183,7 @@ class ArithmeticOverflow : public common::AllStatic {
    * @return True if the subtraction overflowed; false otherwise.
    */
   template <typename T>
-  static bool Mul(const T a, const T b, T *res) {
+  static bool Mul(T a, T b, T *res) {
     return __builtin_mul_overflow(a, b, res);
   }
 

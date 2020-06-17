@@ -61,21 +61,21 @@ namespace {
 // The bits we set in the entry to mark if the entry has been buffered in the
 // reorder buffer and whether the entry has been processed (i.e., if the entry
 // is in its final location in either the main or overflow arenas).
-constexpr const uint64_t kBufferedBit = 1ull << 62ull;
-constexpr const uint64_t kProcessedBit = 1ull << 63ull;
+constexpr const uint64_t BUFFERED_BIT = 1ull << 62ull;
+constexpr const uint64_t PROCESSED_BIT = 1ull << 63ull;
 
 // A reorder is a small piece of buffer space into which we temporarily buffer
 // hash table entries for the purposes of reordering them.
 class ReorderBuffer {
  public:
   // Use a 16 KB internal buffer for temporary copies
-  static constexpr const uint32_t kBufferSizeInBytes = 16 * 1024;
+  static constexpr const uint32_t BUFFER_SIZE_IN_BYTES = 16 * 1024;
 
   ReorderBuffer(util::ChunkedVector<MemoryPoolAllocator<byte>> *entries, uint64_t max_elems, uint64_t begin_read_idx,
                 uint64_t end_read_idx)
       : entry_size_(entries->ElementSize()),
         buf_idx_(0),
-        max_elems_(std::min(max_elems, kBufferSizeInBytes / entry_size_) - 1),
+        max_elems_(std::min(max_elems, BUFFER_SIZE_IN_BYTES / entry_size_) - 1),
         temp_buf_(buffer_ + (max_elems_ * entry_size_)),
         read_idx_(begin_read_idx),
         end_read_idx_(end_read_idx),
@@ -92,16 +92,16 @@ class ReorderBuffer {
 
   // Has the given entry been processed? In other words, is the input entry in
   // its final location in the entry array?
-  bool IsProcessed(const HashTableEntry *entry) const { return (entry->cht_slot_ & kProcessedBit) != 0u; }
+  bool IsProcessed(const HashTableEntry *entry) const { return (entry->cht_slot_ & PROCESSED_BIT) != 0u; }
 
   // Mark the given entry as processed and in its final location.
-  void SetProcessed(HashTableEntry *entry) const { entry->cht_slot_ |= kProcessedBit; }
+  void SetProcessed(HashTableEntry *entry) const { entry->cht_slot_ |= PROCESSED_BIT; }
 
   // Has the given entry been buffered in this reorder buffer?
-  bool IsBuffered(const HashTableEntry *entry) const { return (entry->cht_slot_ & kBufferedBit) != 0u; }
+  bool IsBuffered(const HashTableEntry *entry) const { return (entry->cht_slot_ & BUFFERED_BIT) != 0u; }
 
   // Mark the given entry as buffered in the reorder buffer.
-  void SetBuffered(HashTableEntry *entry) const { entry->cht_slot_ |= kBufferedBit; }
+  void SetBuffered(HashTableEntry *entry) const { entry->cht_slot_ |= BUFFERED_BIT; }
 
   // Fill this reorder buffer with as many entries as possible. Each entry that
   // is inserted is marked/tagged as buffered.
@@ -135,7 +135,7 @@ class ReorderBuffer {
   const uint64_t entry_size_;
 
   // Buffer space for entries
-  byte buffer_[kBufferSizeInBytes];
+  byte buffer_[BUFFER_SIZE_IN_BYTES];
 
   // The index into the buffer where the next element is written
   uint64_t buf_idx_;
@@ -201,7 +201,7 @@ void JoinHashTable::ReorderMainEntries() {
 
     for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::K_PREFETCH_DISTANCE; idx < num_buf_entries;
          idx++, prefetch_idx++) {
-      if constexpr (PrefetchCHT) {
+      if constexpr (PrefetchCHT) {  // NOLINT
         if (LIKELY(prefetch_idx < num_buf_entries)) {
           auto *pf_entry = reorder_buf.BufEntryAt<HashTableEntry>(prefetch_idx);
           concise_hash_table_.PrefetchSlotGroup<true>(pf_entry->hash_);
@@ -216,7 +216,7 @@ void JoinHashTable::ReorderMainEntries() {
     uint64_t buf_write_idx = 0;
     for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::K_PREFETCH_DISTANCE; idx < num_buf_entries;
          idx++, prefetch_idx++) {
-      if constexpr (PrefetchEntries) {
+      if constexpr (PrefetchEntries) {  // NOLINT
         if (LIKELY(prefetch_idx < num_buf_entries)) {
           util::Memory::Prefetch<false, Locality::Low>(targets[prefetch_idx]);
         }
@@ -300,7 +300,7 @@ void JoinHashTable::ReorderOverflowEntries() {
 
     for (uint64_t idx = start, write_idx = 0, prefetch_idx = idx + common::Constants::K_PREFETCH_DISTANCE; idx < end;
          idx++, write_idx++, prefetch_idx++) {
-      if constexpr (PrefetchCHT) {
+      if constexpr (PrefetchCHT) {  // NOLINT
         if (LIKELY(prefetch_idx < end)) {
           HashTableEntry *prefetch_entry = EntryAt(prefetch_idx);
           concise_hash_table_.NumFilledSlotsBefore(prefetch_entry->cht_slot_);
@@ -344,7 +344,7 @@ void JoinHashTable::ReorderOverflowEntries() {
     // For each overflow entry, find its main entry parent in the overflow chain
     for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::K_PREFETCH_DISTANCE; idx < num_buf_entries;
          idx++, prefetch_idx++) {
-      if constexpr (PrefetchCHT) {
+      if constexpr (PrefetchCHT) {  // NOLINT
         if (LIKELY(prefetch_idx < num_buf_entries)) {
           auto *pf_entry = reorder_buf.BufEntryAt<HashTableEntry>(prefetch_idx);
           concise_hash_table_.PrefetchSlotGroup<true>(pf_entry->hash_);
@@ -361,7 +361,7 @@ void JoinHashTable::ReorderOverflowEntries() {
     uint64_t buf_write_idx = 0;
     for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::K_PREFETCH_DISTANCE; idx < num_buf_entries;
          idx++, prefetch_idx++) {
-      if constexpr (PrefetchEntries) {
+      if constexpr (PrefetchEntries) {  // NOLINT
         if (LIKELY(prefetch_idx < num_buf_entries)) {
           util::Memory::Prefetch<false, Locality::Low>(parents[prefetch_idx]);
         }
@@ -421,12 +421,12 @@ void JoinHashTable::ReorderOverflowEntries() {
 
 void JoinHashTable::VerifyMainEntryOrder() {
 #ifndef NDEBUG
-  constexpr const uint64_t kCHTSlotMask = kBufferedBit - 1;
+  constexpr const uint64_t cht_slot_mask = BUFFERED_BIT - 1;
 
   const uint64_t overflow_idx = entries_.size() - concise_hash_table_.GetOverflowEntryCount();
   for (uint32_t idx = 0; idx < overflow_idx; idx++) {
     auto *entry = reinterpret_cast<HashTableEntry *>(entries_[idx]);
-    auto dest_idx = concise_hash_table_.NumFilledSlotsBefore(entry->cht_slot_ & kCHTSlotMask);
+    auto dest_idx = concise_hash_table_.NumFilledSlotsBefore(entry->cht_slot_ & cht_slot_mask);
     if (idx != dest_idx) {
       EXECUTION_LOG_ERROR("Entry {} has CHT slot {}. Found @ {}, but should be @ {}", static_cast<void *>(entry),
                           entry->cht_slot_, idx, dest_idx);

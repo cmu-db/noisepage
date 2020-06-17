@@ -9,7 +9,7 @@
 namespace terrier::execution::codegen {
 
 namespace {
-constexpr char kAggAttrPrefix[] = "agg_term_attr";
+constexpr char AGG_ATTR_PREFIX[] = "agg_term_attr";
 }  // namespace
 
 StaticAggregationTranslator::StaticAggregationTranslator(const planner::AggregatePlanNode &plan,
@@ -57,7 +57,7 @@ ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
 
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
-    auto name = codegen->MakeIdentifier(kAggAttrPrefix + std::to_string(term_idx++));
+    auto name = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(term_idx++));
     auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(name, type));
   }
@@ -71,7 +71,7 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
-    auto field_name = codegen->MakeIdentifier(kAggAttrPrefix + std::to_string(term_idx));
+    auto field_name = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(term_idx));
     auto type = codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
@@ -102,7 +102,7 @@ void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::
 
 ast::Expr *StaticAggregationTranslator::GetAggregateTerm(ast::Expr *agg_row, uint32_t attr_idx) const {
   auto codegen = GetCodeGen();
-  auto member = codegen->MakeIdentifier(kAggAttrPrefix + std::to_string(attr_idx));
+  auto member = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(attr_idx));
   return codegen->AccessStructMember(agg_row, member);
 }
 

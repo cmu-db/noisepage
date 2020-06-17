@@ -216,7 +216,7 @@ inline void ChainingHashTableBase::InsertUntagged(HashTableEntry *const entry, c
     do {
       entry->next_ = old_entry;
     } while (!COMPARE_EXCHANGE_WEAK(&entries_[pos], &old_entry, entry));
-  } else {
+  } else {  // NOLINT(readability-misleading-indentation)
     entry->next_ = entries_[pos];
     entries_[pos] = entry;
   }
@@ -229,14 +229,14 @@ inline void ChainingHashTableBase::InsertTagged(HashTableEntry *const entry, con
   TERRIER_ASSERT(pos < GetCapacity(), "Computed table position exceeds capacity!");
   TERRIER_ASSERT(entry->hash_ == hash, "Hash value not set in entry!");
 
-  if constexpr (Concurrent) {
+  if constexpr (Concurrent) {  // NOLINT
     HashTableEntry *old_entry = entries_[pos];
     HashTableEntry *new_entry = nullptr;
     do {
       entry->next_ = UntagPointer(old_entry);   // Un-tag the old entry and link.
       new_entry = UpdateTag(old_entry, entry);  // Tag the new entry.
     } while (!COMPARE_EXCHANGE_WEAK(&entries_[pos], &old_entry, new_entry));
-  } else {
+  } else {  // NOLINT
     entry->next_ = UntagPointer(entries_[pos]);
     entries_[pos] = UpdateTag(entries_[pos], entry);
   }
@@ -252,7 +252,7 @@ inline HashTableEntry *ChainingHashTableBase::FindChainHeadUntagged(hash_t hash)
 inline HashTableEntry *ChainingHashTableBase::FindChainHeadTagged(hash_t hash) const {
   const HashTableEntry *const candidate = FindChainHeadUntagged(hash);
   auto exists_in_chain = reinterpret_cast<uintptr_t>(candidate) & TagHash(hash);
-  return (exists_in_chain ? UntagPointer(candidate) : nullptr);
+  return (exists_in_chain != 0u ? UntagPointer(candidate) : nullptr);
 }
 
 //===----------------------------------------------------------------------===//
@@ -357,9 +357,9 @@ class ChainingHashTable : public ChainingHashTableBase {
 template <bool UseTags>
 template <bool Concurrent>
 inline void ChainingHashTable<UseTags>::Insert(HashTableEntry *entry) {
-  if constexpr (UseTags) {
+  if constexpr (UseTags) {  // NOLINT
     InsertTagged<Concurrent>(entry, entry->hash_);
-  } else {
+  } else {  // NOLINT
     InsertUntagged<Concurrent>(entry, entry->hash_);
   }
 
@@ -372,7 +372,7 @@ template <bool Prefetch, bool Concurrent, typename Allocator>
 inline void ChainingHashTable<UseTags>::InsertBatchInternal(util::ChunkedVector<Allocator> *entries) {
   const uint64_t size = entries->size();
   for (uint64_t idx = 0, prefetch_idx = common::Constants::K_PREFETCH_DISTANCE; idx < size; idx++, prefetch_idx++) {
-    if constexpr (Prefetch) {
+    if constexpr (Prefetch) {  // NOLINT
       if (LIKELY(prefetch_idx < size)) {
         auto *prefetch_entry = reinterpret_cast<HashTableEntry *>((*entries)[prefetch_idx]);
         PrefetchChainHead<false>(prefetch_entry->hash_);
@@ -380,7 +380,7 @@ inline void ChainingHashTable<UseTags>::InsertBatchInternal(util::ChunkedVector<
     }
 
     auto *entry = reinterpret_cast<HashTableEntry *>((*entries)[idx]);
-    if constexpr (UseTags) {
+    if constexpr (UseTags) {  // NOLINT
       InsertTagged<Concurrent>(entry, entry->hash_);
     } else {
       InsertUntagged<Concurrent>(entry, entry->hash_);
@@ -404,9 +404,9 @@ inline void ChainingHashTable<UseTags>::InsertBatch(util::ChunkedVector<Allocato
 
 template <bool UseTags>
 inline HashTableEntry *ChainingHashTable<UseTags>::FindChainHead(hash_t hash) const {
-  if constexpr (UseTags) {
+  if constexpr (UseTags) {  // NOLINT
     return FindChainHeadTagged(hash);
-  } else {
+  } else {  // NOLINT
     return FindChainHeadUntagged(hash);
   }
 }
@@ -419,7 +419,7 @@ inline void ChainingHashTable<UseTags>::FlushEntries(F &&sink) {
   for (uint64_t idx = 0; idx < capacity_; idx++) {
     HashTableEntry *entry = entries_[idx];
 
-    if constexpr (UseTags) {
+    if constexpr (UseTags) {  // NOLINT
       entry = UntagPointer(entry);
     }
 
@@ -485,7 +485,7 @@ class ChainingHashTableIterator {
     while (entries_index_ < table_.GetCapacity()) {
       curr_entry_ = table_.entries_[entries_index_++];
 
-      if constexpr (UseTag) {
+      if constexpr (UseTag) {  // NOLINT
         curr_entry_ = ChainingHashTable<UseTag>::UntagPointer(curr_entry_);
       }
 

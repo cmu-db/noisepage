@@ -56,7 +56,7 @@ void FilterManager::Clause::RunFilter(VectorProjection *input_batch, TupleIdList
 
   if (!ShouldReRank()) {
     for (const auto &term : terms_) {
-      term->fn(input_batch, tid_list, opaque_context_);
+      term->fn_(input_batch, tid_list, opaque_context_);
       if (tid_list->IsEmpty()) break;
     }
     return;
@@ -90,19 +90,19 @@ void FilterManager::Clause::RunFilter(VectorProjection *input_batch, TupleIdList
   const auto input_selectivity = tid_list->ComputeSelectivity();
   for (const auto &term : terms_) {
     temp_.AssignFrom(input_copy_);
-    const auto exec_ns = util::TimeNanos([&]() { term->fn(input_batch, &temp_, opaque_context_); });
+    const auto exec_ns = util::TimeNanos([&]() { term->fn_(input_batch, &temp_, opaque_context_); });
     const auto term_selectivity = temp_.ComputeSelectivity();
     const auto term_cost = exec_ns / tuple_count;
-    term->rank = (input_selectivity - term_selectivity) / term_cost;
-    EXECUTION_LOG_TRACE("Term [{}]: term-selectivity={:04.3f}, cost={:>06.3f}, rank={:.8f}", term->insertion_index,
-                        term_selectivity, term_cost, term->rank);
+    term->rank_ = (input_selectivity - term_selectivity) / term_cost;
+    EXECUTION_LOG_TRACE("Term [{}]: term-selectivity={:04.3f}, cost={:>06.3f}, rank={:.8f}", term->insertion_index_,
+                        term_selectivity, term_cost, term->rank_);
     tid_list->IntersectWith(temp_);
   }
 
 #ifndef NDEBUG
   // Log a message if the term ordering after re-ranking has changed.
   const auto old_order = GetOptimalTermOrder();
-  std::sort(terms_.begin(), terms_.end(), [](const auto &a, const auto &b) { return a->rank > b->rank; });
+  std::sort(terms_.begin(), terms_.end(), [](const auto &a, const auto &b) { return a->rank_ > b->rank_; });
   const auto new_order = GetOptimalTermOrder();
   if (old_order != new_order) {
     EXECUTION_LOG_DEBUG("Order Change: old={}, new={}", fmt::join(old_order, ","), fmt::join(new_order, ","));
@@ -125,7 +125,7 @@ void FilterManager::Clause::RunFilter(VectorProjection *input_batch, TupleIdList
 std::vector<uint32_t> FilterManager::Clause::GetOptimalTermOrder() const {
   std::vector<uint32_t> result(terms_.size());
   for (uint32_t i = 0; i < terms_.size(); i++) {
-    result[i] = terms_[i]->insertion_index;
+    result[i] = terms_[i]->insertion_index_;
   }
   return result;
 }

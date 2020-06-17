@@ -6,9 +6,9 @@
 #include "execution/codegen/state_descriptor.h"
 #include "execution/codegen/work_context.h"
 
-namespace terrier::parser {
+namespace terrier::planner {
 class AggregatePlanNode;
-}  // namespace terrier::parser
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 

@@ -330,30 +330,30 @@ class EXPORT AggregationHashTable {
     // Reset state in preparation for processing the next batch.
     void Reset(VectorProjectionIterator *input_batch);
 
-    libcount::HLL *HLL() { return hll_estimator.get(); }
-    VectorProjection *Projection() { return &hash_and_entries; }
-    Vector *Hashes() { return hash_and_entries.GetColumn(0); }
-    Vector *Entries() { return hash_and_entries.GetColumn(1); }
-    TupleIdList *GroupsFound() { return &groups_found; }
-    TupleIdList *GroupsNotFound() { return &groups_not_found; }
-    TupleIdList *KeyNotEqual() { return &key_not_equal; }
-    TupleIdList *KeyEqual() { return &key_equal; }
-    HashToGroupIdMap *HashToGroupMap() { return hash_to_group_map.get(); }
+    libcount::HLL *HLL() { return hll_estimator_.get(); }
+    VectorProjection *Projection() { return &hash_and_entries_; }
+    Vector *Hashes() { return hash_and_entries_.GetColumn(0); }
+    Vector *Entries() { return hash_and_entries_.GetColumn(1); }
+    TupleIdList *GroupsFound() { return &groups_found_; }
+    TupleIdList *GroupsNotFound() { return &groups_not_found_; }
+    TupleIdList *KeyNotEqual() { return &key_not_equal_; }
+    TupleIdList *KeyEqual() { return &key_equal_; }
+    HashToGroupIdMap *HashToGroupMap() { return hash_to_group_map_.get(); }
 
    private:
     // Unique hash estimator
-    std::unique_ptr<libcount::HLL> hll_estimator;
+    std::unique_ptr<libcount::HLL> hll_estimator_;
     // Specialized structure mapping hashes to group IDs
-    std::unique_ptr<HashToGroupIdMap> hash_to_group_map;
+    std::unique_ptr<HashToGroupIdMap> hash_to_group_map_;
     // Projection containing hashes and entries
-    VectorProjection hash_and_entries;
+    VectorProjection hash_and_entries_;
     // List of tuples that do not have a matching group
-    TupleIdList groups_not_found;
+    TupleIdList groups_not_found_;
     // List of tuples that have found a matching group
-    TupleIdList groups_found;
+    TupleIdList groups_found_;
     // The list of groups that have unmatched keys
-    TupleIdList key_not_equal;
-    TupleIdList key_equal;
+    TupleIdList key_not_equal_;
+    TupleIdList key_equal_;
   };
 
  private:

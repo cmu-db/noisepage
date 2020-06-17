@@ -63,12 +63,12 @@ class MemPoolPtr {
   /**
    * Raw access.
    */
-  T *get() { return obj_; }
+  T *Get() { return obj_; }
 
   /**
    * Raw access.
    */
-  const T *get() const { return obj_; }
+  const T *Get() const { return obj_; }
 
   /**
    * Does this pointer point to anything?
@@ -243,8 +243,8 @@ class EXPORT MemoryPool {
   template <typename T>
   void DeleteObject(MemPoolPtr<T> &&object) {
     // We need to call the pointed-to object's destructor before freeing the underlying memory.
-    std::destroy_at(object.get());
-    Deallocate(object.get(), sizeof(T));
+    std::destroy_at(object.Get());
+    Deallocate(object.Get(), sizeof(T));
   }
 
   /**
@@ -264,7 +264,7 @@ class EXPORT MemoryPool {
   common::ManagedPointer<MemoryTracker> tracker_;
 
   // Variable storing the threshold above which to use MMap allocations
-  static std::atomic<std::size_t> MMAP_THRESHOLD;
+  static std::atomic<std::size_t> mmap_threshold;
 };
 
 /**

@@ -77,16 +77,7 @@ class VectorProjectionIterator {
   /**
    * Create an empty iterator over an empty projection.
    */
-  VectorProjectionIterator()
-      : vector_projection_(nullptr),
-        tid_list_(nullptr),
-        curr_idx_(0),
-        sel_vector_{0},
-        size_(0),
-        sel_vector_read_idx_(0),
-        sel_vector_write_idx_(0) {
-    sel_vector_[0] = INVALID_POS;
-  }
+  VectorProjectionIterator() { sel_vector_[0] = INVALID_POS; }
 
   /**
    * Create an iterator over the given projection.
@@ -279,29 +270,29 @@ class VectorProjectionIterator {
 
  private:
   // The vector projection we're iterating over.
-  VectorProjection *vector_projection_;
+  VectorProjection *vector_projection_{nullptr};
 
   // The list of TIDs to iterate over in the projection. This list is also
   // updated when iteration is filtered.
-  TupleIdList *tid_list_;
+  TupleIdList *tid_list_{nullptr};
 
   // The current raw position in the vector projection we're pointing to.
-  sel_t curr_idx_;
+  sel_t curr_idx_{0};
 
   // The selection vector used to filter the vector projection. This is a cached
   // materialized copy of the vector projection's tuple ID list.
-  sel_t sel_vector_[common::Constants::K_DEFAULT_VECTOR_SIZE];
+  sel_t sel_vector_[common::Constants::K_DEFAULT_VECTOR_SIZE]{0};
 
   // The number of elements in the projection. If filtered, size is the number
   // of elements in the selection vector. Otherwise, it is the total number of
   // elements in the vector projection.
-  sel_t size_;
+  sel_t size_{0};
 
   // The next slot in the selection vector to read from.
-  sel_t sel_vector_read_idx_;
+  sel_t sel_vector_read_idx_{0};
 
   // The next slot in the selection vector to write into.
-  sel_t sel_vector_write_idx_;
+  sel_t sel_vector_write_idx_{0};
 };
 
 // ---------------------------------------------------------
@@ -324,7 +315,7 @@ inline const T *VectorProjectionIterator::GetValue(uint32_t col_idx, bool *null)
   // The vector we'll read from
   const Vector *col_vector = vector_projection_->GetColumn(col_idx);
 
-  if constexpr (Nullable) {
+  if constexpr (Nullable) {  // NOLINT
     TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
     *null = col_vector->null_mask_[curr_idx_];
   }
@@ -342,12 +333,12 @@ inline void VectorProjectionIterator::SetValue(uint32_t col_idx, const T val, bo
   // NULL-able, we can skip the NULL check and directly write into the column
   // data array.
 
-  if constexpr (Nullable) {
+  if constexpr (Nullable) {  // NOLINT
     col_vector->null_mask_[curr_idx_] = null;
     if (!null) {
       reinterpret_cast<T *>(col_vector->data_)[curr_idx_] = val;
     }
-  } else {
+  } else {  // NOLINT
     reinterpret_cast<T *>(col_vector->data_)[curr_idx_] = val;
   }
 }
@@ -357,11 +348,11 @@ inline uint32_t VectorProjectionIterator::GetPosition() const { return curr_idx_
 template <bool Filtered>
 inline void VectorProjectionIterator::SetPosition(uint32_t idx) {
   TERRIER_ASSERT(idx < GetSelectedTupleCount(), "Out of bounds access");
-  if constexpr (Filtered) {
+  if constexpr (Filtered) {  // NOLINT
     TERRIER_ASSERT(IsFiltered(), "Attempting to set position in unfiltered VPI");
     sel_vector_read_idx_ = idx;
     curr_idx_ = sel_vector_[sel_vector_read_idx_];
-  } else {
+  } else {  // NOLINT
     TERRIER_ASSERT(!IsFiltered(), "Attempting to set position in filtered VPI");
     curr_idx_ = idx;
   }

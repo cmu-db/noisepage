@@ -75,11 +75,11 @@ class VM::Frame {
 
 // The maximum amount of stack to use. If the function requires more than 16K
 // bytes, acquire space from the heap.
-static constexpr const uint32_t kMaxStackAllocSize = 1ull << 14ull;
+static constexpr const uint32_t MAX_STACK_ALLOC_SIZE = 1ull << 14ull;
 // A soft-maximum amount of stack to use. If a function's frame requires more
 // than 4K (the soft max), try the stack and fallback to heap. If the function
 // requires less, use the stack.
-static constexpr const uint32_t kSoftMaxStackAllocSize = 1ull << 12ull;
+static constexpr const uint32_t SOFT_MAX_STACK_ALLOC_SIZE = 1ull << 12ull;
 
 VM::VM(const Module *module) : module_(module) {}
 
@@ -93,10 +93,10 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const ui
   // Let's try to get some space
   bool used_heap = false;
   uint8_t *raw_frame = nullptr;
-  if (frame_size > kMaxStackAllocSize) {
+  if (frame_size > MAX_STACK_ALLOC_SIZE) {
     used_heap = true;
     raw_frame = static_cast<uint8_t *>(util::Memory::MallocAligned(frame_size, alignof(uint64_t)));
-  } else if (frame_size > kSoftMaxStackAllocSize) {
+  } else if (frame_size > SOFT_MAX_STACK_ALLOC_SIZE) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   } else {
@@ -139,7 +139,7 @@ inline ALWAYS_INLINE T Peek(const uint8_t **ip) {
 
 }  // namespace
 
-void VM::Interpret(const uint8_t *ip, Frame *frame) {
+void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-function-size)
   static void *kDispatchTable[] = {
 #define ENTRY(name, ...) &&op_##name,
       BYTECODE_LIST(ENTRY)
@@ -160,20 +160,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   // TODO(pmenon): Should these READ/PEEK macros take in a vm::OperandType so
   // that we can infer primitive types using traits? This minimizes number of
   // changes if the underlying offset/bytecode/register sizes changes?
-#define PEEK_JMP_OFFSET() Peek<int32_t>(&ip)
-#define READ_IMM1() Read<int8_t>(&ip)
-#define READ_IMM2() Read<int16_t>(&ip)
-#define READ_IMM4() Read<int32_t>(&ip)
-#define READ_IMM8() Read<int64_t>(&ip)
-#define READ_IMM4F() Read<float>(&ip)
-#define READ_IMM8F() Read<double>(&ip)
-#define READ_UIMM2() Read<uint16_t>(&ip)
-#define READ_UIMM4() Read<uint32_t>(&ip)
-#define READ_JMP_OFFSET() READ_IMM4()
-#define READ_LOCAL_ID() Read<uint32_t>(&ip)
-#define READ_STATIC_LOCAL_ID() Read<uint32_t>(&ip)
-#define READ_OP() Read<std::underlying_type_t<Bytecode>>(&ip)
-#define READ_FUNC_ID() READ_UIMM2()
+#define PEEK_JMP_OFFSET() Peek<int32_t>(&ip)                  /* NOLINT(modernize-use-auto) */
+#define READ_IMM1() Read<int8_t>(&ip)                         /* NOLINT(modernize-use-auto) */
+#define READ_IMM2() Read<int16_t>(&ip)                        /* NOLINT(modernize-use-auto) */
+#define READ_IMM4() Read<int32_t>(&ip)                        /* NOLINT(modernize-use-auto) */
+#define READ_IMM8() Read<int64_t>(&ip)                        /* NOLINT(modernize-use-auto) */
+#define READ_IMM4F() Read<float>(&ip)                         /* NOLINT(modernize-use-auto) */
+#define READ_IMM8F() Read<double>(&ip)                        /* NOLINT(modernize-use-auto) */
+#define READ_UIMM2() Read<uint16_t>(&ip)                      /* NOLINT(modernize-use-auto) */
+#define READ_UIMM4() Read<uint32_t>(&ip)                      /* NOLINT(modernize-use-auto) */
+#define READ_JMP_OFFSET() READ_IMM4()                         /* NOLINT(modernize-use-auto) */
+#define READ_LOCAL_ID() Read<uint32_t>(&ip)                   /* NOLINT(modernize-use-auto) */
+#define READ_STATIC_LOCAL_ID() Read<uint32_t>(&ip)            /* NOLINT(modernize-use-auto) */
+#define READ_OP() Read<std::underlying_type_t<Bytecode>>(&ip) /* NOLINT(modernize-use-auto) */
+#define READ_FUNC_ID() READ_UIMM2()                           /* NOLINT(modernize-use-auto) */
 
 #define OP(name) op_##name
 #define DISPATCH_NEXT()           \
@@ -1820,10 +1820,10 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   // Get some space for the function's frame
   bool used_heap = false;
   uint8_t *raw_frame = nullptr;
-  if (frame_size > kMaxStackAllocSize) {
+  if (frame_size > MAX_STACK_ALLOC_SIZE) {
     used_heap = true;
     raw_frame = static_cast<uint8_t *>(util::Memory::MallocAligned(frame_size, alignof(uint64_t)));
-  } else if (frame_size > kSoftMaxStackAllocSize) {
+  } else if (frame_size > SOFT_MAX_STACK_ALLOC_SIZE) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   } else {

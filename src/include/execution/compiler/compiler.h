@@ -146,7 +146,7 @@ class Compiler {
   };
 
   /** Tracks the number of phases */
-  static constexpr uint32_t kNumPhases = static_cast<uint32_t>(Phase::Last);
+  static constexpr uint32_t NUM_PHASES = static_cast<uint32_t>(Phase::Last);
 
   /**
    * Main entry point into the TPL compilation pipeline. Accepts an input program (in the form of
@@ -256,7 +256,7 @@ class TimePasses : public Compiler::Callbacks {
   // The timer we use to time phases
   util::Timer<std::milli> timer_;
   // Timings of each phase
-  std::array<double, Compiler::kNumPhases> phase_timings_;
+  std::array<double, Compiler::NUM_PHASES> phase_timings_;
 };
 
 }  // namespace compiler

@@ -29,7 +29,7 @@ class CodeGen {
   friend class Loop;
 
   // The default number of cached scopes to keep around.
-  static constexpr uint32_t kDefaultScopeCacheSize = 4;
+  static constexpr uint32_t DEFAULT_SCOPE_CACHE_SIZE = 4;
 
   /**
    * Scope object.
@@ -492,7 +492,7 @@ class CodeGen {
    * @param table_name The name of the table to scan.
    * @return The call expression.
    */
-  [[nodiscard]] ast::Expr *TableIterInit(ast::Expr *tvi, std::string_view table_name);
+  [[nodiscard]] ast::Expr *TableIterInit(ast::Expr *table_iter, std::string_view table_name);
 
   /**
    * Call @tableIterAdvance(). Attempt to advance the iterator, returning true if successful and
@@ -500,21 +500,21 @@ class CodeGen {
    * @param tvi The table vector iterator.
    * @return The call expression.
    */
-  [[nodiscard]] ast::Expr *TableIterAdvance(ast::Expr *tvi);
+  [[nodiscard]] ast::Expr *TableIterAdvance(ast::Expr *table_iter);
 
   /**
    * Call @tableIterGetVPI(). Retrieve the vector projection iterator from a table vector iterator.
    * @param tvi The table vector iterator.
    * @return The call expression.
    */
-  [[nodiscard]] ast::Expr *TableIterGetVPI(ast::Expr *tvi);
+  [[nodiscard]] ast::Expr *TableIterGetVPI(ast::Expr *table_iter);
 
   /**
    * Call @tableIterClose(). Close and destroy a table vector iterator.
    * @param tvi The table vector iterator.
    * @return The call expression.
    */
-  [[nodiscard]] ast::Expr *TableIterClose(ast::Expr *tvi);
+  [[nodiscard]] ast::Expr *TableIterClose(ast::Expr *table_iter);
 
   /**
    * Call @iterateTableParallel(). Performs a parallel scan over the table with the provided name,
@@ -1238,7 +1238,7 @@ class CodeGen {
   SourcePosition position_;
   // Cache of code scopes.
   uint32_t num_cached_scopes_;
-  std::array<std::unique_ptr<Scope>, kDefaultScopeCacheSize> scope_cache_ = {nullptr};
+  std::array<std::unique_ptr<Scope>, DEFAULT_SCOPE_CACHE_SIZE> scope_cache_ = {nullptr};
   // Current scope.
   Scope *scope_;
 };

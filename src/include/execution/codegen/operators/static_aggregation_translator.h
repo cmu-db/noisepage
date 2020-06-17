@@ -6,9 +6,9 @@
 #include "execution/codegen/pipeline.h"
 #include "execution/codegen/pipeline_driver.h"
 
-namespace terrier::parser {
+namespace terrier::planner {
 class AggregatePlanNode;
-}  // namespace terrier::parser
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 
@@ -39,7 +39,7 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
    * When parallel, generate the partial aggregate merging function.
    * @param decls Query-level declarations.
    */
-  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *top_level_funcs) override;
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
    * If the provided pipeline is the build-side, initialize the declare partial aggregate.

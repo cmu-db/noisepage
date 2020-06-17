@@ -63,7 +63,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
 
  private:
   // Private constructor to force users to call Compile()
-  BytecodeGenerator() noexcept;
+  BytecodeGenerator() noexcept = delete;
   explicit BytecodeGenerator(common::ManagedPointer<exec::ExecutionSettings> exec_settings) noexcept;
 
   class ExpressionResultScope;

@@ -117,13 +117,13 @@ uint16_t BytecodeIterator::GetLocalCountOperand(uint32_t operand_index, std::vec
 
   uint16_t num_locals = *reinterpret_cast<const uint16_t *>(operand_address);
 
-  const uint8_t *locals_address = operand_address + OperandTypeTraits<OperandType::LocalCount>::kSize;
+  const uint8_t *locals_address = operand_address + OperandTypeTraits<OperandType::LocalCount>::SIZE;
 
   for (uint32_t i = 0; i < num_locals; i++) {
     auto encoded_val = *reinterpret_cast<const uint32_t *>(locals_address);
     locals->push_back(LocalVar::Decode(encoded_val));
 
-    locals_address += OperandTypeTraits<OperandType::Local>::kSize;
+    locals_address += OperandTypeTraits<OperandType::Local>::SIZE;
   }
 
   return num_locals;
@@ -146,7 +146,7 @@ uint32_t BytecodeIterator::CurrentBytecodeSize() const {
     size += static_cast<uint32_t>(Bytecodes::GetNthOperandSize(bytecode, i));
     if (Bytecodes::GetNthOperandType(bytecode, i) == OperandType::LocalCount) {
       auto num_locals = GetLocalCountOperand(i);
-      size += (num_locals * OperandTypeTraits<OperandType::Local>::kSize);
+      size += (num_locals * OperandTypeTraits<OperandType::Local>::SIZE);
     }
   }
   return size;

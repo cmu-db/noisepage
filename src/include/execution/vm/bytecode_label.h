@@ -20,7 +20,7 @@ class BytecodeLabel {
   /**
    * Construct an unbound label with no referrers.
    */
-  BytecodeLabel() : offset_(INVALID_OFFSET), bound_(false) {}
+  BytecodeLabel() = default;
 
   /**
    * @return True if the label is bound (to a fixed bytecode position); false otherwise.
@@ -60,13 +60,13 @@ class BytecodeLabel {
 
  private:
   // The bytecode offset of this label
-  std::size_t offset_;
+  std::size_t offset_{INVALID_OFFSET};
 
   // The list of positions that jump to this label
   std::vector<std::size_t> referrer_offsets_;
 
   // Flag indicating if the label has been bound to a position/offset
-  bool bound_;
+  bool bound_{false};
 };
 
 }  // namespace terrier::execution::vm

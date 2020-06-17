@@ -10,7 +10,7 @@
 namespace terrier::execution::sql {
 
 // If the allocation size is larger than this value, use huge pages
-std::atomic<std::size_t> MemoryPool::MMAP_THRESHOLD = 64 * common::Constants::MB;
+std::atomic<std::size_t> MemoryPool::mmap_threshold = 64 * common::Constants::MB;
 
 // Minimum alignment to abide by
 static constexpr uint32_t MIN_MALLOC_ALIGNMENT = 8;
@@ -20,7 +20,7 @@ MemoryPool::MemoryPool(common::ManagedPointer<sql::MemoryTracker> tracker) : tra
 void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alignment, const bool clear) {
   void *buf = nullptr;
 
-  if (size >= MMAP_THRESHOLD.load(std::memory_order_relaxed)) {
+  if (size >= mmap_threshold.load(std::memory_order_relaxed)) {
     buf = util::Memory::MallocHuge(size, true);
     TERRIER_ASSERT(buf != nullptr, "Null memory pointer");
     // No need to clear memory, guaranteed on Linux
@@ -44,13 +44,13 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
 }
 
 void MemoryPool::Deallocate(void *ptr, std::size_t size) {
-  if (size >= MMAP_THRESHOLD.load(std::memory_order_relaxed)) {
+  if (size >= mmap_threshold.load(std::memory_order_relaxed)) {
     util::Memory::FreeHuge(ptr, size);
   } else {
     std::free(ptr);
   }
 }
 
-void MemoryPool::SetMMapSizeThreshold(const std::size_t size) { MMAP_THRESHOLD = size; }
+void MemoryPool::SetMMapSizeThreshold(const std::size_t size) { mmap_threshold = size; }
 
 }  // namespace terrier::execution::sql

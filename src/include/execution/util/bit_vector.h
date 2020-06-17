@@ -128,7 +128,7 @@ class BitVector {
    * Create an empty bit vector. Users must call Resize() before interacting with it.
    * @ref BitVector::Resize()
    */
-  explicit BitVector(Allocator allocator = Allocator()) : num_bits_(0), words_(allocator) {}
+  explicit BitVector(Allocator allocator = Allocator()) : words_(allocator) {}
 
   /**
    * Create a new bit vector with the specified number of bits, all initially unset.
@@ -756,7 +756,7 @@ class BitVector {
 
  private:
   // The number of bits in the bit vector.
-  uint32_t num_bits_;
+  uint32_t num_bits_{0};
   // The array of words making up the bit vector.
   std::vector<WordType, Allocator> words_;
 };

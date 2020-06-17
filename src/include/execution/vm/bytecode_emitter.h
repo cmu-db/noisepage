@@ -145,7 +145,7 @@ class BytecodeEmitter {
   void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn, LocalVar tuple_size);
 
   // Initialize a CSV reader.
-  void EmitCSVReaderInit(LocalVar creader, LocalVar static_local_string, uint32_t string_len);
+  void EmitCSVReaderInit(LocalVar creader, LocalVar file_name, uint32_t file_name_len);
 
  private:
   // Copy a scalar immediate value into the bytecode stream

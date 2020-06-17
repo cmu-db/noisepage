@@ -3,7 +3,7 @@
 namespace terrier::execution::ast {
 
 // static
-const char *Builtins::BUILTIN_FUNCTION_NAMES[] = {
+const char *Builtins::builtin_function_names[] = {
 #define ENTRY(Name, FunctionName, ...) #FunctionName,
     BUILTINS_LIST(ENTRY)
 #undef ENTRY

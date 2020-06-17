@@ -1869,7 +1869,7 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      GetEmitter()->EmitAssignImm4F(target, node->Float64Val());
+      GetEmitter()->EmitAssignImm4F(target, static_cast<float>(node->Float64Val()));
       GetExecutionResult()->SetDestination(target.ValueOf());
       break;
     }

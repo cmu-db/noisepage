@@ -288,13 +288,13 @@ void DoTrim(StringVal *result, const StringVal &str, const StringVal &chars) {
   // The valid range
   int32_t begin = 0, end = str.GetLength() - 1;
 
-  if constexpr (TrimLeft) {
+  if constexpr (TrimLeft) {  // NOLINT
     while (begin < static_cast<int32_t>(str.GetLength()) && bitset.test(str.GetContent()[begin])) {
       begin++;
     }
   }
 
-  if constexpr (TrimRight) {
+  if constexpr (TrimRight) {  // NOLINT
     while (begin <= end && bitset.test(str.GetContent()[end])) {
       end--;
     }

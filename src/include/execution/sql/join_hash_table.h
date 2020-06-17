@@ -61,7 +61,7 @@ class JoinHashTable {
    * @param tuple_size The size of the tuple stored in this join hash table.
    * @param use_concise_ht Whether to use a concise or fatter chaining join index.
    */
-  explicit JoinHashTable(const common::ManagedPointer<exec::ExecutionSettings> exec_settings, MemoryPool *memory,
+  explicit JoinHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings, MemoryPool *memory,
                          uint32_t tuple_size, bool use_concise_ht = false);
 
   /**
@@ -138,7 +138,7 @@ class JoinHashTable {
   uint64_t GetTotalMemoryUsage() const { return GetBufferedTupleMemoryUsage() + GetJoinIndexMemoryUsage(); }
 
   /** @return The execution context in use for this JoinHashTable. */
-  const common::ManagedPointer<exec::ExecutionSettings> GetExecutionSettings() const { return exec_settings_; }
+  common::ManagedPointer<exec::ExecutionSettings> GetExecutionSettings() const { return exec_settings_; }
 
   /**
    * @return True if this table uses an early filtering bloom filter; false otherwise.

@@ -137,10 +137,10 @@ template <typename IterType>
 struct MergeWork {
   using Range = std::pair<IterType, IterType>;
 
-  std::vector<Range> input_ranges;
-  IterType destination;
+  std::vector<Range> input_ranges_;
+  IterType destination_;
 
-  MergeWork(std::vector<Range> &&inputs, IterType dest) : input_ranges(std::move(inputs)), destination(dest) {}
+  MergeWork(std::vector<Range> &&inputs, IterType dest) : input_ranges_(std::move(inputs)), destination_(dest) {}
 };
 
 }  // namespace
@@ -172,7 +172,7 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
   // jobs. The threshold value value was found empirically, but might be a good candidate for
   // adapting based on tuples sizes, CPU speeds, caches, algorithms, etc.
 
-  if (tl_sorters.size() == 1 || num_tuples < kDefaultMinTuplesForParallelSort) {
+  if (tl_sorters.size() == 1 || num_tuples < DEFAULT_MIN_TUPLES_FOR_PARALLEL_SORT) {
     EXECUTION_LOG_DEBUG("Sorter contains {} elements. Using serial sort.", num_tuples);
 
     // Reserve room for all tuples
@@ -319,8 +319,8 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
 
   tbb::parallel_for_each(merge_work, [&heap_cmp](const MergeWork<SeqTypeIter> &work) {
     std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
-        heap_cmp, work.input_ranges);
-    SeqTypeIter dest = work.destination;
+        heap_cmp, work.input_ranges_);
+    SeqTypeIter dest = work.destination_;
     while (!heap.empty()) {
       auto top = heap.top();
       heap.pop();

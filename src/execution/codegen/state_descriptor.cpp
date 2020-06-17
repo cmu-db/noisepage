@@ -49,7 +49,7 @@ ast::StructDecl *StateDescriptor::ConstructFinalType(CodeGen *codegen) {
   // Collect fields and build the structure type.
   util::RegionVector<ast::FieldDecl *> fields = codegen->MakeEmptyFieldList();
   for (auto &slot : slots_) {
-    fields.push_back(codegen->MakeField(slot.name, slot.type_repr));
+    fields.push_back(codegen->MakeField(slot.name_, slot.type_repr_));
   }
   state_type_ = codegen->DeclareStruct(name_, std::move(fields));
 

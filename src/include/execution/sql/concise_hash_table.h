@@ -147,11 +147,11 @@ class ConciseHashTable {
    */
   struct SlotGroup {
     // The bitmap indicating whether the slots are occupied or free
-    uint32_t bits;
+    uint32_t bits_;
     // The prefix population count
-    uint32_t count;
+    uint32_t count_;
 
-    static_assert(sizeof(bits) * common::Constants::K_BITS_PER_BYTE == SLOTS_PER_GROUP,
+    static_assert(sizeof(bits_) * common::Constants::K_BITS_PER_BYTE == SLOTS_PER_GROUP,
                   "# of slots in group and configured constant are out of sync!");
   };
 
@@ -172,22 +172,22 @@ class ConciseHashTable {
 
  private:
   // The array of groups. This array is managed by this class.
-  SlotGroup *slot_groups_;
+  SlotGroup *slot_groups_{nullptr};
 
   // The number of groups (of slots) in the table
-  uint64_t num_groups_;
+  uint64_t num_groups_{0};
 
   // The mask used to find a slot in the hash table
-  uint64_t slot_mask_;
+  uint64_t slot_mask_{0};
 
   // The maximum number of slots to probe
   uint32_t probe_limit_;
 
   // The number of entries in the overflow table
-  uint32_t num_overflow_;
+  uint32_t num_overflow_{0};
 
   // Flag indicating if the hash table has been built and is frozen (read-only)
-  bool built_;
+  bool built_{false};
 };
 
 // ---------------------------------------------------------
@@ -202,7 +202,7 @@ inline void ConciseHashTable::Insert(HashTableEntry *entry) {
   const uint64_t slot_idx = SlotIndex(entry->hash_);
   const uint64_t group_idx = GroupIndex(slot_idx);
   const uint64_t num_bits_to_group = group_idx * SLOTS_PER_GROUP;
-  auto *group_bits = reinterpret_cast<uint32_t *>(&slot_groups_[group_idx].bits);
+  auto *group_bits = reinterpret_cast<uint32_t *>(&slot_groups_[group_idx].bits_);
 
   uint64_t bit_idx = static_cast<uint32_t>(GroupSlotIndex(slot_idx));
   const uint64_t max_bit_idx = std::min(SLOTS_PER_GROUP - 1, bit_idx + probe_limit_);
@@ -223,7 +223,7 @@ template <bool Prefetch, typename Allocator>
 void ConciseHashTable::InsertBatchInternal(util::ChunkedVector<Allocator> *entries) {
   const uint64_t size = entries->size();
   for (uint64_t idx = 0, prefetch_idx = common::Constants::K_PREFETCH_DISTANCE; idx < size; idx++, prefetch_idx++) {
-    if constexpr (Prefetch) {
+    if constexpr (Prefetch) {  // NOLINT
       if (LIKELY(prefetch_idx < size)) {
         auto *prefetch_entry = reinterpret_cast<HashTableEntry *>((*entries)[prefetch_idx]);
         PrefetchSlotGroup<false>(prefetch_entry->hash_);
@@ -258,8 +258,8 @@ inline uint64_t ConciseHashTable::NumFilledSlotsBefore(const ConciseHashTableSlo
   const uint64_t bit_idx = GroupSlotIndex(slot);
 
   const SlotGroup *slot_group = slot_groups_ + group_idx;
-  const uint64_t bits_after_slot = slot_group->bits & (uint64_t(-1) << bit_idx);
-  return slot_group->count - util::BitUtil::CountPopulation(bits_after_slot);
+  const uint64_t bits_after_slot = slot_group->bits_ & (uint64_t(-1) << bit_idx);
+  return slot_group->count_ - util::BitUtil::CountPopulation(bits_after_slot);
 }
 
 inline std::pair<bool, uint64_t> ConciseHashTable::Lookup(const hash_t hash) const {
@@ -268,10 +268,10 @@ inline std::pair<bool, uint64_t> ConciseHashTable::Lookup(const hash_t hash) con
   const uint64_t bit_idx = GroupSlotIndex(slot_idx);
 
   const SlotGroup *slot_group = slot_groups_ + group_idx;
-  const uint64_t bits_after_slot = slot_group->bits & (uint64_t(-1) << bit_idx);
+  const uint64_t bits_after_slot = slot_group->bits_ & (uint64_t(-1) << bit_idx);
 
-  const bool exists = slot_group->bits & (1ull << bit_idx);
-  const uint64_t pos = slot_group->count - util::BitUtil::CountPopulation(bits_after_slot);
+  const bool exists = (slot_group->bits_ & (1ull << bit_idx)) != 0u;
+  const uint64_t pos = slot_group->count_ - util::BitUtil::CountPopulation(bits_after_slot);
 
   return std::pair(exists, pos);
 }

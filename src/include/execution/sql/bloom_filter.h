@@ -21,10 +21,10 @@ namespace terrier::execution::sql {
  */
 class BloomFilter {
   // The set of salt values we use to produce alternative hash values
-  alignas(common::Constants::CACHELINE_SIZE) static constexpr const uint32_t kSalts[8] = {
+  alignas(common::Constants::CACHELINE_SIZE) static constexpr const uint32_t SALTS[8] = {
       0x47b6137bU, 0x44974d91U, 0x8824ad5bU, 0xa2b7289dU, 0x705495c7U, 0x2df1424bU, 0x9efc4947U, 0x5c6bfb31U};
 
-  static constexpr const uint32_t kBitsPerElement = 8;
+  static constexpr const uint32_t BITS_PER_ELEMENT = 8;
 
  public:
   // A block in this filter (i.e., the sizes of the bloom filter partitions)
@@ -115,19 +115,19 @@ class BloomFilter {
 
  private:
   // The memory allocator we use for all allocations
-  MemoryPool *memory_;
+  MemoryPool *memory_{nullptr};
 
   // The blocks array
-  Block *blocks_;
+  Block *blocks_{nullptr};
 
   // The mask used to determine which block a hash goes into
-  uint32_t block_mask_;
+  uint32_t block_mask_{0};
 
   // The number of elements that have been added to the bloom filter
-  uint32_t num_additions_;
+  uint32_t num_additions_{0};
 
   // Temporary vector of lazily added hashes for bulk loading
-  MemPoolVector<hash_t> lazily_added_hashes_;
+  MemPoolVector<hash_t> lazily_added_hashes_{nullptr};
 };
 
 #if 0
@@ -140,7 +140,7 @@ inline void BloomFilter::Add_Slow(hash_t hash) {
   Block &block = blocks_[block_idx];
   uint32_t alt_hash = static_cast<uint32_t>(hash >> 32);
   for (uint32_t i = 0; i < 8; i++) {
-    uint32_t bit_idx = (alt_hash * kSalts[i]) >> 27;
+    uint32_t bit_idx = (alt_hash * SALTS[i]) >> 27;
     util::BitUtil::Set(&block[i], bit_idx);
   }
 }
@@ -151,7 +151,7 @@ inline bool BloomFilter::Contains_Slow(hash_t hash) const {
 
   Block &block = blocks_[block_idx];
   for (uint32_t i = 0; i < 8; i++) {
-    uint32_t bit_idx = (alt_hash * kSalts[i]) >> 27;
+    uint32_t bit_idx = (alt_hash * SALTS[i]) >> 27;
     if (!util::BitUtil::Test(&block[i], bit_idx)) {
       return false;
     }

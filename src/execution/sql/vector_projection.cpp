@@ -14,7 +14,7 @@
 namespace terrier::execution::sql {
 
 VectorProjection::VectorProjection()
-    : filter_(nullptr), owned_tid_list_(common::Constants::K_DEFAULT_VECTOR_SIZE), owned_buffer_(nullptr) {
+    : owned_tid_list_(common::Constants::K_DEFAULT_VECTOR_SIZE), owned_buffer_(nullptr) {
   owned_tid_list_.Resize(0);
 }
 

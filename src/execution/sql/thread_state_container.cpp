@@ -45,7 +45,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
-  tbb::enumerable_thread_specific<TLSHandle> states;
+  tbb::enumerable_thread_specific<TLSHandle> states_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -61,12 +61,12 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
       destroy_fn_(nullptr),
       ctx_(nullptr),
       impl_(std::make_unique<ThreadStateContainer::Impl>()) {
-  impl_->states = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
+  impl_->states_ = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
 }
 
 ThreadStateContainer::~ThreadStateContainer() { Clear(); }
 
-void ThreadStateContainer::Clear() { impl_->states.clear(); }
+void ThreadStateContainer::Clear() { impl_->states_.clear(); }
 
 void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadStateContainer::InitFn init_fn,
                                  const ThreadStateContainer::DestroyFn destroy_fn, void *const ctx) {
@@ -81,14 +81,14 @@ void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadState
 }
 
 byte *ThreadStateContainer::AccessCurrentThreadState() {
-  auto &tls_handle = impl_->states.local();
+  auto &tls_handle = impl_->states_.local();
   return tls_handle.State();
 }
 
 void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *container) const {
   container->clear();
-  container->reserve(impl_->states.size());
-  for (auto &tls_handle : impl_->states) {
+  container->reserve(impl_->states_.size());
+  for (auto &tls_handle : impl_->states_) {
     container->push_back(tls_handle.State());
   }
 }
@@ -96,22 +96,22 @@ void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *contain
 void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *container,
                                                            const std::size_t element_offset) const {
   container->clear();
-  container->reserve(impl_->states.size());
-  for (auto &tls_handle : impl_->states) {
+  container->reserve(impl_->states_.size());
+  for (auto &tls_handle : impl_->states_) {
     container->push_back(tls_handle.State() + element_offset);
   }
 }
 
 void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
-  for (auto &tls_handle : impl_->states) {
+  for (auto &tls_handle : impl_->states_) {
     iterate_fn(ctx, tls_handle.State());
   }
 }
 
 void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
-  tbb::parallel_for_each(impl_->states, [&](auto &tls_handle) { iterate_fn(ctx, tls_handle.State()); });
+  tbb::parallel_for_each(impl_->states_, [&](auto &tls_handle) { iterate_fn(ctx, tls_handle.State()); });
 }
 
-uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states.size(); }
+uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }
 
 }  // namespace terrier::execution::sql

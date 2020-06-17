@@ -222,12 +222,12 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
 
 void Module::CreateFunctionTrampoline(const FunctionInfo &func, Trampoline *trampoline) {
   // TODO(pmenon): Is 4KB too large? Should it be dynamic?
-  static constexpr std::size_t kDefaultCodeSize = 4 * common::Constants::KB;
+  static constexpr std::size_t default_code_size = 4 * common::Constants::KB;
 
   // Allocate memory for the trampoline.
   std::error_code error;
   const int32_t rw_flags = llvm::sys::Memory::MF_READ | llvm::sys::Memory::MF_WRITE;
-  llvm::sys::MemoryBlock memory = llvm::sys::Memory::allocateMappedMemory(kDefaultCodeSize, nullptr, rw_flags, error);
+  llvm::sys::MemoryBlock memory = llvm::sys::Memory::allocateMappedMemory(default_code_size, nullptr, rw_flags, error);
   if (error) {
     EXECUTION_LOG_ERROR("There was an error allocating executable memory {}", error.message());
     return;

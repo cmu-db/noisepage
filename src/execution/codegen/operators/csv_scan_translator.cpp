@@ -13,7 +13,7 @@
 namespace terrier::execution::codegen {
 
 namespace {
-constexpr const char kFieldPrefix[] = "field";
+constexpr const char FIELD_PREFIX[] = "field";
 }  // namespace
 
 CSVScanTranslator::CSVScanTranslator(const planner::CSVScanPlanNode &plan, CompilationContext *compilation_context,
@@ -37,7 +37,7 @@ void CSVScanTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *
 
   // Add columns to output.
   for (uint32_t idx = 0; idx < output_schema->NumColumns(); idx++) {
-    auto field_name = codegen->MakeIdentifier(kFieldPrefix + std::to_string(idx));
+    auto field_name = codegen->MakeIdentifier(FIELD_PREFIX + std::to_string(idx));
     fields.emplace_back(codegen->MakeField(field_name, codegen->TplType(sql::TypeId::Varchar)));
   }
 
@@ -46,7 +46,7 @@ void CSVScanTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *
 
 ast::Expr *CSVScanTranslator::GetField(uint32_t field_index) const {
   CodeGen *codegen = GetCodeGen();
-  ast::Identifier field_name = codegen->MakeIdentifier(kFieldPrefix + std::to_string(field_index));
+  ast::Identifier field_name = codegen->MakeIdentifier(FIELD_PREFIX + std::to_string(field_index));
   return codegen->AccessStructMember(base_row_.Get(codegen), field_name);
 }
 

@@ -54,11 +54,11 @@ namespace terrier::execution::codegen {
 
 namespace {
 // A unique ID generator used to generate globally unique TPL function names.
-std::atomic<uint64_t> kUniqueIds{0};
+std::atomic<uint64_t> unique_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, const CompilationMode mode)
-    : unique_id_(kUniqueIds++),
+    : unique_id_(unique_ids++),
       query_(query),
       mode_(mode),
       codegen_(query_->GetContext()),

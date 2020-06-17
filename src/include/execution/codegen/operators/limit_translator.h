@@ -7,9 +7,9 @@
 #include "execution/codegen/pipeline.h"
 #include "execution/codegen/state_descriptor.h"
 
-namespace terrier::parser {
+namespace terrier::planner {
 class LimitPlanNode;
-}  // namespace terrier::parser
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 

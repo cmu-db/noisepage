@@ -10,8 +10,8 @@
 namespace terrier::execution::codegen {
 
 namespace {
-constexpr char kGroupByTermAttrPrefix[] = "gb_term_attr";
-constexpr char kAggregateTermAttrPrefix[] = "agg_term_attr";
+constexpr char GROUP_BY_TERM_ATTR_PREFIX[] = "gb_term_attr";
+constexpr char AGGREGATE_TERM_ATTR_PREFIX[] = "agg_term_attr";
 }  // namespace
 
 HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePlanNode &plan,
@@ -70,7 +70,7 @@ ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
   // Create a field for every group by term.
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetGroupByTerms()) {
-    auto field_name = codegen->MakeIdentifier(kGroupByTermAttrPrefix + std::to_string(term_idx));
+    auto field_name = codegen->MakeIdentifier(GROUP_BY_TERM_ATTR_PREFIX + std::to_string(term_idx));
     auto type = codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
@@ -79,7 +79,7 @@ ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
   // Create a field for every aggregate term.
   term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
-    auto field_name = codegen->MakeIdentifier(kAggregateTermAttrPrefix + std::to_string(term_idx));
+    auto field_name = codegen->MakeIdentifier(AGGREGATE_TERM_ATTR_PREFIX + std::to_string(term_idx));
     auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
@@ -96,7 +96,7 @@ ast::StructDecl *HashAggregationTranslator::GenerateInputValuesStruct() {
   // Create a field for every group by term.
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetGroupByTerms()) {
-    auto field_name = codegen->MakeIdentifier(kGroupByTermAttrPrefix + std::to_string(term_idx));
+    auto field_name = codegen->MakeIdentifier(GROUP_BY_TERM_ATTR_PREFIX + std::to_string(term_idx));
     auto type = codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
@@ -105,7 +105,7 @@ ast::StructDecl *HashAggregationTranslator::GenerateInputValuesStruct() {
   // Create a field for every aggregate term.
   term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
-    auto field_name = codegen->MakeIdentifier(kAggregateTermAttrPrefix + std::to_string(term_idx));
+    auto field_name = codegen->MakeIdentifier(AGGREGATE_TERM_ATTR_PREFIX + std::to_string(term_idx));
     auto type = codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
@@ -265,13 +265,13 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
 
 ast::Expr *HashAggregationTranslator::GetGroupByTerm(ast::Identifier agg_row, uint32_t attr_idx) const {
   auto codegen = GetCodeGen();
-  auto member = codegen->MakeIdentifier(kGroupByTermAttrPrefix + std::to_string(attr_idx));
+  auto member = codegen->MakeIdentifier(GROUP_BY_TERM_ATTR_PREFIX + std::to_string(attr_idx));
   return codegen->AccessStructMember(codegen->MakeExpr(agg_row), member);
 }
 
 ast::Expr *HashAggregationTranslator::GetAggregateTerm(ast::Identifier agg_row, uint32_t attr_idx) const {
   auto codegen = GetCodeGen();
-  auto member = codegen->MakeIdentifier(kAggregateTermAttrPrefix + std::to_string(attr_idx));
+  auto member = codegen->MakeIdentifier(AGGREGATE_TERM_ATTR_PREFIX + std::to_string(attr_idx));
   return codegen->AccessStructMember(codegen->MakeExpr(agg_row), member);
 }
 

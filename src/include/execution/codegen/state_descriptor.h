@@ -34,7 +34,7 @@ class StateDescriptor {
     /**
      * An invalid entry.
      */
-    Entry() : desc_(nullptr), member_() {}
+    Entry() = default;
 
     /**
      * A reference to an entry in the provide state instance.
@@ -65,9 +65,9 @@ class StateDescriptor {
 
    private:
     // The state.
-    StateDescriptor *desc_;
+    StateDescriptor *desc_{nullptr};
     // The member in the state to reference.
-    ast::Identifier member_;
+    ast::Identifier member_{};
   };
 
   /**
@@ -123,11 +123,11 @@ class StateDescriptor {
   // Metadata for a single state entry.
   struct SlotInfo {
     // The unique name of the element in the state.
-    ast::Identifier name;
+    ast::Identifier name_;
     // The type representation for the state.
-    ast::Expr *type_repr;
+    ast::Expr *type_repr_;
     // Constructor.
-    SlotInfo(ast::Identifier name, ast::Expr *type_repr) : name(name), type_repr(type_repr) {}
+    SlotInfo(ast::Identifier name, ast::Expr *type_repr) : name_(name), type_repr_(type_repr) {}
   };
 
  private:

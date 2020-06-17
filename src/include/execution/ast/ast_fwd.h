@@ -7,7 +7,7 @@ namespace terrier::execution::ast {
 
 class BlockStmt;
 class Context;
-class Expr;
+class Expr;  // NOLINT it picks up the parser's global Expr
 class Decl;
 class FieldDecl;
 class File;

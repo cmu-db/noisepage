@@ -93,7 +93,7 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
 }
 
 void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
-  static const int32_t kJumpPlaceholder = std::numeric_limits<int32_t>::max() - 1;
+  static const int32_t jump_placeholder = std::numeric_limits<int32_t>::max() - 1;
 
   std::size_t curr_offset = GetPosition();
 
@@ -113,7 +113,7 @@ void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
     // the label and use a placeholder offset in the byte stream for now. We'll update the
     // placeholder when the label is bound
     label->SetReferrer(curr_offset);
-    EmitScalarValue(kJumpPlaceholder);
+    EmitScalarValue(jump_placeholder);
   }
 }
 

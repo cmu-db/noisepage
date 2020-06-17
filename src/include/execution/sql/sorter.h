@@ -71,9 +71,9 @@ class Sorter {
    * mode to reduce runtime of tests by not requiring large Sorters when testing parallel sorts.
    */
 #ifndef NDEBUG
-  static constexpr uint64_t kDefaultMinTuplesForParallelSort = 1000;
+  static constexpr uint64_t DEFAULT_MIN_TUPLES_FOR_PARALLEL_SORT = 1000;
 #else
-  static constexpr uint64_t kDefaultMinTuplesForParallelSort = 10000;
+  static constexpr uint64_t DEFAULT_MIN_TUPLES_FOR_PARALLEL_SORT = 10000;
 #endif
 
   /**

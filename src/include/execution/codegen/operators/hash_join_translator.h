@@ -9,8 +9,11 @@
 
 namespace terrier::parser {
 class AbstractExpression;
-class HashJoinPlanNode;
 }  // namespace terrier::parser
+
+namespace terrier::planner {
+class HashJoinPlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 

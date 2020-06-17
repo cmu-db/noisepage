@@ -3,9 +3,9 @@
 #include "execution/codegen/operators/operator_translator.h"
 #include "execution/codegen/pipeline_driver.h"
 
-namespace terrier::parser {
+namespace terrier::planner {
 class CSVScanPlanNode;
-}  // namespace terrier::parser
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 

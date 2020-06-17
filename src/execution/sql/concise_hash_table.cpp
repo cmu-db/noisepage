@@ -6,13 +6,7 @@
 
 namespace terrier::execution::sql {
 
-ConciseHashTable::ConciseHashTable(const uint32_t probe_threshold)
-    : slot_groups_(nullptr),
-      num_groups_(0),
-      slot_mask_(0),
-      probe_limit_(probe_threshold),
-      num_overflow_(0),
-      built_(false) {}
+ConciseHashTable::ConciseHashTable(const uint32_t probe_threshold) : probe_limit_(probe_threshold) {}
 
 ConciseHashTable::~ConciseHashTable() {
   if (slot_groups_ != nullptr) {
@@ -38,10 +32,10 @@ void ConciseHashTable::Build() {
 
   // Compute the prefix counts for each slot group
 
-  slot_groups_[0].count = util::BitUtil::CountPopulation(slot_groups_[0].bits);
+  slot_groups_[0].count_ = util::BitUtil::CountPopulation(slot_groups_[0].bits_);
 
   for (uint64_t i = 1; i < num_groups_; i++) {
-    slot_groups_[i].count = slot_groups_[i - 1].count + util::BitUtil::CountPopulation(slot_groups_[i].bits);
+    slot_groups_[i].count_ = slot_groups_[i - 1].count_ + util::BitUtil::CountPopulation(slot_groups_[i].bits_);
   }
 
   built_ = true;

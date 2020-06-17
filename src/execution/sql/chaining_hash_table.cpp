@@ -61,7 +61,7 @@ std::tuple<uint64_t, uint64_t, float> ChainingHashTable<UseTags>::GetChainLength
 
   for (uint64_t idx = 0; idx < capacity_; idx++) {
     HashTableEntry *entry = entries_[idx];
-    if constexpr (UseTags) {
+    if constexpr (UseTags) {  // NOLINT
       entry = UntagPointer(entry);
     }
     uint64_t length = 0;
@@ -128,7 +128,7 @@ void ChainingHashTableVectorIterator<UseTag>::Next() {
   // Fill the range [idx, SIZE) in the cache with valid entries from the source hash table.
   while (index < common::Constants::K_DEFAULT_VECTOR_SIZE && table_dir_index_ < table_.GetCapacity()) {
     entry_vec_[index] = table_.entries_[table_dir_index_++];
-    if constexpr (UseTag) {
+    if constexpr (UseTag) {  // NOLINT
       entry_vec_[index] = ChainingHashTable<UseTag>::UntagPointer(entry_vec_[index]);
     }
     index += (entry_vec_[index] != nullptr);

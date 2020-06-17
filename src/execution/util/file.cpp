@@ -50,10 +50,7 @@ namespace terrier::execution::util {
     eintr_wrapper_result;                                 \
   })
 
-File::File(const std::filesystem::path &path, uint32_t flags)
-    : fd_(kInvalidDescriptor), created_(false), error_(Error::OK) {
-  Initialize(path, flags);
-}
+File::File(const std::filesystem::path &path, uint32_t flags) : error_(Error::OK) { Initialize(path, flags); }
 
 void File::Initialize(const std::filesystem::path &path, uint32_t flags) {
   // Close the existing file if it's open
@@ -65,30 +62,30 @@ void File::Initialize(const std::filesystem::path &path, uint32_t flags) {
 
   int32_t open_flags = 0;
 
-  if (flags & FLAG_CREATE) {
+  if (flags & FLAG_CREATE) {  // NOLINT
     open_flags = O_CREAT | O_EXCL;
   }
 
-  if (flags & FLAG_CREATE_ALWAYS) {
+  if (flags & FLAG_CREATE_ALWAYS) {  // NOLINT
     TERRIER_ASSERT(!open_flags, "CreateAlways is mutually exclusive with other Open/Create flags");
     TERRIER_ASSERT(flags & FLAG_WRITE, "CreateAlways must include Write flag");
     open_flags = O_CREAT | O_TRUNC;
   }
 
-  if (flags & FLAG_OPEN_TRUNCATED) {
+  if (flags & FLAG_OPEN_TRUNCATED) {  // NOLINT
     TERRIER_ASSERT(!open_flags, "OpenTruncated is mutually exclusive with other Open/Create flags");
     TERRIER_ASSERT(flags & FLAG_WRITE, "OpenTruncated must include Write flag");
     open_flags = O_TRUNC;
   }
 
-  if (!open_flags && !(flags & FLAG_OPEN) && !(flags & FLAG_OPEN_ALWAYS)) {
+  if (!open_flags && !(flags & FLAG_OPEN) && !(flags & FLAG_OPEN_ALWAYS)) {  // NOLINT
     TERRIER_ASSERT(false, "Must provide one of Open/Create/OpenAlways/CreateAlways/OpenTruncated");
     errno = EOPNOTSUPP;
     error_ = Error::FAILED;
     return;
   }
 
-  if (flags & FLAG_WRITE && flags & FLAG_READ) {
+  if (flags & FLAG_WRITE && flags & FLAG_READ) {  // NOLINT
     open_flags |= O_RDWR;
   } else if (flags & FLAG_WRITE) {
     open_flags |= O_WRONLY;
@@ -98,7 +95,7 @@ void File::Initialize(const std::filesystem::path &path, uint32_t flags) {
     TERRIER_ASSERT(false, "Flags must include one of Read, Append, or OpenAlways");
   }
 
-  if (flags & FLAG_APPEND && flags & FLAG_READ) {
+  if (flags & FLAG_APPEND && flags & FLAG_READ) {  // NOLINT
     open_flags |= O_APPEND | O_RDWR;
   } else if (flags & FLAG_APPEND) {
     open_flags |= O_APPEND | O_WRONLY;
@@ -108,9 +105,9 @@ void File::Initialize(const std::filesystem::path &path, uint32_t flags) {
 
   int32_t fd = open(path.c_str(), open_flags, mode);
 
-  if (flags & FLAG_OPEN_ALWAYS) {
+  if (flags & FLAG_OPEN_ALWAYS) {  // NOLINT
     // Check if the file is open, create it otherwise.
-    if (fd == kInvalidDescriptor) {
+    if (fd == INVALID_DESCRIPTOR) {
       open_flags |= O_CREAT;
 
       fd = HANDLE_EINTR(open(path.c_str(), open_flags, mode));
@@ -122,13 +119,13 @@ void File::Initialize(const std::filesystem::path &path, uint32_t flags) {
   }
 
   // Check error
-  if (fd == kInvalidDescriptor) {
+  if (fd == INVALID_DESCRIPTOR) {
     error_ = OsErrorToFileError(errno);
     return;
   }
 
   // If the file was successfully created, set flag
-  if (flags & (FLAG_CREATE_ALWAYS | FLAG_CREATE)) {
+  if (flags & (FLAG_CREATE_ALWAYS | FLAG_CREATE)) {  // NOLINT
     created_ = true;
   }
 
@@ -136,7 +133,7 @@ void File::Initialize(const std::filesystem::path &path, uint32_t flags) {
   // from the file system, but keeps the physical space so open handles can
   // read from it. When all open handles are closed, the file will be deleted
   // and its space will be reclaimed.
-  if (flags & FLAG_DELETE_ON_CLOSE) {
+  if (flags & FLAG_DELETE_ON_CLOSE) {  // NOLINT
     unlink(path.c_str());
   }
 
@@ -158,7 +155,7 @@ void File::CreateTemp(bool delete_on_close) {
   int32_t fd = HANDLE_EINTR(mkstemp(tmp));
 
   // Fail?
-  if (fd == kInvalidDescriptor) {
+  if (fd == INVALID_DESCRIPTOR) {
     error_ = OsErrorToFileError(errno);
     return;
   }
@@ -293,7 +290,7 @@ void File::Close() {
   if (IsOpen()) {
     UNUSED_ATTRIBUTE auto ret = IGNORE_EINTR(close(fd_));
     TERRIER_ASSERT(ret == 0, "Invalid return code from close()");
-    fd_ = kInvalidDescriptor;
+    fd_ = INVALID_DESCRIPTOR;
   }
 }
 

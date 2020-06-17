@@ -42,22 +42,22 @@ class VectorOps : public common::AllStatic {
   /**
    * Cast all elements in the source vector @em source into elements of the type the target vector
    * @em target supports, and write them into the target vector.
-   * @param exec_ctx The execution context used in this query
+   * @param exec_settings The execution settings
    * @param source The vector to cast from.
    * @param target The vector to cast and write into.
    */
-  static void Cast(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &source, Vector *target);
+  static void Cast(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source, Vector *target);
 
   /**
    * Cast all elements in the source vector @em source whose SQL type is @em source_type into the
    * target SQL type @em target_type and write the results into the target vector @em target.
-   * @param exec_ctx The execution context used in this query
+   * @param exec_settings The execution settings
    * @param source The vector to read from.
    * @param target The vector to write into.
    * @param source_type The SQL type of elements in the source vector.
    * @param target_type The SQL type of elements in the target vector.
    */
-  static void Cast(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &source, Vector *target,
+  static void Cast(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source, Vector *target,
                    SqlTypeId source_type, SqlTypeId target_type);
 
   /**
@@ -93,38 +93,38 @@ class VectorOps : public common::AllStatic {
    *
    * result = left + right
    *
-   * @param exec_ctx The current execution context
+   * @param exec_settings The current execution settings
    * @param left The left input into the addition.
    * @param right The right input into the addition.
    * @param[out] result The result of the addition.
    */
-  static void Add(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left, const Vector &right,
-                  Vector *result);
+  static void Add(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
+                  const Vector &right, Vector *result);
 
   /**
    * Subtract vector elements in @em right from @em left and store the result into @em result:
    *
    * result = left - right
    *
-   * @param exec_ctx The current execution context
+   * @param exec_settings The current execution settings
    * @param left The left input into the subtraction.
    * @param right The right input into the subtraction.
    * @param[out] result The result of the subtraction.
    */
-  static void Subtract(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &right, Vector *result,
-                       const Vector &left);
+  static void Subtract(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &right,
+                       Vector *result, const Vector &left);
 
   /**
    * Multiply vector elements in @em left with @em right and store the result into @em result:
    *
    * result = left * right
    *
-   * @param exec_ctx The current execution context
+   * @param exec_settings The current execution settings
    * @param left The left input into the multiplication.
    * @param right The right input into the multiplication.
    * @param[out] result The result of the multiplication.
    */
-  static void Multiply(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left,
+  static void Multiply(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                        const Vector &right, Vector *result);
 
   /**
@@ -132,20 +132,19 @@ class VectorOps : public common::AllStatic {
    *
    * result = left / right
    *
-   * @param exec_ctx The current execution context
+   * @param exec_settings The current execution settings
    * @param left The left input into the division.
    * @param right The right input into the division.
    * @param[out] result The result of the division.
    */
-  static void Divide(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left, const Vector &right,
-                     Vector *result);
+  static void Divide(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
+                     const Vector &right, Vector *result);
 
   /**
    * Modulo vector elements in @em left by @em right and store the result into @em result:
    *
    * result = left % right
    *
-   * @param exec_ctx The current execution context
    * @param left The left input into the modulus.
    * @param right The right input into the modulus.
    * @param[out] result The result of the modulus.
@@ -161,18 +160,19 @@ class VectorOps : public common::AllStatic {
    * @param[in,out] left The left input into the addition.
    * @param right The right input into the addition.
    */
-  static void AddInPlace(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, Vector *left, const Vector &right);
+  static void AddInPlace(common::ManagedPointer<exec::ExecutionSettings> exec_settings, Vector *left,
+                         const Vector &right);
 
   /**
    * Bitwise AND elements in @em left with @em right and store the result back into @em left:
    *
    * left &= right
    *
-   * @param exec_ctx The execution context that is used in this query
+   * @param exec_settings The execution settings
    * @param[in,out] left The left input into the bitwise operation.
    * @param right The right input into the bitwise operation.
    */
-  static void BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, Vector *left,
+  static void BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionSettings> exec_settings, Vector *left,
                                 const Vector &right);
 
   // -------------------------------------------------------
@@ -184,67 +184,67 @@ class VectorOps : public common::AllStatic {
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are equal to elements in
    * @em right.
-   * @param exec_ctx The execution context being used
+   * @param exec_settings The execution settings
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectEqual(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left,
+  static void SelectEqual(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                           const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are strictly greater than
    * elements in @em right.
-   * @param exec_ctx The execution context being used
+   * @param exec_settings The execution settings
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectGreaterThan(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left,
+  static void SelectGreaterThan(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                                 const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are greater than or equal
    * to elements @em right.
-   * @param exec_ctx The execution context being used
+   * @param exec_settings The execution settings
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectGreaterThanEqual(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left,
+  static void SelectGreaterThanEqual(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                                      const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are strictly less than
    * elements in @em right.
-   * @param exec_ctx The execution context being used
+   * @param exec_settings The execution settings
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectLessThan(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left,
+  static void SelectLessThan(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                              const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are less than or equal to
    * elements in @em right.
-   * @param exec_ctx The execution context being used
+   * @param exec_settings The execution settings
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectLessThanEqual(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left,
+  static void SelectLessThanEqual(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                                   const Vector &right, TupleIdList *tid_list);
 
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are not equal to elements
    * in @em right.
-   * @param exec_ctx The execution context being used
+   * @param exec_settings The execution settings
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
    */
-  static void SelectNotEqual(common::ManagedPointer<exec::ExecutionSettings> exec_ctx, const Vector &left,
+  static void SelectNotEqual(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
                              const Vector &right, TupleIdList *tid_list);
 
   // -------------------------------------------------------

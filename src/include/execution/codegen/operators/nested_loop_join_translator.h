@@ -2,9 +2,9 @@
 
 #include "execution/codegen/operators/operator_translator.h"
 
-namespace terrier::parser {
+namespace terrier::planner {
 class NestedLoopJoinPlanNode;
-}  // namespace terrier::parser
+}  // namespace terrier::planner
 
 namespace terrier::execution::codegen {
 

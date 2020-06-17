@@ -196,7 +196,7 @@ class Sema : public ast::AstVisitor<Sema> {
       }
     }
 
-    Sema *check() { return check_; }
+    Sema *Check() { return check_; }
 
    private:
     Sema *check_;
@@ -217,7 +217,7 @@ class Sema : public ast::AstVisitor<Sema> {
 
     void Exit() {
       block_scope_.Exit();
-      block_scope_.check()->curr_func_ = prev_func_;
+      block_scope_.Check()->curr_func_ = prev_func_;
     }
 
    private:

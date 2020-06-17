@@ -35,7 +35,7 @@ class StageTimer {
    private:
     friend class StageTimer<ResolutionRatio>;
 
-    void set_time(const double time) { time_ = time; }
+    void SetTime(const double time) { time_ = time; }
 
    private:
     // The name
@@ -71,7 +71,7 @@ class StageTimer {
     TERRIER_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
     TERRIER_ASSERT(stages_.back().Time() == 0, "Duplicate call to ExitStage()");
     timer_.Stop();
-    stages_.back().set_time(timer_.GetElapsed());
+    stages_.back().SetTime(timer_.GetElapsed());
   }
 
   /**

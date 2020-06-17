@@ -17,10 +17,10 @@ namespace terrier::execution::util {
 
 CSVFile::CSVFile(std::string_view path)
     : file_(path, util::File::FLAG_OPEN | util::File::FLAG_READ),
-      buffer_(std::unique_ptr<char[]>(new char[kDefaultBufferSize + kNumExtraPaddingChars])),
+      buffer_(std::unique_ptr<char[]>(new char[DEFAULT_BUFFER_SIZE + NUM_EXTRA_PADDING_CHARS])),
       read_pos_(0),
       end_pos_(0),
-      buffer_alloc_size_(kDefaultBufferSize) {}
+      buffer_alloc_size_(DEFAULT_BUFFER_SIZE) {}
 
 bool CSVFile::Initialize() { return file_.IsOpen(); }
 
@@ -45,8 +45,8 @@ bool CSVFile::Fill() {
   // maximum determined by kMaxAllocSize, usually 1GB.
 
   if (end_pos_ == buffer_alloc_size_) {
-    buffer_alloc_size_ = std::min(buffer_alloc_size_ * 2, kMaxAllocSize);
-    auto new_buffer = std::unique_ptr<char[]>(new char[buffer_alloc_size_ + kNumExtraPaddingChars]);
+    buffer_alloc_size_ = std::min(buffer_alloc_size_ * 2, MAX_ALLOC_SIZE);
+    auto new_buffer = std::unique_ptr<char[]>(new char[buffer_alloc_size_ + NUM_EXTRA_PADDING_CHARS]);
     std::memcpy(&new_buffer[0], &buffer_[0], end_pos_ - read_pos_);
     buffer_ = std::move(new_buffer);
   }
@@ -75,7 +75,7 @@ bool CSVFile::Fill() {
 
 double CSVReader::CSVCell::AsDouble() const {
   double output = 0;
-  FastDoubleParser::ParseNumber(this->ptr, &output);
+  FastDoubleParser::ParseNumber(this->ptr_, &output);
   return output;
 }
 
@@ -87,11 +87,11 @@ CSVReader::CSVReader(std::unique_ptr<CSVSource> source, char delimiter, char quo
       quote_char_(quote),
       escape_char_(escape) {
   // Assume 8 columns for now. We'll discover as we go along.
-  row_.cells.resize(8);
-  for (CSVCell &cell : row_.cells) {
-    cell.ptr = nullptr;
-    cell.len = 0;
-    cell.escape_char = escape_char_;
+  row_.cells_.resize(8);
+  for (CSVCell &cell : row_.cells_) {
+    cell.ptr_ = nullptr;
+    cell.len_ = 0;
+    cell.escape_char_ = escape_char_;
   }
 }
 
@@ -113,7 +113,7 @@ CSVReader::ParseResult CSVReader::TryParse() {
   const auto is_new_line = [](const char c) noexcept { return c == '\r' || c == '\n'; };
 
   // The current cell
-  CSVCell *cell = &row_.cells[0];
+  CSVCell *cell = &row_.cells_[0];
 
   // The running pointer into the buffer
   const char *ptr = buf_;
@@ -123,23 +123,23 @@ CSVReader::ParseResult CSVReader::TryParse() {
     return ParseResult::NeedMoreData; \
   }
 
-#define FINISH_CELL()     \
-  cell->ptr = cell_start; \
-  cell->len = ptr - cell_start;
+#define FINISH_CELL()      \
+  cell->ptr_ = cell_start; \
+  cell->len_ = ptr - cell_start;
 
 #define FINISH_QUOTED_CELL() \
-  cell->ptr = cell_start;    \
-  cell->len = ptr - cell_start - 1;
+  cell->ptr_ = cell_start;   \
+  cell->len_ = ptr - cell_start - 1;
 
-#define NEXT_CELL()                        \
-  cell++;                                  \
-  if (++row_.count == row_.cells.size()) { \
-    return ParseResult::NeedMoreCells;     \
+#define NEXT_CELL()                          \
+  cell++;                                    \
+  if (++row_.count_ == row_.cells_.size()) { \
+    return ParseResult::NeedMoreCells;       \
   }
 
 cell_start:
   const char *cell_start = ptr;
-  cell->escaped = false;
+  cell->escaped_ = false;
 
   // The first check we do is if we've reached the end of a line. This can be
   // caused by an empty last cell.
@@ -147,7 +147,7 @@ cell_start:
   RETURN_IF_AT_END();
   if (is_new_line(*ptr)) {
     FINISH_CELL();
-    row_.count++;
+    row_.count_++;
     buf_ = ptr + 1;
     return ParseResult::Ok;
   }
@@ -180,11 +180,11 @@ cell_start:
     }
     if (is_new_line(*ptr)) {
       FINISH_QUOTED_CELL();
-      row_.count++;
+      row_.count_++;
       buf_ = ptr + 1;
       return ParseResult::Ok;
     }
-    cell->escaped = true;
+    cell->escaped_ = true;
     ptr++;
     goto quoted_cell;
   }
@@ -213,35 +213,35 @@ unquoted_cell:
   }
   if (is_new_line(*ptr)) {
     FINISH_CELL();
-    row_.count++;
+    row_.count_++;
     buf_ = ptr + 1;
     return ParseResult::Ok;
   }
-  cell->escaped = true;
+  cell->escaped_ = true;
   ptr++;
   goto unquoted_cell;
 }
 
 bool CSVReader::Advance() {
   do {
-    row_.count = 0;
+    row_.count_ = 0;
     buf_ = source_->GetBuffer();
     buf_end_ = buf_ + source_->GetSize();
     const char *start_pos = buf_;
     switch (TryParse()) {
       case ParseResult::Ok:
-        stats_.num_lines++;
-        stats_.bytes_read += buf_ - start_pos;
+        stats_.num_lines_++;
+        stats_.bytes_read_ += buf_ - start_pos;
         source_->Consume(buf_ - start_pos);
         return true;
       case ParseResult::NeedMoreCells:
-        row_.cells.resize(row_.cells.size() * 2);
-        for (auto &cell : row_.cells) cell.escape_char = escape_char_;
+        row_.cells_.resize(row_.cells_.size() * 2);
+        for (auto &cell : row_.cells_) cell.escape_char_ = escape_char_;
         return Advance();
       case ParseResult::NeedMoreData:
         break;
     }
-    stats_.num_fills++;
+    stats_.num_fills_++;
   } while (source_->Fill());
 
   // There's no more data in the buffer.

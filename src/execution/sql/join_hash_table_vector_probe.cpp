@@ -155,9 +155,9 @@ bool JoinHashTableVectorProbe::NextSemiOrAntiJoin(VectorProjection *input) {
   }
 
   key_matches_.AddAll();
-  if constexpr (Match) {
+  if constexpr (Match) {  // NOLINT
     key_matches_.IntersectWith(semi_anti_key_matches_);
-  } else {
+  } else {  // NOLINT
     key_matches_.UnsetFrom(semi_anti_key_matches_);
   }
 

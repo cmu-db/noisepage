@@ -24,7 +24,7 @@ namespace terrier::execution::util {
  */
 class CSVSource {
  public:
-  static constexpr uint32_t kNumExtraPaddingChars = 16;
+  static constexpr uint32_t NUM_EXTRA_PADDING_CHARS = 16;
 
   /**
    * Destructor.
@@ -69,8 +69,8 @@ class CSVSource {
  * CSV source implementation for files.
  */
 class CSVFile : public CSVSource {
-  constexpr static std::size_t kDefaultBufferSize = 64 * common::Constants::KB;
-  constexpr static std::size_t kMaxAllocSize = 1 * common::Constants::GB;
+  constexpr static std::size_t DEFAULT_BUFFER_SIZE = 64 * common::Constants::KB;
+  constexpr static std::size_t MAX_ALLOC_SIZE = 1 * common::Constants::GB;
 
  public:
   /**
@@ -133,9 +133,9 @@ class CSVString : public CSVSource {
    * @param data The CSV data.
    */
   explicit CSVString(std::string data)
-      : data_(data.append(kNumExtraPaddingChars, static_cast<char>(0))),
+      : data_(data.append(NUM_EXTRA_PADDING_CHARS, static_cast<char>(0))),
         p_(data_.data()),
-        pend_(data_.data() + data_.length() - kNumExtraPaddingChars) {}
+        pend_(data_.data() + data_.length() - NUM_EXTRA_PADDING_CHARS) {}
 
   /**
    * Construct from a C-string.
@@ -205,26 +205,26 @@ class CSVReader {
    */
   struct CSVCell {
     // Pointer to the cell's data
-    const char *ptr;
+    const char *ptr_;
     // Length of the data in bytes
-    std::size_t len;
+    std::size_t len_;
     // Does this cell contain escaped data?
-    bool escaped;
+    bool escaped_;
     // The escaping character
-    char escape_char;
+    char escape_char_;
 
     /**
      * @return True if the cell is empty; false otherwise.
      */
-    bool IsEmpty() const noexcept { return len == 0; }
+    bool IsEmpty() const noexcept { return len_ == 0; }
 
     /**
      * @return This cell's value converted into a 64-bit signed integer.
      */
     int64_t AsInteger() const {
-      TERRIER_ASSERT(!escaped, "Integer data cannot contain be escaped");
+      TERRIER_ASSERT(!escaped_, "Integer data cannot contain be escaped");
       int64_t n = 0;
-      std::from_chars(ptr, ptr + len, n);
+      std::from_chars(ptr_, ptr_ + len_, n);
       return n;
     }
 
@@ -237,11 +237,11 @@ class CSVReader {
      * @return This cell's value as a string.
      */
     std::string AsString() const {
-      std::string result(ptr, len);
-      if (escaped) {
+      std::string result(ptr_, len_);
+      if (escaped_) {
         std::size_t new_len = 0;
-        for (std::size_t i = 0; i < len; i++) {
-          if (result[i] == escape_char) {
+        for (std::size_t i = 0; i < len_; i++) {
+          if (result[i] == escape_char_) {
             i++;
           }
           result[new_len++] = result[i];
@@ -257,9 +257,9 @@ class CSVReader {
    */
   struct CSVRow {
     // The cells/attributes in this row.
-    std::vector<CSVCell> cells;
+    std::vector<CSVCell> cells_;
     // The number of active cells
-    uint32_t count;
+    uint32_t count_;
   };
 
   /**
@@ -267,11 +267,11 @@ class CSVReader {
    */
   struct Stats {
     // The number of times we requested the source to refill.
-    uint32_t num_fills = 0;
+    uint32_t num_fills_ = 0;
     // The total bytes read.
-    uint32_t bytes_read = 0;
+    uint32_t bytes_read_ = 0;
     // The number of lines in the CSV
-    uint32_t num_lines = 0;
+    uint32_t num_lines_ = 0;
   };
 
   /**
@@ -305,8 +305,8 @@ class CSVReader {
    * @return The parsed cell at the given index in the current row.
    */
   const CSVCell *GetRowCell(uint32_t idx) const {
-    TERRIER_ASSERT(idx < row_.count, "Out-of-bounds access");
-    return &row_.cells[idx];
+    TERRIER_ASSERT(idx < row_.count_, "Out-of-bounds access");
+    return &row_.cells_[idx];
   }
 
   /**
@@ -318,7 +318,7 @@ class CSVReader {
    * @return The current record number. This also represents the number of records that have been
    *         parsed and processed thus far.
    */
-  uint64_t GetRecordNumber() const { return stats_.num_lines; }
+  uint64_t GetRecordNumber() const { return stats_.num_lines_; }
 
  private:
   // The result of an attempted parse

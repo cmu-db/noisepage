@@ -100,17 +100,17 @@ class Token {
   /**
    * The total number of tokens.
    */
-  static const uint32_t kTokenCount = static_cast<uint32_t>(Type::Last) + 1;
+  static const uint32_t TOKEN_COUNT = static_cast<uint32_t>(Type::Last) + 1;
 
   /**
    * @return The name of the given token.
    */
-  static const char *GetName(Type type) { return TOKEN_NAMES[static_cast<uint32_t>(type)]; }
+  static const char *GetName(Type type) { return token_names[static_cast<uint32_t>(type)]; }
 
   /**
    * @return The stringified version of a given token, i.e., GetString(Type::TOKEN_EQUAL) = "=".
    */
-  static const char *GetString(Type type) { return TOKEN_STRINGS[static_cast<uint32_t>(type)]; }
+  static const char *GetString(Type type) { return token_strings[static_cast<uint32_t>(type)]; }
 
   /**
    * @return The precedence of a given token.
@@ -152,8 +152,8 @@ class Token {
   }
 
  private:
-  static const char *TOKEN_NAMES[];
-  static const char *TOKEN_STRINGS[];
+  static const char *token_names[];
+  static const char *token_strings[];
   static const uint32_t TOKEN_PRECEDENCES[];
 };
 

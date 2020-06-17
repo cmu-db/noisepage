@@ -12,7 +12,7 @@
 namespace terrier::execution::codegen {
 
 namespace {
-constexpr const char kSortRowAttrPrefix[] = "attr";
+constexpr const char SORT_ROW_ATTR_PREFIX[] = "attr";
 }  // namespace
 
 SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, CompilationContext *compilation_context,
@@ -57,7 +57,7 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
 void SortTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
   auto codegen = GetCodeGen();
   auto fields = codegen->MakeEmptyFieldList();
-  GetAllChildOutputFields(0, kSortRowAttrPrefix, &fields);
+  GetAllChildOutputFields(0, SORT_ROW_ATTR_PREFIX, &fields);
   decls->push_back(codegen->DeclareStruct(sort_row_type_, std::move(fields)));
 }
 
@@ -134,7 +134,7 @@ void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBui
 
 ast::Expr *SortTranslator::GetSortRowAttribute(ast::Identifier sort_row, uint32_t attr_idx) const {
   CodeGen *codegen = GetCodeGen();
-  ast::Identifier attr_name = codegen->MakeIdentifier(kSortRowAttrPrefix + std::to_string(attr_idx));
+  ast::Identifier attr_name = codegen->MakeIdentifier(SORT_ROW_ATTR_PREFIX + std::to_string(attr_idx));
   return codegen->AccessStructMember(codegen->MakeExpr(sort_row), attr_name);
 }
 

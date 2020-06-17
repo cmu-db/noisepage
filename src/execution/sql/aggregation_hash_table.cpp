@@ -26,20 +26,20 @@ namespace terrier::execution::sql {
 
 class AggregationHashTable::HashToGroupIdMap {
   // Marker indicating an empty slot in the hash table
-  static constexpr const uint16_t kEmpty = std::numeric_limits<uint16_t>::max();
+  static constexpr const uint16_t EMPTY = std::numeric_limits<uint16_t>::max();
 
  public:
   // An entry in the hash table.
   struct Entry {
-    uint16_t gid;
-    uint16_t next;
+    uint16_t gid_;
+    uint16_t next_;
   };
 
   HashToGroupIdMap() {
     const uint64_t max_size = common::Constants::K_DEFAULT_VECTOR_SIZE;
     capacity_ = max_size * 2;
     mask_ = capacity_ - 1;
-    entries_ = std::unique_ptr<uint16_t[]>(new uint16_t[capacity_]{kEmpty});
+    entries_ = std::unique_ptr<uint16_t[]>(new uint16_t[capacity_]{EMPTY});
     storage_ = std::make_unique<Entry[]>(max_size);
     storage_used_ = 0;
   }
@@ -50,7 +50,7 @@ class AggregationHashTable::HashToGroupIdMap {
   // Remove all elements from the hash table.
   void Clear() {
     storage_used_ = 0;
-    std::memset(entries_.get(), kEmpty, capacity_ * sizeof(uint16_t));
+    std::memset(entries_.get(), EMPTY, capacity_ * sizeof(uint16_t));
   }
 
   // Find the group associated to the input hash, but only if the predicate is
@@ -58,13 +58,13 @@ class AggregationHashTable::HashToGroupIdMap {
   template <typename P>
   uint16_t *Find(const hash_t hash, P p) {
     uint16_t candidate = entries_[hash & mask_];
-    if (candidate == kEmpty) {
+    if (candidate == EMPTY) {
       return nullptr;
     }
-    for (auto candidate_ptr = &storage_[candidate]; candidate != kEmpty;
-         candidate = candidate_ptr->next, candidate_ptr = &storage_[candidate]) {
-      if (p(candidate_ptr->gid)) {
-        return &candidate_ptr->gid;
+    for (auto candidate_ptr = &storage_[candidate]; candidate != EMPTY;
+         candidate = candidate_ptr->next_, candidate_ptr = &storage_[candidate]) {
+      if (p(candidate_ptr->gid_)) {
+        return &candidate_ptr->gid_;
       }
     }
     return nullptr;
@@ -79,16 +79,16 @@ class AggregationHashTable::HashToGroupIdMap {
     Entry *entry = &storage_[entry_pos];
 
     // Put the new entry at the head of the chain.
-    entry->next = entries_[hash & mask_];
+    entry->next_ = entries_[hash & mask_];
     entries_[hash & mask_] = entry_pos;
 
     // Fill the group ID.
-    entry->gid = gid;
+    entry->gid_ = gid;
   }
 
   // Iterators.
-  Entry *begin() { return storage_.get(); }
-  Entry *end() { return storage_.get() + storage_used_; }
+  Entry *begin() { return storage_.get(); }                // NOLINT to match C++ iterators
+  Entry *end() { return storage_.get() + storage_used_; }  // NOLINT to match C++ iterators
 
  private:
   // The mask to use to map hashes to slots in the 'entries' array.
@@ -109,13 +109,13 @@ class AggregationHashTable::HashToGroupIdMap {
 
 AggregationHashTable::BatchProcessState::BatchProcessState(std::unique_ptr<libcount::HLL> estimator,
                                                            std::unique_ptr<HashToGroupIdMap> hash_to_group_map)
-    : hll_estimator(std::move(estimator)),
-      hash_to_group_map(std::move(hash_to_group_map)),
-      groups_not_found(common::Constants::K_DEFAULT_VECTOR_SIZE),
-      groups_found(common::Constants::K_DEFAULT_VECTOR_SIZE),
-      key_not_equal(common::Constants::K_DEFAULT_VECTOR_SIZE),
-      key_equal(common::Constants::K_DEFAULT_VECTOR_SIZE) {
-  hash_and_entries.Initialize({TypeId::Hash, TypeId::Pointer});
+    : hll_estimator_(std::move(estimator)),
+      hash_to_group_map_(std::move(hash_to_group_map)),
+      groups_not_found_(common::Constants::K_DEFAULT_VECTOR_SIZE),
+      groups_found_(common::Constants::K_DEFAULT_VECTOR_SIZE),
+      key_not_equal_(common::Constants::K_DEFAULT_VECTOR_SIZE),
+      key_equal_(common::Constants::K_DEFAULT_VECTOR_SIZE) {
+  hash_and_entries_.Initialize({TypeId::Hash, TypeId::Pointer});
 }
 
 AggregationHashTable::BatchProcessState::~BatchProcessState() = default;
@@ -124,24 +124,24 @@ void AggregationHashTable::BatchProcessState::Reset(VectorProjectionIterator *in
   // Resize the lists if they don't match the input. This should only happen
   // once, on the last input batch where the size may be less than one full
   // vector.
-  if (const auto count = input_batch->GetTotalTupleCount(); count != hash_and_entries.GetTotalTupleCount()) {
-    hash_and_entries.Reset(count);
-    groups_not_found.Resize(count);
-    groups_found.Resize(count);
-    key_not_equal.Resize(count);
-    key_equal.Resize(count);
+  if (const auto count = input_batch->GetTotalTupleCount(); count != hash_and_entries_.GetTotalTupleCount()) {
+    hash_and_entries_.Reset(count);
+    groups_not_found_.Resize(count);
+    groups_found_.Resize(count);
+    key_not_equal_.Resize(count);
+    key_equal_.Resize(count);
   }
 
   // Initially, there are no groups found and all keys are unequal.
-  input_batch->GetVectorProjection()->CopySelectionsTo(&groups_not_found);
-  input_batch->GetVectorProjection()->CopySelectionsTo(&key_not_equal);
+  input_batch->GetVectorProjection()->CopySelectionsTo(&groups_not_found_);
+  input_batch->GetVectorProjection()->CopySelectionsTo(&key_not_equal_);
 
   // Clear the rest of the lists.
-  groups_found.Clear();
-  key_equal.Clear();
+  groups_found_.Clear();
+  key_equal_.Clear();
 
   // Clear the collision table.
-  hash_to_group_map->Clear();
+  hash_to_group_map_->Clear();
 }
 
 // ---------------------------------------------------------

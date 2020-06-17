@@ -11,7 +11,7 @@
 namespace terrier::execution::codegen {
 
 namespace {
-const char *kBuildRowAttrPrefix = "attr";
+const char *build_row_attr_prefix = "attr";
 }  // namespace
 
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
@@ -52,7 +52,7 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
 void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
   auto codegen = GetCodeGen();
   auto fields = codegen->MakeEmptyFieldList();
-  GetAllChildOutputFields(0, kBuildRowAttrPrefix, &fields);
+  GetAllChildOutputFields(0, build_row_attr_prefix, &fields);
   if (GetPlanAs<planner::HashJoinPlanNode>().RequiresLeftMark()) {
     fields.push_back(codegen->MakeField(build_mark_, codegen->BoolType()));
   }
@@ -106,7 +106,7 @@ ast::Expr *HashJoinTranslator::HashKeys(
 
 ast::Expr *HashJoinTranslator::GetBuildRowAttribute(ast::Expr *build_row, uint32_t attr_idx) const {
   auto codegen = GetCodeGen();
-  auto attr_name = codegen->MakeIdentifier(kBuildRowAttrPrefix + std::to_string(attr_idx));
+  auto attr_name = codegen->MakeIdentifier(build_row_attr_prefix + std::to_string(attr_idx));
   return codegen->AccessStructMember(build_row, attr_name);
 }
 

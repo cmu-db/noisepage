@@ -102,13 +102,13 @@ class FilterManager {
     // A term in the clause.
     struct Term {
       // The index of the term when it was inserted into the clause.
-      const uint32_t insertion_index;
+      const uint32_t insertion_index_;
       // The function implementing the term.
-      const MatchFn fn;
+      const MatchFn fn_;
       // The current rank.
-      double rank;
+      double rank_;
       // Create a new term with no rank.
-      Term(uint32_t insertion_index, MatchFn term_fn) : insertion_index(insertion_index), fn(term_fn), rank(0.0) {}
+      Term(uint32_t insertion_index, MatchFn term_fn) : insertion_index_(insertion_index), fn_(term_fn), rank_(0.0) {}
     };
 
    private:

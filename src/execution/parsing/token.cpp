@@ -3,11 +3,11 @@
 namespace terrier::execution::parsing {
 
 #define T(name, str, precedence) #name,
-const char *Token::TOKEN_NAMES[] = {TOKENS(T, T)};
+const char *Token::token_names[] = {TOKENS(T, T)};
 #undef T
 
 #define T(name, str, precedence) str,
-const char *Token::TOKEN_STRINGS[] = {TOKENS(T, T)};
+const char *Token::token_strings[] = {TOKENS(T, T)};
 #undef T
 
 #define T(name, str, precedence) precedence,

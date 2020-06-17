@@ -12,7 +12,7 @@ namespace terrier::execution::util {
  */
 class File {
   // An invalid file descriptor
-  static constexpr int32_t kInvalidDescriptor = -1;
+  static constexpr int32_t INVALID_DESCRIPTOR = -1;
 
  public:
   /**
@@ -62,7 +62,7 @@ class File {
   /**
    * Create a file handle to no particular file.
    */
-  File() : fd_(kInvalidDescriptor), created_(false), error_(Error::FAILED) {}
+  File() = default;
 
   /**
    * Open a handle to a file at the given path and flags.
@@ -195,7 +195,7 @@ class File {
   /**
    * @return True if the file is open; false otherwise.
    */
-  bool IsOpen() const noexcept { return fd_ != kInvalidDescriptor; }
+  bool IsOpen() const noexcept { return fd_ != INVALID_DESCRIPTOR; }
 
   /**
    * @return True if this file was created new; false otherwise.
@@ -223,11 +223,11 @@ class File {
 
  private:
   // The file descriptor.
-  int32_t fd_;
+  int32_t fd_{INVALID_DESCRIPTOR};
   // Was the file created?
-  bool created_;
+  bool created_{false};
   // Error indicator.
-  Error error_;
+  Error error_{Error::FAILED};
 };
 
 }  // namespace terrier::execution::util
