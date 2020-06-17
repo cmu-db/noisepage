@@ -95,7 +95,7 @@ class PostgresPacketWriter : public PacketWriter {
   void WriteNoticeResponse(const std::string &message) {
     BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE)
         .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
-        .AppendString(message)
+        .AppendString("NOTICE:  " + message)
         .AppendRawValue<uchar>(0)
         .EndPacket();  // Nul-terminate packet
   }
@@ -107,7 +107,7 @@ class PostgresPacketWriter : public PacketWriter {
   void WriteErrorResponse(const std::string &message) {
     BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE)
         .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
-        .AppendString(message)
+        .AppendString("ERROR:  " + message)
         .AppendRawValue<uchar>(0)
         .EndPacket();  // Nul-terminate packet
   }

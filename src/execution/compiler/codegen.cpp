@@ -9,6 +9,7 @@
 #include "execution/sql/value.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/index/index.h"
+#include "storage/index/index_defs.h"
 
 namespace terrier::execution::compiler {
 

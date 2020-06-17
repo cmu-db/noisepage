@@ -81,7 +81,7 @@ void TpccPlanTest::TearDown() { delete tpcc_db_; }
 
 void TpccPlanTest::BeginTransaction() {
   txn_ = txn_manager_->BeginTransaction();
-  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_).release();
+  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_, DISABLED).release();
 }
 
 void TpccPlanTest::EndTransaction(bool commit) {
@@ -98,7 +98,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
   // Bind + Transform
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_, DISABLED);
   auto *binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), db_);
   binder->BindNameToNode(common::ManagedPointer(stmt_list.get()), nullptr, nullptr);
   auto *transformer = new optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor), db_);

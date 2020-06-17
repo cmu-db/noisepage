@@ -59,7 +59,7 @@ class BinderCorrectnessTest : public TerrierTest {
     //  for testcases to see if the binder does not differentiate between upper and lower cases
     // create table A
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a;
     cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
@@ -75,7 +75,7 @@ class BinderCorrectnessTest : public TerrierTest {
 
     // create Table B
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
 
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
@@ -98,7 +98,7 @@ class BinderCorrectnessTest : public TerrierTest {
     SetUpTables();
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
     binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
   }
 
