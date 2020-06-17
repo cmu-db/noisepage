@@ -58,9 +58,13 @@ class TransactionMetricRawData : public AbstractRawData {
       data.resource_metrics_.ToCSV(commit_outfile);
       commit_outfile << std::endl;
     }
+    num_outfile << metrics::MetricsUtil::Now() << ", " << num_txns_.exchange(0) << ",";
+    if (!commit_data_.empty())
+      commit_data_.front().resource_metrics_.ToCSV(num_outfile);
+    num_outfile << std::endl;
+
     begin_data_.clear();
     commit_data_.clear();
-    num_outfile << metrics::MetricsUtil::Now() << ", " << num_txns_.exchange(0) << std::endl;
   }
 
   /**
