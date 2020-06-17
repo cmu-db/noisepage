@@ -3,6 +3,7 @@
  */
 
 import java.sql.*;
+import java.lang.*;
 import org.junit.*;
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
@@ -43,7 +44,7 @@ public class TrafficCopTest extends TestUtility {
    * DisconnectAbortTest
    */
   @Test
-  public void test_DisconnectAbort() throws SQLException {
+  public void test_DisconnectAbort() throws SQLException, InterruptedException {
 
    // create another connection that will take the write lock on a tuple, forcing an abort on the default connection's
    // createStatement
@@ -69,6 +70,8 @@ public class TrafficCopTest extends TestUtility {
      }
    // close the second connection, forcing the explicit txn that has the write lock to abort
    second_conn.close();
+
+   Thread.sleep(500); // sleep a bit to make sure cleanup happens on the server side
 
    // another statement can now acquire the write lock on the tuple
    Statement third_stmt = conn.createStatement();
