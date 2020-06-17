@@ -121,7 +121,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
     // Function application simplifies to performing an assignment of the
     // actual call arguments to the function parameters. Do the check now, which
     // may apply an implicit cast to make the assignment work.
-    if (!CheckAssignmentConstraints(expected_type, arg)) {
+    if (!CheckAssignmentConstraints(expected_type, &arg)) {
       has_errors = true;
       error_reporter_->Report(arg->Position(), ErrorMessages::kIncorrectCallArgType, node->GetFuncName(), expected_type,
                               arg_num, arg->GetType());

@@ -110,7 +110,7 @@ class Sema : public ast::AstVisitor<Sema> {
   // Check the assignment of the expression to a variable or the target type.
   // Return true if the assignment is valid, and false otherwise.
   // Will also apply an implicit cast to make the assignment valid.
-  bool CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr);
+  bool CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr);
 
   // Dispatched from VisitCall() to handle builtin functions
   void CheckBuiltinCall(ast::CallExpr *call);

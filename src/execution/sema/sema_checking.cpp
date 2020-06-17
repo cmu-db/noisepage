@@ -241,43 +241,43 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   UNREACHABLE("Impossible");
 }
 
-bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr) {
+bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) {
   // If the target and expression types are the same, nothing to do
-  if (expr->GetType() == target_type) {
+  if ((*expr)->GetType() == target_type) {
     return true;
   }
 
   // Null pointers
-  if (target_type->IsPointerType() && expr->GetType()->IsNilType()) {
+  if (target_type->IsPointerType() && (*expr)->GetType()->IsNilType()) {
     return true;
   }
 
   // Integer expansion
-  if (target_type->IsIntegerType() && expr->GetType()->IsIntegerType()) {
-    if (target_type->GetSize() > expr->GetType()->GetSize()) {
-      expr = ImplCastExprToType(expr, target_type, ast::CastKind::IntegralCast);
+  if (target_type->IsIntegerType() && (*expr)->GetType()->IsIntegerType()) {
+    if (target_type->GetSize() > (*expr)->GetType()->GetSize()) {
+      *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
     }
     return true;
   }
 
   // Float to integer expansion
-  if (target_type->IsIntegerType() && expr->GetType()->IsFloatType()) {
-    expr = ImplCastExprToType(expr, target_type, ast::CastKind::FloatToInt);
+  if (target_type->IsIntegerType() && (*expr)->GetType()->IsFloatType()) {
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::FloatToInt);
     return true;
   }
 
   // Integer to float expansion
-  if (target_type->IsFloatType() && expr->GetType()->IsIntegerType()) {
-    expr = ImplCastExprToType(expr, target_type, ast::CastKind::IntToFloat);
+  if (target_type->IsFloatType() && (*expr)->GetType()->IsIntegerType()) {
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntToFloat);
     return true;
   }
 
   // Convert *[N]Type to [*]Type
   if (auto *target_arr = target_type->SafeAs<ast::ArrayType>()) {
-    if (auto *expr_base = expr->GetType()->GetPointeeType()) {
+    if (auto *expr_base = (*expr)->GetType()->GetPointeeType()) {
       if (auto *expr_arr = expr_base->SafeAs<ast::ArrayType>()) {
         if (target_arr->HasUnknownLength() && expr_arr->HasKnownLength()) {
-          expr = ImplCastExprToType(expr, target_type, ast::CastKind::BitCast);
+          *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::BitCast);
           return true;
         }
       }
@@ -285,14 +285,14 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr *&expr) 
   }
 
   // *T to *U
-  if (target_type->IsPointerType() || expr->GetType()->IsPointerType()) {
-    expr = ImplCastExprToType(expr, target_type, ast::CastKind::BitCast);
+  if (target_type->IsPointerType() || (*expr)->GetType()->IsPointerType()) {
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::BitCast);
     return true;
   }
 
   // SQL bool to primitive bool
-  if (target_type->IsBoolType() && expr->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
-    expr = ImplCastExprToType(expr, target_type, ast::CastKind::SqlBoolToBool);
+  if (target_type->IsBoolType() && (*expr)->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::SqlBoolToBool);
     return true;
   }
 

@@ -380,7 +380,7 @@ class LLVMEngine::CompiledModuleBuilder {
 
  private:
   // Given a TPL function, build a simple CFG using 'blocks' as an output param
-  void BuildSimpleCFG(const FunctionInfo &func_info, std::map<std::size_t, llvm::BasicBlock *> &blocks);
+  void BuildSimpleCFG(const FunctionInfo &func_info, std::map<std::size_t, llvm::BasicBlock *> *blocks);
 
   // Convert one TPL function into an LLVM implementation
   void DefineFunction(const FunctionInfo &func_info, llvm::IRBuilder<> *ir_builder);
@@ -542,7 +542,7 @@ llvm::Function *LLVMEngine::CompiledModuleBuilder::LookupBytecodeHandler(Bytecod
 }
 
 void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_info,
-                                                       std::map<std::size_t, llvm::BasicBlock *> &blocks) {
+                                                       std::map<std::size_t, llvm::BasicBlock *> *blocks) {
   // Before we can generate LLVM IR, we need to build a control-flow graph (CFG) for the function.
   // We do this construction directly from the TPL bytecode using a vanilla DFS and produce an
   // ordered map ('blocks') from bytecode position to an LLVM basic block. Each entry in the map
@@ -575,8 +575,8 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_
         std::size_t branch_target_pos =
             iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 0) + iter.GetJumpOffsetOperand(0);
 
-        if (blocks.find(branch_target_pos) == blocks.end()) {
-          blocks[branch_target_pos] = nullptr;
+        if (blocks->find(branch_target_pos) == blocks->end()) {
+          (*blocks)[branch_target_pos] = nullptr;
           bb_begin_positions.push_back(branch_target_pos);
         }
 
@@ -587,17 +587,17 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_
       if (Bytecodes::IsConditionalJump(bytecode)) {
         std::size_t fallthrough_pos = iter.GetPosition() + iter.CurrentBytecodeSize();
 
-        if (blocks.find(fallthrough_pos) == blocks.end()) {
+        if (blocks->find(fallthrough_pos) == blocks->end()) {
           bb_begin_positions.push_back(fallthrough_pos);
-          blocks[fallthrough_pos] = nullptr;
+          (*blocks)[fallthrough_pos] = nullptr;
         }
 
         std::size_t branch_target_pos =
             iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 1) + iter.GetJumpOffsetOperand(1);
 
-        if (blocks.find(branch_target_pos) == blocks.end()) {
+        if (blocks->find(branch_target_pos) == blocks->end()) {
           bb_begin_positions.push_back(branch_target_pos);
-          blocks[branch_target_pos] = nullptr;
+          (*blocks)[branch_target_pos] = nullptr;
         }
 
         break;
@@ -617,7 +617,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
   // The CFG is ordered by bytecode position in ascending order.
 
   std::map<std::size_t, llvm::BasicBlock *> blocks = {{0, first_bb}};
-  BuildSimpleCFG(func_info, blocks);
+  BuildSimpleCFG(func_info, &blocks);
 
   {
     uint32_t block_num = 1;

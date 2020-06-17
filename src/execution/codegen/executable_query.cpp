@@ -26,7 +26,7 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
   using Function = std::function<void(void *)>;
   for (const auto &func_name : functions_) {
     Function func;
-    if (!module_->GetFunction(func_name, mode, func)) {
+    if (!module_->GetFunction(func_name, mode, &func)) {
       throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name));
     }
     func(query_state);

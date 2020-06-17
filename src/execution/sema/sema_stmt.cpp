@@ -15,7 +15,7 @@ void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
 
   // Check assignment
   ast::Expr *source = node->Source();
-  if (!CheckAssignmentConstraints(dest_type, source)) {
+  if (!CheckAssignmentConstraints(dest_type, &source)) {
     error_reporter_->Report(node->Position(), ErrorMessages::kInvalidAssignment, src_type, dest_type);
     return;
   }
@@ -147,7 +147,7 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   }
 
   ast::Expr *ret = node->Ret();
-  if (!CheckAssignmentConstraints(func_type->GetReturnType(), ret)) {
+  if (!CheckAssignmentConstraints(func_type->GetReturnType(), &ret)) {
     error_reporter_->Report(node->Position(), ErrorMessages::kMismatchedReturnType, return_type,
                             func_type->GetReturnType());
     return;

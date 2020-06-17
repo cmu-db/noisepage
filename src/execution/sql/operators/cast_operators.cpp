@@ -14,7 +14,7 @@ bool TryCast<storage::VarlenEntry, float>::operator()(const storage::VarlenEntry
 
 bool TryCast<storage::VarlenEntry, double>::operator()(const storage::VarlenEntry &input, double *output) const {
   const auto *buf = reinterpret_cast<const char *>(input.Content());
-  return util::fast_double_parser::PARSE_NUMBER(buf, output);
+  return util::FastDoubleParser::ParseNumber(buf, output);
 }
 
 }  // namespace terrier::execution::sql

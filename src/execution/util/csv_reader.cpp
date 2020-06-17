@@ -75,7 +75,7 @@ bool CSVFile::Fill() {
 
 double CSVReader::CSVCell::AsDouble() const {
   double output = 0;
-  fast_double_parser::PARSE_NUMBER(this->ptr, &output);
+  FastDoubleParser::ParseNumber(this->ptr, &output);
   return output;
 }
 

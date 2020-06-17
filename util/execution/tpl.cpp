@@ -175,7 +175,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Pretty-print AST
   if (kPrettyPrint) {
-    ast::AstPrettyPrint::Dump(std::cout, root);
+    ast::AstPrettyPrint::Dump(std::cout, root);  // NOLINT
   }
 
   //
@@ -192,7 +192,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Dump Bytecode
   if (kPrintTbc) {
-    bytecode_module->Dump(std::cout);
+    bytecode_module->Dump(std::cout);  // NOLINT
   }
 
   auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
@@ -206,14 +206,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
     if (kIsSQL) {
       std::function<uint32_t(exec::ExecutionContext *)> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, main)) {
+      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
       EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
       std::function<uint32_t()> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, main)) {
+      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
       }
@@ -230,14 +230,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
     if (kIsSQL) {
       std::function<uint32_t(exec::ExecutionContext *)> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, main)) {
+      if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
       EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
     } else {
       std::function<uint32_t()> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, main)) {
+      if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
       }
@@ -253,7 +253,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
     if (kIsSQL) {
       std::function<uint32_t(exec::ExecutionContext *)> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Compiled, main)) {
+      if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
@@ -264,7 +264,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       EXECUTION_LOG_INFO("Jit exec: {} ms", x.GetElapsed());
     } else {
       std::function<uint32_t()> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Compiled, main)) {
+      if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
       }
@@ -306,7 +306,7 @@ static void RunFile(const std::string &filename) {
 static void RunRepl() {
   const auto prompt_and_read_line = [] {
     std::string line;
-    printf(">>> ");
+    printf(">>> ");  // NOLINT
     std::getline(std::cin, line);
     return line;
   };

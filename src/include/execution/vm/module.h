@@ -73,7 +73,7 @@ class Module {
    * @return True if the function was found and the output parameter was set
    */
   template <typename Ret, typename... ArgTypes>
-  bool GetFunction(const std::string &name, ExecutionMode exec_mode, std::function<Ret(ArgTypes...)> &func);
+  bool GetFunction(const std::string &name, ExecutionMode exec_mode, std::function<Ret(ArgTypes...)> *func);
 
   /**
    * Return the raw function implementation for the function in this module with the given function
@@ -188,7 +188,7 @@ inline void CopyAll(uint8_t *buffer, const HeadT &head, const RestT &... rest) {
 
 template <typename Ret, typename... ArgTypes>
 inline bool Module::GetFunction(const std::string &name, const ExecutionMode exec_mode,
-                                std::function<Ret(ArgTypes...)> &func) {
+                                std::function<Ret(ArgTypes...)> *func) {
   // Lookup function
   const FunctionInfo *func_info = bytecode_module_->LookupFuncInfoByName(name);
 
@@ -209,7 +209,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
       FALLTHROUGH;
     }
     case ExecutionMode::Interpret: {
-      func = [this, func_info](ArgTypes... args) -> Ret {
+      *func = [this, func_info](ArgTypes... args) -> Ret {
         if constexpr (std::is_void_v<Ret>) {
           // Create a temporary on-stack buffer and copy all arguments
           uint8_t arg_buffer[(0ul + ... + sizeof(args))];
@@ -235,7 +235,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
     }
     case ExecutionMode::Compiled: {
       CompileToMachineCode();
-      func = [this, func_info](ArgTypes... args) -> Ret {
+      *func = [this, func_info](ArgTypes... args) -> Ret {
         void *raw_func = functions_[func_info->GetId()].load(std::memory_order_relaxed);
         auto *jit_f = reinterpret_cast<Ret (*)(ArgTypes...)>(raw_func);
         return jit_f(args...);

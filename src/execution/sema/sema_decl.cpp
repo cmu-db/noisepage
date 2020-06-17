@@ -34,7 +34,7 @@ void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   if (declared_type != nullptr && initializer_type != nullptr) {
     // If both type declarations are provided, check assignment.
     ast::Expr *init = node->Initial();
-    if (!CheckAssignmentConstraints(declared_type, init)) {
+    if (!CheckAssignmentConstraints(declared_type, &init)) {
       GetErrorReporter()->Report(node->Position(), ErrorMessages::kInvalidAssignment, declared_type, initializer_type);
       return;
     }

@@ -152,5 +152,5 @@ class Settings {
 
   // Container for all settings
   std::array<Value, K_NUM_SETTINGS> settings_;
-};
+};  // NOLINT(readability/namespace) The macros confuse the linter.
 }  // namespace terrier::execution

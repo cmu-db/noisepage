@@ -1805,7 +1805,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   // Impossible
   UNREACHABLE("Impossible to reach end of interpreter loop. Bad code!");
-}
+}  // NOLINT(readability/fn_size)
 
 const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   // Read the function ID and the argument count to the function first
