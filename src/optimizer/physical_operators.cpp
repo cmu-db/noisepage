@@ -1301,15 +1301,14 @@ BaseOperatorNodeContents *CteScan::Copy() const { return new CteScan(*this); }
 
 Operator CteScan::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
                        std::string table_alias) {
-  auto cte_scan_op = std::make_unique<CteScan>();
-
+  auto *cte_scan_op = new CteScan();
   cte_scan_op->child_expressions_ = std::move(child_expressions);
   cte_scan_op->table_alias_ = std::move(table_alias);
-  return Operator(std::move(cte_scan_op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(cte_scan_op));
 }
 
 bool CteScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CTESCAN) return false;
+  if (r.GetOpType() != OpType::CTESCAN) return false;
   const CteScan &node = *dynamic_cast<const CteScan *>(&r);
   return table_alias_ == node.GetTableAlias();
 }

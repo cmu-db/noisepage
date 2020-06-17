@@ -6,7 +6,7 @@
 namespace terrier::execution::sql {
 
 parser::ConstantValueExpression DummyCVE() {
-  return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+  return parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(0));
 }
 
 CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,

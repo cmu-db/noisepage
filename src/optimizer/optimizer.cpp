@@ -154,7 +154,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
                                       std::move(children_plans), std::move(children_expr_map));
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group " + std::to_string(!id));
 
-  if (op->GetOp().GetType() == OpType::CTESCAN && !child_groups.empty()) {
+  if (op->Contents()->GetOpType() == OpType::CTESCAN && !child_groups.empty()) {
     TERRIER_ASSERT(child_groups.size() == 1, "CTE should not have more than 1 child.");
     if (plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
       auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(plan.get());

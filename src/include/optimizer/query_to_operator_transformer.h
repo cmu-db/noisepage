@@ -158,7 +158,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
    * @param child_expr The expression to search the CTE node
    * @return true if cte node was found
    */
-  bool FindFirstCTEScanNode(common::ManagedPointer<OperatorNode> child_expr);
+  bool FindFirstCTEScanNode(common::ManagedPointer<AbstractOptimizerNode> child_expr);
 
   /** The output logical operator AST */
   std::unique_ptr<OperatorNode> output_expr_;

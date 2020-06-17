@@ -1932,6 +1932,8 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
   /**
    * @return
    */
+  static Operator Make();
+
   static Operator Make(std::string table_alias,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions);
 
