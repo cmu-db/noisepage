@@ -63,28 +63,17 @@ class MetricsStore {
   }
 
   /**
-   * Record metrics from the GC deallocation
-   * @param num_processed first entry of metrics datapoint
-   * @param resource_metrics second entry of metrics datapoint
-   */
-  void RecordDeallocateData(const uint64_t num_processed, const common::ResourceTracker::Metrics &resource_metrics) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
-    TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordDeallocateData(num_processed, resource_metrics);
-  }
-
-  /**
-   * Record metrics from the GC deallocation
+   * Record metrics from GC
    * @param num_processed first entry of metrics datapoint
    * @param num_buffers second entry of metrics datapoint
    * @param num_readonly third entry of metrics datapoint
    * @param resource_metrics forth entry of metrics datapoint
    */
-  void RecordUnlinkData(const uint64_t num_processed, const uint64_t num_buffers, const uint64_t num_readonly,
-                        const common::ResourceTracker::Metrics &resource_metrics) {
+  void RecordGCData(uint64_t txns_deallocated, uint64_t txns_unlinked, uint64_t buffer_unlinked,
+                    uint64_t readonly_unlinked, const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
     TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordUnlinkData(num_processed, num_buffers, num_readonly, resource_metrics);
+    gc_metric_->RecordGCData(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, resource_metrics);
   }
 
   /**

@@ -83,9 +83,12 @@ class GarbageCollector {
 
   /**
    * Process the unlink queue
-   * @return number of txns (not UndoRecords) processed for debugging/testing
+   * @return a tuple
+   *   first element - number of txns processed
+   *   second element - number UndoRecords processed
+   *   first element - number of read-only txns processed
    */
-  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
+  std::tuple<uint32_t, uint32_t, uint32_t> ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process deferred actions
