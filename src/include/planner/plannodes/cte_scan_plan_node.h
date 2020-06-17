@@ -1,9 +1,12 @@
 #pragma once
 
+#include <common/json.h>
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
@@ -136,6 +139,6 @@ class CteScanPlanNode : public AbstractPlanNode {
   std::unique_ptr<OutputSchema> table_output_schema_;
 };
 
-DEFINE_JSON_DECLARATIONS(CteScanPlanNode);
+DEFINE_JSON_BODY_DECLARATIONS(CteScanPlanNode);
 
 }  // namespace terrier::planner

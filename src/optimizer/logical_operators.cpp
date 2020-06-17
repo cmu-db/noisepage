@@ -1255,16 +1255,21 @@ bool LogicalAnalyze::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCteScan::Copy() const { return new LogicalCteScan(*this); }
 
+Operator LogicalCteScan::Make() {
+  auto *op = new LogicalCteScan();
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
+}
+
 Operator LogicalCteScan::Make(std::string table_alias,
                               std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions) {
-  auto op = std::make_unique<LogicalCteScan>();
+  auto *op = new LogicalCteScan();
   op->table_alias_ = std::move(table_alias);
   op->child_expressions_ = std::move(child_expressions);
-  return Operator(std::move(op));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 bool LogicalCteScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALCTESCAN) return false;
+  if (r.GetOpType() != OpType::LOGICALCTESCAN) return false;
   const LogicalCteScan &node = *dynamic_cast<const LogicalCteScan *>(&r);
   return table_alias_ == node.table_alias_;
 }

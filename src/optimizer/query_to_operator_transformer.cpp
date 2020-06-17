@@ -41,11 +41,11 @@ std::unique_ptr<AbstractOptimizerNode> QueryToOperatorTransformer::ConvertToOpEx
   return std::move(output_expr_);
 }
 
-bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<OperatorNode> child_expr) {
+bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<AbstractOptimizerNode> child_expr) {
   bool is_added = false;
 
   // TODO(preetang): Replace explicit string usage for operator name with reference to constant string
-  if (child_expr->GetOp().GetName() == "LogicalCteScan") {
+  if (child_expr->Contents()->GetName() == "LogicalCteScan") {
     // Leftmost LogicalCteScan found in tree
     child_expr->PushChild(std::move(output_expr_));
     is_added = true;
@@ -70,7 +70,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
   if(op->GetSelectWith() != nullptr) {
-    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     auto cte_scan_expr = std::make_unique<OperatorNode>(
         LogicalCteScan::Make(),
         std::vector<std::unique_ptr<OperatorNode>>{});
@@ -85,7 +85,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
   if (op->GetSelectTable() != nullptr) {
     // SELECT with FROM
-    op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+    op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else {
     // SELECT without FROM
     output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
@@ -186,7 +186,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     auto child_expr = std::move(output_expr_);
 
     // Get the logical tree for the query which is used to compute the CTE table
-    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
     // Add CTE table query to first LogicalCteScan found in tree
     FindFirstCTEScanNode(common::ManagedPointer(child_expr));

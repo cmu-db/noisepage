@@ -10,7 +10,7 @@ void CteScanLeaderTranslator::Produce(FunctionBuilder *builder) {
 }
 
 parser::ConstantValueExpression DummyLeaderCVE() {
-  return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+  return parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(0));
 }
 
 CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen)

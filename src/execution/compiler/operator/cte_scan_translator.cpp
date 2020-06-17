@@ -19,7 +19,7 @@ void CteScanTranslator::Produce(FunctionBuilder *builder) {
 }
 
 parser::ConstantValueExpression DummyCVE() {
-  return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+  return parser::ConstantValueExpression(type::TypeId::INTEGER, std::make_unique<execution::sql::Integer>(0));
 }
 
 CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen)
