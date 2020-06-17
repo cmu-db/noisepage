@@ -23,10 +23,7 @@ OLTP_DEFAULT_RATE = "unlimited"
 OLTP_DEFAULT_BIN = os.path.join(OLTP_GIT_LOCAL_PATH, "oltpbenchmark")
 OLTP_DEFAULT_COMMAND_FLAGS = "--histograms  --create=true --load=true --execute=true -s 5"
 OLTP_DIR_CONFIG = os.path.join(OLTP_GIT_LOCAL_PATH, "config")
-OLTP_DIR_CUR = os.getcwd()
 OLTP_DIR_TEST_RESULT = os.path.join(OLTP_GIT_LOCAL_PATH, "results")
-OLTP_DIR_TEST_SUMMARY_FOLDER = os.path.join(OLTP_DIR_CUR, "oltpsummary")
-OLTP_DIR_TEST_SUMMARY = os.path.join(OLTP_DIR_TEST_RESULT, "oltpbench.summary")
 OLTP_TEST_ERROR_MSG = "Error: failed to complete oltpbench test"
 
 # ant commands for OLTP
