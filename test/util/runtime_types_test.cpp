@@ -19,6 +19,10 @@ TEST_F(RuntimeTypesTests, TimestampTest) {
   auto res = terrier::execution::sql::Timestamp::FromString("2020-01-01 11:22:33.123");
   EXPECT_TRUE(res.first);
   EXPECT_EQ(res.second.ToString(), "2020-01-01 11:22:33.123000");
+
+  auto tz = terrier::execution::sql::Timestamp::FromString("2020-01-01 11:22:33.123-05");
+  EXPECT_TRUE(tz.first);
+  EXPECT_EQ(tz.second.ToString(), "2020-01-01 16:22:33.123000");
 }
 
 // TODO(WAN): throw in some timezone tests

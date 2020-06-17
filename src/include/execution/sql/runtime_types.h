@@ -343,8 +343,26 @@ class EXPORT Timestamp {
   static Timestamp FromMicroseconds(uint64_t usec) { return Timestamp(usec); }
 
   /**
+   * Given time components parse the timezone and construct an adjusted TPL timestamp. If any
+   * component is invalid, the bool result value will be false.
+   * @param c The starting character, which is a '+' or '-'
+   * @param year The year.
+   * @param month The month.
+   * @param day The day.
+   * @param hour The hour.
+   * @param min The minute.
+   * @param sec The second.
+   * @param ptr Start of timestamp string.
+   * @param limit End of timestamp string.
+   * @return The constructed timestamp if valid.
+   */
+  static std::pair<bool, Timestamp> AdjustTimezone(char c, int32_t year, int32_t month, int32_t day, int32_t hour,
+                                            int32_t min, int32_t sec, int32_t milli, int32_t micro,
+                                            const char *ptr, const char *limit);
+
+  /**
    * Given year, month, day, hour, minute, second components construct a TPL timestamp. If any
-   * component is invalid, this will throw an exception.
+   * component is invalid, the bool result value will be false.
    * @param year The year.
    * @param month The month.
    * @param day The day.
@@ -358,7 +376,7 @@ class EXPORT Timestamp {
 
   /**
    * Given year, month, day, hour, minute, second, ms, and us components construct a TPL timestamp. If any
-   * component is invalid, this will throw an exception.
+   * component is invalid, the bool result value will be false.
    * @param year The year.
    * @param month The month.
    * @param day The day.

@@ -460,8 +460,10 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
       sec = sec * 10 + (c - '0');
     } else if (c == '.') {
       break;
-    } else if (c == '-' || c == 'Z') {
-      return FromYMDHMS(year, month, day, hour, min, sec);
+    } else if (c == 'Z') {
+      return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
+    } else if (c == '-' || c == '+') {
+      return AdjustTimezone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
     } else {
       return {false, {}};
     }
@@ -476,8 +478,10 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
     char c = *ptr++;
     if (static_cast<bool>(std::isdigit(c))) {
       milli = milli + (c - '0') * pow(10, 2 - count);
-    } else if (c == '-' || c == 'Z') {
-      return FromYMDHMS(year, month, day, hour, min, sec);
+    } else if (c == 'Z') {
+      return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
+    } else if (c == '-' || c == '+') {
+      return AdjustTimezone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
     } else {
       return {false, {}};
     }
@@ -493,8 +497,10 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
     char c = *ptr++;
     if (static_cast<bool>(std::isdigit(c))) {
       micro = micro + (c - '0') * pow(10, 2 - count);
-    } else if (c == '-' || c == 'Z') {
+    }  else if (c == 'Z') {
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
+    } else if (c == '-' || c == '+') {
+      return AdjustTimezone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
     } else {
       return {false, {}};
     }
@@ -502,6 +508,60 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   }
 
   return {false, {}};
+}
+
+std::pair<bool, Timestamp> Timestamp::AdjustTimezone(char c, int32_t year, int32_t month, int32_t day, int32_t hour,
+                                                     int32_t min, int32_t sec, int32_t milli, int32_t micro,
+                                                     const char *ptr, const char *limit) {
+
+  bool sign = false;
+  if (c == '+') sign = true;
+  int32_t diff = 0;
+
+  // Parse timestamp
+  while (true) {
+    if (ptr == limit) break;
+    c = *ptr++;
+    if (static_cast<bool>(std::isdigit(c))) {
+      diff = diff * 10 + (c - '0');
+    } else {
+      return {false, {}};
+    }
+  }
+
+  if (sign) {
+    if (diff > 14 || diff < 0) return {false, {}};
+    hour -= diff;
+    if (hour < 0) {
+      hour = K_HOURS_PER_DAY + hour;
+      day--;
+      if (day < 1) {
+        month--;
+        if (month < 1) {
+          month = K_MONTHS_PER_YEAR;
+          year--;
+        }
+        day = K_DAYS_PER_MONTH[IsLeapYear(year)][month];
+      }
+    }
+  } else {
+    if (diff > 12 || diff < 0) return {false, {}};
+    hour += diff;
+    if (hour >= K_HOURS_PER_DAY) {
+      hour = hour - K_HOURS_PER_DAY;
+      day++;
+      if (day > K_DAYS_PER_MONTH[IsLeapYear(year)][month]) {
+        day = 1;
+        month++;
+        if (month > K_MONTHS_PER_YEAR) {
+          month = 1;
+          year++;
+        }
+      }
+    }
+  }
+
+  return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
 }
 
 std::pair<bool, Timestamp> Timestamp::FromYMDHMS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
@@ -540,9 +600,9 @@ std::pair<bool, Timestamp> Timestamp::FromYMDHMSMU(int32_t year, int32_t month, 
   }
 
   // Check time component.
-  if (hour < 0 || hour > K_HOURS_PER_DAY || min < 0 || min > K_MINUTES_PER_HOUR - 1 || sec < 0 ||
-      sec > K_SECONDS_PER_MINUTE - 1 || milli < 0 || milli > K_MILLISECONDS_PER_SECOND - 1 || micro < 0 ||
-      micro > K_MICROSECONDS_PER_MILLISECOND - 1 ||
+  if (hour < 0 || hour > K_HOURS_PER_DAY || min < 0 || min >= K_MINUTES_PER_HOUR || sec < 0 ||
+      sec >= K_SECONDS_PER_MINUTE || milli < 0 || milli >= K_MILLISECONDS_PER_SECOND || micro < 0 ||
+      micro >= K_MICROSECONDS_PER_MILLISECOND||
       // Check for > 24:00:00.
       (hour == K_HOURS_PER_DAY && (min > 0 || sec > 0 || milli > 0 || micro > 0))) {
     return {false, {}};
