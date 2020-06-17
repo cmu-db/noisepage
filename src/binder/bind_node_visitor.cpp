@@ -65,221 +65,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> nod
   ValidateDatabaseName(node->GetAnalyzeTable()->GetDatabaseName());
 }
 
-void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node,
-                            common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting SelectStatement ...");
-
-  BinderContext context(context_);
-  context_ = common::ManagedPointer(&context);
-
-  if(node->GetSelectWith() != nullptr) {
-    // Store CTE table name
-    TERRIER_ASSERT(cte_table_name_ == "", "cte table name should not be set.");
-    cte_table_name_ =  node->GetSelectWith()->GetAlias();
-
-    node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  }
-
-  if (node->GetSelectTable() != nullptr)
-    node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-
-
-  if (node->GetSelectCondition() != nullptr) {
-    node->GetSelectCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-    node->GetSelectCondition()->DeriveDepth();
-    node->GetSelectCondition()->DeriveSubqueryFlag();
-  }
-  if (node->GetSelectOrderBy() != nullptr)
-    node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-
-  if (node->GetSelectLimit() != nullptr)
-    node->GetSelectLimit()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-
-  if (node->GetSelectGroupBy() != nullptr)
-    node->GetSelectGroupBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-  BINDER_LOG_TRACE("Gathering select columns...");
-  for (auto &select_element : node->GetSelectColumns()) {
-    if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
-      context_->GenerateAllColumnExpressions(sherpa->GetParseResult(), common::ManagedPointer(&new_select_list));
-      continue;
-    }
-
-    select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-
-    // Derive depth for all exprs in the select clause
-    select_element->DeriveDepth();
-
-    select_element->DeriveSubqueryFlag();
-
-    // Traverse the expression to deduce expression value type and name
-    select_element->DeriveReturnValueType();
-    select_element->DeriveExpressionName();
-
-    new_select_list.push_back(select_element);
-  }
-  node->SetSelectColumns(new_select_list);
-  node->SetDepth(context_->GetDepth());
-
-  context_ = context_->GetUpperContext();
-}
-
-// Some sub query nodes inside SelectStatement
-void BindNodeVisitor::Visit(common::ManagedPointer<parser::JoinDefinition> node,
-                            common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting JoinDefinition ...");
-  // The columns in join condition can only bind to the join tables
-  node->GetLeftTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  node->GetRightTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  node->GetJoinCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-}
-
-void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node,
-                            common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting TableRef ...");
-  InitTableRef(node);
-  ValidateDatabaseName(node->GetDatabaseName());
-
-  if (node->GetSelect() != nullptr) {
-    if (node->GetAlias().empty()) throw BINDER_EXCEPTION("Alias not found for query derived table");
-
-    // Save the previous context
-    auto pre_context = context_;
-    node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-    // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
-    context_ = pre_context;
-    // Add the table to the current context at the end
-    context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns());
-  } else if (node->GetJoin() != nullptr) {
-    // Join
-    node->GetJoin()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  } else if (!node->GetList().empty()) {
-    // Multiple table
-    for (auto &table : node->GetList())
-      table->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  } else  {
-    // Single table
-    if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID ) {
-      // table not in catalog, check if table referred is the cte table
-      if (node->GetTableName() != cte_table_name_) {
-        throw BINDER_EXCEPTION("Accessing non-existing table.");
-      } else {
-        // copy cte table's schema for this alias
-        context_->AddCTETable(node->GetTableName(), node->GetAlias());
-      }
-    } else {
-      context_->AddRegularTable(catalog_accessor_, node, db_oid_);
-    }
-  }
-}
-
-void BindNodeVisitor::Visit(common::ManagedPointer<parser::GroupByDescription> node,
-                            common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting GroupByDescription ...");
-  for (auto &col : node->GetColumns())
-    col->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  if (node->GetHaving() != nullptr)
-    node->GetHaving()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-}
-
-void BindNodeVisitor::Visit(common::ManagedPointer<parser::OrderByDescription> node,
-                            common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting OrderByDescription ...");
-  for (auto &expr : node->GetOrderByExpressions())
-    if (expr != nullptr) expr->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-}
-
-void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node,
-                            common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting UpdateStatement ...");
-
-  TERRIER_ASSERT(context_ == nullptr, "UPDATE should be a root.");
-  BinderContext context(nullptr);
-  context_ = common::ManagedPointer(&context);
-
-  auto table_ref = node->GetUpdateTable();
-  table_ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  if (node->GetUpdateCondition() != nullptr)
-    node->GetUpdateCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-
-  auto binder_table_data = context_->GetTableMapping(table_ref->GetTableName());
-  const auto &table_schema = std::get<2>(*binder_table_data);
-
-  for (auto &update : node->GetUpdateClauses()) {
-    auto expr = update->GetUpdateValue();
-    auto expected_ret_type = table_schema.GetColumn(update->GetColumnName()).Type();
-    auto is_cast_expression = update->GetUpdateValue()->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
-
-    if (is_cast_expression) {
-      auto child = expr->GetChild(0)->Copy();
-      if (expr->GetReturnValueType() != expected_ret_type) {
-        sherpa->ReportFailure("BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
-      }
-      sherpa->SetDesiredType(common::ManagedPointer(child), expr->GetReturnValueType());
-      update->ResetValue(common::ManagedPointer(child));
-      sherpa->GetParseResult()->AddExpression(std::move(child));
-      expr = update->GetUpdateValue();
-    }
-
-    sherpa->SetDesiredType(expr, expected_ret_type);
-    expr->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  }
-
-  context_ = nullptr;
-}
-
-void BindNodeVisitor::Visit(common::ManagedPointer<parser::DeleteStatement> node,
-                            common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting DeleteStatement ...");
-
-  TERRIER_ASSERT(context_ == nullptr, "DELETE should be a root.");
-  BinderContext context(nullptr);
-  context_ = common::ManagedPointer(&context);
-
-  InitTableRef(node->GetDeletionTable());
-  ValidateDatabaseName(node->GetDeletionTable()->GetDatabaseName());
-
-  auto table = node->GetDeletionTable();
-  context_->AddRegularTable(catalog_accessor_, db_oid_, table->GetNamespaceName(), table->GetTableName(),
-                            table->GetTableName());
-
-  if (node->GetDeleteCondition() != nullptr) {
-    node->GetDeleteCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  }
-
-  context_ = nullptr;
-}
-
-void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::LimitDescription> node,
-                            UNUSED_ATTRIBUTE common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting LimitDescription ...");
-}
-
-void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node,
-                            common::ManagedPointer<BinderSherpa> sherpa) {
-  BINDER_LOG_TRACE("Visiting CopyStatement ...");
-  SqlNodeVisitor::Visit(node);
-
-  TERRIER_ASSERT(context_ == nullptr, "COPY should be a root.");
-  BinderContext context(nullptr);
-  context_ = common::ManagedPointer(&context);
-
-  if (node->GetCopyTable() != nullptr) {
-    node->GetCopyTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-
-    // If the table is given, we're either writing or reading all columns
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
-    auto col = node->GetSelectStatement()->GetSelectColumns();
-    col.insert(std::end(col), std::begin(new_select_list), std::end(new_select_list));
-  } else {
-    node->GetSelectStatement()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-  }
-
-  context_ = nullptr;
-}
-
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::CreateFunctionStatement> node) {
   BINDER_LOG_TRACE("Visiting CreateFunctionStatement ...");
   SqlNodeVisitor::Visit(node);
@@ -649,9 +434,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
 
-  if (node->GetSelectTable() != nullptr) {
+  if (node->GetSelectTable() != nullptr)
     node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-  }
 
   if (node->GetSelectCondition() != nullptr) {
     node->GetSelectCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -694,11 +478,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     node->GetUnionSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
     auto &union_cols = node->GetUnionSelect()->GetSelectColumns();
-    if(new_select_list.size() != union_cols.size()){
+    if (new_select_list.size() != union_cols.size()) {
       BINDER_EXCEPTION("Mismatched schemas in union");
     }
-    for(uint32_t ind = 0;ind <= new_select_list.size();ind++){
-      if(new_select_list[ind]->GetExpressionType() != union_cols[ind]->GetExpressionType()){
+    for (uint32_t ind = 0; ind <= new_select_list.size(); ind++) {
+      if (new_select_list[ind]->GetExpressionType() != union_cols[ind]->GetExpressionType()) {
         BINDER_EXCEPTION("Mismatched schemas in union");
       }
     }
