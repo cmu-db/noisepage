@@ -22,7 +22,7 @@ public class TestUtility {
         props.setProperty("prepareThreshold", "0"); // suppress switchover to binary protocol
 
         // Set prepferQueryMode
-        String preferQueryMode = System.getenv("QUERY_MODE");
+        String preferQueryMode = System.getenv("TERRIER_QUERY_MODE");
         System.out.println("preferQueryMode: " + preferQueryMode);
         if (preferQueryMode == null || preferQueryMode.isEmpty()) {
             preferQueryMode = "extended";
@@ -31,7 +31,7 @@ public class TestUtility {
 
         // Set prepareThreshold if the prepferQueryMode is 'extended'
         if (preferQueryMode.equals("extended")) {
-            String prepareThreshold = System.getenv("PREPARE_THRESHOLD");
+            String prepareThreshold = System.getenv("TERRIER_PREPARE_THRESHOLD");
             System.out.println("prepareThreshold: " + prepareThreshold);
             if (prepareThreshold != null && !prepareThreshold.isEmpty()) {
                 props.setProperty("prepareThreshold", prepareThreshold);
