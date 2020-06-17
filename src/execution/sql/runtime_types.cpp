@@ -497,7 +497,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
     char c = *ptr++;
     if (static_cast<bool>(std::isdigit(c))) {
       micro = micro + (c - '0') * pow(10, 2 - count);
-    }  else if (c == 'Z') {
+    } else if (c == 'Z') {
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
     } else if (c == '-' || c == '+') {
       return AdjustTimezone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
@@ -513,7 +513,6 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
 std::pair<bool, Timestamp> Timestamp::AdjustTimezone(char c, int32_t year, int32_t month, int32_t day, int32_t hour,
                                                      int32_t min, int32_t sec, int32_t milli, int32_t micro,
                                                      const char *ptr, const char *limit) {
-
   bool sign = false;
   if (c == '+') sign = true;
   int32_t diff = 0;
@@ -602,7 +601,7 @@ std::pair<bool, Timestamp> Timestamp::FromYMDHMSMU(int32_t year, int32_t month, 
   // Check time component.
   if (hour < 0 || hour > K_HOURS_PER_DAY || min < 0 || min >= K_MINUTES_PER_HOUR || sec < 0 ||
       sec >= K_SECONDS_PER_MINUTE || milli < 0 || milli >= K_MILLISECONDS_PER_SECOND || micro < 0 ||
-      micro >= K_MICROSECONDS_PER_MILLISECOND||
+      micro >= K_MICROSECONDS_PER_MILLISECOND ||
       // Check for > 24:00:00.
       (hour == K_HOURS_PER_DAY && (min > 0 || sec > 0 || milli > 0 || micro > 0))) {
     return {false, {}};
