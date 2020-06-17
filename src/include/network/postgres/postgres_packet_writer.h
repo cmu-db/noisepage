@@ -36,35 +36,11 @@ class PostgresPacketWriter : public PacketWriter {
   explicit PostgresPacketWriter(const common::ManagedPointer<WriteQueue> write_queue) : PacketWriter(write_queue) {}
 
   /**
-   * Writes error responses to the client
-   * @param error_status The error messages to send
-   */
-  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
-    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
-
-    for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
-
-    // Nul-terminate packet
-    AppendRawValue<uchar>(0).EndPacket();
-  }
-
-  /**
    * Notify the client a readiness to receive a query
    * @param txn_status
    */
   void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
     BeginPacket(NetworkMessageType::PG_READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
-  }
-
-  /**
-   * A helper function to write a single error message without having to make a vector every time.
-   * @param type
-   * @param status
-   */
-  void WriteSingleErrorResponse(NetworkMessageType type, const std::string &status) {
-    std::vector<std::pair<NetworkMessageType, std::string>> buf;
-    buf.emplace_back(type, status);
-    WriteErrorResponse(buf);
   }
 
   /**
@@ -75,8 +51,8 @@ class PostgresPacketWriter : public PacketWriter {
 
     for (auto &entry : PG_PARAMETER_STATUS_MAP)
       BeginPacket(NetworkMessageType::PG_PARAMETER_STATUS)
-          .AppendString(entry.first)
-          .AppendString(entry.second)
+          .AppendString(entry.first, true)
+          .AppendString(entry.second, true)
           .EndPacket();
     WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   }
@@ -86,7 +62,7 @@ class PostgresPacketWriter : public PacketWriter {
    * @param query string to execute
    */
   void WriteSimpleQuery(const std::string &query) {
-    BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query).EndPacket();
+    BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query, true).EndPacket();
   }
 
   /**
@@ -96,7 +72,8 @@ class PostgresPacketWriter : public PacketWriter {
   void WriteNoticeResponse(const std::string &message) {
     BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE)
         .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
-        .AppendString("NOTICE:  " + message)
+        .AppendStringView("NOTICE:  ", false)
+        .AppendString(message, true)
         .AppendRawValue<uchar>(0)
         .EndPacket();  // Nul-terminate packet
   }
@@ -108,7 +85,8 @@ class PostgresPacketWriter : public PacketWriter {
   void WriteErrorResponse(const std::string &message) {
     BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE)
         .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
-        .AppendString("ERROR:  " + message)
+        .AppendStringView("ERROR:  ", false)
+        .AppendString(message, true)
         .AppendRawValue<uchar>(0)
         .EndPacket();  // Nul-terminate packet
   }
@@ -158,8 +136,12 @@ class PostgresPacketWriter : public PacketWriter {
       const auto &name =
           columns[i].GetExpr()->GetAlias().empty() ? columns[i].GetName() : columns[i].GetExpr()->GetAlias();
       // If a column has no name, then Postgres will return "?column?" as a column name.
-      AppendString(name.empty() ? "?column?" : name)
-          .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
+
+      if (name.empty())
+        AppendStringView("?column?", true);
+      else
+        AppendString(name, true);
+      AppendValue<int32_t>(0)       // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
           .AppendValue(
               static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
@@ -181,14 +163,14 @@ class PostgresPacketWriter : public PacketWriter {
    * Tells the client that the query command is complete.
    * @param tag records the which kind of query it is. (INSERT? DELETE? SELECT?) and the number of rows.
    */
-  void WriteCommandComplete(const std::string &tag) {
+  void WriteCommandComplete(const std::string &tag) {  // TODO(MATT): remove
     BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendString(tag, true).EndPacket();
   }
 
   void WriteCommandComplete(const std::string_view tag, const uint32_t num_rows) {
     BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE)
-        .AppendStringView(tag)
-        .AppendString(std::to_string(num_rows))
+        .AppendStringView(tag, false)
+        .AppendString(std::to_string(num_rows), true)
         .EndPacket();
   }
 
@@ -262,8 +244,8 @@ class PostgresPacketWriter : public PacketWriter {
   void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
                          const std::vector<int32_t> &params) {
     PacketWriter &writer = BeginPacket(NetworkMessageType::PG_PARSE_COMMAND)
-                               .AppendString(destinationStmt)
-                               .AppendString(query)
+                               .AppendString(destinationStmt, true)
+                               .AppendString(query, true)
                                .AppendValue(static_cast<int16_t>(params.size()));
     for (auto param : params) {
       writer.AppendValue(param);
@@ -286,8 +268,8 @@ class PostgresPacketWriter : public PacketWriter {
                         std::initializer_list<std::vector<char> *> paramVals,
                         std::initializer_list<int16_t> resultFormatCodes) {
     PacketWriter &writer = BeginPacket(NetworkMessageType::PG_BIND_COMMAND)
-                               .AppendString(destinationPortal)
-                               .AppendString(sourcePreparedStmt);
+                               .AppendString(destinationPortal, true)
+                               .AppendString(sourcePreparedStmt, true);
     writer.AppendValue(static_cast<int16_t>(paramFormatCodes.size()));
 
     for (auto code : paramFormatCodes) {
@@ -320,7 +302,7 @@ class PostgresPacketWriter : public PacketWriter {
    * @param rowLimit Maximum number of rows to return to the client
    */
   void WriteExecuteCommand(const std::string &portal, int32_t rowLimit) {
-    BeginPacket(NetworkMessageType::PG_EXECUTE_COMMAND).AppendString(portal).AppendValue(rowLimit).EndPacket();
+    BeginPacket(NetworkMessageType::PG_EXECUTE_COMMAND).AppendString(portal, true).AppendValue(rowLimit).EndPacket();
   }
 
   /**
@@ -334,7 +316,10 @@ class PostgresPacketWriter : public PacketWriter {
    * @param objectName The name of the object to describe8
    */
   void WriteDescribeCommand(DescribeCommandObjectType type, const std::string &objectName) {
-    BeginPacket(NetworkMessageType::PG_DESCRIBE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
+    BeginPacket(NetworkMessageType::PG_DESCRIBE_COMMAND)
+        .AppendRawValue(type)
+        .AppendString(objectName, true)
+        .EndPacket();
   }
 
   /**
@@ -343,7 +328,7 @@ class PostgresPacketWriter : public PacketWriter {
    * @param objectName The name of the object to close
    */
   void WriteCloseCommand(DescribeCommandObjectType type, const std::string &objectName) {
-    BeginPacket(NetworkMessageType::PG_CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
+    BeginPacket(NetworkMessageType::PG_CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName, true).EndPacket();
   }
 
   /**
