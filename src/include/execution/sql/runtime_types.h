@@ -352,6 +352,8 @@ class EXPORT Timestamp {
    * @param hour The hour.
    * @param min The minute.
    * @param sec The second.
+   * @param milli The millisecond.
+   * @param micro The microsecond.
    * @param ptr Start of timestamp string.
    * @param limit End of timestamp string.
    * @return The constructed timestamp if valid.

@@ -123,8 +123,7 @@ void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *f
 }
 
 // Check if a string value ends with string ending
-inline bool ends_with(std::string const & value, std::string const & ending)
-{
+bool EndsWith(std::string const &value, std::string const &ending) {
   if (ending.size() > value.size()) return false;
   return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
@@ -386,7 +385,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
 
   std::string suffix_str("::timestamp");
   std::string ts_str(str, len);
-  if (ends_with(ts_str, suffix_str)) limit -= suffix_str.length();
+  if (EndsWith(ts_str, suffix_str)) limit -= suffix_str.length();
 
   uint32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, milli = 0, micro = 0;
 
