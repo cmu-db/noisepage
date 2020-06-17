@@ -1120,14 +1120,16 @@ void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<AbstractO
   (void)context;
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalCteScan should have 1 child");
 
-  std::vector<std::unique_ptr<OperatorNode>> c;
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias())), std::move(c));
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -1153,11 +1155,13 @@ void LogicalCteScanToPhysicalEmptyCteScan::Transform(common::ManagedPointer<Abst
   (void)context;
   TERRIER_ASSERT(input->GetChildren().empty(), "EmptyLogicalCteScan should have 0 child");
 
-  std::vector<std::unique_ptr<OperatorNode>> c;
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias())), std::move(c));
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias())), std::move(c),
+      context->GetOptimizerContext()->GetTxn());
+
   transformed->emplace_back(std::move(result_plan));
 }
 

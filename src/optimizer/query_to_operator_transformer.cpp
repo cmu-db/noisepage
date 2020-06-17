@@ -73,7 +73,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     auto cte_scan_expr = std::make_unique<OperatorNode>(
         LogicalCteScan::Make(),
-        std::vector<std::unique_ptr<OperatorNode>>{});
+        std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
+        txn_context);
     cte_scan_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(cte_scan_expr);
     // SELECT statement has CTE, register CTE table name
@@ -88,7 +89,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else {
     // SELECT without FROM
-    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
+    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   }
 
   if (op->GetSelectCondition() != nullptr) {
@@ -189,7 +190,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
     // Add CTE table query to first LogicalCteScan found in tree
-    FindFirstCTEScanNode(common::ManagedPointer(child_expr));
+    FindFirstCTEScanNode(common::ManagedPointer(child_expr).CastManagedPointerTo<AbstractOptimizerNode>());
 
     // Replace the complete logical tree back
     output_expr_ = std::move(child_expr);
@@ -312,8 +313,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
 
     if (node->GetTableName() == cte_table_name_) {
       // CTE table referred
-      auto cte_scan_expr = std::make_unique<OperatorNode>(LogicalCteScan::Make(node->GetAlias(), cte_expressions_),
-                                                          std::vector<std::unique_ptr<OperatorNode>>{});
+      auto cte_scan_expr = std::make_unique<OperatorNode>(
+          LogicalCteScan::Make(node->GetAlias(), cte_expressions_).RegisterWithTxnContext(txn_context),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {
         // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
