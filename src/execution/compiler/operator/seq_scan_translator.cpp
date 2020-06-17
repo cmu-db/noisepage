@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "catalog/catalog_accessor.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
