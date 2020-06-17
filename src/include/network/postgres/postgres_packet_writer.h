@@ -163,8 +163,8 @@ class PostgresPacketWriter : public PacketWriter {
    * Tells the client that the query command is complete.
    * @param tag records the which kind of query it is. (INSERT? DELETE? SELECT?) and the number of rows.
    */
-  void WriteCommandComplete(const std::string &tag) {  // TODO(MATT): remove
-    BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendString(tag, true).EndPacket();
+  void WriteCommandComplete(const std::string_view tag) {
+    BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendStringView(tag, true).EndPacket();
   }
 
   void WriteCommandComplete(const std::string_view tag, const uint32_t num_rows) {
