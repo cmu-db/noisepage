@@ -115,9 +115,15 @@ class MetricsStore {
    * Record metrics for transaction manager when aborting transaction
    */
   void RecordTxnsProcessed() {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectorMetric not enabled.");
-    TERRIER_ASSERT(txn_metric_ != nullptr, "GarbageCollectorMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordTxnsProcessed();
+    if (ComponentEnabled(MetricsComponent::GARBAGECOLLECTION)) {
+      TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectorMetric not allocated. Check MetricsStore constructor.");
+      gc_metric_->RecordTxnsProcessed();
+    }
+
+    if (ComponentEnabled(MetricsComponent::TRANSACTION)) {
+      TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
+      txn_metric_->RecordTxnsProcessed();
+    }
   }
 
   /**

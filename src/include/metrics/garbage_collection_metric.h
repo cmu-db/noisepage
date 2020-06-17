@@ -94,8 +94,8 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 //      daf_event << std::endl;
 //    }
     start_ = metrics::MetricsUtil::Now() % 1000000000;
-    daf_count_agg << static_cast<unsigned long>(start_);
-    daf_time_agg << static_cast<unsigned long>(start_);
+    daf_count_agg << (start_);
+    daf_time_agg << (start_);
     uint64_t total_processed = 0;
     uint64_t total_elapsed = 0;
     common::ResourceTracker::Metrics resource_metrics = {};
@@ -110,13 +110,13 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       }
       total_processed += data.num_actions_processed_;
       total_elapsed += data.resource_metrics_.elapsed_us_;
-      daf_count_agg << ", " << static_cast<unsigned long>(data.num_actions_processed_);
-      daf_time_agg << ", " << static_cast<unsigned long>(data.resource_metrics_.elapsed_us_);
+      daf_count_agg << ", " << (data.num_actions_processed_);
+      daf_time_agg << ", " << (data.resource_metrics_.elapsed_us_);
     }
-    daf_count_agg << ", " << static_cast<unsigned long>(total_processed) << ", " << static_cast<unsigned long>(before_queue_length_) << ", " << static_cast<unsigned long>(after_queue_length_) << ", " << static_cast<unsigned long>(num_daf_wakeup_) << ", " << static_cast<unsigned long>(num_txns_processed_);
+    daf_count_agg << ", " << (total_processed) << ", " << (before_queue_length_) << ", " << (after_queue_length_) << ", " << (num_daf_wakeup_) << ", " << (num_txns_processed_) << ", ";
     resource_metrics.ToCSV(daf_count_agg);
     daf_count_agg << std::endl;
-    daf_time_agg << ", " << static_cast<unsigned long>(total_elapsed) << ", "  << static_cast<unsigned long>(num_daf_wakeup_) << ", " << static_cast<unsigned long>(num_txns_processed_);
+    daf_time_agg << ", " << (total_elapsed) << ", "  << (num_daf_wakeup_) << ", " << (num_txns_processed_) << ", ";
     resource_metrics.ToCSV(daf_time_agg);
     daf_time_agg << std::endl;
 
@@ -166,7 +166,6 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   }
 
   void RecordAfterQueueSize(const uint64_t UNUSED_ATTRIBUTE queue_size) {
-//    std::cout << "after " << queue_size << std::endl;
     if (after_queue_length_ < queue_size) {
       after_queue_length_.store(queue_size);
     }

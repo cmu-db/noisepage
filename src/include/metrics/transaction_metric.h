@@ -87,6 +87,9 @@ class TransactionMetricRawData : public AbstractRawData {
 
   void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
     commit_data_.emplace_back(is_readonly, resource_metrics);
+  }
+
+  void RecordTxnsProcessed() {
     num_txns_++;
   }
 
@@ -120,6 +123,9 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
   }
   void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordCommitData(is_readonly, resource_metrics);
+  }
+  void RecordTxnsProcessed() {
+    GetRawData()->RecordTxnsProcessed();
   }
 };
 }  // namespace terrier::metrics
