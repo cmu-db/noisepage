@@ -94,6 +94,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 //      data.resource_metrics_.ToCSV(daf_event);
 //      daf_event << std::endl;
 //    }
+    start_ = metrics::MetricsUtil::Now();
     daf_count_agg << static_cast<unsigned long>(start_);
     daf_time_agg << static_cast<unsigned long>(start_);
     uint64_t total_processed = 0;
