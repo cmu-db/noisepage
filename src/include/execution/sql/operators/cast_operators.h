@@ -7,6 +7,7 @@
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sql.h"
 #include "storage/storage_defs.h"
+#include "util/time_util.h"
 
 namespace terrier::execution::sql {
 
@@ -383,8 +384,13 @@ struct TryCast<storage::VarlenEntry, Date> {
 template <>
 struct TryCast<storage::VarlenEntry, Timestamp> {
   bool operator()(const storage::VarlenEntry &input, Timestamp *output) const {
-    *output = Timestamp::FromString(input.StringView().data());
-    return true;
+    // TODO(WAN): deepayan's stuff
+    auto parse = terrier::util::TimeConvertor::ParseTimestamp(std::string(input.StringView()));
+    if (parse.first) {
+      *output = Timestamp::FromNative(!parse.second);
+      return true;
+    }
+    return false;
   }
 };
 

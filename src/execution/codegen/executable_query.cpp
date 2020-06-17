@@ -127,13 +127,16 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   EXECUTION_LOG_DEBUG("main() returned: {}", result);
   exec_ctx->SetPipelineOperatingUnits(nullptr);
 }
+#endif
 
-======================
-
-ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan)
+ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan,
+                                 common::ManagedPointer<exec::ExecutionSettings> exec_settings)
     : plan_(plan),
-      errors_(std::make_unique<sema::ErrorReporter>()),
-      ast_context_(std::make_unique<ast::Context>(errors_.get())),
+      exec_settings_(exec_settings),
+      errors_region_(std::make_unique<util::Region>("errors_region")),
+      context_region_(std::make_unique<util::Region>("context_region")),
+      errors_(std::make_unique<sema::ErrorReporter>(errors_region_.get())),
+      ast_context_(std::make_unique<ast::Context>(context_region_.get(), errors_.get())),
       query_state_size_(0) {}
 
 // Needed because we forward-declare classes used as template types to std::unique_ptr<>
@@ -153,17 +156,15 @@ void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, 
                      fragments_.size() > 1 ? "s" : "", query_state_size_);
 }
 
-void ExecutableQuery::Run(exec::ExecutionContext *exec_ctx, vm::ExecutionMode mode) {
+void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ctx, vm::ExecutionMode mode) {
   // First, allocate the query state and move the execution context into it.
   auto query_state = std::make_unique<byte[]>(query_state_size_);
-  *reinterpret_cast<exec::ExecutionContext **>(query_state.get()) = exec_ctx;
+  *reinterpret_cast<exec::ExecutionContext **>(query_state.get()) = exec_ctx.Get();
 
   // Now run through fragments.
   for (const auto &fragment : fragments_) {
     fragment->Run(query_state.get(), mode);
   }
 }
-
-#endif
 
 }  // namespace terrier::execution::codegen

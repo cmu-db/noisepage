@@ -10,22 +10,28 @@
 #include "execution/ast/ast_fwd.h"
 #include "execution/vm/vm_defs.h"
 
-namespace terrier::execution::exec {
+namespace terrier::execution {
+namespace exec {
 class ExecutionContext;
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+}  // namespace exec
 
-namespace terrier::execution::sema {
+namespace sema {
 class ErrorReporter;
-}  // namespace terrier::execution::sema
+}  // namespace sema
+
+namespace util {
+class Region;
+}  // namespace util
+
+namespace vm {
+class Module;
+}  // namespace vm
+}  // namespace terrier::execution
 
 namespace terrier::planner {
 class AbstractPlanNode;
 }  // namespace terrier::planner
-
-namespace terrier::execution::vm {
-class Module;
-}  // namespace terrier::execution::vm
 
 namespace terrier::execution::codegen {
 
@@ -124,6 +130,8 @@ class ExecutableQuery {
   const planner::AbstractPlanNode &plan_;
   // The execution context used for code generation.
   common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
+  std::unique_ptr<util::Region> errors_region_;
+  std::unique_ptr<util::Region> context_region_;
   // The AST error reporter.
   std::unique_ptr<sema::ErrorReporter> errors_;
   // The AST context used to generate the TPL AST.

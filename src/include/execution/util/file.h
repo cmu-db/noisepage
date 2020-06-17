@@ -107,7 +107,7 @@ class File {
    * @param len The maximum number of bytes to read.
    * @return The number of bytes read if >= 0, or the error code if < 0.
    */
-  int32_t ReadFull(byte *data, std::size_t len) const;
+  int32_t ReadFull(std::byte *data, std::size_t len) const;
 
   /**
    * Make a best-effort attempt to read @em len bytes of data from a specific position in the file
@@ -118,7 +118,7 @@ class File {
    * @param len The maximum number of bytes to read.
    * @return The number of bytes read if >= 0, or the error code if < 0.
    */
-  int32_t ReadFullFromPosition(std::size_t offset, byte *data, std::size_t len) const;
+  int32_t ReadFullFromPosition(std::size_t offset, std::byte *data, std::size_t len) const;
 
   /**
    * Attempt to read @em len bytes of data from the current file position into the provided output
@@ -129,7 +129,7 @@ class File {
    * @param len The maximum number of bytes to read.
    * @return The number of bytes written if >= 0, or the error code if < 0.
    */
-  int32_t Read(byte *data, std::size_t len) const;
+  int32_t Read(std::byte *data, std::size_t len) const;
 
   /**
    * Make a best-effort attempt to write @em len bytes from @em data into the file.
@@ -137,7 +137,7 @@ class File {
    * @param len The number of bytes to write.
    * @return The number of bytes written if >= 0, or the error code if < 0.
    */
-  int32_t WriteFull(const byte *data, std::size_t len) const;
+  int32_t WriteFull(const std::byte *data, std::size_t len) const;
 
   /**
    * Make a best-effort attempt to write @em len bytes from @em data into the file at the specified
@@ -147,7 +147,7 @@ class File {
    * @param len The number of bytes to write.
    * @return The number of bytes written if >= 0, or the error code if < 0.
    */
-  int32_t WriteFullAtPosition(std::size_t offset, const byte *data, std::size_t len) const;
+  int32_t WriteFullAtPosition(std::size_t offset, const std::byte *data, std::size_t len) const;
 
   /**
    * Attempt to write @em len bytes from @em data into the file. No effort is made to write all
@@ -156,7 +156,7 @@ class File {
    * @param len The number of bytes to write.
    * @return The number of bytes written if >= 0, or the error code if < 0.
    */
-  int32_t Write(const byte *data, std::size_t len) const;
+  int32_t Write(const std::byte *data, std::size_t len) const;
 
   /**
    * Repositions the file offset to @em offset bytes relative to the origin defined by @em whence.

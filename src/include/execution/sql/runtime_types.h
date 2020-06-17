@@ -283,15 +283,6 @@ class EXPORT Timestamp {
   static Timestamp FromNative(Timestamp::NativeType val);
 
   /**
-   * Convert a C-style string of the form "YYYY-MM-DD HH::MM::SS" into a timestamp. Will attempt to
-   * convert the first timestamp-like object it sees, skipping any leading whitespace.
-   * @param str The string to convert.
-   * @param len The length of the string.
-   * @return The constructed Timestamp. May be invalid.
-   */
-  static Timestamp FromString(const char *str, std::size_t len);
-
-  /**
    * Instantiate a timestamp with the specified number of microseconds in Julian time.
    * @param usec The number of microseconds in Julian time.
    * @return The constructed timestamp.
@@ -301,14 +292,6 @@ class EXPORT Timestamp {
   /** Instantiate a timestamp from calendar time. */
   static Timestamp FromHMSu(int32_t year, uint32_t month, uint32_t day, uint8_t hour, uint8_t minute, uint8_t sec,
                             uint64_t usec);
-
-  /**
-   * Convert a string of the form "YYYY-MM-DD HH::MM::SS" into a timestamp. Will attempt to convert
-   * the first timestamp-like object it sees, skipping any leading whitespace.
-   * @param str The string to convert.
-   * @return The constructed Timestamp. May be invalid.
-   */
-  static Timestamp FromString(const std::string &str) { return FromString(str.c_str(), str.size()); }
 
  private:
   friend class Date;
