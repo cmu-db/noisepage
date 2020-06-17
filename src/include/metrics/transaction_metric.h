@@ -27,6 +27,7 @@ class TransactionMetricRawData : public AbstractRawData {
     if (!other_db_metric->commit_data_.empty()) {
       commit_data_.splice(commit_data_.cbegin(), other_db_metric->commit_data_);
     }
+    num_txns_ += other_db_metric->num_txns_.exchange(0);
   }
 
   /**
@@ -46,6 +47,7 @@ class TransactionMetricRawData : public AbstractRawData {
 
     auto &begin_outfile = (*outfiles)[0];
     auto &commit_outfile = (*outfiles)[1];
+    auto &num_outfile = (*outfiles)[2];
 
     for (const auto &data : begin_data_) {
       data.resource_metrics_.ToCSV(begin_outfile);
@@ -58,17 +60,18 @@ class TransactionMetricRawData : public AbstractRawData {
     }
     begin_data_.clear();
     commit_data_.clear();
+    num_outfile << metrics::MetricsUtil::Now() << ", " << num_txns_.exchange(0) << std::endl;
   }
 
   /**
    * Files to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 2> FILES = {"./txn_begin.csv", "./txn_commit.csv"};
+  static constexpr std::array<std::string_view, 3> FILES = {"./txn_begin.csv", "./txn_commit.csv", "./num_txn_processed.csv"};
 
   /**
    * Columns to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"", "is_readonly"};
+  static constexpr std::array<std::string_view, 3> FEATURE_COLUMNS = {"", "is_readonly", "time, num_txns"};
 
  private:
   friend class TransactionMetric;
@@ -80,6 +83,7 @@ class TransactionMetricRawData : public AbstractRawData {
 
   void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
     commit_data_.emplace_back(is_readonly, resource_metrics);
+    num_txns_++;
   }
 
   struct BeginData {
@@ -97,6 +101,7 @@ class TransactionMetricRawData : public AbstractRawData {
 
   std::list<BeginData> begin_data_;
   std::list<CommitData> commit_data_;
+  std::atomic<uint64_t> num_txns_ = 0;
 };
 
 /**
