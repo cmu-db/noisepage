@@ -47,7 +47,8 @@ void TrafficCop::BeginTransaction(const common::ManagedPointer<network::Connecti
                  "Invalid ConnectionContext state, already in a transaction.");
   const auto txn = txn_manager_->BeginTransaction();
   connection_ctx->SetTransaction(common::ManagedPointer(txn));
-  connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid()));
+  connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid(),
+                                                    connection_ctx->GetCatalogCache()));
 }
 
 void TrafficCop::EndTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -367,7 +368,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
   }
 
   const auto ns_oid =
-      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)
+      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED)
           ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(static_cast<uint16_t>(connection_id)));
   if (ns_oid == catalog::INVALID_NAMESPACE_OID) {
     // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
@@ -384,7 +385,7 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   TERRIER_ASSERT(db_oid != catalog::INVALID_DATABASE_OID, "Called DropTempNamespace() with an invalid database oid.");
   TERRIER_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID, "Called DropTempNamespace() with an invalid namespace oid.");
   auto *const txn = txn_manager_->BeginTransaction();
-  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
   TERRIER_ASSERT(db_accessor != nullptr, "Catalog failed to provide a CatalogAccessor. Was the db_oid still valid?");
 
