@@ -59,7 +59,6 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
       case type::TypeId::VARCHAR: {
         const auto str_view = value->Peek<std::string_view>();
 
-        // TODO(WAN): A bit stupid to take the string view back into a string.
         switch (desired_type) {
           case type::TypeId::DATE: {
             auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
@@ -81,7 +80,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::TINYINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            const auto int_val = std::strtol(str_view.data(), nullptr, 10);
             if (!IsRepresentable<int8_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -89,7 +88,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::SMALLINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            const auto int_val = std::strtol(str_view.data(), nullptr, 10);
             if (!IsRepresentable<int16_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -97,7 +96,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::INTEGER: {
-            const auto int_val = std::stol(std::string(str_view));
+            const auto int_val = std::strtol(str_view.data(), nullptr, 10);
             if (!IsRepresentable<int32_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -105,7 +104,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::BIGINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            const auto int_val = std::strtol(str_view.data(), nullptr, 10);
             if (!IsRepresentable<int64_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -116,7 +115,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             {
               double double_val;
               try {
-                double_val = std::stod(std::string(str_view));
+                double_val = std::strtod(str_view.data(), nullptr);
               } catch (std::exception &e) {
                 throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
               }
