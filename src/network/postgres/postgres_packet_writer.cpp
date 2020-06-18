@@ -372,8 +372,8 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
       case type::TypeId::VARBINARY: {
         // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
         // continue
-        auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(string_val->len_)).AppendRaw(string_val->Content(), string_val->len_);
+        const auto *const string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
+        AppendValue<int32_t>(static_cast<int32_t>(string_val->len_)).AppendStringView(string_val->StringView(), false);
         return execution::sql::ValUtil::GetSqlSize(type);
       }
       default:
