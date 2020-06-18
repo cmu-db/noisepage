@@ -140,6 +140,14 @@ class TableRef {
       : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)) {}
 
   /**
+   * @param alias alias for table ref
+   * @param select select statement to use in creation
+   * @param col_aliases aliases for the columns
+   */
+  TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<std::unique_ptr<std::string>> col_aliases)
+      : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)), col_aliases_(std::move(col_aliases)) {}
+
+  /**
    * @param list table refs to use in creation
    */
   explicit TableRef(std::vector<std::unique_ptr<TableRef>> list)
@@ -167,6 +175,16 @@ class TableRef {
    */
   static std::unique_ptr<TableRef> CreateTableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select) {
     return std::make_unique<TableRef>(std::move(alias), std::move(select));
+  }
+
+  /**
+   * @param alias alias for table ref
+   * @param select select statement to use in creation
+   * @param col_aliases aliases for column names
+   * @return unique pointer to the created (CTE) table ref
+   */
+  static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<std::unique_ptr<std::string>> col_aliases) {
+    return std::make_unique<TableRef>(std::move(alias), std::move(select), std::move(col_aliases));
   }
 
   /**
@@ -257,6 +275,7 @@ class TableRef {
 
   std::unique_ptr<TableInfo> table_info_;
   std::unique_ptr<SelectStatement> select_;
+  std::vector<std::unique_ptr<std::string>> col_aliases_;
 
   std::vector<std::unique_ptr<TableRef>> list_;
   std::unique_ptr<JoinDefinition> join_;

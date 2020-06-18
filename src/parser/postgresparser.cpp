@@ -2032,7 +2032,16 @@ std::unique_ptr<TableRef> PostgresParser::WithTransform(ParseResult *parse_resul
         return nullptr;
       }
       auto alias = common_table_expr->ctename_;
-      result = TableRef::CreateTableRefBySelect(alias, std::move(select));
+
+      std::vector<std::unique_ptr<std::string>> colnames;
+      auto col_names_root = common_table_expr->aliascolnames_;
+      for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
+        auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
+        auto column = target->val_.str_;
+        colnames.emplace_back(std::make_unique<std::string>(column));
+      }
+
+      result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames));
       return result;
     }
     default: {
