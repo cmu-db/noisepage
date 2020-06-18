@@ -20,11 +20,14 @@
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
-#include "transaction/transaction_manager.h"
 
 namespace terrier {
 class RecoveryBenchmark;
-}
+}  // namespace terrier
+
+namespace terrier::transaction {
+class TransactionManager;
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 
