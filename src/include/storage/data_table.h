@@ -1,6 +1,5 @@
 #pragma once
 #include <cstring>
-#include <list>
 #include <unordered_map>
 #include <vector>
 
@@ -94,18 +93,26 @@ class DataTable {
 
    private:
     friend class DataTable;
+
+    /** Indicates that the iterator should advance to the end of the table. */
+    static constexpr int32_t TILL_END = -1;
+
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
-        : table_(table), block_(block) {
-      current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
+    SlotIterator(const DataTable *table, uint32_t block_index, int32_t num_advances, uint32_t offset_in_block)
+        : table_(table), block_index_(block_index), num_advances_(num_advances) {
+      current_slot_ = {block_index >= table_->blocks_.size() ? nullptr : table->blocks_[block_index], offset_in_block};
     }
 
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
     // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_;
-    std::list<RawBlock *>::const_iterator block_;
+    // Warning: this implicitly assumes that blocks will only ever be inserted at the right end.
+    uint32_t block_index_;
+    // The remaining number of times that this iterator will advance to the next block,
+    // or ADVANCE_TO_THE_END to advance to the end.
+    int32_t num_advances_;
     TupleSlot current_slot_;
   };
   /**
@@ -158,9 +165,9 @@ class DataTable {
   /**
    * @return the first tuple slot contained in the data table
    */
-  SlotIterator begin() const {  // NOLINT for STL name compability
+  SlotIterator begin() const {  // NOLINT for STL name compatibility
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {this, blocks_.begin(), 0};
+    return {this, 0, SlotIterator::TILL_END, 0};
   }
 
   /**
@@ -170,7 +177,15 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const;  // NOLINT for STL name compability
+  SlotIterator end() const;  // NOLINT for STL name compatibility
+
+  /**
+   * Return a SlotIterator that will only cover the blocks in the selected range.
+   * @param start The index of the block to start iterating at, starts at 0.
+   * @param end The index of the block to stop iterating at, ends at GetNumBlocks().
+   * @return SlotIterator that will iterate over only the blocks in the range [start, end).
+   */
+  SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const;
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
@@ -219,6 +234,11 @@ class DataTable {
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
   /**
+   * @return Number of blocks in the data table.
+   */
+  uint32_t GetNumBlocks() const { return blocks_.size(); }
+
+  /**
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
@@ -247,20 +267,15 @@ class DataTable {
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
   // deleted tuples and recycle slots
-  // TODO(Tianyu): Now that we are switching to a linked list, there probably isn't a reason for it
-  // to be latched. Could just easily write a lock-free one if there's performance gain(probably not). vector->list has
-  // negligible difference in insert performance (within margin of error) when benchmarked.
-  // We also might need our own implementation because we need to handle GC of an unlinked block, as a sequential scan
-  // might be on it
-  std::list<RawBlock *> blocks_;
+  std::vector<RawBlock *> blocks_;
   // latch used to protect block list
   mutable common::SpinLatch blocks_latch_;
   // latch used to protect insertion_head_
   mutable common::SpinLatch header_latch_;
-  std::list<RawBlock *>::iterator insertion_head_;
+  std::atomic<uint32_t> insertion_head_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
-  void CheckMoveHead(std::list<RawBlock *>::iterator block);
+  void CheckMoveHead(uint32_t block_index);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
