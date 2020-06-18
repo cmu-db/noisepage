@@ -199,7 +199,10 @@ namespace terrier::execution::ast {
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \
   F(NpRunnersEmitReal, NpRunnersEmitReal)                               \
   F(NpRunnersDummyInt, NpRunnersDummyInt)                               \
-  F(NpRunnersDummyReal, NpRunnersDummyReal)
+  F(NpRunnersDummyReal, NpRunnersDummyReal)                             \
+                                                                        \
+  /* FOR TESTING USE ONLY!!!!! */                                       \
+  F(TestCatalogLookup, testCatalogLookup)
 
 /**
  * An enumeration of all TPL builtin functions.

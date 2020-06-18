@@ -12,6 +12,10 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/plan_visitor.h"
 
+namespace terrier::catalog {
+class CatalogAccessor;
+}  // namespace terrier::catalog
+
 namespace terrier::planner {
 class AbstractJoinPlanNode;
 class AbstractScanPlanNode;

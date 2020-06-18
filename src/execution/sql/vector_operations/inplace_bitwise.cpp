@@ -10,8 +10,8 @@ namespace traits {
 
 template <typename T>
 struct ShouldPerformFullCompute<terrier::execution::sql::BitwiseANDInPlace<T>> {
-  bool operator()(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const TupleIdList *tid_list) const {
-    auto full_compute_threshold = exec_settings->GetArithmeticFullComputeOptThreshold();
+  bool operator()(const exec::ExecutionSettings &exec_settings, const TupleIdList *tid_list) const {
+    auto full_compute_threshold = exec_settings.GetArithmeticFullComputeOptThreshold();
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
   }
 };
@@ -21,14 +21,14 @@ struct ShouldPerformFullCompute<terrier::execution::sql::BitwiseANDInPlace<T>> {
 namespace {
 
 template <typename T, template <typename> typename Op>
-void BitwiseOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, Vector *left,
+void BitwiseOperation(const exec::ExecutionSettings &exec_settings, Vector *left,
                       const Vector &right) {
   InPlaceOperationExecutor::Execute<T, T, Op<T>>(exec_settings, left, right, Op<T>{});
 }
 
 }  // namespace
 
-void VectorOps::BitwiseAndInPlace(common::ManagedPointer<exec::ExecutionSettings> exec_settings, Vector *left,
+void VectorOps::BitwiseAndInPlace(const exec::ExecutionSettings &exec_settings, Vector *left,
                                   const Vector &right) {
   // Sanity check
   CheckInplaceOperation(left, right);

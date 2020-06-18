@@ -292,7 +292,7 @@ class Vector {
    * @param exec_settings The execution settings for this query.
    * @param new_type The type to cast this vector into.
    */
-  void Cast(common::ManagedPointer<exec::ExecutionSettings> exec_settings, TypeId new_type);
+  void Cast(const exec::ExecutionSettings &exec_settings, TypeId new_type);
 
   /**
    * Append the contents of the provided vector @em other into this vector.

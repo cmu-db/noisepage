@@ -113,7 +113,8 @@ class BytecodeEmitter {
                                      LocalVar ctx);
 
   // Initialize a table iterator.
-  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, uint16_t table_id);
+  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid, LocalVar col_oids,
+                         uint32_t num_oids);
 
   // Emit a parallel table scan.
   void EmitParallelTableScan(uint16_t table_id, LocalVar ctx, LocalVar thread_states, FunctionId scan_fn);
@@ -146,6 +147,10 @@ class BytecodeEmitter {
 
   // Initialize a CSV reader.
   void EmitCSVReaderInit(LocalVar creader, LocalVar file_name, uint32_t file_name_len);
+
+  // ONLY FOR TESTING!
+  void EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len,
+                             LocalVar col_name, uint32_t col_name_len);
 
  private:
   // Copy a scalar immediate value into the bytecode stream

@@ -50,7 +50,7 @@ bool GenericValue::Equals(const GenericValue &other) const {
   return false;
 }
 
-GenericValue GenericValue::CastTo(common::ManagedPointer<exec::ExecutionSettings> exec_settings, TypeId type) {
+GenericValue GenericValue::CastTo(const exec::ExecutionSettings &exec_settings, TypeId type) {
   // Copy if same type
   if (type_id_ == type) {
     return GenericValue(*this);

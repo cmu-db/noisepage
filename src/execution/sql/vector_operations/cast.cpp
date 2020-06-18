@@ -13,14 +13,14 @@ namespace terrier::execution::sql {
 namespace {
 
 template <typename InType, typename OutType, bool IgnoreNull = true>
-void StandardTemplatedCastOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source,
+void StandardTemplatedCastOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
                                     Vector *target) {
   UnaryOperationExecutor::Execute<InType, OutType, terrier::execution::sql::Cast<InType, OutType>, IgnoreNull>(
       exec_settings, source, target);
 }
 
 template <typename InType>
-void CastToStringOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source,
+void CastToStringOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
                            Vector *target) {
   TERRIER_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
   terrier::execution::sql::Cast<InType, std::string> cast_op;
@@ -31,7 +31,7 @@ void CastToStringOperation(common::ManagedPointer<exec::ExecutionSettings> exec_
 
 // Cast from a numeric-ish type into one of the many supported types.
 template <typename InType>
-void CastNumericOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source,
+void CastNumericOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
                           Vector *target, SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Boolean:
@@ -65,7 +65,7 @@ void CastNumericOperation(common::ManagedPointer<exec::ExecutionSettings> exec_s
   }
 }
 
-void CastDateOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source,
+void CastDateOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
                        Vector *target, SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Timestamp:
@@ -81,7 +81,7 @@ void CastDateOperation(common::ManagedPointer<exec::ExecutionSettings> exec_sett
   }
 }
 
-void CastTimestampOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source,
+void CastTimestampOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
                             Vector *target, SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Date:
@@ -97,7 +97,7 @@ void CastTimestampOperation(common::ManagedPointer<exec::ExecutionSettings> exec
   }
 }
 
-void CastStringOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source,
+void CastStringOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
                          Vector *target, SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Boolean:
@@ -130,7 +130,7 @@ void CastStringOperation(common::ManagedPointer<exec::ExecutionSettings> exec_se
 
 }  // namespace
 
-void VectorOps::Cast(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source,
+void VectorOps::Cast(const exec::ExecutionSettings &exec_settings, const Vector &source,
                      Vector *target, SqlTypeId source_type, SqlTypeId target_type) {
   switch (source_type) {
     case SqlTypeId::Boolean:
@@ -171,7 +171,7 @@ void VectorOps::Cast(common::ManagedPointer<exec::ExecutionSettings> exec_settin
   }
 }
 
-void VectorOps::Cast(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &source,
+void VectorOps::Cast(const exec::ExecutionSettings &exec_settings, const Vector &source,
                      Vector *target) {
   const SqlTypeId src_type = GetSqlTypeFromInternalType(source.type_);
   const SqlTypeId target_type = GetSqlTypeFromInternalType(target->type_);

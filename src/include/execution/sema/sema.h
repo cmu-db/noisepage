@@ -148,6 +148,9 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckResultBufferCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin);
 
+  // FOR TESTING USE ONLY
+  void CheckBuiltinTestCatalogLookup(ast::CallExpr *call);
+
   // -------------------------------------------------------
   // Scoping
   // -------------------------------------------------------

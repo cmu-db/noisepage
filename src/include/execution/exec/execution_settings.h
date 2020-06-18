@@ -11,21 +11,23 @@ namespace terrier::execution::exec {
 class EXPORT ExecutionSettings {
  public:
   /** @return The vector active element threshold past which full auto-vectorization is done on vectors. */
-  constexpr double GetSelectOptThreshold() { return select_opt_threshold_; }
+  constexpr double GetSelectOptThreshold() const { return select_opt_threshold_; }
 
   /** @return The vector selectivity past which full computation is done. */
-  constexpr double GetArithmeticFullComputeOptThreshold() { return arithmetic_full_compute_opt_threshold_; }
+  constexpr double GetArithmeticFullComputeOptThreshold() const { return arithmetic_full_compute_opt_threshold_; }
 
   /** @return The minimum bit vector density before using a SIMD decoding algorithm. */
-  constexpr float GetMinBitDensityThresholdForAVXIndexDecode() {
+  constexpr float GetMinBitDensityThresholdForAVXIndexDecode() const {
     return min_bit_density_threshold_for_avx_index_decode_;
   }
 
   /** @return The statistics sampling frequency when adaptively reordering predicate clauses. */
-  constexpr float GetAdaptivePredicateOrderSamplingFrequency() { return adaptive_predicate_order_sampling_frequency_; }
+  constexpr float GetAdaptivePredicateOrderSamplingFrequency() const {
+    return adaptive_predicate_order_sampling_frequency_;
+  }
 
   /** @return True if parallel query execution is enabled. */
-  constexpr bool GetIsParallelQueryExecution() { return is_parallel_query_execution_; }
+  constexpr bool GetIsParallelQueryExecution() const { return is_parallel_query_execution_; }
 
  private:
   double select_opt_threshold_{common::Constants::SELECT_OPT_THRESHOLD};

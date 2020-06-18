@@ -9,41 +9,23 @@
 namespace terrier {
 
 /**
- * @param s string to be used for exception
- * @return formatted string for exceptions
- */
-static inline const char *ToExceptionString(std::string s) { return s.c_str(); }  // NOLINT
-
-/**
- * @param s string to be used for exception
- * @return formatted string for exceptions
- */
-static inline const char *ToExceptionString(char *s) { return s; }  // NOLINT
-
-/**
- * @param s string to be used for exception
- * @return formatted string for exceptions
- */
-static inline const char *ToExceptionString(const char *s) { return s; }  // NOLINT
-
-/**
  * Use the macros below for generating exceptions.
  * They record where the exception was generated.
  */
 
-#define NOT_IMPLEMENTED_EXCEPTION(msg) NotImplementedException(ToExceptionString(msg), __FILE__, __LINE__)
-#define CATALOG_EXCEPTION(msg) CatalogException(ToExceptionString(msg), __FILE__, __LINE__)
-#define CONVERSION_EXCEPTION(msg) ConversionException(ToExceptionString(msg), __FILE__, __LINE__)
-#define PARSER_EXCEPTION(msg) ParserException(ToExceptionString(msg), __FILE__, __LINE__)
-#define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(ToExceptionString(msg), __FILE__, __LINE__)
-#define SETTINGS_EXCEPTION(msg) SettingsException(ToExceptionString(msg), __FILE__, __LINE__)
-#define OPTIMIZER_EXCEPTION(msg) OptimizerException(ToExceptionString(msg), __FILE__, __LINE__)
-#define SYNTAX_EXCEPTION(msg) SyntaxException(ToExceptionString(msg), __FILE__, __LINE__)
-#define BINDER_EXCEPTION(msg) BinderException(ToExceptionString(msg), __FILE__, __LINE__)
-#define EXECUTION_EXCEPTION(msg) ExecutionException(ToExceptionString(msg), __FILE__, __LINE__)
+#define NOT_IMPLEMENTED_EXCEPTION(msg) NotImplementedException(msg, __FILE__, __LINE__)
+#define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
+#define CONVERSION_EXCEPTION(msg) ConversionException(msg, __FILE__, __LINE__)
+#define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
+#define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
+#define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
+#define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
+#define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
+#define BINDER_EXCEPTION(msg) BinderException(msg, __FILE__, __LINE__)
+#define EXECUTION_EXCEPTION(msg) ExecutionException(msg, __FILE__, __LINE__)
 
-/**                                                                                                                  \
- * Exception types                                                                                                   \
+/**
+ * Exception types
  */
 enum class ExceptionType : uint8_t {
   RESERVED,

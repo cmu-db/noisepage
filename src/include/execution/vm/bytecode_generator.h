@@ -52,8 +52,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
    * @param name The (optional) name of the program.
    * @return A compiled bytecode module.
    */
-  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root,
-                                                 const exec::ExecutionSettings &exec_settings,
+  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, const exec::ExecutionSettings &exec_settings,
                                                  const std::string &name);
 
   /**
@@ -64,7 +63,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
  private:
   // Private constructor to force users to call Compile()
   BytecodeGenerator() noexcept = delete;
-  explicit BytecodeGenerator(common::ManagedPointer<exec::ExecutionSettings> exec_settings) noexcept;
+  explicit BytecodeGenerator(const exec::ExecutionSettings &exec_settings) noexcept;
 
   class ExpressionResultScope;
   class LValueResultScope;
@@ -73,6 +72,9 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
 
   // Allocate a new function ID
   FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type);
+
+  // ONLY FOR TESTING!
+  void VisitBuiltinTestCatalogLookup(ast::CallExpr *call);
 
   // Dispatched from VisitBuiltinCallExpr() to handle the various builtin
   // functions, including filtering, hash table interaction, sorting etc.
@@ -196,7 +198,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   ExpressionResultScope *execution_result_;
 
   /** Settings to be used for execution. */
-  common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
+  const exec::ExecutionSettings &exec_settings_;
 };
 
 }  // namespace terrier::execution::vm

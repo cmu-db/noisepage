@@ -109,7 +109,8 @@ namespace terrier::execution::vm {
   F(ThreadStateContainerClear, OperandType::Local)                                                                     \
                                                                                                                        \
   /* Table Vector Iterator */                                                                                          \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm2)                                                   \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,           \
+    OperandType::UImm4)                                                                                                \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                                \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                   \
   F(TableVectorIteratorFree, OperandType::Local)                                                                       \
@@ -477,7 +478,11 @@ namespace terrier::execution::vm {
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
                                                                                                                        \
   /* Date Functions */                                                                                                 \
-  F(ExtractYear, OperandType::Local, OperandType::Local)
+  F(ExtractYear, OperandType::Local, OperandType::Local)                                                               \
+                                                                                                                       \
+  /* FOR TESTING ONLY */                                                                                               \
+  F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4,                 \
+    OperandType::Local, OperandType::UImm4)
 
 // clang-format on
 

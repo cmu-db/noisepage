@@ -1,0 +1,14 @@
+#include "execution/compiler/expression/expression_translator.h"
+
+#include "execution/compiler/compilation_context.h"
+#include "parser/expression/abstract_expression.h"
+
+namespace terrier::execution::compiler {
+
+ExpressionTranslator::ExpressionTranslator(const parser::AbstractExpression &expr,
+                                           CompilationContext *compilation_context)
+    : expr_(expr), compilation_context_(compilation_context) {}
+
+CodeGen *ExpressionTranslator::GetCodeGen() const { return compilation_context_->GetCodeGen(); }
+
+}  // namespace terrier::execution::compiler

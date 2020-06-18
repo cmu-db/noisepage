@@ -10,6 +10,10 @@
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 
+namespace terrier::execution::sql {
+class VectorProjection;
+}  // namespace terrier::execution::sql
+
 namespace terrier::transaction {
 class TransactionContext;
 class TransactionManager;
@@ -161,6 +165,9 @@ class DataTable {
    */
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             ProjectedColumns *out_buffer) const;
+
+  void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+            execution::sql::VectorProjection *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table

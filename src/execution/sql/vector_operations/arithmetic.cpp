@@ -13,8 +13,8 @@ template <template <typename> typename Op, typename T>
 struct ShouldPerformFullCompute<Op<T>, std::enable_if_t<std::is_same_v<Op<T>, terrier::execution::sql::Add<T>> ||
                                                         std::is_same_v<Op<T>, terrier::execution::sql::Subtract<T>> ||
                                                         std::is_same_v<Op<T>, terrier::execution::sql::Multiply<T>>>> {
-  bool operator()(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const TupleIdList *tid_list) const {
-    auto full_compute_threshold = exec_settings->GetArithmeticFullComputeOptThreshold();
+  bool operator()(const exec::ExecutionSettings &exec_settings, const TupleIdList *tid_list) const {
+    auto full_compute_threshold = exec_settings.GetArithmeticFullComputeOptThreshold();
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
   }
 };
@@ -157,15 +157,15 @@ void DivModOperation(const Vector &left, const Vector &right, Vector *result) {
 }
 
 template <typename T, template <typename> typename Op>
-void TemplatedBinaryArithmeticOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
-                                        const Vector &left, const Vector &right, Vector *result) {
+void TemplatedBinaryArithmeticOperation(const exec::ExecutionSettings &exec_settings, const Vector &left,
+                                        const Vector &right, Vector *result) {
   BinaryOperationExecutor::Execute<T, T, T, Op<T>>(exec_settings, left, right, result);
 }
 
 // Dispatch to the generic BinaryOperation() function with full types.
 template <template <typename> typename Op>
-void BinaryArithmeticOperation(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
-                               const Vector &right, Vector *result) {
+void BinaryArithmeticOperation(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                               Vector *result) {
   // Sanity check
   CheckBinaryOperation(left, right, result);
 
@@ -200,23 +200,23 @@ void BinaryArithmeticOperation(common::ManagedPointer<exec::ExecutionSettings> e
 
 }  // namespace
 
-void VectorOps::Add(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
-                    const Vector &right, Vector *result) {
+void VectorOps::Add(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                    Vector *result) {
   BinaryArithmeticOperation<terrier::execution::sql::Add>(exec_settings, left, right, result);
 }
 
-void VectorOps::Subtract(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &right,
-                         Vector *result, const Vector &left) {
+void VectorOps::Subtract(const exec::ExecutionSettings &exec_settings, const Vector &right, Vector *result,
+                         const Vector &left) {
   BinaryArithmeticOperation<terrier::execution::sql::Subtract>(exec_settings, left, right, result);
 }
 
-void VectorOps::Multiply(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
-                         const Vector &right, Vector *result) {
+void VectorOps::Multiply(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                         Vector *result) {
   BinaryArithmeticOperation<terrier::execution::sql::Multiply>(exec_settings, left, right, result);
 }
 
-void VectorOps::Divide(common::ManagedPointer<exec::ExecutionSettings> exec_settings, const Vector &left,
-                       const Vector &right, Vector *result) {
+void VectorOps::Divide(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                       Vector *result) {
   DivModOperation<terrier::execution::sql::Divide>(left, right, result);
 }
 

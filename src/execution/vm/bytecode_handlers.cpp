@@ -70,8 +70,7 @@ void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager)
 void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
                          terrier::execution::exec::ExecutionSettings *exec_settings,
                          terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size) {
-  new (join_hash_table)
-      terrier::execution::sql::JoinHashTable(terrier::common::ManagedPointer(exec_settings), memory, tuple_size);
+  new (join_hash_table) terrier::execution::sql::JoinHashTable(*exec_settings, memory, tuple_size);
 }
 
 void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }
@@ -91,8 +90,7 @@ void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table
 void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *const agg_hash_table,
                                 terrier::execution::exec::ExecutionSettings *exec_settings,
                                 terrier::execution::sql::MemoryPool *const memory, const uint32_t payload_size) {
-  new (agg_hash_table) terrier::execution::sql::AggregationHashTable(terrier::common::ManagedPointer(exec_settings),
-                                                                     memory, payload_size);
+  new (agg_hash_table) terrier::execution::sql::AggregationHashTable(*exec_settings, memory, payload_size);
 }
 
 void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *const agg_hash_table) {

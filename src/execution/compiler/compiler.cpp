@@ -144,8 +144,8 @@ class NoOpCallbacks : public Compiler::Callbacks {
 
 }  // namespace
 
-std::unique_ptr<vm::Module> Compiler::RunCompilationSimple(
-    const Compiler::Input &input, common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
+std::unique_ptr<vm::Module> Compiler::RunCompilationSimple(const Compiler::Input &input,
+                                                           const exec::ExecutionSettings &exec_settings) {
   NoOpCallbacks no_op_callbacks;
   RunCompilation(input, &no_op_callbacks, exec_settings);
   return no_op_callbacks.TakeModule();

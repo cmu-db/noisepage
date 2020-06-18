@@ -823,10 +823,28 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 
   switch (builtin) {
     case ast::Builtin::TableIterInit: {
-      // The second argument is the table name as a literal string
-      if (!call_args[1]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+      if (!CheckArgCount(call, 4)) {
         return;
+      }
+      // The second argument is the execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+      // The third argument is a table oid
+      if (!call_args[2]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 2, "Second argument should be an integer type.");
+        return;
+      }
+      // The fourth argument is a uint32_t array
+      if (!call_args[3]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(ast::BuiltinType::Uint32) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
@@ -1610,6 +1628,27 @@ void Sema::CheckBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin)
   }
 }
 
+void Sema::CheckBuiltinTestCatalogLookup(ast::CallExpr *call) {
+  if (!CheckArgCount(call, 3)) {
+    return;
+  }
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), ast::BuiltinType::ExecutionContext)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::ExecutionContext)->PointerTo());
+    return;
+  }
+  if (!call->Arguments()[1]->GetType()->IsStringType() || !call->Arguments()[1]->IsLitExpr()) {
+    ReportIncorrectCallArg(call, 1, "string literal");
+    return;
+  }
+  if (!call->Arguments()[2]->GetType()->IsStringType() || !call->Arguments()[2]->IsLitExpr()) {
+    ReportIncorrectCallArg(call, 2, "string literal");
+    return;
+  }
+  call->Arguments()[1]->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
+  call->Arguments()[2]->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
+  call->SetType(GetBuiltinType(ast::BuiltinType::Int32));
+}
+
 void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   ast::Builtin builtin;
   if (!GetContext()->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
@@ -1869,6 +1908,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::PtrCast: {
       UNREACHABLE("Pointer cast should be handled outside switch ...");
+    }
+    case ast::Builtin::TestCatalogLookup: {
+      CheckBuiltinTestCatalogLookup(call);
+      break;
     }
     default:
       // TODO(WAN): PORT BACK OLD FUNCTIONALITY

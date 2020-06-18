@@ -261,8 +261,9 @@ void BytecodeEmitter::EmitThreadStateContainerReset(LocalVar tls, LocalVar state
   EmitAll(Bytecode::ThreadStateContainerReset, tls, state_size, init_fn, destroy_fn, ctx);
 }
 
-void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, uint16_t table_id) {
-  EmitAll(bytecode, iter, table_id);
+void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid,
+                                        LocalVar col_oids, uint32_t num_oids) {
+  EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, num_oids);
 }
 
 void BytecodeEmitter::EmitParallelTableScan(uint16_t table_id, LocalVar ctx, LocalVar thread_states,
@@ -313,6 +314,11 @@ void BytecodeEmitter::EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVa
 
 void BytecodeEmitter::EmitCSVReaderInit(LocalVar reader, LocalVar file_name, uint32_t file_name_len) {
   EmitAll(Bytecode::CSVReaderInit, reader, file_name, file_name_len);
+}
+
+void BytecodeEmitter::EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name,
+                                            uint32_t table_name_len, LocalVar col_name, uint32_t col_name_len) {
+  EmitAll(Bytecode::TestCatalogLookup, oid_var, exec_ctx, table_name, table_name_len, col_name, col_name_len);
 }
 
 }  // namespace terrier::execution::vm

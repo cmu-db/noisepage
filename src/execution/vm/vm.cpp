@@ -780,24 +780,24 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
   // Vector Filter Executor
   // ------------------------------------------------------
 
-#define GEN_VEC_FILTER(BYTECODE)                                                                                    \
-  OP(BYTECODE) : {                                                                                                  \
-    auto *exec_settings = frame->LocalAt<exec::ExecutionSettings *>(READ_LOCAL_ID());                               \
-    auto *vector_projection = frame->LocalAt<sql::VectorProjection *>(READ_LOCAL_ID());                             \
-    auto left_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                                                  \
-    auto right_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                                                 \
-    auto *tid_list = frame->LocalAt<sql::TupleIdList *>(READ_LOCAL_ID());                                           \
-    Op##BYTECODE(common::ManagedPointer(exec_settings), vector_projection, left_col_idx, right_col_idx, tid_list);  \
-    DISPATCH_NEXT();                                                                                                \
-  }                                                                                                                 \
-  OP(BYTECODE##Val) : {                                                                                             \
-    auto *exec_settings = frame->LocalAt<exec::ExecutionSettings *>(READ_LOCAL_ID());                               \
-    auto *vector_projection = frame->LocalAt<sql::VectorProjection *>(READ_LOCAL_ID());                             \
-    auto left_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                                                  \
-    auto right_val = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());                                                   \
-    auto *tid_list = frame->LocalAt<sql::TupleIdList *>(READ_LOCAL_ID());                                           \
-    Op##BYTECODE##Val(common::ManagedPointer(exec_settings), vector_projection, left_col_idx, right_val, tid_list); \
-    DISPATCH_NEXT();                                                                                                \
+#define GEN_VEC_FILTER(BYTECODE)                                                             \
+  OP(BYTECODE) : {                                                                           \
+    auto *exec_settings = frame->LocalAt<exec::ExecutionSettings *>(READ_LOCAL_ID());        \
+    auto *vector_projection = frame->LocalAt<sql::VectorProjection *>(READ_LOCAL_ID());      \
+    auto left_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                           \
+    auto right_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                          \
+    auto *tid_list = frame->LocalAt<sql::TupleIdList *>(READ_LOCAL_ID());                    \
+    Op##BYTECODE(*exec_settings, vector_projection, left_col_idx, right_col_idx, tid_list);  \
+    DISPATCH_NEXT();                                                                         \
+  }                                                                                          \
+  OP(BYTECODE##Val) : {                                                                      \
+    auto *exec_settings = frame->LocalAt<exec::ExecutionSettings *>(READ_LOCAL_ID());        \
+    auto *vector_projection = frame->LocalAt<sql::VectorProjection *>(READ_LOCAL_ID());      \
+    auto left_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                           \
+    auto right_val = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());                            \
+    auto *tid_list = frame->LocalAt<sql::TupleIdList *>(READ_LOCAL_ID());                    \
+    Op##BYTECODE##Val(*exec_settings, vector_projection, left_col_idx, right_val, tid_list); \
+    DISPATCH_NEXT();                                                                         \
   }
 
   GEN_VEC_FILTER(VectorFilterEqual)
@@ -1648,7 +1648,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
   // -------------------------------------------------------
   // Mini runners functions
   // -------------------------------------------------------
-
+// TODO(WAN): RE-ENABLE
+#if 0
   OP(NpRunnersEmitInt) : {
     auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *num_tuple = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
@@ -1680,6 +1681,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     OpNpRunnersDummyReal(ctx);
     DISPATCH_NEXT();
   }
+#endif
 
   // -------------------------------------------------------
   // String functions
@@ -1836,6 +1838,21 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<sql::DateVal *>(READ_LOCAL_ID());
     OpExtractYear(result, input);
+    DISPATCH_NEXT();
+  }
+
+  // -------------------------------------------------------
+  // Testing only functions
+  // -------------------------------------------------------
+
+  OP(TestCatalogLookup) : {
+    auto *oid_var = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *table_name = module_->GetBytecodeModule()->AccessStaticLocalDataRaw(LocalVar::Decode(READ_STATIC_LOCAL_ID()));
+    auto table_name_len = READ_IMM4();
+    auto *col_name = module_->GetBytecodeModule()->AccessStaticLocalDataRaw(LocalVar::Decode(READ_STATIC_LOCAL_ID()));
+    auto col_name_len = READ_IMM4();
+    OpTestCatalogLookup(oid_var, exec_ctx, table_name, table_name_len, col_name, col_name_len);
     DISPATCH_NEXT();
   }
 

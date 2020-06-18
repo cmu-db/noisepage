@@ -3,6 +3,7 @@
 #include <string>
 
 #include "common/exception.h"
+#include "date/date.h"
 #include "util/time_util.h"
 
 namespace terrier::execution::sql {

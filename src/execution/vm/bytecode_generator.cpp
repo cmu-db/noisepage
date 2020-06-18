@@ -134,7 +134,7 @@ class BytecodeGenerator::BytecodePositionScope {
 // Bytecode Generator begins
 // ---------------------------------------------------------
 
-BytecodeGenerator::BytecodeGenerator(common::ManagedPointer<exec::ExecutionSettings> exec_settings) noexcept
+BytecodeGenerator::BytecodeGenerator(const exec::ExecutionSettings &exec_settings) noexcept
     : emitter_(&code_), execution_result_(nullptr), exec_settings_(exec_settings) {}
 
 void BytecodeGenerator::VisitIfStmt(ast::IfStmt *node) {
@@ -582,31 +582,17 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 
   switch (builtin) {
     case ast::Builtin::TableIterInit: {
-      // The second argument is the table name as a literal string
-      TERRIER_ASSERT(call->Arguments()[1]->IsStringLiteral(), "Table name must be a string literal");
-
-      UNREACHABLE("FIXME");
-#if 0
       // The second argument should be the execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      // The third argument is an oid integer literal
-      auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
+      // The third argument is the table oid, which is integer-typed
+      LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[2]);
       // The fourth argument is the array of oids
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
       LocalVar arr = VisitExpressionForLValue(call->Arguments()[3]);
       // Emit the initialization codes
-      Emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, table_oid, arr,
-                                   static_cast<uint32_t>(arr_type->GetLength()));
-      Emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
-      break;
-#endif
-#if 0
-      ast::Identifier table_name = call->Arguments()[1]->As<ast::LitExpr>()->StringVal();
-      sql::Table *table = sql::Catalog::Instance()->LookupTableByName(table_name);
-      TERRIER_ASSERT(table != nullptr, "Table does not exist!");
-      GetEmitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, table->GetId());
+      GetEmitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, table_oid, arr,
+                                      static_cast<uint32_t>(arr_type->GetLength()));
       GetEmitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
-#endif
       break;
     }
     case ast::Builtin::TableIterAdvance: {
@@ -1582,6 +1568,18 @@ void BytecodeGenerator::VisitBuiltinOffsetOfCall(ast::CallExpr *call) {
   GetExecutionResult()->SetDestination(offset_var.ValueOf());
 }
 
+void BytecodeGenerator::VisitBuiltinTestCatalogLookup(ast::CallExpr *call) {
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar table_name = VisitExpressionForRValue(call->Arguments()[1]);
+  uint32_t table_name_len = call->Arguments()[1]->As<ast::LitExpr>()->StringVal().GetLength();
+  LocalVar col_name = VisitExpressionForRValue(call->Arguments()[2]);
+  uint32_t col_name_len = call->Arguments()[2]->As<ast::LitExpr>()->StringVal().GetLength();
+
+  LocalVar oid_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  GetEmitter()->EmitTestCatalogLookup(oid_var, exec_ctx, table_name, table_name_len, col_name, col_name_len);
+  GetExecutionResult()->SetDestination(oid_var.ValueOf());
+}
+
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ast::Builtin builtin;
 
@@ -1802,6 +1800,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       Visit(call->Arguments()[1]);
       break;
     }
+    case ast::Builtin::TestCatalogLookup: {
+      VisitBuiltinTestCatalogLookup(call);
+      break;
+    }
     default:
       // TODO(WAN): IMPLEMENT
       UNREACHABLE("PORTING IMPLEMENT TODO");
@@ -1892,6 +1894,7 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
       LocalVar string = NewStaticString(node->GetType()->GetContext(), node->StringVal());
       GetEmitter()->EmitAssign(Bytecode::Assign8, target, string);
       GetExecutionResult()->SetDestination(string.ValueOf());
+      break;
     }
     default: {
       EXECUTION_LOG_ERROR("Non-bool or non-integer literals not supported in bytecode");
@@ -2472,8 +2475,9 @@ Bytecode BytecodeGenerator::GetFloatTypedBytecode(Bytecode bytecode, ast::Type *
 }
 
 // static
-std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(
-    ast::AstNode *root, common::ManagedPointer<exec::ExecutionSettings> exec_settings, const std::string &name) {
+std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root,
+                                                           const exec::ExecutionSettings &exec_settings,
+                                                           const std::string &name) {
   BytecodeGenerator generator{exec_settings};
   generator.Visit(root);
 

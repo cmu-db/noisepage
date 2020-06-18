@@ -114,7 +114,7 @@ class EXPORT AggregationHashTable {
    * @param memory The memory pool to allocate memory from.
    * @param payload_size The size of the elements in the hash table, in bytes.
    */
-  AggregationHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings, MemoryPool *memory,
+  AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory,
                        std::size_t payload_size);
 
   /**
@@ -126,7 +126,7 @@ class EXPORT AggregationHashTable {
    * @param payload_size The size of the elements in the hash table, in bytes.
    * @param initial_size The initial number of aggregates to support.
    */
-  AggregationHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings, MemoryPool *memory,
+  AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory,
                        std::size_t payload_size, uint32_t initial_size);
 
   /**
@@ -358,7 +358,7 @@ class EXPORT AggregationHashTable {
 
  private:
   // Execution context
-  common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
+  const exec::ExecutionSettings &exec_settings_;
 
   // Memory allocator.
   MemoryPool *memory_;

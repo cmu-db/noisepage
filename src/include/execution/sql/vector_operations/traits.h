@@ -61,8 +61,7 @@ struct ShouldPerformFullCompute {
    * @param tid_list The TID list that the operator will use. Potentially NULL.
    * @return True if full-compute is enabled; false otherwise.
    */
-  constexpr bool operator()(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
-                            const TupleIdList *tid_list) const noexcept {
+  constexpr bool operator()(const exec::ExecutionSettings &exec_settings, const TupleIdList *tid_list) const noexcept {
     return false;
   }
 };

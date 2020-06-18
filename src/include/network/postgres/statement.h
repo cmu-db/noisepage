@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "execution/executable_query.h"
+#include "execution/compiler/executable_query.h"
 #include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -100,7 +100,7 @@ class Statement {
   /**
    * @return the compiled executable query
    */
-  common::ManagedPointer<execution::ExecutableQuery> GetExecutableQuery() const {
+  common::ManagedPointer<execution::compiler::ExecutableQuery> GetExecutableQuery() const {
     return common::ManagedPointer(executable_query_);
   }
 
@@ -114,7 +114,7 @@ class Statement {
   /**
    * @param executable_query executable query to take ownership of
    */
-  void SetExecutableQuery(std::unique_ptr<execution::ExecutableQuery> &&executable_query) {
+  void SetExecutableQuery(std::unique_ptr<execution::compiler::ExecutableQuery> &&executable_query) {
     executable_query_ = std::move(executable_query);
   }
 
@@ -155,9 +155,9 @@ class Statement {
   // The following objects can be "cached" in Statement objects for future statement invocations. Though they don't
   // relate to the Postgres Statement concept, these objects should be compatible with future queries that match the
   // same query text. The exception to this that DDL changes can break these cached objects.
-  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;      // generated in the Bind phase
-  std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
-  std::vector<type::TypeId> desired_param_types_;                           // generated in the Bind phase
+  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;                // generated in the Bind phase
+  std::unique_ptr<execution::compiler::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
+  std::vector<type::TypeId> desired_param_types_;                                     // generated in the Bind phase
 };
 
 }  // namespace terrier::network

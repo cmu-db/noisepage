@@ -20,6 +20,7 @@ class RandomSqlTableTransaction;
 
 namespace terrier::execution::sql {
 class TableVectorIterator;
+class VectorProjection;
 }  // namespace terrier::execution::sql
 
 namespace terrier::storage {

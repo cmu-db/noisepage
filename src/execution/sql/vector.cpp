@@ -375,7 +375,7 @@ void Vector::CopyTo(Vector *other, uint64_t offset) {
   }
 }
 
-void Vector::Cast(common::ManagedPointer<exec::ExecutionSettings> exec_settings, TypeId new_type) {
+void Vector::Cast(const exec::ExecutionSettings &exec_settings, TypeId new_type) {
   if (type_ == new_type) {
     return;
   }

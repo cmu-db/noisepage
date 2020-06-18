@@ -148,7 +148,7 @@ void AggregationHashTable::BatchProcessState::Reset(VectorProjectionIterator *in
 // Aggregation Hash Table
 // ---------------------------------------------------------
 
-AggregationHashTable::AggregationHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings,
                                            MemoryPool *memory, const std::size_t payload_size,
                                            const uint32_t initial_size)
     : exec_settings_(exec_settings),
@@ -174,7 +174,7 @@ AggregationHashTable::AggregationHashTable(common::ManagedPointer<exec::Executio
   flush_threshold_ = std::max(uint64_t{256}, common::MathUtil::PowerOf2Floor(flush_threshold_));
 }
 
-AggregationHashTable::AggregationHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings,
                                            MemoryPool *memory, std::size_t payload_size)
     : AggregationHashTable(exec_settings, memory, payload_size, DEFAULT_INITIAL_TABLE_SIZE) {}
 

@@ -19,7 +19,7 @@
 
 namespace terrier::execution::sql {
 
-JoinHashTable::JoinHashTable(common::ManagedPointer<exec::ExecutionSettings> exec_settings, MemoryPool *memory,
+JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory,
                              uint32_t tuple_size, bool use_concise_ht)
     : exec_settings_(exec_settings),
       entries_(HashTableEntry::ComputeEntrySize(tuple_size), MemoryPoolAllocator<byte>(memory)),

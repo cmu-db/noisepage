@@ -1,12 +1,12 @@
+#include "brain/operating_unit_recorder.h"
+
 #include <utility>
 
 #include "brain/operating_unit.h"
-#include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/type.h"
-#include "execution/compiler/operator/aggregate_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/sql/aggregators.h"
@@ -59,12 +59,12 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
   for (auto *field : fields) {
     auto *field_repr = field->TypeRepr();
     if (field_repr->GetType() != nullptr) {
-      total += field_repr->GetType()->Size();
+      total += field_repr->GetType()->GetSize();
     } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
       // Likely built in type
       auto *type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
       if (type != nullptr) {
-        total += type->Size();
+        total += type->GetSize();
       }
     }
   }
@@ -161,6 +161,9 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     // Uses the network result consumer
     cardinality = 1;
 
+    // TODO(WAN): EXEC PORT @wz2 what need
+    UNREACHABLE("FIX ME WAN");
+#if 0
     auto child_translator = current_translator_->GetChildTranslator();
     if (child_translator != nullptr) {
       if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
@@ -179,6 +182,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
         }
       }
     }
+#endif
   } else if (type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
     // If feature is OUTPUT or computation, then cardinality = num_rows
     cardinality = num_rows;
@@ -321,6 +325,9 @@ void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoi
 }
 
 void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
+  // TODO(WAN): wz2 port
+  UNREACHABLE("FIX ME WAN");
+#if 0
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_BUILD) {
     for (auto key : plan->GetLeftHashKeys()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key);
@@ -358,6 +365,7 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
   // use the rows/cardinalities of what the HJ plan produces
   VisitAbstractJoinPlanNode(plan);
   RecordArithmeticFeatures(plan, 1);
+#endif
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
@@ -516,6 +524,9 @@ void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
+  // TODO(WAN): what do
+  UNREACHABLE("FIX ME WAN");
+#if 0
   if (plan_feature_type_ == ExecutionOperatingUnitType::SORT_BUILD) {
     // SORT_BUILD will operate on sort keys
     std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
@@ -546,6 +557,7 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     auto key_size = ComputeKeySizeOutputSchema(plan);
     AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
   }
+#endif
 }
 
 void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
@@ -554,6 +566,9 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
+  // TODO(WAN): FIX EXEC PORT
+  UNREACHABLE("EXEC PORT WAN");
+#if 0
   if (plan_feature_type_ == ExecutionOperatingUnitType::AGGREGATE_BUILD) {
     for (auto key : plan->GetAggregateTerms()) {
       auto key_cm = common::ManagedPointer<parser::AbstractExpression>(key.Get());
@@ -616,10 +631,14 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
     auto key_size = ComputeKeySizeOutputSchema(plan);
     AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
   }
+#endif
 }
 
 ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
     const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators) {
+  // TODO(WAN): ASOIDJASIODJASIOD
+  UNREACHABLE("EXEC PORT WAN");
+#if 0
   pipeline_features_ = {};
   for (const auto &translator : translators) {
     plan_feature_type_ = translator->GetFeatureType();
@@ -646,7 +665,7 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
       }
     }
   }
-
+#endif
   // Consolidate final features
   std::vector<ExecutionOperatingUnitFeature> results{};
   results.reserve(pipeline_features_.size());

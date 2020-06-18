@@ -439,17 +439,17 @@ VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter);
 // ---------------------------------------------------------
 
 #define GEN_VECTOR_FILTER(Name)                                                                                      \
-  VM_OP_HOT void OpVectorFilter##Name(                                                                               \
-      terrier::common::ManagedPointer<terrier::execution::exec::ExecutionSettings> exec_settings,                    \
-      terrier::execution::sql::VectorProjection *vector_projection, const uint32_t left_col_idx,                     \
-      const uint32_t right_col_idx, terrier::execution::sql::TupleIdList *tid_list) {                                \
+  VM_OP_HOT void OpVectorFilter##Name(const terrier::execution::exec::ExecutionSettings &exec_settings,              \
+                                      terrier::execution::sql::VectorProjection *vector_projection,                  \
+                                      const uint32_t left_col_idx, const uint32_t right_col_idx,                     \
+                                      terrier::execution::sql::TupleIdList *tid_list) {                              \
     terrier::execution::sql::VectorFilterExecutor::Select##Name(exec_settings, vector_projection, left_col_idx,      \
                                                                 right_col_idx, tid_list);                            \
   }                                                                                                                  \
-  VM_OP_HOT void OpVectorFilter##Name##Val(                                                                          \
-      terrier::common::ManagedPointer<terrier::execution::exec::ExecutionSettings> exec_settings,                    \
-      terrier::execution::sql::VectorProjection *vector_projection, const uint32_t left_col_idx,                     \
-      const terrier::execution::sql::Val *val, terrier::execution::sql::TupleIdList *tid_list) {                     \
+  VM_OP_HOT void OpVectorFilter##Name##Val(const terrier::execution::exec::ExecutionSettings &exec_settings,         \
+                                           terrier::execution::sql::VectorProjection *vector_projection,             \
+                                           const uint32_t left_col_idx, const terrier::execution::sql::Val *val,     \
+                                           terrier::execution::sql::TupleIdList *tid_list) {                         \
     terrier::execution::sql::VectorFilterExecutor::Select##Name##Val(exec_settings, vector_projection, left_col_idx, \
                                                                      *val, tid_list);                                \
   }
@@ -1524,6 +1524,32 @@ VM_OP_WARM void OpExtractYear(terrier::execution::sql::Integer *result, terrier:
     result->is_null_ = false;
     result->val_ = input->val_.ExtractYear();
   }
+}
+
+// ---------------------------------
+// Testing only function
+// ---------------------------------
+
+VM_OP_WARM void OpTestCatalogLookup(terrier::execution::sql::Integer *oid_var,
+                                    terrier::execution::exec::ExecutionContext *exec_ctx, const uint8_t *table_name_str,
+                                    uint32_t table_name_length, const uint8_t *col_name_str, uint32_t col_name_length) {
+  // TODO(WAN): wasteful std::string
+  terrier::execution::sql::StringVal table_name{reinterpret_cast<const char *>(table_name_str), table_name_length};
+  terrier::execution::sql::StringVal col_name{reinterpret_cast<const char *>(col_name_str), col_name_length};
+  terrier::catalog::table_oid_t table_oid = exec_ctx->GetAccessor()->GetTableOid(std::string(table_name.StringView()));
+
+  std::string t1{table_name.StringView()};
+  std::string t2{col_name.StringView()};
+
+  uint32_t out_oid;
+  if (col_name.GetLength() == 0) {
+    out_oid = !table_oid;
+  } else {
+    const auto &schema = exec_ctx->GetAccessor()->GetSchema(table_oid);
+    out_oid = !schema.GetColumn(std::string(col_name.StringView())).Oid();
+  }
+
+  *oid_var = terrier::execution::sql::Integer(out_oid);
 }
 
 // Macro hygiene
