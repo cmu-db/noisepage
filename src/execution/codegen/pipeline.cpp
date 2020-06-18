@@ -101,7 +101,7 @@ void Pipeline::CollectDependencies(std::vector<Pipeline *> *deps) {
   deps->push_back(this);
 }
 
-void Pipeline::Prepare(common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
+void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
   // Finalize the pipeline state.
   state_.ConstructFinalType(codegen_);
 
@@ -111,7 +111,7 @@ void Pipeline::Prepare(common::ManagedPointer<exec::ExecutionSettings> exec_sett
   //  2. If the consumer doesn't support parallel execution.
   //  3. If ANY operator in the pipeline explicitly requested serial execution.
 
-  const bool parallel_exec_disabled = exec_settings->GetIsParallelQueryExecution();
+  const bool parallel_exec_disabled = exec_settings.GetIsParallelQueryExecution();
   const bool parallel_consumer = true;
   if (parallel_exec_disabled || !parallel_consumer || parallelism_ == Pipeline::Parallelism::Serial) {
     parallelism_ = Pipeline::Parallelism::Serial;

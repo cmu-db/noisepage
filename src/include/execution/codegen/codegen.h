@@ -81,7 +81,7 @@ class CodeGen {
 
   /**
    * Create a code generator that generates code for the provided container.
-   * @param context The context used create all expressions.
+   * @param context The context used to create all expressions.
    */
   explicit CodeGen(ast::Context *context);
 
@@ -197,6 +197,14 @@ class CodeGen {
    * @return A type representation expression that is a pointer to the provided builtin type.
    */
   [[nodiscard]] ast::Expr *PointerType(ast::BuiltinType::Kind builtin) const;
+
+  /**
+   * @return A type representation expression that is "[num_elems]kind".
+   */
+  ast::Expr *ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind);
+
+  /** @return An expression representing "arr[idx]". */
+  ast::Expr *ArrayAccess(ast::Identifier arr, uint64_t idx);
 
   /**
    * Convert a SQL type into a type representation expression.
@@ -489,10 +497,12 @@ class CodeGen {
   /**
    * Call @tableIterInit(). Initializes a TableVectorIterator instance with a table ID.
    * @param tvi The table iterator variable.
-   * @param table_name The name of the table to scan.
+   * @param exec_ctx The execution context that the TableVectorIterator runs with.
+   * @param table_oid The OID of the table to scan.
+   * @param col_oids The column OIDs from the table that should be scanned.
    * @return The call expression.
    */
-  [[nodiscard]] ast::Expr *TableIterInit(ast::Expr *table_iter, std::string_view table_name);
+  [[nodiscard]] ast::Expr *TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, uint32_t table_oid, ast::Identifier col_oids));
 
   /**
    * Call @tableIterAdvance(). Attempt to advance the iterator, returning true if successful and

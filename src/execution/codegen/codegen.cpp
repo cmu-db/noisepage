@@ -162,6 +162,14 @@ ast::Expr *CodeGen::PointerType(ast::Identifier type_name) const { return Pointe
 
 ast::Expr *CodeGen::PointerType(ast::BuiltinType::Kind builtin) const { return PointerType(BuiltinType(builtin)); }
 
+ast::Expr *CodeGen::ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind) {
+  return GetFactory()->NewArrayType(position_, Const64(num_elems), BuiltinType(kind));
+}
+
+ast::Expr *CodeGen::ArrayAccess(ast::Identifier arr, uint64_t idx) {
+  return GetFactory()->NewIndexExpr(position_, MakeExpr(arr), Const64(idx));
+}
+
 ast::Expr *CodeGen::TplType(sql::TypeId type) {
   switch (type) {
     case sql::TypeId::Boolean:
@@ -351,8 +359,10 @@ ast::Expr *CodeGen::StringToSql(std::string_view str) const {
 // Table Vector Iterator
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::TableIterInit(ast::Expr *table_iter, std::string_view table_name) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::TableIterInit, {table_iter, ConstString(table_name)});
+ast::Expr *CodeGen::TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, uint32_t table_oid,
+                                  ast::Identifier col_oids) {
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::TableIterInit, {table_iter, exec_ctx, Const32(table_oid), MakeExpr(col_oids)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

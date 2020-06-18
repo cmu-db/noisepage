@@ -18,7 +18,8 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
                                      Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SEQ_SCAN),
       tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
-      vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")) {
+      vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")),
+      col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
   // If there's a predicate, prepare the expression and register a filter manager.
   if (HasPredicate()) {
@@ -33,11 +34,8 @@ bool SeqScanTranslator::HasPredicate() const {
   return GetPlanAs<planner::SeqScanPlanNode>().GetScanPredicate() != nullptr;
 }
 
-std::string_view SeqScanTranslator::GetTableName() const {
-  // TODO(WAN): ???
-  UNREACHABLE("We shouldn't be doing catalog lookups at this point!! Go stuff it into the plan.");
-  // const auto table_oid = GetPlanAs<planner::SeqScanPlanNode>().GetTableOid();
-  // return Catalog::Instance()->LookupTableById(table_oid)->GetName();
+catalog::table_oid_t SeqScanTranslator::GetTableOid() const {
+  return GetPlanAs<planner::SeqScanPlanNode>().GetTableOid();
 }
 
 void SeqScanTranslator::GenerateGenericTerm(FunctionBuilder *function,
@@ -202,7 +200,22 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
     auto tvi_base = codegen->MakeFreshIdentifier("tviBase");
     function->Append(codegen->DeclareVarNoInit(tvi_base, ast::BuiltinType::TableVectorIterator));
     function->Append(codegen->DeclareVarWithInit(tvi_var_, codegen->AddressOf(tvi_base)));
-    function->Append(codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetTableName()));
+
+    const auto &col_oids = GetPlanAs<planner::SeqScanPlanNode>().GetColumnOids();
+    // var col_oids: [num_cols]uint32
+    ast::Expr *arr_type = codegen->ArrayType(col_oids.size(), ast::BuiltinType::Kind::Uint32);
+    function->Append(codegen->DeclareVarNoInit(col_oids_var_, arr_type));
+
+    // For each oid, set col_oids[i] = col_oid
+    for (uint16_t i = 0; i < col_oids.size(); i++) {
+      ast::Expr *lhs = codegen->ArrayAccess(col_oids_var_, i);
+      ast::Expr *rhs = codegen->Const32(!col_oids[i]);
+      function->Append(codegen->Assign(lhs, rhs));
+    }
+
+    // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
+    function->Append(
+        codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(), col_oids_var_));
   }
 
   // Scan it.
@@ -215,8 +228,8 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
 }
 
 util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const {
-  auto codegen = GetCodeGen();
-  auto tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
+  auto *codegen = GetCodeGen();
+  auto *tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
   return codegen->MakeFieldList({codegen->MakeField(tvi_var_, tvi_type)});
 }
 
@@ -228,6 +241,15 @@ void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier wo
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   // TODO(WAN): ??
   UNREACHABLE("Should we still be doing catalog lookups here?");
+
+#if 0
+  // Call @pciGetType(pci, index)
+  auto type = schema_.GetColumn(col_oid).Type();
+  auto nullable = schema_.GetColumn(col_oid).Nullable();
+  uint16_t attr_idx = pm_[col_oid];
+  return codegen_->PCIGet(pci_, type, nullable, attr_idx);
+#endif
+
 #if 0
   const auto table_oid = GetPlanAs<planner::SeqScanPlanNode>().GetTableOid();
   const auto schema = &Catalog::Instance()->LookupTableById(table_oid)->GetSchema();

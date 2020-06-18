@@ -144,9 +144,9 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 }
 
 // static
-std::unique_ptr<ExecutableQuery> CompilationContext::Compile(
-    const planner::AbstractPlanNode &plan, common::ManagedPointer<exec::ExecutionSettings> exec_settings,
-    const CompilationMode mode) {
+std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::AbstractPlanNode &plan,
+                                                             const exec::ExecutionSettings &exec_settings,
+                                                             const CompilationMode mode) {
   // The query we're generating code for.
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings);
 

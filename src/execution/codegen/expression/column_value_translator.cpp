@@ -10,7 +10,7 @@ ColumnValueTranslator::ColumnValueTranslator(const parser::ColumnValueExpression
 
 ast::Expr *ColumnValueTranslator::DeriveValue(UNUSED_ATTRIBUTE WorkContext *ctx,
                                               const ColumnValueProvider *provider) const {
-  auto &col_expr = GetExpressionAs<const parser::ColumnValueExpression>();
+  const auto &col_expr = GetExpressionAs<const parser::ColumnValueExpression>();
   return provider->GetTableColumn(col_expr.GetColumnOid());
 }
 

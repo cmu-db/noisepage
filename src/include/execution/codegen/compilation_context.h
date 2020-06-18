@@ -47,11 +47,11 @@ class CompilationContext {
   /**
    * Compile the given plan into an executable query.
    * @param plan The plan to compile.
-   * @param exec_ctx The execution context to be used for compilation, can be different from the one used for running.
+   * @param exec_settings The execution settings to be used for compilation.
    * @param mode The compilation mode.
    */
   static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
-                                                  common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+                                                  const exec::ExecutionSettings &exec_settings,
                                                   CompilationMode mode = CompilationMode::Interleaved);
 
   /**

@@ -584,7 +584,22 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
     case ast::Builtin::TableIterInit: {
       // The second argument is the table name as a literal string
       TERRIER_ASSERT(call->Arguments()[1]->IsStringLiteral(), "Table name must be a string literal");
+
       UNREACHABLE("FIXME");
+#if 0
+      // The second argument should be the execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      // The third argument is an oid integer literal
+      auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
+      // The fourth argument is the array of oids
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      LocalVar arr = VisitExpressionForLValue(call->Arguments()[3]);
+      // Emit the initialization codes
+      Emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, table_oid, arr,
+                                   static_cast<uint32_t>(arr_type->GetLength()));
+      Emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
+      break;
+#endif
 #if 0
       ast::Identifier table_name = call->Arguments()[1]->As<ast::LitExpr>()->StringVal();
       sql::Table *table = sql::Catalog::Instance()->LookupTableByName(table_name);
@@ -2076,8 +2091,6 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   }
 
 void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
-  TERRIER_ASSERT(GetExecutionResult()->IsRValue(), "SQL comparison expressions must be R-Values!");
-
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(compare->GetType());
   LocalVar left = VisitExpressionForLValue(compare->Left());
   LocalVar right = VisitExpressionForLValue(compare->Right());
@@ -2203,8 +2216,6 @@ void BytecodeGenerator::VisitPrimitiveCompareOpExpr(ast::ComparisonOpExpr *compa
 #undef COMPARISON_BYTECODE
 
 void BytecodeGenerator::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
-  TERRIER_ASSERT(GetExecutionResult()->IsRValue(), "Comparison expressions must be R-Values!");
-
   const bool is_primitive_comparison = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Bool);
 
   if (!is_primitive_comparison) {

@@ -156,7 +156,7 @@ class Compiler {
    * @param callbacks The callbacks.
    */
   static void RunCompilation(const Input &input, Callbacks *callbacks,
-                             common::ManagedPointer<exec::ExecutionSettings> exec_settings);
+                             const exec::ExecutionSettings &exec_settings);
 
   /**
    * Compile the given input into a module.
@@ -164,7 +164,7 @@ class Compiler {
    * @return The generated module. If there was an error, returns NULL.
    */
   static std::unique_ptr<vm::Module> RunCompilationSimple(
-      const Input &input, common::ManagedPointer<exec::ExecutionSettings> exec_settings);
+      const Input &input, const exec::ExecutionSettings &exec_settings);
 
   /**
    * @return A string name for the given compilation phase.
@@ -204,7 +204,7 @@ class Compiler {
   ~Compiler();
 
   // Driver
-  void Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::ExecutionSettings> exec_settings);
+  void Run(Compiler::Callbacks *callbacks, const exec::ExecutionSettings &exec_settings);
 
  private:
   // The input to compilation

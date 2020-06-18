@@ -39,7 +39,7 @@ Compiler::~Compiler() = default;
 
 sema::ErrorReporter *Compiler::GetErrorReporter() const { return GetContext()->GetErrorReporter(); }
 
-void Compiler::Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
+void Compiler::Run(Compiler::Callbacks *callbacks, const exec::ExecutionSettings &exec_settings) {
   // -------------------------------------------------------
   // Phase 1 : Parsing
   // -------------------------------------------------------
@@ -123,7 +123,7 @@ void Compiler::Run(Compiler::Callbacks *callbacks, common::ManagedPointer<exec::
 }
 
 void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks *callbacks,
-                              common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
+                              const exec::ExecutionSettings &exec_settings) {
   TERRIER_ASSERT(callbacks != nullptr, "Must provide callbacks");
   Compiler compiler(input);
   compiler.Run(callbacks, exec_settings);

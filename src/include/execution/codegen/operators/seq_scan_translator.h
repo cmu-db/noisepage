@@ -81,8 +81,8 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   // Does the scan have a predicate?
   bool HasPredicate() const;
 
-  // Get the name of the table being scanned.
-  std::string_view GetTableName() const;
+  // Get the OID of the table being scanned.
+  catalog::table_oid_t GetTableOid() const;
 
   // Generate a generic filter term.
   void GenerateGenericTerm(FunctionBuilder *function, common::ManagedPointer<parser::AbstractExpression> term,
@@ -103,6 +103,8 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   // The name of the declared TVI and VPI.
   ast::Identifier tvi_var_;
   ast::Identifier vpi_var_;
+  // The name of the col_oids that the plan wants to scan over.
+  ast::Identifier col_oids_var_;
 
   // Where the filter manager exists.
   StateDescriptor::Entry local_filter_manager_;

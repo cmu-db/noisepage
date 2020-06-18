@@ -41,7 +41,7 @@ class Callbacks : public compiler::Compiler::Callbacks {
 }  // namespace
 
 std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compile(
-    common::ManagedPointer<exec::ExecutionSettings> exec_settings) {
+    const exec::ExecutionSettings &exec_settings) {
   // Build up the declaration list for the file.
   util::RegionVector<ast::Decl *> decls(ctx_->GetRegion());
   decls.reserve(structs_.size() + functions_.size());

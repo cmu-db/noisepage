@@ -129,8 +129,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
 }
 #endif
 
-ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan,
-                                 common::ManagedPointer<exec::ExecutionSettings> exec_settings)
+ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings)
     : plan_(plan),
       exec_settings_(exec_settings),
       errors_region_(std::make_unique<util::Region>("errors_region")),

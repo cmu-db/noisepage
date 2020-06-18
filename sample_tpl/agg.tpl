@@ -15,8 +15,8 @@ struct Agg {
 }
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
-  @aggHTInit(&state.table, @execCtxGetMem(execCtx), @sizeOf(Agg))
   state.count = 0
+  @aggHTInit(&state.table, @execCtxGetMem(execCtx), @sizeOf(Agg))
 }
 
 fun tearDownState(state: *State) -> nil {
@@ -38,56 +38,50 @@ fun updateAgg(agg: *Agg, vpi: *VectorProjectionIterator) -> nil {
   @aggAdvance(&agg.count, &input)
 }
 
-fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
+fun pipeline_1(state: *State) -> nil {
   var ht = &state.table
   var tvi: TableVectorIterator
-  var col_oids : [2]uint32
-  col_oids[0] = 1
-  col_oids[1] = 2
-  @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
-  for (@tableIterAdvance(&tvi)) {
-    var vec = @tableIterGetVPI(&tvi)
-    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
-      var hash_val = @hash(@vpiGetInt(vec, 1))
-      var agg = @ptrCast(*Agg, @aggHTLookup(ht, hash_val, keyCheck, vec))
-      if (agg == nil) {
-        agg = @ptrCast(*Agg, @aggHTInsert(ht, hash_val))
-        constructAgg(agg, vec)
-      } else {
-        updateAgg(agg, vec)
-      }
+    for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
+        var vec = @tableIterGetVPI(&tvi)
+        for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
+            var hash_val = @hash(@vpiGetInt(vec, 1))
+            var agg = @ptrCast(*Agg, @aggHTLookup(ht, hash_val, keyCheck, vec))
+            if (agg == nil) {
+                agg = @ptrCast(*Agg, @aggHTInsert(ht, hash_val))
+                constructAgg(agg, vec)
+            } else {
+                updateAgg(agg, vec)
+            }
+        }
     }
-  }
-  @tableIterClose(&tvi)
+    @tableIterClose(&tvi)
 }
 
-fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
-  var agg_ht_iter: AHTIterator
-  var iter = &agg_ht_iter
+fun pipeline_2(state: *State) -> nil {
+    var aht_iter: AHTIterator
+    var iter = &aht_iter
+    for (@aggHTIterInit(iter, &state.table); @aggHTIterHasNext(iter); @aggHTIterNext(iter)) {
+        var agg = @ptrCast(*Agg, @aggHTIterGetRow(iter))
+        state.count = state.count + 1
+    }
+    @aggHTIterClose(iter)
+}
 
-  for (@aggHTIterInit(iter, &state.table); @aggHTIterHasNext(iter); @aggHTIterNext(iter)) {
-    var agg = @ptrCast(*Agg, @aggHTIterGetRow(iter))
-    state.count = state.count + 1
-  }
-  @aggHTIterClose(iter)
+fun execQuery(execCtx: *ExecutionContext, qs: *State) -> nil {
+  pipeline_1(qs)
+  pipeline_2(qs)
 }
 
 fun main(execCtx: *ExecutionContext) -> int32 {
   var state: State
-  state.count = 0
 
-  // Initialize state
+  // Initialize state.
   setUpState(execCtx, &state)
-
-  // Run pipeline 1
-  pipeline_1(execCtx, &state)
-
-  // Run pipeline 2
-  pipeline_2(execCtx, &state)
-
+  // Execute the query.
+  execQuery(execCtx, &state)
+  // This test case returns how many distinct values are present.
   var ret = state.count
-
-  // Cleanup
+  // Teardown the state.
   tearDownState(&state)
 
   return ret

@@ -48,12 +48,12 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   /**
    * Main entry point to convert a valid (i.e., parsed and type-checked) AST into a bytecode module.
    * @param root The root of the AST.
-   * @param exec_ctx The execution context of this query.
+   * @param exec_settings The execution settings for compilation.
    * @param name The (optional) name of the program.
    * @return A compiled bytecode module.
    */
   static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root,
-                                                 common::ManagedPointer<exec::ExecutionSettings> exec_settings,
+                                                 const exec::ExecutionSettings &exec_settings,
                                                  const std::string &name);
 
   /**

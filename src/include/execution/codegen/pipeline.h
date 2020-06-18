@@ -122,7 +122,7 @@ class Pipeline {
    * Perform initialization logic before code generation.
    * @param exec_settings The execution settings used for query compilation.
    */
-  void Prepare(common::ManagedPointer<exec::ExecutionSettings> exec_settings);
+  void Prepare(const exec::ExecutionSettings &exec_settings);
 
   /**
    * Generate all functions to execute this pipeline in the provided container.

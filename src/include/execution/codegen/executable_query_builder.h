@@ -78,7 +78,7 @@ class ExecutableQueryFragmentBuilder {
    * @param exec_settings The execution settings used for compilation.
    * @return True if the compilation was successful; false otherwise.
    */
-  std::unique_ptr<ExecutableQuery::Fragment> Compile(common::ManagedPointer<exec::ExecutionSettings> exec_settings);
+  std::unique_ptr<ExecutableQuery::Fragment> Compile(const exec::ExecutionSettings &exec_settings);
 
  private:
   // The AST context used to generate the TPL ast

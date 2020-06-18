@@ -83,7 +83,7 @@ class ExecutableQuery {
    * @param plan The physical plan.
    * @param exec_settings The execution settings used for this query.
    */
-  ExecutableQuery(const planner::AbstractPlanNode &plan, common::ManagedPointer<exec::ExecutionSettings> exec_settings);
+  ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings);
 
   /**
    * This class cannot be copied or moved.
@@ -123,13 +123,13 @@ class ExecutableQuery {
   ast::Context *GetContext() { return ast_context_.get(); }
 
   /** @return The execution settings used for this query. */
-  common::ManagedPointer<exec::ExecutionSettings> GetExecutionSettings() const { return exec_settings_; }
+  const exec::ExecutionSettings &GetExecutionSettings() const { return exec_settings_; }
 
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
   // The execution context used for code generation.
-  common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
+  const exec::ExecutionSettings &exec_settings_;
   std::unique_ptr<util::Region> errors_region_;
   std::unique_ptr<util::Region> context_region_;
   // The AST error reporter.

@@ -45,10 +45,10 @@ class GenericValue {
 
   /**
    * Cast this value to the given type.
-   * @param exec_ctx the execution context this is operating in
+   * @param exec_settings The execution settings.
    * @param type The type to cast to.
    */
-  GenericValue CastTo(common::ManagedPointer<exec::ExecutionSettings> exec_settings, TypeId type);
+  GenericValue CastTo(const exec::ExecutionSettings &exec_settings, TypeId type);
 
   /**
    * Copy this value.
