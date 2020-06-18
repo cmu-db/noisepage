@@ -374,6 +374,13 @@ Token::Type Scanner::ScanNumber() {
 Token::Type Scanner::ScanString() {
   // Single-line string. The lookahead character points to the start of the
   // string literal
+
+  // Support empty strings.
+  if (c0_ == '"') {
+    curr_.literal_ = "";
+    Advance();
+    return Token::Type::STRING;
+  }
   while (true) {
     if (c0_ == K_END_OF_INPUT) {
       next_.literal_.clear();
