@@ -8,12 +8,15 @@
 
 #include "catalog/catalog_defs.h"
 #include "optimizer/properties.h"
-#include "parser/expression_util.h"
 
 namespace terrier::catalog {
 class CatalogAccessor;
 class IndexSchema;
 }  // namespace terrier::catalog
+
+namespace terrier::parser {
+class AbstractExpression;
+}  // namespace terrier::parser
 
 namespace terrier::optimizer {
 

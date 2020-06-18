@@ -1,8 +1,9 @@
 #include "storage/block_layout.h"
+
 #include <algorithm>
-#include <functional>
 #include <utility>
 #include <vector>
+
 #include "storage/arrow_block_metadata.h"
 #include "storage/storage_util.h"
 
