@@ -92,7 +92,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create table A
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a;
     cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
@@ -108,7 +108,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create Table B
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
 
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
@@ -123,7 +123,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create index on a1
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
 
     auto col = catalog::IndexSchema::Column(
         "a1", type::TypeId::INTEGER, true,
@@ -147,7 +147,7 @@ class OperatorTransformerTest : public TerrierTest {
     SetUpTables();
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
     binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
 
     trivial_cost_model_ = std::make_unique<optimizer::TrivialCostModel>();
