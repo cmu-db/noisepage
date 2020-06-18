@@ -18,6 +18,8 @@ constexpr int64_t K_SECONDS_PER_MINUTE = 60;
 constexpr int64_t K_MILLISECONDS_PER_SECOND = 1000;
 constexpr int64_t K_MICROSECONDS_PER_MILLISECOND = 1000;
 
+constexpr char K_TIMESTAMP_SUFFIX[] = "::timestamp";
+
 // Like Postgres, TPL stores dates as Julian Date Numbers. Julian dates are
 // commonly used in astronomical applications and in software since it's
 // numerically accurate and computationally simple. BuildJulianDate() and
@@ -123,13 +125,9 @@ void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *f
 }
 
 // Check if a string value ends with string ending
-bool EndsWith(const char *str, std::size_t len, const std::string_view ending) {
-  auto end_size = ending.size();
+bool EndsWith(const char *str, std::size_t len, const char *end, std::size_t end_size) {
   if (end_size > len) return false;
-  for (size_t i = 0; i < end_size; i++) {
-    if (str[len - i - 1] != ending[end_size - i - 1]) return false;
-  }
-  return true;
+  return static_cast<bool>(!strncmp(str + len - end_size, end, end_size));
 }
 
 }  // namespace
@@ -387,8 +385,8 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   while (ptr != limit && static_cast<bool>(std::isspace(*ptr))) ptr++;
   while (ptr != limit && static_cast<bool>(std::isspace(*(limit - 1)))) limit--;
 
-  constexpr std::string_view suffix_str("::timestamp");
-  if (EndsWith(str, len, suffix_str)) limit -= suffix_str.length();
+  auto suffix_len = strlen(K_TIMESTAMP_SUFFIX);
+  if (EndsWith(str, len, K_TIMESTAMP_SUFFIX, suffix_len)) limit -= suffix_len;
 
   uint32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, milli = 0, micro = 0;
 
@@ -528,22 +526,27 @@ std::pair<bool, Timestamp> Timestamp::AdjustTimezone(char c, int32_t year, int32
                                                      const char *ptr, const char *limit) {
   bool sign = false;
   if (c == '+') sign = true;
-  int32_t diff = 0;
+  int32_t timezone_diff = 0;
 
-  // Parse timestamp
+  // Parse timezone
   while (true) {
     if (ptr == limit) break;
     c = *ptr++;
     if (static_cast<bool>(std::isdigit(c))) {
-      diff = diff * 10 + (c - '0');
+      timezone_diff = timezone_diff * 10 + (c - '0');
     } else {
       return {false, {}};
     }
   }
 
+  // If sign is + then must subtract hours to arrive at UTC, otherwise must add hours
   if (sign) {
-    if (diff > 14 || diff < 0) return {false, {}};
-    hour -= diff;
+    // Check valid timezone
+    if (timezone_diff > 14 || timezone_diff < 0) return {false, {}};
+
+    hour -= timezone_diff;
+
+    // Deal with overflow from timezone difference
     if (hour < 0) {
       hour = K_HOURS_PER_DAY + hour;
       day--;
@@ -557,8 +560,12 @@ std::pair<bool, Timestamp> Timestamp::AdjustTimezone(char c, int32_t year, int32
       }
     }
   } else {
-    if (diff > 12 || diff < 0) return {false, {}};
-    hour += diff;
+    // Check valid timezone
+    if (timezone_diff > 12 || timezone_diff < 0) return {false, {}};
+
+    hour += timezone_diff;
+
+    // Deal with overflow from timezone difference
     if (hour >= K_HOURS_PER_DAY) {
       hour = hour - K_HOURS_PER_DAY;
       day++;
@@ -573,6 +580,7 @@ std::pair<bool, Timestamp> Timestamp::AdjustTimezone(char c, int32_t year, int32
     }
   }
 
+  // Construct updated timestamp
   return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
 }
 
@@ -584,8 +592,8 @@ std::pair<bool, Timestamp> Timestamp::FromYMDHMS(int32_t year, int32_t month, in
   }
 
   // Check time component.
-  if (hour < 0 || min < 0 || min > K_MINUTES_PER_HOUR - 1 || sec < 0 || sec > K_SECONDS_PER_MINUTE ||
-      hour > K_HOURS_PER_DAY ||
+  if (hour < 0 || hour > K_HOURS_PER_DAY || min < 0 || min >= K_MINUTES_PER_HOUR || sec < 0 ||
+      sec >= K_SECONDS_PER_MINUTE ||
       // Check for > 24:00:00.
       (hour == K_HOURS_PER_DAY && (min > 0 || sec > 0))) {
     return {false, {}};
