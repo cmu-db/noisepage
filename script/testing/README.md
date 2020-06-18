@@ -21,7 +21,7 @@ By doing that, `junit/run_junit.py` script will try to import the `TestJUnit` cl
 ## QueryMode
 For both `junit` and `oltpbench`, we support 2 query modes with the optional argument `--query-mode`
 - `simple`
-- `extended` (default is not specified)
+- `extended` (default if not specified)
 
 If you specify the `--query-mode extended`, you then can also indicate the prepare threshold (default is `5`) with the optional argument `--prepare-threshold` with type `int`. Please be reminded that if you choose the query mode as `simple`, the prepare threshold will be ignored.
 
