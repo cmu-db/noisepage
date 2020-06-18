@@ -140,7 +140,8 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
 
 template <typename Output, typename Input>
 bool BinderUtil::IsRepresentable(const Input int_val) {
-  return std::numeric_limits<Output>::lowest() <= int_val && int_val <= std::numeric_limits<Output>::max();
+  return static_cast<Input>(std::numeric_limits<Output>::lowest()) <= int_val &&
+         int_val <= static_cast<Input>(std::numeric_limits<Output>::max());
 }
 
 /**

@@ -190,7 +190,7 @@ class PostgresPacketWriter : public PacketWriter {
    * @param query_type what type of query this was
    * @param num_rows number of rows for the queries that need it in their output
    */
-  void WriteCommandComplete(const QueryType query_type, const uint32_t num_rows) {
+  void WriteCommandComplete(const QueryType query_type, const uint64_t num_rows) {
     switch (query_type) {
       case QueryType::QUERY_BEGIN:
         WriteCommandComplete("BEGIN");

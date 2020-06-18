@@ -151,28 +151,28 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       if (execution::sql::DDLExecutors::CreateTableExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_DB: {
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
       }
       break;
     }
@@ -199,7 +199,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
     case network::QueryType::QUERY_DROP_TABLE: {
       if (execution::sql::DDLExecutors::DropTableExecutor(
               physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
       }
       break;
     }
@@ -207,21 +207,21 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_INDEX: {
       if (execution::sql::DDLExecutors::DropIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
       }
       break;
     }
@@ -279,7 +279,7 @@ TrafficCopResult TrafficCop::BindQuery(
     return {ResultType::ERROR, std::string(e.what())};
   }
 
-  return {ResultType::COMPLETE, 0};
+  return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
 }
 
 TrafficCopResult TrafficCop::CodegenPhysicalPlan(
@@ -296,7 +296,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
-    return {ResultType::COMPLETE, 0};
+    return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
   }
 
   // TODO(Matt): We should get rid of the need of an OutputWriter to ExecutionContext since we just throw this one away
@@ -314,7 +314,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
-  return {ResultType::COMPLETE, 0};
+  return {ResultType::COMPLETE, static_cast<uint64_t>(0)};
 }
 
 TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,

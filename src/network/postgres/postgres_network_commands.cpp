@@ -53,8 +53,8 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   }
 
   if (result.type_ == trafficcop::ResultType::COMPLETE) {
-    TERRIER_ASSERT(std::holds_alternative<uint32_t>(result.extra_), "We're expecting number of rows here.");
-    out->WriteCommandComplete(query_type, std::get<uint32_t>(result.extra_));
+    TERRIER_ASSERT(std::holds_alternative<uint64_t>(result.extra_), "We're expecting number of rows here.");
+    out->WriteCommandComplete(query_type, std::get<uint64_t>(result.extra_));
   } else {
     TERRIER_ASSERT(result.type_ == trafficcop::ResultType::ERROR,
                    "Currently only expecting COMPLETE or ERROR from TrafficCop here.");
