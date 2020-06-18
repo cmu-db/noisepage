@@ -6,16 +6,10 @@
 #include <utility>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_cache.h"
 #include "catalog/catalog_defs.h"
 #include "network/network_defs.h"
-
-namespace terrier::transaction {
-class TransactionContext;
-}
-
-namespace terrier::catalog {
-class CatalogAccessor;
-}
+#include "transaction/transaction_context.h"
 
 namespace terrier::network {
 
@@ -42,6 +36,7 @@ class ConnectionContext {
     accessor_ = nullptr;
     callback_ = nullptr;
     callback_arg_ = nullptr;
+    catalog_cache_.Reset(transaction::INITIAL_TXN_TIMESTAMP);
   }
 
   /**
@@ -166,6 +161,11 @@ class ConnectionContext {
    */
   void *CallbackArg() const { return callback_arg_; }
 
+  /**
+   * @return CatalogCache to be injected into requests for CatalogAcessors
+   */
+  common::ManagedPointer<catalog::CatalogCache> GetCatalogCache() { return common::ManagedPointer(&catalog_cache_); }
+
  private:
   /**
    * This is a unique identifier (among currently open connections, not over the lifetime of the system) for this
@@ -213,6 +213,8 @@ class ConnectionContext {
    */
   network::NetworkCallback callback_;
   void *callback_arg_;
+
+  catalog::CatalogCache catalog_cache_;
 };
 
 }  // namespace terrier::network

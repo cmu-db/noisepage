@@ -12,6 +12,7 @@
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/functions/comparison_functions.h"
 #include "execution/sql/functions/is_null_predicate.h"
+#include "execution/sql/functions/runners_functions.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
@@ -1341,6 +1342,30 @@ VM_OP_WARM void OpValIsNull(bool *result, const terrier::execution::sql::Val *va
 VM_OP_WARM void OpValIsNotNull(bool *result, const terrier::execution::sql::Val *val) {
   *result = terrier::execution::sql::IsNullPredicate::IsNotNull(*val);
 }
+
+// ---------------------------------------------------------
+// Internal mini-runner functions
+// ---------------------------------------------------------
+
+VM_OP_WARM void OpNpRunnersEmitInt(terrier::execution::exec::ExecutionContext *ctx,
+                                   const terrier::execution::sql::Integer *num_tuples,
+                                   const terrier::execution::sql::Integer *num_cols,
+                                   const terrier::execution::sql::Integer *num_int_cols,
+                                   const terrier::execution::sql::Integer *num_real_cols) {
+  terrier::execution::sql::MiniRunnersFunctions::EmitTuples(ctx, *num_tuples, *num_cols, *num_int_cols, *num_real_cols);
+}
+
+VM_OP_WARM void OpNpRunnersEmitReal(terrier::execution::exec::ExecutionContext *ctx,
+                                    const terrier::execution::sql::Integer *num_tuples,
+                                    const terrier::execution::sql::Integer *num_cols,
+                                    const terrier::execution::sql::Integer *num_int_cols,
+                                    const terrier::execution::sql::Integer *num_real_cols) {
+  terrier::execution::sql::MiniRunnersFunctions::EmitTuples(ctx, *num_tuples, *num_cols, *num_int_cols, *num_real_cols);
+}
+
+VM_OP_WARM void OpNpRunnersDummyInt(UNUSED_ATTRIBUTE terrier::execution::exec::ExecutionContext *ctx) {}
+
+VM_OP_WARM void OpNpRunnersDummyReal(UNUSED_ATTRIBUTE terrier::execution::exec::ExecutionContext *ctx) {}
 
 // ---------------------------------------------------------
 // String functions

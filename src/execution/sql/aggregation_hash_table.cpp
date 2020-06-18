@@ -34,7 +34,7 @@ AggregationHashTable::AggregationHashTable(MemoryPool *memory, const std::size_t
       partition_estimates_(nullptr),
       partition_tables_(nullptr),
       partition_shift_bits_(util::BitUtil::CountLeadingZeros(uint64_t(K_DEFAULT_NUM_PARTITIONS) - 1)) {
-  hash_table_.SetSize(initial_size);
+  hash_table_.SetSize(initial_size, memory->GetTracker());
   max_fill_ =
       static_cast<uint64_t>(std::llround(static_cast<float>(hash_table_.Capacity()) * hash_table_.LoadFactor()));
 
@@ -77,7 +77,7 @@ AggregationHashTable::~AggregationHashTable() {
 void AggregationHashTable::Grow() {
   // Resize table
   const uint64_t new_size = hash_table_.Capacity() * 2;
-  hash_table_.SetSize(new_size);
+  hash_table_.SetSize(new_size, memory_->GetTracker());
   max_fill_ =
       static_cast<uint64_t>(std::llround(static_cast<float>(hash_table_.Capacity()) * hash_table_.LoadFactor()));
 
@@ -146,7 +146,7 @@ void AggregationHashTable::AllocateOverflowPartitions() {
     partition_tails_ = memory_->AllocateArray<HashTableEntry *>(K_DEFAULT_NUM_PARTITIONS, true);
     partition_estimates_ = memory_->AllocateArray<libcount::HLL *>(K_DEFAULT_NUM_PARTITIONS, false);
     for (uint32_t i = 0; i < K_DEFAULT_NUM_PARTITIONS; i++) {
-      partition_estimates_[i] = libcount::HLL::Create(K_DEFAULT_HLL_PRECISION);
+      partition_estimates_[i] = libcount::HLL::Create(K_DEFAULT_HLL_PRECISION).release();
     }
     partition_tables_ = memory_->AllocateArray<AggregationHashTable *>(K_DEFAULT_NUM_PARTITIONS, true);
   }

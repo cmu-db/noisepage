@@ -2004,7 +2004,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       }
       auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind)) {
         ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
       }
 
@@ -2603,6 +2603,63 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::Lower: {
       CheckBuiltinStringCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::NpRunnersEmitInt:
+    case ast::Builtin::NpRunnersEmitReal: {
+      if (!CheckArgCount(call, 5)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      const auto &call_args = call->Arguments();
+      if (!call_args[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      if (!call_args[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      if (!call_args[3]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      if (!call_args[4]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      auto builtin_type = GetBuiltinType(ast::BuiltinType::Integer);
+      if (builtin == ast::Builtin::NpRunnersEmitReal) builtin_type = GetBuiltinType(ast::BuiltinType::Real);
+      call->SetType(builtin_type);
+      break;
+    }
+    case ast::Builtin::NpRunnersDummyInt:
+    case ast::Builtin::NpRunnersDummyReal: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      auto builtin_type = GetBuiltinType(ast::BuiltinType::Integer);
+      if (builtin == ast::Builtin::NpRunnersDummyReal) builtin_type = GetBuiltinType(ast::BuiltinType::Real);
+      call->SetType(builtin_type);
       break;
     }
     default: {

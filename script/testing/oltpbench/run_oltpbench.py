@@ -18,7 +18,7 @@ if __name__ == "__main__":
     aparser.add_argument("--db-host", help="DB Hostname")
     aparser.add_argument("--db-port", type=int, help="DB Port")
     aparser.add_argument("--db-output-file", help="DB output log file")
-    aparser.add_argument("--scale-factor", type=int, metavar="S", \
+    aparser.add_argument("--scale-factor", type=float, metavar="S", \
                          help="The scale factor. (default: 1)")
     aparser.add_argument("--transaction-isolation", metavar="I", \
                          help="The transaction isolation level (default: TRANSACTION_SERIALIZABLE")

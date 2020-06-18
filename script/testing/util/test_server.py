@@ -7,8 +7,9 @@ import sys
 import time
 import traceback
 import errno
+
 from util import constants
-from util.common import run_command
+from util.common import *
 
 class TestServer:
     """ Class to run general tests """
@@ -82,6 +83,12 @@ class TestServer:
         
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
+            # Kill any other terrier processes that our listening on our target port
+            for other_pid in check_port(self.db_port):
+                print("Killing existing server instance listening on port {} [PID={}]".format(self.db_port, other_pid))
+                os.kill(other_pid, signal.SIGKILL)
+            ## FOR
+          
             self.db_output_fd = open(self.db_output_file, "w+")
             self.db_process = subprocess.Popen(self.db_path,
                                                stdout=self.db_output_fd,
@@ -105,7 +112,7 @@ class TestServer:
         """ Wait for the db server to come up """
 
         # Check that PID is running
-        if not self.check_pid(self.db_process.pid):
+        if not check_pid(self.db_process.pid):
             raise RuntimeError("Unable to find DBMS PID {}".format(self.db_process.pid))
 
         # Wait a bit before checking if we can connect to give the system time to setup
@@ -135,7 +142,7 @@ class TestServer:
         if not is_db_running:
             msg = "Unable to connect to DBMS [PID={} / {}]"
             status = "RUNNING"
-            if not self.check_pid(self.db_process.pid):
+            if not check_pid(self.db_process.pid):
                 status = "NOT RUNNING"
             msg = msg.format(self.db_process.pid, status)
             raise RuntimeError(msg)
@@ -203,28 +210,4 @@ class TestServer:
             self.print_output(self.db_output_file)
         return ret_val
     
-    def check_pid(self, pid):
-        """Check whether pid exists in the current process table."""
-        
-        # Copied from psutil
-        # https://github.com/giampaolo/psutil/blob/5ba055a8e514698058589d3b615d408767a6e330/psutil/_psposix.py#L28-L53
-        
-        if pid == 0:
-            return True
-        try:
-            os.kill(pid, 0)
-        except OSError as err:
-            if err.errno == errno.ESRCH:
-                # ESRCH == No such process
-                return False
-            elif err.errno == errno.EPERM:
-                # EPERM clearly means there's a process to deny access to
-                return True
-            else:
-                # According to "man 2 kill" possible error values are
-                # (EINVAL, EPERM, ESRCH) therefore we should never get
-                # here. If we do let's be explicit in considering this
-                # an error.
-                raise err
-        else:
-            return True
+

@@ -55,6 +55,11 @@ class SortBottomTranslator : public OperatorTranslator {
 
   const planner::AbstractPlanNode *Op() override { return op_; }
 
+  /**
+   * @returns struct declaration
+   */
+  ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
  private:
   friend class SortTopTranslator;
 
@@ -73,6 +78,9 @@ class SortBottomTranslator : public OperatorTranslator {
 
   // The sort plan node
   const planner::OrderByPlanNode *op_;
+
+  // Struct Decl
+  ast::StructDecl *struct_decl_;
 
   /**
    * GetChildOutput will need to return different results depending on the calling function.
