@@ -127,7 +127,7 @@ void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *f
 // Check if a string value ends with string ending
 bool EndsWith(const char *str, std::size_t len, const char *end, std::size_t end_size) {
   if (end_size > len) return false;
-  return static_cast<bool>(!strncmp(str + len - end_size, end, end_size));
+  return (strncmp(str + len - end_size, end, end_size) == 0);
 }
 
 }  // namespace
