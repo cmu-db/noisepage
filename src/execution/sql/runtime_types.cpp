@@ -126,7 +126,7 @@ void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *f
 bool EndsWith(const char *str, std::size_t len, std::string const &ending) {
   auto end_size = ending.size();
   if (end_size > len) return false;
-  for (auto i = 0; i < end_size; i++) {
+  for (size_t i = 0; i < end_size; i++) {
     if (str[len - i - 1] != ending[end_size - i - 1]) return false;
   }
   return true;
