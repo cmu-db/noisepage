@@ -47,6 +47,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 #include "settings/settings_manager.h"
+#include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
