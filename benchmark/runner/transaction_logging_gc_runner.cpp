@@ -45,7 +45,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, Runner)(benchmark::State &state) 
   uint64_t abort_count = 0;
   const std::vector<double> insert_update_select_ratio = {insert, update, select};
 
-  storage::BlockStore block_store{1000, 1000};
+  storage::BlockStore block_store{10000, 10000};
   storage::RecordBufferSegmentPool buffer_pool{100000000, 100000000};
 
   // NOLINTNEXTLINE
@@ -107,7 +107,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
   uint64_t abort_count = 0;
   const std::vector<double> insert_update_select_ratio = {insert, update, select};
 
-  storage::BlockStore block_store{1000, 1000};
+  storage::BlockStore block_store{10000, 10000};
   storage::RecordBufferSegmentPool buffer_pool{100000000, 100000000};
 
   // NOLINTNEXTLINE
