@@ -40,7 +40,7 @@ TEST_F(GenericHashTableTest, EmptyIteratorTest) {
     EXPECT_FALSE(iter.HasNext());
   }
 
-  table.SetSize(1000);
+  table.SetSize(1000, nullptr);
 
   //
   // Test: iteration shouldn't begin on an initialized, but empty table
@@ -90,7 +90,7 @@ TEST_F(GenericHashTableTest, SimpleIterationTest) {
 
   // The table
   GenericHashTable table;
-  table.SetSize(1000);
+  table.SetSize(1000, nullptr);
 
   // Insert
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
@@ -146,7 +146,7 @@ TEST_F(GenericHashTableTest, LongChainIterationTest) {
 
   // The table
   GenericHashTable table;
-  table.SetSize(1000);
+  table.SetSize(1000, nullptr);
 
   // Insert
   for (uint32_t idx = 0; idx < num_inserts; idx++) {

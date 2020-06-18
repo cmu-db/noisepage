@@ -249,7 +249,7 @@ class ConstantValueExpression : public AbstractExpression {
   std::unique_ptr<byte[]> buffer_ = nullptr;
 };
 
-DEFINE_JSON_DECLARATIONS(ConstantValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ConstantValueExpression);
 
 /// @cond DOXYGEN_IGNORE
 extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,

@@ -245,6 +245,9 @@ class JoinHashTable {
 
   // Should we use a concise hash table?
   bool use_concise_ht_;
+
+  // MemoryTracker
+  common::ManagedPointer<MemoryTracker> tracker_;
 };
 
 // ---------------------------------------------------------

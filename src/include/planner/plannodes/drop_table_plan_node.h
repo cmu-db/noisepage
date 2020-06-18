@@ -98,6 +98,6 @@ class DropTablePlanNode : public AbstractPlanNode {
   catalog::table_oid_t table_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(DropTablePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DropTablePlanNode);
 
 }  // namespace terrier::planner

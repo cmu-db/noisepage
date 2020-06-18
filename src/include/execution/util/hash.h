@@ -1,6 +1,6 @@
 #pragma once
 
-#include <x86intrin.h>
+#include <nmmintrin.h>
 #include <cstdint>
 #include <cstring>
 #include <string>

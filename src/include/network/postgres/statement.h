@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "execution/codegen/executable_query.h"
+#include "execution/executable_query.h"
 #include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -100,7 +100,7 @@ class Statement {
   /**
    * @return the compiled executable query
    */
-  common::ManagedPointer<execution::codegen::ExecutableQuery> GetExecutableQuery() const {
+  common::ManagedPointer<execution::ExecutableQuery> GetExecutableQuery() const {
     return common::ManagedPointer(executable_query_);
   }
 
@@ -114,25 +114,50 @@ class Statement {
   /**
    * @param executable_query executable query to take ownership of
    */
-  void SetExecutableQuery(std::unique_ptr<execution::codegen::ExecutableQuery> &&executable_query) {
+  void SetExecutableQuery(std::unique_ptr<execution::ExecutableQuery> &&executable_query) {
     executable_query_ = std::move(executable_query);
   }
 
   /**
-   * @return Hash of the query string. The idea is to use this for caching purposes
+   * Stash desired parameter types to avoid having to do a full binding pass for prepared statements
+   * @param desired_param_types output from the binder if Statement has parameters to fast-path convert for future
+   * bindings
    */
-  common::hash_t GetQueryHash() const { return query_hash_; }
+  void SetDesiredParamTypes(std::vector<type::TypeId> &&desired_param_types) {
+    desired_param_types_ = std::move(desired_param_types);
+    TERRIER_ASSERT(desired_param_types_.size() == param_types_.size(), "");
+  }
+
+  /**
+
+   * @return output from the binder if Statement has parameters to fast-path convert for future
+   * bindings
+   */
+  const std::vector<type::TypeId> &GetDesiredParamTypes() const { return desired_param_types_; }
+
+  /**
+   * Remove the cached objects related to query execution for this Statement. This should be done any time there is a
+   * DDL change related to this statement.
+   */
+  void ClearCachedObjects() {
+    physical_plan_ = nullptr;
+    executable_query_ = nullptr;
+    desired_param_types_ = {};
+  }
 
  private:
   const std::string query_text_;
-  const common::hash_t query_hash_;
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
   const std::vector<type::TypeId> param_types_;
   common::ManagedPointer<parser::SQLStatement> root_statement_ = nullptr;
   enum QueryType type_ = QueryType::QUERY_INVALID;
 
-  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;
-  std::unique_ptr<execution::codegen::ExecutableQuery> executable_query_ = nullptr;
+  // The following objects can be "cached" in Statement objects for future statement invocations. Though they don't
+  // relate to the Postgres Statement concept, these objects should be compatible with future queries that match the
+  // same query text. The exception to this that DDL changes can break these cached objects.
+  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;      // generated in the Bind phase
+  std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
+  std::vector<type::TypeId> desired_param_types_;                           // generated in the Bind phase
 };
 
 }  // namespace terrier::network

@@ -8,10 +8,12 @@
 #include <vector>
 
 #include "binder/binder_sherpa.h"
+#include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
 #include "common/managed_pointer.h"
+#include "execution/functions/function_context.h"
 #include "loggers/binder_logger.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
@@ -47,9 +49,10 @@ BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAc
 
 void BindNodeVisitor::BindNameToNode(
     common::ManagedPointer<parser::ParseResult> parse_result,
-    const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) {
+    const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
+    const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types) {
   TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
-  sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters);
+  sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters, desired_parameter_types);
   TERRIER_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
   sherpa_->GetParseResult()->GetStatement(0)->Accept(
       common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -103,14 +106,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
   switch (create_type) {
     case parser::CreateStatement::CreateType::kDatabase:
       if (catalog_accessor_->GetDatabaseOid(node->GetDatabaseName()) != catalog::INVALID_DATABASE_OID) {
-        throw BINDER_EXCEPTION("Database name already exists");
+        throw BINDER_EXCEPTION(fmt::format("database \"{}\" already exists", node->GetDatabaseName()));
       }
       break;
     case parser::CreateStatement::CreateType::kTable:
       ValidateDatabaseName(node->GetDatabaseName());
 
       if (catalog_accessor_->GetTableOid(node->GetTableName()) != catalog::INVALID_TABLE_OID) {
-        throw BINDER_EXCEPTION("Table name already exists");
+        throw BINDER_EXCEPTION(fmt::format("relation \"{}\" already exists", node->GetTableName()));
       }
       context_->AddNewTable(node->GetTableName(), node->GetColumns());
       for (const auto &col : node->GetColumns()) {
@@ -242,13 +245,13 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
     case parser::DropStatement::DropType::kTable:
       ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
-        throw BINDER_EXCEPTION("Table does not exist");
+        throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()));
       }
       break;
     case parser::DropStatement::DropType::kIndex:
       ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetIndexOid(node->GetIndexName()) == catalog::INVALID_INDEX_OID) {
-        throw BINDER_EXCEPTION("Index does not exist");
+        throw BINDER_EXCEPTION(fmt::format("index \"{}\" does not exist", node->GetTableName()));
       }
       break;
     case parser::DropStatement::DropType::kTrigger:
@@ -405,7 +408,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
           if (is_cast_expression) {
             if (ret_type != expected_ret_type) {
-              sherpa_->ReportFailure("BindNodeVisitor tried to cast, but cast result type does not match the schema.");
+              BinderUtil::ReportFailure(
+                  "BindNodeVisitor tried to cast, but cast result type does not match the schema.");
             }
             auto child = ins_val->GetChild(0)->Copy();
             ins_val = common::ManagedPointer(child);
@@ -509,7 +513,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node
     if (is_cast_expression) {
       auto child = expr->GetChild(0)->Copy();
       if (expr->GetReturnValueType() != expected_ret_type) {
-        sherpa_->ReportFailure("BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
+        BinderUtil::ReportFailure("BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
       }
       sherpa_->SetDesiredType(common::ManagedPointer(child), expr->GetReturnValueType());
       update->ResetValue(common::ManagedPointer(child));
@@ -607,7 +611,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConstantValueExpressi
   SqlNodeVisitor::Visit(expr);
 
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
-  sherpa_->CheckAndTryPromoteType(expr, desired_type);
+  BinderUtil::CheckAndTryPromoteType(expr, desired_type);
   expr->DeriveReturnValueType();
 }
 
@@ -656,9 +660,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpress
       common::ManagedPointer(&((*(sherpa_->GetParameters()))[expr->GetValueIdx()]));
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
-  if (desired_type != type::TypeId::INVALID) sherpa_->CheckAndTryPromoteType(param, desired_type);
+  if (desired_type != type::TypeId::INVALID) BinderUtil::CheckAndTryPromoteType(param, desired_type);
 
   expr->return_value_type_ = param->GetReturnValueType();
+  sherpa_->SetDesiredParameterType(expr->GetValueIdx(), param->GetReturnValueType());
 }
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::StarExpression> expr) {

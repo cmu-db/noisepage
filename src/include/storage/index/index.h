@@ -9,17 +9,12 @@
 #include "storage/data_table.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
-#include "storage/storage_defs.h"
-#include "transaction/transaction_context.h"
+
+namespace terrier::transaction {
+class TransactionContext;
+}  // namespace terrier::transaction
 
 namespace terrier::storage::index {
-
-enum class ScanType : uint32_t {
-  Closed,   /* [low, high] range scan */
-  OpenLow,  /* [begin(), high] range scan */
-  OpenHigh, /* [low, end()] range scan */
-  OpenBoth  /* [begin(), end()] range scan */
-};
 
 /**
  * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes

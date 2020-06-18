@@ -4,6 +4,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <string>
 
 namespace terrier {
 
@@ -140,12 +141,13 @@ class Exception : public std::runtime_error {
 // Derived exception types
 // -----------------------
 
-#define DEFINE_EXCEPTION(e_name, e_type)                                                        \
-  class e_name : public Exception {                                                             \
-    e_name() = delete;                                                                          \
-                                                                                                \
-   public:                                                                                      \
-    e_name(const char *msg, const char *file, int line) : Exception(e_type, msg, file, line) {} \
+#define DEFINE_EXCEPTION(e_name, e_type)                                                                       \
+  class e_name : public Exception {                                                                            \
+    e_name() = delete;                                                                                         \
+                                                                                                               \
+   public:                                                                                                     \
+    e_name(const char *msg, const char *file, int line) : Exception(e_type, msg, file, line) {}                \
+    e_name(const std::string &msg, const char *file, int line) : Exception(e_type, msg.c_str(), file, line) {} \
   }
 
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);

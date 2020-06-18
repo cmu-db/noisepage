@@ -193,7 +193,13 @@ namespace terrier::execution::ast {
   F(PtrCast, ptrCast)                                                   \
                                                                         \
   /* String functions */                                                \
-  F(Lower, lower)
+  F(Lower, lower)                                                       \
+                                                                        \
+  /* Mini runners functions */                                          \
+  F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \
+  F(NpRunnersEmitReal, NpRunnersEmitReal)                               \
+  F(NpRunnersDummyInt, NpRunnersDummyInt)                               \
+  F(NpRunnersDummyReal, NpRunnersDummyReal)
 
 /**
  * An enumeration of all TPL builtin functions.

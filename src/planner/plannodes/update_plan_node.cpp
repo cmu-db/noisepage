@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
 
 namespace terrier::planner {
@@ -100,5 +101,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> UpdatePlanNode::FromJso
   }
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(UpdatePlanNode);
 
 }  // namespace terrier::planner

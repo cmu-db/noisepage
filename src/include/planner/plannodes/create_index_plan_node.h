@@ -171,6 +171,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   std::unique_ptr<catalog::IndexSchema> schema_;
 };
 
-DEFINE_JSON_DECLARATIONS(CreateIndexPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(CreateIndexPlanNode);
 
 }  // namespace terrier::planner

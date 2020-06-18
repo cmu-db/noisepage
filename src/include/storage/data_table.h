@@ -1,18 +1,15 @@
 #pragma once
+#include <cstring>
 #include <list>
 #include <unordered_map>
 #include <vector>
 
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
-#include "execution/sql/vector_projection.h"
-#include "storage/arrow_serializer.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-
-namespace flatbuf = org::apache::arrow::flatbuf;
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -37,8 +34,8 @@ class HashIndex;
   f(uint64_t, NumDelete) \
   f(uint64_t, NumNewBlock)
 // clang-format on
-DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
-#undef DataTableCounterMembers
+DEFINE_PERFORMANCE_CLASS_HEADER(DataTableCounter, DataTableCounterMembers)
+// #undef DataTableCounterMembers
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
@@ -111,7 +108,6 @@ class DataTable {
     std::list<RawBlock *>::const_iterator block_;
     TupleSlot current_slot_;
   };
-
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
    * of its storage blocks. The first column must be size 8 and is effectively hidden from upper levels.
@@ -158,9 +154,6 @@ class DataTable {
    */
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             ProjectedColumns *out_buffer) const;
-
-  void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
-            execution::sql::VectorProjection *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table
@@ -224,6 +217,11 @@ class DataTable {
    * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+
+  /**
+   * @return a coarse estimation on the number of tuples in this table
+   */
+  uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
 
  private:
   // The ArrowSerializer needs access to its blocks.
