@@ -44,6 +44,7 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "storage/block_layout.h"
 #include "type/type_id.h"
 
 namespace terrier::brain {
