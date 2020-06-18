@@ -170,7 +170,7 @@ class TestOLTPBench(TestServer):
             for test in unexpected_result.keys():
                 if (unexpected_result[test] != 0):
                     print(str(unexpected_result))
-                    sys.exit(constants.ErrorCode.ERROR)
+                    sys.exit(ErrorCode.ERROR)
         else:
             print(str(unexpected_result))
-            sys.exit(constants.ErrorCode.ERROR)
+            sys.exit(ErrorCode.ERROR)
