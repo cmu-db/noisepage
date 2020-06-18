@@ -1,12 +1,14 @@
 #include "storage/storage_util.h"
+
 #include <cstring>
 #include <unordered_map>
-#include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
 #include "storage/projected_columns.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+
 namespace terrier::storage {
 
 template <class RowType>

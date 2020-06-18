@@ -7,6 +7,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 #include "storage/index/index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::sql {
 
