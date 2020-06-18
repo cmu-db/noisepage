@@ -274,6 +274,3 @@ wal.log
 
 # OLTP output
 **/oltp_output_*
-
-# Personal github config file
-_config.yml

@@ -115,7 +115,7 @@ class EXPORT Date {
    */
   bool operator>=(const Date &that) const { return value_ >= that.value_; }
 
-  /** @return The native representation of the date. */
+  /** @return The native representation of the date (julian microseconds). */
   Date::NativeType ToNative() const;
 
   /**
@@ -399,7 +399,7 @@ class EXPORT Timestamp {
   explicit Timestamp(NativeType value) : value_(value) {}
 
  private:
-  // Timestamp value
+  // Timestamp value -- the native type denotes the microseconds with respect to Julian time
   NativeType value_;
 };
 

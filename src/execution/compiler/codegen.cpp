@@ -433,8 +433,7 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
       return DateToSql(year, month, day);
     }
     case type::TypeId::TIMESTAMP: {
-      const auto val = const_val.Peek<execution::sql::Timestamp>().ToNative();
-      auto julian_usec = execution::sql::Timestamp::FromNative(val).ToNative();
+      const auto julian_usec = const_val.Peek<execution::sql::Timestamp>().ToNative();
       return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {
