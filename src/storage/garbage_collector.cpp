@@ -43,7 +43,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
       common::thread_context.metrics_store_->RecordGCData(txns_deallocated, txns_unlinked, buffer_unlinked,
-                                                          readonly_unlinked, resource_metrics);
+                                                          readonly_unlinked, gc_interval_, resource_metrics);
     }
     common::thread_context.resource_tracker_.Start();
   }

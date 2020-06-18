@@ -78,7 +78,7 @@ class LoggingMetricRawData : public AbstractRawData {
   friend class LoggingMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
-  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records,  const uint64_t interval,
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
                             const common::ResourceTracker::Metrics &resource_metrics) {
     serializer_data_.emplace_front(num_bytes, num_records, interval, resource_metrics);
   }

@@ -36,8 +36,11 @@ def get_mini_runner_data(filename, model_map={}, predict_cache={}):
         # Cannot handle the transaction manager data yet
         return []
     if "execution" in filename:
-        # Special handle of the execution data
+        # Handle the execution data
         return _execution_get_mini_runner_data(filename, model_map, predict_cache)
+    if "gc" in filename:
+        # Handle of the gc data
+        return _gc_get_mini_runner_data(filename, model_map, predict_cache)
 
     return []
 
@@ -52,6 +55,7 @@ def _default_get_mini_runner_data(filename):
 
     logging.info("Loaded file: {}".format(OpUnit[file_name]))
     return [OpUnitData(OpUnit[file_name], x, y)]
+
 
 def _execution_get_mini_runner_data(filename, model_map, predict_cache):
     # Get the mini runner data for the execution engine
@@ -110,6 +114,66 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache):
         data_list.append(OpUnitData(opunit, x, y))
 
     return data_list
+
+
+def _gc_get_mini_runner_data(filename, model_map, predict_cache):
+    # Get the mini runner data for the execution engine
+    data_map = {}
+    execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
+    features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
+
+    with open(filename, "r") as f:
+        reader = csv.reader(f, delimiter=",", skipinitialspace=True)
+        next(reader)
+        for line in reader:
+            # drop query_id, pipeline_id, num_features, features_vector
+            record = [d for i, d in enumerate(line) if i > features_vector_index]
+            record.insert(data_info.EXECUTION_MODE_INDEX, line[execution_mode_index])
+            data = list(map(data_util.convert_string_to_numeric, record))
+            x_multiple = data[:data_info.RECORD_FEATURES_END]
+            y_merged = np.array(data[-data_info.RECORD_METRICS_START:])
+
+            # Get the opunits located within
+            opunits = []
+            features = line[features_vector_index].split(';')
+            for idx, feature in enumerate(features):
+                opunit = OpUnit[feature]
+                x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
+                if opunit in model_map:
+                    key = [opunit] + x_loc
+                    if tuple(key) in predict_cache:
+                        y_merged = y_merged - predict_cache[tuple(key)]
+                    else:
+                        predict = model_map[opunit].predict(np.array(x_loc).reshape(1, -1))[0]
+                        predict_cache[tuple(key)] = predict
+                        y_merged = y_merged - predict
+
+                    y_merged = np.clip(y_merged, 0, None)
+                else:
+                    opunits.append((opunit, x_loc))
+
+            if len(opunits) > 1:
+                raise Exception('Unmodelled OperatingUnits detected: {}'.format(opunits))
+
+            # record real result
+            predict_cache[tuple([opunits[0][0]] + opunits[0][1])] = list(y_merged)
+
+            # opunits[0][0] is the opunit
+            # opunits[0][1] is input feature
+            # y_merged should be post-subtraction
+            if opunits[0][0] not in data_map:
+                data_map[opunits[0][0]] = []
+            data_map[opunits[0][0]].append(opunits[0][1] + list(y_merged))
+
+    data_list = []
+    for opunit, values in data_map.items():
+        np_value = np.array(values)
+        x = np_value[:, :data_info.RECORD_FEATURES_END]
+        y = np_value[:, -data_info.RECORD_METRICS_START:]
+        data_list.append(OpUnitData(opunit, x, y))
+
+    return data_list
+
 
 
 class OpUnitData:

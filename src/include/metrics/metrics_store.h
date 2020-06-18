@@ -70,10 +70,12 @@ class MetricsStore {
    * @param resource_metrics forth entry of metrics datapoint
    */
   void RecordGCData(uint64_t txns_deallocated, uint64_t txns_unlinked, uint64_t buffer_unlinked,
-                    uint64_t readonly_unlinked, const common::ResourceTracker::Metrics &resource_metrics) {
+                    uint64_t readonly_unlinked, uint64_t interval,
+                    const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
     TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordGCData(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, resource_metrics);
+    gc_metric_->RecordGCData(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, interval,
+                             resource_metrics);
   }
 
   /**
@@ -133,7 +135,7 @@ class MetricsStore {
    * @param query_text_size the size of the query text
    */
   void RecordBindCommandData(uint64_t param_num, uint64_t query_text_size,
-                           const common::ResourceTracker::Metrics &resource_metrics) {
+                             const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::BIND_COMMAND), "BindCommandMetric not enabled.");
     TERRIER_ASSERT(bind_command_metric_ != nullptr, "BindCommandMetric not allocated. Check MetricsStore constructor.");
     bind_command_metric_->RecordBindCommandData(param_num, query_text_size, resource_metrics);
@@ -145,7 +147,8 @@ class MetricsStore {
    */
   void RecordExecuteCommandData(uint64_t portal_name_size, const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTE_COMMAND), "ExecuteCommandMetric not enabled.");
-    TERRIER_ASSERT(execute_command_metric_ != nullptr, "ExecuteCommandMetric not allocated. Check MetricsStore constructor.");
+    TERRIER_ASSERT(execute_command_metric_ != nullptr,
+                   "ExecuteCommandMetric not allocated. Check MetricsStore constructor.");
     execute_command_metric_->RecordExecuteCommandData(portal_name_size, resource_metrics);
   }
 

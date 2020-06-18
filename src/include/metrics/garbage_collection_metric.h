@@ -46,7 +46,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 
     for (const auto &data : gc_data_) {
       outfile << data.txns_deallocated_ << ", " << data.txns_unlinked_ << ", " << data.buffer_unlinked_ << ", "
-              << data.readonly_unlinked_;
+              << data.readonly_unlinked_ << ", " << data.interval_ << ", ";
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
     }
@@ -62,29 +62,33 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
-      "txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked"};
+      "txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, interval"};
 
  private:
   friend class GarbageCollectionMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
   void RecordGCData(uint64_t txns_deallocated, uint64_t txns_unlinked, uint64_t buffer_unlinked,
-                    uint64_t readonly_unlinked, const common::ResourceTracker::Metrics &resource_metrics) {
-    gc_data_.emplace_front(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, resource_metrics);
+                    uint64_t readonly_unlinked, const uint64_t interval,
+                    const common::ResourceTracker::Metrics &resource_metrics) {
+    gc_data_.emplace_front(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, interval,
+                           resource_metrics);
   }
 
   struct GCData {
     GCData(uint64_t txns_deallocated, uint64_t txns_unlinked, uint64_t buffer_unlinked, uint64_t readonly_unlinked,
-           const common::ResourceTracker::Metrics &resource_metrics)
+           const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics)
         : txns_deallocated_(txns_deallocated),
           txns_unlinked_(txns_unlinked),
           buffer_unlinked_(buffer_unlinked),
           readonly_unlinked_(readonly_unlinked),
+          interval_(interval),
           resource_metrics_(resource_metrics) {}
     const uint64_t txns_deallocated_;
     const uint64_t txns_unlinked_;
     const uint64_t buffer_unlinked_;
     const uint64_t readonly_unlinked_;
+    const uint64_t interval_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
 
@@ -99,8 +103,10 @@ class GarbageCollectionMetric : public AbstractMetric<GarbageCollectionMetricRaw
   friend class MetricsStore;
 
   void RecordGCData(uint64_t txns_deallocated, uint64_t txns_unlinked, uint64_t buffer_unlinked,
-                    uint64_t readonly_unlinked, const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordGCData(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, resource_metrics);
+                    uint64_t readonly_unlinked, uint64_t interval,
+                    const common::ResourceTracker::Metrics &resource_metrics) {
+    GetRawData()->RecordGCData(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, interval,
+                               resource_metrics);
   }
 };
 }  // namespace terrier::metrics

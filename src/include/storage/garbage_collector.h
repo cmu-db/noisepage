@@ -74,6 +74,13 @@ class GarbageCollector {
    */
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
+  /**
+   * Set the GC interval for metrics collection
+   * TODO(lma): this need to be called in the settings callback after we add the ability to change the GC interval
+   * @param gc_interval interval to set (in us)
+   */
+  void SetGCInterval(uint64_t gc_interval) { gc_interval_ = gc_interval; }
+
  private:
   /**
    * Process the deallocate queue
@@ -116,6 +123,8 @@ class GarbageCollector {
 
   std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
+
+  uint64_t gc_interval_{0};
 };
 
 }  // namespace terrier::storage
