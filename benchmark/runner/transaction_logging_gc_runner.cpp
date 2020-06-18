@@ -170,7 +170,7 @@ static void UNUSED_ATTRIBUTE EnumeratedArguments(benchmark::internal::Benchmark 
 
 static void UNUSED_ATTRIBUTE LoggingGCArguments(benchmark::internal::Benchmark *b) {
   std::vector<uint32_t> intervals = {10, 100, 1000};
-  std::vector<uint32_t> txn_lengths = {1, 5, 10};
+  std::vector<uint32_t> txn_lengths = {1, 2, 4};
   // submit interval between two transactions (us)
   std::vector<uint32_t> txn_intervals = {1, 10, 100, 1000};
   std::vector<uint32_t> num_threads = {4};
@@ -179,7 +179,7 @@ static void UNUSED_ATTRIBUTE LoggingGCArguments(benchmark::internal::Benchmark *
     for (uint32_t txn_length : txn_lengths)
       for (uint32_t txn_interval : txn_intervals)
         for (uint32_t num_thread : num_threads)
-          for (uint32_t insert = 0; insert <= 30; insert += 30)
+          for (uint32_t insert = 0; insert <= 10; insert += 10)
             for (uint32_t update = 0; update <= 100 - insert; update += 50) {
               b->Args({interval, txn_length, txn_interval, num_thread, insert, update, 100 - insert - update});
             }
