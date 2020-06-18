@@ -33,6 +33,7 @@ if __name__ == "__main__":
                          choices=["debug", "release", "relwithdebinfo"],
                          help="Build type (default: %(default)s")
     aparser.add_argument("--query-mode",
+                         default="simple",
                          choices=["simple", "extended"],
                          help="Query protocol mode")
     args = vars(aparser.parse_args())
