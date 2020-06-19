@@ -66,5 +66,5 @@ def loop_terminals_run_oltp(list){
         // for TPC-C, --scale-factor=4
         sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4 --scale-factor=4 --terminals=${list[i]}"
     }
-    archiveArtifacts 'build/oltp_result/**/*.*'
+    archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
 }
