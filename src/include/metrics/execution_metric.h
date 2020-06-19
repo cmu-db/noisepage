@@ -69,7 +69,7 @@ class ExecutionMetricRawData : public AbstractRawData {
 
   void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
-    execution_data_.emplace_front(feature, len, execution_mode, resource_metrics);
+    execution_data_.emplace_back(feature, len, execution_mode, resource_metrics);
   }
 
   struct ExecutionData {

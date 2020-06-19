@@ -80,12 +80,12 @@ class LoggingMetricRawData : public AbstractRawData {
 
   void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
                             const common::ResourceTracker::Metrics &resource_metrics) {
-    serializer_data_.emplace_front(num_bytes, num_records, interval, resource_metrics);
+    serializer_data_.emplace_back(num_bytes, num_records, interval, resource_metrics);
   }
 
   void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const uint64_t interval,
                           const common::ResourceTracker::Metrics &resource_metrics) {
-    consumer_data_.emplace_front(num_bytes, num_buffers, interval, resource_metrics);
+    consumer_data_.emplace_back(num_bytes, num_buffers, interval, resource_metrics);
   }
 
   struct SerializerData {
