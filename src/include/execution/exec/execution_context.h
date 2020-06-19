@@ -50,6 +50,7 @@ class EXPORT ExecutionContext {
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
+        thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
         accessor_(accessor) {}
 
   /**
