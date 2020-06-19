@@ -12,7 +12,7 @@ class BinderUtilTest : public TerrierTest {};
 
 // NOLINTNEXTLINE
 TEST_F(BinderUtilTest, VarcharToTinyInt) {
-  const std::string val = "15";
+  constexpr std::string_view val = "15";
   auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
   const auto cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
                                                                      std::move(string_val.second));
@@ -22,7 +22,7 @@ TEST_F(BinderUtilTest, VarcharToTinyInt) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderUtilTest, VarcharToSmallInt) {
-  const std::string val = "15721";
+  constexpr std::string_view val = "15721";
   auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
   const auto cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
                                                                      std::move(string_val.second));
@@ -32,7 +32,7 @@ TEST_F(BinderUtilTest, VarcharToSmallInt) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderUtilTest, VarcharToInteger) {
-  const std::string val = "1572115445";
+  constexpr std::string_view val = "1572115445";
   auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
   const auto cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
                                                                      std::move(string_val.second));
@@ -42,7 +42,7 @@ TEST_F(BinderUtilTest, VarcharToInteger) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderUtilTest, VarcharToBigInt) {
-  const std::string val = "157210154450";
+  constexpr std::string_view val = "157210154450";
   auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
   const auto cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
                                                                      std::move(string_val.second));
@@ -52,7 +52,7 @@ TEST_F(BinderUtilTest, VarcharToBigInt) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderUtilTest, VarcharToDecimal) {
-  const std::string val = "15721.15445";
+  constexpr std::string_view val = "15721.15445";
   auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
   const auto cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
                                                                      std::move(string_val.second));
