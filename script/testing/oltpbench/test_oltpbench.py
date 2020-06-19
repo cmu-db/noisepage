@@ -185,4 +185,4 @@ class TestOLTPBench(TestServer):
                     print(str(unexpected_result))
                     sys.exit(constants.ErrorCode.ERROR)
         else:
-            raise RuntimeError(str(unexpected_result)
+            raise RuntimeError(str(unexpected_result))
