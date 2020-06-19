@@ -120,7 +120,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
   params.emplace_back(type::TypeId::DECIMAL, sql::Real(37.73));
-  params.emplace_back(type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(1937, 3, 7).second));
+  params.emplace_back(type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
   auto string_val = sql::ValueUtil::CreateStringVal(std::string_view("37 Strings"));
   params.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
   exec_ctx.SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));

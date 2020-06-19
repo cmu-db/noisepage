@@ -58,7 +58,7 @@ class ExpressionMaker {
    */
   ManagedExpression Constant(int32_t year, uint32_t month, uint32_t day) {
     return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
-        type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(year, month, day).second)));
+        type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(year, month, day))));
   }
 
   /**

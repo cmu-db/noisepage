@@ -63,20 +63,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
         switch (desired_type) {
           case type::TypeId::DATE: {
             auto parsed_date = execution::sql::Date::FromString(str_view);
-            if (!parsed_date.first) {
-              ReportFailure("Binder conversion from VARCHAR to DATE failed.");
-            }
-            value->SetValue(type::TypeId::DATE, execution::sql::DateVal(execution::sql::Date::FromNative(
-                                                    static_cast<uint32_t>(parsed_date.second.ToNative()))));
+            value->SetValue(type::TypeId::DATE, execution::sql::DateVal(parsed_date));
             break;
           }
           case type::TypeId::TIMESTAMP: {
             auto parsed_timestamp = execution::sql::Timestamp::FromString(str_view);
-            if (!parsed_timestamp.first) {
-              ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
-            }
-            value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(
-                                                         static_cast<uint64_t>(parsed_timestamp.second.ToNative()))));
+            value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(parsed_timestamp));
             break;
           }
           case type::TypeId::TINYINT: {

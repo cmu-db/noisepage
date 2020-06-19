@@ -72,25 +72,25 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     }
     case type::TypeId::TIMESTAMP: {
       const auto parse_result = execution::sql::Timestamp::FromString(string);
-      TERRIER_ASSERT(parse_result.first, "Failed to parse the timestamp.");
-      return {type, execution::sql::TimestampVal(static_cast<uint64_t>(parse_result.second.ToNative()))};
+      return {type, execution::sql::TimestampVal(parse_result)};
     }
     case type::TypeId::DATE: {
       const auto parse_result = execution::sql::Date::FromString(string);
-      TERRIER_ASSERT(parse_result.first, "Failed to parse the date.");
-      return {type, execution::sql::DateVal(static_cast<uint32_t>(parse_result.second.ToNative()))};
+      return {type, execution::sql::DateVal(parse_result)};
     }
     case type::TypeId::INVALID: {
       // Postgres may not have told us the type in Parse message. Right now in oltpbench the JDBC driver is doing this
       // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
-      const auto ts_parse_result = execution::sql::Timestamp::FromString(string);
-      if (ts_parse_result.first) {
-        return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(ts_parse_result.second.ToNative())};
+      try {
+        const auto ts_parse_result = execution::sql::Timestamp::FromString(string);
+        return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(ts_parse_result)};
+      } catch (...) {
       }
       // try date?
-      const auto date_parse_result = execution::sql::Date::FromString(string);
-      if (date_parse_result.first) {
-        return {type::TypeId::DATE, execution::sql::DateVal(date_parse_result.second.ToNative())};
+      try {
+        const auto date_parse_result = execution::sql::Date::FromString(string);
+        return {type::TypeId::DATE, execution::sql::DateVal(date_parse_result)};
+      } catch (...) {
       }
       // fall back to VARCHAR?
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);

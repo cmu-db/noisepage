@@ -642,11 +642,7 @@ VM_OP_HOT void OpIntegerToReal(terrier::execution::sql::Real *result, const terr
 VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year, uint32_t month, uint32_t day) {
   result->is_null_ = false;
   auto res = terrier::execution::sql::Date::FromYMD(year, month, day);
-  if (res.first) {
-    result->val_ = res.second;
-  } else {
-    throw terrier::CONVERSION_EXCEPTION("invalid date");
-  }
+  result->val_ = res;
 }
 
 VM_OP_HOT void OpInitTimestamp(terrier::execution::sql::TimestampVal *result, uint64_t usec) {
@@ -659,11 +655,7 @@ VM_OP_HOT void OpInitTimestampYMDHMSMU(terrier::execution::sql::TimestampVal *re
                                        int32_t micro) {
   result->is_null_ = false;
   auto res = terrier::execution::sql::Timestamp::FromYMDHMSMU(year, month, day, hour, minute, sec, milli, micro);
-  if (res.first) {
-    result->val_ = res.second;
-  } else {
-    throw terrier::CONVERSION_EXCEPTION("invalid timestamp");
-  }
+  result->val_ = res;
 }
 
 VM_OP_HOT void OpInitString(terrier::execution::sql::StringVal *result, uint64_t length, uintptr_t data) {
