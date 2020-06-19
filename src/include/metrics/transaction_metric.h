@@ -108,7 +108,7 @@ class TransactionMetricRawData : public AbstractRawData {
 
   std::list<BeginData> begin_data_;
   std::list<CommitData> commit_data_;
-  std::atomic<uint64_t> num_txns_ = 0;
+  std::atomic<int> num_txns_ = 0;
 };
 
 /**
