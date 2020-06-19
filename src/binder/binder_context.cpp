@@ -86,7 +86,8 @@ void BinderContext::AddNewTable(const std::string &new_table_name,
 }
 
 void BinderContext::AddNestedTable(const std::string &table_alias,
-                                   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
+                                   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
+                                   const std::vector<std::string> &col_aliases) {
   if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
       nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION(fmt::format("Duplicate alias \"{}\"", table_alias),
@@ -94,9 +95,13 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   }
 
   std::unordered_map<std::string, type::TypeId> column_alias_map;
+  unsigned long i = 0;
+  auto cols = col_aliases.size();
   for (auto &expr : select_list) {
     std::string alias;
-    if (!expr->GetAlias().empty()) {
+    if (cols > i) {
+      alias = col_aliases[i];
+    } else if (!expr->GetAlias().empty()) {
       alias = expr->GetAlias();
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.Get());

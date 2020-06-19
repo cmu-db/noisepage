@@ -77,7 +77,8 @@ class BinderContext {
    * @param select_list List of select columns
    */
   void AddNestedTable(const std::string &table_alias,
-                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
+                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
+                      const std::vector<std::string> &col_aliases);
 
   /**
    * Update the nested table alias map to create a copy of CTE table's entry for given alias
