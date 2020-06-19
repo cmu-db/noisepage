@@ -115,8 +115,6 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
   for (auto _ : state) {
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
 
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
@@ -130,6 +128,9 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
                                          &block_store, &buffer_pool, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
+
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
