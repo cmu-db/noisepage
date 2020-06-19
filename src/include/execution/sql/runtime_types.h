@@ -358,7 +358,7 @@ class EXPORT Timestamp {
    * @param limit End of timestamp string.
    * @return The constructed timestamp if valid.
    */
-  static std::pair<bool, Timestamp> AdjustTimezone(char c, int32_t year, int32_t month, int32_t day, int32_t hour,
+  static std::pair<bool, Timestamp> AdjustTimeZone(char c, int32_t year, int32_t month, int32_t day, int32_t hour,
                                                    int32_t min, int32_t sec, int32_t milli, int32_t micro,
                                                    const char *ptr, const char *limit);
 

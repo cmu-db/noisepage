@@ -125,9 +125,9 @@ void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *f
 }
 
 // Check if a string value ends with string ending
-bool EndsWith(const char *str, std::size_t len, const char *end, std::size_t end_size) {
-  if (end_size > len) return false;
-  return (strncmp(str + len - end_size, end, end_size) == 0);
+bool EndsWith(const char *str, std::size_t len, const char *suffix, std::size_t suffix_len) {
+  if (suffix_len > len) return false;
+  return (strncmp(str + len - suffix_len, suffix, suffix_len) == 0);
 }
 
 }  // namespace
@@ -385,8 +385,8 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   while (ptr != limit && static_cast<bool>(std::isspace(*ptr))) ptr++;
   while (ptr != limit && static_cast<bool>(std::isspace(*(limit - 1)))) limit--;
 
-  auto suffix_len = strlen(K_TIMESTAMP_SUFFIX);
-  if (EndsWith(str, len, K_TIMESTAMP_SUFFIX, suffix_len)) limit -= suffix_len;
+  const auto suffix_len = strlen(K_TIMESTAMP_SUFFIX);
+  if (EndsWith(ptr, static_cast<size_t>(limit - ptr), K_TIMESTAMP_SUFFIX, suffix_len)) limit -= suffix_len;
 
   uint32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, milli = 0, micro = 0;
 
@@ -474,7 +474,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
     } else if (c == 'Z') {
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
     } else if (c == '-' || c == '+') {
-      return AdjustTimezone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
+      return AdjustTimeZone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
     } else {
       return {false, {}};
     }
@@ -492,7 +492,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
     } else if (c == 'Z') {
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
     } else if (c == '-' || c == '+') {
-      return AdjustTimezone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
+      return AdjustTimeZone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
     } else {
       return {false, {}};
     }
@@ -511,7 +511,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
     } else if (c == 'Z') {
       return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
     } else if (c == '-' || c == '+') {
-      return AdjustTimezone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
+      return AdjustTimeZone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
     } else {
       return {false, {}};
     }
@@ -521,7 +521,7 @@ std::pair<bool, Timestamp> Timestamp::FromString(const char *str, std::size_t le
   return {false, {}};
 }
 
-std::pair<bool, Timestamp> Timestamp::AdjustTimezone(char c, int32_t year, int32_t month, int32_t day, int32_t hour,
+std::pair<bool, Timestamp> Timestamp::AdjustTimeZone(char c, int32_t year, int32_t month, int32_t day, int32_t hour,
                                                      int32_t min, int32_t sec, int32_t milli, int32_t micro,
                                                      const char *ptr, const char *limit) {
   bool sign = false;
