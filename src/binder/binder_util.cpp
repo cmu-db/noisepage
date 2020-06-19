@@ -1,6 +1,5 @@
 #include "binder/binder_util.h"
 
-#include <charconv>
 #include <limits>
 
 #include "parser/expression/constant_value_expression.h"
@@ -60,6 +59,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
       case type::TypeId::VARCHAR: {
         const auto str_view = value->Peek<std::string_view>();
 
+        // TODO(Matt): see issue #977
         switch (desired_type) {
           case type::TypeId::DATE: {
             auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
@@ -81,36 +81,32 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::TINYINT: {
-            int8_t int_val;
-            const auto result = std::from_chars(str_view.data(), str_view.data() + str_view.length(), int_val, 10);
-            if (result.ec == std::errc::result_out_of_range) {
+            const auto int_val = std::stol(std::string(str_view));
+            if (!IsRepresentable<int8_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
             value->SetValue(type::TypeId::TINYINT, execution::sql::Integer(int_val));
             break;
           }
           case type::TypeId::SMALLINT: {
-            int16_t int_val;
-            const auto result = std::from_chars(str_view.data(), str_view.data() + str_view.length(), int_val, 10);
-            if (result.ec == std::errc::result_out_of_range) {
+            const auto int_val = std::stol(std::string(str_view));
+            if (!IsRepresentable<int16_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
             value->SetValue(type::TypeId::SMALLINT, execution::sql::Integer(int_val));
             break;
           }
           case type::TypeId::INTEGER: {
-            int32_t int_val;
-            const auto result = std::from_chars(str_view.data(), str_view.data() + str_view.length(), int_val, 10);
-            if (result.ec == std::errc::result_out_of_range) {
+            const auto int_val = std::stol(std::string(str_view));
+            if (!IsRepresentable<int32_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
             value->SetValue(type::TypeId::INTEGER, execution::sql::Integer(int_val));
             break;
           }
           case type::TypeId::BIGINT: {
-            int64_t int_val;
-            const auto result = std::from_chars(str_view.data(), str_view.data() + str_view.length(), int_val, 10);
-            if (result.ec == std::errc::result_out_of_range) {
+            const auto int_val = std::stol(std::string(str_view));
+            if (!IsRepresentable<int64_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
             value->SetValue(type::TypeId::BIGINT, execution::sql::Integer(int_val));
@@ -120,8 +116,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             {
               double double_val;
               try {
-                double_val = std::stod(std::string(str_view));  // TODO(Matt): use std::from_chars in the future, not
-                                                                // currently supported on floats in AppleClang
+                double_val = std::stod(std::string(str_view));
               } catch (std::exception &e) {
                 throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
               }
