@@ -52,6 +52,7 @@ class CompilationContext {
    */
   static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
                                                   const exec::ExecutionSettings &exec_settings,
+                                                  catalog::CatalogAccessor *accessor,
                                                   CompilationMode mode = CompilationMode::Interleaved);
 
   /**
@@ -118,7 +119,7 @@ class CompilationContext {
 
  private:
   // Private to force use of static Compile() function.
-  explicit CompilationContext(ExecutableQuery *query, CompilationMode mode);
+  explicit CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, CompilationMode mode);
 
   // Given a plan node, compile it into a compiled query object.
   void GeneratePlan(const planner::AbstractPlanNode &plan);
