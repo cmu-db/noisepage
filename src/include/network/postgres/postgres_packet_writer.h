@@ -81,10 +81,15 @@ class PostgresPacketWriter : public PacketWriter {
 
   /**
    * Tells the client that the query command is complete.
-   * @param tag records the which kind of query it is. (INSERT? DELETE? SELECT?) and the number of rows.
+   * @param tag records the which kind of query it is
    */
   void WriteCommandComplete(std::string_view tag);
 
+  /**
+   * Tells the client that the query command is complete.
+   * @param tag records the which kind of query it is
+   * @param num_rows number of rows affected by DML query
+   */
   void WriteCommandComplete(std::string_view tag, uint32_t num_rows);
 
   /**
