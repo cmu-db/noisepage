@@ -24,7 +24,6 @@
 <path id="test.jars">
   <fileset dir="${lib.dir}">
     <include name="**/*.jar"/>
-    <exclude name="junit-platform-console-standalone-1.1.0.jar" />
   </fileset>
 </path>
 
