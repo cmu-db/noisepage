@@ -7,6 +7,7 @@
 
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_visitor.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier {
 

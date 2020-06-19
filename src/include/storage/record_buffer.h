@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+
 #include "common/constants.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"

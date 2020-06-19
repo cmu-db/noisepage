@@ -4,7 +4,7 @@
 
 #include "common/exception.h"
 #include "common/strong_typedef.h"
-#include "storage/block_layout.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
 
 namespace terrier::type {
