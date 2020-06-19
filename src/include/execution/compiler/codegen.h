@@ -18,6 +18,10 @@
 #include "llvm/ADT/StringMap.h"
 #include "parser/expression_defs.h"
 
+namespace terrier::catalog {
+class CatalogAccessor;
+}  // namespace terrier::catalog
+
 namespace terrier::execution::compiler {
 
 /**
@@ -83,7 +87,7 @@ class CodeGen {
    * Create a code generator that generates code for the provided container.
    * @param context The context used to create all expressions.
    */
-  explicit CodeGen(ast::Context *context);
+  explicit CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor);
 
   /**
    * Destructor.
@@ -493,6 +497,11 @@ class CodeGen {
   // Table stuff
   //
   // -------------------------------------------------------
+
+  /**
+   * @return The catalog accessor.
+   */
+  [[nodiscard]] catalog::CatalogAccessor *GetCatalogAccessor() const;
 
   /**
    * Call @tableIterInit(). Initializes a TableVectorIterator instance with a table ID.
@@ -1255,6 +1264,8 @@ class CodeGen {
   std::array<std::unique_ptr<Scope>, DEFAULT_SCOPE_CACHE_SIZE> scope_cache_ = {nullptr};
   // Current scope.
   Scope *scope_;
+  // The catalog accessor.
+  catalog::CatalogAccessor *accessor_;
 };
 
 }  // namespace terrier::execution::compiler

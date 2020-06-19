@@ -1,5 +1,6 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
+#include "catalog/catalog_accessor.h"
 #include "common/exception.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
@@ -229,24 +230,11 @@ void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier wo
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
-  // TODO(WAN): ??
-  UNREACHABLE("Should we still be doing catalog lookups here?");
-
-#if 0
-  // Call @pciGetType(pci, index)
-  auto type = schema_.GetColumn(col_oid).Type();
-  auto nullable = schema_.GetColumn(col_oid).Nullable();
-  uint16_t attr_idx = pm_[col_oid];
-  return codegen_->PCIGet(pci_, type, nullable, attr_idx);
-#endif
-
-#if 0
-  const auto table_oid = GetPlanAs<planner::SeqScanPlanNode>().GetTableOid();
-  const auto schema = &Catalog::Instance()->LookupTableById(table_oid)->GetSchema();
-  auto type = schema->GetColumnInfo(col_oid)->sql_type.GetPrimitiveTypeId();
-  auto nullable = schema->GetColumnInfo(col_oid)->sql_type.IsNullable();
-  return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), type, nullable, col_oid);
-#endif
+  // TODO(WAN): catalog lookups OK here?
+  const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
+  auto type = schema.GetColumn(col_oid).Type();
+  auto nullable = schema.GetColumn(col_oid).Nullable();
+  return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, !col_oid);
 }
 
 void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {

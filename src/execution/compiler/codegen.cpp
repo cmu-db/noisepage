@@ -38,7 +38,8 @@ std::string CodeGen::Scope::GetFreshName(const std::string &name) {
 //
 //===----------------------------------------------------------------------===//
 
-CodeGen::CodeGen(ast::Context *context) : context_(context), position_{0, 0}, num_cached_scopes_(0), scope_(nullptr) {
+CodeGen::CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor)
+    : context_(context), position_{0, 0}, num_cached_scopes_(0), scope_(nullptr), accessor_(accessor) {
   for (auto &scope : scope_cache_) {
     scope = std::make_unique<Scope>(nullptr);
   }
@@ -358,6 +359,8 @@ ast::Expr *CodeGen::StringToSql(std::string_view str) const {
 // ---------------------------------------------------------
 // Table Vector Iterator
 // ---------------------------------------------------------
+
+catalog::CatalogAccessor *CodeGen::GetCatalogAccessor() const { return accessor_; }
 
 ast::Expr *CodeGen::TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, catalog::table_oid_t table_oid,
                                   ast::Identifier col_oids) {

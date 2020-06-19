@@ -11,6 +11,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
+#include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
@@ -302,7 +303,8 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   // TODO(WAN): poke the settings manager for execution settings
   execution::exec::ExecutionSettings exec_settings;
-  auto exec_query = std::make_unique<execution::compiler::ExecutableQuery>(*physical_plan, exec_settings);
+  auto exec_query =
+      execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get());
 
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));

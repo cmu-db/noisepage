@@ -57,11 +57,11 @@ namespace {
 std::atomic<uint64_t> unique_ids{0};
 }  // namespace
 
-CompilationContext::CompilationContext(ExecutableQuery *query, const CompilationMode mode)
+CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, const CompilationMode mode)
     : unique_id_(unique_ids++),
       query_(query),
       mode_(mode),
-      codegen_(query_->GetContext()),
+      codegen_(query_->GetContext(), accessor),
       query_state_var_(codegen_.MakeIdentifier("queryState")),
       query_state_type_(codegen_.MakeIdentifier("QueryState")),
       query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }) {}
@@ -146,12 +146,13 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 // static
 std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::AbstractPlanNode &plan,
                                                              const exec::ExecutionSettings &exec_settings,
+                                                             catalog::CatalogAccessor *accessor,
                                                              const CompilationMode mode) {
   // The query we're generating code for.
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings);
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), mode);
+  CompilationContext ctx(query.get(), accessor, mode);
   ctx.GeneratePlan(plan);
 
   // Done
