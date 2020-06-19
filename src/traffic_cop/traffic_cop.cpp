@@ -31,6 +31,7 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
