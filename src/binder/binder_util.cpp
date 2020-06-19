@@ -81,7 +81,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::TINYINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            int64_t int_val;
+            try {
+              int_val = std::stol(std::string(str_view));
+            } catch (const std::out_of_range &e) {
+              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
+            }
             if (!IsRepresentable<int8_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -89,7 +94,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::SMALLINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            int64_t int_val;
+            try {
+              int_val = std::stol(std::string(str_view));
+            } catch (const std::out_of_range &e) {
+              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
+            }
             if (!IsRepresentable<int16_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -97,7 +107,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::INTEGER: {
-            const auto int_val = std::stol(std::string(str_view));
+            int64_t int_val;
+            try {
+              int_val = std::stol(std::string(str_view));
+            } catch (const std::out_of_range &e) {
+              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
+            }
             if (!IsRepresentable<int32_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -105,7 +120,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::BIGINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            int64_t int_val;
+            try {
+              int_val = std::stol(std::string(str_view));
+            } catch (const std::out_of_range &e) {
+              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
+            }
             if (!IsRepresentable<int64_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
