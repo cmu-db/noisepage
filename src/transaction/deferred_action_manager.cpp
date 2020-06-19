@@ -99,12 +99,14 @@ uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn, bool metric
 uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled) {
   uint32_t processed = 0;
   std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = {
-      timestamp_t(0), {[=](timestamp_t /*unused*/) {}, DafId::INVALID}};
+      INVALID_TXN_TIMESTAMP, {[=](timestamp_t /*unused*/) {}, DafId::INVALID}};
   auto curr_size = new_deferred_actions_.unsafe_size();
   if (metrics_enabled) {
     common::thread_context.metrics_store_->RecordQueueSize(back_log_.size() + curr_size);
   }
+  bool processe_curr = false;
   while (processed != curr_size) {
+    processe_curr = false;
     // Try_pop would pop the front of the queue if there is at least element in queue,
     // Since currently the deferred action queue only has one consumer, if the while loop condition is satifsfied
     // try pop should always return true
@@ -123,8 +125,9 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
       common::thread_context.metrics_store_->RecordActionData(curr_action.second.second, resource_metrics);
     }
     processed++;
+    processe_curr = true;
   }
-  if (processed != curr_size && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);
+  if (!processe_curr && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);
   if (metrics_enabled) {
 //    if (!common::thread_context.metrics_store_->CheckWakeUp())
 ////      std::cout << "dfdfd" << std::endl;
