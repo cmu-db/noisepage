@@ -165,6 +165,10 @@ class SqlTable {
    */
   DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
 
+  DataTable::SlotIterator GetBlockedSlotIterator(uint32_t start_block, uint32_t end_block) const {
+    return table_.data_table_->GetBlockedSlotIterator(start_block, end_block);
+  }
+
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
    */

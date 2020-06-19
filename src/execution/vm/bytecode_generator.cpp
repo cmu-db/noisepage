@@ -618,26 +618,22 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 }
 
 void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
-  UNREACHABLE("FIX ME");
-#if 0
-  // First is the table name as a string literal
-  const auto table_name = call->Arguments()[0]->As<ast::LitExpr>()->StringVal();
-  sql::Table *table = sql::Catalog::Instance()->LookupTableByName(table_name);
-  TERRIER_ASSERT(table != nullptr, "Table does not exist!");
-
-  // Next is the execution context
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-
-  // Next is the thread state container
-  LocalVar thread_state_container = VisitExpressionForRValue(call->Arguments()[2]);
-
-  // Finally the scan function as an identifier
-  const auto scan_fn_name = call->Arguments()[3]->As<ast::IdentifierExpr>()->Name();
-
-  // Done
-  GetEmitter()->EmitParallelTableScan(table->GetId(), exec_ctx, thread_state_container,
-                                      LookupFuncIdByName(scan_fn_name.GetData()));
-#endif
+  // The first argument should be the execution context.
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  // The second argument is the table oid, which is integer-typed.
+  LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[1]);
+  // The third argument is the array of column oids.
+  auto *arr_type = call->Arguments()[2]->GetType()->As<ast::ArrayType>();
+  LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
+  // The fourth argument is the query state. Right now, this is the same as the execution context.
+  LocalVar query_state = VisitExpressionForRValue(call->Arguments()[3]);
+  // The fifth argument is the thread state container.
+  LocalVar thread_state_container = VisitExpressionForRValue(call->Arguments()[4]);
+  // The sixth argument is the scan function as an identifier.
+  const auto scan_fn_name = call->Arguments()[5]->As<ast::IdentifierExpr>()->Name();
+  // Emit the bytecode.
+  GetEmitter()->EmitParallelTableScan(exec_ctx, table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
+                                      query_state, thread_state_container, LookupFuncIdByName(scan_fn_name.GetData()));
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {

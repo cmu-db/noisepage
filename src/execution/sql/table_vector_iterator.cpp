@@ -9,6 +9,7 @@
 #include "execution/sql/column_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/timer.h"
+#include "loggers/execution_logger.h"
 #include "tbb/parallel_for.h"
 #include "tbb/task_scheduler_init.h"
 
@@ -48,11 +49,50 @@ bool TableVectorIterator::Init() {
     column_iterators_.emplace_back(GetTypeIdSize(col_type));
   }
 
-  // Create a referencing vector.
+  // Create an owning vector.
   vp_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(sizeof(VectorProjection), alignof(uint64_t), false);
   vector_projection_ = new (vp_buffer_) VectorProjection();
   vector_projection_->SetStorageColIds(col_ids);
-  vector_projection_->InitializeEmpty(col_types);
+  vector_projection_->Initialize(col_types);
+  vector_projection_->Reset(common::Constants::K_DEFAULT_VECTOR_SIZE);
+
+  // All good.
+  initialized_ = true;
+  return true;
+}
+
+bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
+  // No-op if already initialized
+  if (IsInitialized()) {
+    return true;
+  }
+
+  // Set up the table and the iterator.
+  table_ = exec_ctx_->GetAccessor()->GetTable(table_oid_);
+  TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
+  iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->GetBlockedSlotIterator(block_start, block_end));
+  const auto &table_col_map = table_->GetColumnMap();
+
+  // Configure the vector projection, create the column iterators.
+  std::vector<storage::col_id_t> col_ids;
+  std::vector<TypeId> col_types(col_oids_.size());
+  column_iterators_.reserve(col_oids_.size());
+  for (uint64_t idx = 0; idx < col_oids_.size(); idx++) {
+    auto col_oid = col_oids_[idx];
+    auto col_type = GetTypeId(table_col_map.at(col_oid).col_type_);
+    auto storage_col_id = table_col_map.at(col_oid).col_id_;
+
+    col_ids.emplace_back(storage_col_id);
+    col_types[idx] = col_type;
+    column_iterators_.emplace_back(GetTypeIdSize(col_type));
+  }
+
+  // Create an owning vector.
+  vp_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(sizeof(VectorProjection), alignof(uint64_t), false);
+  vector_projection_ = new (vp_buffer_) VectorProjection();
+  vector_projection_->SetStorageColIds(col_ids);
+  vector_projection_->Initialize(col_types);
+  vector_projection_->Reset(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   // All good.
   initialized_ = true;
@@ -99,25 +139,27 @@ bool TableVectorIterator::Advance() {
   return true;
 }
 
-/*
-TODO(WAN): wait until PR merged for parallel scan interface to blocks
 namespace {
 
 class ScanTask {
  public:
-  ScanTask(uint16_t table_id, void *const query_state, ThreadStateContainer *const thread_state_container,
+  ScanTask(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
+           void *const query_state, ThreadStateContainer *const thread_state_container,
            TableVectorIterator::ScanFn scanner)
-      : table_id_(table_id),
+      : exec_ctx_(exec_ctx),
+        table_oid_(table_oid),
+        col_oids_(col_oids),
+        num_oids_(num_oids),
         query_state_(query_state),
         thread_state_container_(thread_state_container),
         scanner_(scanner) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
     // Create the iterator over the specified block range
-    TableVectorIterator iter(table_id_, block_range.begin(), block_range.end());
+    TableVectorIterator iter{exec_ctx_, table_oid_, col_oids_, num_oids_};
 
     // Initialize it
-    if (!iter.Init()) {
+    if (!iter.Init(block_range.begin(), block_range.end())) {
       return;
     }
 
@@ -129,7 +171,10 @@ class ScanTask {
   }
 
  private:
-  uint16_t table_id_;
+  exec::ExecutionContext *exec_ctx_;
+  uint32_t table_oid_;
+  uint32_t *col_oids_;
+  uint32_t num_oids_;
   void *const query_state_;
   ThreadStateContainer *const thread_state_container_;
   TableVectorIterator::ScanFn scanner_;
@@ -137,11 +182,12 @@ class ScanTask {
 
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(const uint16_t table_id, void *const query_state,
+bool TableVectorIterator::ParallelScan(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
+                                       uint32_t num_oids, void *const query_state,
                                        ThreadStateContainer *const thread_states,
                                        const TableVectorIterator::ScanFn scan_fn, const uint32_t min_grain_size) {
   // Lookup table
-  const Table *table = Catalog::Instance()->LookupTableById(table_id);
+  const auto table = exec_ctx->GetAccessor()->GetTable(catalog::table_oid_t{table_oid});
   if (table == nullptr) {
     return false;
   }
@@ -152,16 +198,16 @@ bool TableVectorIterator::ParallelScan(const uint16_t table_id, void *const quer
 
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;
-  tbb::blocked_range<uint32_t> block_range(0, table->GetBlockCount(), min_grain_size);
-  tbb::parallel_for(block_range, ScanTask(table_id, query_state, thread_states, scan_fn));
+  tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
+  tbb::parallel_for(block_range,
+                    ScanTask(exec_ctx, table_oid, col_oids, num_oids, query_state, thread_states, scan_fn));
 
   timer.Stop();
 
-  double tps = table->GetTupleCount() / timer.GetElapsed() / 1000.0;
-  LOG_INFO("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->GetBlockCount(), table->GetTupleCount(),
-           timer.GetElapsed(), tps);
+  double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
+  EXECUTION_LOG_INFO("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),
+                     table->GetNumTuple(), timer.GetElapsed(), tps);
 
   return true;
 }
-*/
 }  // namespace terrier::execution::sql

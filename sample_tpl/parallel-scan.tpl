@@ -1,70 +1,81 @@
 // Perform parallel scan
-// This is not yet supported with the current SQL table API.
 
 struct State {
+    count : uint32
 }
-
 
 struct ThreadState_1 {
-  filter: FilterManager
+    filter : FilterManager
+    count  : uint32
 }
 
-fun _1_Lt500(vpi: *VectorProjectionIterator) -> int32 {
-  var param: Integer = @intToSql(500)
-  var cola: Integer
-  if (@vpiIsFiltered(vpi)) {
-    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
-      cola = @vpiGetInt(vpi, 0)
-      @vpiMatch(vpi, cola < param)
+fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
+    state.count = 0
+}
+
+fun tearDownState(execCtx: *ExecutionContext, state: *State) -> nil { }
+
+fun pipeline1_filter_clause0term0(vector_proj: *VectorProjection, tids: *TupleIdList, ctx: *uint8) -> nil {
+    @filterLt(vector_proj, 0, @intToSql(500), tids)
+}
+
+fun pipeline1_worker_initThreadState(execCtx: *ExecutionContext, state: *ThreadState_1) -> nil {
+    @filterManagerInit(&state.filter)
+    @filterManagerInsertFilter(&state.filter, pipeline1_filter_clause0term0)
+
+    state.count = 0
+}
+
+fun pipeline1_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *ThreadState_1) -> nil {
+    @filterManagerFree(&state.filter)
+}
+
+fun pipeline1_finalize(qs: *State, ts: *ThreadState_1) -> nil {
+    qs.count = qs.count + ts.count
+}
+
+fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
+    var filter = &state.filter
+    for (@tableIterAdvance(tvi)) {
+        var vpi = @tableIterGetVPI(tvi)
+
+        // Filter
+        @filterManagerRunFilters(filter, vpi)
+
+        // Count
+        for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
+            state.count = state.count + 1
+        }
     }
-  } else {
-    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
-      cola = @vpiGetInt(vpi, 0)
-      @vpiMatch(vpi, cola < param)
-    }
-  }
-  @vpiResetFiltered(vpi)
-  return 0
+    return
 }
 
-fun _1_Lt500_Vec(vpi: *VectorProjectionIterator) -> int32 {
-  return @filterLt(vpi, "colA", 500)
+fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
+    // First the thread state container
+    var tls = @execCtxGetTLS(execCtx)
+    @tlsReset(tls, @sizeOf(ThreadState_1), pipeline1_worker_initThreadState, pipeline1_worker_tearDownThreadState, execCtx)
+
+    // Now scan
+    @iterateTableParallel("test_1", state, tls, pipeline1_worker)
+
+    // Collect results
+    @tlsIterate(tls, state, pipeline1_finalize)
+
+    // Cleanup
+    @tlsClear(tls)
 }
 
-fun _1_pipelineWorker_InitThreadState(execCtx: *ExecutionContext, state: *ThreadState_1) -> nil {
-  @filterManagerInit(&state.filter)
-  @filterManagerInsertFilter(&state.filter, _1_Lt500, _1_Lt500_Vec)
-  @filterManagerFinalize(&state.filter)
-}
-
-fun _1_pipelineWorker_TearDownThreadState(execCtx: *ExecutionContext, state: *ThreadState_1) -> nil {
-  @filterManagerFree(&state.filter)
-}
-
-fun _1_pipelineWorker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
-  var filter = &state.filter
-  for (@tableIterAdvance(tvi)) {
-    var vpi = @tableIterGetVPI(tvi)
-    @filtersRun(filter, vpi)
-  }
-  return
+fun execQuery(execCtx: *ExecutionContext, state: *State) -> nil {
+    pipeline1(execCtx, state)
 }
 
 fun main(execCtx: *ExecutionContext) -> int {
-  // Pipeline 1 - parallel scan table
+    var state: State
 
-  // First the thread state container
-  var tls: ThreadStateContainer
-  @tlsInit(&tls, @execCtxGetMem(execCtx))
-  @tlsReset(&tls, @sizeOf(ThreadState_1), _1_pipelineWorker_InitThreadState, _1_pipelineWorker_TearDownThreadState, execCtx)
+    setUpState(execCtx, &state)
+    execQuery(execCtx, &state)
+    var ret = state.count
+    tearDownState(execCtx, &state)
 
-  // Now scan
-  @iterateTableParallel("test_1", &state, &tls, _1_pipelineWorker)
-
-  // Pipeline 2
-
-  // Cleanup
-  @tlsFree(&tls)
-
-  return 0
+    return ret
 }

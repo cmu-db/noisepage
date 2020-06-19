@@ -55,6 +55,8 @@ class EXPORT TableVectorIterator {
    */
   bool Init();
 
+  bool Init(uint32_t block_start, uint32_t block_end);
+
   /**
    * Advance the iterator by a vector of input.
    * @return True if there is more data in the iterator; false otherwise.
@@ -85,16 +87,19 @@ class EXPORT TableVectorIterator {
    * @em scanner on each input vector projection from the source table. This call is blocking,
    * meaning that it only returns after the whole table has been scanned. Iteration order is
    * non-deterministic.
-   * @param db_oid The ID of the database containing the table.
+   * @param exec_ctx The execution context to run the parallel scan in.
    * @param table_id The ID of the table to scan.
+   * @param col_oids The column OIDs of the table to scan.
+   * @param num_oids The number of column OIDs provided in col_oids.
    * @param query_state An opaque pointer to some query-specific state. Passed to scan functions.
    * @param thread_states Container for all thread states. It's assumed that the container has been
    *                      configured for size, construction, and destruction before this invocation.
    * @param scan_fn The callback function invoked for vectors of table input.
    * @param min_grain_size The minimum number of blocks to give a scan task.
    */
-  static bool ParallelScan(uint32_t db_oid, uint32_t table_oid, void *query_state, ThreadStateContainer *thread_states,
-                           ScanFn scan_fn, uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
+  static bool ParallelScan(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
+                           void *query_state, ThreadStateContainer *thread_states, ScanFn scan_fn,
+                           uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
   /** When the column iterators receive new vectors of input, we need to refresh the projection with new data too. */
   void RefreshVectorProjection();
