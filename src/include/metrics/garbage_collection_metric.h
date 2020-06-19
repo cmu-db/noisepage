@@ -96,8 +96,8 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     start_ = metrics::MetricsUtil::Now() % 1000000000;
     daf_count_agg << (start_);
     daf_time_agg << (start_);
-    uint64_t total_processed = 0;
-    uint64_t total_elapsed = 0;
+    int total_processed = 0;
+    int total_elapsed = 0;
     common::ResourceTracker::Metrics resource_metrics = {};
     for (const auto &data : aggregate_data_) {
 //      if (data.daf_id_ != transaction::DafId::INVALID) {
@@ -159,13 +159,13 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     action_data_.emplace_front(daf_id, resource_metrics);
   }
 
-  void RecordQueueSize(const uint64_t UNUSED_ATTRIBUTE queue_size) {
+  void RecordQueueSize(const int UNUSED_ATTRIBUTE queue_size) {
     if (before_queue_length_ < queue_size) {
       before_queue_length_.store(queue_size);
     }
   }
 
-  void RecordAfterQueueSize(const uint64_t UNUSED_ATTRIBUTE queue_size) {
+  void RecordAfterQueueSize(const int UNUSED_ATTRIBUTE queue_size) {
     if (after_queue_length_ < queue_size) {
       after_queue_length_.store(queue_size);
     }
@@ -188,7 +188,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   struct ActionData {
     ActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics)
         : start_(metrics::MetricsUtil::Now()), daf_id_(daf_id), resource_metrics_(resource_metrics) {}
-    const uint64_t start_;
+    const int start_;
     const transaction::DafId daf_id_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
@@ -196,13 +196,13 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   struct AggregateData {
     AggregateData() = default;
 
-    AggregateData(const transaction::DafId daf_id, const uint64_t num_processed, const common::ResourceTracker::Metrics &resource_metrics)
+    AggregateData(const transaction::DafId daf_id, const int num_processed, const common::ResourceTracker::Metrics &resource_metrics)
         : daf_id_(daf_id), num_actions_processed_(num_processed), resource_metrics_(resource_metrics) {}
 
     AggregateData(const AggregateData &other) = default;
-//    uint64_t start_{0};
+//    int start_{0};
     transaction::DafId daf_id_{transaction::DafId::INVALID};
-    uint64_t num_actions_processed_{0};
+    int num_actions_processed_{0};
 //    uint64_t time_elapsed_{0};
     common::ResourceTracker::Metrics resource_metrics_;
   };
@@ -212,11 +212,11 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 
   uint64_t start_ = 0;
 
-  std::atomic<uint64_t> before_queue_length_ = 0;
-  std::atomic<uint64_t> after_queue_length_ = 0;
+  std::atomic<int> before_queue_length_ = 0;
+  std::atomic<int> after_queue_length_ = 0;
 
-  std::atomic<uint64_t> num_txns_processed_ = 0;
-  std::atomic<uint64_t> num_daf_wakeup_ = 0;
+  std::atomic<int> num_txns_processed_ = 0;
+  std::atomic<int> num_daf_wakeup_ = 0;
 };
 
 /**
@@ -230,11 +230,11 @@ class GarbageCollectionMetric : public AbstractMetric<GarbageCollectionMetricRaw
     GetRawData()->RecordActionData(daf_id, resource_metrics);
   }
 
-  void RecordQueueSize(const uint32_t queue_size) {
+  void RecordQueueSize(const int queue_size) {
     GetRawData()->RecordQueueSize(queue_size);
   }
 
-  void RecordAfterQueueSize(const uint32_t queue_size) {
+  void RecordAfterQueueSize(const int queue_size) {
     GetRawData()->RecordAfterQueueSize(queue_size);
   }
 
