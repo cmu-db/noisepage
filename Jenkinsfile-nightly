@@ -59,12 +59,17 @@ def loop_terminals_run_oltp(list){
     // for all the nightly benchmarks, we scale the number of terminals: 1,2,4,8,16
     for(int i=0; i < list.size(); i++){
         // tatp/smallbank/noop/ycsb are running with the default config: --scale-factor=1
-        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4 --terminals=${list[i]}"
-        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=4 --terminals=${list[i]}"
-        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release --terminals=${list[i]}"
-        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=release --loader-threads=4 --terminals=${list[i]}"
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release \
+                                --loader-threads=4 --client-time=60 --terminals=${list[i]}"
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release \
+                                --loader-threads=4 --client-time=60 --terminals=${list[i]}"
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release \
+                                --client-time=60 --terminals=${list[i]}"
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=release \
+                                --loader-threads=4 --client-time=60 --terminals=${list[i]}"
         // for TPC-C, --scale-factor=4
-        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4 --scale-factor=4 --terminals=${list[i]}"
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release \
+                                --loader-threads=4 --scale-factor=4 --client-time=60 --terminals=${list[i]}"
     }
     archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
 }
