@@ -56,7 +56,11 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
     @tlsReset(tls, @sizeOf(ThreadState_1), pipeline1_worker_initThreadState, pipeline1_worker_tearDownThreadState, execCtx)
 
     // Now scan
-    @iterateTableParallel("test_1", state, tls, pipeline1_worker)
+    var table_oid : uint32
+    table_oid = @testCatalogLookup(execCtx, "test_1", "")
+    var col_oids: [1]uint32
+    col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
+    @iterateTableParallel(execCtx, table_oid, col_oids, state, tls, pipeline1_worker)
 
     // Collect results
     @tlsIterate(tls, state, pipeline1_finalize)
