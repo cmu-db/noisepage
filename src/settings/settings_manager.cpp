@@ -46,7 +46,7 @@ void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueEx
         "Value given for \"{}"
         "\" is not in its min-max bounds",
         info.name_);
-    throw SETTINGS_EXCEPTION("Invalid setting value");
+    throw SETTINGS_EXCEPTION("Setting value is out of min-max bounds");
   }
 }
 
@@ -82,7 +82,7 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
   // somebody from reusing it for multiple invocations
   if (action_context->GetState() != ActionState::INITIATED) {
     SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
-    throw SETTINGS_EXCEPTION("Invalid ActionContext state");
+    throw SETTINGS_EXCEPTION("ActionContext is not initiated");
   }
 
   const auto &param_info = param_map_.find(param)->second;

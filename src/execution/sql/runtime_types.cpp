@@ -89,7 +89,7 @@ Date Date::FromString(const std::string &str) {
 
 Date Date::FromYMD(int32_t year, uint32_t month, uint32_t day) {
   if (!IsValidJulianDate(year, month, day)) {
-    throw CONVERSION_EXCEPTION("Invalid date.");
+    throw CONVERSION_EXCEPTION("Invalid julian date.");
   }
   return Date(BuildJulianDate(year, month, day));
 }
