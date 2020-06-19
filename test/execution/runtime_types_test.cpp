@@ -22,8 +22,7 @@ TEST_F(RuntimeTypesTest, TimestampTest) {
   EXPECT_EQ(tz.ToString(), "2020-01-01 16:22:33.123000");
 }
 
-
- TEST_F(RuntimeTypesTest, ExtractDateParts) {
+TEST_F(RuntimeTypesTest, ExtractDateParts) {
   // Valid date
   Date d;
   EXPECT_NO_THROW({ d = Date::FromYMD(2016, 12, 19); });
@@ -47,7 +46,7 @@ TEST_F(RuntimeTypesTest, TimestampTest) {
   EXPECT_THROW({ d = Date::FromYMD(-50000000, 921873, 21938); }, ConversionException);
 }
 
- TEST_F(RuntimeTypesTest, DateFromString) {
+TEST_F(RuntimeTypesTest, DateFromString) {
   // Valid date
   Date d;
   EXPECT_NO_THROW({ d = Date::FromString("1990-01-11"); });
@@ -76,7 +75,7 @@ TEST_F(RuntimeTypesTest, TimestampTest) {
   EXPECT_THROW({ d = Date::FromString("-1-1-23"); }, ConversionException);
 }
 
- TEST_F(RuntimeTypesTest, DateComparisons) {
+TEST_F(RuntimeTypesTest, DateComparisons) {
   Date d1 = Date::FromString("2000-01-01");
   Date d2 = Date::FromString("2016-02-19");
   Date d3 = d1;
@@ -94,7 +93,7 @@ TEST_F(RuntimeTypesTest, TimestampTest) {
   EXPECT_LT(d1, d2);
 }
 
- TEST_F(RuntimeTypesTest, DateToString) {
+TEST_F(RuntimeTypesTest, DateToString) {
   Date d1 = Date::FromString("2016-01-27");
   EXPECT_EQ("2016-01-27", d1.ToString());
 
@@ -103,7 +102,7 @@ TEST_F(RuntimeTypesTest, TimestampTest) {
   EXPECT_EQ("2000-01-01", d1.ToString());
 }
 
- TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
+TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
   // Valid timestamp.
   Timestamp t;
   EXPECT_NO_THROW({ t = Timestamp::FromYMDHMS(2016, 12, 19, 10, 20, 30); });
@@ -135,7 +134,7 @@ TEST_F(RuntimeTypesTest, TimestampTest) {
   EXPECT_THROW({ t = Timestamp::FromYMDHMS(50000000, 92187, 1, 13, 59, 60); }, ConversionException);
 }
 
- TEST_F(RuntimeTypesTest, TimestampComparisons) {
+TEST_F(RuntimeTypesTest, TimestampComparisons) {
   Timestamp t1 = Timestamp::FromYMDHMS(2000, 1, 1, 12, 0, 0);
   Timestamp t2 = Timestamp::FromYMDHMS(2000, 1, 1, 16, 0, 0);
   Timestamp t3 = t1;
@@ -154,4 +153,4 @@ TEST_F(RuntimeTypesTest, TimestampTest) {
   EXPECT_LT(t1, t2);
 }
 
-}  // namespace terrier
+}  // namespace terrier::execution::sql
