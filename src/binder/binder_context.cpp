@@ -107,11 +107,13 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
       auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.Get());
       alias = tv_expr->GetColumnName();
     } else {
+      i++;
       continue;
     }
 
     std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
     column_alias_map[alias] = expr->GetReturnValueType();
+    i++;
   }
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
