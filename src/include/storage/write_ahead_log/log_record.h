@@ -1,4 +1,5 @@
 #pragma once
+
 #include "storage/data_table.h"
 #include "storage/projected_row.h"
 #include "transaction/timestamp_manager.h"
