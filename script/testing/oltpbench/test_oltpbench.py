@@ -83,7 +83,7 @@ class TestOLTPBench(TestServer):
             self.validate_result()
         except:
             traceback.print_exc(file=sys.stdout)
-            pass
+            return ErrorCode.ERROR
 
     def create_result_dir(self):
         if not os.path.exists(constants.OLTP_DIR_TEST_RESULT):
@@ -185,5 +185,4 @@ class TestOLTPBench(TestServer):
                     print(str(unexpected_result))
                     sys.exit(constants.ErrorCode.ERROR)
         else:
-            print(str(unexpected_result))
-            sys.exit(constants.ErrorCode.ERROR)
+            raise RuntimeError(str(unexpected_result)
