@@ -61,7 +61,7 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   storage::GarbageCollector *gc_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
+  const std::chrono::milliseconds gc_period_{0};
   const std::chrono::milliseconds metrics_period_{100};
 };
 
@@ -585,10 +585,18 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      uint32_t j = 0;
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+        if (j >= 1000) {
+          timer.Pause();
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          j = 0;
+          timer.Resume();
+        }
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
         });
+        j++;
       }
       thread_pool.WaitUntilAllFinished();
       log_manager_->ForceFlush();

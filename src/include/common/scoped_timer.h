@@ -31,11 +31,22 @@ class ScopedTimer {
    */
   ~ScopedTimer() {
     auto end = std::chrono::high_resolution_clock::now();
-    *elapsed_ = static_cast<uint64_t>(std::chrono::duration_cast<resolution>(end - start_).count());
+    *elapsed_ = static_cast<uint64_t>(std::chrono::duration_cast<resolution>(end - start_).count()) - pause_duration_;
+  }
+
+  void Pause() {
+    pause_start_ = std::chrono::high_resolution_clock::now();
+  }
+
+  void Resume() {
+    auto end = std::chrono::high_resolution_clock::now();
+    pause_duration_ += static_cast<uint64_t>(std::chrono::duration_cast<resolution>(end - pause_start_).count());
   }
   DISALLOW_COPY_AND_MOVE(ScopedTimer)
  private:
   const std::chrono::high_resolution_clock::time_point start_;
   uint64_t *const elapsed_;
+  std::chrono::high_resolution_clock::time_point pause_start_;
+  uint64_t pause_duration_ = 0;
 };
 }  // namespace terrier::common
