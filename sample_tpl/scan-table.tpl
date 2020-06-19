@@ -7,7 +7,7 @@ fun main(execCtx: *ExecutionContext) -> int {
   var ret: int = 0
   var tvi: TableVectorIterator
 
-  var table_oid : int32
+  var table_oid : uint32
   table_oid = @testCatalogLookup(execCtx, "test_1", "")
   var col_oids: [1]uint32
   col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")

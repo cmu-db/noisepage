@@ -132,7 +132,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   // Visit an expression for its R-Value and return the local variable holding its result
   LocalVar VisitExpressionForRValue(ast::Expr *expr);
 
-  // Visit an expression for its R-Value, providing a destination variable where the result should  be stored
+  // Visit an expression for its R-Value, providing a destination variable where the result should be stored
   void VisitExpressionForRValue(ast::Expr *expr, LocalVar dest);
 
   enum class TestFallthrough : uint8_t { None, Then, Else };

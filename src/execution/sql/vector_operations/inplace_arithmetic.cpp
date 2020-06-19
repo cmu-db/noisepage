@@ -20,15 +20,13 @@ struct ShouldPerformFullCompute<terrier::execution::sql::AddInPlace<T>> {
 namespace {
 
 template <typename T, template <typename> typename Op>
-void InPlaceOperation(const exec::ExecutionSettings &exec_settings, Vector *left,
-                      const Vector &right) {
+void InPlaceOperation(const exec::ExecutionSettings &exec_settings, Vector *left, const Vector &right) {
   InPlaceOperationExecutor::Execute<T, T, Op<T>>(exec_settings, left, right);
 }
 
 }  // namespace
 
-void VectorOps::AddInPlace(const exec::ExecutionSettings &exec_settings, Vector *left,
-                           const Vector &right) {
+void VectorOps::AddInPlace(const exec::ExecutionSettings &exec_settings, Vector *left, const Vector &right) {
   // Sanity check
   CheckInplaceOperation(left, right);
 

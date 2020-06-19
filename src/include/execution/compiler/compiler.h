@@ -155,16 +155,15 @@ class Compiler {
    * @param input The input into the compiler.
    * @param callbacks The callbacks.
    */
-  static void RunCompilation(const Input &input, Callbacks *callbacks,
-                             const exec::ExecutionSettings &exec_settings);
+  static void RunCompilation(const Input &input, Callbacks *callbacks, const exec::ExecutionSettings &exec_settings);
 
   /**
    * Compile the given input into a module.
    * @param input The input to compilation.
    * @return The generated module. If there was an error, returns NULL.
    */
-  static std::unique_ptr<vm::Module> RunCompilationSimple(
-      const Input &input, const exec::ExecutionSettings &exec_settings);
+  static std::unique_ptr<vm::Module> RunCompilationSimple(const Input &input,
+                                                          const exec::ExecutionSettings &exec_settings);
 
   /**
    * @return A string name for the given compilation phase.

@@ -41,8 +41,8 @@ class BinaryOperationExecutor : public common::AllStatic {
    * @param[out] result The result vector.
    */
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull = false>
-  static void Execute(const exec::ExecutionSettings &exec_settings, const Vector &left,
-                      const Vector &right, Vector *result) {
+  static void Execute(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                      Vector *result) {
     Execute<LeftType, RightType, ResultType, Op, IgnoreNull>(exec_settings, left, right, result, Op{});
   }
 
@@ -74,8 +74,8 @@ class BinaryOperationExecutor : public common::AllStatic {
    * @param op The binary operation.
    */
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull = false>
-  static void Execute(const exec::ExecutionSettings &exec_settings, const Vector &left,
-                      const Vector &right, Vector *result, Op &&op) {
+  static void Execute(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                      Vector *result, Op &&op) {
     // Ensure operator has correct interface.
     static_assert(std::is_invocable_r_v<ResultType, Op, LeftType, RightType>,
                   "Binary operation has invalid interface for given template arguments.");
@@ -98,8 +98,8 @@ class BinaryOperationExecutor : public common::AllStatic {
  private:
   // Binary operation where the left input is a constant value.
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
-  static void ExecuteImplConstantVector(const exec::ExecutionSettings &exec_settings,
-                                        const Vector &left, const Vector &right, Vector *result, Op &&op) {
+  static void ExecuteImplConstantVector(const exec::ExecutionSettings &exec_settings, const Vector &left,
+                                        const Vector &right, Vector *result, Op &&op) {
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());
     auto *RESTRICT result_data = reinterpret_cast<ResultType *>(result->GetData());
@@ -131,8 +131,8 @@ class BinaryOperationExecutor : public common::AllStatic {
 
   // Binary operation where the right input is a constant value.
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
-  static void ExecuteImplVectorConstant(const exec::ExecutionSettings &exec_settings,
-                                        const Vector &left, const Vector &right, Vector *result, Op &&op) {
+  static void ExecuteImplVectorConstant(const exec::ExecutionSettings &exec_settings, const Vector &left,
+                                        const Vector &right, Vector *result, Op &&op) {
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());
     auto *RESTRICT result_data = reinterpret_cast<ResultType *>(result->GetData());

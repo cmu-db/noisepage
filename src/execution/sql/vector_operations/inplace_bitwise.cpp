@@ -21,15 +21,13 @@ struct ShouldPerformFullCompute<terrier::execution::sql::BitwiseANDInPlace<T>> {
 namespace {
 
 template <typename T, template <typename> typename Op>
-void BitwiseOperation(const exec::ExecutionSettings &exec_settings, Vector *left,
-                      const Vector &right) {
+void BitwiseOperation(const exec::ExecutionSettings &exec_settings, Vector *left, const Vector &right) {
   InPlaceOperationExecutor::Execute<T, T, Op<T>>(exec_settings, left, right, Op<T>{});
 }
 
 }  // namespace
 
-void VectorOps::BitwiseAndInPlace(const exec::ExecutionSettings &exec_settings, Vector *left,
-                                  const Vector &right) {
+void VectorOps::BitwiseAndInPlace(const exec::ExecutionSettings &exec_settings, Vector *left, const Vector &right) {
   // Sanity check
   CheckInplaceOperation(left, right);
 

@@ -1644,9 +1644,7 @@ void Sema::CheckBuiltinTestCatalogLookup(ast::CallExpr *call) {
     ReportIncorrectCallArg(call, 2, "string literal");
     return;
   }
-  call->Arguments()[1]->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
-  call->Arguments()[2]->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
-  call->SetType(GetBuiltinType(ast::BuiltinType::Int32));
+  call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
 }
 
 void Sema::CheckBuiltinCall(ast::CallExpr *call) {

@@ -20,8 +20,7 @@ void StandardTemplatedCastOperation(const exec::ExecutionSettings &exec_settings
 }
 
 template <typename InType>
-void CastToStringOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
-                           Vector *target) {
+void CastToStringOperation(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target) {
   TERRIER_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
   terrier::execution::sql::Cast<InType, std::string> cast_op;
   UnaryOperationExecutor::Execute<InType, storage::VarlenEntry, true>(
@@ -31,8 +30,8 @@ void CastToStringOperation(const exec::ExecutionSettings &exec_settings, const V
 
 // Cast from a numeric-ish type into one of the many supported types.
 template <typename InType>
-void CastNumericOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
-                          Vector *target, SqlTypeId target_type) {
+void CastNumericOperation(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target,
+                          SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Boolean:
       StandardTemplatedCastOperation<InType, bool>(exec_settings, source, target);
@@ -65,8 +64,8 @@ void CastNumericOperation(const exec::ExecutionSettings &exec_settings, const Ve
   }
 }
 
-void CastDateOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
-                       Vector *target, SqlTypeId target_type) {
+void CastDateOperation(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target,
+                       SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Timestamp:
       StandardTemplatedCastOperation<Date, Timestamp>(exec_settings, source, target);
@@ -81,8 +80,8 @@ void CastDateOperation(const exec::ExecutionSettings &exec_settings, const Vecto
   }
 }
 
-void CastTimestampOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
-                            Vector *target, SqlTypeId target_type) {
+void CastTimestampOperation(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target,
+                            SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Date:
       StandardTemplatedCastOperation<Timestamp, Date>(exec_settings, source, target);
@@ -97,8 +96,8 @@ void CastTimestampOperation(const exec::ExecutionSettings &exec_settings, const 
   }
 }
 
-void CastStringOperation(const exec::ExecutionSettings &exec_settings, const Vector &source,
-                         Vector *target, SqlTypeId target_type) {
+void CastStringOperation(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target,
+                         SqlTypeId target_type) {
   switch (target_type) {
     case SqlTypeId::Boolean:
       StandardTemplatedCastOperation<storage::VarlenEntry, bool, true>(exec_settings, source, target);
@@ -130,8 +129,8 @@ void CastStringOperation(const exec::ExecutionSettings &exec_settings, const Vec
 
 }  // namespace
 
-void VectorOps::Cast(const exec::ExecutionSettings &exec_settings, const Vector &source,
-                     Vector *target, SqlTypeId source_type, SqlTypeId target_type) {
+void VectorOps::Cast(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target,
+                     SqlTypeId source_type, SqlTypeId target_type) {
   switch (source_type) {
     case SqlTypeId::Boolean:
       CastNumericOperation<bool>(exec_settings, source, target, target_type);
@@ -171,8 +170,7 @@ void VectorOps::Cast(const exec::ExecutionSettings &exec_settings, const Vector 
   }
 }
 
-void VectorOps::Cast(const exec::ExecutionSettings &exec_settings, const Vector &source,
-                     Vector *target) {
+void VectorOps::Cast(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target) {
   const SqlTypeId src_type = GetSqlTypeFromInternalType(source.type_);
   const SqlTypeId target_type = GetSqlTypeFromInternalType(target->type_);
   Cast(exec_settings, source, target, src_type, target_type);

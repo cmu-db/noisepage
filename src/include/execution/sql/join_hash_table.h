@@ -61,8 +61,8 @@ class JoinHashTable {
    * @param tuple_size The size of the tuple stored in this join hash table.
    * @param use_concise_ht Whether to use a concise or fatter chaining join index.
    */
-  explicit JoinHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory,
-                         uint32_t tuple_size, bool use_concise_ht = false);
+  explicit JoinHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, uint32_t tuple_size,
+                         bool use_concise_ht = false);
 
   /**
    * This class cannot be copied or moved.

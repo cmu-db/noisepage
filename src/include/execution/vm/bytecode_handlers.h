@@ -1530,16 +1530,13 @@ VM_OP_WARM void OpExtractYear(terrier::execution::sql::Integer *result, terrier:
 // Testing only function
 // ---------------------------------
 
-VM_OP_WARM void OpTestCatalogLookup(terrier::execution::sql::Integer *oid_var,
-                                    terrier::execution::exec::ExecutionContext *exec_ctx, const uint8_t *table_name_str,
-                                    uint32_t table_name_length, const uint8_t *col_name_str, uint32_t col_name_length) {
+VM_OP_WARM void OpTestCatalogLookup(uint32_t *oid_var, terrier::execution::exec::ExecutionContext *exec_ctx,
+                                    const uint8_t *table_name_str, uint32_t table_name_length,
+                                    const uint8_t *col_name_str, uint32_t col_name_length) {
   // TODO(WAN): wasteful std::string
   terrier::execution::sql::StringVal table_name{reinterpret_cast<const char *>(table_name_str), table_name_length};
   terrier::execution::sql::StringVal col_name{reinterpret_cast<const char *>(col_name_str), col_name_length};
   terrier::catalog::table_oid_t table_oid = exec_ctx->GetAccessor()->GetTableOid(std::string(table_name.StringView()));
-
-  std::string t1{table_name.StringView()};
-  std::string t2{col_name.StringView()};
 
   uint32_t out_oid;
   if (col_name.GetLength() == 0) {
@@ -1549,7 +1546,7 @@ VM_OP_WARM void OpTestCatalogLookup(terrier::execution::sql::Integer *oid_var,
     out_oid = !schema.GetColumn(std::string(col_name.StringView())).Oid();
   }
 
-  *oid_var = terrier::execution::sql::Integer(out_oid);
+  *oid_var = out_oid;
 }
 
 // Macro hygiene

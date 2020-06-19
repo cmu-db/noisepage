@@ -109,7 +109,7 @@ namespace terrier::execution::vm {
   F(ThreadStateContainerClear, OperandType::Local)                                                                     \
                                                                                                                        \
   /* Table Vector Iterator */                                                                                          \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,           \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,           \
     OperandType::UImm4)                                                                                                \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                                \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                   \

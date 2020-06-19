@@ -509,7 +509,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
   OP(TableVectorIteratorInit) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto table_oid = READ_UIMM4();
+    auto table_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
     OpTableVectorIteratorInit(iter, exec_ctx, table_oid, col_oids, num_oids);
@@ -1846,7 +1846,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
   // -------------------------------------------------------
 
   OP(TestCatalogLookup) : {
-    auto *oid_var = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *oid_var = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *table_name = module_->GetBytecodeModule()->AccessStaticLocalDataRaw(LocalVar::Decode(READ_STATIC_LOCAL_ID()));
     auto table_name_len = READ_IMM4();

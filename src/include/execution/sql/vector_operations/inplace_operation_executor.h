@@ -55,8 +55,7 @@ class InPlaceOperationExecutor : public common::AllStatic {
    * @param input The right input.
    */
   template <typename ResultType, typename InputType, class Op>
-  static void Execute(const exec::ExecutionSettings &exec_settings, Vector *result,
-                      const Vector &input) {
+  static void Execute(const exec::ExecutionSettings &exec_settings, Vector *result, const Vector &input) {
     Execute<ResultType, InputType, Op>(exec_settings, result, input, Op{});
   }
 
@@ -84,8 +83,7 @@ class InPlaceOperationExecutor : public common::AllStatic {
    * @param op The operation to perform.
    */
   template <typename ResultType, typename InputType, class Op>
-  static void Execute(const exec::ExecutionSettings &exec_settings, Vector *result,
-                      const Vector &input, Op &&op) {
+  static void Execute(const exec::ExecutionSettings &exec_settings, Vector *result, const Vector &input, Op &&op) {
     // Ensure operator has correct interface.
     static_assert(std::is_invocable_v<Op, ResultType *, InputType>,
                   "In-place operation has invalid interface for given template arguments.");

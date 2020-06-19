@@ -68,8 +68,8 @@ void CheckSelection(const Vector &left, const Vector &right, TupleIdList *result
 }
 
 template <typename T, typename Op>
-void TemplatedSelectOperationVectorConstant(const exec::ExecutionSettings &exec_settings,
-                                            const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void TemplatedSelectOperationVectorConstant(const exec::ExecutionSettings &exec_settings, const Vector &left,
+                                            const Vector &right, TupleIdList *tid_list) {
   // If the scalar constant is NULL, all comparisons are NULL.
   if (right.IsNull(0)) {
     tid_list->Clear();
@@ -99,8 +99,8 @@ void TemplatedSelectOperationVectorConstant(const exec::ExecutionSettings &exec_
 }
 
 template <typename T, typename Op>
-void TemplatedSelectOperationVectorVector(const exec::ExecutionSettings &exec_settings,
-                                          const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void TemplatedSelectOperationVectorVector(const exec::ExecutionSettings &exec_settings, const Vector &left,
+                                          const Vector &right, TupleIdList *tid_list) {
   auto *left_data = reinterpret_cast<const T *>(left.GetData());
   auto *right_data = reinterpret_cast<const T *>(right.GetData());
 
@@ -125,8 +125,8 @@ void TemplatedSelectOperationVectorVector(const exec::ExecutionSettings &exec_se
 }
 
 template <typename T, template <typename> typename Op>
-void TemplatedSelectOperation(const exec::ExecutionSettings &exec_settings, const Vector &left,
-                              const Vector &right, TupleIdList *tid_list) {
+void TemplatedSelectOperation(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                              TupleIdList *tid_list) {
   if (right.IsConstant()) {
     TemplatedSelectOperationVectorConstant<T, Op<T>>(exec_settings, left, right, tid_list);
   } else if (left.IsConstant()) {
@@ -138,8 +138,8 @@ void TemplatedSelectOperation(const exec::ExecutionSettings &exec_settings, cons
 }
 
 template <template <typename> typename Op>
-void SelectOperation(const exec::ExecutionSettings &exec_settings, const Vector &left,
-                     const Vector &right, TupleIdList *tid_list) {
+void SelectOperation(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                     TupleIdList *tid_list) {
   // Sanity check
   CheckSelection(left, right, tid_list);
 
@@ -189,23 +189,23 @@ void SelectOperation(const exec::ExecutionSettings &exec_settings, const Vector 
 
 }  // namespace
 
-void VectorOps::SelectEqual(const exec::ExecutionSettings &exec_settings, const Vector &left,
-                            const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectEqual(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                            TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::Equal>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectGreaterThan(const exec::ExecutionSettings &exec_settings, const Vector &left,
-                                  const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectGreaterThan(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                                  TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::GreaterThan>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectGreaterThanEqual(const exec::ExecutionSettings &exec_settings,
-                                       const Vector &left, const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectGreaterThanEqual(const exec::ExecutionSettings &exec_settings, const Vector &left,
+                                       const Vector &right, TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::GreaterThanEqual>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectLessThan(const exec::ExecutionSettings &exec_settings, const Vector &left,
-                               const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectLessThan(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                               TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::LessThan>(exec_settings, left, right, tid_list);
 }
 
@@ -214,8 +214,8 @@ void VectorOps::SelectLessThanEqual(const exec::ExecutionSettings &exec_settings
   SelectOperation<terrier::execution::sql::LessThanEqual>(exec_settings, left, right, tid_list);
 }
 
-void VectorOps::SelectNotEqual(const exec::ExecutionSettings &exec_settings, const Vector &left,
-                               const Vector &right, TupleIdList *tid_list) {
+void VectorOps::SelectNotEqual(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
+                               TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::NotEqual>(exec_settings, left, right, tid_list);
 }
 
