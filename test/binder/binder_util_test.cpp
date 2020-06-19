@@ -42,12 +42,12 @@ TEST_F(BinderUtilTest, VarcharToInteger) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderUtilTest, VarcharToBigInt) {
-  constexpr std::string_view val = "1572115445";
+  constexpr std::string_view val = "157210154450";
   auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
   const auto cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
                                                                      std::move(string_val.second));
   binder::BinderUtil::CheckAndTryPromoteType(common::ManagedPointer(cve), type::TypeId::BIGINT);
-  EXPECT_EQ(cve->Peek<int64_t>(), 1572115445);
+  EXPECT_EQ(cve->Peek<int64_t>(), 157210154450);
 }
 
 // NOLINTNEXTLINE
