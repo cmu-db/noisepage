@@ -460,7 +460,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     cte_table_name_ = node->GetSelectWith()->GetAlias();
 
     if (node->GetSelectWith()->GetSelect() != nullptr) {
-      auto column_aliases = node->GetSelectWith()->GetColumnAliases(); // Get aliases from TableRef
+      auto column_aliases = node->GetSelectWith()->GetCteColumnAliases(); // Get aliases from TableRef
       auto columns = node->GetSelectWith()->GetSelect()->GetSelectColumns(); // AbstractExpressions in select
 
       auto num_aliases = column_aliases.size();
@@ -803,7 +803,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
     // Add the table to the current context at the end
-    context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), node->GetColumnAliases());
+    context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), node->GetCteColumnAliases());
   } else if (node->GetJoin() != nullptr) {
     // Join
     node->GetJoin()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
