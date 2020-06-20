@@ -91,8 +91,11 @@ void PostgresPacketWriter::WriteRowDescription(const std::vector<planner::Output
       AppendStringView("?column?", true);
     else
       AppendString(name, true);
-    AppendValue<int32_t>(0)       // table oid (if it's a column from a table), 0 otherwise
-        .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
+    AppendValue<int32_t>(
+        0)  // FIXME(Matt): We need this info in OutputSchema. Should be table oid (if it's a column from a table), 0
+            // otherwise.
+        .AppendValue<int16_t>(0)  // FIXME(Matt): We need this info in OutputSchema. Should be column oid (if
+                                  // it's a column from a table), 0 otherwise.
         .AppendValue(
             static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
     if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY ||
