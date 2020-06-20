@@ -321,7 +321,7 @@ int32_t Timestamp::ExtractMillis() const {
   // Extract millisecond from time.
   int32_t hour, min, sec, fsec;
   SplitTime(time, &hour, &min, &sec, &fsec);
-  return sec * 1000.0 + fsec / 1000.0;
+  return fsec / 1000;
 }
 
 int32_t Timestamp::ExtractMicros() const {
@@ -332,7 +332,7 @@ int32_t Timestamp::ExtractMicros() const {
   // Extract microsecond from time.
   int32_t hour, min, sec, fsec;
   SplitTime(time, &hour, &min, &sec, &fsec);
-  return sec + fsec / 1000000.0;
+  return fsec % 1000;
 }
 
 int32_t Timestamp::ExtractDayOfWeek() const {
@@ -519,7 +519,15 @@ Timestamp Timestamp::FromString(const char *str, std::size_t len) {
     count++;
   }
 
-  TS_ERROR;
+  char c = *ptr;
+  if (c == '-' || c == '+') {
+    ptr++;
+    return AdjustTimeZone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
+  } else if (ptr == limit) {
+    return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
+  } else {
+    TS_ERROR;
+  }
 }
 
 Timestamp Timestamp::AdjustTimeZone(char c, int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
@@ -571,7 +579,7 @@ Timestamp Timestamp::AdjustTimeZone(char c, int32_t year, int32_t month, int32_t
     if (hour >= K_HOURS_PER_DAY) {
       hour = hour - K_HOURS_PER_DAY;
       day++;
-      if (day > K_DAYS_PER_MONTH[IsLeapYear(year)][month]) {
+      if (day > K_DAYS_PER_MONTH[IsLeapYear(year)][month - 1]) {
         day = 1;
         month++;
         if (month > K_MONTHS_PER_YEAR) {

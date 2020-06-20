@@ -6,22 +6,6 @@ namespace terrier::execution::sql {
 
 struct RuntimeTypesTest : public TerrierTest {};
 
-TEST_F(RuntimeTypesTest, DateTest) {
-  auto ymd_res = Date::FromYMD(2020, 1, 1);
-  auto res = Date::FromString("2020-01-01");
-  EXPECT_EQ(res, ymd_res);
-  EXPECT_EQ(res.ToString(), "2020-01-01");
-  EXPECT_EQ(ymd_res.ToString(), "2020-01-01");
-}
-
-TEST_F(RuntimeTypesTest, TimestampTest) {
-  auto res = Timestamp::FromString("2020-01-01 11:22:33.123");
-  EXPECT_EQ(res.ToString(), "2020-01-01 11:22:33.123000");
-
-  auto tz = Timestamp::FromString("2020-01-01 11:22:33.123-05");
-  EXPECT_EQ(tz.ToString(), "2020-01-01 16:22:33.123000");
-}
-
 TEST_F(RuntimeTypesTest, ExtractDateParts) {
   // Valid date
   Date d;
@@ -102,6 +86,14 @@ TEST_F(RuntimeTypesTest, DateToString) {
   EXPECT_EQ("2000-01-01", d1.ToString());
 }
 
+TEST_F(RuntimeTypesTest, DateYMDStringEqualityTest) {
+  auto ymd_res = Date::FromYMD(2020, 1, 1);
+  auto res = Date::FromString("2020-01-01");
+  EXPECT_EQ(res, ymd_res);
+  EXPECT_EQ(res.ToString(), "2020-01-01");
+  EXPECT_EQ(ymd_res.ToString(), "2020-01-01");
+}
+
 TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
   // Valid timestamp.
   Timestamp t;
@@ -134,6 +126,95 @@ TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
   EXPECT_THROW({ t = Timestamp::FromYMDHMS(50000000, 92187, 1, 13, 59, 60); }, ConversionException);
 }
 
+TEST_F(RuntimeTypesTest, TimestampFromString) {
+  Timestamp res;
+  EXPECT_NO_THROW({ res = Timestamp::FromString("2020-01-11 11:22:33.123456"); });
+  EXPECT_EQ(2020u, res.ExtractYear());
+  EXPECT_EQ(1u, res.ExtractMonth());
+  EXPECT_EQ(11u, res.ExtractDay());
+  EXPECT_EQ(11u, res.ExtractHour());
+  EXPECT_EQ(22u, res.ExtractMinute());
+  EXPECT_EQ(33u, res.ExtractSecond());
+  EXPECT_EQ(123u, res.ExtractMillis());
+  EXPECT_EQ(456u, res.ExtractMicros());
+  EXPECT_EQ(res.ToString(), "2020-01-11 11:22:33.123456");
+
+  EXPECT_NO_THROW({ res = Timestamp::FromString("2020-01-11 11:22:33.123456::timestamp"); });
+  EXPECT_EQ(2020u, res.ExtractYear());
+  EXPECT_EQ(1u, res.ExtractMonth());
+  EXPECT_EQ(11u, res.ExtractDay());
+  EXPECT_EQ(11u, res.ExtractHour());
+  EXPECT_EQ(22u, res.ExtractMinute());
+  EXPECT_EQ(33u, res.ExtractSecond());
+  EXPECT_EQ(123u, res.ExtractMillis());
+  EXPECT_EQ(456u, res.ExtractMicros());
+  EXPECT_EQ(res.ToString(), "2020-01-11 11:22:33.123456");
+
+  EXPECT_NO_THROW({ res = Timestamp::FromString("2020-01-11 11:22:33.123456-05::timestamp"); });
+  EXPECT_EQ(2020u, res.ExtractYear());
+  EXPECT_EQ(1u, res.ExtractMonth());
+  EXPECT_EQ(11u, res.ExtractDay());
+  EXPECT_EQ(16u, res.ExtractHour());
+  EXPECT_EQ(22u, res.ExtractMinute());
+  EXPECT_EQ(33u, res.ExtractSecond());
+  EXPECT_EQ(123u, res.ExtractMillis());
+  EXPECT_EQ(456u, res.ExtractMicros());
+  EXPECT_EQ(res.ToString(), "2020-01-11 16:22:33.123456");
+
+  EXPECT_NO_THROW({ res = Timestamp::FromString("2020-01-11"); });
+  EXPECT_EQ(2020u, res.ExtractYear());
+  EXPECT_EQ(1u, res.ExtractMonth());
+  EXPECT_EQ(11u, res.ExtractDay());
+  EXPECT_EQ(0u, res.ExtractHour());
+  EXPECT_EQ(0u, res.ExtractMinute());
+  EXPECT_EQ(0u, res.ExtractSecond());
+  EXPECT_EQ(0u, res.ExtractMillis());
+  EXPECT_EQ(0u, res.ExtractMicros());
+  EXPECT_EQ(res.ToString(), "2020-01-11 00:00:00.000000");
+
+  // Invalid dates
+  EXPECT_THROW({ res = Timestamp::FromString("1000-12323-19"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("1000-11-23123"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("1000-12323-199"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("50000000-12-20"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("50000000-12-120"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("50000000-1289217-12"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("da fuk?"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("-1-1-23"); }, ConversionException);
+
+  // Invalid timestamps
+  EXPECT_THROW({ res = Timestamp::FromString("2020-01-11 25:00:01"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("2020-01-11 21:00:00::timestamps"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("2020-01-11 24:15:11::timestamp"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("2020-01-11 24:00:00.11::timestamp"); }, ConversionException);
+  EXPECT_THROW({ res = Timestamp::FromString("2020-01-11 24:00:00.000000::times"); }, ConversionException);
+}
+
+TEST_F(RuntimeTypesTest, TimeZoneFromString) {
+  Timestamp res;
+  EXPECT_NO_THROW({ res = Timestamp::FromString("2020-12-31 23:22:33.123456-05"); });
+  EXPECT_EQ(2021u, res.ExtractYear());
+  EXPECT_EQ(1u, res.ExtractMonth());
+  EXPECT_EQ(1u, res.ExtractDay());
+  EXPECT_EQ(4u, res.ExtractHour());
+  EXPECT_EQ(22u, res.ExtractMinute());
+  EXPECT_EQ(33u, res.ExtractSecond());
+  EXPECT_EQ(123u, res.ExtractMillis());
+  EXPECT_EQ(456u, res.ExtractMicros());
+  EXPECT_EQ(res.ToString(), "2021-01-01 04:22:33.123456");
+
+  EXPECT_NO_THROW({ res = Timestamp::FromString("2020-01-01 01:22:33.123456+05::timestamp"); });
+  EXPECT_EQ(2019u, res.ExtractYear());
+  EXPECT_EQ(12u, res.ExtractMonth());
+  EXPECT_EQ(31u, res.ExtractDay());
+  EXPECT_EQ(20u, res.ExtractHour());
+  EXPECT_EQ(22u, res.ExtractMinute());
+  EXPECT_EQ(33u, res.ExtractSecond());
+  EXPECT_EQ(123u, res.ExtractMillis());
+  EXPECT_EQ(456u, res.ExtractMicros());
+  EXPECT_EQ(res.ToString(), "2019-12-31 20:22:33.123456");
+}
+
 TEST_F(RuntimeTypesTest, TimestampComparisons) {
   Timestamp t1 = Timestamp::FromYMDHMS(2000, 1, 1, 12, 0, 0);
   Timestamp t2 = Timestamp::FromYMDHMS(2000, 1, 1, 16, 0, 0);
@@ -151,6 +232,22 @@ TEST_F(RuntimeTypesTest, TimestampComparisons) {
   t2 = Timestamp::FromYMDHMS(-4000, 1, 1, 10, 10, 11);
   EXPECT_NE(t1, t2);
   EXPECT_LT(t1, t2);
+}
+
+TEST_F(RuntimeTypesTest, TSYMDHMSMUStringEqualityTest) {
+  auto ymdhmsmu_res = Timestamp::FromYMDHMSMU(2020, 1, 11, 10, 12, 13, 123, 432);
+  auto res = Timestamp::FromString("2020-01-11 10:12:13.123432::timestamp");
+  EXPECT_EQ(res, ymdhmsmu_res);
+  EXPECT_EQ(res.ToString(), "2020-01-11 10:12:13.123432");
+  EXPECT_EQ(ymdhmsmu_res.ToString(), "2020-01-11 10:12:13.123432");
+}
+
+TEST_F(RuntimeTypesTest, TSYMDHMStringEqualityTest) {
+  auto ymdhms_res = Timestamp::FromYMDHMS(2020, 1, 11, 10, 12, 13);
+  auto res = Timestamp::FromString("2020-01-11 10:12:13::timestamp");
+  EXPECT_EQ(res, ymdhms_res);
+  EXPECT_EQ(res.ToString(), "2020-01-11 10:12:13.000000");
+  EXPECT_EQ(ymdhms_res.ToString(), "2020-01-11 10:12:13.000000");
 }
 
 }  // namespace terrier::execution::sql
