@@ -440,11 +440,11 @@ TEST(OperatorTests, LogicalCteScanTest) {
   // LogicalCteScan
   //===--------------------------------------------------------------------===//
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -457,12 +457,12 @@ TEST(OperatorTests, LogicalCteScanTest) {
   Operator logical_cte_3 =
       LogicalCteScan::Make("cte_2", std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
 
-  EXPECT_EQ(logical_cte_1.GetType(), OpType::LOGICALCTESCAN);
-  EXPECT_EQ(logical_cte_3.GetType(), OpType::LOGICALCTESCAN);
+  EXPECT_EQ(logical_cte_1.GetOpType(), OpType::LOGICALCTESCAN);
+  EXPECT_EQ(logical_cte_3.GetOpType(), OpType::LOGICALCTESCAN);
   EXPECT_EQ(logical_cte_1.GetName(), "LogicalCteScan");
-  EXPECT_EQ(logical_cte_1.As<LogicalCteScan>()->GetExpressions(),
+  EXPECT_EQ(logical_cte_1.GetContentsAs<LogicalCteScan>()->GetExpressions(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
-  EXPECT_EQ(logical_cte_3.As<LogicalCteScan>()->GetExpressions(),
+  EXPECT_EQ(logical_cte_3.GetContentsAs<LogicalCteScan>()->GetExpressions(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
   EXPECT_TRUE(logical_cte_1 == logical_cte_2);
   EXPECT_FALSE(logical_cte_1 == logical_cte_3);
