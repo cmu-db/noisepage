@@ -459,6 +459,21 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     TERRIER_ASSERT(cte_table_name_.empty(), "cte table name should not be set.");
     cte_table_name_ = node->GetSelectWith()->GetAlias();
 
+    if (node->GetSelectWith()->GetSelect() != nullptr) {
+      auto column_aliases = node->GetSelectWith()->GetColumnAliases(); // Get aliases from TableRef
+      auto columns = node->GetSelectWith()->GetSelect()->GetSelectColumns(); // AbstractExpressions in select
+
+      auto num_aliases = column_aliases.size();
+      auto num_columns = columns.size();
+
+      if (num_aliases > num_columns) {
+        throw BINDER_EXCEPTION("WITH query " + cte_table_name_ + " has " + std::to_string(num_columns) + " columns available but " + std::to_string(num_aliases) + " specified");
+      }
+      for (unsigned long i = 0; i < num_aliases; i++) {
+        columns[i]->SetAlias(column_aliases[i]);
+      }
+    }
+
 //    // current hack to see if we are in a recursive/iterative query DO NOT KEEP THIS
 //    if((node->GetSelectWith()->GetSelect() != nullptr) &&
 //        (node->GetSelectWith()->GetSelect()->GetUnionSelect() != nullptr)){
