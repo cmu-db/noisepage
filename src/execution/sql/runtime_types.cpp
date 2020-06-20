@@ -523,6 +523,7 @@ Timestamp Timestamp::FromString(const char *str, std::size_t len) {
   if (c == '-' || c == '+') {
     ptr++;
     return AdjustTimeZone(c, year, month, day, hour, min, sec, milli, micro, ptr, limit);
+  }
   if (ptr == limit) {
     return FromYMDHMSMU(year, month, day, hour, min, sec, milli, micro);
   }
