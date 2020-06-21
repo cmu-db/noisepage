@@ -204,7 +204,7 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1);
 
   /**
-   * Emit arbitrary bytecode with two operand
+   * Emit arbitrary bytecode with two operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -212,7 +212,7 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with three operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -221,7 +221,7 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with four operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -231,7 +231,7 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with five operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -243,7 +243,7 @@ class BytecodeEmitter {
             LocalVar operand_5);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with six operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -256,7 +256,7 @@ class BytecodeEmitter {
             LocalVar operand_5, LocalVar operand_6);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with eight operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -283,6 +283,22 @@ class BytecodeEmitter {
    */
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
             LocalVar operand_5, LocalVar operand_6, LocalVar operand_7, LocalVar operand_8);
+
+  /**
+   * Emit arbitrary bytecode with nine operands
+   * @param bytecode bytecode to emit
+   * @param operand_1 first operand
+   * @param operand_2 second operand
+   * @param operand_3 third operand
+   * @param operand_4 fourth operand
+   * @param operand_5 fifth operand
+   * @param operand_6 sixth operand
+   * @param operand_7 seventh operand
+   * @param operand_8 eighth operand
+   * @param operand_9 ninth operand
+   */
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
+            LocalVar operand_5, LocalVar operand_6, LocalVar operand_7, LocalVar operand_8, LocalVar operand_9);
 
   // -------------------------------------------------------
   // Special
