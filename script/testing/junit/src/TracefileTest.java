@@ -47,8 +47,8 @@ public class TracefileTest {
 //        conn = db.getDbTest().newConn();
         conn = TestUtility.makeDefaultConnection();
         Statement statement = conn.createStatement();
-        List<String> tab = getAllExistingTableName(mog,db);
-        removeExistingTable(tab,db);
+//        List<String> tab = getAllExistingTableName(mog,db);
+//        removeExistingTable(tab,db);
     }
 
     // TODO: make the input path environment
