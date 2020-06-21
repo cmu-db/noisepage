@@ -24,8 +24,11 @@ public class TracefileTest {
     private MogSqlite mog;
     private static final String URL = "jdbc:postgresql://localhost/jeffdb";
     private static final String USER = "jeffniu";
+//    private static final String URL = "jdbc:postgresql://localhost:15721/";
+//    private static final String USER = "terrier";
     private static final String PASSWORD = "";
     private MogDb db;
+    private static Connection conn;
 
     /**
      * Set up connection to database
@@ -41,7 +44,8 @@ public class TracefileTest {
         file = new File(path);
         mog = new MogSqlite(file);
         db = new MogDb(URL, USER, PASSWORD);
-        Connection conn = db.getDbTest().newConn();
+//        conn = db.getDbTest().newConn();
+        conn = TestUtility.makeDefaultConnection();
         Statement statement = conn.createStatement();
         List<String> tab = getAllExistingTableName(mog,db);
         removeExistingTable(tab,db);
@@ -66,7 +70,7 @@ public class TracefileTest {
         while (mog.next()) {
             // case for create and insert statements
             if (mog.queryResults.size() == 0) {
-                Statement statement = db.getDbTest().getConn().createStatement();
+                Statement statement = conn.createStatement();
                 statement.execute(mog.sql);
             } else{
                 // case for query statements
@@ -76,7 +80,7 @@ public class TracefileTest {
                     String[] sentence = mog.queryResults.get(0).split(" ");
                     String hash = sentence[sentence.length-1];
                     // execute sql query to get result from database
-                    Statement statement = db.getDbTest().getConn().createStatement();
+                    Statement statement = conn.createStatement();
                     statement.execute(mog.sql);
                     ResultSet rs = statement.getResultSet();
                     List<String> res = mog.processResults(rs);
@@ -140,7 +144,7 @@ public class TracefileTest {
      */
     public static void removeExistingTable(List<String> tab, MogDb db) throws SQLException {
         for(String i:tab){
-            Statement st = db.getDbTest().getConn().createStatement();
+            Statement st = conn.createStatement();
             String sql = "DROP TABLE IF EXISTS " + i + " CASCADE";
             st.execute(sql);
         }
@@ -154,7 +158,7 @@ public class TracefileTest {
      * @throws SQLException
      */
     public static List<String> getAllExistingTableName(MogSqlite mog,MogDb db) throws SQLException {
-        Statement st = db.getDbTest().getConn().createStatement();
+        Statement st = conn.createStatement();
         String getTableName = "SELECT tablename FROM pg_tables WHERE schemaname = 'public';";
         st.execute(getTableName);
         ResultSet rs = st.getResultSet();
