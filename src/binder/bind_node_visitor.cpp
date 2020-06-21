@@ -472,17 +472,18 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       for (unsigned long i = 0; i < num_aliases; i++) {
         columns[i]->SetAlias(column_aliases[i]);
       }
-    }
 
-//    // current hack to see if we are in a recursive/iterative query DO NOT KEEP THIS
-//    if((node->GetSelectWith()->GetSelect() != nullptr) &&
-//        (node->GetSelectWith()->GetSelect()->GetUnionSelect() != nullptr)){
-//      // get schema
-//      auto union_larg = node->GetSelectWith()->GetSelect();
-//      union_larg->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-//      auto &sel_cols = union_larg->GetSelectColumns();
-//      context.AddNestedTable(cte_table_name_, sel_cols);
-//    }
+      // current hack to see if we are in a recursive/iterative query DO NOT KEEP THIS
+      bool iterative_or_recursive = node->GetSelectWith()->GetSelect()->GetUnionSelect() != nullptr;
+
+      if (iterative_or_recursive){
+        // get schema
+        auto union_larg = node->GetSelectWith()->GetSelect();
+        union_larg->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        auto &sel_cols = union_larg->GetSelectColumns();
+        context.AddNestedTable(cte_table_name_, sel_cols, column_aliases);
+      }
+    }
 
     node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
