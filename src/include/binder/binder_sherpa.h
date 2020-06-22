@@ -5,9 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression/constant_value_expression.h"
 #include "util/time_util.h"
 
 namespace terrier::binder {
