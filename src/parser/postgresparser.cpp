@@ -27,6 +27,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
+#include "parser/statements.h"
 
 /**
  * Log information about the error, then throw an exception
