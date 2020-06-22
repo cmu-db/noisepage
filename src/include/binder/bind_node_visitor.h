@@ -5,9 +5,9 @@
 #include <utility>
 #include <vector>
 
-#include "binder/binder_context.h"
 #include "binder/binder_sherpa.h"
 #include "binder/sql_node_visitor.h"
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "parser/postgresparser.h"
 #include "parser/statements.h"
@@ -30,8 +30,7 @@ class CatalogAccessor;
 }  // namespace catalog
 
 namespace binder {
-
-class BinderSherpa;
+class BinderContext;
 
 /**
  * Interface to be notified of the composition of a bind node.

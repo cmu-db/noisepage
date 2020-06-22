@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "binder/binder_context.h"
 #include "binder/binder_sherpa.h"
 #include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
