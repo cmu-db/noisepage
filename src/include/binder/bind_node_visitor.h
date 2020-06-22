@@ -10,12 +10,10 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "parser/postgresparser.h"
-#include "parser/statements.h"
 
 namespace terrier {
 
 namespace parser {
-class SQLStatement;
 class AggregateExpression;
 class CaseExpression;
 class ConstantValueExpression;
@@ -23,6 +21,7 @@ class ColumnValueExpression;
 class OperatorExpression;
 class SubqueryExpression;
 class StarExpression;
+class SQLStatement;
 }  // namespace parser
 
 namespace catalog {

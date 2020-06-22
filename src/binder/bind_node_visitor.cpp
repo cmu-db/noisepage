@@ -28,6 +28,7 @@
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
+#include "parser/statements.h"
 
 namespace terrier::binder {
 
