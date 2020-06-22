@@ -16,6 +16,7 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
+#include "parser/statements.h"
 #include "test_util/test_harness.h"
 
 namespace terrier::parser {
