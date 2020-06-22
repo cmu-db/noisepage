@@ -1,4 +1,4 @@
-#include "execution/compiler/operator/seq_scan_translator.h"
+build_args#include "execution/compiler/operator/seq_scan_translator.h"
 
 #include <utility>
 

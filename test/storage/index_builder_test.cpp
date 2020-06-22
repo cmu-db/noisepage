@@ -52,10 +52,10 @@ class IndexBuilderTests : public TerrierTest {
 
     auto idxcol = catalog::Schema::Column(
         "attribute", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+        parser::ConstantValueExpression(type::TypeId::INTEGER));
     auto nonidxcol = catalog::Schema::Column(
         "attribute2", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+        parser::ConstantValueExpression(type::TypeId::INTEGER));
     StorageTestUtil::ForceOid(&(idxcol), catalog::col_oid_t(1));
     StorageTestUtil::ForceOid(&(nonidxcol), catalog::col_oid_t(2));
     table_schema_ = catalog::Schema({idxcol, nonidxcol});

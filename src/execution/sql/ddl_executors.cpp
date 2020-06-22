@@ -158,20 +158,20 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
 
-//  if (concurrent) {
-//    TERRIER_ASSERT(false, "Should not have concurrency yet");
-//  } else {
-//    // If no populate txn, index does not need to be populated
-//    if (populate_txn != nullptr) {
+  if (concurrent) {
+    TERRIER_ASSERT(false, "Should not have concurrency yet");
+  } else {
+    // If no populate txn, index does not need to be populated
+    if (populate_txn != nullptr) {
       index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), populate_txn);
-//
-//      // Now, populate the index
-      index_builder.BulkInsert(index);
-//    }
 
-    // Communicate to readers that the index is live
-//    accessor->SetIndexLive(index_oid);
-  //}
+       //Now, populate the index
+      index_builder.BulkInsert(index);
+    }
+
+     // Communicate to readers that the index is live
+    accessor->SetIndexLive(index_oid);
+  }
   return true;
 }
 }  // namespace terrier::execution::sql

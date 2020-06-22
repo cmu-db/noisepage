@@ -45,6 +45,22 @@ class CreateIndexTranslator : public OperatorTranslator {
  private:
   // Declare the index_inserter
   void DeclareIndexInserter(FunctionBuilder *builder);
+  void DeclareTVI(FunctionBuilder *builder);
+
+  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
+  void GenTVILoop(FunctionBuilder *builder);
+
+  void DeclarePCI(FunctionBuilder *builder);
+  void DeclareSlot(FunctionBuilder *builder);
+
+  // var pci = @tableIterGetPCI(&tvi)
+  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
+  void GenPCILoop(FunctionBuilder *builder);
+
+  // @tableIterReset(&tvi)
+  // void GenTVIReset(FunctionBuilder *builder);
+
+
   void GenIndexInserterFree(FunctionBuilder *builder);
   // Insert into table.
   void GenCreateIndex(FunctionBuilder *builder);
@@ -54,6 +70,9 @@ class CreateIndexTranslator : public OperatorTranslator {
   const planner::CreateIndexPlanNode *op_;
   ast::Identifier index_inserter_;
   ast::Identifier col_oids_;
+  ast::Identifier index_oid_;
+  ast::Identifier tvi_;
+  ast::Identifier pci_;
   const catalog::Schema &table_schema_;
   std::vector<catalog::col_oid_t> all_oids_;
 
