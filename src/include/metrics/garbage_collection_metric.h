@@ -29,27 +29,22 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   void PrintNeeded() override { std::cout << num_txns_processed_ << std::endl; }
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<GarbageCollectionMetricRawData *>(other);
-//    if (!other_db_metric->action_data_.empty()) {
-//      action_data_.splice(action_data_.cbegin(), other_db_metric->action_data_);
-////      std::cout <<"after record, action data size" << action_data_.size() << std::endl;
-//    }
+    other_db_metric->latch_.Lock();
+    if (!other_db_metric->action_data_.empty()) {
+      action_data_.splice(action_data_.cbegin(), other_db_metric->action_data_);
+    }
 
-    std::list<ActionData> local;
-    other_db_metric->action_data_.swap(local);
+    other_db_metric->latch_.Unlock();
     // aggregate the data by daf type
-    for (const auto action : local) {
+    for (const auto action : action_data_) {
       if (aggregate_data_.at(int32_t(action.daf_id_)).daf_id_ == transaction::DafId::INVALID) {
         aggregate_data_[int32_t(action.daf_id_)] = {action.daf_id_, 1, action.resource_metrics_};
       } else {
         aggregate_data_[int32_t(action.daf_id_)].num_actions_processed_++;
-        aggregate_data_[int32_t(action.daf_id_)].resource_metrics_;
+        aggregate_data_[int32_t(action.daf_id_)].resource_metrics_ += action.resource_metrics_;
       }
     }
-//    other_db_metric->action_data_.clear();
-//    std::cout <<"txn removal action data size " << aggregate_data_[int32_t(transaction::DafId::TXN_REMOVAL)].num_actions_processed_ << std::endl;
-//    std::cout <<"unlink action data size " << aggregate_data_[int32_t(transaction::DafId::UNLINK)].num_actions_processed_ << std::endl;
-//    std::cout <<"index key removal action data size " << aggregate_data_[int32_t(transaction::DafId::INDEX_REMOVE_KEY)].num_actions_processed_ << std::endl;
-//
+
     if (before_queue_length_ < other_db_metric->before_queue_length_) {
       before_queue_length_.store(other_db_metric->before_queue_length_.exchange(0));
     }
@@ -58,15 +53,12 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       after_queue_length_.store(other_db_metric->after_queue_length_.exchange(0));
     }
 //      before_queue_length_ += other_db_metric->before_queue_length_.exchange(0);
-//    before_queue_length_ += local.size();
-//    std::cout << "agg q leng" << before_queue_length_ << std::endl;
 
 //    std::cout << "before record " << num_txns_processed_ << std::endl;
     num_daf_wakeup_ += other_db_metric->num_daf_wakeup_.exchange(0);
 
     num_txns_processed_ += other_db_metric->num_txns_processed_.exchange(0);
 //    std::cout << "record " << num_txns_processed_ << std::endl;
-
   }
 
   /**
@@ -100,11 +92,6 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     int total_elapsed = 0;
     common::ResourceTracker::Metrics resource_metrics = {};
     for (const auto &data : aggregate_data_) {
-//      if (data.daf_id_ != transaction::DafId::INVALID) {
-//        daf_agg << data.start_ << ", " << static_cast<int>(data.daf_id_) << ", " << data.num_actions_processed_ << ", "
-//                << data.time_elapsed_;
-//        daf_agg << std::endl;
-//      }
       if (data.daf_id_ != transaction::DafId::INVALID) {
         resource_metrics += data.resource_metrics_;
       }
@@ -156,7 +143,9 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
   void RecordActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics) {
+    latch_.Lock();
     action_data_.emplace_front(daf_id, resource_metrics);
+    latch_.Unlock();
   }
 
   void RecordQueueSize(const int UNUSED_ATTRIBUTE queue_size) {
@@ -217,6 +206,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 
   std::atomic<int> num_txns_processed_ = 0;
   std::atomic<int> num_daf_wakeup_ = 0;
+  common::SpinLatch latch_;
 };
 
 /**

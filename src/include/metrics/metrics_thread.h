@@ -63,7 +63,6 @@ class MetricsThread {
     while (run_metrics_) {
       std::this_thread::sleep_for(metrics_period_);
       if (!metrics_paused_) {
-//        metrics_manager_->SetGCMetricsWakeUpTimeIfExists();
         metrics_manager_->Aggregate();
         metrics_manager_->ToCSV();
       }
