@@ -18,6 +18,13 @@ To run a test of a certain type, just run the `run_<TEST TYPE>.py` script in the
 
 By doing that, `junit/run_junit.py` script will try to import the `TestJUnit` class from the `util/TestJunit.py`, which subsequently use most of the functionalities provided from its super class `TestServer` from `util/TestServer.py`.
 
+## QueryMode
+For both `junit` and `oltpbench`, we support 2 query modes with the optional argument `--query-mode`
+- `simple` (default if not specified)
+- `extended`
+
+If you specify the `--query-mode extended`, you then can also indicate the prepare threshold (default is `5`) with the optional argument `--prepare-threshold` with type `int`. Please be reminded that if you choose the query mode as `simple`, the prepare threshold will be ignored.
+
 ## TestServer
 `TestServer` is the base class for running all types of the tests. 
 
