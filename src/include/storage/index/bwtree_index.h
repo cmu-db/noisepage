@@ -5,27 +5,25 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
-#include "transaction/deferred_action_manager.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_manager.h"
+
+namespace terrier::transaction {
+class TransactionContext;
+}
+
+namespace third_party::bwtree {
+template <typename KeyType, typename ValueType, typename KeyComparator, typename KeyEqualityChecker,
+          typename KeyHashFunc, typename ValueEqualityChecker, typename ValueHashFunc>
+class BwTree;
+}
 
 namespace terrier::storage::index {
 template <uint8_t KeySize>
 class CompactIntsKey;
 template <uint16_t KeySize>
 class GenericKey;
-}  // namespace terrier::storage::index
-
-namespace third_party::bwtree {
-template <typename KeyType, typename ValueType, typename KeyComparator = std::less<KeyType>,
-          typename KeyEqualityChecker = std::equal_to<KeyType>, typename KeyHashFunc = std::hash<KeyType>,
-          typename ValueEqualityChecker = std::equal_to<ValueType>, typename ValueHashFunc = std::hash<ValueType>>
-class BwTree;
-}
-
-namespace terrier::storage::index {
 
 /**
  * Wrapper around Ziqi's OpenBwTree.
@@ -38,7 +36,9 @@ class BwTreeIndex final : public Index {
  private:
   explicit BwTreeIndex(IndexMetadata metadata);
 
-  const std::unique_ptr<third_party::bwtree::BwTree<KeyType, TupleSlot>> bwtree_;
+  const std::unique_ptr<third_party::bwtree::BwTree<KeyType, TupleSlot, std::less<KeyType>, std::equal_to<KeyType>,
+                                                    std::hash<KeyType>, std::equal_to<TupleSlot>, std::hash<TupleSlot>>>
+      bwtree_;
 
  public:
   IndexType Type() const final { return IndexType::BWTREE; }

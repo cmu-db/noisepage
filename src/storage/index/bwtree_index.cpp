@@ -3,6 +3,8 @@
 #include "bwtree/bwtree.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage::index {
 
