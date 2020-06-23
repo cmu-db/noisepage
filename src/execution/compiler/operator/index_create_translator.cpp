@@ -72,7 +72,7 @@ void CreateIndexTranslator::DeclareIndexInserter(FunctionBuilder *builder) {
   auto storage_interface_type = codegen_->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
   builder->Append(codegen_->DeclareVariable(index_inserter_, storage_interface_type, nullptr));
   // Call @storageInterfaceInit
-  ast::Expr *index_inserter_setup = codegen_->StorageInterfaceInit(index_inserter_, !op_->GetTableOid(), col_oids_, false);
+  ast::Expr *index_inserter_setup = codegen_->StorageInterfaceInit(index_inserter_, !op_->GetTableOid(), col_oids_, true);
   builder->Append(codegen_->MakeStmt(index_inserter_setup));
 }
 
@@ -129,21 +129,21 @@ void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
 
 void CreateIndexTranslator::GenIndexInsert(FunctionBuilder *builder) {
   // var insert_index_pr = @getIndexPR(&inserter, oid)
-  auto insert_index_pr = codegen_->NewIdentifier("insert_index_pr");
-  std::vector<ast::Expr *> pr_call_args{codegen_->PointerTo(index_inserter_), codegen_->IntLiteral(!index_oid_)};
-  auto get_index_pr_call = codegen_->BuiltinCall(ast::Builtin::GetIndexPR, std::move(pr_call_args));
-  builder->Append(codegen_->DeclareVariable(insert_index_pr, nullptr, get_index_pr_call));
+//  auto insert_index_pr = codegen_->NewIdentifier("insert_index_pr");
+//  std::vector<ast::Expr *> pr_call_args{codegen_->PointerTo(index_inserter_), codegen_->IntLiteral(!index_oid_)};
+//  auto get_index_pr_call = codegen_->BuiltinCall(ast::Builtin::GetIndexPR, std::move(pr_call_args));
+//  builder->Append(codegen_->DeclareVariable(insert_index_pr,nullptr, get_index_pr_call));
+//
+//  // Fill up the index pr
+//  auto index = codegen_->Accessor()->GetIndex(index_oid_);
+//  const auto &index_pm = index->GetKeyOidToOffsetMap();
+//  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid_);
 
-  // Fill up the index pr
-  auto index = codegen_->Accessor()->GetIndex(index_oid_);
-  const auto &index_pm = index->GetKeyOidToOffsetMap();
-  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid_);
-
-  pr_filler_.GenFiller(index_pm, index_schema, codegen_->MakeExpr(insert_index_pr), builder);
+//  pr_filler_.GenFiller(index_pm, index_schema, codegen_->MakeExpr(insert_index_pr), builder);
 
   // Insert into index
   // if (insert not successfull) { Abort(); }
-  std::vector<ast::Expr *> insert_args{codegen_->PointerTo(index_inserter_), codegen_->PointerTo(slot_)};
+  std::vector<ast::Expr *> insert_args{codegen_->PointerTo(index_inserter_), codegen_->IntLiteral(!index_oid_), codegen_->PointerTo(slot_)};
   auto index_insert_call = codegen_->BuiltinCall(ast::Builtin::IndexInsertBulk, std::move(insert_args));
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   builder->StartIfStmt(cond);

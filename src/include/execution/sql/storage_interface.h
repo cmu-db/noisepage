@@ -95,7 +95,7 @@ class EXPORT StorageInterface {
    */
   bool IndexInsertUnique();
 
-  bool IndexInsertBulk(storage::TupleSlot table_tuple_slot);
+  bool IndexInsertBulk(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot);
  protected:
   /**
    * Oid of the table being accessed.

@@ -1993,8 +1993,9 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
 
     case ast::Builtin::IndexInsertBulk: {
       LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-        LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::StorageInterfaceIndexInsertBulk, cond, storage_interface, tuple_slot);
+      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
+      Emitter()->EmitAll(Bytecode::StorageInterfaceIndexInsertBulk, cond, storage_interface, index_oid, tuple_slot);
       ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }

@@ -2155,13 +2155,19 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       break;
     }
     case ast::Builtin::IndexInsertBulk: {
-      if (!CheckArgCount(call, 2)) {
+      if (!CheckArgCount(call, 3)) {
         return;
       }
-      // Second argument is a tuple slot
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
+        return;
+      }
+
+      // third argument is a tuple slot
       auto tuple_slot_type = ast::BuiltinType::TupleSlot;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+      auto current_type = call_args[2]->GetType();
+      if (!IsPointerToSpecificBuiltin(current_type, tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(tuple_slot_type)->PointerTo());
         return;
       }
 

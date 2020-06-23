@@ -1687,7 +1687,7 @@ VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterfa
                                          terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpStorageInterfaceIndexInsertBulk(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
-                                         terrier::storage::TupleSlot *tuple_slot);
+                                             uint32_t index_oid, terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);
 
