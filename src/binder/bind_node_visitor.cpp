@@ -467,7 +467,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       auto num_columns = columns.size();
 
       if (num_aliases > num_columns) {
-        throw BINDER_EXCEPTION("WITH query " + cte_table_name_ + " has " + std::to_string(num_columns) + " columns available but " + std::to_string(num_aliases) + " specified");
+        throw BINDER_EXCEPTION(("WITH query " + cte_table_name_ + " has " + std::to_string(num_columns) + " columns available but " + std::to_string(num_aliases) + " specified").c_str());
       }
       for (unsigned long i = 0; i < num_aliases; i++) {
         columns[i]->SetAlias(column_aliases[i]);
@@ -479,8 +479,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       if (iterative_or_recursive){
         // get schema
         auto union_larg = node->GetSelectWith()->GetSelect();
-        union_larg->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-        auto &sel_cols = union_larg->GetSelectColumns();
+        auto base_case = union_larg->GetUnionSelect();
+        if (base_case != nullptr) {
+          base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        }
+        auto &sel_cols = base_case->GetSelectColumns();
         context.AddNestedTable(cte_table_name_, sel_cols, column_aliases);
       }
     }
@@ -533,7 +536,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     if (new_select_list.size() != union_cols.size()) {
       BINDER_EXCEPTION("Mismatched schemas in union");
     }
-    for (uint32_t ind = 0; ind <= new_select_list.size(); ind++) {
+    for (uint32_t ind = 0; ind < new_select_list.size(); ind++) {
       if (new_select_list[ind]->GetExpressionType() != union_cols[ind]->GetExpressionType()) {
         BINDER_EXCEPTION("Mismatched schemas in union");
       }
@@ -803,8 +806,13 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
-    // Add the table to the current context at the end
-    context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), node->GetCteColumnAliases());
+
+    bool iterative_or_recursive = node->GetSelect()->GetUnionSelect() != nullptr;
+    if (!iterative_or_recursive) {
+      // Add the table to the current context at the end
+      // In the case of iterative/recursive CTEs, this was done earlier
+      context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), node->GetCteColumnAliases());
+    }
   } else if (node->GetJoin() != nullptr) {
     // Join
     node->GetJoin()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
