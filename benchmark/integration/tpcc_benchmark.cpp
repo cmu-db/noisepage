@@ -452,8 +452,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
@@ -480,9 +478,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    std::this_thread::sleep_for(std::chrono::seconds(10));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    std::cout << "tpcc start" << std::endl;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -496,6 +496,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    std::this_thread::sleep_for(std::chrono::seconds(10));  // Let MetricThread clean up
 
     // cleanup
     delete gc_thread_;
