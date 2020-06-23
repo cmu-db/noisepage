@@ -19,10 +19,7 @@ struct HashIndex<KeyType>::TupleSlotHash {
 template <typename KeyType>
 HashIndex<KeyType>::HashIndex(IndexMetadata metadata)
     : Index(std::move(metadata)),
-      hash_map_(std::make_unique<
-                cuckoohash_map<KeyType, ValueType, std::hash<KeyType>, std::equal_to<KeyType>,
-                               std::allocator<std::pair<const KeyType, ValueType>>, LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET>>(
-          INITIAL_CUCKOOHASH_MAP_SIZE)) {}
+      hash_map_(std::make_unique<cuckoohash_map<KeyType, ValueType>>(INITIAL_CUCKOOHASH_MAP_SIZE)) {}
 
 /**
  * The lambda below is used for aborted inserts as well as committed deletes to perform the erase logic. Macros are

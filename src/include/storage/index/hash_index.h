@@ -49,7 +49,8 @@ class HashIndex final : public Index {
   explicit HashIndex(IndexMetadata metadata);
 
   const std::unique_ptr<
-      cuckoohash_map<KeyType, ValueType, std::hash<KeyType>, std::equal_to<KeyType>,
+      cuckoohash_map<KeyType, ValueType, std::hash<KeyType>,
+                     std::equal_to<KeyType>,  // NOLINT transparent functors can't figure out template
                      std::allocator<std::pair<const KeyType, ValueType>>, LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET>>
       hash_map_;
 

@@ -36,8 +36,10 @@ class BwTreeIndex final : public Index {
  private:
   explicit BwTreeIndex(IndexMetadata metadata);
 
-  const std::unique_ptr<third_party::bwtree::BwTree<KeyType, TupleSlot, std::less<KeyType>, std::equal_to<KeyType>,
-                                                    std::hash<KeyType>, std::equal_to<TupleSlot>, std::hash<TupleSlot>>>
+  const std::unique_ptr<third_party::bwtree::BwTree<
+      KeyType, TupleSlot, std::less<KeyType>,  // NOLINT transparent functors can't figure out template
+      std::equal_to<KeyType>,                  // NOLINT transparent functors can't figure out template
+      std::hash<KeyType>, std::equal_to<TupleSlot>, std::hash<TupleSlot>>>
       bwtree_;
 
  public:

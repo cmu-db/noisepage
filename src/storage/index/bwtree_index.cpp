@@ -10,7 +10,7 @@ namespace terrier::storage::index {
 
 template <typename KeyType>
 BwTreeIndex<KeyType>::BwTreeIndex(IndexMetadata metadata)
-    : Index(std::move(metadata)), bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{false}} {}
+    : Index(std::move(metadata)), bwtree_(std::make_unique<third_party::bwtree::BwTree<KeyType, TupleSlot>>(false)) {}
 
 template <typename KeyType>
 void BwTreeIndex<KeyType>::PerformGarbageCollection() {
