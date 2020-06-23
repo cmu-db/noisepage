@@ -6,9 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "storage/index/bwtree_index.h"
-#include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
