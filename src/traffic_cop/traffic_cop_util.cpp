@@ -62,7 +62,7 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
           common::ManagedPointer<parser::AbstractExpression> column_value_expr =
               common::ManagedPointer<parser::AbstractExpression>(new parser::ColumnValueExpression(
                   column_value_expression->GetTableName(), column_value_expression->GetColumnName(), db_oid,
-                  accessor->GetTableOid(sel_stmt->GetSelectTable()->GetTableName()), (catalog::col_oid_t)column_id,
+                  accessor->GetTableOid(sel_stmt->GetSelectTable()->GetTableName()), catalog::col_oid_t(column_id),
                   column_value_expression->GetReturnValueType()));
           exprs[idx] = column_value_expr;
         }
