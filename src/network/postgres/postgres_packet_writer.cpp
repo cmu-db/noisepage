@@ -38,7 +38,7 @@ void PostgresPacketWriter::WriteSimpleQuery(const std::string &query) {
 
 void PostgresPacketWriter::WriteNoticeResponse(const std::string &message) {
   BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE)
-      .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
+      .AppendRawValue(PostgresErrorField::HUMAN_READABLE_ERROR)
       .AppendStringView("NOTICE:  ", false)
       .AppendString(message, true)
       .AppendRawValue<uchar>(0)
@@ -47,7 +47,7 @@ void PostgresPacketWriter::WriteNoticeResponse(const std::string &message) {
 
 void PostgresPacketWriter::WriteErrorResponse(const std::string &message) {
   BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE)
-      .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
+      .AppendRawValue(PostgresErrorField::HUMAN_READABLE_ERROR)
       .AppendStringView("ERROR:  ", false)
       .AppendString(message, true)
       .AppendRawValue<uchar>(0)

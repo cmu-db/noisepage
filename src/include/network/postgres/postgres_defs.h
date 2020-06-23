@@ -28,6 +28,82 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
 };
 // clang-format on
 
+// @see https://www.postgresql.org/docs/current/protocol-message-formats.html
+enum class PostgresSeverity : uint8_t {
+  ERROR,
+  FATAL,
+  PANIC,  // (in an error message)
+  WARNING,
+  NOTICE,
+  DEBUG,
+  INFO,
+  LOG  // (in a notice message)
+};
+
+template <PostgresSeverity severity>
+constexpr std::string_view PostgresSeverityToString() {
+  if constexpr (severity == PostgresSeverity::ERROR) return "ERROR";
+  if constexpr (severity == PostgresSeverity::FATAL) return "FATAL";
+  if constexpr (severity == PostgresSeverity::PANIC) return "PANIC";
+  if constexpr (severity == PostgresSeverity::WARNING) return "WARNING";
+  if constexpr (severity == PostgresSeverity::NOTICE) return "NOTICE";
+  if constexpr (severity == PostgresSeverity::DEBUG) return "DEBUG";
+  if constexpr (severity == PostgresSeverity::INFO) return "INFO";
+  if constexpr (severity == PostgresSeverity::LOG) return "LOG";
+}
+
+// @see https://www.postgresql.org/docs/current/protocol-error-fields.html
+enum class PostgresErrorField : unsigned char {
+  SEVERITY_OLD = 'S',
+  SEVERITY = 'V',  // Postgres 9.6 or later
+  CODE = 'C',      // TODO(Matt): https://www.postgresql.org/docs/current/errcodes-appendix.html
+  HUMAN_READABLE_ERROR = 'M',
+  DETAIL = 'D',
+  HINT = 'H',
+  POSITION = 'P',
+  INTERNAL_POSITION = 'p',
+  INTERNAL_QUERY = 'q',
+  WHERE = 'W',
+  SCHEMA_NAME = 's',
+  TABLE_NAME = 't',
+  COLUMN_NAME = 'c',
+  DATA_TYPE_NAME = 'd',
+  CONSTRAINT_NAME = 'n',
+  FILE = 'F',
+  LINE = 'L',
+  ROUTINE = 'R'
+};
+
+class PostgresError {
+ public:
+  template <PostgresSeverity severity>
+  explicit PostgresError(const std::string_view message)
+      : severity_(severity),
+        fields_{{PostgresErrorField::SEVERITY, std::string(PostgresSeverityToString<severity>())},
+                {PostgresErrorField::SEVERITY_OLD, std::string(PostgresSeverityToString<severity>())},
+                {PostgresErrorField::HUMAN_READABLE_ERROR, std::string(message)}} {}
+
+  template <PostgresSeverity severity>
+  explicit PostgresError(std::string &&message)
+      : severity_(severity),
+        fields_{{PostgresErrorField::SEVERITY, std::string(PostgresSeverityToString<severity>())},
+                {PostgresErrorField::SEVERITY_OLD, std::string(PostgresSeverityToString<severity>())},
+                {PostgresErrorField::HUMAN_READABLE_ERROR, std::move(message)}} {}
+
+  void AddField(PostgresErrorField field, const std::string_view message) {
+    fields_.emplace_back(field, std::string(message));
+  }
+
+  void AddField(PostgresErrorField field, std::string &&message) { fields_.emplace_back(field, std::move(message)); }
+
+  PostgresSeverity GetSeverity() const { return severity_; }
+  const std::vector<std::pair<PostgresErrorField, std::string>> &Fields() const { return fields_; }
+
+ private:
+  const PostgresSeverity severity_;
+  std::vector<std::pair<PostgresErrorField, std::string>> fields_;
+};
+
 /**
  * Postgres Value Types
  * This defines all the types that we will support
@@ -35,7 +111,6 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
  * For more information, see 'pg_type.h' in Postgres
  * https://github.com/postgres/postgres/blob/master/src/include/catalog/pg_type.h#L273
  */
-
 enum class PostgresValueType : int32_t {
   INVALID = INVALID_TYPE_ID,
   BOOLEAN = 16,
