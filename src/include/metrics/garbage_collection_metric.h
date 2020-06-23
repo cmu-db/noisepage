@@ -55,6 +55,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 
 //    std::cout << "before record " << num_txns_processed_ << std::endl;
     num_daf_wakeup_ += other_db_metric->num_daf_wakeup_.exchange(0);
+    num_actions_ += other_db_metric->num_actions_.exchange(0);
 
     num_txns_processed_ += other_db_metric->num_txns_processed_.exchange(0);
 //    std::cout << "record " << num_txns_processed_ << std::endl;
@@ -101,7 +102,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       daf_count_agg << ", " << (data.num_actions_processed_);
       daf_time_agg << ", " << (data.resource_metrics_.elapsed_us_);
     }
-    daf_count_agg << ", " << (total_processed) << ", " << (before_queue_length_) << ", " << (after_queue_length_) << ", " << (num_daf_wakeup_) << ", " << (num_txns_processed_) << ", ";
+    daf_count_agg << ", " << (total_processed) << ", " << (before_queue_length_) << ", " << (num_actions_) << ", " << (num_daf_wakeup_) << ", " << (num_txns_processed_) << ", ";
     resource_metrics.ToCSV(daf_count_agg);
     daf_count_agg << std::endl;
     daf_time_agg << ", " << (total_elapsed) << ", "  << (num_daf_wakeup_) << ", " << (num_txns_processed_) << ", ";
@@ -112,6 +113,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
     before_queue_length_ = 0;
     after_queue_length_ = 0;
     num_txns_processed_ = 0;
+    num_actions_= 0;
     action_data_.clear();
     auto local_agg_data = std::vector<AggregateData>(transaction::DAF_TAG_COUNT, AggregateData());
     aggregate_data_.swap(local_agg_data);
@@ -145,6 +147,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 
   void RecordActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics) {
     latch_.Lock();
+    num_actions_++;
     action_data_.emplace_front(daf_id, resource_metrics);
     latch_.Unlock();
   }
@@ -212,6 +215,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   std::atomic<int> num_txns_processed_ = 0;
   std::atomic<int> num_daf_wakeup_ = 0;
   common::SpinLatch latch_;
+  std::atomic<int> num_actions_ = 0;
 };
 
 /**

@@ -129,8 +129,6 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
   }
   if (!processe_curr && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);
   if (metrics_enabled) {
-//    if (!common::thread_context.metrics_store_->CheckWakeUp())
-////      std::cout << "dfdfd" << std::endl;
     common::thread_context.metrics_store_->RecordAfterQueueSize(back_log_.size() + curr_size - processed);
   }
   return processed;

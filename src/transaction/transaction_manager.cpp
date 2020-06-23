@@ -131,7 +131,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 
 void TransactionManager::CleanTransaction(TransactionContext *txn) {
   if (txn->IsReadOnly()) {
-    std::cout << "read" << std::endl;
     num_unlinked_++;
     // This is a read-only transaction so this is safe to immediately delete
     delete txn;

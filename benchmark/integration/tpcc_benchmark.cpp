@@ -478,7 +478,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
-    std::this_thread::sleep_for(std::chrono::seconds(10));  // Let GC clean up
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
@@ -496,7 +496,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-    std::this_thread::sleep_for(std::chrono::seconds(10));  // Let MetricThread clean up
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // Let MetricThread clean up
 
     // cleanup
     delete gc_thread_;
