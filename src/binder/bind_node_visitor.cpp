@@ -473,10 +473,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
         columns[i]->SetAlias(column_aliases[i]);
       }
 
-      // current hack to see if we are in a recursive/iterative query DO NOT KEEP THIS
-      bool iterative_or_recursive = node->GetSelectWith()->GetSelect()->GetUnionSelect() != nullptr;
-
-      if (iterative_or_recursive){
+      if (node->GetSelectWith()->GetCteRecursive()){
         // get schema
         auto union_larg = node->GetSelectWith()->GetSelect();
         auto base_case = union_larg->GetUnionSelect();
@@ -807,8 +804,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
 
-    bool iterative_or_recursive = node->GetSelect()->GetUnionSelect() != nullptr;
-    if (!iterative_or_recursive) {
+    if (!node->GetCteRecursive()) {
       // Add the table to the current context at the end
       // In the case of iterative/recursive CTEs, this was done earlier
       context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), node->GetCteColumnAliases());

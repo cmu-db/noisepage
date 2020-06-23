@@ -2049,7 +2049,7 @@ std::unique_ptr<TableRef> PostgresParser::WithTransform(ParseResult *parse_resul
         }
       }
 
-      result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames));
+      result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), root->recursive_);
       return result;
     }
     default: {
