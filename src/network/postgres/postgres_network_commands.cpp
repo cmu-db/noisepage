@@ -122,7 +122,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   if (NetworkUtil::TransactionalQueryType(query_type)) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
     if (query_type == network::QueryType::QUERY_BEGIN) {
-      postgres_interpreter->SetExplicitTransactionBlock();
+      if (!(postgres_interpreter->ExplicitTransactionBlock())) postgres_interpreter->SetExplicitTransactionBlock();
     } else {
       postgres_interpreter->ResetTransactionState();
     }
