@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
 #include "common/performance_counter.h"
 #include "storage/data_table.h"
 #include "storage/index/index_defs.h"
