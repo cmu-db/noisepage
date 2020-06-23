@@ -34,7 +34,6 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       action_data_.splice(action_data_.cbegin(), other_db_metric->action_data_);
     }
 
-    other_db_metric->latch_.Unlock();
     // aggregate the data by daf type
     for (const auto action : action_data_) {
       if (aggregate_data_.at(int32_t(action.daf_id_)).daf_id_ == transaction::DafId::INVALID) {
@@ -59,6 +58,8 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 
     num_txns_processed_ += other_db_metric->num_txns_processed_.exchange(0);
 //    std::cout << "record " << num_txns_processed_ << std::endl;
+    other_db_metric->latch_.Unlock();
+
   }
 
   /**
@@ -161,7 +162,11 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   }
 
   void RecordTxnsProcessed() {
+    latch_.Lock();
+
     num_txns_processed_++;
+    latch_.Unlock();
+
   }
 
   void RecordDafWakeup() {
