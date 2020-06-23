@@ -2025,7 +2025,13 @@ std::unique_ptr<TableRef> PostgresParser::WithTransform(ParseResult *parse_resul
   auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery_);
   switch (cte_query->type) {
     case T_SelectStmt: {
-      auto select = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(cte_query));
+      auto cte_select_query = reinterpret_cast<SelectStmt *>(cte_query);
+      if (root->recursive_) {
+        auto tmp = cte_select_query->larg_;
+        cte_select_query->larg_ = cte_select_query->rarg_;
+        cte_select_query->rarg_ = tmp;
+      }
+      auto select = SelectTransform(parse_result, cte_select_query);
       if (select == nullptr) {
         return nullptr;
       }
