@@ -43,18 +43,6 @@ class PostgresPacketWriter : public PacketWriter {
    */
   void WriteSimpleQuery(const std::string &query);
 
-  /**
-   * Writes a Postgres notice response
-   * @param message human readable message
-   */
-  void WriteNoticeResponse(const std::string &message);
-
-  /**
-   * Writes a Postgres error response
-   * @param message human readable message
-   */
-  void WriteErrorResponse(const std::string &message);
-
   void WritePostgresError(const PostgresError &error);
 
   /**

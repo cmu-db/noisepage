@@ -92,14 +92,16 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::FAIL,
                      "We're in an aborted state. This should have been caught already before calling this function.");
       if (explicit_txn_block) {
-        out->WriteNoticeResponse("WARNING:  there is already a transaction in progress");
+        out->WritePostgresError(network::PostgresError::Message<network::PostgresSeverity::WARNING>(
+            "there is already a transaction in progress"));
         break;
       }
       break;
     }
     case network::QueryType::QUERY_COMMIT: {
       if (!explicit_txn_block) {
-        out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
+        out->WritePostgresError(
+            network::PostgresError::Message<network::PostgresSeverity::WARNING>("there is no transaction in progress"));
         break;
       }
       if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL) {
@@ -112,7 +114,8 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
     }
     case network::QueryType::QUERY_ROLLBACK: {
       if (!explicit_txn_block) {
-        out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
+        out->WritePostgresError(
+            network::PostgresError::Message<network::PostgresSeverity::WARNING>("there is no transaction in progress"));
         break;
       }
       EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);

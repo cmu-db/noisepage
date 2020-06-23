@@ -36,26 +36,8 @@ void PostgresPacketWriter::WriteSimpleQuery(const std::string &query) {
   BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query, true).EndPacket();
 }
 
-void PostgresPacketWriter::WriteNoticeResponse(const std::string &message) {
-  BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE)
-      .AppendRawValue(PostgresErrorField::HUMAN_READABLE_ERROR)
-      .AppendStringView("NOTICE:  ", false)
-      .AppendString(message, true)
-      .AppendRawValue<uchar>(0)
-      .EndPacket();  // Nul-terminate packet
-}
-
-void PostgresPacketWriter::WriteErrorResponse(const std::string &message) {
-  BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE)
-      .AppendRawValue(PostgresErrorField::HUMAN_READABLE_ERROR)
-      .AppendStringView("ERROR:  ", false)
-      .AppendString(message, true)
-      .AppendRawValue<uchar>(0)
-      .EndPacket();  // Nul-terminate packet
-}
-
 void PostgresPacketWriter::WritePostgresError(const PostgresError &error) {
-  if (error.GetSeverity() <= PostgresSeverity::ERROR)
+  if (error.GetSeverity() <= PostgresSeverity::PANIC)
     BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
   else
     BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE);

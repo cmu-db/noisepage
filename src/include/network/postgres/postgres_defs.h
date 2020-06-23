@@ -76,19 +76,26 @@ enum class PostgresErrorField : unsigned char {
 
 class PostgresError {
  public:
-  template <PostgresSeverity severity>
-  explicit PostgresError(const std::string_view message)
-      : severity_(severity),
-        fields_{{PostgresErrorField::SEVERITY, std::string(PostgresSeverityToString<severity>())},
-                {PostgresErrorField::SEVERITY_OLD, std::string(PostgresSeverityToString<severity>())},
-                {PostgresErrorField::HUMAN_READABLE_ERROR, std::string(message)}} {}
+  PostgresError(const network::PostgresSeverity severity,
+                std::vector<std::pair<PostgresErrorField, std::string>> fields)
+      : severity_(severity), fields_(std::move(fields)) {}
 
-  template <PostgresSeverity severity>
-  explicit PostgresError(std::string &&message)
-      : severity_(severity),
-        fields_{{PostgresErrorField::SEVERITY, std::string(PostgresSeverityToString<severity>())},
-                {PostgresErrorField::SEVERITY_OLD, std::string(PostgresSeverityToString<severity>())},
-                {PostgresErrorField::HUMAN_READABLE_ERROR, std::move(message)}} {}
+  template <PostgresSeverity severity = PostgresSeverity::ERROR>
+  static PostgresError Message(const std::string_view message) {
+    return {severity,
+            {{PostgresErrorField::SEVERITY, std::string(PostgresSeverityToString<severity>())},
+             {PostgresErrorField::SEVERITY_OLD, std::string(PostgresSeverityToString<severity>())},
+             {PostgresErrorField::HUMAN_READABLE_ERROR, std::string(message)}}};
+  }
+
+  // TODO(Matt): maybe needed eventually?
+  //  template <PostgresSeverity severity = PostgresSeverity::ERROR>
+  //  static PostgresError Message(std::string &&message) {
+  //    return {severity,
+  //            {{PostgresErrorField::SEVERITY, std::string(PostgresSeverityToString<severity>())},
+  //             {PostgresErrorField::SEVERITY_OLD, std::string(PostgresSeverityToString<severity>())},
+  //             {PostgresErrorField::HUMAN_READABLE_ERROR, std::move(message)}}};
+  //  }
 
   void AddField(PostgresErrorField field, const std::string_view message) {
     fields_.emplace_back(field, std::string(message));
