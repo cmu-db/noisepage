@@ -153,6 +153,48 @@ class BytecodeEmitter {
   void EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len,
                              LocalVar col_name, uint32_t col_name_len);
 
+  void EmitTestCatalogIndexLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len);
+
+  /**
+   * Emit code to initialize an index iterator
+   * @param bytecode index initialization bytecode
+   * @param iter iterator in initialize
+   * @param exec_ctx the execution context
+   * @param num_attrs number attributes of key set
+   * @param table_oid oid of the table owning the index
+   * @param index_oid oid of the index to use
+   * @param col_oids array of oids
+   * @param num_oids length of the array
+   */
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t num_attrs,
+                             uint32_t table_oid, uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
+
+  /**
+   * Emit bytecode to set value within a PR
+   */
+  void EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val);
+
+  /**
+   * Emit bytecode to set a varlen within a PR
+   */
+  void EmitPRSetVarlen(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val, LocalVar own);
+
+  /**
+   * Emit bytecode to get a value from a PR
+   */
+  void EmitPRGet(Bytecode bytecode, LocalVar out, LocalVar pr, uint16_t col_idx);
+
+  /**
+   * Emit bytecode to init an Storage Interface
+   */
+  void EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx, uint32_t table_oid,
+                                LocalVar col_oids, uint32_t num_oids, LocalVar need_indexes);
+
+  /**
+   * Emit bytecode to get an index PR for the storage_interface.
+   */
+  void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, uint32_t index_oid);
+
  private:
   // Copy a scalar immediate value into the bytecode stream
   template <typename T>

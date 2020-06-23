@@ -76,7 +76,19 @@ namespace sema {
     (ast::Type *))                                                                                                    \
   F(BadKeyEqualityCheckFunctionForJoinTableLookup,                                                                    \
     "key equality check function must have type: (*,*,*)->bool, received '%0'", (ast::Type *))                        \
-  F(IsValNullExpectsSqlValue, "@isValNull() expects a SQL value input, received type '%0'", (ast::Type *))
+  F(BadArgToIndexIteratorInit,                                                                                        \
+    "indexIteratorInit() expects (*IndexIterator, String) argument "                                                  \
+    "types. Received type '%0' in position %1",                                                                       \
+    (ast::Type *, uint32_t))                                                                                          \
+  F(BadArgToIndexIteratorScanKey,                                                                                     \
+    "indexIteratorScanKey() expects (*IndexIterator, *int8) argument "                                                \
+    "types. Received type '%0' in position %1",                                                                       \
+    (ast::Type *, uint32_t))                                                                                          \
+  F(BadArgToIndexIteratorFree,                                                                                        \
+    "indexIteratorFree() expects (*IndexIterator) argument "                                                          \
+    "types. Received type '%0' in position %1",                                                                       \
+    (ast::Type *, uint32_t))                                                                                          \
+F(IsValNullExpectsSqlValue, "@isValNull() expects a SQL value input, received type '%0'", (ast::Type *))
 
 /// Define the ErrorMessageId enumeration
 enum class ErrorMessageId : uint16_t {

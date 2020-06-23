@@ -420,6 +420,22 @@ namespace terrier::execution::vm {
   /* Output */                                                                                                         \
   F(ResultBufferAllocOutputRow, OperandType::Local, OperandType::Local)                                                \
   F(ResultBufferFinalize, OperandType::Local)                                                                          \
+                                                                                                                      \
+  /* Index Iterator */                                                                                                \
+  F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::UImm4,                \
+    OperandType::UImm4, OperandType::Local, OperandType::UImm4)                                                       \
+  F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
+  F(IndexIteratorScanKey, OperandType::Local)                                                                         \
+  F(IndexIteratorScanAscending, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(IndexIteratorScanDescending, OperandType::Local)                                                                  \
+  F(IndexIteratorScanLimitDescending, OperandType::Local, OperandType::Local)                                         \
+  F(IndexIteratorFree, OperandType::Local)                                                                            \
+  F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                     \
+  F(IndexIteratorGetPR, OperandType::Local, OperandType::Local)                                                       \
+  F(IndexIteratorGetLoPR, OperandType::Local, OperandType::Local)                                                     \
+  F(IndexIteratorGetHiPR, OperandType::Local, OperandType::Local)                                                     \
+  F(IndexIteratorGetTablePR, OperandType::Local, OperandType::Local)                                                  \
+  F(IndexIteratorGetSlot, OperandType::Local, OperandType::Local)                                                     \
                                                                                                                        \
   /* CSV Reader */                                                                                                     \
   F(CSVReaderInit, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4)                                   \
@@ -428,6 +444,61 @@ namespace terrier::execution::vm {
   F(CSVReaderGetField, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
   F(CSVReaderGetRecordNumber, OperandType::Local, OperandType::Local)                                                  \
   F(CSVReaderClose, OperandType::Local)                                                                                \
+                                                                                                                      \
+  /* ProjectedRow */                                                                                                  \
+  F(PRGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
+  F(PRGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PRGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(PRGetInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                             \
+  F(PRGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
+  F(PRGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
+  F(PRGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
+  F(PRGetDateVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PRGetTimestampVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(PRGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
+  F(PRGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(PRGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(PRGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(PRGetIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PRGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
+  F(PRGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(PRGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
+  F(PRGetDateValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(PRGetTimestampValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                \
+  F(PRGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
+  F(PRSetBool, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
+  F(PRSetTinyInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
+  F(PRSetSmallInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
+  F(PRSetInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                             \
+  F(PRSetBigInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
+  F(PRSetReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
+  F(PRSetDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
+  F(PRSetDateVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
+  F(PRSetTimestampVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                    \
+  F(PRSetVarlen, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                      \
+  F(PRSetBoolNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
+  F(PRSetTinyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
+  F(PRSetSmallIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                    \
+  F(PRSetIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
+  F(PRSetBigIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
+  F(PRSetRealNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
+  F(PRSetDoubleNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
+  F(PRSetDateValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
+  F(PRSetTimestampValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                \
+  F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                  \
+                                                                                                                      \
+  /* StorageInterface */                                                                                              \
+  F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,             \
+    OperandType::UImm4, OperandType::Local)                                                                           \
+  F(StorageInterfaceGetTablePR, OperandType::Local, OperandType::Local)                                               \
+  F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
+  F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                        \
   /* Trig functions */                                                                                                 \
   F(Pi, OperandType::Local)                                                                                            \
@@ -483,7 +554,8 @@ namespace terrier::execution::vm {
                                                                                                                        \
   /* FOR TESTING ONLY */                                                                                               \
   F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4,                 \
-    OperandType::Local, OperandType::UImm4)
+    OperandType::Local, OperandType::UImm4)                                                                            \
+  F(TestCatalogIndexLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)            \
 
 // clang-format on
 
