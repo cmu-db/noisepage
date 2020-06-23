@@ -55,6 +55,8 @@ class PostgresPacketWriter : public PacketWriter {
    */
   void WriteErrorResponse(const std::string &message);
 
+  void WritePostgresError(const PostgresError &error);
+
   /**
    * Writes an empty query response
    */

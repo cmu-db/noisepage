@@ -54,6 +54,19 @@ void PostgresPacketWriter::WriteErrorResponse(const std::string &message) {
       .EndPacket();  // Nul-terminate packet
 }
 
+void PostgresPacketWriter::WritePostgresError(const PostgresError &error) {
+  if (error.GetSeverity() <= PostgresSeverity::ERROR)
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
+  else
+    BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE);
+
+  for (const auto &field : error.Fields()) {
+    AppendRawValue(field.first).AppendString(field.second, true);
+  }
+
+  AppendRawValue<uchar>(0).EndPacket();  // Nul-terminate packet
+}
+
 void PostgresPacketWriter::WriteEmptyQueryResponse() {
   BeginPacket(NetworkMessageType::PG_EMPTY_QUERY_RESPONSE).EndPacket();
 }
