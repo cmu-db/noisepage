@@ -156,7 +156,7 @@ TEST_F(TrafficCopTests, OrderByTest) {
     txn1.exec("INSERT INTO TableA VALUES (3, 'abc', 1);");
 
     pqxx::result r = txn1.exec("SELECT * FROM TableA ORDER BY 3");
-    int value;
+    int value = 0;
     r.begin().at(0).to(value);
     EXPECT_EQ(value, 3);
     txn1.commit();
