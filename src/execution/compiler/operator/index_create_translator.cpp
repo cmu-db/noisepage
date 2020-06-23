@@ -105,11 +105,16 @@ void CreateIndexTranslator::DeclareSlot(FunctionBuilder *builder) {
   builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
 }
 
-//void CreateIndexTranslator::GenTVIReset(execution::compiler::FunctionBuilder *builder) {
-//  // Reset iterator
-//  ast::Expr *reset_call = codegen_->OneArgCall(ast::Builtin::TableIterReset, tvi_, true);
-//  builder->Append(codegen_->MakeStmt(reset_call));
-//}
+void CreateIndexTranslator::GenPCILoop(FunctionBuilder *builder) {
+  // Generate for(; @pciHasNext(pci); @pciAdvance(pci)) {...} or the Filtered version
+  // The HasNext call
+  ast::Expr *has_next_call = codegen_->OneArgCall(ast::Builtin::PCIHasNext, pci_, false);
+  // The Advance call
+  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::PCIAdvance, pci_, false);
+  ast::Stmt *loop_advance = codegen_->MakeStmt(advance_call);
+  // Make the for loop.
+  builder->StartForStmt(nullptr, has_next_call, loop_advance);
+}
 
 void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
   index_oid_ = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), *(op_->GetSchema()));
