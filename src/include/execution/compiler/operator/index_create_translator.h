@@ -59,22 +59,29 @@ class CreateIndexTranslator : public OperatorTranslator {
 
   // @tableIterReset(&tvi)
   // void GenTVIReset(FunctionBuilder *builder);
-
+    void GenTVIClose(FunctionBuilder *builder);
 
   void GenIndexInserterFree(FunctionBuilder *builder);
   // Insert into table.
   void GenCreateIndex(FunctionBuilder *builder);
+
+  void GenIndexInsert(FunctionBuilder *builder);
+
   void SetOids(FunctionBuilder *builder);
 
  private:
   const planner::CreateIndexPlanNode *op_;
   ast::Identifier index_inserter_;
   ast::Identifier col_oids_;
-  ast::Identifier index_oid_;
   ast::Identifier tvi_;
   ast::Identifier pci_;
+  ast::Identifier slot_;
   const catalog::Schema &table_schema_;
+  catalog::index_oid_t index_oid_;
   std::vector<catalog::col_oid_t> all_oids_;
+    storage::ProjectionMap table_pm_;
+    PRFiller pr_filler_;
+
 
 };
 

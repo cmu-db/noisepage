@@ -229,7 +229,7 @@ namespace terrier::execution::ast {
   F(IndexInsert, indexInsert)                                           \
   F(IndexInsertUnique, indexInsertUnique)                               \
   F(IndexDelete, indexDelete)                                           \
-  F(IndexCreate, indexCreate)                                           \
+  F(IndexInsertBulk, indexInsertBulk)                                           \
   F(StorageInterfaceFree, storageInterfaceFree)                         \
                                                                         \
   /* Parameter calls */                                                 \

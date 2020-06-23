@@ -2154,15 +2154,17 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::IndexCreate: {
+    case ast::Builtin::IndexInsertBulk: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
       // Second argument is a tuple slot
-      if (!call_args[1]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
         return;
       }
+
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
@@ -2596,7 +2598,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
-    case ast::Builtin::IndexCreate:
+    case ast::Builtin::IndexInsertBulk:
     case ast::Builtin::StorageInterfaceFree: {
       CheckBuiltinStorageInterfaceCall(call, builtin);
       break;

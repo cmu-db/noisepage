@@ -1,7 +1,10 @@
 #include "execution/compiler/operator/index_create_translator.h"
 
+#include <storage/index/index_builder.h>
+
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
@@ -13,11 +16,14 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
       op_(op),
       index_inserter_(codegen_->NewIdentifier("index_inserter")),
       col_oids_(codegen_->NewIdentifier("col_oids")),
-      index_oid_(codegen_->NewIdentifier("index_oid")),
       tvi_(codegen_->NewIdentifier("tvi")),
       pci_(codegen_->NewIdentifier("pci")),
+      slot_(codegen_->NewIdentifier("slot")),
       table_schema_(codegen_->Accessor()->GetSchema(op_->GetTableOid())),
-      all_oids_(AllColOids(table_schema_)) {}
+      index_oid_(),
+      all_oids_(AllColOids(table_schema_)),
+      table_pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
+      pr_filler_(codegen_, table_schema_, table_pm_, index_inserter_) {}
 
 
 void CreateIndexTranslator::Produce(FunctionBuilder *builder) {
@@ -28,8 +34,6 @@ void CreateIndexTranslator::Produce(FunctionBuilder *builder) {
   DeclareTVI(builder);
   // create index
   GenCreateIndex(builder);
-  // get index pr
-  DeclareIndexPR(builder);
   // begin loop
   GenTVILoop(builder);
   // get table pr
@@ -39,17 +43,17 @@ void CreateIndexTranslator::Produce(FunctionBuilder *builder) {
 
   DeclareSlot(builder);
 
-  DeclareTablePR(builder);
+  //DeclareTablePR(builder);
   // insert
   GenIndexInsert(builder);
   // reset
-  GenTVIReset(builder);
+  // GenTVIReset(builder);
   // Close PCI loop
   builder->FinishBlockStmt();
   // Close TVI loop
   builder->FinishBlockStmt();
   // clean up
-  FreeIterator(builder);
+  GenTVIClose(builder);
   GenIndexInserterFree(builder);
 }
 
@@ -108,21 +112,45 @@ void CreateIndexTranslator::DeclareSlot(FunctionBuilder *builder) {
 //}
 
 void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
-  auto index_oid = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), *(op_->GetSchema()));
+  index_oid_ = codegen_->Accessor()->CreateIndex(op_->GetNamespaceOid(), op_->GetTableOid(), op_->GetIndexName(), *(op_->GetSchema()));
   // TODO(Wuwen): check if index_oid is valid
-  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
+  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid_);
 
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(index_schema);
   auto *const index = index_builder.Build();
-  bool result UNUSED_ATTRIBUTE = codegen_->Accessor()->SetIndexPointer(index_oid, index);
-
-  ast::Expr * index_oid_expr_ = codegen_->IntLiteral(!index_oid);
-  codegen_->DeclareVariable(index_oid_, index_oid_expr_, nullptr);
+  bool result UNUSED_ATTRIBUTE = codegen_->Accessor()->SetIndexPointer(index_oid_, index);
 }
 
-void CreateIndexTranslator::DeclareIndexPR(FunctionBuilder *builder) {
+void CreateIndexTranslator::GenIndexInsert(FunctionBuilder *builder) {
+  // var insert_index_pr = @getIndexPR(&inserter, oid)
+  auto insert_index_pr = codegen_->NewIdentifier("insert_index_pr");
+  std::vector<ast::Expr *> pr_call_args{codegen_->PointerTo(index_inserter_), codegen_->IntLiteral(!index_oid_)};
+  auto get_index_pr_call = codegen_->BuiltinCall(ast::Builtin::GetIndexPR, std::move(pr_call_args));
+  builder->Append(codegen_->DeclareVariable(insert_index_pr, nullptr, get_index_pr_call));
 
+  // Fill up the index pr
+  auto index = codegen_->Accessor()->GetIndex(index_oid_);
+  const auto &index_pm = index->GetKeyOidToOffsetMap();
+  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid_);
+
+  pr_filler_.GenFiller(index_pm, index_schema, codegen_->MakeExpr(insert_index_pr), builder);
+
+  // Insert into index
+  // if (insert not successfull) { Abort(); }
+  std::vector<ast::Expr *> insert_args{codegen_->PointerTo(index_inserter_), codegen_->PointerTo(slot_)};
+  auto index_insert_call = codegen_->BuiltinCall(ast::Builtin::IndexInsertBulk, std::move(insert_args));
+  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
+  builder->StartIfStmt(cond);
+  Abort(builder);
+  builder->FinishBlockStmt();
+
+}
+
+void CreateIndexTranslator::GenTVIClose(execution::compiler::FunctionBuilder *builder) {
+  // Close iterator
+  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, tvi_, true);
+  builder->Append(codegen_->MakeStmt(close_call));
 }
 
 void CreateIndexTranslator::GenIndexInserterFree(terrier::execution::compiler::FunctionBuilder *builder) {
