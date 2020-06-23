@@ -526,9 +526,9 @@ class BwTreeBase {
  * be set as the standard operator in C++ (i.e. the operator for primitive types
  * AND/OR overloaded operators for derived types)
  */
-template <typename KeyType, typename ValueType, typename KeyComparator = std::less<KeyType>,
-          typename KeyEqualityChecker = std::equal_to<KeyType>, typename KeyHashFunc = std::hash<KeyType>,
-          typename ValueEqualityChecker = std::equal_to<ValueType>, typename ValueHashFunc = std::hash<ValueType>>
+template <typename KeyType, typename ValueType, typename KeyComparator,
+          typename KeyEqualityChecker, typename KeyHashFunc,
+          typename ValueEqualityChecker, typename ValueHashFunc>
 class BwTree : public BwTreeBase {
  public:
   class EpochManager;
