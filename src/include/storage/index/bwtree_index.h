@@ -13,7 +13,7 @@ namespace terrier::transaction {
 class TransactionContext;
 }
 
-namespace third_party::bwtree {
+namespace third_party::bwtree {  // NOLINT: check censored doesn't like this namespace name
 template <typename KeyType, typename ValueType, typename KeyComparator, typename KeyEqualityChecker,
           typename KeyHashFunc, typename ValueEqualityChecker, typename ValueHashFunc>
 class BwTree;
