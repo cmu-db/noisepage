@@ -15,7 +15,6 @@ pipeline {
     stages {
         stage('Performance') {
             agent { label 'benchmark' }
-            when { branch 'master' } 
             steps {
                 loop_terminals_run_oltp(OLTP_TERMINALS)
             }
@@ -28,7 +27,6 @@ pipeline {
 
         stage('Microbenchmark') {
             agent { label 'benchmark' }
-            when { branch 'master' }
             steps {
                 sh 'echo $NODE_NAME'
                 sh 'echo y | sudo ./script/installation/packages.sh all'
