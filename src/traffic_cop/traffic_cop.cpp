@@ -165,7 +165,6 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
     case network::QueryType::QUERY_CREATE_INDEX: {
       auto create_index_plan = physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>();
 
-
       auto table_oid = create_index_plan->GetTableOid();
       if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
         return {ResultType::ERROR,
@@ -316,15 +315,16 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-  query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
-  query_type == network::QueryType::QUERY_DELETE, "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
+                     query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
+                 "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
-//  // Block potential inserts on creating indexes
-//  std::unordered_set<catalog::table_oid_t> modified_table_oids;
-//  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
-//  for (const auto table_oid : modified_table_oids) {
-//    connection_ctx->Transaction()->LockIfNotLocked(table_oid, connection_ctx->Accessor()->GetTableLock(table_oid));
-//  }
+  //  // Block potential inserts on creating indexes
+  //  std::unordered_set<catalog::table_oid_t> modified_table_oids;
+  //  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
+  //  for (const auto table_oid : modified_table_oids) {
+  //    connection_ctx->Transaction()->LockIfNotLocked(table_oid, connection_ctx->Accessor()->GetTableLock(table_oid));
+  //  }
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...

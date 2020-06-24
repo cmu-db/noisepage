@@ -67,6 +67,20 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   return table_->Update(exec_ctx_->GetTxn(), table_redo_);
 }
 
+catalog::index_oid_t StorageInterface::IndexCreate(catalog::namespace_oid_t ns, std::string index_name,
+                                                   const catalog::IndexSchema &schema) {
+  auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns, table_oid_, index_name, schema);
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(schema);
+  auto *const index = index_builder.Build();
+  bool result UNUSED_ATTRIBUTE = exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, index);
+  if (index_oid == catalog::INVALID_INDEX_OID) {
+    exec_ctx_->GetTxn()->SetMustAbort();
+    TERRIER_ASSERT(index_oid != catalog::INVALID_INDEX_OID, "invalid index oid");
+  }
+  return index_oid;
+}
+
 bool StorageInterface::IndexInsert() {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
@@ -82,9 +96,10 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 
-bool StorageInterface::IndexInsertBulk(catalog::index_oid_t  index_oid, storage::TupleSlot table_tuple_slot) {
-    terrier::storage::index::IndexBuilder index_builder;
-  index_builder.SetSqlTableAndTransactionContext(exec_ctx_->GetTxn(), table_, exec_ctx_->GetAccessor()->GetIndexSchema(index_oid));
+bool StorageInterface::IndexInsertBulk(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot) {
+  terrier::storage::index::IndexBuilder index_builder;
+  index_builder.SetSqlTableAndTransactionContext(exec_ctx_->GetTxn(), table_,
+                                                 exec_ctx_->GetAccessor()->GetIndexSchema(index_oid));
   return index_builder.Insert(exec_ctx_->GetAccessor()->GetIndex(index_oid), table_tuple_slot);
 }
 

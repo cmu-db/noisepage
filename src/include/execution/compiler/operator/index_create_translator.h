@@ -42,6 +42,7 @@ class CreateIndexTranslator : public OperatorTranslator {
   const planner::AbstractPlanNode *Op() override { return op_; }
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_);
+
  private:
   // Declare the index_inserter
   void DeclareIndexInserter(FunctionBuilder *builder);
@@ -57,9 +58,10 @@ class CreateIndexTranslator : public OperatorTranslator {
   // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
   void GenPCILoop(FunctionBuilder *builder);
 
+  void GenSetIndexLive(FunctionBuilder *builder);
   // @tableIterReset(&tvi)
   // void GenTVIReset(FunctionBuilder *builder);
-    void GenTVIClose(FunctionBuilder *builder);
+  void GenTVIClose(FunctionBuilder *builder);
 
   void GenIndexInserterFree(FunctionBuilder *builder);
   // Insert into table.
@@ -79,10 +81,8 @@ class CreateIndexTranslator : public OperatorTranslator {
   const catalog::Schema &table_schema_;
   catalog::index_oid_t index_oid_;
   std::vector<catalog::col_oid_t> all_oids_;
-    storage::ProjectionMap table_pm_;
-    PRFiller pr_filler_;
-
-
+  storage::ProjectionMap table_pm_;
+  PRFiller pr_filler_;
 };
 
 }  // namespace terrier::execution::compiler

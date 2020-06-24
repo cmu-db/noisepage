@@ -8,9 +8,9 @@
 #include "network/postgres/postgres_packet_util.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/traffic_cop_util.h"
-#include "planner/plannodes/create_index_plan_node.h"
 
 namespace terrier::network {
 
@@ -62,13 +62,13 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
         table_lock->lock();
         result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
 
-        //TODO(Wuwen): grab lock for creation
+        // TODO(Wuwen): grab lock for creation
         result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
         table_lock->unlock();
         result = {trafficcop::ResultType::COMPLETE, 0};
 
       } else {
-        //concurrent
+        // concurrent
         result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
 
         result = t_cop->RunExecutableQuery(connection_ctx, out, portal);

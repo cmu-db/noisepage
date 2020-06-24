@@ -191,15 +191,15 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKey) {
                                .SetHasPrimaryKey(true)
                                .SetPrimaryKey(std::move(pk_info))
                                .Build();
-  std::cerr<<"1"<<std::endl;
+  std::cerr << "1" << std::endl;
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
-  std::cerr<<"2"<<std::endl;
+  std::cerr << "2" << std::endl;
   auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
-  std::cerr<<"3"<<std::endl;
+  std::cerr << "3" << std::endl;
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_pkey");
-  std::cerr<<"4"<<std::endl;
+  std::cerr << "4" << std::endl;
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);

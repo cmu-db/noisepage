@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-
+#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "execution/util/execution_common.h"
 #include "storage/projected_row.h"
@@ -71,6 +71,8 @@ class EXPORT StorageInterface {
    */
   storage::TupleSlot TableInsert();
 
+  catalog::index_oid_t IndexCreate(catalog::namespace_oid_t ns, std::string index_name,
+                                   const catalog::IndexSchema &schema);
   /**
    * @param index_oid OID of the index to access.
    * @return PR of the index.
@@ -96,6 +98,7 @@ class EXPORT StorageInterface {
   bool IndexInsertUnique();
 
   bool IndexInsertBulk(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot);
+
  protected:
   /**
    * Oid of the table being accessed.

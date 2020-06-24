@@ -1,5 +1,7 @@
 #include "catalog/catalog_accessor.h"
 
+#include <storage/index/index_builder.h>
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -121,6 +123,16 @@ index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, 
                                          const IndexSchema &schema) const {
   NormalizeObjectName(&name);
   return dbc_->CreateIndex(txn_, ns, name, table, schema);
+}
+
+index_oid_t CatalogAccessor::CreateIndexWrapper(namespace_oid_t ns, table_oid_t table, std::string name,
+                                                const IndexSchema &schema) const {
+  auto index_oid = CreateIndex(ns, table, name, schema);
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(schema);
+  auto *const index = index_builder.Build();
+  bool result UNUSED_ATTRIBUTE = SetIndexPointer(index_oid, index);
+  return index_oid;
 }
 
 bool CatalogAccessor::SetIndexLive(index_oid_t index) const { return dbc_->SetIndexLive(txn_, index); }

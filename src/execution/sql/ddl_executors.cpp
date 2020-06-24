@@ -165,11 +165,11 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
     if (populate_txn != nullptr) {
       index_builder.SetSqlTableAndTransactionContext(populate_txn, accessor->GetTable(table), schema);
 
-       //Now, populate the index
+      // Now, populate the index
       index_builder.BulkInsert(index);
     }
 
-     // Communicate to readers that the index is live
+    // Communicate to readers that the index is live
     accessor->SetIndexLive(index_oid);
   }
   return true;

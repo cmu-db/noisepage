@@ -79,7 +79,9 @@ class IndexBuilder {
    * @param txn the transaction to use when inserting into the table
    * @return the builder object
    */
-  IndexBuilder &SetSqlTableAndTransactionContext(const common::ManagedPointer<transaction::TransactionContext> txn, common::ManagedPointer<storage::SqlTable> sql_table, const catalog::IndexSchema &key_schema) {
+  IndexBuilder &SetSqlTableAndTransactionContext(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                                 common::ManagedPointer<storage::SqlTable> sql_table,
+                                                 const catalog::IndexSchema &key_schema) {
     TERRIER_ASSERT((sql_table == nullptr && txn == nullptr) || (sql_table != nullptr && txn != nullptr),
                    "sql_table / txn is null and txn / sql_table is not.");
     txn_ = txn;
@@ -88,10 +90,10 @@ class IndexBuilder {
     return *this;
   }
   /**
-  * Insert everything in the table this index is made on into the index
-  * @param index newly created index
-  */
-  void BulkInsert(Index* index) const {
+   * Insert everything in the table this index is made on into the index
+   * @param index newly created index
+   */
+  void BulkInsert(Index *index) const {
     // Initialize index pr
     const auto index_pr_initializer = index->GetProjectedRowInitializer();
     const uint32_t index_pr_size = index_pr_initializer.ProjectedRowSize();
@@ -147,7 +149,6 @@ class IndexBuilder {
     delete[] table_pr_buffer;
   }
 
-
   /**
    * Insert everything in the table this index is made on into the index
    * @param index newly created index
@@ -167,45 +168,29 @@ class IndexBuilder {
 
     auto pr_map = sql_table_->ProjectionMapForOids(indexed_attributes);
 
-      auto slot = table_tuple_slot;
+    sql_table_->Select(txn_, table_tuple_slot, table_pr);
 
-      sql_table_->TraverseVersionChain(slot, table_pr, [&, this](auto type) {
-        // Insert into the index
-        auto num_index_cols = key_schema_.GetColumns().size();
-        TERRIER_ASSERT(num_index_cols == indexed_attributes.size(),
-                       "Only support index keys that are a single column oid");
-        for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
-          const auto &col = key_schema_.GetColumn(col_idx);
-          auto index_col_oid = col.Oid();
-          const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
-          if (table_pr->IsNull(pr_map[table_col_oid])) {
-            index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
-          } else {
-            // TODO(Wuwen): This may not be thread safe
-            auto size = AttrSizeBytes(col.AttrSize());
-            std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
-                        table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
-          }
-        }
-
-        switch (type) {
-          case DataTable::VersionChainType::VISIBLE:
-            index->Insert(txn_, *index_pr, slot);
-            break;
-          case DataTable::VersionChainType::INVISIBLE:
-          case DataTable::VersionChainType::PRE_UPDATE:
-            index->Insert(txn_, *index_pr, slot);
-            index->Delete(txn_, *index_pr, slot);
-            break;
-          default:
-            break;
-        }
-      });
-
+    // Insert into the index
+    auto num_index_cols = key_schema_.GetColumns().size();
+    TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
+    for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
+      const auto &col = key_schema_.GetColumn(col_idx);
+      auto index_col_oid = col.Oid();
+      const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
+      if (table_pr->IsNull(pr_map[table_col_oid])) {
+        index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
+      } else {
+        // TODO(Wuwen): This may not be thread safe
+        auto size = AttrSizeBytes(col.AttrSize());
+        std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
+                    table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
+      }
+    }
+    auto insert_result = index->Insert(txn_, *index_pr, table_tuple_slot);
 
     delete[] index_pr_buffer;
     delete[] table_pr_buffer;
-    return true;
+    return insert_result;
   }
 
  private:

@@ -234,6 +234,16 @@ class CatalogAccessor {
   index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema &schema) const;
 
   /**
+   * Given the index name and its specification, add it to the catalog
+   * @param ns is the namespace in which the index will exist
+   * @param table on which this index exists
+   * @param name of the index
+   * @param schema describing the new index
+   * @return OID for the index, INVALID_INDEX_OID if the operation failed
+   */
+  index_oid_t CreateIndexWrapper(namespace_oid_t ns, table_oid_t table, std::string name,
+                                 const IndexSchema &schema) const;
+  /**
    * Given the index name, set the index to be live in the catalog.
    * @param index to be set to live
    * @return whether the operation succeeded

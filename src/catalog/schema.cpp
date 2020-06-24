@@ -38,7 +38,6 @@ void Schema::FromJson(const nlohmann::json &j) {
   TERRIER_ASSERT(false, "Schema::FromJson should never be invoked directly; use DeserializeSchema");
 }
 
-
 std::unique_ptr<Schema> Schema::DeserializeSchema(const nlohmann::json &j) {
   auto columns = j.at("columns").get<std::vector<Schema::Column>>();
   return std::make_unique<Schema>(columns);
