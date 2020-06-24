@@ -618,22 +618,20 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 }
 
 void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
-  // The first argument should be the execution context.
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
-  // The second argument is the table oid, which is integer-typed.
-  LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[1]);
-  // The third argument is the array of column oids.
-  auto *arr_type = call->Arguments()[2]->GetType()->As<ast::ArrayType>();
-  LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
-  // The fourth argument is the query state. Right now, this is the same as the execution context.
-  LocalVar query_state = VisitExpressionForRValue(call->Arguments()[3]);
-  // The fifth argument is the thread state container.
-  LocalVar thread_state_container = VisitExpressionForRValue(call->Arguments()[4]);
-  // The sixth argument is the scan function as an identifier.
-  const auto scan_fn_name = call->Arguments()[5]->As<ast::IdentifierExpr>()->Name();
+  // The first argument is the table oid, which is integer-typed.
+  LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[0]);
+  // The second argument is the array of column oids.
+  auto *arr_type = call->Arguments()[1]->GetType()->As<ast::ArrayType>();
+  LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[1]);
+  // The third argument is the query state.
+  LocalVar query_state = VisitExpressionForRValue(call->Arguments()[2]);
+  // The fourth argument should be the execution context.
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
+  // The fifth argument is the scan function as an identifier.
+  const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
   // Emit the bytecode.
-  GetEmitter()->EmitParallelTableScan(exec_ctx, table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
-                                      query_state, thread_state_container, LookupFuncIdByName(scan_fn_name.GetData()));
+  GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
+                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -808,7 +806,8 @@ void BytecodeGenerator::VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::
   LocalVar filter_manager = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
     case ast::Builtin::FilterManagerInit: {
-      GetEmitter()->Emit(Bytecode::FilterManagerInit, filter_manager);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::FilterManagerInit, filter_manager, exec_ctx);
       break;
     }
     case ast::Builtin::FilterManagerInsertFilter: {
@@ -824,7 +823,8 @@ void BytecodeGenerator::VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::
     }
     case ast::Builtin::FilterManagerRunFilters: {
       LocalVar vpi = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::FilterManagerRunFilters, filter_manager, vpi);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::FilterManagerRunFilters, filter_manager, vpi, exec_ctx);
       break;
     }
     case ast::Builtin::FilterManagerFree: {
@@ -838,17 +838,18 @@ void BytecodeGenerator::VisitBuiltinFilterManagerCall(ast::CallExpr *call, ast::
 }
 
 void BytecodeGenerator::VisitBuiltinVectorFilterCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar vector_projection = VisitExpressionForRValue(call->Arguments()[0]);
-  LocalVar tid_list = VisitExpressionForRValue(call->Arguments()[3]);
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar vector_projection = VisitExpressionForRValue(call->Arguments()[1]);
+  LocalVar tid_list = VisitExpressionForRValue(call->Arguments()[4]);
 
-#define GEN_CASE(BYTECODE)                                                               \
-  LocalVar left_col = VisitExpressionForRValue(call->Arguments()[1]);                    \
-  if (!call->Arguments()[2]->GetType()->IsIntegerType()) {                               \
-    LocalVar right_val = VisitExpressionForLValue(call->Arguments()[2]);                 \
-    GetEmitter()->Emit(BYTECODE##Val, vector_projection, left_col, right_val, tid_list); \
-  } else {                                                                               \
-    LocalVar right_col = VisitExpressionForRValue(call->Arguments()[2]);                 \
-    GetEmitter()->Emit(BYTECODE, vector_projection, left_col, right_col, tid_list);      \
+#define GEN_CASE(BYTECODE)                                                                         \
+  LocalVar left_col = VisitExpressionForRValue(call->Arguments()[2]);                              \
+  if (!call->Arguments()[3]->GetType()->IsIntegerType()) {                                         \
+    LocalVar right_val = VisitExpressionForLValue(call->Arguments()[3]);                           \
+    GetEmitter()->Emit(BYTECODE##Val, exec_ctx, vector_projection, left_col, right_val, tid_list); \
+  } else {                                                                                         \
+    LocalVar right_col = VisitExpressionForRValue(call->Arguments()[3]);                           \
+    GetEmitter()->Emit(BYTECODE, exec_ctx, vector_projection, left_col, right_col, tid_list);      \
   }
 
   switch (builtin) {

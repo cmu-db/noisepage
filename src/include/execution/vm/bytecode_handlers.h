@@ -259,12 +259,11 @@ VM_OP_HOT void OpTableVectorIteratorGetVPI(terrier::execution::sql::VectorProjec
   *vpi = iter->GetVectorProjectionIterator();
 }
 
-VM_OP_HOT void OpParallelScanTable(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
-                                   uint32_t *col_oids, uint32_t num_oids, void *const query_state,
-                                   terrier::execution::sql::ThreadStateContainer *const thread_states,
+VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
+                                   terrier::execution::exec::ExecutionContext *exec_ctx,
                                    const terrier::execution::sql::TableVectorIterator::ScanFn scanner) {
-  terrier::execution::sql::TableVectorIterator::ParallelScan(exec_ctx, table_oid, col_oids, num_oids, query_state,
-                                                             thread_states, scanner);
+  terrier::execution::sql::TableVectorIterator::ParallelScan(table_oid, col_oids, num_oids, query_state, exec_ctx,
+                                                             scanner);
 }
 
 // ---------------------------------------------------------
@@ -423,7 +422,7 @@ VM_OP_HOT void OpHashCombine(terrier::hash_t *hash_val, terrier::hash_t new_hash
 // ---------------------------------------------------------
 
 VM_OP void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager,
-                               terrier::execution::exec::ExecutionSettings *exec_settings);
+                               const terrier::execution::exec::ExecutionSettings &exec_settings);
 
 VM_OP void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager);
 
@@ -431,7 +430,8 @@ VM_OP void OpFilterManagerInsertFilter(terrier::execution::sql::FilterManager *f
                                        terrier::execution::sql::FilterManager::MatchFn clause);
 
 VM_OP void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter,
-                                     terrier::execution::sql::VectorProjectionIterator *vpi);
+                                     terrier::execution::sql::VectorProjectionIterator *vpi,
+                                     terrier::execution::exec::ExecutionContext *exec_ctx);
 
 VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter);
 

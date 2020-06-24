@@ -176,7 +176,7 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
 
   switch (plan.GetPlanNodeType()) {
     case planner::PlanNodeType::AGGREGATE: {
-      const auto &aggregation = static_cast<const planner::AggregatePlanNode &>(plan);
+      const auto &aggregation = dynamic_cast<const planner::AggregatePlanNode &>(plan);
       if (aggregation.GetAggregateStrategyType() == planner::AggregateStrategyType::SORTED) {
         throw NOT_IMPLEMENTED_EXCEPTION("Code generation for sort-based aggregations.");
       }
@@ -188,37 +188,37 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
       break;
     }
     case planner::PlanNodeType::CSVSCAN: {
-      const auto &scan_plan = static_cast<const planner::CSVScanPlanNode &>(plan);
+      const auto &scan_plan = dynamic_cast<const planner::CSVScanPlanNode &>(plan);
       translator = std::make_unique<CSVScanTranslator>(scan_plan, this, pipeline);
       break;
     }
     case planner::PlanNodeType::HASHJOIN: {
-      const auto &hash_join = static_cast<const planner::HashJoinPlanNode &>(plan);
+      const auto &hash_join = dynamic_cast<const planner::HashJoinPlanNode &>(plan);
       translator = std::make_unique<HashJoinTranslator>(hash_join, this, pipeline);
       break;
     }
     case planner::PlanNodeType::LIMIT: {
-      const auto &limit = static_cast<const planner::LimitPlanNode &>(plan);
+      const auto &limit = dynamic_cast<const planner::LimitPlanNode &>(plan);
       translator = std::make_unique<LimitTranslator>(limit, this, pipeline);
       break;
     }
     case planner::PlanNodeType::NESTLOOP: {
-      const auto &nested_loop = static_cast<const planner::NestedLoopJoinPlanNode &>(plan);
+      const auto &nested_loop = dynamic_cast<const planner::NestedLoopJoinPlanNode &>(plan);
       translator = std::make_unique<NestedLoopJoinTranslator>(nested_loop, this, pipeline);
       break;
     }
     case planner::PlanNodeType::ORDERBY: {
-      const auto &sort = static_cast<const planner::OrderByPlanNode &>(plan);
+      const auto &sort = dynamic_cast<const planner::OrderByPlanNode &>(plan);
       translator = std::make_unique<SortTranslator>(sort, this, pipeline);
       break;
     }
     case planner::PlanNodeType::PROJECTION: {
-      const auto &projection = static_cast<const planner::ProjectionPlanNode &>(plan);
+      const auto &projection = dynamic_cast<const planner::ProjectionPlanNode &>(plan);
       translator = std::make_unique<ProjectionTranslator>(projection, this, pipeline);
       break;
     }
     case planner::PlanNodeType::SEQSCAN: {
-      const auto &seq_scan = static_cast<const planner::SeqScanPlanNode &>(plan);
+      const auto &seq_scan = dynamic_cast<const planner::SeqScanPlanNode &>(plan);
       translator = std::make_unique<SeqScanTranslator>(seq_scan, this, pipeline);
       break;
     }

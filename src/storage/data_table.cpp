@@ -67,7 +67,8 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
                      execution::sql::VectorProjection *const out_buffer) const {
   uint32_t filled = 0;
-  while (filled < out_buffer->GetTupleCapacity() && *start_pos != end()) {
+  while (filled < out_buffer->GetTupleCapacity() && *start_pos != end() &&
+         **start_pos != SlotIterator::InvalidTupleSlot()) {
     execution::sql::VectorProjection::RowView row = out_buffer->InterpretAsRow(filled);
     const TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
@@ -81,23 +82,28 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 // for vectors, take out all the values
 
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
-  // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
-  //  with a real solution
-  common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
   // Jump to the next block if already the last slot in the block.
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
-    if (num_advances_ > 0 || num_advances_ == SlotIterator::TILL_END) {
+    if (num_advances_ > 0 || num_advances_ == SlotIterator::ADVANCE_TO_THE_END) {
       // Advance to the next block.
       ++block_index_;
-      num_advances_ = num_advances_ == SlotIterator::TILL_END ? num_advances_ : num_advances_ - 1;
+      num_advances_ = num_advances_ == SlotIterator::ADVANCE_TO_THE_END ? num_advances_ : num_advances_ - 1;
       // Cannot dereference if the next block is end(), so just use nullptr to denote
-      current_slot_ = {block_index_ >= table_->blocks_.size() ? nullptr : table_->blocks_[block_index_], 0};
+      {
+        // TODO(WAN): Lin, does this latch still need to be temporarily commented out for TPCH?
+        common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
+        if (block_index_ >= table_->blocks_.size()) {
+          current_slot_ = DataTable::SlotIterator::InvalidTupleSlot();
+        } else {
+          current_slot_ = {table_->blocks_[block_index_], 0};
+        }
+      }
     } else {
       // Done advancing, time to give up.
-      current_slot_ = {nullptr, 0};
+      current_slot_ = DataTable::SlotIterator::InvalidTupleSlot();
     }
   } else {
-    current_slot_ = {table_->blocks_[block_index_], current_slot_.GetOffset() + 1};
+    current_slot_ = {current_slot_.GetBlock(), current_slot_.GetOffset() + 1};
   }
   return *this;
 }
@@ -112,13 +118,14 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   // table is full. In the case that it points to nothing, we will use the end of the blocks list and
   // 0 to denote that this is the case. This solution makes increment logic simple and natural.
   uint32_t num_blocks = blocks_.size();
-  if (blocks_.empty()) return {this, num_blocks, SlotIterator::TILL_END, 0};
+  if (blocks_.empty()) return {this, num_blocks, SlotIterator::ADVANCE_TO_THE_END, 0};
   uint32_t last_block_index = num_blocks - 1;
   uint32_t insert_head = blocks_[last_block_index]->GetInsertHead();
   // Last block is full, return the default end iterator that doesn't point to anything
-  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, num_blocks, SlotIterator::TILL_END, 0};
+  if (insert_head == accessor_.GetBlockLayout().NumSlots())
+    return {this, num_blocks, SlotIterator::ADVANCE_TO_THE_END, 0};
   // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
-  return {this, last_block_index, SlotIterator::TILL_END, insert_head};
+  return {this, last_block_index, SlotIterator::ADVANCE_TO_THE_END, insert_head};
 }
 
 DataTable::SlotIterator DataTable::GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
@@ -174,7 +181,6 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
 
 void DataTable::CheckMoveHead(uint32_t block_index) {
   // Assume block is full.
-  common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
   if (block_index == insertion_head_.load()) {
     // If the header block is full, move the header to point to the next block.
     insertion_head_++;

@@ -43,7 +43,8 @@ void FilterManager::Clause::AddTerm(FilterManager::MatchFn term) {
 
 bool FilterManager::Clause::ShouldReRank() { return dist_(gen_) < sample_freq_; }
 
-void FilterManager::Clause::RunFilter(VectorProjection *input_batch, TupleIdList *tid_list) {
+void FilterManager::Clause::RunFilter(exec::ExecutionContext *exec_ctx, VectorProjection *input_batch,
+                                      TupleIdList *tid_list) {
   // With probability 'sample_freq_' we will collect statistics on each clause
   // term and re-rank them to form a potentially new, more optimal ordering.
   // The rank of a term is defined as:
@@ -56,7 +57,7 @@ void FilterManager::Clause::RunFilter(VectorProjection *input_batch, TupleIdList
 
   if (!ShouldReRank()) {
     for (const auto &term : terms_) {
-      term->fn_(input_batch, tid_list, opaque_context_);
+      term->fn_(exec_ctx, input_batch, tid_list, opaque_context_);
       if (tid_list->IsEmpty()) break;
     }
     return;
@@ -90,7 +91,7 @@ void FilterManager::Clause::RunFilter(VectorProjection *input_batch, TupleIdList
   const auto input_selectivity = tid_list->ComputeSelectivity();
   for (const auto &term : terms_) {
     temp_.AssignFrom(input_copy_);
-    const auto exec_ns = util::TimeNanos([&]() { term->fn_(input_batch, &temp_, opaque_context_); });
+    const auto exec_ns = util::TimeNanos([&]() { term->fn_(exec_ctx, input_batch, &temp_, opaque_context_); });
     const auto term_selectivity = temp_.ComputeSelectivity();
     const auto term_cost = exec_ns / tuple_count;
     term->rank_ = (input_selectivity - term_selectivity) / term_cost;
@@ -136,7 +137,7 @@ std::vector<uint32_t> FilterManager::Clause::GetOptimalTermOrder() const {
 //
 //===----------------------------------------------------------------------===//
 
-FilterManager::FilterManager(common::ManagedPointer<exec::ExecutionSettings> exec_settings, bool adapt, void *context)
+FilterManager::FilterManager(const exec::ExecutionSettings &exec_settings, bool adapt, void *context)
     : exec_settings_(exec_settings),
       adapt_(adapt),
       opaque_context_(context),
@@ -147,7 +148,7 @@ FilterManager::FilterManager(common::ManagedPointer<exec::ExecutionSettings> exe
 }
 
 void FilterManager::StartNewClause() {
-  double sample_freq = exec_settings_->GetAdaptivePredicateOrderSamplingFrequency();
+  double sample_freq = exec_settings_.GetAdaptivePredicateOrderSamplingFrequency();
   if (!IsAdaptive()) sample_freq = 0.0;
   clauses_.emplace_back(std::make_unique<Clause>(opaque_context_, sample_freq));
 }
@@ -165,7 +166,7 @@ void FilterManager::InsertClauseTerms(const std::vector<MatchFn> &terms) {
   for (auto term : terms) InsertClauseTerm(term);
 }
 
-void FilterManager::RunFilters(VectorProjection *input_batch) {
+void FilterManager::RunFilters(exec::ExecutionContext *exec_ctx, VectorProjection *input_batch) {
   // Initialize the input, output, and temporary tuple ID lists for processing
   // this projection. This check just ensures they're all the same shape.
   if (const uint32_t projection_size = input_batch->GetTotalTupleCount();
@@ -195,7 +196,7 @@ void FilterManager::RunFilters(VectorProjection *input_batch) {
     }
 
     // Run the clause.
-    clause->RunFilter(input_batch, &tmp_list_);
+    clause->RunFilter(exec_ctx, input_batch, &tmp_list_);
 
     // Update output list with surviving TIDs.
     output_list_.UnionWith(tmp_list_);
@@ -204,9 +205,9 @@ void FilterManager::RunFilters(VectorProjection *input_batch) {
   input_batch->SetFilteredSelections(output_list_);
 }
 
-void FilterManager::RunFilters(VectorProjectionIterator *input_batch) {
+void FilterManager::RunFilters(exec::ExecutionContext *exec_ctx, VectorProjectionIterator *input_batch) {
   VectorProjection *vector_projection = input_batch->GetVectorProjection();
-  RunFilters(vector_projection);
+  RunFilters(exec_ctx, vector_projection);
   input_batch->SetVectorProjection(vector_projection);
 }
 

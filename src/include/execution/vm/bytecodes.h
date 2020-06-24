@@ -115,8 +115,8 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                   \
   F(TableVectorIteratorFree, OperandType::Local)                                                                       \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                 \
-  F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4,                 \
-    OperandType::Local, OperandType::Local, OperandType::FunctionId)                                                   \
+  F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                 \
+    OperandType::Local, OperandType::FunctionId)                                                                       \
                                                                                                                        \
   /* Vector Projection Iterator (VPI) */                                                                               \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                   \
@@ -177,25 +177,25 @@ namespace terrier::execution::vm {
   F(VPISetStringNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
                                                                                                                        \
   /* Filter Manager */                                                                                                 \
-  F(FilterManagerInit, OperandType::Local)                                                                             \
+  F(FilterManagerInit, OperandType::Local, OperandType::Local)                                                         \
   F(FilterManagerStartNewClause, OperandType::Local)                                                                   \
   F(FilterManagerInsertFilter, OperandType::Local, OperandType::FunctionId)                                            \
-  F(FilterManagerRunFilters, OperandType::Local, OperandType::Local)                                                   \
+  F(FilterManagerRunFilters, OperandType::Local, OperandType::Local, OperandType::Local)                               \
   F(FilterManagerFree, OperandType::Local)                                                                             \
                                                                                                                        \
   /* Vector Filter Executor */                                                                                         \
-  F(VectorFilterEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                 \
-  F(VectorFilterEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)              \
-  F(VectorFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
-  F(VectorFilterGreaterThanVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)        \
-  F(VectorFilterGreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)      \
-  F(VectorFilterGreaterThanEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)   \
-  F(VectorFilterLessThan, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)              \
-  F(VectorFilterLessThanVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
-  F(VectorFilterLessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
-  F(VectorFilterLessThanEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)      \
-  F(VectorFilterNotEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)              \
-  F(VectorFilterNotEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(VectorFilterEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                 \
+  F(VectorFilterEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)              \
+  F(VectorFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(VectorFilterGreaterThanVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)        \
+  F(VectorFilterGreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)      \
+  F(VectorFilterGreaterThanEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)   \
+  F(VectorFilterLessThan, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)              \
+  F(VectorFilterLessThanVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(VectorFilterLessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(VectorFilterLessThanEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)      \
+  F(VectorFilterNotEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)              \
+  F(VectorFilterNotEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
                                                                                                                        \
   /* SQL value creation */                                                                                             \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                            \

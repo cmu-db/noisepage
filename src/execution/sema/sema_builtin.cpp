@@ -872,61 +872,55 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 6)) {
+  if (!CheckArgCount(call, 5)) {
     return;
   }
 
   const auto &call_args = call->Arguments();
 
-  // The first argument is the execution context.
-  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), exec_ctx_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+  // The first argument is a table oid.
+  if (!call_args[0]->GetType()->IsIntegerType()) {
+    ReportIncorrectCallArg(call, 0, "First argument should be an integer type.");
     return;
   }
 
-  // The second argument is a table oid.
-  if (!call_args[1]->GetType()->IsIntegerType()) {
-    ReportIncorrectCallArg(call, 1, "Second argument should be an integer type.");
+  // The second argument is a uint32_t array.
+  if (!call_args[1]->GetType()->IsArrayType()) {
+    ReportIncorrectCallArg(call, 1, "Second argument should be a fixed length uint32 array.");
     return;
   }
-
-  // The third argument is a uint32_t array.
-  if (!call_args[2]->GetType()->IsArrayType()) {
-    ReportIncorrectCallArg(call, 2, "Third argument should be a fixed length uint32 array.");
-    return;
-  }
-  auto *arr_type = call_args[2]->GetType()->SafeAs<ast::ArrayType>();
+  auto *arr_type = call_args[1]->GetType()->SafeAs<ast::ArrayType>();
   if (!arr_type->GetElementType()->IsSpecificBuiltin(ast::BuiltinType::Uint32) || !arr_type->HasKnownLength()) {
-    ReportIncorrectCallArg(call, 2, "Third argument should be a fixed length uint32 array");
+    ReportIncorrectCallArg(call, 1, "Second argument should be a fixed length uint32 array");
   }
 
-  // The fourth argument is an opaque query state. For now, check it's a pointer.
+  // The third argument is an opaque query state. For now, check it's a pointer.
   const auto void_kind = ast::BuiltinType::Nil;
-  if (!call_args[3]->GetType()->IsPointerType()) {
-    ReportIncorrectCallArg(call, 3, GetBuiltinType(void_kind)->PointerTo());
+  if (!call_args[2]->GetType()->IsPointerType()) {
+    ReportIncorrectCallArg(call, 2, GetBuiltinType(void_kind)->PointerTo());
     return;
   }
 
-  // The fifth argument is the thread state container.
-  const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-  if (!IsPointerToSpecificBuiltin(call_args[4]->GetType(), tls_kind)) {
-    ReportIncorrectCallArg(call, 4, GetBuiltinType(tls_kind)->PointerTo());
+  // The fourth argument is the execution context.
+  const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
     return;
   }
 
-  // The sixth argument is the scanner function.
-  auto *scan_fn_type = call_args[5]->GetType()->SafeAs<ast::FunctionType>();
+  // The fifth argument is the scanner function.
+  auto *scan_fn_type = call_args[4]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[5]->GetType());
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
     return;
   }
   // Check the type of the scanner function parameters.
   const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
   const auto &params = scan_fn_type->GetParams();
-  if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
-      !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
+  if (params.size() != 4 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
+      !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind) ||
+      !IsPointerToSpecificBuiltin(params[3].type_, exec_ctx_kind)) {
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
     return;
   }
 
@@ -1137,8 +1131,20 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
     return;
   }
 
+  const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
   switch (builtin) {
-    case ast::Builtin::FilterManagerInit:
+    case ast::Builtin::FilterManagerInit: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      // The second argument must be a pointer to the execution context.
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::FilterManagerFree: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
@@ -1148,11 +1154,12 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
         const auto vector_proj_kind = ast::BuiltinType::VectorProjection;
         const auto tid_list_kind = ast::BuiltinType::TupleIdList;
         auto *arg_type = call->Arguments()[arg_idx]->GetType()->SafeAs<ast::FunctionType>();
-        if (arg_type == nullptr || arg_type->GetNumParams() != 3 ||
-            !IsPointerToSpecificBuiltin(arg_type->GetParams()[0].type_, vector_proj_kind) ||
-            !IsPointerToSpecificBuiltin(arg_type->GetParams()[1].type_, tid_list_kind) ||
-            !arg_type->GetParams()[2].type_->IsPointerType()) {
-          ReportIncorrectCallArg(call, arg_idx, "(*VectorProjection, *TupleIdList, *uint8)->nil");
+        if (arg_type == nullptr || arg_type->GetNumParams() != 4 ||
+            !IsPointerToSpecificBuiltin(arg_type->GetParams()[0].type_, exec_ctx_kind) ||
+            !IsPointerToSpecificBuiltin(arg_type->GetParams()[1].type_, vector_proj_kind) ||
+            !IsPointerToSpecificBuiltin(arg_type->GetParams()[2].type_, tid_list_kind) ||
+            !arg_type->GetParams()[3].type_->IsPointerType()) {
+          ReportIncorrectCallArg(call, arg_idx, "(*ExecutionContext, *VectorProjection, *TupleIdList, *uint8)->nil");
           return;
         }
       }
@@ -1160,13 +1167,17 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
       break;
     }
     case ast::Builtin::FilterManagerRunFilters: {
-      if (!CheckArgCount(call, 2)) {
+      if (!CheckArgCount(call, 3)) {
         return;
       }
 
       const auto vpi_kind = ast::BuiltinType::VectorProjectionIterator;
       if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), vpi_kind)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(vpi_kind)->PointerTo());
+        return;
+      }
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[2]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
@@ -1179,37 +1190,44 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
 }
 
 void Sema::CheckBuiltinVectorFilterCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 4)) {
+  if (!CheckArgCount(call, 5)) {
     return;
   }
 
-  // The first argument must be a *VectorProjection
+  // The first argument must be a *ExecutionContext.
+  const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+    return;
+  }
+
+  // The second argument must be a *VectorProjection.
   const auto vector_proj_kind = ast::BuiltinType::VectorProjection;
-  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), vector_proj_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(vector_proj_kind)->PointerTo());
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), vector_proj_kind)) {
+    ReportIncorrectCallArg(call, 1, GetBuiltinType(vector_proj_kind)->PointerTo());
     return;
   }
 
-  // Second argument is the column index
+  // The third argument is the column index.
   const auto &call_args = call->Arguments();
   const auto int32_kind = ast::BuiltinType::Int32;
   const auto uint32_kind = ast::BuiltinType::Uint32;
-  if (!call_args[1]->GetType()->IsSpecificBuiltin(int32_kind) &&
-      !call_args[1]->GetType()->IsSpecificBuiltin(uint32_kind)) {
-    ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
-    return;
-  }
-
-  // Third argument is either an integer or a pointer to a generic value
-  if (!call_args[2]->GetType()->IsSpecificBuiltin(int32_kind) && !call_args[2]->GetType()->IsSqlValueType()) {
+  if (!call_args[2]->GetType()->IsSpecificBuiltin(int32_kind) &&
+      !call_args[2]->GetType()->IsSpecificBuiltin(uint32_kind)) {
     ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_kind));
     return;
   }
 
-  // Fourth and last argument is the *TupleIdList
+  // The fourth argument is either an integer or a pointer to a generic value.
+  if (!call_args[3]->GetType()->IsSpecificBuiltin(int32_kind) && !call_args[3]->GetType()->IsSqlValueType()) {
+    ReportIncorrectCallArg(call, 3, GetBuiltinType(int32_kind));
+    return;
+  }
+
+  // The fifth and last argument is the *TupleIdList.
   const auto tid_list_kind = ast::BuiltinType::TupleIdList;
-  if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), tid_list_kind)) {
-    ReportIncorrectCallArg(call, 3, GetBuiltinType(tid_list_kind)->PointerTo());
+  if (!IsPointerToSpecificBuiltin(call_args[4]->GetType(), tid_list_kind)) {
+    ReportIncorrectCallArg(call, 4, GetBuiltinType(tid_list_kind)->PointerTo());
     return;
   }
 

@@ -10,8 +10,9 @@
 #include "execution/sql/tuple_id_list.h"
 
 namespace terrier::execution::exec {
+class ExecutionContext;
 class ExecutionSettings;
-}
+}  // namespace terrier::execution::exec
 
 namespace terrier::execution::sql {
 
@@ -47,11 +48,12 @@ class FilterManager {
  public:
   /**
    * A vectorized filter function.
-   * The first argument is the projection to be filtered.
-   * The second argument is the list of TIDs in the input projection that are active.
-   * The third argument is an opaque context provided to the filter manager at construction time.
+   * The first argument is the execution context, used for execution settings.
+   * The second argument is the projection to be filtered.
+   * The third argument is the list of TIDs in the input projection that are active.
+   * The fourth argument is an opaque context provided to the filter manager at construction time.
    */
-  using MatchFn = void (*)(VectorProjection *, TupleIdList *, void *);
+  using MatchFn = void (*)(exec::ExecutionContext *, VectorProjection *, TupleIdList *, void *);
 
   /**
    * A clause in a multi-clause disjunctive normal form filter. A clause is composed of one or more
@@ -61,6 +63,7 @@ class FilterManager {
    public:
     /**
      * Create a new empty clause.
+     * @param opaque_context The opaque context to run with.
      * @param stat_sample_freq The frequency to sample term runtime/selectivity stats.
      */
     explicit Clause(void *opaque_context, double stat_sample_freq);
@@ -73,10 +76,11 @@ class FilterManager {
 
     /**
      * Run the clause over the given input projection.
+     * @param exec_ctx The execution context to run with.
      * @param input_batch The projection to filter.
      * @param tid_list The input TID list.
      */
-    void RunFilter(VectorProjection *input_batch, TupleIdList *tid_list);
+    void RunFilter(exec::ExecutionContext *exec_ctx, VectorProjection *input_batch, TupleIdList *tid_list);
 
     /**
      * @return The number of times the clause has samples its terms' selectivities.
@@ -132,8 +136,7 @@ class FilterManager {
   /**
    * Construct an empty filter.
    */
-  explicit FilterManager(common::ManagedPointer<exec::ExecutionSettings> exec_settings, bool adapt = true,
-                         void *context = nullptr);
+  explicit FilterManager(const exec::ExecutionSettings &exec_settings, bool adapt = true, void *context = nullptr);
 
   /**
    * This class cannot be copied or moved.
@@ -165,15 +168,17 @@ class FilterManager {
 
   /**
    * Run the filters over the given vector projection.
+   * @param exec_ctx The execution context to run with.
    * @param input_batch The projection to filter.
    */
-  void RunFilters(VectorProjection *input_batch);
+  void RunFilters(exec::ExecutionContext *exec_ctx, VectorProjection *input_batch);
 
   /**
    * Run all configured filters over the vector projection the input iterator is iterating over.
+   * @param exec_ctx The execution context to run with.
    * @param input_batch The input projection iterator storing the vector projection to filter.
    */
-  void RunFilters(VectorProjectionIterator *input_batch);
+  void RunFilters(exec::ExecutionContext *exec_ctx, VectorProjectionIterator *input_batch);
 
   /**
    * @return True if the filter is adaptive; false otherwise.
@@ -205,7 +210,7 @@ class FilterManager {
 
  private:
   // The execution settings to run with.
-  common::ManagedPointer<exec::ExecutionSettings> exec_settings_;
+  const exec::ExecutionSettings &exec_settings_;
   // Flag indicating if the filter should try to optimize itself.
   bool adapt_;
   // An injected context object.

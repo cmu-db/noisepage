@@ -103,9 +103,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   auto ns_oid = accessor->GetDefaultNamespace();
 
   // Make the execution context
+  exec::ExecutionSettings exec_settings{};
   exec::OutputPrinter printer(output_schema);
   exec::ExecutionContext exec_ctx{db_oid, common::ManagedPointer(txn), printer, output_schema,
-                                  common::ManagedPointer(accessor)};
+                                  common::ManagedPointer(accessor), exec_settings};
   // Add dummy parameters for tests
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
@@ -181,8 +182,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
   // TBC generation
   //
-
-  exec::ExecutionSettings exec_settings;
 
   std::unique_ptr<vm::BytecodeModule> bytecode_module;
   {

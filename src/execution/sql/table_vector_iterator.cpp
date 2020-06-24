@@ -128,7 +128,7 @@ bool TableVectorIterator::Advance() {
   }
 
   // If the iterator is out of data, then we are done.
-  if (*iter_ == table_->end()) {
+  if (*iter_ == table_->end() || (**iter_).GetBlock() == nullptr) {
     return false;
   }
 
@@ -143,15 +143,14 @@ namespace {
 
 class ScanTask {
  public:
-  ScanTask(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
-           void *const query_state, ThreadStateContainer *const thread_state_container,
-           TableVectorIterator::ScanFn scanner)
+  ScanTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
+           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanFn scanner)
       : exec_ctx_(exec_ctx),
         table_oid_(table_oid),
         col_oids_(col_oids),
         num_oids_(num_oids),
         query_state_(query_state),
-        thread_state_container_(thread_state_container),
+        thread_state_container_(exec_ctx->GetThreadStateContainer()),
         scanner_(scanner) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
@@ -167,7 +166,7 @@ class ScanTask {
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
 
     // Call scanning function
-    scanner_(query_state_, thread_state, &iter);
+    scanner_(query_state_, thread_state, &iter, exec_ctx_);
   }
 
  private:
@@ -182,9 +181,8 @@ class ScanTask {
 
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
-                                       uint32_t num_oids, void *const query_state,
-                                       ThreadStateContainer *const thread_states,
+bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
+                                       void *const query_state, exec::ExecutionContext *exec_ctx,
                                        const TableVectorIterator::ScanFn scan_fn, const uint32_t min_grain_size) {
   // Lookup table
   const auto table = exec_ctx->GetAccessor()->GetTable(catalog::table_oid_t{table_oid});
@@ -199,8 +197,7 @@ bool TableVectorIterator::ParallelScan(exec::ExecutionContext *exec_ctx, uint32_
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;
   tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
-  tbb::parallel_for(block_range,
-                    ScanTask(exec_ctx, table_oid, col_oids, num_oids, query_state, thread_states, scan_fn));
+  tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn));
 
   timer.Stop();
 

@@ -243,7 +243,9 @@ class Vector {
   /**
    * @return True if the value at index @em index is NULL; false otherwise.
    */
-  bool IsNull(const uint64_t index) const { return null_mask_[tid_list_ != nullptr ? (*tid_list_)[index] : index]; }
+  bool IsNull(const uint64_t index) const {
+    return index >= GetCount() ? false : (null_mask_[tid_list_ != nullptr ? (*tid_list_)[index] : index]);
+  }
 
   /**
    * Set the value at position @em index to @em null.

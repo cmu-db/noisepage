@@ -302,7 +302,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   }
 
   // TODO(WAN): poke the settings manager for execution settings
-  execution::exec::ExecutionSettings exec_settings;
+  execution::exec::ExecutionSettings exec_settings{};
   auto exec_query =
       execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get());
 
@@ -324,9 +324,10 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
+  execution::exec::ExecutionSettings exec_settings{};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor());
+      connection_ctx->Accessor(), exec_settings);
 
   exec_ctx->SetParams(portal->Parameters());
 

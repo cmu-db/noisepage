@@ -15,12 +15,12 @@ fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
 
 fun tearDownState(execCtx: *ExecutionContext, state: *State) -> nil { }
 
-fun pipeline1_filter_clause0term0(vector_proj: *VectorProjection, tids: *TupleIdList, ctx: *uint8) -> nil {
-    @filterLt(vector_proj, 0, @intToSql(500), tids)
+fun pipeline1_filter_clause0term0(execCtx: *ExecutionContext, vector_proj: *VectorProjection, tids: *TupleIdList, ctx: *uint8) -> nil {
+    @filterLt(execCtx, vector_proj, 0, @intToSql(500), tids)
 }
 
 fun pipeline1_worker_initThreadState(execCtx: *ExecutionContext, state: *ThreadState_1) -> nil {
-    @filterManagerInit(&state.filter)
+    @filterManagerInit(&state.filter, execCtx)
     @filterManagerInsertFilter(&state.filter, pipeline1_filter_clause0term0)
 
     state.count = 0
@@ -34,13 +34,13 @@ fun pipeline1_finalize(qs: *State, ts: *ThreadState_1) -> nil {
     qs.count = qs.count + ts.count
 }
 
-fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
+fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator, execCtx : *ExecutionContext) -> nil {
     var filter = &state.filter
     for (@tableIterAdvance(tvi)) {
         var vpi = @tableIterGetVPI(tvi)
 
         // Filter
-        @filterManagerRunFilters(filter, vpi)
+        @filterManagerRunFilters(filter, vpi, execCtx)
 
         // Count
         for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
@@ -60,7 +60,7 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
     table_oid = @testCatalogLookup(execCtx, "test_1", "")
     var col_oids: [1]uint32
     col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-    @iterateTableParallel(execCtx, table_oid, col_oids, state, tls, pipeline1_worker)
+    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker)
 
     // Collect results
     @tlsIterate(tls, state, pipeline1_finalize)

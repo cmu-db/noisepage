@@ -99,7 +99,9 @@ class DataTable {
     friend class DataTable;
 
     /** Indicates that the iterator should advance to the end of the table. */
-    static constexpr int32_t TILL_END = -1;
+    static constexpr int32_t ADVANCE_TO_THE_END = -1;
+    /** An invalid TupleSlot. */
+    static TupleSlot InvalidTupleSlot() { return TupleSlot(nullptr, 0); }
 
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
@@ -107,6 +109,9 @@ class DataTable {
     SlotIterator(const DataTable *table, uint32_t block_index, int32_t num_advances, uint32_t offset_in_block)
         : table_(table), block_index_(block_index), num_advances_(num_advances) {
       current_slot_ = {block_index >= table_->blocks_.size() ? nullptr : table->blocks_[block_index], offset_in_block};
+      TERRIER_ASSERT((current_slot_.GetBlock() == nullptr && current_slot_.GetOffset() == 0) ||
+                         current_slot_.GetBlock() != nullptr,
+                     "Offset should be 0 when block is nullptr.");
     }
 
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
@@ -174,7 +179,7 @@ class DataTable {
    */
   SlotIterator begin() const {  // NOLINT for STL name compatibility
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {this, 0, SlotIterator::TILL_END, 0};
+    return {this, 0, SlotIterator::ADVANCE_TO_THE_END, 0};
   }
 
   /**

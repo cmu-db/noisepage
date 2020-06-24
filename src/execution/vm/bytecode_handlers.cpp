@@ -43,8 +43,8 @@ void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->~V
 // ---------------------------------------------------------
 
 void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager,
-                         terrier::execution::exec::ExecutionSettings *exec_settings) {
-  new (filter_manager) terrier::execution::sql::FilterManager(terrier::common::ManagedPointer(exec_settings));
+                         const terrier::execution::exec::ExecutionSettings &exec_settings) {
+  new (filter_manager) terrier::execution::sql::FilterManager(exec_settings);
 }
 
 void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager) {
@@ -57,8 +57,9 @@ void OpFilterManagerInsertFilter(terrier::execution::sql::FilterManager *filter_
 }
 
 void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter_manager,
-                               terrier::execution::sql::VectorProjectionIterator *vpi) {
-  filter_manager->RunFilters(vpi);
+                               terrier::execution::sql::VectorProjectionIterator *vpi,
+                               terrier::execution::exec::ExecutionContext *exec_ctx) {
+  filter_manager->RunFilters(exec_ctx, vpi);
 }
 
 void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager) { filter_manager->~FilterManager(); }

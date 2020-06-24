@@ -17,6 +17,8 @@
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
 
+#include "execution/exec/execution_settings.h"
+
 namespace terrier::brain {
 class PipelineOperatingUnits;
 }
@@ -26,6 +28,7 @@ class CatalogAccessor;
 }
 
 namespace terrier::execution::exec {
+
 /**
  * Execution Context: Stores information handed in by upper layers.
  * TODO(Amadou): This class will change once we know exactly what we get from upper layers.
@@ -39,10 +42,12 @@ class EXPORT ExecutionContext {
    * @param callback callback function for outputting
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
+   * @param exec_settings The execution settings to run with.
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
-                   const common::ManagedPointer<catalog::CatalogAccessor> accessor)
+                   const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                   const exec::ExecutionSettings &exec_settings)
       : db_oid_(db_oid),
         txn_(txn),
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
@@ -51,7 +56,8 @@ class EXPORT ExecutionContext {
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
         thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
-        accessor_(accessor) {}
+        accessor_(accessor),
+        exec_settings_(exec_settings) {}
 
   /**
    * @return the transaction used by this query
@@ -85,9 +91,12 @@ class EXPORT ExecutionContext {
   static uint32_t ComputeTupleSize(const planner::OutputSchema *schema);
 
   /**
-   * @return the catalog accessor
+   * @return The catalog accessor.
    */
   catalog::CatalogAccessor *GetAccessor() { return accessor_.Get(); }
+
+  /** @return The execution settings. */
+  const exec::ExecutionSettings &GetExecutionSettings() const { return exec_settings_; }
 
   /**
    * Start the resource tracker
@@ -169,6 +178,7 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
+  const exec::ExecutionSettings &exec_settings_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
 };
