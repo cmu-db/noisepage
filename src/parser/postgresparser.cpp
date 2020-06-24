@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/value_util.h"
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"

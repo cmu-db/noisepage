@@ -1,5 +1,6 @@
 #include "execution/sql/runtime_types.h"
-#include "common/exception.h"
+
+#include "common/error/exception.h"
 #include "test_util/test_harness.h"
 
 namespace terrier::execution::sql {

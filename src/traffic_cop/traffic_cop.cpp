@@ -11,7 +11,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "common/error/error_data.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/executable_query.h"

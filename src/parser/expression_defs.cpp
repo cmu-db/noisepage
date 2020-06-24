@@ -1,7 +1,8 @@
 #include "parser/expression_defs.h"
 
 #include <string>
-#include "common/exception.h"
+
+#include "common/error/exception.h"
 
 namespace terrier::parser {
 

@@ -5,7 +5,7 @@
 #include <event2/event.h>
 #include <event2/listener.h>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 
 namespace terrier {
 

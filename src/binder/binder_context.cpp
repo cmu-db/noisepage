@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/table_ref.h"

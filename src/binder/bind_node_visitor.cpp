@@ -11,7 +11,7 @@
 #include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "execution/functions/function_context.h"
 #include "loggers/binder_logger.h"
