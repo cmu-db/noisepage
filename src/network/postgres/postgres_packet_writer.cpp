@@ -1,5 +1,6 @@
 #include "network/postgres/postgres_packet_writer.h"
 
+#include "common/error/error_data.h"
 #include "execution/sql/value.h"
 #include "network/postgres/postgres_protocol_util.h"
 
@@ -36,8 +37,8 @@ void PostgresPacketWriter::WriteSimpleQuery(const std::string &query) {
   BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query, true).EndPacket();
 }
 
-void PostgresPacketWriter::WritePostgresError(const PostgresError &error) {
-  if (error.GetSeverity() <= PostgresSeverity::PANIC)
+void PostgresPacketWriter::WritePostgresError(const common::ErrorData &error) {
+  if (error.GetSeverity() <= common::ErrorSeverity::PANIC)
     BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
   else
     BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE);

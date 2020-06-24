@@ -30,6 +30,10 @@ namespace terrier::planner {
 class AbstractPlanNode;
 }
 
+namespace terrier::common {
+class ErrorData;
+}
+
 namespace terrier::trafficcop {
 
 /**
@@ -90,7 +94,7 @@ class TrafficCop {
    * @param connection_ctx used to maintain state
    * @return parser's ParseResult, nullptr if failed
    */
-  std::variant<std::unique_ptr<parser::ParseResult>, network::PostgresError> ParseQuery(
+  std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> ParseQuery(
       const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**
