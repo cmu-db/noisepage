@@ -2,9 +2,13 @@
 
 #include <memory>
 #include <unordered_map>
+
 #include "common/dedicated_thread_registry.h"
 #include "network/connection_handle.h"
-#include "traffic_cop/traffic_cop.h"
+
+namespace terrier::trafficcop {
+class TrafficCop;
+}  // namespace terrier::trafficcop
 
 namespace terrier::network {
 
