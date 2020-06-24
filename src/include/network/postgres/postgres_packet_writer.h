@@ -47,7 +47,11 @@ class PostgresPacketWriter : public PacketWriter {
    */
   void WriteSimpleQuery(const std::string &query);
 
-  void WritePostgresError(const common::ErrorData &error);
+  /**
+   * Write an ErrorData object
+   * @param error data to return to client
+   */
+  void WriteError(const common::ErrorData &error);
 
   /**
    * Writes an empty query response

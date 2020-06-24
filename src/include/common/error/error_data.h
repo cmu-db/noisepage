@@ -2,13 +2,14 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include "common/error/error_code.h"
 #include "common/error/error_defs.h"
 
 namespace terrier::common {
 class ErrorData {
- private:
  public:
   ErrorData() = delete;
   ErrorData &operator=(const ErrorData &other) = default;

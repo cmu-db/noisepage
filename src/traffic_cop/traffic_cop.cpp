@@ -93,16 +93,16 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::FAIL,
                      "We're in an aborted state. This should have been caught already before calling this function.");
       if (explicit_txn_block) {
-        out->WritePostgresError({common::ErrorSeverity::WARNING, "there is already a transaction in progress",
-                                 common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
+        out->WriteError({common::ErrorSeverity::WARNING, "there is already a transaction in progress",
+                         common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
         break;
       }
       break;
     }
     case network::QueryType::QUERY_COMMIT: {
       if (!explicit_txn_block) {
-        out->WritePostgresError({common::ErrorSeverity::WARNING, "there is no transaction in progress",
-                                 common::ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION});
+        out->WriteError({common::ErrorSeverity::WARNING, "there is no transaction in progress",
+                         common::ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION});
         break;
       }
       if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL) {
@@ -115,8 +115,8 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
     }
     case network::QueryType::QUERY_ROLLBACK: {
       if (!explicit_txn_block) {
-        out->WritePostgresError({common::ErrorSeverity::WARNING, "there is no transaction in progress",
-                                 common::ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION});
+        out->WriteError({common::ErrorSeverity::WARNING, "there is no transaction in progress",
+                         common::ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION});
         break;
       }
       EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);

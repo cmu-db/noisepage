@@ -4,7 +4,7 @@
 
 namespace terrier::common {
 
-//@see https://github.com/postgres/postgres/blob/master/src/backend/utils/errcodes.txt
+// @see https://github.com/postgres/postgres/blob/master/src/backend/utils/errcodes.txt
 
 enum class ErrorCode : uint16_t {
   // Section: Class 00 - Successful Completion

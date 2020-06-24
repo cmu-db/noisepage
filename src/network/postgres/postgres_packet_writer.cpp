@@ -37,7 +37,7 @@ void PostgresPacketWriter::WriteSimpleQuery(const std::string &query) {
   BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query, true).EndPacket();
 }
 
-void PostgresPacketWriter::WritePostgresError(const common::ErrorData &error) {
+void PostgresPacketWriter::WriteError(const common::ErrorData &error) {
   if (error.GetSeverity() <= common::ErrorSeverity::PANIC)
     BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
   else

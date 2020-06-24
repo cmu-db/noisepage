@@ -1,8 +1,6 @@
 #pragma once
 
-#include <string>
 #include <string_view>
-#include <vector>
 
 namespace terrier::common {
 
@@ -43,7 +41,7 @@ constexpr std::string_view ErrorSeverityToString(const common::ErrorSeverity sev
 enum class ErrorField : unsigned char {
   SEVERITY = 'S',
   SEVERITY_LOCALIZED = 'V',  // Postgres 9.6 or later
-  CODE = 'C',                // TODO(Matt): https://www.postgresql.org/docs/current/errcodes-appendix.html
+  CODE = 'C',
   HUMAN_READABLE_ERROR = 'M',
   DETAIL = 'D',
   HINT = 'H',
