@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
-#include "util/time_util.h"
+#include "parser/expression/constant_value_expression.h"
 
 namespace terrier::binder {
 /**

@@ -59,29 +59,25 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
       case type::TypeId::VARCHAR: {
         const auto str_view = value->Peek<std::string_view>();
 
-        // TODO(WAN): A bit stupid to take the string view back into a string.
+        // TODO(Matt): see issue #977
         switch (desired_type) {
           case type::TypeId::DATE: {
-            auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
-            if (!parsed_date.first) {
-              ReportFailure("Binder conversion from VARCHAR to DATE failed.");
-            }
-            value->SetValue(
-                type::TypeId::DATE,
-                execution::sql::DateVal(execution::sql::Date::FromNative(static_cast<uint32_t>(parsed_date.second))));
+            auto parsed_date = execution::sql::Date::FromString(str_view);
+            value->SetValue(type::TypeId::DATE, execution::sql::DateVal(parsed_date));
             break;
           }
           case type::TypeId::TIMESTAMP: {
-            auto parsed_timestamp = util::TimeConvertor::ParseTimestamp(std::string(str_view));
-            if (!parsed_timestamp.first) {
-              ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
-            }
-            value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(
-                                                         static_cast<uint64_t>(parsed_timestamp.second))));
+            auto parsed_timestamp = execution::sql::Timestamp::FromString(str_view);
+            value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(parsed_timestamp));
             break;
           }
           case type::TypeId::TINYINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            int64_t int_val;
+            try {
+              int_val = std::stol(std::string(str_view));
+            } catch (const std::out_of_range &e) {
+              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
+            }
             if (!IsRepresentable<int8_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -89,7 +85,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::SMALLINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            int64_t int_val;
+            try {
+              int_val = std::stol(std::string(str_view));
+            } catch (const std::out_of_range &e) {
+              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
+            }
             if (!IsRepresentable<int16_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -97,7 +98,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::INTEGER: {
-            const auto int_val = std::stol(std::string(str_view));
+            int64_t int_val;
+            try {
+              int_val = std::stol(std::string(str_view));
+            } catch (const std::out_of_range &e) {
+              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
+            }
             if (!IsRepresentable<int32_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }
@@ -105,7 +111,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::BIGINT: {
-            const auto int_val = std::stol(std::string(str_view));
+            int64_t int_val;
+            try {
+              int_val = std::stol(std::string(str_view));
+            } catch (const std::out_of_range &e) {
+              throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
+            }
             if (!IsRepresentable<int64_t>(int_val)) {
               throw BINDER_EXCEPTION("BinderSherpa cannot fit that VARCHAR into the desired type!");
             }

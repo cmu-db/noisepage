@@ -11,7 +11,6 @@
 #include "network/postgres/postgres_protocol_util.h"
 #include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"
-#include "util/time_util.h"
 
 namespace terrier::network {
 
@@ -72,26 +71,26 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       return {type, string_val.first, std::move(string_val.second)};
     }
     case type::TypeId::TIMESTAMP: {
-      const auto parse_result = util::TimeConvertor::ParseTimestamp(string);
-      TERRIER_ASSERT(parse_result.first, "Failed to parse the timestamp.");
-      return {type, execution::sql::TimestampVal(static_cast<uint64_t>(parse_result.second))};
+      const auto parse_result = execution::sql::Timestamp::FromString(string);
+      return {type, execution::sql::TimestampVal(parse_result)};
     }
     case type::TypeId::DATE: {
-      const auto parse_result = util::TimeConvertor::ParseDate(string);
-      TERRIER_ASSERT(parse_result.first, "Failed to parse the date.");
-      return {type, execution::sql::DateVal(static_cast<uint32_t>(parse_result.second))};
+      const auto parse_result = execution::sql::Date::FromString(string);
+      return {type, execution::sql::DateVal(parse_result)};
     }
     case type::TypeId::INVALID: {
       // Postgres may not have told us the type in Parse message. Right now in oltpbench the JDBC driver is doing this
       // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
-      const auto ts_parse_result = util::TimeConvertor::ParseTimestamp(string);
-      if (ts_parse_result.first) {
-        return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(static_cast<uint64_t>(ts_parse_result.second))};
+      try {
+        const auto ts_parse_result = execution::sql::Timestamp::FromString(string);
+        return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(ts_parse_result)};
+      } catch (...) {
       }
       // try date?
-      const auto date_parse_result = util::TimeConvertor::ParseDate(string);
-      if (date_parse_result.first) {
-        return {type::TypeId::DATE, execution::sql::DateVal(static_cast<uint32_t>(date_parse_result.second))};
+      try {
+        const auto date_parse_result = execution::sql::Date::FromString(string);
+        return {type::TypeId::DATE, execution::sql::DateVal(date_parse_result)};
+      } catch (...) {
       }
       // fall back to VARCHAR?
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
