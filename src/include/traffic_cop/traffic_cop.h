@@ -2,8 +2,8 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 #include <variant>
+#include <vector>
 
 #include "catalog/catalog.h"
 #include "common/managed_pointer.h"

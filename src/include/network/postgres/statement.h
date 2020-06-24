@@ -47,23 +47,17 @@ class Statement {
   /**
    * @return true if the statement is empty
    */
-  bool Empty() const {
-    return parse_result_->Empty();
-  }
+  bool Empty() const { return parse_result_->Empty(); }
 
   /**
    * @return managed pointer to the output of the parser for this statement
    */
-  common::ManagedPointer<parser::ParseResult> ParseResult() const {
-    return common::ManagedPointer(parse_result_);
-  }
+  common::ManagedPointer<parser::ParseResult> ParseResult() const { return common::ManagedPointer(parse_result_); }
 
   /**
    * @return managed pointer to the  root statement of the ParseResult. Just shorthand for ParseResult->GetStatement(0)
    */
-  common::ManagedPointer<parser::SQLStatement> RootStatement() const {
-    return common::ManagedPointer(root_statement_);
-  }
+  common::ManagedPointer<parser::SQLStatement> RootStatement() const { return common::ManagedPointer(root_statement_); }
 
   /**
    * @return vector of the statements parameters (if any)

@@ -38,7 +38,7 @@ struct IdxJoinTest : public TerrierTest {
     std::vector<parser::ConstantValueExpression> params;
     tcop_->BeginTransaction(common::ManagedPointer(&context_));
     auto parse = tcop_->ParseQuery(sql, common::ManagedPointer(&context_));
-    auto stmt = network::Statement(std::move(sql), std::move(parse));
+    auto stmt = network::Statement(std::move(sql), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse)));
     auto result = tcop_->BindQuery(common::ManagedPointer(&context_), common::ManagedPointer(&stmt),
                                    common::ManagedPointer(&params));
     TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
