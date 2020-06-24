@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include "common/error/error_data.h"
+
 namespace terrier {
 
 /**
@@ -21,7 +23,7 @@ namespace terrier {
 #define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
 #define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
 #define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
-#define BINDER_EXCEPTION(msg) BinderException(msg, __FILE__, __LINE__)
+#define BINDER_EXCEPTION(error) BinderException(__FILE__, __LINE__, (error))
 
 /**
  * Exception types
@@ -135,7 +137,6 @@ DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
-DEFINE_EXCEPTION(BinderException, ExceptionType::BINDER);
 
 class ParserException : public Exception {
   const uint32_t cursorpos_ = 0;
@@ -151,6 +152,13 @@ class ParserException : public Exception {
       : Exception(ExceptionType::PARSER, msg.c_str(), file, line), cursorpos_(cursorpos) {}
 
   uint32_t GetCursorPos() const { return cursorpos_; }
+};
+
+class BinderException : public Exception {
+ public:
+  BinderException(const char *file, int line, common::ErrorData &&error)
+      : Exception(ExceptionType::PARSER, error.GetMessage().c_str(), file, line), error_(std::move(error)) {}
+  common::ErrorData error_;
 };
 
 }  // namespace terrier

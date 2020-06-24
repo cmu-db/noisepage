@@ -65,9 +65,9 @@ void BinderSherpa::CheckDesiredType(const common::ManagedPointer<parser::Abstrac
   const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
   if (it != desired_expr_types_.end() && it->second != expr->GetReturnValueType()) {
     // There was a constraint and the expression did not satisfy it. Blow up.
-    const auto desired UNUSED_ATTRIBUTE = it->second;
-    const auto current UNUSED_ATTRIBUTE = expr->GetReturnValueType();
-    throw BINDER_EXCEPTION("BinderSherpa expected expr to have a different type.");
+    throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR,
+                                             "BinderSherpa expected expr to have a different type.",
+                                             common::ErrorCode::ERRCODE_SYNTAX_ERROR));
   }
 }
 

@@ -7,6 +7,7 @@
 
 #include "common/error/error_code.h"
 #include "common/error/error_defs.h"
+#include "common/macros.h"
 
 namespace terrier::common {
 class ErrorData {

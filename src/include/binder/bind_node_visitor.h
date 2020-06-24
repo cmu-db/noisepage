@@ -108,8 +108,13 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void ValidateDatabaseName(const std::string &db_name) {
     if (!(db_name.empty())) {
       const auto db_oid = catalog_accessor_->GetDatabaseOid(db_name);
-      if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-      if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
+      if (db_oid == catalog::INVALID_DATABASE_OID)
+        throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "Database does not exist",
+                                                 common::ErrorCode::ERRCODE_UNDEFINED_DATABASE));
+      if (db_oid != db_oid_)
+        throw BINDER_EXCEPTION(common::ErrorData(
+            common::ErrorSeverity::ERROR,
+            "cross-database references are not implemented: ", common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED));
     }
   }
 };

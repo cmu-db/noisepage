@@ -284,7 +284,7 @@ TrafficCopResult TrafficCop::BindQuery(
       // it's cached. use the desired_param_types to fast-path the binding
       binder::BinderUtil::PromoteParameters(parameters, statement->GetDesiredParamTypes());
     }
-  } catch (const BinderException &e) {
+  } catch (BinderException &e) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
     // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
@@ -294,9 +294,10 @@ TrafficCopResult TrafficCop::BindQuery(
                                                     "binding failed with an IF EXISTS clause, skipping statement",
                                                     common::ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION)};
     }
-    // TODO(Matt): generate a more verbose ErrorData object down in the Binder
-    return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, std::string(e.what()),
-                                                 common::ErrorCode::ERRCODE_SYNTAX_ERROR)};
+    auto error = std::move(e.error_);
+    error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
+    error.AddField(common::ErrorField::FILE, e.GetFile());
+    return {ResultType::ERROR, error};
   }
 
   return {ResultType::COMPLETE, 0};

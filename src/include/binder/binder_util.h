@@ -40,12 +40,6 @@ class BinderUtil {
                                      type::TypeId desired_type);
 
   /**
-   * Convenience function. Used by the visitor sheep to report that an error has occurred, causing BINDER_EXCEPTION.
-   * @param message The error message.
-   */
-  static void ReportFailure(const std::string &message) { throw BINDER_EXCEPTION(message.c_str()); }
-
-  /**
    * @return True if the value of @p int_val fits in the Output type, false otherwise.
    */
   template <typename Output, typename Input>
