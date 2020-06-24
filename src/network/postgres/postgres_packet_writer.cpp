@@ -44,6 +44,7 @@ void PostgresPacketWriter::WritePostgresError(const common::ErrorData &error) {
     BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE);
 
   AppendRawValue(common::ErrorField::HUMAN_READABLE_ERROR).AppendString(error.GetMessage(), true);
+  AppendRawValue(common::ErrorField::CODE).AppendStringView(common::ErrorCodeToString(error.GetCode()), true);
 
   for (const auto &field : error.Fields()) {
     AppendRawValue(field.first).AppendString(field.second, true);

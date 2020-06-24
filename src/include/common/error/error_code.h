@@ -428,272 +428,537 @@ enum class ErrorCode : uint16_t {
   ERRCODE_INDEX_CORRUPTED  // XX002
 };
 
-template <ErrorCode code>
-constexpr std::string_view ErrorCodeToString() {
-  if constexpr (code == ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION) return "00000";
-  if constexpr (code == ErrorCode::ERRCODE_WARNING) return "01000";
-  if constexpr (code == ErrorCode::ERRCODE_WARNING_DYNAMIC_RESULT_SETS_RETURNED) return "0100C";
-  if constexpr (code == ErrorCode::ERRCODE_WARNING_IMPLICIT_ZERO_BIT_PADDING) return "01008";
-  if constexpr (code == ErrorCode::ERRCODE_WARNING_NULL_VALUE_ELIMINATED_IN_SET_FUNCTION) return "01003";
-  if constexpr (code == ErrorCode::ERRCODE_WARNING_PRIVILEGE_NOT_GRANTED) return "01007";
-  if constexpr (code == ErrorCode::ERRCODE_WARNING_PRIVILEGE_NOT_REVOKED) return "01006";
-  if constexpr (code == ErrorCode::ERRCODE_WARNING_STRING_DATA_RIGHT_TRUNCATION) return "01004";
-  if constexpr (code == ErrorCode::ERRCODE_WARNING_DEPRECATED_FEATURE) return "01P01";
-  if constexpr (code == ErrorCode::ERRCODE_NO_DATA) return "02000";
-  if constexpr (code == ErrorCode::ERRCODE_NO_ADDITIONAL_DYNAMIC_RESULT_SETS_RETURNED) return "02001";
-  if constexpr (code == ErrorCode::ERRCODE_SQL_STATEMENT_NOT_YET_COMPLETE) return "03000";
-  if constexpr (code == ErrorCode::ERRCODE_CONNECTION_EXCEPTION) return "08000";
-  if constexpr (code == ErrorCode::ERRCODE_CONNECTION_DOES_NOT_EXIST) return "08003";
-  if constexpr (code == ErrorCode::ERRCODE_CONNECTION_FAILURE) return "08006";
-  if constexpr (code == ErrorCode::ERRCODE_SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION) return "08001";
-  if constexpr (code == ErrorCode::ERRCODE_SQLSERVER_REJECTED_ESTABLISHMENT_OF_SQLCONNECTION) return "08004";
-  if constexpr (code == ErrorCode::ERRCODE_TRANSACTION_RESOLUTION_UNKNOWN) return "08007";
-  if constexpr (code == ErrorCode::ERRCODE_PROTOCOL_VIOLATION) return "08P01";
-  if constexpr (code == ErrorCode::ERRCODE_TRIGGERED_ACTION_EXCEPTION) return "09000";
-  if constexpr (code == ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED) return "0A000";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_TRANSACTION_INITIATION) return "0B000";
-  if constexpr (code == ErrorCode::ERRCODE_LOCATOR_EXCEPTION) return "0F000";
-  if constexpr (code == ErrorCode::ERRCODE_L_E_INVALID_SPECIFICATION) return "0F001";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_GRANTOR) return "0L000";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_GRANT_OPERATION) return "0LP01";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ROLE_SPECIFICATION) return "0P000";
-  if constexpr (code == ErrorCode::ERRCODE_DIAGNOSTICS_EXCEPTION) return "0Z000";
-  if constexpr (code == ErrorCode::ERRCODE_STACKED_DIAGNOSTICS_ACCESSED_WITHOUT_ACTIVE_HANDLER) return "0Z002";
-  if constexpr (code == ErrorCode::ERRCODE_CASE_NOT_FOUND) return "20000";
-  if constexpr (code == ErrorCode::ERRCODE_CARDINALITY_VIOLATION) return "21000";
-  if constexpr (code == ErrorCode::ERRCODE_DATA_EXCEPTION) return "22000";
-  if constexpr (code == ErrorCode::ERRCODE_ARRAY_ELEMENT_ERROR) return "2202E";
-  if constexpr (code == ErrorCode::ERRCODE_ARRAY_SUBSCRIPT_ERROR) return "2202E";
-  if constexpr (code == ErrorCode::ERRCODE_CHARACTER_NOT_IN_REPERTOIRE) return "22021";
-  if constexpr (code == ErrorCode::ERRCODE_DATETIME_FIELD_OVERFLOW) return "22008";
-  if constexpr (code == ErrorCode::ERRCODE_DATETIME_VALUE_OUT_OF_RANGE) return "22008";
-  if constexpr (code == ErrorCode::ERRCODE_DIVISION_BY_ZERO) return "22012";
-  if constexpr (code == ErrorCode::ERRCODE_ERROR_IN_ASSIGNMENT) return "22005";
-  if constexpr (code == ErrorCode::ERRCODE_ESCAPE_CHARACTER_CONFLICT) return "2200B";
-  if constexpr (code == ErrorCode::ERRCODE_INDICATOR_OVERFLOW) return "22022";
-  if constexpr (code == ErrorCode::ERRCODE_INTERVAL_FIELD_OVERFLOW) return "22015";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_LOG) return "2201E";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_NTILE) return "22014";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_NTH_VALUE) return "22016";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_POWER_FUNCTION) return "2201F";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_WIDTH_BUCKET_FUNCTION) return "2201G";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_CHARACTER_VALUE_FOR_CAST) return "22018";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT) return "22007";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ESCAPE_CHARACTER) return "22019";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ESCAPE_OCTET) return "2200D";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ESCAPE_SEQUENCE) return "22025";
-  if constexpr (code == ErrorCode::ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER) return "22P06";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_INDICATOR_PARAMETER_VALUE) return "22010";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE) return "22023";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_PRECEDING_OR_FOLLOWING_SIZE) return "22013";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_REGULAR_EXPRESSION) return "2201B";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ROW_COUNT_IN_LIMIT_CLAUSE) return "2201W";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ROW_COUNT_IN_RESULT_OFFSET_CLAUSE) return "2201X";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_TABLESAMPLE_ARGUMENT) return "2202H";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_TABLESAMPLE_REPEAT) return "2202G";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_TIME_ZONE_DISPLACEMENT_VALUE) return "22009";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_USE_OF_ESCAPE_CHARACTER) return "2200C";
-  if constexpr (code == ErrorCode::ERRCODE_MOST_SPECIFIC_TYPE_MISMATCH) return "2200G";
-  if constexpr (code == ErrorCode::ERRCODE_NULL_VALUE_NOT_ALLOWED) return "22004";
-  if constexpr (code == ErrorCode::ERRCODE_NULL_VALUE_NO_INDICATOR_PARAMETER) return "22002";
-  if constexpr (code == ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE) return "22003";
-  if constexpr (code == ErrorCode::ERRCODE_SEQUENCE_GENERATOR_LIMIT_EXCEEDED) return "2200H";
-  if constexpr (code == ErrorCode::ERRCODE_STRING_DATA_LENGTH_MISMATCH) return "22026";
-  if constexpr (code == ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION) return "22001";
-  if constexpr (code == ErrorCode::ERRCODE_SUBSTRING_ERROR) return "22011";
-  if constexpr (code == ErrorCode::ERRCODE_TRIM_ERROR) return "22027";
-  if constexpr (code == ErrorCode::ERRCODE_UNTERMINATED_C_STRING) return "22024";
-  if constexpr (code == ErrorCode::ERRCODE_ZERO_LENGTH_CHARACTER_STRING) return "2200F";
-  if constexpr (code == ErrorCode::ERRCODE_FLOATING_POINT_EXCEPTION) return "22P01";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION) return "22P02";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_BINARY_REPRESENTATION) return "22P03";
-  if constexpr (code == ErrorCode::ERRCODE_BAD_COPY_FILE_FORMAT) return "22P04";
-  if constexpr (code == ErrorCode::ERRCODE_UNTRANSLATABLE_CHARACTER) return "22P05";
-  if constexpr (code == ErrorCode::ERRCODE_NOT_AN_XML_DOCUMENT) return "2200L";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_XML_DOCUMENT) return "2200M";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_XML_CONTENT) return "2200N";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_XML_COMMENT) return "2200S";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_XML_PROCESSING_INSTRUCTION) return "2200T";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_JSON_OBJECT_KEY_VALUE) return "22030";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_SQL_JSON_DATETIME_FUNCTION) return "22031";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_JSON_TEXT) return "22032";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_SQL_JSON_SUBSCRIPT) return "22033";
-  if constexpr (code == ErrorCode::ERRCODE_MORE_THAN_ONE_SQL_JSON_ITEM) return "22034";
-  if constexpr (code == ErrorCode::ERRCODE_NO_SQL_JSON_ITEM) return "22035";
-  if constexpr (code == ErrorCode::ERRCODE_NON_NUMERIC_SQL_JSON_ITEM) return "22036";
-  if constexpr (code == ErrorCode::ERRCODE_NON_UNIQUE_KEYS_IN_A_JSON_OBJECT) return "22037";
-  if constexpr (code == ErrorCode::ERRCODE_SINGLETON_SQL_JSON_ITEM_REQUIRED) return "22038";
-  if constexpr (code == ErrorCode::ERRCODE_SQL_JSON_ARRAY_NOT_FOUND) return "22039";
-  if constexpr (code == ErrorCode::ERRCODE_SQL_JSON_MEMBER_NOT_FOUND) return "2203A";
-  if constexpr (code == ErrorCode::ERRCODE_SQL_JSON_NUMBER_NOT_FOUND) return "2203B";
-  if constexpr (code == ErrorCode::ERRCODE_SQL_JSON_OBJECT_NOT_FOUND) return "2203C";
-  if constexpr (code == ErrorCode::ERRCODE_TOO_MANY_JSON_ARRAY_ELEMENTS) return "2203D";
-  if constexpr (code == ErrorCode::ERRCODE_TOO_MANY_JSON_OBJECT_MEMBERS) return "2203E";
-  if constexpr (code == ErrorCode::ERRCODE_SQL_JSON_SCALAR_REQUIRED) return "2203F";
-  if constexpr (code == ErrorCode::ERRCODE_INTEGRITY_CONSTRAINT_VIOLATION) return "23000";
-  if constexpr (code == ErrorCode::ERRCODE_RESTRICT_VIOLATION) return "23001";
-  if constexpr (code == ErrorCode::ERRCODE_NOT_NULL_VIOLATION) return "23502";
-  if constexpr (code == ErrorCode::ERRCODE_FOREIGN_KEY_VIOLATION) return "23503";
-  if constexpr (code == ErrorCode::ERRCODE_UNIQUE_VIOLATION) return "23505";
-  if constexpr (code == ErrorCode::ERRCODE_CHECK_VIOLATION) return "23514";
-  if constexpr (code == ErrorCode::ERRCODE_EXCLUSION_VIOLATION) return "23P01";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_CURSOR_STATE) return "24000";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_TRANSACTION_STATE) return "25000";
-  if constexpr (code == ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION) return "25001";
-  if constexpr (code == ErrorCode::ERRCODE_BRANCH_TRANSACTION_ALREADY_ACTIVE) return "25002";
-  if constexpr (code == ErrorCode::ERRCODE_HELD_CURSOR_REQUIRES_SAME_ISOLATION_LEVEL) return "25008";
-  if constexpr (code == ErrorCode::ERRCODE_INAPPROPRIATE_ACCESS_MODE_FOR_BRANCH_TRANSACTION) return "25003";
-  if constexpr (code == ErrorCode::ERRCODE_INAPPROPRIATE_ISOLATION_LEVEL_FOR_BRANCH_TRANSACTION) return "25004";
-  if constexpr (code == ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION_FOR_BRANCH_TRANSACTION) return "25005";
-  if constexpr (code == ErrorCode::ERRCODE_READ_ONLY_SQL_TRANSACTION) return "25006";
-  if constexpr (code == ErrorCode::ERRCODE_SCHEMA_AND_DATA_STATEMENT_MIXING_NOT_SUPPORTED) return "25007";
-  if constexpr (code == ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION) return "25P01";
-  if constexpr (code == ErrorCode::ERRCODE_IN_FAILED_SQL_TRANSACTION) return "25P02";
-  if constexpr (code == ErrorCode::ERRCODE_IDLE_IN_TRANSACTION_SESSION_TIMEOUT) return "25P03";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_SQL_STATEMENT_NAME) return "26000";
-  if constexpr (code == ErrorCode::ERRCODE_TRIGGERED_DATA_CHANGE_VIOLATION) return "27000";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION) return "28000";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_PASSWORD) return "28P01";
-  if constexpr (code == ErrorCode::ERRCODE_DEPENDENT_PRIVILEGE_DESCRIPTORS_STILL_EXIST) return "2B000";
-  if constexpr (code == ErrorCode::ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST) return "2BP01";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_TRANSACTION_TERMINATION) return "2D000";
-  if constexpr (code == ErrorCode::ERRCODE_SQL_ROUTINE_EXCEPTION) return "2F000";
-  if constexpr (code == ErrorCode::ERRCODE_S_R_E_FUNCTION_EXECUTED_NO_RETURN_STATEMENT) return "2F005";
-  if constexpr (code == ErrorCode::ERRCODE_S_R_E_MODIFYING_SQL_DATA_NOT_PERMITTED) return "2F002";
-  if constexpr (code == ErrorCode::ERRCODE_S_R_E_PROHIBITED_SQL_STATEMENT_ATTEMPTED) return "2F003";
-  if constexpr (code == ErrorCode::ERRCODE_S_R_E_READING_SQL_DATA_NOT_PERMITTED) return "2F004";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_CURSOR_NAME) return "34000";
-  if constexpr (code == ErrorCode::ERRCODE_EXTERNAL_ROUTINE_EXCEPTION) return "38000";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_E_CONTAINING_SQL_NOT_PERMITTED) return "38001";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_E_MODIFYING_SQL_DATA_NOT_PERMITTED) return "38002";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_E_PROHIBITED_SQL_STATEMENT_ATTEMPTED) return "38003";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_E_READING_SQL_DATA_NOT_PERMITTED) return "38004";
-  if constexpr (code == ErrorCode::ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION) return "39000";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_I_E_INVALID_SQLSTATE_RETURNED) return "39001";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_I_E_NULL_VALUE_NOT_ALLOWED) return "39004";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED) return "39P01";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_I_E_SRF_PROTOCOL_VIOLATED) return "39P02";
-  if constexpr (code == ErrorCode::ERRCODE_E_R_I_E_EVENT_TRIGGER_PROTOCOL_VIOLATED) return "39P03";
-  if constexpr (code == ErrorCode::ERRCODE_SAVEPOINT_EXCEPTION) return "3B000";
-  if constexpr (code == ErrorCode::ERRCODE_S_E_INVALID_SPECIFICATION) return "3B001";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_CATALOG_NAME) return "3D000";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_SCHEMA_NAME) return "3F000";
-  if constexpr (code == ErrorCode::ERRCODE_TRANSACTION_ROLLBACK) return "40000";
-  if constexpr (code == ErrorCode::ERRCODE_T_R_INTEGRITY_CONSTRAINT_VIOLATION) return "40002";
-  if constexpr (code == ErrorCode::ERRCODE_T_R_SERIALIZATION_FAILURE) return "40001";
-  if constexpr (code == ErrorCode::ERRCODE_T_R_STATEMENT_COMPLETION_UNKNOWN) return "40003";
-  if constexpr (code == ErrorCode::ERRCODE_T_R_DEADLOCK_DETECTED) return "40P01";
-  if constexpr (code == ErrorCode::ERRCODE_SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION) return "42000";
-  if constexpr (code == ErrorCode::ERRCODE_SYNTAX_ERROR) return "42601";
-  if constexpr (code == ErrorCode::ERRCODE_INSUFFICIENT_PRIVILEGE) return "42501";
-  if constexpr (code == ErrorCode::ERRCODE_CANNOT_COERCE) return "42846";
-  if constexpr (code == ErrorCode::ERRCODE_GROUPING_ERROR) return "42803";
-  if constexpr (code == ErrorCode::ERRCODE_WINDOWING_ERROR) return "42P20";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_RECURSION) return "42P19";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_FOREIGN_KEY) return "42830";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_NAME) return "42602";
-  if constexpr (code == ErrorCode::ERRCODE_NAME_TOO_LONG) return "42622";
-  if constexpr (code == ErrorCode::ERRCODE_RESERVED_NAME) return "42939";
-  if constexpr (code == ErrorCode::ERRCODE_DATATYPE_MISMATCH) return "42804";
-  if constexpr (code == ErrorCode::ERRCODE_INDETERMINATE_DATATYPE) return "42P18";
-  if constexpr (code == ErrorCode::ERRCODE_COLLATION_MISMATCH) return "42P21";
-  if constexpr (code == ErrorCode::ERRCODE_INDETERMINATE_COLLATION) return "42P22";
-  if constexpr (code == ErrorCode::ERRCODE_WRONG_OBJECT_TYPE) return "42809";
-  if constexpr (code == ErrorCode::ERRCODE_GENERATED_ALWAYS) return "428C9";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_COLUMN) return "42703";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_CURSOR) return "34000";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_DATABASE) return "3D000";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_FUNCTION) return "42883";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_PSTATEMENT) return "26000";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_SCHEMA) return "3F000";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_TABLE) return "42P01";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_PARAMETER) return "42P02";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_OBJECT) return "42704";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_COLUMN) return "42701";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_CURSOR) return "42P03";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_DATABASE) return "42P04";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_FUNCTION) return "42723";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_PSTATEMENT) return "42P05";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_SCHEMA) return "42P06";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_TABLE) return "42P07";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_ALIAS) return "42712";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_OBJECT) return "42710";
-  if constexpr (code == ErrorCode::ERRCODE_AMBIGUOUS_COLUMN) return "42702";
-  if constexpr (code == ErrorCode::ERRCODE_AMBIGUOUS_FUNCTION) return "42725";
-  if constexpr (code == ErrorCode::ERRCODE_AMBIGUOUS_PARAMETER) return "42P08";
-  if constexpr (code == ErrorCode::ERRCODE_AMBIGUOUS_ALIAS) return "42P09";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_COLUMN_REFERENCE) return "42P10";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_COLUMN_DEFINITION) return "42611";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_CURSOR_DEFINITION) return "42P11";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_DATABASE_DEFINITION) return "42P12";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_FUNCTION_DEFINITION) return "42P13";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_PSTATEMENT_DEFINITION) return "42P14";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION) return "42P15";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_TABLE_DEFINITION) return "42P16";
-  if constexpr (code == ErrorCode::ERRCODE_INVALID_OBJECT_DEFINITION) return "42P17";
-  if constexpr (code == ErrorCode::ERRCODE_WITH_CHECK_OPTION_VIOLATION) return "44000";
-  if constexpr (code == ErrorCode::ERRCODE_INSUFFICIENT_RESOURCES) return "53000";
-  if constexpr (code == ErrorCode::ERRCODE_DISK_FULL) return "53100";
-  if constexpr (code == ErrorCode::ERRCODE_OUT_OF_MEMORY) return "53200";
-  if constexpr (code == ErrorCode::ERRCODE_TOO_MANY_CONNECTIONS) return "53300";
-  if constexpr (code == ErrorCode::ERRCODE_CONFIGURATION_LIMIT_EXCEEDED) return "53400";
-  if constexpr (code == ErrorCode::ERRCODE_PROGRAM_LIMIT_EXCEEDED) return "54000";
-  if constexpr (code == ErrorCode::ERRCODE_STATEMENT_TOO_COMPLEX) return "54001";
-  if constexpr (code == ErrorCode::ERRCODE_TOO_MANY_COLUMNS) return "54011";
-  if constexpr (code == ErrorCode::ERRCODE_TOO_MANY_ARGUMENTS) return "54023";
-  if constexpr (code == ErrorCode::ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE) return "55000";
-  if constexpr (code == ErrorCode::ERRCODE_OBJECT_IN_USE) return "55006";
-  if constexpr (code == ErrorCode::ERRCODE_CANT_CHANGE_RUNTIME_PARAM) return "55P02";
-  if constexpr (code == ErrorCode::ERRCODE_LOCK_NOT_AVAILABLE) return "55P03";
-  if constexpr (code == ErrorCode::ERRCODE_UNSAFE_NEW_ENUM_VALUE_USAGE) return "55P04";
-  if constexpr (code == ErrorCode::ERRCODE_OPERATOR_INTERVENTION) return "57000";
-  if constexpr (code == ErrorCode::ERRCODE_QUERY_CANCELED) return "57014";
-  if constexpr (code == ErrorCode::ERRCODE_ADMIN_SHUTDOWN) return "57P01";
-  if constexpr (code == ErrorCode::ERRCODE_CRASH_SHUTDOWN) return "57P02";
-  if constexpr (code == ErrorCode::ERRCODE_CANNOT_CONNECT_NOW) return "57P03";
-  if constexpr (code == ErrorCode::ERRCODE_DATABASE_DROPPED) return "57P04";
-  if constexpr (code == ErrorCode::ERRCODE_SYSTEM_ERROR) return "58000";
-  if constexpr (code == ErrorCode::ERRCODE_IO_ERROR) return "58030";
-  if constexpr (code == ErrorCode::ERRCODE_UNDEFINED_FILE) return "58P01";
-  if constexpr (code == ErrorCode::ERRCODE_DUPLICATE_FILE) return "58P02";
-  if constexpr (code == ErrorCode::ERRCODE_SNAPSHOT_TOO_OLD) return "72000";
-  if constexpr (code == ErrorCode::ERRCODE_CONFIG_FILE_ERROR) return "F0000";
-  if constexpr (code == ErrorCode::ERRCODE_LOCK_FILE_EXISTS) return "F0001";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_ERROR) return "HV000";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_COLUMN_NAME_NOT_FOUND) return "HV005";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_DYNAMIC_PARAMETER_VALUE_NEEDED) return "HV002";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_FUNCTION_SEQUENCE_ERROR) return "HV010";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INCONSISTENT_DESCRIPTOR_INFORMATION) return "HV021";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_ATTRIBUTE_VALUE) return "HV024";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_COLUMN_NAME) return "HV007";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_COLUMN_NUMBER) return "HV008";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_DATA_TYPE) return "HV004";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_DATA_TYPE_DESCRIPTORS) return "HV006";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_DESCRIPTOR_FIELD_IDENTIFIER) return "HV091";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_HANDLE) return "HV00B";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_OPTION_INDEX) return "HV00C";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_OPTION_NAME) return "HV00D";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_STRING_LENGTH_OR_BUFFER_LENGTH) return "HV090";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_STRING_FORMAT) return "HV00A";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_INVALID_USE_OF_NULL_POINTER) return "HV009";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_TOO_MANY_HANDLES) return "HV014";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_OUT_OF_MEMORY) return "HV001";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_NO_SCHEMAS) return "HV00P";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_OPTION_NAME_NOT_FOUND) return "HV00J";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_REPLY_HANDLE) return "HV00K";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_SCHEMA_NOT_FOUND) return "HV00Q";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_TABLE_NOT_FOUND) return "HV00R";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION) return "HV00L";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_UNABLE_TO_CREATE_REPLY) return "HV00M";
-  if constexpr (code == ErrorCode::ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION) return "HV00N";
-  if constexpr (code == ErrorCode::ERRCODE_PLPGSQL_ERROR) return "P0000";
-  if constexpr (code == ErrorCode::ERRCODE_RAISE_EXCEPTION) return "P0001";
-  if constexpr (code == ErrorCode::ERRCODE_NO_DATA_FOUND) return "P0002";
-  if constexpr (code == ErrorCode::ERRCODE_TOO_MANY_ROWS) return "P0003";
-  if constexpr (code == ErrorCode::ERRCODE_ASSERT_FAILURE) return "P0004";
-  if constexpr (code == ErrorCode::ERRCODE_INTERNAL_ERROR) return "XX000";
-  if constexpr (code == ErrorCode::ERRCODE_DATA_CORRUPTED) return "XX001";
-  if constexpr (code == ErrorCode::ERRCODE_INDEX_CORRUPTED) return "XX002";
+constexpr std::string_view ErrorCodeToString(const ErrorCode code) {
+  switch (code) {
+    case ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION:
+      return "00000";
+    case ErrorCode::ERRCODE_WARNING:
+      return "01000";
+    case ErrorCode::ERRCODE_WARNING_DYNAMIC_RESULT_SETS_RETURNED:
+      return "0100C";
+    case ErrorCode::ERRCODE_WARNING_IMPLICIT_ZERO_BIT_PADDING:
+      return "01008";
+    case ErrorCode::ERRCODE_WARNING_NULL_VALUE_ELIMINATED_IN_SET_FUNCTION:
+      return "01003";
+    case ErrorCode::ERRCODE_WARNING_PRIVILEGE_NOT_GRANTED:
+      return "01007";
+    case ErrorCode::ERRCODE_WARNING_PRIVILEGE_NOT_REVOKED:
+      return "01006";
+    case ErrorCode::ERRCODE_WARNING_STRING_DATA_RIGHT_TRUNCATION:
+      return "01004";
+    case ErrorCode::ERRCODE_WARNING_DEPRECATED_FEATURE:
+      return "01P01";
+    case ErrorCode::ERRCODE_NO_DATA:
+      return "02000";
+    case ErrorCode::ERRCODE_NO_ADDITIONAL_DYNAMIC_RESULT_SETS_RETURNED:
+      return "02001";
+    case ErrorCode::ERRCODE_SQL_STATEMENT_NOT_YET_COMPLETE:
+      return "03000";
+    case ErrorCode::ERRCODE_CONNECTION_EXCEPTION:
+      return "08000";
+    case ErrorCode::ERRCODE_CONNECTION_DOES_NOT_EXIST:
+      return "08003";
+    case ErrorCode::ERRCODE_CONNECTION_FAILURE:
+      return "08006";
+    case ErrorCode::ERRCODE_SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION:
+      return "08001";
+    case ErrorCode::ERRCODE_SQLSERVER_REJECTED_ESTABLISHMENT_OF_SQLCONNECTION:
+      return "08004";
+    case ErrorCode::ERRCODE_TRANSACTION_RESOLUTION_UNKNOWN:
+      return "08007";
+    case ErrorCode::ERRCODE_PROTOCOL_VIOLATION:
+      return "08P01";
+    case ErrorCode::ERRCODE_TRIGGERED_ACTION_EXCEPTION:
+      return "09000";
+    case ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED:
+      return "0A000";
+    case ErrorCode::ERRCODE_INVALID_TRANSACTION_INITIATION:
+      return "0B000";
+    case ErrorCode::ERRCODE_LOCATOR_EXCEPTION:
+      return "0F000";
+    case ErrorCode::ERRCODE_L_E_INVALID_SPECIFICATION:
+      return "0F001";
+    case ErrorCode::ERRCODE_INVALID_GRANTOR:
+      return "0L000";
+    case ErrorCode::ERRCODE_INVALID_GRANT_OPERATION:
+      return "0LP01";
+    case ErrorCode::ERRCODE_INVALID_ROLE_SPECIFICATION:
+      return "0P000";
+    case ErrorCode::ERRCODE_DIAGNOSTICS_EXCEPTION:
+      return "0Z000";
+    case ErrorCode::ERRCODE_STACKED_DIAGNOSTICS_ACCESSED_WITHOUT_ACTIVE_HANDLER:
+      return "0Z002";
+    case ErrorCode::ERRCODE_CASE_NOT_FOUND:
+      return "20000";
+    case ErrorCode::ERRCODE_CARDINALITY_VIOLATION:
+      return "21000";
+    case ErrorCode::ERRCODE_DATA_EXCEPTION:
+      return "22000";
+    case ErrorCode::ERRCODE_ARRAY_ELEMENT_ERROR:
+      return "2202E";
+    case ErrorCode::ERRCODE_ARRAY_SUBSCRIPT_ERROR:
+      return "2202E";
+    case ErrorCode::ERRCODE_CHARACTER_NOT_IN_REPERTOIRE:
+      return "22021";
+    case ErrorCode::ERRCODE_DATETIME_FIELD_OVERFLOW:
+      return "22008";
+    case ErrorCode::ERRCODE_DATETIME_VALUE_OUT_OF_RANGE:
+      return "22008";
+    case ErrorCode::ERRCODE_DIVISION_BY_ZERO:
+      return "22012";
+    case ErrorCode::ERRCODE_ERROR_IN_ASSIGNMENT:
+      return "22005";
+    case ErrorCode::ERRCODE_ESCAPE_CHARACTER_CONFLICT:
+      return "2200B";
+    case ErrorCode::ERRCODE_INDICATOR_OVERFLOW:
+      return "22022";
+    case ErrorCode::ERRCODE_INTERVAL_FIELD_OVERFLOW:
+      return "22015";
+    case ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_LOG:
+      return "2201E";
+    case ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_NTILE:
+      return "22014";
+    case ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_NTH_VALUE:
+      return "22016";
+    case ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_POWER_FUNCTION:
+      return "2201F";
+    case ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_WIDTH_BUCKET_FUNCTION:
+      return "2201G";
+    case ErrorCode::ERRCODE_INVALID_CHARACTER_VALUE_FOR_CAST:
+      return "22018";
+    case ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT:
+      return "22007";
+    case ErrorCode::ERRCODE_INVALID_ESCAPE_CHARACTER:
+      return "22019";
+    case ErrorCode::ERRCODE_INVALID_ESCAPE_OCTET:
+      return "2200D";
+    case ErrorCode::ERRCODE_INVALID_ESCAPE_SEQUENCE:
+      return "22025";
+    case ErrorCode::ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER:
+      return "22P06";
+    case ErrorCode::ERRCODE_INVALID_INDICATOR_PARAMETER_VALUE:
+      return "22010";
+    case ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE:
+      return "22023";
+    case ErrorCode::ERRCODE_INVALID_PRECEDING_OR_FOLLOWING_SIZE:
+      return "22013";
+    case ErrorCode::ERRCODE_INVALID_REGULAR_EXPRESSION:
+      return "2201B";
+    case ErrorCode::ERRCODE_INVALID_ROW_COUNT_IN_LIMIT_CLAUSE:
+      return "2201W";
+    case ErrorCode::ERRCODE_INVALID_ROW_COUNT_IN_RESULT_OFFSET_CLAUSE:
+      return "2201X";
+    case ErrorCode::ERRCODE_INVALID_TABLESAMPLE_ARGUMENT:
+      return "2202H";
+    case ErrorCode::ERRCODE_INVALID_TABLESAMPLE_REPEAT:
+      return "2202G";
+    case ErrorCode::ERRCODE_INVALID_TIME_ZONE_DISPLACEMENT_VALUE:
+      return "22009";
+    case ErrorCode::ERRCODE_INVALID_USE_OF_ESCAPE_CHARACTER:
+      return "2200C";
+    case ErrorCode::ERRCODE_MOST_SPECIFIC_TYPE_MISMATCH:
+      return "2200G";
+    case ErrorCode::ERRCODE_NULL_VALUE_NOT_ALLOWED:
+      return "22004";
+    case ErrorCode::ERRCODE_NULL_VALUE_NO_INDICATOR_PARAMETER:
+      return "22002";
+    case ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE:
+      return "22003";
+    case ErrorCode::ERRCODE_SEQUENCE_GENERATOR_LIMIT_EXCEEDED:
+      return "2200H";
+    case ErrorCode::ERRCODE_STRING_DATA_LENGTH_MISMATCH:
+      return "22026";
+    case ErrorCode::ERRCODE_STRING_DATA_RIGHT_TRUNCATION:
+      return "22001";
+    case ErrorCode::ERRCODE_SUBSTRING_ERROR:
+      return "22011";
+    case ErrorCode::ERRCODE_TRIM_ERROR:
+      return "22027";
+    case ErrorCode::ERRCODE_UNTERMINATED_C_STRING:
+      return "22024";
+    case ErrorCode::ERRCODE_ZERO_LENGTH_CHARACTER_STRING:
+      return "2200F";
+    case ErrorCode::ERRCODE_FLOATING_POINT_EXCEPTION:
+      return "22P01";
+    case ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION:
+      return "22P02";
+    case ErrorCode::ERRCODE_INVALID_BINARY_REPRESENTATION:
+      return "22P03";
+    case ErrorCode::ERRCODE_BAD_COPY_FILE_FORMAT:
+      return "22P04";
+    case ErrorCode::ERRCODE_UNTRANSLATABLE_CHARACTER:
+      return "22P05";
+    case ErrorCode::ERRCODE_NOT_AN_XML_DOCUMENT:
+      return "2200L";
+    case ErrorCode::ERRCODE_INVALID_XML_DOCUMENT:
+      return "2200M";
+    case ErrorCode::ERRCODE_INVALID_XML_CONTENT:
+      return "2200N";
+    case ErrorCode::ERRCODE_INVALID_XML_COMMENT:
+      return "2200S";
+    case ErrorCode::ERRCODE_INVALID_XML_PROCESSING_INSTRUCTION:
+      return "2200T";
+    case ErrorCode::ERRCODE_DUPLICATE_JSON_OBJECT_KEY_VALUE:
+      return "22030";
+    case ErrorCode::ERRCODE_INVALID_ARGUMENT_FOR_SQL_JSON_DATETIME_FUNCTION:
+      return "22031";
+    case ErrorCode::ERRCODE_INVALID_JSON_TEXT:
+      return "22032";
+    case ErrorCode::ERRCODE_INVALID_SQL_JSON_SUBSCRIPT:
+      return "22033";
+    case ErrorCode::ERRCODE_MORE_THAN_ONE_SQL_JSON_ITEM:
+      return "22034";
+    case ErrorCode::ERRCODE_NO_SQL_JSON_ITEM:
+      return "22035";
+    case ErrorCode::ERRCODE_NON_NUMERIC_SQL_JSON_ITEM:
+      return "22036";
+    case ErrorCode::ERRCODE_NON_UNIQUE_KEYS_IN_A_JSON_OBJECT:
+      return "22037";
+    case ErrorCode::ERRCODE_SINGLETON_SQL_JSON_ITEM_REQUIRED:
+      return "22038";
+    case ErrorCode::ERRCODE_SQL_JSON_ARRAY_NOT_FOUND:
+      return "22039";
+    case ErrorCode::ERRCODE_SQL_JSON_MEMBER_NOT_FOUND:
+      return "2203A";
+    case ErrorCode::ERRCODE_SQL_JSON_NUMBER_NOT_FOUND:
+      return "2203B";
+    case ErrorCode::ERRCODE_SQL_JSON_OBJECT_NOT_FOUND:
+      return "2203C";
+    case ErrorCode::ERRCODE_TOO_MANY_JSON_ARRAY_ELEMENTS:
+      return "2203D";
+    case ErrorCode::ERRCODE_TOO_MANY_JSON_OBJECT_MEMBERS:
+      return "2203E";
+    case ErrorCode::ERRCODE_SQL_JSON_SCALAR_REQUIRED:
+      return "2203F";
+    case ErrorCode::ERRCODE_INTEGRITY_CONSTRAINT_VIOLATION:
+      return "23000";
+    case ErrorCode::ERRCODE_RESTRICT_VIOLATION:
+      return "23001";
+    case ErrorCode::ERRCODE_NOT_NULL_VIOLATION:
+      return "23502";
+    case ErrorCode::ERRCODE_FOREIGN_KEY_VIOLATION:
+      return "23503";
+    case ErrorCode::ERRCODE_UNIQUE_VIOLATION:
+      return "23505";
+    case ErrorCode::ERRCODE_CHECK_VIOLATION:
+      return "23514";
+    case ErrorCode::ERRCODE_EXCLUSION_VIOLATION:
+      return "23P01";
+    case ErrorCode::ERRCODE_INVALID_CURSOR_STATE:
+      return "24000";
+    case ErrorCode::ERRCODE_INVALID_TRANSACTION_STATE:
+      return "25000";
+    case ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION:
+      return "25001";
+    case ErrorCode::ERRCODE_BRANCH_TRANSACTION_ALREADY_ACTIVE:
+      return "25002";
+    case ErrorCode::ERRCODE_HELD_CURSOR_REQUIRES_SAME_ISOLATION_LEVEL:
+      return "25008";
+    case ErrorCode::ERRCODE_INAPPROPRIATE_ACCESS_MODE_FOR_BRANCH_TRANSACTION:
+      return "25003";
+    case ErrorCode::ERRCODE_INAPPROPRIATE_ISOLATION_LEVEL_FOR_BRANCH_TRANSACTION:
+      return "25004";
+    case ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION_FOR_BRANCH_TRANSACTION:
+      return "25005";
+    case ErrorCode::ERRCODE_READ_ONLY_SQL_TRANSACTION:
+      return "25006";
+    case ErrorCode::ERRCODE_SCHEMA_AND_DATA_STATEMENT_MIXING_NOT_SUPPORTED:
+      return "25007";
+    case ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION:
+      return "25P01";
+    case ErrorCode::ERRCODE_IN_FAILED_SQL_TRANSACTION:
+      return "25P02";
+    case ErrorCode::ERRCODE_IDLE_IN_TRANSACTION_SESSION_TIMEOUT:
+      return "25P03";
+    case ErrorCode::ERRCODE_INVALID_SQL_STATEMENT_NAME:
+      return "26000";
+    case ErrorCode::ERRCODE_TRIGGERED_DATA_CHANGE_VIOLATION:
+      return "27000";
+    case ErrorCode::ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION:
+      return "28000";
+    case ErrorCode::ERRCODE_INVALID_PASSWORD:
+      return "28P01";
+    case ErrorCode::ERRCODE_DEPENDENT_PRIVILEGE_DESCRIPTORS_STILL_EXIST:
+      return "2B000";
+    case ErrorCode::ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST:
+      return "2BP01";
+    case ErrorCode::ERRCODE_INVALID_TRANSACTION_TERMINATION:
+      return "2D000";
+    case ErrorCode::ERRCODE_SQL_ROUTINE_EXCEPTION:
+      return "2F000";
+    case ErrorCode::ERRCODE_S_R_E_FUNCTION_EXECUTED_NO_RETURN_STATEMENT:
+      return "2F005";
+    case ErrorCode::ERRCODE_S_R_E_MODIFYING_SQL_DATA_NOT_PERMITTED:
+      return "2F002";
+    case ErrorCode::ERRCODE_S_R_E_PROHIBITED_SQL_STATEMENT_ATTEMPTED:
+      return "2F003";
+    case ErrorCode::ERRCODE_S_R_E_READING_SQL_DATA_NOT_PERMITTED:
+      return "2F004";
+    case ErrorCode::ERRCODE_INVALID_CURSOR_NAME:
+      return "34000";
+    case ErrorCode::ERRCODE_EXTERNAL_ROUTINE_EXCEPTION:
+      return "38000";
+    case ErrorCode::ERRCODE_E_R_E_CONTAINING_SQL_NOT_PERMITTED:
+      return "38001";
+    case ErrorCode::ERRCODE_E_R_E_MODIFYING_SQL_DATA_NOT_PERMITTED:
+      return "38002";
+    case ErrorCode::ERRCODE_E_R_E_PROHIBITED_SQL_STATEMENT_ATTEMPTED:
+      return "38003";
+    case ErrorCode::ERRCODE_E_R_E_READING_SQL_DATA_NOT_PERMITTED:
+      return "38004";
+    case ErrorCode::ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION:
+      return "39000";
+    case ErrorCode::ERRCODE_E_R_I_E_INVALID_SQLSTATE_RETURNED:
+      return "39001";
+    case ErrorCode::ERRCODE_E_R_I_E_NULL_VALUE_NOT_ALLOWED:
+      return "39004";
+    case ErrorCode::ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED:
+      return "39P01";
+    case ErrorCode::ERRCODE_E_R_I_E_SRF_PROTOCOL_VIOLATED:
+      return "39P02";
+    case ErrorCode::ERRCODE_E_R_I_E_EVENT_TRIGGER_PROTOCOL_VIOLATED:
+      return "39P03";
+    case ErrorCode::ERRCODE_SAVEPOINT_EXCEPTION:
+      return "3B000";
+    case ErrorCode::ERRCODE_S_E_INVALID_SPECIFICATION:
+      return "3B001";
+    case ErrorCode::ERRCODE_INVALID_CATALOG_NAME:
+      return "3D000";
+    case ErrorCode::ERRCODE_INVALID_SCHEMA_NAME:
+      return "3F000";
+    case ErrorCode::ERRCODE_TRANSACTION_ROLLBACK:
+      return "40000";
+    case ErrorCode::ERRCODE_T_R_INTEGRITY_CONSTRAINT_VIOLATION:
+      return "40002";
+    case ErrorCode::ERRCODE_T_R_SERIALIZATION_FAILURE:
+      return "40001";
+    case ErrorCode::ERRCODE_T_R_STATEMENT_COMPLETION_UNKNOWN:
+      return "40003";
+    case ErrorCode::ERRCODE_T_R_DEADLOCK_DETECTED:
+      return "40P01";
+    case ErrorCode::ERRCODE_SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION:
+      return "42000";
+    case ErrorCode::ERRCODE_SYNTAX_ERROR:
+      return "42601";
+    case ErrorCode::ERRCODE_INSUFFICIENT_PRIVILEGE:
+      return "42501";
+    case ErrorCode::ERRCODE_CANNOT_COERCE:
+      return "42846";
+    case ErrorCode::ERRCODE_GROUPING_ERROR:
+      return "42803";
+    case ErrorCode::ERRCODE_WINDOWING_ERROR:
+      return "42P20";
+    case ErrorCode::ERRCODE_INVALID_RECURSION:
+      return "42P19";
+    case ErrorCode::ERRCODE_INVALID_FOREIGN_KEY:
+      return "42830";
+    case ErrorCode::ERRCODE_INVALID_NAME:
+      return "42602";
+    case ErrorCode::ERRCODE_NAME_TOO_LONG:
+      return "42622";
+    case ErrorCode::ERRCODE_RESERVED_NAME:
+      return "42939";
+    case ErrorCode::ERRCODE_DATATYPE_MISMATCH:
+      return "42804";
+    case ErrorCode::ERRCODE_INDETERMINATE_DATATYPE:
+      return "42P18";
+    case ErrorCode::ERRCODE_COLLATION_MISMATCH:
+      return "42P21";
+    case ErrorCode::ERRCODE_INDETERMINATE_COLLATION:
+      return "42P22";
+    case ErrorCode::ERRCODE_WRONG_OBJECT_TYPE:
+      return "42809";
+    case ErrorCode::ERRCODE_GENERATED_ALWAYS:
+      return "428C9";
+    case ErrorCode::ERRCODE_UNDEFINED_COLUMN:
+      return "42703";
+    case ErrorCode::ERRCODE_UNDEFINED_CURSOR:
+      return "34000";
+    case ErrorCode::ERRCODE_UNDEFINED_DATABASE:
+      return "3D000";
+    case ErrorCode::ERRCODE_UNDEFINED_FUNCTION:
+      return "42883";
+    case ErrorCode::ERRCODE_UNDEFINED_PSTATEMENT:
+      return "26000";
+    case ErrorCode::ERRCODE_UNDEFINED_SCHEMA:
+      return "3F000";
+    case ErrorCode::ERRCODE_UNDEFINED_TABLE:
+      return "42P01";
+    case ErrorCode::ERRCODE_UNDEFINED_PARAMETER:
+      return "42P02";
+    case ErrorCode::ERRCODE_UNDEFINED_OBJECT:
+      return "42704";
+    case ErrorCode::ERRCODE_DUPLICATE_COLUMN:
+      return "42701";
+    case ErrorCode::ERRCODE_DUPLICATE_CURSOR:
+      return "42P03";
+    case ErrorCode::ERRCODE_DUPLICATE_DATABASE:
+      return "42P04";
+    case ErrorCode::ERRCODE_DUPLICATE_FUNCTION:
+      return "42723";
+    case ErrorCode::ERRCODE_DUPLICATE_PSTATEMENT:
+      return "42P05";
+    case ErrorCode::ERRCODE_DUPLICATE_SCHEMA:
+      return "42P06";
+    case ErrorCode::ERRCODE_DUPLICATE_TABLE:
+      return "42P07";
+    case ErrorCode::ERRCODE_DUPLICATE_ALIAS:
+      return "42712";
+    case ErrorCode::ERRCODE_DUPLICATE_OBJECT:
+      return "42710";
+    case ErrorCode::ERRCODE_AMBIGUOUS_COLUMN:
+      return "42702";
+    case ErrorCode::ERRCODE_AMBIGUOUS_FUNCTION:
+      return "42725";
+    case ErrorCode::ERRCODE_AMBIGUOUS_PARAMETER:
+      return "42P08";
+    case ErrorCode::ERRCODE_AMBIGUOUS_ALIAS:
+      return "42P09";
+    case ErrorCode::ERRCODE_INVALID_COLUMN_REFERENCE:
+      return "42P10";
+    case ErrorCode::ERRCODE_INVALID_COLUMN_DEFINITION:
+      return "42611";
+    case ErrorCode::ERRCODE_INVALID_CURSOR_DEFINITION:
+      return "42P11";
+    case ErrorCode::ERRCODE_INVALID_DATABASE_DEFINITION:
+      return "42P12";
+    case ErrorCode::ERRCODE_INVALID_FUNCTION_DEFINITION:
+      return "42P13";
+    case ErrorCode::ERRCODE_INVALID_PSTATEMENT_DEFINITION:
+      return "42P14";
+    case ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION:
+      return "42P15";
+    case ErrorCode::ERRCODE_INVALID_TABLE_DEFINITION:
+      return "42P16";
+    case ErrorCode::ERRCODE_INVALID_OBJECT_DEFINITION:
+      return "42P17";
+    case ErrorCode::ERRCODE_WITH_CHECK_OPTION_VIOLATION:
+      return "44000";
+    case ErrorCode::ERRCODE_INSUFFICIENT_RESOURCES:
+      return "53000";
+    case ErrorCode::ERRCODE_DISK_FULL:
+      return "53100";
+    case ErrorCode::ERRCODE_OUT_OF_MEMORY:
+      return "53200";
+    case ErrorCode::ERRCODE_TOO_MANY_CONNECTIONS:
+      return "53300";
+    case ErrorCode::ERRCODE_CONFIGURATION_LIMIT_EXCEEDED:
+      return "53400";
+    case ErrorCode::ERRCODE_PROGRAM_LIMIT_EXCEEDED:
+      return "54000";
+    case ErrorCode::ERRCODE_STATEMENT_TOO_COMPLEX:
+      return "54001";
+    case ErrorCode::ERRCODE_TOO_MANY_COLUMNS:
+      return "54011";
+    case ErrorCode::ERRCODE_TOO_MANY_ARGUMENTS:
+      return "54023";
+    case ErrorCode::ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE:
+      return "55000";
+    case ErrorCode::ERRCODE_OBJECT_IN_USE:
+      return "55006";
+    case ErrorCode::ERRCODE_CANT_CHANGE_RUNTIME_PARAM:
+      return "55P02";
+    case ErrorCode::ERRCODE_LOCK_NOT_AVAILABLE:
+      return "55P03";
+    case ErrorCode::ERRCODE_UNSAFE_NEW_ENUM_VALUE_USAGE:
+      return "55P04";
+    case ErrorCode::ERRCODE_OPERATOR_INTERVENTION:
+      return "57000";
+    case ErrorCode::ERRCODE_QUERY_CANCELED:
+      return "57014";
+    case ErrorCode::ERRCODE_ADMIN_SHUTDOWN:
+      return "57P01";
+    case ErrorCode::ERRCODE_CRASH_SHUTDOWN:
+      return "57P02";
+    case ErrorCode::ERRCODE_CANNOT_CONNECT_NOW:
+      return "57P03";
+    case ErrorCode::ERRCODE_DATABASE_DROPPED:
+      return "57P04";
+    case ErrorCode::ERRCODE_SYSTEM_ERROR:
+      return "58000";
+    case ErrorCode::ERRCODE_IO_ERROR:
+      return "58030";
+    case ErrorCode::ERRCODE_UNDEFINED_FILE:
+      return "58P01";
+    case ErrorCode::ERRCODE_DUPLICATE_FILE:
+      return "58P02";
+    case ErrorCode::ERRCODE_SNAPSHOT_TOO_OLD:
+      return "72000";
+    case ErrorCode::ERRCODE_CONFIG_FILE_ERROR:
+      return "F0000";
+    case ErrorCode::ERRCODE_LOCK_FILE_EXISTS:
+      return "F0001";
+    case ErrorCode::ERRCODE_FDW_ERROR:
+      return "HV000";
+    case ErrorCode::ERRCODE_FDW_COLUMN_NAME_NOT_FOUND:
+      return "HV005";
+    case ErrorCode::ERRCODE_FDW_DYNAMIC_PARAMETER_VALUE_NEEDED:
+      return "HV002";
+    case ErrorCode::ERRCODE_FDW_FUNCTION_SEQUENCE_ERROR:
+      return "HV010";
+    case ErrorCode::ERRCODE_FDW_INCONSISTENT_DESCRIPTOR_INFORMATION:
+      return "HV021";
+    case ErrorCode::ERRCODE_FDW_INVALID_ATTRIBUTE_VALUE:
+      return "HV024";
+    case ErrorCode::ERRCODE_FDW_INVALID_COLUMN_NAME:
+      return "HV007";
+    case ErrorCode::ERRCODE_FDW_INVALID_COLUMN_NUMBER:
+      return "HV008";
+    case ErrorCode::ERRCODE_FDW_INVALID_DATA_TYPE:
+      return "HV004";
+    case ErrorCode::ERRCODE_FDW_INVALID_DATA_TYPE_DESCRIPTORS:
+      return "HV006";
+    case ErrorCode::ERRCODE_FDW_INVALID_DESCRIPTOR_FIELD_IDENTIFIER:
+      return "HV091";
+    case ErrorCode::ERRCODE_FDW_INVALID_HANDLE:
+      return "HV00B";
+    case ErrorCode::ERRCODE_FDW_INVALID_OPTION_INDEX:
+      return "HV00C";
+    case ErrorCode::ERRCODE_FDW_INVALID_OPTION_NAME:
+      return "HV00D";
+    case ErrorCode::ERRCODE_FDW_INVALID_STRING_LENGTH_OR_BUFFER_LENGTH:
+      return "HV090";
+    case ErrorCode::ERRCODE_FDW_INVALID_STRING_FORMAT:
+      return "HV00A";
+    case ErrorCode::ERRCODE_FDW_INVALID_USE_OF_NULL_POINTER:
+      return "HV009";
+    case ErrorCode::ERRCODE_FDW_TOO_MANY_HANDLES:
+      return "HV014";
+    case ErrorCode::ERRCODE_FDW_OUT_OF_MEMORY:
+      return "HV001";
+    case ErrorCode::ERRCODE_FDW_NO_SCHEMAS:
+      return "HV00P";
+    case ErrorCode::ERRCODE_FDW_OPTION_NAME_NOT_FOUND:
+      return "HV00J";
+    case ErrorCode::ERRCODE_FDW_REPLY_HANDLE:
+      return "HV00K";
+    case ErrorCode::ERRCODE_FDW_SCHEMA_NOT_FOUND:
+      return "HV00Q";
+    case ErrorCode::ERRCODE_FDW_TABLE_NOT_FOUND:
+      return "HV00R";
+    case ErrorCode::ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION:
+      return "HV00L";
+    case ErrorCode::ERRCODE_FDW_UNABLE_TO_CREATE_REPLY:
+      return "HV00M";
+    case ErrorCode::ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION:
+      return "HV00N";
+    case ErrorCode::ERRCODE_PLPGSQL_ERROR:
+      return "P0000";
+    case ErrorCode::ERRCODE_RAISE_EXCEPTION:
+      return "P0001";
+    case ErrorCode::ERRCODE_NO_DATA_FOUND:
+      return "P0002";
+    case ErrorCode::ERRCODE_TOO_MANY_ROWS:
+      return "P0003";
+    case ErrorCode::ERRCODE_ASSERT_FAILURE:
+      return "P0004";
+    case ErrorCode::ERRCODE_INTERNAL_ERROR:
+      return "XX000";
+    case ErrorCode::ERRCODE_DATA_CORRUPTED:
+      return "XX001";
+    case ErrorCode::ERRCODE_INDEX_CORRUPTED:
+      return "XX002";
+  }
 }
 
 }  // namespace terrier::common

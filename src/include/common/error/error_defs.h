@@ -18,16 +18,25 @@ enum class ErrorSeverity : uint8_t {
   LOG  // (in a notice message)
 };
 
-template <ErrorSeverity severity>
-constexpr std::string_view ErrorSeverityToString() {
-  if constexpr (severity == ErrorSeverity::ERROR) return "ERROR";
-  if constexpr (severity == ErrorSeverity::FATAL) return "FATAL";
-  if constexpr (severity == ErrorSeverity::PANIC) return "PANIC";
-  if constexpr (severity == ErrorSeverity::WARNING) return "WARNING";
-  if constexpr (severity == ErrorSeverity::NOTICE) return "NOTICE";
-  if constexpr (severity == ErrorSeverity::DEBUG) return "DEBUG";
-  if constexpr (severity == ErrorSeverity::INFO) return "INFO";
-  if constexpr (severity == ErrorSeverity::LOG) return "LOG";
+constexpr std::string_view ErrorSeverityToString(const common::ErrorSeverity severity) {
+  switch (severity) {
+    case ErrorSeverity::ERROR:
+      return "ERROR";
+    case ErrorSeverity::FATAL:
+      return "FATAL";
+    case ErrorSeverity::PANIC:
+      return "PANIC";
+    case ErrorSeverity::WARNING:
+      return "WARNING";
+    case ErrorSeverity::NOTICE:
+      return "NOTICE";
+    case ErrorSeverity::DEBUG:
+      return "DEBUG";
+    case ErrorSeverity::INFO:
+      return "INFO";
+    case ErrorSeverity::LOG:
+      return "LOG";
+  }
 }
 
 // @see https://www.postgresql.org/docs/current/protocol-error-fields.html

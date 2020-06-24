@@ -93,16 +93,16 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::FAIL,
                      "We're in an aborted state. This should have been caught already before calling this function.");
       if (explicit_txn_block) {
-        out->WritePostgresError(
-            common::ErrorData::Message<common::ErrorSeverity::WARNING>("there is already a transaction in progress"));
+        out->WritePostgresError({common::ErrorSeverity::WARNING, "there is already a transaction in progress",
+                                 common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
         break;
       }
       break;
     }
     case network::QueryType::QUERY_COMMIT: {
       if (!explicit_txn_block) {
-        out->WritePostgresError(
-            common::ErrorData::Message<common::ErrorSeverity::WARNING>("there is no transaction in progress"));
+        out->WritePostgresError({common::ErrorSeverity::WARNING, "there is no transaction in progress",
+                                 common::ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION});
         break;
       }
       if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL) {
@@ -115,8 +115,8 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
     }
     case network::QueryType::QUERY_ROLLBACK: {
       if (!explicit_txn_block) {
-        out->WritePostgresError(
-            common::ErrorData::Message<common::ErrorSeverity::WARNING>("there is no transaction in progress"));
+        out->WritePostgresError({common::ErrorSeverity::WARNING, "there is no transaction in progress",
+                                 common::ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION});
         break;
       }
       EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);
@@ -181,11 +181,16 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       break;
     }
     default: {
-      return {ResultType::ERROR, common::ErrorData::Message("unsupported CREATE statement type")};
+      return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "unsupported CREATE statement type",
+                                                   common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED)};
     }
   }
   connection_ctx->Transaction()->SetMustAbort();
-  return {ResultType::ERROR, common::ErrorData::Message("failed to execute CREATE")};
+  // TODO(Matt): get more verbose failure info out of the catalog and DDL executors. I think at this point, if it's past
+  // binding, the only thing you could fail on is a conflict with a DDL change you already made in this txn or failure
+  // to acquire DDL lock?
+  return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "failed to execute CREATE",
+                                               common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
 }
 
 TrafficCopResult TrafficCop::ExecuteDropStatement(
@@ -230,11 +235,16 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       break;
     }
     default: {
-      return {ResultType::ERROR, common::ErrorData::Message("unsupported DROP statement type")};
+      return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "unsupported DROP statement type",
+                                                   common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED)};
     }
   }
   connection_ctx->Transaction()->SetMustAbort();
-  return {ResultType::ERROR, common::ErrorData::Message("failed to execute DROP")};
+  // TODO(Matt): get more verbose failure info out of the catalog and DDL executors. I think at this point, if it's past
+  // binding, the only thing you could fail on is a conflict with a DDL change you already made in this txn or failure
+  // to acquire DDL lock?
+  return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "failed to execute DROP",
+                                               common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
 }
 
 std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(
@@ -243,9 +253,9 @@ std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop
   try {
     parse_result = parser::PostgresParser::BuildParseTree(query);
   } catch (const ParserException &e) {
-    auto error = common::ErrorData::Message(std::string(e.what()));
+    common::ErrorData error(common::ErrorSeverity::ERROR, std::string(e.what()),
+                            common::ErrorCode::ERRCODE_SYNTAX_ERROR);
     error.AddField(common::ErrorField::POSITION, std::to_string(e.GetCursorPos()));
-    error.AddCode<common::ErrorCode::ERRCODE_SYNTAX_ERROR>();
     return error;
   }
   return parse_result;
@@ -280,13 +290,13 @@ TrafficCopResult TrafficCop::BindQuery(
     // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
     if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
          statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-      auto error = common::ErrorData::Message<common::ErrorSeverity::NOTICE>(
-          "binding failed with an IF EXISTS clause, skipping statement");
-      error.AddCode<common::ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION>();
-      return {ResultType::NOTICE, error};
+      return {ResultType::NOTICE, common::ErrorData(common::ErrorSeverity::NOTICE,
+                                                    "binding failed with an IF EXISTS clause, skipping statement",
+                                                    common::ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION)};
     }
     // TODO(Matt): generate a more verbose ErrorData object down in the Binder
-    return {ResultType::ERROR, common::ErrorData::Message(std::string(e.what()))};
+    return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, std::string(e.what()),
+                                                 common::ErrorCode::ERRCODE_SYNTAX_ERROR)};
   }
 
   return {ResultType::COMPLETE, 0};
@@ -363,7 +373,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
   // etc.) I suspect we would stash that in the ExecutionContext.
-  return {ResultType::ERROR, common::ErrorData::Message("Query failed.")};
+  return {ResultType::ERROR,
+          common::ErrorData(common::ErrorSeverity::ERROR, "Query failed.", common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
