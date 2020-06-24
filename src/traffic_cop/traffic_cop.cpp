@@ -180,11 +180,11 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       break;
     }
     default: {
-      return {ResultType::ERROR, "unsupported CREATE statement type"};
+      return {ResultType::ERROR, network::PostgresError::Message("unsupported CREATE statement type")};
     }
   }
   connection_ctx->Transaction()->SetMustAbort();
-  return {ResultType::ERROR, "failed to execute CREATE"};
+  return {ResultType::ERROR, network::PostgresError::Message("failed to execute CREATE")};
 }
 
 TrafficCopResult TrafficCop::ExecuteDropStatement(
@@ -229,14 +229,14 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       break;
     }
     default: {
-      return {ResultType::ERROR, "unsupported DROP statement type"};
+      return {ResultType::ERROR, network::PostgresError::Message("unsupported DROP statement type")};
     }
   }
   connection_ctx->Transaction()->SetMustAbort();
-  return {ResultType::ERROR, "failed to execute DROP"};
+  return {ResultType::ERROR, network::PostgresError::Message("failed to execute DROP")};
 }
 
-std::pair<TrafficCopResult, std::unique_ptr<parser::ParseResult>> TrafficCop::ParseQuery(
+std::variant<std::unique_ptr<parser::ParseResult>, network::PostgresError> TrafficCop::ParseQuery(
     const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
   std::unique_ptr<parser::ParseResult> parse_result;
   try {
@@ -244,9 +244,9 @@ std::pair<TrafficCopResult, std::unique_ptr<parser::ParseResult>> TrafficCop::Pa
   } catch (const ParserException &e) {
     auto error = network::PostgresError::Message(std::string(e.what()));
     error.AddField(network::PostgresErrorField::POSITION, std::to_string(e.GetCursorPos()));
-    std::make_pair<TrafficCopResult>({ResultType::ERROR, 0}, nullptr);
+    return error;
   }
-  return std::make_pair<TrafficCopResult>({ResultType::COMPLETE, 0}, std::move(parse_result));
+  return parse_result;
 }
 
 TrafficCopResult TrafficCop::BindQuery(
@@ -278,9 +278,10 @@ TrafficCopResult TrafficCop::BindQuery(
     // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
     if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
          statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-      return {ResultType::NOTICE, "binding failed with an IF EXISTS clause, skipping statement"};
+      return {ResultType::NOTICE, network::PostgresError::Message<network::PostgresSeverity::NOTICE>(
+                                      "binding failed with an IF EXISTS clause, skipping statement")};
     }
-    return {ResultType::ERROR, std::string(e.what())};
+    return {ResultType::ERROR, network::PostgresError::Message(std::string(e.what()))};
   }
 
   return {ResultType::COMPLETE, 0};
@@ -357,7 +358,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
   // etc.) I suspect we would stash that in the ExecutionContext.
-  return {ResultType::ERROR, "Query failed."};
+  return {ResultType::ERROR, network::PostgresError::Message("Query failed.")};
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(

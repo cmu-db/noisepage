@@ -45,15 +45,9 @@ class Statement {
             std::vector<type::TypeId> &&param_types);
 
   /**
-   * @return true if parser succeeded and this statement is usable
-   */
-  bool Valid() const { return parse_result_ != nullptr; }
-
-  /**
    * @return true if the statement is empty
    */
   bool Empty() const {
-    TERRIER_ASSERT(Valid(), "Attempting to check emptiness without a valid parsed result.");
     return parse_result_->Empty();
   }
 
@@ -61,7 +55,6 @@ class Statement {
    * @return managed pointer to the output of the parser for this statement
    */
   common::ManagedPointer<parser::ParseResult> ParseResult() const {
-    TERRIER_ASSERT(Valid(), "Attempting to get parse results without a valid parsed result.");
     return common::ManagedPointer(parse_result_);
   }
 
@@ -69,7 +62,6 @@ class Statement {
    * @return managed pointer to the  root statement of the ParseResult. Just shorthand for ParseResult->GetStatement(0)
    */
   common::ManagedPointer<parser::SQLStatement> RootStatement() const {
-    TERRIER_ASSERT(Valid(), "Attempting to get root statement without a valid parsed result.");
     return common::ManagedPointer(root_statement_);
   }
 

@@ -58,8 +58,8 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   } else {
     TERRIER_ASSERT(result.type_ == trafficcop::ResultType::ERROR,
                    "Currently only expecting COMPLETE or ERROR from TrafficCop here.");
-    TERRIER_ASSERT(std::holds_alternative<std::string>(result.extra_), "We're expecting a message here.");
-    out->WritePostgresError(network::PostgresError::Message(std::get<std::string>(result.extra_)));
+    TERRIER_ASSERT(std::holds_alternative<network::PostgresError>(result.extra_), "We're expecting a message here.");
+    out->WritePostgresError(std::get<network::PostgresError>(result.extra_));
   }
 }
 
@@ -72,24 +72,25 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
                  "caught at the protocol interpreter Process() level.");
 
-  auto query_text = in_.ReadString();
-
-  auto parse_result = t_cop->ParseQuery(query_text, connection);
-
-  const auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result.second));
-
   // Parsing a SimpleQuery clears the unnamed statement and portal
   postgres_interpreter->CloseStatement("");
   postgres_interpreter->ClosePortal("");
 
-  if (!statement->Valid()) {
-    out->WritePostgresError(network::PostgresError::Message("syntax error"));
+  auto query_text = in_.ReadString();
+
+  auto parse_result = t_cop->ParseQuery(query_text, connection);
+
+  if (std::holds_alternative<network::PostgresError>(parse_result)) {
+    out->WritePostgresError(std::get<network::PostgresError>(parse_result));
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to parse fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
     }
     return FinishSimpleQueryCommand(out, connection);
   }
+
+  const auto statement = std::make_unique<network::Statement>(
+      std::move(query_text), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse_result)));
 
   // TODO(Matt:) Clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult. It's not clear to me how the binder would
@@ -153,17 +154,18 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
                     postgres_interpreter->ExplicitTransactionBlock());
     } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
-      TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
-      out->WritePostgresError(network::PostgresError::Message<network::PostgresSeverity::NOTICE>(
-          std::string_view(std::get<std::string>(bind_result.extra_))));
+      TERRIER_ASSERT(std::holds_alternative<network::PostgresError>(bind_result.extra_),
+                     "We're expecting a message here.");
+      out->WritePostgresError(std::get<network::PostgresError>(bind_result.extra_));
       out->WriteCommandComplete(query_type, 0);
     } else {
       TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
                      "I don't think we expect any other ResultType at this point.");
-      TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+      TERRIER_ASSERT(std::holds_alternative<network::PostgresError>(bind_result.extra_),
+                     "We're expecting a message here.");
       // failing to bind fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
-      out->WritePostgresError(network::PostgresError::Message(std::get<std::string>(bind_result.extra_)));
+      out->WritePostgresError(std::get<network::PostgresError>(bind_result.extra_));
     }
   }
 
@@ -201,13 +203,25 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
 
   auto query_text = in_.ReadString();
   auto parse_result = t_cop->ParseQuery(query_text, connection);
+
+  if (std::holds_alternative<network::PostgresError>(parse_result)) {
+    out->WritePostgresError(std::get<network::PostgresError>(parse_result));
+    if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+      // failing to parse fails a transaction in postgres
+      connection->Transaction()->SetMustAbort();
+    }
+    postgres_interpreter->SetWaitingForSync();
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
   auto param_types = PostgresPacketUtil::ReadParamTypes(common::ManagedPointer(&in_));
 
-  auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result.second),
-                                                        std::move(param_types));
+  auto statement = std::make_unique<network::Statement>(
+      std::move(query_text), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse_result)),
+      std::move(param_types));
 
   // Extended Query protocol doesn't allow for more than one statement per query string
-  if (!statement->Valid() || statement->ParseResult()->NumStatements() > 1) {
+  if (statement->ParseResult()->NumStatements() > 1) {
     out->WritePostgresError(network::PostgresError::Message("syntax error"));
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to parse fails a transaction in postgres
@@ -345,21 +359,22 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     // handle that case in Execute. In case it previously bound and compiled, we're gonna throw that away for next
     // execution
     statement->ClearCachedObjects();
-    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+    TERRIER_ASSERT(std::holds_alternative<network::PostgresError>(bind_result.extra_),
+                   "We're expecting a message here.");
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
-    out->WritePostgresError(network::PostgresError::Message<network::PostgresSeverity::NOTICE>(
-        std::string_view(std::get<std::string>(bind_result.extra_))));
+    out->WritePostgresError(std::get<network::PostgresError>(bind_result.extra_));
     out->WriteBindComplete();
   } else {
     TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
                    "I don't think we expect any other ResultType at this point.");
-    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+    TERRIER_ASSERT(std::holds_alternative<network::PostgresError>(bind_result.extra_),
+                   "We're expecting a message here.");
     // failing to bind fails a transaction in postgres
     connection->Transaction()->SetMustAbort();
     // clear anything cached related to this statement
     statement->ClearCachedObjects();
-    out->WritePostgresError(network::PostgresError::Message(std::get<std::string>(bind_result.extra_)));
+    out->WritePostgresError(std::get<network::PostgresError>(bind_result.extra_));
     postgres_interpreter->SetWaitingForSync();
   }
 

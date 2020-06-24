@@ -80,6 +80,7 @@ class PostgresError {
                 std::vector<std::pair<PostgresErrorField, std::string>> &&fields)
       : severity_(severity), fields_(std::move(fields)) {}
 
+  PostgresError() = default;
   PostgresError &operator=(const PostgresError &other) = default;
   PostgresError &operator=(PostgresError &&other) noexcept = default;
   PostgresError(PostgresError &&other) noexcept = default;

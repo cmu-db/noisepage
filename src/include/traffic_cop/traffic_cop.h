@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <variant>
 
 #include "catalog/catalog.h"
 #include "common/managed_pointer.h"
@@ -89,7 +90,7 @@ class TrafficCop {
    * @param connection_ctx used to maintain state
    * @return parser's ParseResult, nullptr if failed
    */
-  std::pair<TrafficCopResult, std::unique_ptr<parser::ParseResult>> ParseQuery(
+  std::variant<std::unique_ptr<parser::ParseResult>, network::PostgresError> ParseQuery(
       const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**
