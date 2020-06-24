@@ -429,7 +429,7 @@ enum class ErrorCode : uint16_t {
 };
 
 template <ErrorCode code>
-constexpr std::string_view ErrorSeverityToString() {
+constexpr std::string_view ErrorCodeToString() {
   if constexpr (code == ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION) return "00000";
   if constexpr (code == ErrorCode::ERRCODE_WARNING) return "01000";
   if constexpr (code == ErrorCode::ERRCODE_WARNING_DYNAMIC_RESULT_SETS_RETURNED) return "0100C";

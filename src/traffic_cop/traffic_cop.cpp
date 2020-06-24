@@ -245,6 +245,7 @@ std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop
   } catch (const ParserException &e) {
     auto error = common::ErrorData::Message(std::string(e.what()));
     error.AddField(common::ErrorField::POSITION, std::to_string(e.GetCursorPos()));
+    error.AddCode<common::ErrorCode::ERRCODE_SYNTAX_ERROR>();
     return error;
   }
   return parse_result;
@@ -279,9 +280,12 @@ TrafficCopResult TrafficCop::BindQuery(
     // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
     if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
          statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-      return {ResultType::NOTICE, common::ErrorData::Message<common::ErrorSeverity::NOTICE>(
-                                      "binding failed with an IF EXISTS clause, skipping statement")};
+      auto error = common::ErrorData::Message<common::ErrorSeverity::NOTICE>(
+          "binding failed with an IF EXISTS clause, skipping statement");
+      error.AddCode<common::ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION>();
+      return {ResultType::NOTICE, error};
     }
+    // TODO(Matt): generate a more verbose ErrorData object down in the Binder
     return {ResultType::ERROR, common::ErrorData::Message(std::string(e.what()))};
   }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/error/error_code.h"
 #include "common/error/error_defs.h"
 
 namespace terrier::common {
@@ -34,6 +35,11 @@ class ErrorData {
   void AddField(ErrorField field, const std::string_view message) { fields_.emplace_back(field, std::string(message)); }
 
   void AddField(ErrorField field, std::string &&message) { fields_.emplace_back(field, std::move(message)); }
+
+  template <ErrorCode code>
+  void AddCode() {
+    AddField(ErrorField::CODE, ErrorCodeToString<code>());
+  }
 
   ErrorSeverity GetSeverity() const { return severity_; }
   const std::vector<std::pair<ErrorField, std::string>> &Fields() const { return fields_; }
