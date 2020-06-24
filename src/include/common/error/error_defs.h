@@ -30,9 +30,6 @@ constexpr std::string_view ErrorSeverityToString() {
   if constexpr (severity == ErrorSeverity::LOG) return "LOG";
 }
 
-//@see https://github.com/postgres/postgres/blob/master/src/backend/utils/errcodes.txt
-enum class ErrorCode : uint16_t {};
-
 // @see https://www.postgresql.org/docs/current/protocol-error-fields.html
 enum class ErrorField : unsigned char {
   SEVERITY = 'S',
