@@ -138,33 +138,87 @@ DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
 
+/**
+ * Specialized Parser exception since we want a cursor position to get more verbose output
+ */
 class ParserException : public Exception {
   const uint32_t cursorpos_ = 0;
 
  public:
   ParserException() = delete;
+  /**
+   * Creates a new ParserException with the given parameters.
+   * @param msg exception message to be displayed
+   * @param file name of the file in which the exception occurred
+   * @param line line number at which the exception occurred
+   */
   ParserException(const char *msg, const char *file, int line) : Exception(ExceptionType::PARSER, msg, file, line) {}
+
+  /**
+   * Creates a new ParserException with the given parameters.
+   * @param msg exception message to be displayed
+   * @param file name of the file in which the exception occurred
+   * @param line line number at which the exception occurred
+   */
   ParserException(const std::string &msg, const char *file, int line)
       : Exception(ExceptionType::PARSER, msg.c_str(), file, line) {}
+
+  /**
+   * Creates a new ParserException with the given parameters.
+   * @param msg exception message to be displayed
+   * @param file name of the file in which the exception occurred
+   * @param line line number at which the exception occurred
+   * @param cursorpos from libpgquery
+   */
   ParserException(const char *msg, const char *file, int line, uint32_t cursorpos)
       : Exception(ExceptionType::PARSER, msg, file, line), cursorpos_(cursorpos) {}
+
+  /**
+   * Creates a new ParserException with the given parameters.
+   * @param msg exception message to be displayed
+   * @param file name of the file in which the exception occurred
+   * @param line line number at which the exception occurred
+   * @param cursorpos from libpgquery
+   */
   ParserException(const std::string &msg, const char *file, int line, uint32_t cursorpos)
       : Exception(ExceptionType::PARSER, msg.c_str(), file, line), cursorpos_(cursorpos) {}
 
+  /**
+   * @return from libpgquery
+   */
   uint32_t GetCursorPos() const { return cursorpos_; }
 };
 
 /**
- * Specialized Binder exception since we want an entire ErrorData object in there to stash the
+ * Specialized Binder exception since we want an error code to get more verbose output
  */
 class BinderException : public Exception {
  public:
   BinderException() = delete;
+
+  /**
+   * Creates a new ParserException with the given parameters.
+   * @param msg exception message to be displayed
+   * @param file name of the file in which the exception occurred
+   * @param line line number at which the exception occurred
+   * @param code sql error code
+   */
   BinderException(const char *msg, const char *file, int line, common::ErrorCode code)
       : Exception(ExceptionType::BINDER, msg, file, line), code_(code) {}
+
+  /**
+   * Creates a new ParserException with the given parameters.
+   * @param msg exception message to be displayed
+   * @param file name of the file in which the exception occurred
+   * @param line line number at which the exception occurred
+   * @param code sql error code
+   */
   BinderException(const std::string &msg, const char *file, int line, common::ErrorCode code)
       : Exception(ExceptionType::BINDER, msg.c_str(), file, line), code_(code) {}
 
+  /**
+   * sql error code
+   */
   common::ErrorCode code_;
 };
 
