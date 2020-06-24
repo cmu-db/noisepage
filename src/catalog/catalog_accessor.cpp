@@ -129,7 +129,7 @@ index_oid_t CatalogAccessor::CreateIndexWrapper(namespace_oid_t ns, table_oid_t 
                                                 const IndexSchema &schema) const {
   auto index_oid = CreateIndex(ns, table, name, schema);
   storage::index::IndexBuilder index_builder;
-  index_builder.SetKeySchema(schema);
+  index_builder.SetKeySchema(GetIndexSchema(index_oid));
   auto *const index = index_builder.Build();
   bool result UNUSED_ATTRIBUTE = SetIndexPointer(index_oid, index);
   return index_oid;
