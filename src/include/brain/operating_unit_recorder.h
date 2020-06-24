@@ -152,7 +152,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Current Translator
    */
-  common::ManagedPointer<execution::compiler::OperatorTranslator> current_translator_;
+//  common::ManagedPointer<execution::compiler::OperatorTranslator> current_translator_;
 
   /**
    * Arithmetic features for a given plan

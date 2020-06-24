@@ -198,7 +198,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   ExpressionResultScope *execution_result_;
 
   /** Settings to be used for execution. */
-  const exec::ExecutionSettings &exec_settings_;
+  UNUSED_ATTRIBUTE const exec::ExecutionSettings &exec_settings_;
 };
 
 }  // namespace terrier::execution::vm
