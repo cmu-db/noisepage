@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/index_schema.h"
+//#include "catalog/index_schema.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
@@ -28,6 +28,7 @@ namespace terrier::catalog {
 class Catalog;
 class DatabaseCatalog;
 class CatalogCache;
+class IndexSchema;
 
 /**
  * A stateful wrapper around the catalog that provides the primary mechanisms
