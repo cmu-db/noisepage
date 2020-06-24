@@ -294,7 +294,7 @@ TrafficCopResult TrafficCop::BindQuery(
                                                     "binding failed with an IF EXISTS clause, skipping statement",
                                                     common::ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION)};
     }
-    auto error = std::move(e.error_);
+    auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
     error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
     error.AddField(common::ErrorField::FILE, e.GetFile());
     return {ResultType::ERROR, error};

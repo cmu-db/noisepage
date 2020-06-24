@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-#include "common/error/error_data.h"
+#include "common/error/error_code.h"
 
 namespace terrier {
 
@@ -23,7 +23,7 @@ namespace terrier {
 #define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
 #define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
 #define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
-#define BINDER_EXCEPTION(error) BinderException(__FILE__, __LINE__, (error))
+#define BINDER_EXCEPTION(msg, code) BinderException(msg, __FILE__, __LINE__, (code))
 
 /**
  * Exception types
@@ -154,11 +154,18 @@ class ParserException : public Exception {
   uint32_t GetCursorPos() const { return cursorpos_; }
 };
 
+/**
+ * Specialized Binder exception since we want an entire ErrorData object in there to stash the
+ */
 class BinderException : public Exception {
  public:
-  BinderException(const char *file, int line, common::ErrorData &&error)
-      : Exception(ExceptionType::PARSER, error.GetMessage().c_str(), file, line), error_(std::move(error)) {}
-  common::ErrorData error_;
+  BinderException() = delete;
+  BinderException(const char *msg, const char *file, int line, common::ErrorCode code)
+      : Exception(ExceptionType::BINDER, msg, file, line), code_(code) {}
+  BinderException(const std::string &msg, const char *file, int line, common::ErrorCode code)
+      : Exception(ExceptionType::BINDER, msg.c_str(), file, line), code_(code) {}
+
+  common::ErrorCode code_;
 };
 
 }  // namespace terrier

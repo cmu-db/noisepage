@@ -76,12 +76,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             try {
               int_val = std::stol(std::string(str_view));
             } catch (const std::out_of_range &e) {
-              throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "tinyint out of range",
-                                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+              throw BINDER_EXCEPTION("tinyint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
             if (!IsRepresentable<int8_t>(int_val)) {
-              throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "tinyint out of range",
-                                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+              throw BINDER_EXCEPTION("tinyint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
             value->SetValue(type::TypeId::TINYINT, execution::sql::Integer(int_val));
             break;
@@ -91,12 +89,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             try {
               int_val = std::stol(std::string(str_view));
             } catch (const std::out_of_range &e) {
-              throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "smallint out of range",
-                                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+              throw BINDER_EXCEPTION("smallint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
             if (!IsRepresentable<int16_t>(int_val)) {
-              throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "smallint out of range",
-                                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+              throw BINDER_EXCEPTION("smallint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
             value->SetValue(type::TypeId::SMALLINT, execution::sql::Integer(int_val));
             break;
@@ -106,12 +102,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             try {
               int_val = std::stol(std::string(str_view));
             } catch (const std::out_of_range &e) {
-              throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "integer out of range",
-                                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+              throw BINDER_EXCEPTION("integer out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
             if (!IsRepresentable<int32_t>(int_val)) {
-              throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "integer out of range",
-                                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+              throw BINDER_EXCEPTION("integer out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
             value->SetValue(type::TypeId::INTEGER, execution::sql::Integer(int_val));
             break;
@@ -121,12 +115,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             try {
               int_val = std::stol(std::string(str_view));
             } catch (const std::out_of_range &e) {
-              throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "bigint out of range",
-                                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+              throw BINDER_EXCEPTION("bigint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
             if (!IsRepresentable<int64_t>(int_val)) {
-              throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "bigint out of range",
-                                                       common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+              throw BINDER_EXCEPTION("bigint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
             value->SetValue(type::TypeId::BIGINT, execution::sql::Integer(int_val));
             break;
@@ -137,25 +129,22 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               try {
                 double_val = std::stod(std::string(str_view));
               } catch (std::exception &e) {
-                throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "decimal out of range",
-                                                         common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+                throw BINDER_EXCEPTION("decimal out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
               }
               value->SetValue(type::TypeId::DECIMAL, execution::sql::Real(double_val));
               break;
             }
           }
           default:
-            throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "decimal out of range",
-                                                     common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+            throw BINDER_EXCEPTION("decimal out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
         }
 
         break;
       }
 
       default: {
-        throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR,
-                                                 "Binder conversion of expression type failed.",
-                                                 common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+        throw BINDER_EXCEPTION("Binder conversion of expression type failed.",
+                               common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
       }
     }
   }
@@ -178,44 +167,38 @@ void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::Constant
         value->SetReturnValueType(desired_type);
         return;
       }
-      throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "tinyint out of range",
-                                               common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+      throw BINDER_EXCEPTION("tinyint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
     case type::TypeId::SMALLINT: {
       if (IsRepresentable<int16_t>(int_val)) {
         value->SetReturnValueType(desired_type);
         return;
       }
-      throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "smallint out of range",
-                                               common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+      throw BINDER_EXCEPTION("smallint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
     case type::TypeId::INTEGER: {
       if (IsRepresentable<int32_t>(int_val)) {
         value->SetReturnValueType(desired_type);
         return;
       }
-      throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "integer out of range",
-                                               common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+      throw BINDER_EXCEPTION("integer out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
     case type::TypeId::BIGINT: {
       if (IsRepresentable<int64_t>(int_val)) {
         value->SetReturnValueType(desired_type);
         return;
       }
-      throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "bigint out of range",
-                                               common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+      throw BINDER_EXCEPTION("bigint out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
     case type::TypeId::DECIMAL: {
       if (IsRepresentable<double>(int_val)) {
         value->SetValue(desired_type, execution::sql::Real(static_cast<double>(int_val)));
         return;
       }
-      throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "decimal out of range",
-                                               common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE));
+      throw BINDER_EXCEPTION("decimal out of range", common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
     default:
-      throw BINDER_EXCEPTION(common::ErrorData(common::ErrorSeverity::ERROR, "TryCastNumericAll not a numeric type!",
-                                               common::ErrorCode::ERRCODE_DATA_EXCEPTION));
+      throw BINDER_EXCEPTION("TryCastNumericAll not a numeric type!", common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 }
 
