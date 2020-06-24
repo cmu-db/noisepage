@@ -4,7 +4,7 @@
 // licenses.
 //
 // PostgreSQL Database Management System
-//(formerly known as Postgres, then as Postgres95)
+// (formerly known as Postgres, then as Postgres95)
 //
 // Portions Copyright © 1996-2020, The PostgreSQL Global Development Group
 //

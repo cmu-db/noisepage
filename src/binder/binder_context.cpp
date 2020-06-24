@@ -39,7 +39,6 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
     if (namespace_id == catalog::INVALID_NAMESPACE_OID) {
       throw BINDER_EXCEPTION(fmt::format("Unknown namespace name \"{}\"", namespace_name),
                              common::ErrorCode::ERRCODE_UNDEFINED_SCHEMA);
-      ;
     }
 
     table_id = accessor->GetTableOid(namespace_id, table_name);
@@ -61,13 +60,11 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
   if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION(fmt::format("Duplicate alias \"{}\"", table_alias),
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
-    ;
   }
 
   if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end()) {
     throw BINDER_EXCEPTION(fmt::format("Duplicate alias \"{}\"", table_alias),
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
-    ;
   }
   regular_table_alias_map_[table_alias] = std::make_tuple(db_id, table_id, schema);
 }
@@ -153,7 +150,6 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
         } else {
           throw BINDER_EXCEPTION(fmt::format("Ambiguous column name \"{}\"", col_name),
                                  common::ErrorCode::ERRCODE_AMBIGUOUS_COLUMN);
-          ;
         }
       }
     }
@@ -170,7 +166,6 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
         } else {
           throw BINDER_EXCEPTION(fmt::format("Ambiguous column name \"{}\"", col_name),
                                  common::ErrorCode::ERRCODE_AMBIGUOUS_COLUMN);
-          ;
         }
       }
     }
