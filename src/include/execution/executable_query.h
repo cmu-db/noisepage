@@ -6,7 +6,6 @@
 #include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "common/strong_typedef.h"
-#include "execution/ast/context.h"
 #include "execution/exec_defs.h"
 #include "execution/vm/module.h"
 
@@ -21,9 +20,13 @@ class MiniRunners_SEQ0_OutputRunners_Benchmark;
 
 namespace terrier::execution {
 
+namespace ast {
+class Context;
+} // namespace ast
+
 namespace exec {
 class ExecutionContext;
-}
+} // namespace exec
 
 namespace vm {
 enum class ExecutionMode : uint8_t;

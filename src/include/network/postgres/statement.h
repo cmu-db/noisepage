@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "execution/ast/context.h"
 #include "execution/executable_query.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
