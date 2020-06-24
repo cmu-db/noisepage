@@ -23,15 +23,6 @@ class ErrorData {
              {ErrorField::HUMAN_READABLE_ERROR, std::string(message)}}};
   }
 
-  // TODO(Matt): maybe needed eventually?
-  //  template <ErrorSeverity severity = ErrorSeverity::ERROR>
-  //  static ErrorData Message(std::string &&message) {
-  //    return {severity,
-  //            {{ErrorField::SEVERITY, std::string(ErrorSeverityToString<severity>())},
-  //             {ErrorField::SEVERITY_OLD, std::string(ErrorSeverityToString<severity>())},
-  //             {ErrorField::HUMAN_READABLE_ERROR, std::move(message)}}};
-  //  }
-
   void AddField(ErrorField field, const std::string_view message) { fields_.emplace_back(field, std::string(message)); }
 
   void AddField(ErrorField field, std::string &&message) { fields_.emplace_back(field, std::move(message)); }
