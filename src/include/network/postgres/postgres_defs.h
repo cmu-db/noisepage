@@ -77,8 +77,13 @@ enum class PostgresErrorField : unsigned char {
 class PostgresError {
  public:
   PostgresError(const network::PostgresSeverity severity,
-                std::vector<std::pair<PostgresErrorField, std::string>> fields)
+                std::vector<std::pair<PostgresErrorField, std::string>> &&fields)
       : severity_(severity), fields_(std::move(fields)) {}
+
+  PostgresError &operator=(const PostgresError &other) = default;
+  PostgresError &operator=(PostgresError &&other) noexcept = default;
+  PostgresError(PostgresError &&other) noexcept = default;
+  PostgresError(const PostgresError &other) = default;
 
   template <PostgresSeverity severity = PostgresSeverity::ERROR>
   static PostgresError Message(const std::string_view message) {
@@ -107,7 +112,7 @@ class PostgresError {
   const std::vector<std::pair<PostgresErrorField, std::string>> &Fields() const { return fields_; }
 
  private:
-  const PostgresSeverity severity_;
+  PostgresSeverity severity_ = PostgresSeverity::ERROR;
   std::vector<std::pair<PostgresErrorField, std::string>> fields_;
 };
 

@@ -7,9 +7,6 @@
 #include "catalog/catalog.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
-#include "parser/create_statement.h"
-#include "parser/drop_statement.h"
-#include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
 
@@ -92,7 +89,7 @@ class TrafficCop {
    * @param connection_ctx used to maintain state
    * @return parser's ParseResult, nullptr if failed
    */
-  std::unique_ptr<parser::ParseResult> ParseQuery(
+  std::pair<TrafficCopResult, std::unique_ptr<parser::ParseResult>> ParseQuery(
       const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**

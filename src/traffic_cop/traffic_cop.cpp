@@ -236,16 +236,17 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
   return {ResultType::ERROR, "failed to execute DROP"};
 }
 
-std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
+std::pair<TrafficCopResult, std::unique_ptr<parser::ParseResult>> TrafficCop::ParseQuery(
     const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
   std::unique_ptr<parser::ParseResult> parse_result;
   try {
     parse_result = parser::PostgresParser::BuildParseTree(query);
-  } catch (...) {
-    // Failed to parse
-    // TODO(Matt): handle this in some more verbose manner for the client (return more state)
+  } catch (const ParserException &e) {
+    auto error = network::PostgresError::Message(std::string(e.what()));
+    error.AddField(network::PostgresErrorField::POSITION, std::to_string(e.GetCursorPos()));
+    std::make_pair<TrafficCopResult>({ResultType::ERROR, 0}, nullptr);
   }
-  return parse_result;
+  return std::make_pair<TrafficCopResult>({ResultType::COMPLETE, 0}, std::move(parse_result));
 }
 
 TrafficCopResult TrafficCop::BindQuery(

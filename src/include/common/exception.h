@@ -130,12 +130,27 @@ class Exception : public std::runtime_error {
 
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);
 DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
-DEFINE_EXCEPTION(ParserException, ExceptionType::PARSER);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
 DEFINE_EXCEPTION(BinderException, ExceptionType::BINDER);
+
+class ParserException : public Exception {
+  const uint32_t cursorpos_ = 0;
+
+ public:
+  ParserException() = delete;
+  ParserException(const char *msg, const char *file, int line) : Exception(ExceptionType::PARSER, msg, file, line) {}
+  ParserException(const std::string &msg, const char *file, int line)
+      : Exception(ExceptionType::PARSER, msg.c_str(), file, line) {}
+  ParserException(const char *msg, const char *file, int line, uint32_t cursorpos)
+      : Exception(ExceptionType::PARSER, msg, file, line), cursorpos_(cursorpos) {}
+  ParserException(const std::string &msg, const char *file, int line, uint32_t cursorpos)
+      : Exception(ExceptionType::PARSER, msg.c_str(), file, line), cursorpos_(cursorpos) {}
+
+  uint32_t GetCursorPos() const { return cursorpos_; }
+};
 
 }  // namespace terrier

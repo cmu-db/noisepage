@@ -76,7 +76,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   auto parse_result = t_cop->ParseQuery(query_text, connection);
 
-  const auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result));
+  const auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result.second));
 
   // Parsing a SimpleQuery clears the unnamed statement and portal
   postgres_interpreter->CloseStatement("");
@@ -203,8 +203,8 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   auto parse_result = t_cop->ParseQuery(query_text, connection);
   auto param_types = PostgresPacketUtil::ReadParamTypes(common::ManagedPointer(&in_));
 
-  auto statement =
-      std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result), std::move(param_types));
+  auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result.second),
+                                                        std::move(param_types));
 
   // Extended Query protocol doesn't allow for more than one statement per query string
   if (!statement->Valid() || statement->ParseResult()->NumStatements() > 1) {
