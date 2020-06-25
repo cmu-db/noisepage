@@ -275,5 +275,8 @@ wal.log
 # OLTP output
 **/oltp_output_*
 
+# JUnit intermediate out directory
+**/junit/out/
+
 # Personal github config file
 _config.yml

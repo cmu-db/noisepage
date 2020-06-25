@@ -23,12 +23,21 @@ Both C and C++ interfaces are available. The examples below demonstrate use.
 
 This library is currently in ALPHA.
 
+Several modifications have been made by [Prashanth Menon](http://github.com/pmenon):
+* Convert project to CMake (3.10 and above)
+* C++17 compliance
+* `HLL::Create()` returns a smart `std::unique_ptr<HLL>` rather than raw pointers
+* Bulk-update API through `HLL::UpdateMany()`
+* Ability to reset an `HLL` instance through `HLL::Reset()`
+* Use builtins to count leading zeros in 64-bit integers
+
 ## Building
 
-    git clone https://github.com/dialtr/libcount
-    cd libcount
+    git clone https://github.com/pmenon/libcount
+    mkdir -p build/debug
+    cd build/debug
+    cmake -DCMAKE_BUILD_TYPE=DEBUG ../..
     make
-    sudo make install
 
 ## Certification
 
@@ -36,7 +45,8 @@ You can run a test suite that runs several simulations at every precision
 value to certify that libcount is doing a reasonable job estimating the
 cardinality of sets. Just:
 
-    make certify
+    cmake -DLIBCOUNT_BUILD_CERTIFY=On ../..
+    make check-certify
 
 ## Minimal Examples
 
@@ -46,7 +56,8 @@ algorithm can be found in the examples/ directory at the root of the repo.
 
 To build the examples, simply:
 
-    make examples
+    cmake -DLIBCOUNT_BUILD_EXAMPLES=On ../..
+    make
 
 They are not built by default because they depend on the OpenSSL libraries
 being available on the system, and since those libraries are not installed
@@ -71,7 +82,7 @@ int main(int argc, char* argv[]) {
   const int kPrecision = 8;
 
   // Create an HLL object to track set cardinality.
-  HLL* hll = HLL::Create(kPrecision);
+  std::unique_ptr<HLL> hll = HLL::Create(kPrecision);
 
   // Update object with hash of each element in your set.
   const kNumItems = 10000;
@@ -81,9 +92,6 @@ int main(int argc, char* argv[]) {
 
   // Obtain the cardinality estimate.
   uint64_t estimate = hll->Estimate();
-
-  // Delete object.
-  delete hll;
   
   return 0;
 }

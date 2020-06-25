@@ -21,7 +21,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // create the tables in the catalog
   txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
   const catalog::table_oid_t item_table_oid =
       accessor->CreateTable(accessor->GetDefaultNamespace(), "ITEM", item_schema);
@@ -88,7 +88,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // get the table pointers back from the catalog
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
   const auto item_table = accessor->GetTable(item_table_oid);
   const auto warehouse_table = accessor->GetTable(warehouse_table_oid);
@@ -176,7 +176,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // create the indexes in the catalog
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
   const catalog::index_oid_t warehouse_primary_index_oid = accessor->CreateIndex(
       accessor->GetDefaultNamespace(), warehouse_table_oid, "WAREHOUSE PRIMARY", warehouse_primary_index_schema);
@@ -249,7 +249,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // get the table pointers back from the catalog
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
   const auto warehouse_index = accessor->GetIndex(warehouse_primary_index_oid);
   const auto district_index = accessor->GetIndex(district_primary_index_oid);

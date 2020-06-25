@@ -46,11 +46,15 @@ OPUNIT_MODELING_TRANSFORMER_MAP = {
 
     # Execution engine opunits
     OpUnit.SEQ_SCAN: _tuple_num_linear_transformer,
+    OpUnit.IDX_SCAN: _tuple_num_linear_transformer,
     OpUnit.HASHJOIN_BUILD: _tuple_num_linear_transformer,
     OpUnit.HASHJOIN_PROBE: _tuple_num_linear_transformer,
     OpUnit.AGG_BUILD: _tuple_num_linear_transformer,
     OpUnit.AGG_ITERATE: _tuple_num_linear_transformer,
     OpUnit.SORT_ITERATE: _tuple_num_linear_transformer,
+    OpUnit.INSERT: _tuple_num_linear_transformer,
+    OpUnit.UPDATE: _tuple_num_linear_transformer,
+    OpUnit.DELETE: _tuple_num_linear_transformer,
     OpUnit.OP_INTEGER_PLUS_OR_MINUS: _tuple_num_linear_transformer,
     OpUnit.OP_INTEGER_MULTIPLY: _tuple_num_linear_transformer,
     OpUnit.OP_INTEGER_DIVIDE: _tuple_num_linear_transformer,
@@ -59,6 +63,7 @@ OPUNIT_MODELING_TRANSFORMER_MAP = {
     OpUnit.OP_DECIMAL_MULTIPLY: _tuple_num_linear_transformer,
     OpUnit.OP_DECIMAL_DIVIDE: _tuple_num_linear_transformer,
     OpUnit.OP_DECIMAL_COMPARE: _tuple_num_linear_transformer,
+    OpUnit.OUTPUT: _tuple_num_linear_transformer,
 
     OpUnit.SORT_BUILD: _tuple_num_linear_log_transformer,
 }

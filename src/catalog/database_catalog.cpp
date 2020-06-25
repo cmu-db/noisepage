@@ -16,9 +16,11 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "execution/functions/function_context.h"
 #include "nlohmann/json.hpp"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -1779,6 +1781,28 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 #undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
+  auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
+  auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
+
+  CreateProcedure(
+      txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
+      postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
+      {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
+      {postgres::ProArgModes::IN, postgres::ProArgModes::IN, postgres::ProArgModes::IN, postgres::ProArgModes::IN},
+      int_type, "", false);
+
+  CreateProcedure(
+      txn, postgres::NP_RUNNERS_EMIT_REAL_PRO_OID, "nprunnersemitreal", postgres::INTERNAL_LANGUAGE_OID,
+      postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
+      {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
+      {postgres::ProArgModes::IN, postgres::ProArgModes::IN, postgres::ProArgModes::IN, postgres::ProArgModes::IN},
+      real_type, "", false);
+
+  CreateProcedure(txn, postgres::NP_RUNNERS_DUMMY_INT_PRO_OID, "nprunnersdummyint", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, int_type, "", false);
+
+  CreateProcedure(txn, postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID, "nprunnersdummyreal", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, real_type, "", false);
 
   // lower
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
@@ -1826,6 +1850,30 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   func_context = new execution::functions::FunctionContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
                                                            execution::ast::Builtin::Lower, true);
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "NpRunnersEmitInt", type::TypeId::INTEGER,
+      {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER},
+      execution::ast::Builtin::NpRunnersEmitInt, true);
+  SetProcCtxPtr(txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "NpRunnersEmitReal", type::TypeId::DECIMAL,
+      {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER},
+      execution::ast::Builtin::NpRunnersEmitReal, true);
+  SetProcCtxPtr(txn, postgres::NP_RUNNERS_EMIT_REAL_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("NpRunnersDummyInt", type::TypeId::INTEGER, {},
+                                                           execution::ast::Builtin::NpRunnersDummyInt, true);
+  SetProcCtxPtr(txn, postgres::NP_RUNNERS_DUMMY_INT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("NpRunnersDummyReal", type::TypeId::DECIMAL, {},
+                                                           execution::ast::Builtin::NpRunnersDummyReal, true);
+  SetProcCtxPtr(txn, postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 }
 

@@ -42,8 +42,6 @@ class BrainUtil {
         return "UPDATE";
       case ExecutionOperatingUnitType::DELETE:
         return "DELETE";
-      case ExecutionOperatingUnitType::PROJECTION:
-        return "PROJECTION";
       case ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS:
         return "OP_INTEGER_PLUS_OR_MINUS";
       case ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY:
@@ -62,6 +60,10 @@ class BrainUtil {
         return "OP_DECIMAL_COMPARE";
       case ExecutionOperatingUnitType::OP_BOOL_COMPARE:
         return "OP_BOOL_COMPARE";
+      case ExecutionOperatingUnitType::OUTPUT:
+        return "OUTPUT";
+      case ExecutionOperatingUnitType::LIMIT:
+        return "LIMIT";
       default:
         UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
         break;

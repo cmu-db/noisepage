@@ -7,19 +7,21 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/index_schema.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
-#include "execution/functions/function_context.h"
-#include "storage/index/index.h"
-#include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
+namespace terrier::execution::functions {
+class FunctionContext;
+}  // namespace terrier::execution::functions
+
 namespace terrier::catalog {
+
+class IndexSchema;
 
 /**
  * The catalog stores all of the metadata about user tables and user defined

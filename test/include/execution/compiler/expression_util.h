@@ -62,11 +62,6 @@ class ExpressionMaker {
   }
 
   /**
-   * Create a date constant expression
-   */
-  ManagedExpression Constant(date::year_month_day ymd);
-
-  /**
    * Create a column value expression
    */
   ManagedExpression CVE(catalog::col_oid_t column_oid, type::TypeId type) {
@@ -226,7 +221,10 @@ class ExpressionMaker {
   ManagedAggExpression AggregateTerm(parser::ExpressionType agg_type, ManagedExpression child, bool distinct) {
     std::vector<OwnedExpression> children;
     children.emplace_back(child->Copy());
-    return MakeAggManaged(std::make_unique<parser::AggregateExpression>(agg_type, std::move(children), distinct));
+
+    auto agg = MakeAggManaged(std::make_unique<parser::AggregateExpression>(agg_type, std::move(children), distinct));
+    agg->DeriveReturnValueType();
+    return agg;
   }
 
   /**

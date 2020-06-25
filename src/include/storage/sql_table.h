@@ -1,4 +1,5 @@
 #pragma once
+
 #include <list>
 #include <set>
 #include <string>
@@ -200,6 +201,11 @@ class SqlTable {
    * @return the projection map
    */
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
+
+  /**
+   * @return a coarse estimation on the number of tuples in this table
+   */
+  uint64_t GetNumTuple() const { return table_.data_table_->GetNumTuple(); }
 
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings

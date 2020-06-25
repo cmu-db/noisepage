@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstring>
 #include <list>
 #include <unordered_map>
@@ -217,6 +218,11 @@ class DataTable {
    * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+
+  /**
+   * @return a coarse estimation on the number of tuples in this table
+   */
+  uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
 
  private:
   // The ArrowSerializer needs access to its blocks.
