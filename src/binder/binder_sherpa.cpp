@@ -4,7 +4,7 @@
 
 #include "binder/binder_util.h"
 #include "parser/expression/abstract_expression.h"
-
+#include "spdlog/fmt/fmt.h"
 namespace terrier::binder {
 
 void BinderSherpa::SetDesiredTypePair(const common::ManagedPointer<parser::AbstractExpression> left,
@@ -65,9 +65,11 @@ void BinderSherpa::CheckDesiredType(const common::ManagedPointer<parser::Abstrac
   const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
   if (it != desired_expr_types_.end() && it->second != expr->GetReturnValueType()) {
     // There was a constraint and the expression did not satisfy it. Blow up.
-    const auto desired UNUSED_ATTRIBUTE = it->second;
-    const auto current UNUSED_ATTRIBUTE = expr->GetReturnValueType();
-    throw BINDER_EXCEPTION("BinderSherpa expected expr to have a different type.");
+    throw BINDER_EXCEPTION(
+        fmt::format("BinderSherpa expected expr to have a different type. Expected: {}, Expression type: {}",
+                    type::TypeUtil::TypeIdToString(it->second),
+                    type::TypeUtil::TypeIdToString(expr->GetReturnValueType())),
+        common::ErrorCode::ERRCODE_SYNTAX_ERROR);
   }
 }
 

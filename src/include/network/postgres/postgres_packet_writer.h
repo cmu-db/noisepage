@@ -13,6 +13,10 @@ namespace terrier::execution::sql {
 struct Val;
 }
 
+namespace terrier::common {
+class ErrorData;
+}
+
 namespace terrier::network {
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
@@ -44,16 +48,10 @@ class PostgresPacketWriter : public PacketWriter {
   void WriteSimpleQuery(const std::string &query);
 
   /**
-   * Writes a Postgres notice response
-   * @param message human readable message
+   * Write an ErrorData object
+   * @param error data to return to client
    */
-  void WriteNoticeResponse(const std::string &message);
-
-  /**
-   * Writes a Postgres error response
-   * @param message human readable message
-   */
-  void WriteErrorResponse(const std::string &message);
+  void WriteError(const common::ErrorData &error);
 
   /**
    * Writes an empty query response

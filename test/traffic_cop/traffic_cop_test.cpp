@@ -104,7 +104,8 @@ TEST_F(TrafficCopTests, BadParseTest) {
     txn1.commit();
   } catch (const std::exception &e) {
     std::string error(e.what());
-    std::string expect("ERROR:  syntax error\n");
+    std::string expect(
+        "ERROR:  syntax error at or near \"INSTERT\"\nLINE 1: INSTERT INTO FOO VALUES (1,1);\n        ^\n");
     EXPECT_EQ(error, expect);
   }
 }

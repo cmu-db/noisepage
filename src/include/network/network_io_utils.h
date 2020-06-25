@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "util/portable_endian.h"

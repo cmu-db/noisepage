@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/value.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node.h"
