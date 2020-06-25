@@ -249,16 +249,17 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
 
 std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(
     const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
-  std::unique_ptr<parser::ParseResult> parse_result;
+  std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> result;
   try {
-    parse_result = parser::PostgresParser::BuildParseTree(query);
+    auto parse_result = parser::PostgresParser::BuildParseTree(query);
+    result.emplace<std::unique_ptr<parser::ParseResult>>(std::move(parse_result));
   } catch (const ParserException &e) {
     common::ErrorData error(common::ErrorSeverity::ERROR, std::string(e.what()),
                             common::ErrorCode::ERRCODE_SYNTAX_ERROR);
     error.AddField(common::ErrorField::POSITION, std::to_string(e.GetCursorPos()));
-    return error;
+    result.emplace<common::ErrorData>(std::move(error));
   }
-  return parse_result;
+  return result;
 }
 
 TrafficCopResult TrafficCop::BindQuery(
