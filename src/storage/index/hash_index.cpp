@@ -21,6 +21,12 @@ HashIndex<KeyType>::HashIndex(IndexMetadata metadata)
     : Index(std::move(metadata)),
       hash_map_(std::make_unique<cuckoohash_map<KeyType, ValueType>>(INITIAL_CUCKOOHASH_MAP_SIZE)) {}
 
+template <typename KeyType>
+size_t HashIndex<KeyType>::GetHeapUsage() const {
+  // FIXME(Matt): make this accurate
+  return 0;
+}
+
 /**
  * The lambda below is used for aborted inserts as well as committed deletes to perform the erase logic. Macros are
  * ugly but you can't define a macro that captures location outside of the scope of that variable

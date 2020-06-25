@@ -18,6 +18,12 @@ void BwTreeIndex<KeyType>::PerformGarbageCollection() {
 }
 
 template <typename KeyType>
+size_t BwTreeIndex<KeyType>::GetHeapUsage() const {
+  // FIXME(Matt): make this accurate
+  return 0;
+}
+
+template <typename KeyType>
 bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const ProjectedRow &tuple, const TupleSlot location) {
   TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
