@@ -170,6 +170,47 @@ namespace terrier::execution::ast {
   F(IndexIteratorGetTablePR, indexIteratorGetTablePR)                   \
   F(IndexIteratorFree, indexIteratorFree)                               \
                                                                         \
+  /* Projected Row Operations */                                        \
+  F(PRSetBool, prSetBool)                                               \
+  F(PRSetTinyInt, prSetTinyInt)                                         \
+  F(PRSetSmallInt, prSetSmallInt)                                       \
+  F(PRSetInt, prSetInt)                                                 \
+  F(PRSetBigInt, prSetBigInt)                                           \
+  F(PRSetReal, prSetReal)                                               \
+  F(PRSetDouble, prSetDouble)                                           \
+  F(PRSetDate, prSetDate)                                               \
+  F(PRSetTimestamp, prSetTimestamp)                                     \
+  F(PRSetVarlen, prSetVarlen)                                           \
+  F(PRSetBoolNull, prSetBoolNull)                                       \
+  F(PRSetTinyIntNull, prSetTinyIntNull)                                 \
+  F(PRSetSmallIntNull, prSetSmallIntNull)                               \
+  F(PRSetIntNull, prSetIntNull)                                         \
+  F(PRSetBigIntNull, prSetBigIntNull)                                   \
+  F(PRSetRealNull, prSetRealNull)                                       \
+  F(PRSetDoubleNull, prSetDoubleNull)                                   \
+  F(PRSetDateNull, prSetDateNull)                                       \
+  F(PRSetTimestampNull, prSetTimestampNull)                             \
+  F(PRSetVarlenNull, prSetVarlenNull)                                   \
+  F(PRGetBool, prGetBool)                                               \
+  F(PRGetTinyInt, prGetTinyInt)                                         \
+  F(PRGetSmallInt, prGetSmallInt)                                       \
+  F(PRGetInt, prGetInt)                                                 \
+  F(PRGetBigInt, prGetBigInt)                                           \
+  F(PRGetReal, prGetReal)                                               \
+  F(PRGetDouble, prGetDouble)                                           \
+  F(PRGetDate, prGetDate)                                               \
+  F(PRGetTimestamp, prGetTimestamp)                                     \
+  F(PRGetVarlen, prGetVarlen)                                           \
+  F(PRGetBoolNull, prGetBoolNull)                                       \
+  F(PRGetTinyIntNull, prGetTinyIntNull)                                 \
+  F(PRGetSmallIntNull, prGetSmallIntNull)                               \
+  F(PRGetIntNull, prGetIntNull)                                         \
+  F(PRGetBigIntNull, prGetBigIntNull)                                   \
+  F(PRGetRealNull, prGetRealNull)                                       \
+  F(PRGetDoubleNull, prGetDoubleNull)                                   \
+  F(PRGetDateNull, prGetDateNull)                                       \
+  F(PRGetTimestampNull, prGetTimestampNull)                             \
+  F(PRGetVarlenNull, prGetVarlenNull)                                   \
   /* CSV */                                                             \
   F(CSVReaderInit, csvReaderInit)                                       \
   F(CSVReaderAdvance, csvReaderAdvance)                                 \
@@ -177,6 +218,19 @@ namespace terrier::execution::ast {
   F(CSVReaderGetRecordNumber, csvReaderGetRecordNumber)                 \
   F(CSVReaderClose, csvReaderClose)                                     \
                                                                         \
+  /* SQL Table Calls */                                                 \
+  F(StorageInterfaceInit, storageInterfaceInit)                         \
+  F(StorageInterfaceInitBind, storageInterfaceInitBind)                 \
+  F(GetTablePR, getTablePR)                                             \
+  F(TableInsert, tableInsert)                                           \
+  F(TableDelete, tableDelete)                                           \
+  F(TableUpdate, tableUpdate)                                           \
+  F(GetIndexPR, getIndexPR)                                             \
+  F(GetIndexPRBind, getIndexPRBind)                                     \
+  F(IndexInsert, indexInsert)                                           \
+  F(IndexInsertUnique, indexInsertUnique)                               \
+  F(IndexDelete, indexDelete)                                           \
+  F(StorageInterfaceFree, storageInterfaceFree)                         \
   /* Trig */                                                            \
   F(ACos, acos)                                                         \
   F(ASin, asin)                                                         \
@@ -202,7 +256,8 @@ namespace terrier::execution::ast {
   F(NpRunnersDummyReal, NpRunnersDummyReal)                             \
                                                                         \
   /* FOR TESTING USE ONLY!!!!! */                                       \
-  F(TestCatalogLookup, testCatalogLookup)
+  F(TestCatalogLookup, testCatalogLookup)                               \
+  F(TestCatalogIndexLookup, testCatalogIndexLookup)
 
 /**
  * An enumeration of all TPL builtin functions.

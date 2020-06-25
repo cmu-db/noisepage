@@ -316,9 +316,43 @@ void BytecodeEmitter::EmitCSVReaderInit(LocalVar reader, LocalVar file_name, uin
   EmitAll(Bytecode::CSVReaderInit, reader, file_name, file_name_len);
 }
 
+void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t num_attrs,
+                                            LocalVar table_oid, LocalVar index_oid, LocalVar col_oids,
+                                            uint32_t num_oids) {
+  EmitAll(bytecode, iter, exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
+}
+
 void BytecodeEmitter::EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name,
                                             uint32_t table_name_len, LocalVar col_name, uint32_t col_name_len) {
   EmitAll(Bytecode::TestCatalogLookup, oid_var, exec_ctx, table_name, table_name_len, col_name, col_name_len);
+}
+
+void BytecodeEmitter::EmitTestCatalogIndexLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name,
+                                            uint32_t table_name_len) {
+  EmitAll(Bytecode::TestCatalogIndexLookup, oid_var, exec_ctx, table_name, table_name_len);
+}
+
+void BytecodeEmitter::EmitPRGet(Bytecode bytecode, LocalVar out, LocalVar pr, uint16_t col_idx) {
+  EmitAll(bytecode, out, pr, col_idx);
+}
+
+void BytecodeEmitter::EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val) {
+  EmitAll(bytecode, pr, col_idx, val);
+}
+
+void BytecodeEmitter::EmitPRSetVarlen(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val, LocalVar own) {
+  EmitAll(bytecode, pr, col_idx, val, own);
+}
+
+void BytecodeEmitter::EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx,
+                                               LocalVar table_oid, LocalVar col_oids, uint32_t num_oids,
+                                               LocalVar need_indexes) {
+  EmitAll(bytecode, storage_interface, exec_ctx, table_oid, col_oids, num_oids, need_indexes);
+}
+
+void BytecodeEmitter::EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface,
+                                                     LocalVar index_oid) {
+  EmitAll(bytecode, pr, storage_interface, index_oid);
 }
 
 }  // namespace terrier::execution::vm

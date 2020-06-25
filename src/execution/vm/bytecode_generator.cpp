@@ -1569,12 +1569,349 @@ void BytecodeGenerator::VisitBuiltinTestCatalogLookup(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   LocalVar table_name = VisitExpressionForRValue(call->Arguments()[1]);
   uint32_t table_name_len = call->Arguments()[1]->As<ast::LitExpr>()->StringVal().GetLength();
-  LocalVar col_name = VisitExpressionForRValue(call->Arguments()[2]);
+  LocalVar col_name = VisitExpressionForRValue(call->Arguments()[2]).AddressOf();
   uint32_t col_name_len = call->Arguments()[2]->As<ast::LitExpr>()->StringVal().GetLength();
 
   LocalVar oid_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   GetEmitter()->EmitTestCatalogLookup(oid_var, exec_ctx, table_name, table_name_len, col_name, col_name_len);
   GetExecutionResult()->SetDestination(oid_var.ValueOf());
+}
+
+void BytecodeGenerator::VisitBuiltinTestCatalogIndexLookup(ast::CallExpr *call) {
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar table_name = VisitExpressionForRValue(call->Arguments()[1]);
+  uint32_t table_name_len = call->Arguments()[1]->As<ast::LitExpr>()->StringVal().GetLength();
+
+  LocalVar oid_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  GetEmitter()->EmitTestCatalogIndexLookup(oid_var, exec_ctx, table_name, table_name_len);
+  GetExecutionResult()->SetDestination(oid_var.ValueOf());
+}
+
+void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
+  // First argument is always a projected row
+  LocalVar pr = VisitExpressionForRValue(call->Arguments()[0]);
+  ast::Context *ctx = call->GetType()->GetContext();
+  switch (builtin) {
+    case ast::Builtin::PRSetBool: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetBool, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetTinyInt: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetTinyInt, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetSmallInt: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetSmallInt, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetInt: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetInt, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetBigInt: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetBigInt, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetReal: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetReal, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetDouble: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetDouble, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetDate: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetDateVal, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetTimestamp: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetTimestampVal, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetVarlen: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      LocalVar own = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->EmitPRSetVarlen(Bytecode::PRSetVarlen, pr, col_idx, val, own);
+      break;
+    }
+    case ast::Builtin::PRSetBoolNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetBoolNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetTinyIntNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetTinyIntNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetSmallIntNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetSmallIntNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetIntNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetIntNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetBigIntNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetBigIntNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetRealNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetRealNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetDoubleNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetDoubleNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetDateNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetDateValNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetTimestampNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      GetEmitter()->EmitPRSet(Bytecode::PRSetTimestampValNull, pr, col_idx, val);
+      break;
+    }
+    case ast::Builtin::PRSetVarlenNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      LocalVar own = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->EmitPRSetVarlen(Bytecode::PRSetVarlenNull, pr, col_idx, val, own);
+      break;
+    }
+    case ast::Builtin::PRGetBool: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetBool, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetTinyInt: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetTinyInt, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetSmallInt: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetSmallInt, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetInt: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetInt, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetBigInt: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetBigInt, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetReal: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetReal, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetDouble: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetDouble, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetDate: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetDateVal, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetTimestamp: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Timestamp));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetTimestampVal, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetVarlen: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetVarlen, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetBoolNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetBoolNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetTinyIntNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetTinyIntNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetSmallIntNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetSmallIntNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetIntNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetIntNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetBigIntNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetBigIntNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetRealNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetRealNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetDoubleNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetDoubleNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetDateNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetDateValNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetTimestampNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetTimestampValNull, val, pr, col_idx);
+      break;
+    }
+    case ast::Builtin::PRGetVarlenNull: {
+      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      GetEmitter()->EmitPRGet(Bytecode::PRGetVarlenNull, val, pr, col_idx);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible bytecode");
+    }
+  }
+}
+
+void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->GetType()->GetContext();
+  LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[0]);
+
+  switch (builtin) {
+    case ast::Builtin::StorageInterfaceInit: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      auto table_oid = VisitExpressionForRValue(call->Arguments()[2]);
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      auto num_oids = static_cast<uint32_t>(arr_type->GetLength());
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
+      LocalVar is_index_key_update = VisitExpressionForRValue(call->Arguments()[4]);
+      GetEmitter()->EmitStorageInterfaceInit(Bytecode::StorageInterfaceInit, storage_interface, exec_ctx, table_oid,
+                                          col_oids, num_oids, is_index_key_update);
+      break;
+    }
+    case ast::Builtin::GetTablePR: {
+      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::StorageInterfaceGetTablePR, pr, storage_interface);
+      break;
+    }
+    case ast::Builtin::TableInsert: {
+      ast::Type *tuple_slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
+      LocalVar tuple_slot = GetExecutionResult()->GetOrCreateDestination(tuple_slot_type);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceTableInsert, tuple_slot, storage_interface);
+      break;
+    }
+    case ast::Builtin::TableDelete: {
+      LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceTableDelete, cond, storage_interface, tuple_slot);
+      GetExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::TableUpdate: {
+      LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceTableUpdate, cond, storage_interface, tuple_slot);
+      GetExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::GetIndexPR: {
+      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      auto index_oid = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->EmitStorageInterfaceGetIndexPR(Bytecode::StorageInterfaceGetIndexPR, pr, storage_interface, index_oid);
+      break;
+    }
+    case ast::Builtin::IndexInsert: {
+      LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsert, cond, storage_interface);
+      GetExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::IndexInsertUnique: {
+      LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertUnique, cond, storage_interface);
+      GetExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::IndexDelete: {
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexDelete, storage_interface, tuple_slot);
+      break;
+    }
+
+    case ast::Builtin::StorageInterfaceFree: {
+      GetEmitter()->Emit(Bytecode::StorageInterfaceFree, storage_interface);
+      break;
+    }
+    default:
+      UNREACHABLE("Undefined storage_interface call!");
+  }
 }
 
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
@@ -1774,6 +2111,21 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitCSVReaderCall(call, builtin);
       break;
     }
+    case ast::Builtin::IndexIteratorInit:
+    case ast::Builtin::IndexIteratorInitBind:
+    case ast::Builtin::IndexIteratorScanKey:
+    case ast::Builtin::IndexIteratorScanAscending:
+    case ast::Builtin::IndexIteratorScanDescending:
+    case ast::Builtin::IndexIteratorScanLimitDescending:
+    case ast::Builtin::IndexIteratorAdvance:
+    case ast::Builtin::IndexIteratorFree:
+    case ast::Builtin::IndexIteratorGetPR:
+    case ast::Builtin::IndexIteratorGetLoPR:
+    case ast::Builtin::IndexIteratorGetHiPR:
+    case ast::Builtin::IndexIteratorGetTablePR:
+    case ast::Builtin::IndexIteratorGetSlot:
+      VisitBuiltinIndexIteratorCall(call, builtin);
+      break;
     case ast::Builtin::ACos:
     case ast::Builtin::ASin:
     case ast::Builtin::ATan:
@@ -1783,6 +2135,63 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Sin:
     case ast::Builtin::Tan: {
       VisitBuiltinTrigCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::PRSetBool:
+    case ast::Builtin::PRSetTinyInt:
+    case ast::Builtin::PRSetSmallInt:
+    case ast::Builtin::PRSetInt:
+    case ast::Builtin::PRSetBigInt:
+    case ast::Builtin::PRSetReal:
+    case ast::Builtin::PRSetDouble:
+    case ast::Builtin::PRSetDate:
+    case ast::Builtin::PRSetTimestamp:
+    case ast::Builtin::PRSetVarlen:
+    case ast::Builtin::PRSetBoolNull:
+    case ast::Builtin::PRSetTinyIntNull:
+    case ast::Builtin::PRSetSmallIntNull:
+    case ast::Builtin::PRSetIntNull:
+    case ast::Builtin::PRSetBigIntNull:
+    case ast::Builtin::PRSetRealNull:
+    case ast::Builtin::PRSetDoubleNull:
+    case ast::Builtin::PRSetDateNull:
+    case ast::Builtin::PRSetTimestampNull:
+    case ast::Builtin::PRSetVarlenNull:
+    case ast::Builtin::PRGetBool:
+    case ast::Builtin::PRGetTinyInt:
+    case ast::Builtin::PRGetSmallInt:
+    case ast::Builtin::PRGetInt:
+    case ast::Builtin::PRGetBigInt:
+    case ast::Builtin::PRGetReal:
+    case ast::Builtin::PRGetDouble:
+    case ast::Builtin::PRGetDate:
+    case ast::Builtin::PRGetTimestamp:
+    case ast::Builtin::PRGetVarlen:
+    case ast::Builtin::PRGetBoolNull:
+    case ast::Builtin::PRGetTinyIntNull:
+    case ast::Builtin::PRGetSmallIntNull:
+    case ast::Builtin::PRGetIntNull:
+    case ast::Builtin::PRGetBigIntNull:
+    case ast::Builtin::PRGetRealNull:
+    case ast::Builtin::PRGetDoubleNull:
+    case ast::Builtin::PRGetDateNull:
+    case ast::Builtin::PRGetTimestampNull:
+    case ast::Builtin::PRGetVarlenNull: {
+      VisitBuiltinPRCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::StorageInterfaceInit:
+    case ast::Builtin::GetTablePR:
+    case ast::Builtin::TableInsert:
+    case ast::Builtin::TableDelete:
+    case ast::Builtin::TableUpdate:
+    case ast::Builtin::GetIndexPR:
+    case ast::Builtin::GetIndexPRBind:
+    case ast::Builtin::IndexInsert:
+    case ast::Builtin::IndexInsertUnique:
+    case ast::Builtin::IndexDelete:
+    case ast::Builtin::StorageInterfaceFree: {
+      VisitBuiltinStorageInterfaceCall(call, builtin);
       break;
     }
     case ast::Builtin::SizeOf: {
@@ -1801,11 +2210,99 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinTestCatalogLookup(call);
       break;
     }
+    case ast::Builtin::TestCatalogIndexLookup: {
+      VisitBuiltinTestCatalogIndexLookup(call);
+      break;
+    }
     default:
       // TODO(WAN): IMPLEMENT
       UNREACHABLE("PORTING IMPLEMENT TODO");
   }
 }
+
+void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar iterator = VisitExpressionForRValue(call->Arguments()[0]);
+  ast::Context *ctx = call->GetType()->GetContext();
+
+  switch (builtin) {
+    case ast::Builtin::IndexIteratorInit: {
+      // Execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      // Num attrs
+      auto num_attrs = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
+      // Table OID
+      auto table_oid = VisitExpressionForRValue(call->Arguments()[3]);
+      // Index OID
+      auto index_oid = VisitExpressionForRValue(call->Arguments()[4]);
+      // Col OIDs
+      auto *arr_type = call->Arguments()[5]->GetType()->As<ast::ArrayType>();
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[5]);
+      // Emit the initialization codes
+      GetEmitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, num_attrs, table_oid, index_oid,
+                                       col_oids, static_cast<uint32_t>(arr_type->GetLength()));
+      GetEmitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanKey: {
+      GetEmitter()->Emit(Bytecode::IndexIteratorScanKey, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanAscending: {
+      auto asc_type = VisitExpressionForRValue(call->Arguments()[1]);
+      auto limit = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::IndexIteratorScanAscending, iterator, asc_type, limit);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanDescending: {
+      GetEmitter()->Emit(Bytecode::IndexIteratorScanDescending, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanLimitDescending: {
+      auto limit = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::IndexIteratorScanLimitDescending, iterator, limit);
+      break;
+    }
+    case ast::Builtin::IndexIteratorAdvance: {
+      LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      GetEmitter()->Emit(Bytecode::IndexIteratorAdvance, cond, iterator);
+      GetExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::IndexIteratorFree: {
+      GetEmitter()->Emit(Bytecode::IndexIteratorFree, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetPR: {
+      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::IndexIteratorGetPR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetLoPR: {
+      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::IndexIteratorGetLoPR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetHiPR: {
+      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::IndexIteratorGetHiPR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetTablePR: {
+      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::IndexIteratorGetTablePR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetSlot: {
+      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::IndexIteratorGetSlot, pr, iterator);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible bytecode");
+    }
+  }
+}
+
 
 void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
   bool caller_wants_result = GetExecutionResult() != nullptr;

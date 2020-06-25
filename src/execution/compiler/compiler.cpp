@@ -8,6 +8,10 @@
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/module.h"
 
+#include "execution/ast/ast_dump.h"
+
+#include <iostream>
+
 namespace terrier::execution::compiler {
 
 //===----------------------------------------------------------------------===//
@@ -56,10 +60,14 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
     callbacks->EndPhase(Phase::Parsing, this);
   }
 
+  auto dump = ast::AstDump::Dump(root_);
+  std::cerr << dump;
+
   if (root_ == nullptr || GetErrorReporter()->HasErrors()) {
     callbacks->OnError(Phase::Parsing, this);
     return;
   }
+
 
   // -------------------------------------------------------
   // Phase 2 : Semantic Analysis (i.e., type-checking)

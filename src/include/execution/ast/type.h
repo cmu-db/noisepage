@@ -72,6 +72,7 @@ class Context;
   NON_PRIM(TupleIdList, terrier::execution::sql::TupleIdList)                                   \
   NON_PRIM(VectorProjection, terrier::execution::sql::VectorProjection)                         \
   NON_PRIM(VectorProjectionIterator, terrier::execution::sql::VectorProjectionIterator)         \
+  NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                               \
                                                                                                 \
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */                        \
   NON_PRIM(CountAggregate, terrier::execution::sql::CountAggregate)                             \
@@ -87,6 +88,11 @@ class Context;
   NON_PRIM(DateMaxAggregate, terrier::execution::sql::DateMaxAggregate)                         \
   NON_PRIM(StringMinAggregate, terrier::execution::sql::StringMinAggregate)                     \
   NON_PRIM(StringMaxAggregate, terrier::execution::sql::StringMaxAggregate)                     \
+                                                                                                \
+  /* SQL Table operations */                                                                    \
+  NON_PRIM(ProjectedRow, terrier::storage::ProjectedRow)                                        \
+  NON_PRIM(TupleSlot, terrier::storage::TupleSlot)                                              \
+  NON_PRIM(StorageInterface, terrier::execution::sql::StorageInterface)                         \
                                                                                                 \
   /* Non-primitive SQL Runtime Values */                                                        \
   SQL(Boolean, terrier::execution::sql::BoolVal)                                                \

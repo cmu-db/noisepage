@@ -624,6 +624,11 @@ class CodeGen {
   ast::Expr *VPIFilter(ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx, ast::Expr *filter_val,
                        ast::Expr *tids);
 
+  ast::Expr *PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx);
+
+  ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                            bool own);
+
   // -------------------------------------------------------
   //
   // Filter Manager stuff
@@ -1174,6 +1179,9 @@ class CodeGen {
    * @return The call.
    */
   [[nodiscard]] ast::Expr *CSVReaderClose(ast::Expr *reader);
+
+  ast::Expr *StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx,
+      uint32_t table_oid, ast::Identifier col_oids, bool need_indexes);
 
   // ---------------------------------------------------------------------------
   //

@@ -72,6 +72,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
 
   // ONLY FOR TESTING!
   void VisitBuiltinTestCatalogLookup(ast::CallExpr *call);
+  void VisitBuiltinTestCatalogIndexLookup(ast::CallExpr *call);
 
   // Dispatched from VisitBuiltinCallExpr() to handle the various builtin
   // functions, including filtering, hash table interaction, sorting etc.
@@ -100,6 +101,9 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void VisitBuiltinSizeOfCall(ast::CallExpr *call);
   void VisitBuiltinOffsetOfCall(ast::CallExpr *call);
   void VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::Builtin builtin);
 
   // Dispatched from VisitCallExpr() for handling builtins
   void VisitBuiltinCallExpr(ast::CallExpr *call);

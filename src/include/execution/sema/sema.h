@@ -147,9 +147,17 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinHashCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckResultBufferCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorInit(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorAdvance(ast::CallExpr *call);
+  void CheckBuiltinIndexIteratorScan(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorFree(ast::CallExpr *call);
+  void CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin builtin);
 
   // FOR TESTING USE ONLY
   void CheckBuiltinTestCatalogLookup(ast::CallExpr *call);
+  void CheckBuiltinTestCatalogIndexLookup(ast::CallExpr *call);
 
   // -------------------------------------------------------
   // Scoping
