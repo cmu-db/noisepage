@@ -5,11 +5,10 @@
 #include <vector>
 
 #include "brain/operating_unit.h"
-#include "date/date.h"
 #include "execution/sql/value.h"
 #include "parser/expression/constant_value_expression.h"
+#include "storage/index/index.h"
 #include "storage/index/index_defs.h"
-#include "util/time_util.h"
 
 namespace terrier::execution::compiler {
 
@@ -429,15 +428,12 @@ ast::Expr *CodeGen::PeekValue(const parser::ConstantValueExpression &const_val) 
     }
     case type::TypeId::DATE: {
       const auto val = const_val.Peek<execution::sql::Date>().ToNative();
-      auto ymd = terrier::util::TimeConvertor::YMDFromDate(static_cast<type::date_t>(val));
-      auto year = static_cast<int32_t>(ymd.year());
-      auto month = static_cast<uint32_t>(ymd.month());
-      auto day = static_cast<uint32_t>(ymd.day());
+      int32_t year = 0, month = 0, day = 0;
+      execution::sql::Date::FromNative(val).ExtractComponents(&year, &month, &day);
       return DateToSql(year, month, day);
     }
     case type::TypeId::TIMESTAMP: {
-      const auto val = const_val.Peek<execution::sql::Timestamp>().ToNative();
-      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(static_cast<type::timestamp_t>(val));
+      const auto julian_usec = const_val.Peek<execution::sql::Timestamp>().ToNative();
       return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {

@@ -4,6 +4,7 @@ import sys
 import subprocess
 import json
 import traceback
+import shutil
 from util.constants import ErrorCode
 from util.common import run_command
 from util.test_server import TestServer
@@ -13,6 +14,7 @@ from oltpbench import constants
 
 class TestOLTPBench(TestServer):
     """ Class to run OLTP Bench tests """
+    
     def __init__(self, args):
         TestServer.__init__(self, args)
 
@@ -23,13 +25,15 @@ class TestOLTPBench(TestServer):
         self.terminals = int(
             self.args.get("terminals", constants.OLTP_DEFAULT_TERMINALS))
         self.loader_threads = int(
-            self.args.get("loader_threads", constants.OLTP_DEFAULT_LOADER_THREADS))
+            self.args.get("loader_threads",
+                          constants.OLTP_DEFAULT_LOADER_THREADS))
         self.time = int(
             self.args.get("client_time", constants.OLTP_DEFAULT_TIME))
         self.weights = str(self.args.get("weights"))
         self.transaction_isolation = str(
             self.args.get("transaction_isolation",
                           constants.OLTP_DEFAULT_TRANSACTION_ISOLATION))
+        self.query_mode = self.args.get("query_mode")
 
         # oltpbench xml file paths
         xml_file = "{}_config.xml".format(self.benchmark)
@@ -37,35 +41,46 @@ class TestOLTPBench(TestServer):
         self.xml_template = os.path.join(constants.OLTP_DIR_CONFIG,
                                          "sample_{}".format(xml_file))
 
+        # for different testing results files, please use the unified filename
+        # when there are new attributes, please update the suffix
+        self.filename_suffix = "{BENCHMARK}_w{WEIGHTS}_s{SCALEFACTOR}_t{TERMINALS}_l{LOADERTHREAD}".format(
+            BENCHMARK=self.benchmark,
+            WEIGHTS=self.weights.replace(",", "_"),
+            SCALEFACTOR=str(self.scalefactor),
+            TERMINALS=self.terminals,
+            LOADERTHREAD=self.loader_threads)
+
+        # base directory for the result files, default is in the 'oltp_result' folder under the current directory
+        self.test_result_base_dir = self.args.get("test_result_dir")
+        if not self.test_result_base_dir:
+            self.test_result_base_dir = os.path.join(
+                os.getcwd(), "oltp_result")
+
+        # after the script finishes, this director will include the generated files: expconfig, summary, etc.
+        self.test_result_dir = os.path.join(
+            self.test_result_base_dir, self.filename_suffix)
+
         # oltpbench test results
         self.test_output_file = self.args.get("test_output_file")
         if not self.test_output_file:
-            self.test_output_file = "oltp_output_{BENCHMARK}_{WEIGHTS}_{SCALEFACTOR}".format(
-                BENCHMARK=self.benchmark,
-                WEIGHTS=self.weights.replace(",", "_"),
-                SCALEFACTOR=str(self.scalefactor))
-            # TODO: ask Andy to remove the relative path from the oltpbench for execution and result logging
-            # self.test_output_file = os.path.join(
-            #     constants.OLTP_DIR_TEST_RESULT, self.result_path)
+            self.test_output_file = os.path.join(
+                self.test_result_dir, "oltpbench.log")
 
-        # oltpbench json format test results
-        self.test_output_json_file = self.args.get("test_output_json_file")
-        if not self.test_output_json_file:
-            self.test_output_json_file = "outputfile_{WEIGHTS}_{SCALEFACTOR}.json".format(
-                WEIGHTS=self.weights.replace(",", "_"),
-                SCALEFACTOR=str(self.scalefactor))
-
-        # oltpbench json result file paths
-        self.oltpbench_result_path = os.path.join(
-            constants.OLTP_GIT_LOCAL_PATH, self.test_output_json_file)
+        # oltpbench historgrams results - json format
+        self.test_histograms_json_file = self.args.get("test_json_histograms")
+        if not self.test_histograms_json_file:
+            self.test_histograms_json_file = "oltp_histograms_" + self.filename_suffix + ".json"
+        self.test_histogram_path = os.path.join(
+            constants.OLTP_GIT_LOCAL_PATH, self.test_histograms_json_file)
 
         # oltpbench test command
-        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -json-histograms {RESULTS}".format(
+        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} -d {RESULTS} {FLAGS} -json-histograms {HISTOGRAMS}".format(
             BIN=constants.OLTP_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
+            RESULTS=self.test_result_dir,
             XML=self.xml_config,
             FLAGS=constants.OLTP_DEFAULT_COMMAND_FLAGS,
-            RESULTS=self.oltpbench_result_path)
+            HISTOGRAMS=self.test_histogram_path)
         self.test_command_cwd = constants.OLTP_GIT_LOCAL_PATH
         self.test_error_msg = constants.OLTP_TEST_ERROR_MSG
 
@@ -81,11 +96,11 @@ class TestOLTPBench(TestServer):
             self.validate_result()
         except:
             traceback.print_exc(file=sys.stdout)
-            pass
+            return ErrorCode.ERROR
 
     def create_result_dir(self):
-        if not os.path.exists(constants.OLTP_DIR_TEST_RESULT):
-            os.mkdir(constants.OLTP_DIR_TEST_RESULT)
+        if not os.path.exists(self.test_result_dir):
+            os.makedirs(self.test_result_dir)
 
     def install_oltp(self):
         self.clean_oltp()
@@ -115,15 +130,26 @@ class TestOLTPBench(TestServer):
                 print(stderr)
                 sys.exit(rc)
 
+    def get_db_url(self):
+        """ format the DB URL for the JDBC connection """
+        # format the url base
+        db_url_base = "jdbc:postgresql://{}:{}/terrier".format(
+            self.db_host, self.db_port)
+        # format the url params
+        db_url_params = ""
+        if self.query_mode:
+            db_url_params += "?preferQueryMode={}".format(self.query_mode)
+        # aggregate the url
+        db_url = "{BASE}{PARAMS}".format(BASE=db_url_base,
+                                         PARAMS=db_url_params)
+        return db_url
+
     def config_xml_file(self):
         xml = ElementTree.parse(self.xml_template)
         root = xml.getroot()
         root.find("dbtype").text = constants.OLTP_DEFAULT_DBTYPE
         root.find("driver").text = constants.OLTP_DEFAULT_DRIVER
-        root.find(
-            "DBUrl"
-        ).text = "jdbc:postgresql://{}:{}/terrier?preferQueryMode=simple".format(
-            self.db_host, self.db_port)
+        root.find("DBUrl").text = self.get_db_url()
         root.find("username").text = constants.OLTP_DEFAULT_USERNAME
         root.find("password").text = constants.OLTP_DEFAULT_PASSWORD
         root.find("isolation").text = str(self.transaction_isolation)
@@ -143,7 +169,7 @@ class TestOLTPBench(TestServer):
             root.insert(1, loaderThreads)
         else:
             root.find("loaderThreads").text = str(self.loader_threads)
-        
+
         xml.write(self.xml_config)
 
     def validate_result(self):
@@ -152,25 +178,25 @@ class TestOLTPBench(TestServer):
         # Make sure the file exists before we try to open it.
         # If it's not there, we'll dump out the contents of the directory to make it
         # easier to determine whether or not we are crazy when running Jenkins.
-        if not os.path.exists(self.oltpbench_result_path):
+        if not os.path.exists(self.test_histogram_path):
             print("=" * 50)
             print("Directory Contents: {}".format(
-                os.path.dirname(self.oltpbench_result_path)))
+                os.path.dirname(self.test_histogram_path)))
             print("\n".join(
-                os.listdir(os.path.dirname(self.oltpbench_result_path))))
+                os.listdir(os.path.dirname(self.test_histogram_path))))
             print("=" * 50)
             msg = "Unable to find OLTP-Bench result file '{}'".format(
-                self.oltpbench_result_path)
+                self.test_histogram_path)
             raise RuntimeError(msg)
 
-        with open(self.oltpbench_result_path) as oltp_result_file:
+        with open(self.test_histogram_path) as oltp_result_file:
             test_result = json.load(oltp_result_file)
         unexpected_result = test_result.get("unexpected", {}).get("HISTOGRAM")
         if unexpected_result and unexpected_result.keys():
             for test in unexpected_result.keys():
                 if (unexpected_result[test] != 0):
                     print(str(unexpected_result))
-                    sys.exit(constants.ErrorCode.ERROR)
+                    sys.exit(ErrorCode.ERROR)
         else:
-            print(str(unexpected_result))
-            sys.exit(constants.ErrorCode.ERROR)
+            raise RuntimeError(str(unexpected_result))
+

@@ -13,7 +13,6 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
-#include "util/time_util.h"
 
 namespace terrier {
 
@@ -171,7 +170,7 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateDeliveryDate) {
     EXPECT_EQ(expr->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
     auto cve = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(cve->Peek<execution::sql::Timestamp>().ToNative(),
-              static_cast<uint64_t>(util::TimeConvertor::TimestampFromHMSu(2020, 1, 2, 11, 22, 33, 456000)));
+              execution::sql::Timestamp::FromYMDHMSMU(2020, 1, 2, 11, 22, 33, 456, 0).ToNative());
 
     // Idx Scan, full output schema
     EXPECT_EQ(update->GetChildren().size(), 1);

@@ -4,10 +4,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_task.h"
 #include "storage/record_buffer.h"
+#include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
 namespace terrier::storage {

@@ -4,7 +4,6 @@
 
 #include "binder/binder_util.h"
 #include "parser/expression/abstract_expression.h"
-#include "util/time_util.h"
 
 namespace terrier::binder {
 

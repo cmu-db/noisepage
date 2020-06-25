@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "common/strong_typedef.h"
+
 namespace terrier::transaction {
 STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
 
