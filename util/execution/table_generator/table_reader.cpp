@@ -5,6 +5,7 @@
 #include "csv/csv.h"  // NOLINT
 #include "execution/sql/value.h"
 #include "execution/table_generator/table_reader.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::sql {
 

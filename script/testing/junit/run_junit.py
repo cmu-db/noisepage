@@ -21,7 +21,13 @@ if __name__ == "__main__":
     aparser.add_argument("--build-type",
                          default="debug",
                          choices=["debug", "release", "relwithdebinfo"],
-                         help="Build type (default: %(default)s")
+                         help="Build type (default: %(default)s)")
+    aparser.add_argument("--query-mode",
+                         choices=["simple", "extended"],
+                         help="Query protocol mode")
+    aparser.add_argument("--prepare-threshold",
+                         type=int,
+                         help="Threshold under the 'extened' query mode")
 
     args = vars(aparser.parse_args())
 

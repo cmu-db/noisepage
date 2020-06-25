@@ -12,6 +12,9 @@ def run_command(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=None):
+    """
+    General purpose wrapper for running a subprocess
+    """
     p = subprocess.Popen(shlex.split(command),
                          stdout=stdout,
                          stderr=stderr,
@@ -25,6 +28,7 @@ def run_command(command,
 
     rc = p.poll()
     return rc, p.stdout, p.stderr
+
 
 def check_port(port):
     """Get the list of PIDs (if any) listening on the target port"""
@@ -42,6 +46,7 @@ def check_port(port):
                 yield int(pid)
             except:
                 pass
+
 
 def check_pid(pid):
     """Check whether pid exists in the current process table."""
