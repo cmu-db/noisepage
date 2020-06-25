@@ -1,5 +1,6 @@
 #include "network/postgres/postgres_packet_writer.h"
 
+#include "common/error/error_data.h"
 #include "execution/sql/value.h"
 #include "network/postgres/postgres_protocol_util.h"
 
@@ -36,22 +37,20 @@ void PostgresPacketWriter::WriteSimpleQuery(const std::string &query) {
   BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query, true).EndPacket();
 }
 
-void PostgresPacketWriter::WriteNoticeResponse(const std::string &message) {
-  BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE)
-      .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
-      .AppendStringView("NOTICE:  ", false)
-      .AppendString(message, true)
-      .AppendRawValue<uchar>(0)
-      .EndPacket();  // Nul-terminate packet
-}
+void PostgresPacketWriter::WriteError(const common::ErrorData &error) {
+  if (error.GetSeverity() <= common::ErrorSeverity::PANIC)
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
+  else
+    BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE);
 
-void PostgresPacketWriter::WriteErrorResponse(const std::string &message) {
-  BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE)
-      .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
-      .AppendStringView("ERROR:  ", false)
-      .AppendString(message, true)
-      .AppendRawValue<uchar>(0)
-      .EndPacket();  // Nul-terminate packet
+  AppendRawValue(common::ErrorField::HUMAN_READABLE_ERROR).AppendString(error.GetMessage(), true);
+  AppendRawValue(common::ErrorField::CODE).AppendStringView(common::ErrorCodeToString(error.GetCode()), true);
+
+  for (const auto &field : error.Fields()) {
+    AppendRawValue(field.first).AppendString(field.second, true);
+  }
+
+  AppendRawValue<uchar>(0).EndPacket();  // Nul-terminate packet
 }
 
 void PostgresPacketWriter::WriteEmptyQueryResponse() {

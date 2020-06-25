@@ -8,7 +8,7 @@
 #include <utility>
 
 #include "common/action_context.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/shared_latch.h"
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"

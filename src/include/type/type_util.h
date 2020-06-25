@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/strong_typedef.h"
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
