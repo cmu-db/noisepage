@@ -5,16 +5,23 @@
 #include <utility>
 
 #include "common/shared_latch.h"
-#include "storage/access_observer.h"
-#include "storage/index/index.h"
-#include "transaction/transaction_defs.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::transaction {
 class TimestampManager;
 class TransactionManager;
+class DeferredActionManager;
 }  // namespace terrier::transaction
 
 namespace terrier::storage {
+
+class AccessObserver;
+class DataTable;
+class UndoRecord;
+
+namespace index {
+class Index;
+}
 
 /**
  * The garbage collector is responsible for processing a queue of completed transactions from the transaction manager.
