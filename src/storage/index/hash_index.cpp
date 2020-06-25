@@ -23,8 +23,13 @@ HashIndex<KeyType>::HashIndex(IndexMetadata metadata)
 
 template <typename KeyType>
 size_t HashIndex<KeyType>::GetHeapUsage() const {
-  // FIXME(Matt): make this accurate
-  return 0;
+  // This is a back-of-the-envelope calculation that could be wrong: in the case of duplicate keys, we switch the value
+  // type to be an unordered_set, which this will not account for. If we implement an element counter at the the wrapper
+  // level, however, then we don't know anything about the over-provisioning taking place at the underlying data
+  // structure to maintain its load factor. In theory we could take max(wrapper elements * (sizeof(key) +
+  // sizeof(value)), underlying capacity * (sizeof(key) + sizeof(value)) if we think the current calculation is off too
+  // far.
+  return hash_map_->capacity() * (sizeof(KeyType) + sizeof(TupleSlot));
 }
 
 /**
