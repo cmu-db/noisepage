@@ -64,8 +64,10 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
   // Process startup packet
   if (PROTO_MAJOR_VERSION(proto_version) != 3) {
     NETWORK_LOG_TRACE("Protocol error: only protocol version 3 is supported");
-    writer.WriteError(
-        {common::ErrorSeverity::FATAL, "Unsupported protocol version.", common::ErrorCode::ERRCODE_CONNECTION_FAILURE});
+    writer.WriteError({common::ErrorSeverity::FATAL,
+                       fmt::format("Protocol error: only protocol version 3 is supported. Received protocol version {}",
+                                   PROTO_MAJOR_VERSION(proto_version)),
+                       common::ErrorCode::ERRCODE_CONNECTION_FAILURE});
     return Transition::TERMINATE;
   }
 
@@ -108,7 +110,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
 
   if (oids.first == catalog::INVALID_DATABASE_OID) {
     // Invalid database name
-    writer.WriteError({common::ErrorSeverity::FATAL, "Specified database does not exist.",
+    writer.WriteError({common::ErrorSeverity::FATAL, fmt::format("Database \"{}\" does not exist", db_name),
                        common::ErrorCode::ERRCODE_UNDEFINED_DATABASE});
     return Transition::TERMINATE;
   }
