@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <unitypes.h>
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"

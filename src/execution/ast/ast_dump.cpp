@@ -174,7 +174,7 @@ void AstDumperImpl::VisitFunctionDecl(FunctionDecl *node) {
 void AstDumperImpl::VisitVariableDecl(VariableDecl *node) {
   DumpNodeCommon(node);
   DumpIdentifier(node->Name());
-  if (node->HasTypeDecl()) {
+  if (node->HasTypeDecl() && node->TypeRepr()->GetType() != nullptr) {
     DumpType(node->TypeRepr()->GetType());
   }
   if (node->HasInitialValue()) {

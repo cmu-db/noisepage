@@ -1568,7 +1568,7 @@ void BytecodeGenerator::VisitBuiltinTestCatalogLookup(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   LocalVar table_name = VisitExpressionForRValue(call->Arguments()[1]);
   uint32_t table_name_len = call->Arguments()[1]->As<ast::LitExpr>()->StringVal().GetLength();
-  LocalVar col_name = VisitExpressionForRValue(call->Arguments()[2]);
+  LocalVar col_name = VisitExpressionForRValue(call->Arguments()[2]).AddressOf();
   uint32_t col_name_len = call->Arguments()[2]->As<ast::LitExpr>()->StringVal().GetLength();
 
   LocalVar oid_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
@@ -1846,7 +1846,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
   switch (builtin) {
     case ast::Builtin::StorageInterfaceInit: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::BuiltinType>->Int64Val());
+      auto table_oid = VisitExpressionForRValue(call->Arguments()[2]);
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
       auto num_oids = static_cast<uint32_t>(arr_type->GetLength());
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
@@ -1882,7 +1882,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
     }
     case ast::Builtin::GetIndexPR: {
       LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      auto index_oid = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->EmitStorageInterfaceGetIndexPR(Bytecode::StorageInterfaceGetIndexPR, pr, storage_interface, index_oid);
       break;
     }
@@ -2230,9 +2230,9 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       // Num attrs
       auto num_attrs = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
       // Table OID
-      auto table_oid = static_cast<uint32_t>(call->Arguments()[3]->As<ast::LitExpr>()->Int64Val());
+      auto table_oid = VisitExpressionForRValue(call->Arguments()[3]);
       // Index OID
-      auto index_oid = static_cast<uint32_t>(call->Arguments()[4]->As<ast::LitExpr>()->Int64Val());
+      auto index_oid = VisitExpressionForRValue(call->Arguments()[4]);
       // Col OIDs
       auto *arr_type = call->Arguments()[5]->GetType()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[5]);

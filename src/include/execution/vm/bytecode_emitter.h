@@ -167,7 +167,7 @@ class BytecodeEmitter {
    * @param num_oids length of the array
    */
   void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t num_attrs,
-                             uint32_t table_oid, uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
+                             LocalVar table_oid, LocalVar index_oid, LocalVar col_oids, uint32_t num_oids);
 
   /**
    * Emit bytecode to set value within a PR
@@ -187,13 +187,13 @@ class BytecodeEmitter {
   /**
    * Emit bytecode to init an Storage Interface
    */
-  void EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx, uint32_t table_oid,
+  void EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx, LocalVar table_oid,
                                 LocalVar col_oids, uint32_t num_oids, LocalVar need_indexes);
 
   /**
    * Emit bytecode to get an index PR for the storage_interface.
    */
-  void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, uint32_t index_oid);
+  void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, LocalVar index_oid);
 
  private:
   // Copy a scalar immediate value into the bytecode stream

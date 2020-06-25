@@ -1584,8 +1584,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto num_attrs = READ_UIMM4();
-    auto table_oid = READ_UIMM4();
-    auto index_oid = READ_UIMM4();
+    auto table_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
     OpIndexIteratorInit(iter, exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
@@ -1755,7 +1755,7 @@ GEN_PR_SET(TimestampVal, sql::TimestampVal)
   OP(StorageInterfaceInit) : {
   auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
   auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-  auto table_oid = READ_UIMM4();
+  auto table_oid = frame->LocalAt<uint32_t >(READ_LOCAL_ID());
   auto *col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
   auto num_oids = READ_UIMM4();
   auto need_indexes = frame->LocalAt<bool>(READ_LOCAL_ID());
@@ -1801,7 +1801,7 @@ GEN_PR_SET(TimestampVal, sql::TimestampVal)
   OP(StorageInterfaceGetIndexPR) : {
   auto *pr_result = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
   auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-  auto index_oid = READ_UIMM4();
+  auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
   OpStorageInterfaceGetIndexPR(pr_result, storage_interface, index_oid);
   DISPATCH_NEXT();

@@ -317,7 +317,7 @@ void BytecodeEmitter::EmitCSVReaderInit(LocalVar reader, LocalVar file_name, uin
 }
 
 void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t num_attrs,
-                                            uint32_t table_oid, uint32_t index_oid, LocalVar col_oids,
+                                            LocalVar table_oid, LocalVar index_oid, LocalVar col_oids,
                                             uint32_t num_oids) {
   EmitAll(bytecode, iter, exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
 }
@@ -345,13 +345,13 @@ void BytecodeEmitter::EmitPRSetVarlen(Bytecode bytecode, LocalVar pr, uint16_t c
 }
 
 void BytecodeEmitter::EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx,
-                                               uint32_t table_oid, LocalVar col_oids, uint32_t num_oids,
+                                               LocalVar table_oid, LocalVar col_oids, uint32_t num_oids,
                                                LocalVar need_indexes) {
   EmitAll(bytecode, storage_interface, exec_ctx, table_oid, col_oids, num_oids, need_indexes);
 }
 
 void BytecodeEmitter::EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface,
-                                                     uint32_t index_oid) {
+                                                     LocalVar index_oid) {
   EmitAll(bytecode, pr, storage_interface, index_oid);
 }
 
