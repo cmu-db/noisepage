@@ -982,6 +982,8 @@ constexpr std::string_view ErrorCodeToString(const ErrorCode code) {
       return "XX001";
     case ErrorCode::ERRCODE_INDEX_CORRUPTED:
       return "XX002";
+    default:
+      return "UNKNOWN";
   }
 }
 

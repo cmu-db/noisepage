@@ -34,6 +34,8 @@ constexpr std::string_view ErrorSeverityToString(const common::ErrorSeverity sev
       return "INFO";
     case ErrorSeverity::LOG:
       return "LOG";
+    default:
+      return "UNKNOWN";
   }
 }
 
