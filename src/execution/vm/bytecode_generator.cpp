@@ -538,7 +538,7 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       Emitter()->Emit(Bytecode::InitTimestamp, dest, usec);
       break;
     }
-    case ast::Builtin::TimestampToSqlHMSu: {
+    case ast::Builtin::TimestampToSqlYMDHMSMU: {
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Timestamp));
       auto year = VisitExpressionForRValue(call->Arguments()[0]);
       auto month = VisitExpressionForRValue(call->Arguments()[1]);
@@ -546,8 +546,9 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       auto h = VisitExpressionForRValue(call->Arguments()[3]);
       auto m = VisitExpressionForRValue(call->Arguments()[4]);
       auto s = VisitExpressionForRValue(call->Arguments()[5]);
-      auto us = VisitExpressionForRValue(call->Arguments()[6]);
-      Emitter()->Emit(Bytecode::InitTimestampHMSu, dest, year, month, day, h, m, s, us);
+      auto ms = VisitExpressionForRValue(call->Arguments()[6]);
+      auto us = VisitExpressionForRValue(call->Arguments()[7]);
+      Emitter()->Emit(Bytecode::InitTimestampYMDHMSMU, dest, year, month, day, h, m, s, ms, us);
       break;
     }
     default: {
@@ -2081,7 +2082,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
     case ast::Builtin::TimestampToSql:
-    case ast::Builtin::TimestampToSqlHMSu:
+    case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::VarlenToSql:
     case ast::Builtin::StringToSql:
     case ast::Builtin::SqlToBool: {

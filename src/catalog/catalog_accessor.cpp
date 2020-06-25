@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_cache.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_proc.h"
 
 namespace terrier::catalog {
@@ -79,6 +81,15 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
 }
 
 common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) const {
+  if (cache_ != DISABLED) {
+    auto table_ptr = cache_->GetTable(table);
+    if (table_ptr == nullptr) {
+      // not in the cache, get it from the actual catalog, stash it, and return retrieved value
+      table_ptr = dbc_->GetTable(txn_, table);
+      cache_->PutTable(table, table_ptr);
+    }
+    return table_ptr;
+  }
   return dbc_->GetTable(txn_, table);
 }
 
@@ -96,8 +107,18 @@ std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table)
   return dbc_->GetConstraints(txn_, table);
 }
 
-std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table, bool only_live) const {
-  return dbc_->GetIndexOids(txn_, table, only_live);
+std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {
+  if (cache_ != DISABLED) {
+    auto cache_lookup = cache_->GetIndexOids(table);
+    if (!cache_lookup.first) {
+      // not in the cache, get it from the actual catalog, stash it, and return retrieved value
+      const auto index_oids = dbc_->GetIndexOids(txn_, table);
+      cache_->PutIndexOids(table, index_oids);
+      return index_oids;
+    }
+    return cache_lookup.second;
+  }
+  return dbc_->GetIndexOids(txn_, table);
 }
 
 std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> CatalogAccessor::GetIndexes(
@@ -148,6 +169,15 @@ bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *
 }
 
 common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oid_t index) const {
+  if (cache_ != DISABLED) {
+    auto index_ptr = cache_->GetIndex(index);
+    if (index_ptr == nullptr) {
+      // not in the cache, get it from the actual catalog, stash it, and return retrieved value
+      index_ptr = dbc_->GetIndex(txn_, index);
+      cache_->PutIndex(index, index_ptr);
+    }
+    return index_ptr;
+  }
   return dbc_->GetIndex(txn_, index);
 }
 

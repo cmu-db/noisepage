@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/scoped_timer.h"
 #include "optimizer/binding.h"
 #include "optimizer/input_column_deriver.h"

@@ -6,6 +6,9 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include "catalog/index_schema.h"
+#include "catalog/schema.h"
 #include "common/macros.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"

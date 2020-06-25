@@ -24,7 +24,8 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
 
   // Create database catalog and namespace
   db_oid_ = catalog_->CreateDatabase(common::ManagedPointer<transaction::TransactionContext>(txn), db_name, true);
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
+  auto accessor =
+      catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
   ns_oid_ = accessor->GetDefaultNamespace();
 
   // Make the execution context
@@ -97,7 +98,8 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
   while (metrics::MetricsUtil::Now() < end_time) {
     // Executing all the queries on by one in round robin
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
+    auto accessor =
+        catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
     execution::ExecutableQuery &query = queries_[index[counter]];
     auto &query_name = query.GetQueryName();
     auto output_schema = sample_output_.GetSchema(query_name);

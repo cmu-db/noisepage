@@ -49,7 +49,7 @@ class DDLExecutorsTests : public TerrierTest {
         std::make_unique<catalog::IndexSchema>(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
 
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_, DISABLED);
   }
 
   std::unique_ptr<DBMain> db_main_;

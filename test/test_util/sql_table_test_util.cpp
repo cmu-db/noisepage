@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/database_catalog.h"
 #include "storage/sql_table.h"
 #include "test_util/catalog_test_util.h"
 

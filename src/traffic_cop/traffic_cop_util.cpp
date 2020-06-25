@@ -11,6 +11,7 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
+#include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::trafficcop {
 

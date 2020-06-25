@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/value_util.h"
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
@@ -48,11 +48,12 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   // Parse the query string with the Postgres parser.
   if (result.error != nullptr) {
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
+
+    ParserException exception(std::string(result.error->message), __FILE__, __LINE__, result.error->cursorpos);
+
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
-    // TODO(Matt): we just destroyed all of the information we probably wanted to return to the client to match
-    // postgres' behavior
-    throw PARSER_EXCEPTION("BuildParseTree error");
+    throw exception;
   }
 
   // Transform the Postgres parse tree to a Terrier representation.
