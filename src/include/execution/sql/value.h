@@ -11,7 +11,6 @@
 #include "execution/util/execution_common.h"
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
-#include "util/time_util.h"
 
 namespace terrier::execution::sql {
 

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "catalog/schema.h"
-#include "storage/projected_row.h"
-#include "storage/sql_table.h"
-#include "transaction/transaction_context.h"
+#include <array>
+
+#include "catalog/catalog_defs.h"
 
 namespace terrier::catalog::postgres {
 constexpr table_oid_t NAMESPACE_TABLE_OID = table_oid_t(11);

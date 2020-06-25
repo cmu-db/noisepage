@@ -3,7 +3,7 @@
 #include <memory>
 #include <utility>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/utility.h"
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
