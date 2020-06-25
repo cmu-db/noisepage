@@ -6,11 +6,13 @@
 
 #include "common/shared_latch.h"
 #include "storage/storage_defs.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
 class TimestampManager;
 class TransactionManager;
 class DeferredActionManager;
+class TransactionContext;
 }  // namespace terrier::transaction
 
 namespace terrier::storage {
