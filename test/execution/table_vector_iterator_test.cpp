@@ -1,11 +1,11 @@
+#include "execution/sql/table_vector_iterator.h"
+
 #include <array>
 #include <memory>
 #include <vector>
 
-#include "execution/sql_test.h"
-
 #include "catalog/catalog_defs.h"
-#include "execution/sql/table_vector_iterator.h"
+#include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
 namespace terrier::execution::sql::test {
@@ -20,7 +20,7 @@ class TableVectorIteratorTest : public SqlBasedTest {
 
  public:
   parser::ConstantValueExpression DummyExpr() {
-    return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+    return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 
  protected:

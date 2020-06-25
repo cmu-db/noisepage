@@ -13,6 +13,7 @@
 #include "network/postgres/postgres_network_commands.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
+#include "network/postgres/statement_cache.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -158,26 +159,21 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   }
 
   /**
-   * @param fingerprint key
    * @param statement statement to take ownership of
    */
-  void AddStatementToCache(const std::string &fingerprint, std::unique_ptr<network::Statement> &&statement) {
-    statement_cache_[fingerprint] = std::move(statement);
-  }
+  void AddStatementToCache(std::unique_ptr<network::Statement> &&statement) { cache_.Add(std::move(statement)); }
 
   /**
-   * @param fingerprint key
+   * @param query_text key to look up
    * @return Statement if it exists in the cache, otherwise nullptr
    */
-  common::ManagedPointer<network::Statement> LookupStatementInCache(const std::string &fingerprint) const {
-    const auto it = statement_cache_.find(fingerprint);
-    if (it != statement_cache_.end()) return common::ManagedPointer(it->second);
-    return nullptr;
+  common::ManagedPointer<network::Statement> LookupStatementInCache(const std::string &query_text) const {
+    return cache_.Lookup(query_text);
   }
 
   /**
    * @param name key
-   * @param statement statement to take ownership of
+   * @param statement statement to create a mapping to for this name
    */
   void SetStatement(const std::string &name, const common::ManagedPointer<network::Statement> statement) {
     statements_[name] = statement;
@@ -240,8 +236,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 
-  // fingerprint to statement
-  std::unordered_map<std::string, std::unique_ptr<network::Statement>> statement_cache_;
+  StatementCache cache_;
 
   // name to statement
   std::unordered_map<std::string, common::ManagedPointer<network::Statement>> statements_;

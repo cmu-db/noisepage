@@ -3,7 +3,8 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog_accessor.h"
+#include "brain/operating_unit.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
 #include "execution/exec_defs.h"
@@ -11,10 +12,22 @@
 #include "execution/sql/memory_tracker.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
-#include "planner/plannodes/output_schema.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_manager.h"
-#include "type/transient_value.h"
+
+namespace terrier::parser {
+class ConstantValueExpression;
+}  // namespace terrier::parser
+
+namespace terrier::catalog {
+class CatalogAccessor;
+}  // namespace terrier::catalog
+
+namespace terrier::planner {
+class OutputSchema;
+}  // namespace terrier::planner
+
+namespace terrier::transaction {
+class TransactionContext;
+}  // namespace terrier::transaction
 
 namespace terrier::execution::exec {
 /**
@@ -75,16 +88,7 @@ class EXPORT ExecutionContext {
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
-                   const common::ManagedPointer<catalog::CatalogAccessor> accessor)
-      : db_oid_(db_oid),
-        txn_(txn),
-        mem_tracker_(std::make_unique<sql::MemoryTracker>()),
-        mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
-        buffer_(schema == nullptr ? nullptr
-                                  : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
-                                                                   ComputeTupleSize(schema), callback)),
-        string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
-        accessor_(accessor) {}
+                   common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
    * @return the transaction used by this query
@@ -159,13 +163,15 @@ class EXPORT ExecutionContext {
    * Set the execution parameters.
    * @param params The exection parameters.
    */
-  void SetParams(common::ManagedPointer<const std::vector<type::TransientValue>> params) { params_ = params; }
+  void SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params) {
+    params_ = params;
+  }
 
   /**
    * @param param_idx index of parameter to access
    * @return immutable parameter at provided index
    */
-  const type::TransientValue &GetParam(uint32_t param_idx) const { return (*params_)[param_idx]; }
+  const parser::ConstantValueExpression &GetParam(uint32_t param_idx) const;
 
   /**
    * INSERT, UPDATE, and DELETE queries return a number for the rows affected, so this should be incremented in the root
@@ -190,7 +196,7 @@ class EXPORT ExecutionContext {
   StringAllocator string_allocator_;
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
-  common::ManagedPointer<const std::vector<type::TransientValue>> params_;
+  common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
 };

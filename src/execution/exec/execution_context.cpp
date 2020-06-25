@@ -1,8 +1,27 @@
 #include "execution/exec/execution_context.h"
+
 #include "brain/operating_unit.h"
+#include "common/thread_context.h"
 #include "execution/sql/value.h"
+#include "metrics/metrics_store.h"
+#include "parser/expression/constant_value_expression.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace terrier::execution::exec {
+
+ExecutionContext::ExecutionContext(catalog::db_oid_t db_oid,
+                                   common::ManagedPointer<transaction::TransactionContext> txn,
+                                   const OutputCallback &callback, const planner::OutputSchema *schema,
+                                   const common::ManagedPointer<catalog::CatalogAccessor> accessor)
+    : db_oid_(db_oid),
+      txn_(txn),
+      mem_tracker_(std::make_unique<sql::MemoryTracker>()),
+      mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
+      buffer_(schema == nullptr ? nullptr
+                                : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
+                                                                 ComputeTupleSize(schema), callback)),
+      string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
+      accessor_(accessor) {}
 
 char *ExecutionContext::StringAllocator::Allocate(std::size_t size) {
   if (tracker_ != nullptr) tracker_->Increment(size);
@@ -53,6 +72,10 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline, execution_mode_, std::move(features),
                                                               resource_metrics);
   }
+}
+
+const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t param_idx) const {
+  return (*params_)[param_idx];
 }
 
 }  // namespace terrier::execution::exec

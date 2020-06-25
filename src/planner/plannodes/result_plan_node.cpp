@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t ResultPlanNode::Hash() const {
@@ -46,5 +48,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ResultPlanNode::FromJso
   }
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ResultPlanNode);
 
 }  // namespace terrier::planner

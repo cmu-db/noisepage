@@ -85,7 +85,12 @@ void SortBottomTranslator::InitializeStateFields(
 void SortBottomTranslator::InitializeStructs(execution::util::RegionVector<execution::ast::Decl *> *decls) {
   util::RegionVector<execution::ast::FieldDecl *> fields{codegen_->Region()};
   GetChildOutputFields(&fields, SORTER_ATTR_PREFIX);
-  decls->emplace_back(codegen_->MakeStruct(sorter_struct_, std::move(fields)));
+
+  auto *decl = codegen_->MakeStruct(sorter_struct_, std::move(fields));
+  TERRIER_ASSERT(ast::StructDecl::classof(decl), "Expected StructDecl");
+
+  struct_decl_ = reinterpret_cast<ast::StructDecl *>(decl);
+  decls->emplace_back(struct_decl_);
 }
 
 void SortBottomTranslator::InitializeHelperFunctions(execution::util::RegionVector<execution::ast::Decl *> *decls) {

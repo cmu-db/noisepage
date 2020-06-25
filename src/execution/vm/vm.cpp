@@ -848,16 +848,17 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(InitTimestampHMSu) : {
+  OP(InitTimestampYMDHMSMU) : {
     auto *sql_timestamp = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());
     auto year = frame->LocalAt<int32_t>(READ_LOCAL_ID());
-    auto month = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    auto day = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    auto h = frame->LocalAt<uint8_t>(READ_LOCAL_ID());
-    auto m = frame->LocalAt<uint8_t>(READ_LOCAL_ID());
-    auto s = frame->LocalAt<uint8_t>(READ_LOCAL_ID());
-    auto us = frame->LocalAt<uint64_t>(READ_LOCAL_ID());
-    OpInitTimestampHMSu(sql_timestamp, year, month, day, h, m, s, us);
+    auto month = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto day = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto h = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto m = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto s = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto ms = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto us = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    OpInitTimestampYMDHMSMU(sql_timestamp, year, month, day, h, m, s, ms, us);
     DISPATCH_NEXT();
   }
 
@@ -1834,6 +1835,42 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
 #undef BINARY_REAL_MATH_OP
 #undef UNARY_REAL_MATH_OP
+
+  // -------------------------------------------------------
+  // Mini runners functions
+  // -------------------------------------------------------
+
+  OP(NpRunnersEmitInt) : {
+    auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *num_tuple = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_col = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_int = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_real = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpNpRunnersEmitInt(ctx, num_tuple, num_col, num_int, num_real);
+    DISPATCH_NEXT();
+  }
+
+  OP(NpRunnersEmitReal) : {
+    auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *num_tuple = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_col = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_int = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    auto *num_real = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpNpRunnersEmitReal(ctx, num_tuple, num_col, num_int, num_real);
+    DISPATCH_NEXT();
+  }
+
+  OP(NpRunnersDummyInt) : {
+    auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpNpRunnersDummyInt(ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(NpRunnersDummyReal) : {
+    auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpNpRunnersDummyReal(ctx);
+    DISPATCH_NEXT();
+  }
 
   // -------------------------------------------------------
   // String functions

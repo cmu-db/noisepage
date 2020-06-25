@@ -1,8 +1,11 @@
 #include "optimizer/operator_node_contents.h"
+
 #include <memory>
 #include <string>
 #include <utility>
+
 #include "common/managed_pointer.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 

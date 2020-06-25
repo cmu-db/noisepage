@@ -8,7 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
+#include "execution/sql/value_util.h"
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
 #include "loggers/parser_logger.h"
@@ -26,7 +27,6 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
-#include "type/transient_value_factory.h"
 
 /**
  * Log information about the error, then throw an exception
@@ -48,11 +48,12 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   // Parse the query string with the Postgres parser.
   if (result.error != nullptr) {
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
+
+    ParserException exception(std::string(result.error->message), __FILE__, __LINE__, result.error->cursorpos);
+
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
-    // TODO(Matt): we just destroyed all of the information we probably wanted to return to the client to match
-    // postgres' behavior
-    throw PARSER_EXCEPTION("BuildParseTree error");
+    throw exception;
   }
 
   // Transform the Postgres parse tree to a Terrier representation.
@@ -696,14 +697,17 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
   std::unique_ptr<AbstractExpression> result;
   switch (val.type_) {
     case T_Integer: {
-      auto v = type::TransientValueFactory::GetInteger(val.val_.ival_);
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      result =
+          std::make_unique<ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(val.val_.ival_));
       break;
     }
 
     case T_String: {
-      auto v = type::TransientValueFactory::GetVarChar(val.val_.str_);
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      const auto string = std::string_view{val.val_.str_};
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      result = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
+                                                         std::move(string_val.second));
+
       break;
     }
 
@@ -713,18 +717,17 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
       // For this reason, a quick hack...
       // TODO(WAN): figure out how Postgres does it once we care about floating point
       if (std::strchr(val.val_.str_, '.') == nullptr) {
-        auto v = type::TransientValueFactory::GetBigInt(std::stol(val.val_.str_));
-        result = std::make_unique<ConstantValueExpression>(std::move(v));
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
+                                                           execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
-        auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val_.str_));
-        result = std::make_unique<ConstantValueExpression>(std::move(v));
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
+                                                           execution::sql::Real(std::stod(val.val_.str_)));
       }
       break;
     }
 
     case T_Null: {
-      auto v = type::TransientValueFactory::GetNull(type::TypeId::INVALID);
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      result = std::make_unique<ConstantValueExpression>(type::TypeId::INVALID, execution::sql::Val(true));
       break;
     }
     default: {

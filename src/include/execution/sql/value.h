@@ -6,12 +6,11 @@
 
 #include "common/macros.h"
 #include "common/math_util.h"
-#include "date/date.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/util/execution_common.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
-#include "util/time_util.h"
 
 namespace terrier::execution::sql {
 
@@ -199,7 +198,7 @@ struct StringVal : public Val {
   /**
    * Maximum string length
    */
-  static constexpr std::size_t K_MAX_STING_LEN = 1 * common::Constants::GB;
+  static constexpr std::size_t K_MAX_STRING_LEN = 1 * common::Constants::GB;
 
   /**
    * Padding for inlining
@@ -329,7 +328,7 @@ struct StringVal : public Val {
       return result->prefix_;
     }
     // Out of line
-    if (UNLIKELY(len > K_MAX_STING_LEN)) {
+    if (UNLIKELY(len > K_MAX_STRING_LEN)) {
       return nullptr;
     }
     auto *ptr = memory->Allocate(len);

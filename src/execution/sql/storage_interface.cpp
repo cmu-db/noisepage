@@ -3,8 +3,11 @@
 #include <algorithm>
 #include <vector>
 
+#include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::sql {
 
@@ -14,7 +17,8 @@ StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::ta
       table_(exec_ctx->GetAccessor()->GetTable(table_oid)),
       exec_ctx_(exec_ctx),
       col_oids_(col_oids, col_oids + num_oids),
-      need_indexes_(need_indexes) {
+      need_indexes_(need_indexes),
+      pri_(num_oids > 0 ? table_->InitializerForProjectedRow(col_oids_) : storage::ProjectedRowInitializer()) {
   // Initialize the index projected row if needed.
   if (need_indexes_) {
     // Get index pr size
@@ -34,10 +38,8 @@ StorageInterface::~StorageInterface() {
 }
 
 storage::ProjectedRow *StorageInterface::GetTablePR() {
-  // We need all the columns
-  storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids_);
   auto txn = exec_ctx_->GetTxn();
-  table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
+  table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri_);
   return table_redo_->Delta();
 }
 

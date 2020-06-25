@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
@@ -26,8 +27,8 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 #include "transaction/transaction_manager.h"
-#include "type/transient_value_factory.h"
 #include "type/type_id.h"
+
 namespace terrier {
 class StorageTestUtil {
  public:
@@ -505,13 +506,11 @@ class StorageTestUtil {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           auto varlen_size = std::uniform_int_distribution(0U, max_varlen_size)(*generator);
-          key_cols.emplace_back("", type, varlen_size, is_nullable,
-                                parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
+          key_cols.emplace_back("", type, varlen_size, is_nullable, parser::ConstantValueExpression(type));
           break;
         }
         default:
-          key_cols.emplace_back("", type, is_nullable,
-                                parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type)));
+          key_cols.emplace_back("", type, is_nullable, parser::ConstantValueExpression(type));
           break;
       }
       ForceOid(&(key_cols.back()), key_oid);
@@ -551,8 +550,7 @@ class StorageTestUtil {
       const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
       const auto type = storage::index::NUMERIC_KEY_TYPES[type_offset];
 
-      key_cols.emplace_back("", type, false,
-                            parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
+      key_cols.emplace_back("", type, false, parser::ConstantValueExpression(type));
       ForceOid(&(key_cols.back()), key_oids[col++]);
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
@@ -594,13 +592,11 @@ class StorageTestUtil {
 
       catalog::Schema::Column col;
       if (random_type == type::TypeId::VARCHAR) {
-        col = catalog::Schema::Column(
-            "col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+        col = catalog::Schema::Column("col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
+                                      parser::ConstantValueExpression(type::TypeId::INTEGER));
       } else {
-        col = catalog::Schema::Column(
-            "col" + std::to_string(i), random_type, false,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+        col = catalog::Schema::Column("col" + std::to_string(i), random_type, false,
+                                      parser::ConstantValueExpression(type::TypeId::INTEGER));
       }
       col.SetOid(catalog::col_oid_t(i));
       columns.push_back(col);

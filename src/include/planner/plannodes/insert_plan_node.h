@@ -11,8 +11,6 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "type/transient_value.h"
-#include "type/transient_value_peeker.h"
 
 namespace terrier::planner {
 
@@ -262,6 +260,6 @@ class InsertPlanNode : public AbstractPlanNode {
   std::vector<catalog::index_oid_t> index_oids_;
 };
 
-DEFINE_JSON_DECLARATIONS(InsertPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(InsertPlanNode);
 
 }  // namespace terrier::planner

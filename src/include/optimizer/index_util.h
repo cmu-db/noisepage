@@ -6,11 +6,17 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog_accessor.h"
-#include "catalog/index_schema.h"
+#include "catalog/catalog_defs.h"
 #include "optimizer/properties.h"
-#include "parser/expression_util.h"
-#include "type/transient_value_factory.h"
+
+namespace terrier::catalog {
+class CatalogAccessor;
+class IndexSchema;
+}  // namespace terrier::catalog
+
+namespace terrier::parser {
+class AbstractExpression;
+}  // namespace terrier::parser
 
 namespace terrier::optimizer {
 

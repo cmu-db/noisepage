@@ -9,14 +9,15 @@ GenericHashTable::GenericHashTable(float load_factor) noexcept : load_factor_(lo
 
 GenericHashTable::~GenericHashTable() {
   if (entries_ != nullptr) {
-    util::FreeHugeArray(entries_, Capacity());
+    // Called from tearDown(), so don't pass a MemoryTracker
+    util::TrackFreeHugeArray(nullptr, entries_, Capacity());
   }
 }
 
-void GenericHashTable::SetSize(uint64_t new_size) {
+void GenericHashTable::SetSize(uint64_t new_size, common::ManagedPointer<MemoryTracker> tracker) {
   TERRIER_ASSERT(new_size > 0, "New size cannot be zero!");
   if (entries_ != nullptr) {
-    util::FreeHugeArray(entries_, Capacity());
+    util::TrackFreeHugeArray(tracker, entries_, Capacity());
   }
 
   auto next_size = static_cast<double>(common::MathUtil::PowerOf2Ceil(new_size));
@@ -27,7 +28,7 @@ void GenericHashTable::SetSize(uint64_t new_size) {
   capacity_ = static_cast<uint64_t>(next_size);
   mask_ = capacity_ - 1;
   num_elems_ = 0;
-  entries_ = util::MallocHugeArray<std::atomic<HashTableEntry *>>(capacity_);
+  entries_ = util::TrackMallocHugeArray<std::atomic<HashTableEntry *>>(tracker, capacity_);
 }
 
 }  // namespace terrier::execution::sql

@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/json.h"
+#include "common/json_header.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
@@ -113,44 +113,19 @@ class OrderByDescription {
   /**
    * @return OrderByDescription serialized to json
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["types"] = types_;
-    std::vector<nlohmann::json> exprs_json;
-    exprs_json.reserve(exprs_.size());
-    for (const auto &expr : exprs_) {
-      exprs_json.emplace_back(expr->ToJson());
-    }
-    j["exprs"] = exprs_json;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * @param j json to deserialize
    */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
-    std::vector<std::unique_ptr<AbstractExpression>> result;
-    // Deserialize types
-    types_ = j.at("types").get<std::vector<OrderType>>();
-
-    // Deserialize exprs
-    auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
-    for (const auto &expr : expressions) {
-      auto deserialized_expr = DeserializeExpression(expr);
-      exprs_.emplace_back(common::ManagedPointer(deserialized_expr.result_));
-      result.emplace_back(std::move(deserialized_expr.result_));
-      result.insert(result.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
-                    std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
-    }
-    return result;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   std::vector<OrderType> types_;
   std::vector<common::ManagedPointer<AbstractExpression>> exprs_;
 };
 
-DEFINE_JSON_DECLARATIONS(OrderByDescription);
+DEFINE_JSON_HEADER_DECLARATIONS(OrderByDescription);
 
 /**
  * Describes the limit clause in a SELECT statement.
@@ -228,29 +203,19 @@ class LimitDescription {
   /**
    * @return LimitDescription serialized to json
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["limit"] = limit_;
-    j["offset"] = offset_;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * @param j json to deserialize
    */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    limit_ = j.at("limit").get<int64_t>();
-    offset_ = j.at("offset").get<int64_t>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   int64_t limit_;
   int64_t offset_;
 };
 
-DEFINE_JSON_DECLARATIONS(LimitDescription);
+DEFINE_JSON_HEADER_DECLARATIONS(LimitDescription);
 
 /**
  * Represents the sql "GROUP BY".
@@ -334,50 +299,18 @@ class GroupByDescription {
   /**
    * @return GroupDescription serialized to json
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    std::vector<nlohmann::json> columns_json;
-    columns_json.reserve(columns_.size());
-    for (const auto &col : columns_) {
-      columns_json.emplace_back(col->ToJson());
-    }
-    j["columns"] = columns_json;
-    j["having"] = having_ == nullptr ? nlohmann::json(nullptr) : having_->ToJson();
-    return j;
-  }
-
+  nlohmann::json ToJson() const;
   /**
    * @param j json to deserialize
    */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    // Deserialize columns
-    auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
-    for (const auto &expr : column_expressions) {
-      auto deserialized_expr = DeserializeExpression(expr);
-      columns_.emplace_back(common::ManagedPointer(deserialized_expr.result_));
-      exprs.emplace_back(std::move(deserialized_expr.result_));
-      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
-                   std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
-    }
-
-    // Deserialize having
-    if (!j.at("having").is_null()) {
-      auto deserialized_expr = DeserializeExpression(j.at("having"));
-      having_ = common::ManagedPointer(deserialized_expr.result_);
-      exprs.emplace_back(std::move(deserialized_expr.result_));
-      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
-                   std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
-    }
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   std::vector<common::ManagedPointer<AbstractExpression>> columns_;
   common::ManagedPointer<AbstractExpression> having_;
 };
 
-DEFINE_JSON_DECLARATIONS(GroupByDescription);
+DEFINE_JSON_HEADER_DECLARATIONS(GroupByDescription);
 
 /**
  * Represents the sql "SELECT ..."
@@ -492,7 +425,7 @@ class SelectStatement : public SQLStatement {
   void SetDepth(int depth) { depth_ = depth; }
 };
 
-DEFINE_JSON_DECLARATIONS(SelectStatement);
+DEFINE_JSON_HEADER_DECLARATIONS(SelectStatement);
 
 }  // namespace parser
 }  // namespace terrier

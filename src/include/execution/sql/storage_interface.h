@@ -2,10 +2,28 @@
 
 #include <vector>
 
-#include "execution/exec/execution_context.h"
+#include "catalog/catalog_defs.h"
 #include "execution/util/execution_common.h"
+#include "storage/projected_row.h"
 
-namespace terrier::execution::sql {
+namespace terrier::storage {
+class ProjectedRow;
+class SqlTable;
+class RedoRecord;
+
+namespace index {
+class Index;
+}  // namespace index
+
+}  // namespace terrier::storage
+
+namespace terrier::execution {
+
+namespace exec {
+class ExecutionContext;
+}  // namespace exec
+
+namespace sql {
 
 /**
  * Base class to interact with the storage layer (tables and indexes).
@@ -118,9 +136,16 @@ class EXPORT StorageInterface {
    * The index PR.
    */
   storage::ProjectedRow *index_pr_{nullptr};
+
+  /**
+   * Reusable ProjectedRowInitializer for this table access
+   */
+  storage::ProjectedRowInitializer pri_;
+
   /**
    * Current index being accessed.
    */
   common::ManagedPointer<storage::index::Index> curr_index_{nullptr};
 };
-}  // namespace terrier::execution::sql
+}  // namespace sql
+}  // namespace terrier::execution

@@ -8,12 +8,14 @@
 #include <utility>
 
 #include "common/action_context.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/shared_latch.h"
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
-#include "type/transient_value.h"
-#include "type/transient_value_peeker.h"
+
+namespace terrier::parser {
+class ConstantValueExpression;
+}
 
 namespace terrier::settings {
 using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext> action_context);
@@ -138,12 +140,13 @@ class SettingsManager {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   common::SharedLatch latch_;
 
-  void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);
+  void ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
+                       const parser::ConstantValueExpression &max_value);
 
-  type::TransientValue &GetValue(Param param);
-  bool SetValue(Param param, type::TransientValue value);
-  bool ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
-                     const type::TransientValue &max_value);
+  parser::ConstantValueExpression &GetValue(Param param);
+  bool SetValue(Param param, parser::ConstantValueExpression value);
+  bool ValidateValue(const parser::ConstantValueExpression &value, const parser::ConstantValueExpression &min_value,
+                     const parser::ConstantValueExpression &max_value);
   common::ActionState InvokeCallback(Param param, void *old_value, void *new_value,
                                      common::ManagedPointer<common::ActionContext> action_context);
 };

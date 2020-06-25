@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "brain/operating_unit.h"
-#include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
@@ -15,10 +14,16 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region.h"
 #include "parser/expression_defs.h"
-#include "planner/plannodes/index_scan_plan_node.h"
-#include "type/transient_value.h"
-#include "type/transient_value_peeker.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "type/type_id.h"
+
+namespace terrier::parser {
+class ConstantValueExpression;
+}  // namespace terrier::parser
+
+namespace terrier::catalog {
+class CatalogAccessor;
+}  // namespace terrier::catalog
 
 namespace terrier::execution::compiler {
 
@@ -73,7 +78,7 @@ class CodeGen {
   /**
    * @return the catalog accessor
    */
-  catalog::CatalogAccessor *Accessor() { return exec_ctx_->GetAccessor(); }
+  catalog::CatalogAccessor *Accessor();
 
   /**
    * @return the execution context
@@ -180,10 +185,10 @@ class CodeGen {
   ast::Decl *MakeStruct(ast::Identifier struct_name, util::RegionVector<ast::FieldDecl *> &&fields);
 
   /**
-   * @param transient_val the transient value to read
+   * @param const_val the CVE to read
    * @return the value stored in transient_val
    */
-  ast::Expr *PeekValue(const terrier::type::TransientValue &transient_val);
+  ast::Expr *PeekValue(const parser::ConstantValueExpression &const_val);
 
   /**
    * Convert from terrier type to TPL expr type

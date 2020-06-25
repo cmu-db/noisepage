@@ -5,6 +5,7 @@
 #include "catalog/catalog_accessor.h"
 #include "common/scoped_timer.h"
 #include "main/db_main.h"
+#include "storage/index/index_builder.h"
 #include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/storage_defs.h"
@@ -159,12 +160,13 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Create database, namespace, and table
     auto *txn = txn_manager->BeginTransaction();
     auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), db_name, true);
-    auto catalog_accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto catalog_accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto namespace_oid = catalog_accessor->CreateNamespace(namespace_name);
 
     // Create random table
-    auto col = catalog::Schema::Column("col1", type::TypeId::INTEGER, false,
-                                       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+    auto col =
+        catalog::Schema::Column("col1", type::TypeId::INTEGER, false,
+                                parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0)));
     catalog::Schema schema({col});
     auto table_oid = catalog_accessor->CreateTable(namespace_oid, table_name, schema);
     schema = catalog_accessor->GetSchema(table_oid);

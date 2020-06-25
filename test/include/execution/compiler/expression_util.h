@@ -2,6 +2,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
@@ -13,7 +14,6 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::execution::compiler {
 
@@ -41,34 +41,24 @@ class ExpressionMaker {
    * Create an integer constant expression
    */
   ManagedExpression Constant(int32_t val) {
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetInteger(val)));
+    return MakeManaged(
+        std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(val)));
   }
 
   /**
    * Create a floating point constant expression
    */
   ManagedExpression Constant(double val) {
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDecimal(val)));
+    return MakeManaged(
+        std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(val)));
   }
 
   /**
    * Create a date constant expression
    */
   ManagedExpression Constant(int32_t year, uint32_t month, uint32_t day) {
-    sql::DateVal date(sql::Date::FromYMD(year, month, day));
-    type::date_t int_val(date.val_.ToNative());
-    return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val)));
-  }
-
-  /**
-   * Create a date constant expression
-   */
-  ManagedExpression Constant(date::year_month_day ymd) {
-    auto year = static_cast<int32_t>(ymd.year());
-    auto month = static_cast<uint32_t>(ymd.month());
-    auto day = static_cast<uint32_t>(ymd.day());
-    return Constant(year, month, day);
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
+        type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(year, month, day))));
   }
 
   /**
@@ -231,7 +221,10 @@ class ExpressionMaker {
   ManagedAggExpression AggregateTerm(parser::ExpressionType agg_type, ManagedExpression child, bool distinct) {
     std::vector<OwnedExpression> children;
     children.emplace_back(child->Copy());
-    return MakeAggManaged(std::make_unique<parser::AggregateExpression>(agg_type, std::move(children), distinct));
+
+    auto agg = MakeAggManaged(std::make_unique<parser::AggregateExpression>(agg_type, std::move(children), distinct));
+    agg->DeriveReturnValueType();
+    return agg;
   }
 
   /**

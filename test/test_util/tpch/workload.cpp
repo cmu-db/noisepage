@@ -5,6 +5,7 @@
 #include "common/managed_pointer.h"
 #include "execution/exec/execution_context.h"
 #include "execution/execution_util.h"
+#include "execution/sql/value_util.h"
 #include "execution/table_generator/table_generator.h"
 #include "main/db_main.h"
 
@@ -23,7 +24,8 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
 
   // Create database catalog and namespace
   db_oid_ = catalog_->CreateDatabase(common::ManagedPointer<transaction::TransactionContext>(txn), db_name, true);
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
+  auto accessor =
+      catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
   ns_oid_ = accessor->GetDefaultNamespace();
 
   // Make the execution context
@@ -55,18 +57,22 @@ void Workload::GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, c
 
 void Workload::LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, const std::vector<std::string> &queries) {
   for (auto &query_file : queries) {
-    queries_.emplace_back(
-        execution::ExecutableQuery(query_file, common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx)));
+    queries_.emplace_back(execution::ExecutableQuery(
+        query_file, common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx), true));
   }
 }
 
-std::vector<type::TransientValue> Workload::GetQueryParams(const std::string &query_name) {
-  std::vector<type::TransientValue> params;
+std::vector<parser::ConstantValueExpression> Workload::GetQueryParams(const std::string &query_name) {
+  std::vector<parser::ConstantValueExpression> params;
   params.reserve(8);
 
   // Add the identifier for each pipeline. At most 8 query pipelines for now
-  for (int i = 0; i < 8; ++i)
-    params.emplace_back(type::TransientValueFactory::GetVarChar(query_name + "_p" + std::to_string(i + 1)));
+  for (int i = 0; i < 8; ++i) {
+    const std::string query_val = query_name + "_p" + std::to_string(i + 1);
+
+    auto string_val = execution::sql::ValueUtil::CreateStringVal(query_val);
+    params.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+  }
 
   return params;
 }
@@ -92,7 +98,8 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
   while (metrics::MetricsUtil::Now() < end_time) {
     // Executing all the queries on by one in round robin
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
+    auto accessor =
+        catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
     execution::ExecutableQuery &query = queries_[index[counter]];
     auto &query_name = query.GetQueryName();
     auto output_schema = sample_output_.GetSchema(query_name);

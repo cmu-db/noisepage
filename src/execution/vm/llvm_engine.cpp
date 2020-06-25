@@ -1012,9 +1012,9 @@ LLVMEngine::CompiledModule::CompiledModule(std::unique_ptr<llvm::MemoryBuffer> o
       object_code_(std::move(object_code)),
       memory_manager_(std::make_unique<LLVMEngine::TPLMemoryManager>()) {}
 
-// This destructor is needed because we have a unique_ptr to a forward-declared
-// TPLMemoryManager class.
-LLVMEngine::CompiledModule::~CompiledModule() = default;
+// This destructor is needed to address a bug with LLVM's RuntimeDyldElf.
+// See issue #961 and PR #962 for further information.
+LLVMEngine::CompiledModule::~CompiledModule() { memory_manager_->deregisterEHFrames(); }
 
 void *LLVMEngine::CompiledModule::GetFunctionPointer(const std::string &name) const {
   TERRIER_ASSERT(IsLoaded(), "Compiled module isn't loaded!");

@@ -92,17 +92,23 @@ public class WireTest extends TestUtility {
      */
     @Test
     public void testDecimal() throws SQLException {
-        String sql = "INSERT INTO tbl VALUES (15.445), (15.721);";
-        Statement stmt = conn.createStatement();
-        stmt.execute(sql);
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO tbl VALUES (?), (?);");
+        ps.setDouble(1, 15.445);
+        ps.setDouble(2, 15.721);
+        for (int i = 0; i < 100; i++) {
+            ps.executeUpdate();
+        }
+        ps.close();
 
-        PreparedStatement ps = conn.prepareStatement("SELECT * FROM tbl");
+        ps = conn.prepareStatement("SELECT * FROM tbl");
         for (int i = 0; i < 100; i++) {
             rs = ps.executeQuery();
-            rs.next();
-            assertEquals(15.445, rs.getDouble(1), 0.0001);
-            rs.next();
-            assertEquals(15.721, rs.getDouble(1), 0.0001);
+            for (int j = 0; j < 100; j++) {
+                rs.next();
+                assertEquals(15.445, rs.getDouble(1), 0.0001);
+                rs.next();
+                assertEquals(15.721, rs.getDouble(1), 0.0001);
+            }
             assertNoMoreRows(rs);
             rs.close();
         }

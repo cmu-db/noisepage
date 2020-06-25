@@ -139,6 +139,6 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   catalog::table_oid_t table_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(SeqScanPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(SeqScanPlanNode);
 
 }  // namespace terrier::planner

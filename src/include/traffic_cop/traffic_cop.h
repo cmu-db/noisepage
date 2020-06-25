@@ -2,14 +2,12 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "catalog/catalog.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
-#include "parser/create_statement.h"
-#include "parser/drop_statement.h"
-#include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
 
@@ -24,8 +22,16 @@ namespace terrier::optimizer {
 class StatsStorage;
 }
 
+namespace terrier::parser {
+class ConstantValueExpression;
+}
+
 namespace terrier::planner {
 class AbstractPlanNode;
+}
+
+namespace terrier::common {
+class ErrorData;
 }
 
 namespace terrier::trafficcop {
@@ -88,7 +94,7 @@ class TrafficCop {
    * @param connection_ctx used to maintain state
    * @return parser's ParseResult, nullptr if failed
    */
-  std::unique_ptr<parser::ParseResult> ParseQuery(
+  std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> ParseQuery(
       const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**
@@ -135,7 +141,7 @@ class TrafficCop {
    */
   TrafficCopResult BindQuery(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                              common::ManagedPointer<network::Statement> statement,
-                             common::ManagedPointer<std::vector<type::TransientValue>> parameters) const;
+                             common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const;
 
   /**
    * Contains the logic to reason about CREATE execution.

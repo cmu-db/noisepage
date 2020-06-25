@@ -28,13 +28,7 @@ class OperatorExpression : public AbstractExpression {
    * Copies this OperatorExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    std::vector<std::unique_ptr<AbstractExpression>> children;
-    for (const auto &child : GetChildren()) {
-      children.emplace_back(child->Copy());
-    }
-    return CopyWithChildren(std::move(children));
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -43,34 +37,13 @@ class OperatorExpression : public AbstractExpression {
    * @returns copy of this
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
-      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    auto expr = std::make_unique<OperatorExpression>(GetExpressionType(), GetReturnValueType(), std::move(children));
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override;
 
-  void DeriveReturnValueType() override {
-    // if we are a decimal or int we should take the highest type id of both children
-    // This relies on a particular order in expression_defs.h
-    if (this->GetExpressionType() == ExpressionType::OPERATOR_NOT ||
-        this->GetExpressionType() == ExpressionType::OPERATOR_IS_NULL ||
-        this->GetExpressionType() == ExpressionType::OPERATOR_IS_NOT_NULL ||
-        this->GetExpressionType() == ExpressionType::OPERATOR_EXISTS) {
-      this->SetReturnValueType(type::TypeId::BOOLEAN);
-      return;
-    }
-    const auto &children = this->GetChildren();
-    const auto &max_type_child = std::max_element(children.begin(), children.end(), [](const auto &t1, const auto &t2) {
-      return t1->GetReturnValueType() < t2->GetReturnValueType();
-    });
-    const auto &type = (*max_type_child)->GetReturnValueType();
-    TERRIER_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
-    this->SetReturnValueType(type);
-  }
+  void DeriveReturnValueType() override;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(OperatorExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(OperatorExpression);
 
 }  // namespace terrier::parser
