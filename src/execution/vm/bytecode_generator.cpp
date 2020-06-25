@@ -134,8 +134,8 @@ class BytecodeGenerator::BytecodePositionScope {
 // Bytecode Generator begins
 // ---------------------------------------------------------
 
-BytecodeGenerator::BytecodeGenerator(const exec::ExecutionSettings &exec_settings) noexcept
-    : emitter_(&code_), execution_result_(nullptr), exec_settings_(exec_settings) {}
+BytecodeGenerator::BytecodeGenerator() noexcept
+    : emitter_(&code_), execution_result_(nullptr) {}
 
 void BytecodeGenerator::VisitIfStmt(ast::IfStmt *node) {
   IfThenElseBuilder if_builder(this);
@@ -2473,9 +2473,8 @@ Bytecode BytecodeGenerator::GetFloatTypedBytecode(Bytecode bytecode, ast::Type *
 
 // static
 std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root,
-                                                           const exec::ExecutionSettings &exec_settings,
                                                            const std::string &name) {
-  BytecodeGenerator generator{exec_settings};
+  BytecodeGenerator generator{};
   generator.Visit(root);
 
   // Create the bytecode module. Note that we move the bytecode and functions

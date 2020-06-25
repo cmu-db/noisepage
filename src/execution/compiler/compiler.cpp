@@ -39,7 +39,7 @@ Compiler::~Compiler() = default;
 
 sema::ErrorReporter *Compiler::GetErrorReporter() const { return GetContext()->GetErrorReporter(); }
 
-void Compiler::Run(Compiler::Callbacks *callbacks, const exec::ExecutionSettings &exec_settings) {
+void Compiler::Run(Compiler::Callbacks *callbacks) {
   // -------------------------------------------------------
   // Phase 1 : Parsing
   // -------------------------------------------------------
@@ -87,7 +87,7 @@ void Compiler::Run(Compiler::Callbacks *callbacks, const exec::ExecutionSettings
     return;
   }
 
-  auto bytecode_module = vm::BytecodeGenerator::Compile(root_, exec_settings, input_.name_);
+  auto bytecode_module = vm::BytecodeGenerator::Compile(root_, input_.name_);
   bytecode_module_ = bytecode_module.get();
 
   if (GetErrorReporter()->HasErrors()) {
@@ -122,11 +122,10 @@ void Compiler::Run(Compiler::Callbacks *callbacks, const exec::ExecutionSettings
   callbacks->TakeOwnership(std::move(module));
 }
 
-void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks *callbacks,
-                              const exec::ExecutionSettings &exec_settings) {
+void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks *callbacks) {
   TERRIER_ASSERT(callbacks != nullptr, "Must provide callbacks");
   Compiler compiler(input);
-  compiler.Run(callbacks, exec_settings);
+  compiler.Run(callbacks);
 }
 
 namespace {
@@ -144,10 +143,9 @@ class NoOpCallbacks : public Compiler::Callbacks {
 
 }  // namespace
 
-std::unique_ptr<vm::Module> Compiler::RunCompilationSimple(const Compiler::Input &input,
-                                                           const exec::ExecutionSettings &exec_settings) {
+std::unique_ptr<vm::Module> Compiler::RunCompilationSimple(const Compiler::Input &input) {
   NoOpCallbacks no_op_callbacks;
-  RunCompilation(input, &no_op_callbacks, exec_settings);
+  RunCompilation(input, &no_op_callbacks);
   return no_op_callbacks.TakeModule();
 }
 

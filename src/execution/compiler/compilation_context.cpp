@@ -57,7 +57,8 @@ namespace {
 std::atomic<uint64_t> unique_ids{0};
 }  // namespace
 
-CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, const CompilationMode mode)
+CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
+                                       const CompilationMode mode)
     : unique_id_(unique_ids++),
       query_(query),
       mode_(mode),
@@ -139,7 +140,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   main_builder.RegisterStep(GenerateTearDownFunction());
 
   // Compile and finish.
-  fragments.emplace_back(main_builder.Compile(query_->GetExecutionSettings()));
+  fragments.emplace_back(main_builder.Compile());
   query_->Setup(std::move(fragments), query_state_.GetSize());
 }
 

@@ -48,12 +48,10 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   /**
    * Main entry point to convert a valid (i.e., parsed and type-checked) AST into a bytecode module.
    * @param root The root of the AST.
-   * @param exec_settings The execution settings for compilation.
    * @param name The (optional) name of the program.
    * @return A compiled bytecode module.
    */
-  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, const exec::ExecutionSettings &exec_settings,
-                                                 const std::string &name);
+  static std::unique_ptr<BytecodeModule> Compile(ast::AstNode *root, const std::string &name);
 
   /**
    * @return The emitter used by this generator to write bytecode.
@@ -62,8 +60,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
 
  private:
   // Private constructor to force users to call Compile()
-  BytecodeGenerator() noexcept = delete;
-  explicit BytecodeGenerator(const exec::ExecutionSettings &exec_settings) noexcept;
+  BytecodeGenerator() noexcept;
 
   class ExpressionResultScope;
   class LValueResultScope;
@@ -196,9 +193,6 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
 
   // RAII struct to capture semantics of expression evaluation
   ExpressionResultScope *execution_result_;
-
-  /** Settings to be used for execution. */
-  UNUSED_ATTRIBUTE const exec::ExecutionSettings &exec_settings_;
 };
 
 }  // namespace terrier::execution::vm

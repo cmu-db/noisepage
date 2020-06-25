@@ -68,9 +68,12 @@ class Memory : public common::AllStatic {
    */
   [[nodiscard]] static void *MallocHuge(const std::size_t size, const bool populate) {
     // Attempt to memory-map an anonymous and private chunk of memory
-    const int32_t mmap_flags = MAP_PRIVATE | MAP_ANONYMOUS;
+
+    // macOS Catalina does not support MAP_POPULATE.
 #ifdef MAP_POPULATE
-    mmap_flags |= (populate ? MAP_POPULATE : 0);
+    const int32_t mmap_flags = MAP_PRIVATE | MAP_ANONYMOUS | (populate ? MAP_POPULATE : 0);
+#else
+    const int32_t mmap_flags = MAP_PRIVATE | MAP_ANONYMOUS;
 #endif
     void *const ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, mmap_flags, -1, 0);
 

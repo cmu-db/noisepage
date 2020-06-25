@@ -40,8 +40,7 @@ class Callbacks : public compiler::Compiler::Callbacks {
 
 }  // namespace
 
-std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compile(
-    const exec::ExecutionSettings &exec_settings) {
+std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compile() {
   // Build up the declaration list for the file.
   util::RegionVector<ast::Decl *> decls(ctx_->GetRegion());
   decls.reserve(structs_.size() + functions_.size());
@@ -55,7 +54,7 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
   compiler::Compiler::Input input("", ctx_, generated_file);
   Callbacks callbacks;
   compiler::TimePasses timer(&callbacks);
-  compiler::Compiler::RunCompilation(input, &timer, exec_settings);
+  compiler::Compiler::RunCompilation(input, &timer);
   std::unique_ptr<vm::Module> module = callbacks.ReleaseModule();
 
   EXECUTION_LOG_DEBUG("Type-check: {:.2f} ms, Bytecode Gen: {:.2f} ms, Module Gen: {:.2f} ms", timer.GetSemaTimeMs(),
