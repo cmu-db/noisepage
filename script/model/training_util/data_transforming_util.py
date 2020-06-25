@@ -53,10 +53,9 @@ _tuple_num_log_transformer = (_tuple_num_log_train_transform, _tuple_num_log_pre
 
 # Map the opunit to the transformer it needs for mini-model training
 OPUNIT_MODELING_TRANSFORMER_MAP = {
-    OpUnit.GC_DEALLOC: None,
-    OpUnit.GC_UNLINK: None,
-    OpUnit.LOG_SERIAL: None,
-    OpUnit.LOG_CONSUME: None,
+    OpUnit.GC: None,
+    OpUnit.LOG_SERIALIZER_TASK: None,
+    OpUnit.DISK_LOG_CONSUMER_TASK: None,
     OpUnit.TXN_BEGIN: None,
     OpUnit.TXN_COMMIT: None,
 

@@ -115,7 +115,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
 
     if (common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING)) {
-      if (common::thread_context.resource_tracker_.IsRunning()) {
+      if (num_buffers > 0 && common::thread_context.resource_tracker_.IsRunning()) {
         // Stop the resource tracker for this operating unit
         common::thread_context.resource_tracker_.Stop();
         auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();

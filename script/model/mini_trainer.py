@@ -57,7 +57,7 @@ class MiniTrainer:
             transformers.append(modeling_transformer)
 
         error_bias = 1
-        min_percentage_error = 1
+        min_percentage_error = 2
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
@@ -121,7 +121,8 @@ class MiniTrainer:
         # First get the data for all mini runners
         for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
-            data_list = opunit_data.get_mini_runner_data(filename, self.model_map, self.stats_map)
+            data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.model_map,
+                                                         self.stats_map)
             for data in data_list:
                 self._train_data(data)
 
@@ -133,7 +134,7 @@ class MiniTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--input_path', default='mini_runner_input_nogen',
+    aparser.add_argument('--input_path', default='mini_runner_input_gc_logging',
                          help='Input file path for the mini runners')
     aparser.add_argument('--model_results_path', default='mini_runner_model_results',
                          help='Prediction results of the mini models')
