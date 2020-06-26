@@ -10,7 +10,6 @@
 
 namespace terrier::transaction {
 
-
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
  */

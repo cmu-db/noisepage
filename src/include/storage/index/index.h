@@ -69,7 +69,7 @@ class Index {
   virtual void PerformGarbageCollection() {}
 
   /**
-   * @return number of bytes allocated on the heap for this index data structure
+   * @return approximate number of bytes allocated on the heap for this index data structure
    */
   virtual size_t GetHeapUsage() const = 0;
 
