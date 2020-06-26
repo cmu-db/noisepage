@@ -234,7 +234,6 @@ TEST(PlanNodeTest, AggregatePlanTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, CSVScanPlanTest) {
   catalog::db_oid_t db_oid(1);
-  catalog::namespace_oid_t ns_oid(2);
   std::string file_name = "/home/file.txt";
   char delimiter = ',';
   char quote = '"';
@@ -243,7 +242,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   planner::CSVScanPlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(db_oid)
-                  .SetNamespaceOid(ns_oid)
                   .SetIsForUpdateFlag(false)
                   .SetFileName(file_name)
                   .SetDelimiter(delimiter)
@@ -256,7 +254,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
   EXPECT_TRUE(plan != nullptr);
   EXPECT_EQ(PlanNodeType::CSVSCAN, plan->GetPlanNodeType());
   EXPECT_EQ(plan->GetDatabaseOid(), db_oid);
-  EXPECT_EQ(plan->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(plan->GetFileName(), file_name);
   EXPECT_EQ(plan->GetDelimiterChar(), delimiter);
   EXPECT_EQ(plan->GetQuoteChar(), quote);
@@ -266,7 +263,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   planner::CSVScanPlanNode::Builder builder2;
   auto plan2 = builder2.SetDatabaseOid(db_oid)
-                   .SetNamespaceOid(ns_oid)
                    .SetIsForUpdateFlag(false)
                    .SetFileName(file_name)
                    .SetDelimiter(delimiter)
@@ -323,7 +319,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
     planner::CSVScanPlanNode::Builder builder3;
     auto plan3 = builder3.SetDatabaseOid(o_db_oid)
-                     .SetNamespaceOid(o_ns_oid)
                      .SetIsForUpdateFlag(o_update)
                      .SetFileName(o_file_name)
                      .SetDelimiter(o_delimiter)

@@ -749,7 +749,6 @@ void PlanGenerator::Visit(const InsertSelect *op) {
   output_plan_ = planner::InsertPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
@@ -763,7 +762,6 @@ void PlanGenerator::Visit(const Delete *op) {
   output_plan_ = planner::DeletePlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
@@ -796,7 +794,6 @@ void PlanGenerator::Visit(const Update *op) {
   // TODO(wz2): What is this SetUpdatePrimaryKey
   output_plan_ = builder.SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
                      .SetUpdatePrimaryKey(false)
                      .AddChild(std::move(children_plans_[0]))
@@ -952,7 +949,6 @@ void PlanGenerator::Visit(const DropTrigger *drop_trigger) {
 void PlanGenerator::Visit(const DropView *drop_view) {
   output_plan_ = planner::DropViewPlanNode::Builder()
                      .SetDatabaseOid(drop_view->GetDatabaseOid())
-                     .SetNamespaceOid(drop_view->GetNamespaceOid())
                      .SetViewOid(drop_view->GetViewOid())
                      .SetIfExist(drop_view->IsIfExists())
                      .Build();
