@@ -112,11 +112,22 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
     if (parser::ExpressionUtil::IsColumnCompareWithConst(*predicate)) {
       auto cve = predicate->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
+      // TODO(WAN): this is very sad code. How can we avoid doing this?
+      uint32_t col_index = -1;
+      const auto &schema = codegen->GetCatalogAccessor()->GetSchema(GetTableOid());
+      for (uint32_t i = 0; i < schema.GetColumns().size(); ++i) {
+        if (schema.GetColumn(i).Oid() == cve->GetColumnOid()) {
+          col_index = i;
+        }
+      }
+      if (col_index < 0) {
+        throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", !cve->GetColumnOid()));
+      }
       auto const_val = translator->DeriveValue(nullptr, nullptr);
       builder.Append(codegen->VPIFilter(exec_ctx,                        // The execution context
                                         vector_proj,                     // The vector projection
                                         predicate->GetExpressionType(),  // Comparison type
-                                        !cve->GetColumnOid(),            // Column index
+                                        col_index,                       // Column index
                                         const_val,                       // Constant value
                                         tid_list));                      // TID list
     } else if (parser::ExpressionUtil::IsConstCompareWithColumn(*predicate)) {
