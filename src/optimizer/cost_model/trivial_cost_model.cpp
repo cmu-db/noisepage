@@ -13,7 +13,7 @@ double TrivialCostModel::CalculateCost(transaction::TransactionContext *txn, cat
   accessor_ = accessor;
   gexpr_->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
   return output_cost_;
-};
+}
 
 void TrivialCostModel::Visit(const IndexScan *op) {
   // Get the table schema
