@@ -97,7 +97,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     catalog::namespace_oid_t namespace_oid_;
 
     /**
-     * Limit for scan
+     * The number of tuples that this scan should emit due to a LIMIT clause.
      */
     uint32_t scan_limit_{0};
 
@@ -185,8 +185,9 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
   /**
-   * @pre Before using this value check GetScanHasLimit() to
-   * see if this value has been set.
+   * The number of tuples that this scan should emit due to a LIMIT clause.
+   * @pre You must check the 'has limit' flag first to determine whether the value
+   * in this field should actually be used. Otherwise it should be ignored.
    * @return number to limit to
    */
   uint32_t GetScanLimit() const { return scan_limit_; }
@@ -197,8 +198,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   bool GetScanHasLimit() const { return scan_has_limit_; }
 
   /**
-   * @pre Before using this value call GetScanHasOffset() to
-   * see if this value has been set.
+   * @pre You must check the 'has offset' flag first to determine whether the value
+   * in this field should actually be used. Otherwise it should be ignored.
    * @return offset for the scan.
    */
   uint32_t GetScanOffset() const { return scan_offset_; }
@@ -230,7 +231,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   catalog::namespace_oid_t namespace_oid_;
 
   /**
-   * Limit for scan
+   * The number of tuples that this scan should emit due to a LIMIT clause.
    */
   uint32_t scan_limit_{0};
 
