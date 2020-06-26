@@ -224,6 +224,9 @@ class DataTable {
    */
   uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
 
+  /**
+   * @return Approximate heap usage of the table
+   */
   size_t EstimateHeapUsage() const {
     // This is a back-of-the-envelope calculation that could be innacurate. It does not account for the delta chain
     // elements that are actually owned by TransactionContext
