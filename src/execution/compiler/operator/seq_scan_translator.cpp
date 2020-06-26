@@ -112,17 +112,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
     if (parser::ExpressionUtil::IsColumnCompareWithConst(*predicate)) {
       auto cve = predicate->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
-      // TODO(WAN): this is very sad code. How can we avoid doing this?
-      uint32_t col_index = -1;
-      const auto &schema = codegen->GetCatalogAccessor()->GetSchema(GetTableOid());
-      for (uint32_t i = 0; i < schema.GetColumns().size(); ++i) {
-        if (schema.GetColumn(i).Oid() == cve->GetColumnOid()) {
-          col_index = i;
-        }
-      }
-      if (col_index < 0) {
-        throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", !cve->GetColumnOid()));
-      }
+      auto col_index = GetColOidIndex(cve->GetColumnOid());
       auto const_val = translator->DeriveValue(nullptr, nullptr);
       builder.Append(codegen->VPIFilter(exec_ctx,                        // The execution context
                                         vector_proj,                     // The vector projection
@@ -245,16 +235,10 @@ void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier wo
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
-  for (uint32_t i = 0; i < schema.GetColumns().size(); ++i) {
-    const auto &col = schema.GetColumn(i);
-    if (col.Oid() == col_oid) {
-      auto type = schema.GetColumn(col_oid).Type();
-      auto nullable = schema.GetColumn(col_oid).Nullable();
-      return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, i);
-    }
-  }
-  throw EXECUTION_EXCEPTION(
-      fmt::format("GetTableColumn could not find coloid {} for tableoid {}.", col_oid, GetTableOid()));
+  auto type = schema.GetColumn(col_oid).Type();
+  auto nullable = schema.GetColumn(col_oid).Nullable();
+  auto col_index = GetColOidIndex(col_oid);
+  return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
 }
 
 void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {
@@ -270,6 +254,17 @@ void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {
     ast::Expr *rhs = codegen->Const32(!col_oids[i]);
     function->Append(codegen->Assign(lhs, rhs));
   }
+}
+
+uint32_t SeqScanTranslator::GetColOidIndex(catalog::col_oid_t col_oid) const {
+  // TODO(WAN): this is sad code. How can we avoid doing this?
+  const auto &col_oids = GetPlanAs<planner::SeqScanPlanNode>().GetColumnOids();
+  for (uint32_t i = 0; i < col_oids.size(); ++i) {
+    if (col_oids[i] == col_oid) {
+      return i;
+    }
+  }
+  throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", col_oid));
 }
 
 }  // namespace terrier::execution::compiler
