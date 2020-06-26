@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Specify file path in environment
  */
 public class TracefileTest {
+    // cmake ..;  build terrier
     private File file;
     private MogSqlite mog;
     private static final String URL = "jdbc:postgresql://localhost/jeffdb";
@@ -46,9 +47,10 @@ public class TracefileTest {
         db = new MogDb(URL, USER, PASSWORD);
 //        conn = db.getDbTest().newConn();
         conn = TestUtility.makeDefaultConnection();
+        System.out.println(conn);
         Statement statement = conn.createStatement();
-//        List<String> tab = getAllExistingTableName(mog,db);
-//        removeExistingTable(tab,db);
+        List<String> tab = getAllExistingTableName(mog,db);
+        removeExistingTable(tab,db);
     }
 
     // TODO: make the input path environment
@@ -68,12 +70,17 @@ public class TracefileTest {
         List<Integer> queryLine = getQueryLineNum(file);
         // loop through every sql statement
         while (mog.next()) {
+            System.out.println(mog.sql);
             // case for create and insert statements
             if (mog.queryResults.size() == 0) {
                 Statement statement = conn.createStatement();
+                System.out.println(mog.sql);
                 statement.execute(mog.sql);
+                System.out.println("1");
+                System.out.println(conn);
             } else{
                 // case for query statements
+                System.out.println(conn);
                 if(mog.queryResults.get(0).contains("values")){
                     lineCounter++;
                     // parse the line from test file to get the hash
@@ -81,7 +88,10 @@ public class TracefileTest {
                     String hash = sentence[sentence.length-1];
                     // execute sql query to get result from database
                     Statement statement = conn.createStatement();
+                    System.out.println(mog.sql);
+                    System.out.println(conn);
                     statement.execute(mog.sql);
+                    System.out.println("2");
                     ResultSet rs = statement.getResultSet();
                     List<String> res = mog.processResults(rs);
                     // create an executable for the query
@@ -160,7 +170,9 @@ public class TracefileTest {
     public static List<String> getAllExistingTableName(MogSqlite mog,MogDb db) throws SQLException {
         Statement st = conn.createStatement();
         String getTableName = "SELECT tablename FROM pg_tables WHERE schemaname = 'public';";
-        st.execute(getTableName);
+        String terrier_table = "SELECT relname FROM pg_class WHERE relkind = 114 AND relnamespace = 15;";
+//        st.execute(getTableName);
+        st.execute(terrier_table);
         ResultSet rs = st.getResultSet();
         List<String> res = mog.processResults(rs);
         System.out.println("Current table   "+ res);

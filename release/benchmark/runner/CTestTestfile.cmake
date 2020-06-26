@@ -1,0 +1,14 @@
+# CMake generated Testfile for 
+# Source directory: /Users/jeffniu/Desktop/terrier/benchmark/runner
+# Build directory: /Users/jeffniu/Desktop/terrier/release/benchmark/runner
+# 
+# This file includes the relevant testing commands required for 
+# testing this directory and lists subdirectories to be tested as well.
+add_test(mini_runners "/Users/jeffniu/Desktop/terrier/build-support/run-test.sh" "/Users/jeffniu/Desktop/terrier/release" "benchmark" "/Users/jeffniu/Desktop/terrier/release/release//mini_runners" "--color_print=false")
+set_tests_properties(mini_runners PROPERTIES  LABELS "benchmark" _BACKTRACE_TRIPLES "/Users/jeffniu/Desktop/terrier/cmake_modules/BuildUtils.cmake;240;add_test;/Users/jeffniu/Desktop/terrier/cmake_modules/BuildUtils.cmake;341;ADD_TERRIER_BENCHMARK;/Users/jeffniu/Desktop/terrier/benchmark/runner/CMakeLists.txt;1;ADD_TERRIER_BENCHMARKS;/Users/jeffniu/Desktop/terrier/benchmark/runner/CMakeLists.txt;0;")
+add_test(tpcc_runner "/Users/jeffniu/Desktop/terrier/build-support/run-test.sh" "/Users/jeffniu/Desktop/terrier/release" "benchmark" "/Users/jeffniu/Desktop/terrier/release/release//tpcc_runner" "--color_print=false")
+set_tests_properties(tpcc_runner PROPERTIES  LABELS "benchmark" _BACKTRACE_TRIPLES "/Users/jeffniu/Desktop/terrier/cmake_modules/BuildUtils.cmake;240;add_test;/Users/jeffniu/Desktop/terrier/cmake_modules/BuildUtils.cmake;341;ADD_TERRIER_BENCHMARK;/Users/jeffniu/Desktop/terrier/benchmark/runner/CMakeLists.txt;1;ADD_TERRIER_BENCHMARKS;/Users/jeffniu/Desktop/terrier/benchmark/runner/CMakeLists.txt;0;")
+add_test(tpch_runner "/Users/jeffniu/Desktop/terrier/build-support/run-test.sh" "/Users/jeffniu/Desktop/terrier/release" "benchmark" "/Users/jeffniu/Desktop/terrier/release/release//tpch_runner" "--color_print=false")
+set_tests_properties(tpch_runner PROPERTIES  LABELS "benchmark" _BACKTRACE_TRIPLES "/Users/jeffniu/Desktop/terrier/cmake_modules/BuildUtils.cmake;240;add_test;/Users/jeffniu/Desktop/terrier/cmake_modules/BuildUtils.cmake;341;ADD_TERRIER_BENCHMARK;/Users/jeffniu/Desktop/terrier/benchmark/runner/CMakeLists.txt;1;ADD_TERRIER_BENCHMARKS;/Users/jeffniu/Desktop/terrier/benchmark/runner/CMakeLists.txt;0;")
+add_test(transaction_logging_gc_runner "/Users/jeffniu/Desktop/terrier/build-support/run-test.sh" "/Users/jeffniu/Desktop/terrier/release" "benchmark" "/Users/jeffniu/Desktop/terrier/release/release//transaction_logging_gc_runner" "--color_print=false")
+set_tests_properties(transaction_logging_gc_runner PROPERTIES  LABELS "benchmark" _BACKTRACE_TRIPLES "/Users/jeffniu/Desktop/terrier/cmake_modules/BuildUtils.cmake;240;add_test;/Users/jeffniu/Desktop/terrier/cmake_modules/BuildUtils.cmake;341;ADD_TERRIER_BENCHMARK;/Users/jeffniu/Desktop/terrier/benchmark/runner/CMakeLists.txt;1;ADD_TERRIER_BENCHMARKS;/Users/jeffniu/Desktop/terrier/benchmark/runner/CMakeLists.txt;0;")

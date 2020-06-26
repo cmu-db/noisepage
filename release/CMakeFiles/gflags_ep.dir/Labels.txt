@@ -1,0 +1,13 @@
+# Target labels
+ gflags_ep
+# Source files and their labels
+/Users/jeffniu/Desktop/terrier/release/CMakeFiles/gflags_ep
+/Users/jeffniu/Desktop/terrier/release/CMakeFiles/gflags_ep.rule
+/Users/jeffniu/Desktop/terrier/release/CMakeFiles/gflags_ep-complete.rule
+/Users/jeffniu/Desktop/terrier/release/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-install.rule
+/Users/jeffniu/Desktop/terrier/release/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-mkdir.rule
+/Users/jeffniu/Desktop/terrier/release/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-download.rule
+/Users/jeffniu/Desktop/terrier/release/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-update.rule
+/Users/jeffniu/Desktop/terrier/release/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-patch.rule
+/Users/jeffniu/Desktop/terrier/release/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-configure.rule
+/Users/jeffniu/Desktop/terrier/release/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-build.rule
