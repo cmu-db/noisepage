@@ -32,7 +32,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
     // buffers. We cap the maximum back-off, since in the case of large gaps of no txns, we don't want to unboundedly
     // sleep
     std::tie(num_bytes, num_records) = Process();
-    curr_sleep = std::min(num_bytes > 0 ? serialization_interval_ : curr_sleep * 2, max_sleep);
+    curr_sleep = std::min(num_records > 0 ? serialization_interval_ : curr_sleep * 2, max_sleep);
 
     if (common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING)) {
