@@ -1,4 +1,5 @@
 #pragma once
+
 #include "common/strong_typedef.h"
 
 namespace terrier::transaction {

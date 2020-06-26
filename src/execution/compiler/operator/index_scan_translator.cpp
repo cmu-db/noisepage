@@ -1,10 +1,15 @@
 #include "execution/compiler/operator/index_scan_translator.h"
+
 #include <memory>
 #include <unordered_map>
+
+#include "catalog/catalog_accessor.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/index_join_plan_node.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 

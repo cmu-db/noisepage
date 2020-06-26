@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "catalog/catalog_accessor.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
@@ -9,6 +10,7 @@
 #include "execution/compiler/translator_factory.h"
 #include "parser/expression/constant_value_expression.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 

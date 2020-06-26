@@ -11,6 +11,7 @@ import errno
 from util import constants
 from util.common import *
 
+
 class TestServer:
     """ Class to run general tests """
     def __init__(self, args):
@@ -80,15 +81,17 @@ class TestServer:
 
     def run_db(self):
         """ Start the DB server """
-        
+
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
             # Kill any other terrier processes that our listening on our target port
             for other_pid in check_port(self.db_port):
-                print("Killing existing server instance listening on port {} [PID={}]".format(self.db_port, other_pid))
+                print(
+                    "Killing existing server instance listening on port {} [PID={}]"
+                    .format(self.db_port, other_pid))
                 os.kill(other_pid, signal.SIGKILL)
             ## FOR
-          
+
             self.db_output_fd = open(self.db_output_file, "w+")
             self.db_process = subprocess.Popen(self.db_path,
                                                stdout=self.db_output_fd,
@@ -98,7 +101,7 @@ class TestServer:
                 break
             except:
                 self.stop_db()
-                print("+"*100)
+                print("+" * 100)
                 print("DATABASE OUTPUT")
                 self.print_output(self.db_output_file)
                 if attempt + 1 == constants.DB_START_ATTEMPTS:
@@ -113,7 +116,8 @@ class TestServer:
 
         # Check that PID is running
         if not check_pid(self.db_process.pid):
-            raise RuntimeError("Unable to find DBMS PID {}".format(self.db_process.pid))
+            raise RuntimeError("Unable to find DBMS PID {}".format(
+                self.db_process.pid))
 
         # Wait a bit before checking if we can connect to give the system time to setup
         time.sleep(constants.DB_START_WAIT)
@@ -127,12 +131,14 @@ class TestServer:
             try:
                 s.connect((self.db_host, int(self.db_port)))
                 s.close()
-                print("Connected to server in {} seconds [PID={}]".format(i * constants.DB_CONNECT_SLEEP, self.db_process.pid))
+                print("Connected to server in {} seconds [PID={}]".format(
+                    i * constants.DB_CONNECT_SLEEP, self.db_process.pid))
                 is_db_running = True
                 break
             except:
                 if i > 0 and i % 20 == 0:
-                    print("Failed to connect to DB server [Attempt #{}/{}]".format(i, constants.DB_CONNECT_ATTEMPTS))
+                    print("Failed to connect to DB server [Attempt #{}/{}]".
+                          format(i, constants.DB_CONNECT_ATTEMPTS))
                     # os.system('ps aux | grep terrier | grep {}'.format(self.db_process.pid))
                     # os.system('lsof -i :15721')
                     traceback.print_exc(file=sys.stdout)
@@ -193,21 +199,18 @@ class TestServer:
 
     def run(self):
         """ Orchestrate the overall test execution """
-        self.check_db_binary()
         ret_val = None
         try:
+            self.check_db_binary()
             self.run_db()
             ret_val = self.run_test()
             self.print_output(self.test_output_file)
+            self.stop_db()
         except:
             traceback.print_exc(file=sys.stdout)
-            ret_val = -1
-            pass
+            ret_val = constants.ErrorCode.ERROR
 
-        self.stop_db()
-        if ret_val is None or ret_val != 0:
+        if ret_val is None or ret_val != constants.ErrorCode.SUCCESS:
             # print the db log file, only if we had a failure
             self.print_output(self.db_output_file)
         return ret_val
-    
-

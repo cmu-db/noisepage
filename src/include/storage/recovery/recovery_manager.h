@@ -8,20 +8,26 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
+#include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
-#include "transaction/transaction_manager.h"
 
 namespace terrier {
 class RecoveryBenchmark;
-}
+}  // namespace terrier
+
+namespace terrier::transaction {
+class TransactionManager;
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 

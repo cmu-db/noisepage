@@ -71,10 +71,6 @@ enum class NetworkMessageType : unsigned char {
   PG_PARAMETER_DESCRIPTION = 't',
   PG_ROW_DESCRIPTION = 'T',
   PG_DATA_ROW = 'D',
-  // Errors  // TODO(Matt): These should be their own enums. They're field types for ErrorResponse and NoticeResponse,
-  // not message types
-  PG_HUMAN_READABLE_ERROR = 'M',
-  PG_SQLSTATE_CODE_ERROR = 'C',
   // Commands
   PG_EXECUTE_COMMAND = 'E',
   PG_SYNC_COMMAND = 'S',
