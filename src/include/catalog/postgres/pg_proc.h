@@ -4,7 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 
-#define HIGHEST_BUILTIN_PROC_ID catalog::postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID
+#define HIGHEST_BUILTIN_PROC_ID proc_oid_t(1000)
 #define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
 
 namespace terrier::catalog::postgres {
@@ -72,6 +72,7 @@ constexpr proc_oid_t TAN_PRO_OID = proc_oid_t(90);
 constexpr proc_oid_t COT_PRO_OID = proc_oid_t(91);
 constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(92);
 constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(93);
+constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(150);
 
 constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(94);
 constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(95);

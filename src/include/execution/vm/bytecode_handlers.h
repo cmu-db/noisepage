@@ -1454,6 +1454,11 @@ VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier
                         const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Upper(ctx, result, *str);
 }
+
+VM_OP_WARM void OpVersion(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result) {
+  terrier::execution::sql::StringFunctions::Version(ctx, result);
+}
+
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------
