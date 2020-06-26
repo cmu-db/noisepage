@@ -11,6 +11,7 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/index_util.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
