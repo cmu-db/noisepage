@@ -71,7 +71,7 @@ class Index {
   /**
    * @return approximate number of bytes allocated on the heap for this index data structure
    */
-  virtual size_t GetHeapUsage() const = 0;
+  virtual size_t EstimateHeapUsage() const = 0;
 
   /**
    * Inserts a new key-value pair into the index, used for non-unique key indexes.

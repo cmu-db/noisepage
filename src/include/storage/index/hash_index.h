@@ -57,7 +57,7 @@ class HashIndex final : public Index {
  public:
   IndexType Type() const final { return IndexType::HASHMAP; }
 
-  size_t GetHeapUsage() const final;
+  size_t EstimateHeapUsage() const final;
 
   bool Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               TupleSlot location) final;

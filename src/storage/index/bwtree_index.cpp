@@ -18,7 +18,7 @@ void BwTreeIndex<KeyType>::PerformGarbageCollection() {
 }
 
 template <typename KeyType>
-size_t BwTreeIndex<KeyType>::GetHeapUsage() const {
+size_t BwTreeIndex<KeyType>::EstimateHeapUsage() const {
   // This is a back-of-the-envelope calculation that could be innacurate: it does not account for deltas within the
   // BwTree. Also the mapping table is anonymously mmap'd so getting its exact size is tricky.
   constexpr auto max_elements_per_node = 128;  // constant from bwtree.h

@@ -22,7 +22,7 @@ HashIndex<KeyType>::HashIndex(IndexMetadata metadata)
       hash_map_(std::make_unique<cuckoohash_map<KeyType, ValueType>>(INITIAL_CUCKOOHASH_MAP_SIZE)) {}
 
 template <typename KeyType>
-size_t HashIndex<KeyType>::GetHeapUsage() const {
+size_t HashIndex<KeyType>::EstimateHeapUsage() const {
   // This is a back-of-the-envelope calculation that could be innacurate: in the case of duplicate keys, we switch the
   // value type to be an unordered_set, which this will not account for. If we implement an element counter at the the
   // wrapper level, however, then we don't know anything about the over-provisioning taking place at the underlying data

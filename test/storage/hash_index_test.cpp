@@ -140,7 +140,7 @@ TEST_F(HashIndexTests, UniqueInsert) {
     delete[] key_buffer;
   };
 
-  const auto starting_size = unique_index_->GetHeapUsage();
+  const auto starting_size = unique_index_->EstimateHeapUsage();
 
   // run the workload
   for (uint32_t i = 0; i < num_threads_; i++) {
@@ -148,7 +148,7 @@ TEST_F(HashIndexTests, UniqueInsert) {
   }
   thread_pool_.WaitUntilAllFinished();
 
-  EXPECT_GT(unique_index_->GetHeapUsage(), starting_size);
+  EXPECT_GT(unique_index_->EstimateHeapUsage(), starting_size);
 
   // scan the results
   auto *const scan_txn = txn_manager_->BeginTransaction();
@@ -213,7 +213,7 @@ TEST_F(HashIndexTests, DefaultInsert) {
     delete[] key_buffer;
   };
 
-  const auto starting_size = default_index_->GetHeapUsage();
+  const auto starting_size = default_index_->EstimateHeapUsage();
 
   // run the workload
   for (uint32_t i = 0; i < num_threads_; i++) {
@@ -221,7 +221,7 @@ TEST_F(HashIndexTests, DefaultInsert) {
   }
   thread_pool_.WaitUntilAllFinished();
 
-  EXPECT_GT(default_index_->GetHeapUsage(), starting_size);
+  EXPECT_GT(default_index_->EstimateHeapUsage(), starting_size);
 
   // scan the results
   auto *const scan_txn = txn_manager_->BeginTransaction();
