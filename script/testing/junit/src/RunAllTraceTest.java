@@ -18,6 +18,7 @@ public class RunAllTraceTest {
                     if(tf.getName().contains("output")){
                         String fileDirectory = typeDirectory + "/" + tf.getName();
                         TracefileT cur = new TracefileT(fileDirectory);
+                        System.out.println(fileDirectory);
                         cur.execute();
                     }
                 }
