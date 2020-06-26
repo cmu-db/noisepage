@@ -185,6 +185,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
   /**
+   * @pre Before using this value check GetScanHasLimit() to
+   * see if this value has been set.
    * @return number to limit to
    */
   uint32_t GetScanLimit() const { return scan_limit_; }
@@ -195,7 +197,9 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   bool GetScanHasLimit() const { return scan_has_limit_; }
 
   /**
-   * @return offset for the scan
+   * @pre Before using this value call GetScanHasOffset() to
+   * see if this value has been set.
+   * @return offset for the scan.
    */
   uint32_t GetScanOffset() const { return scan_offset_; }
 
