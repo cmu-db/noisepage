@@ -210,6 +210,11 @@ class SqlTable {
    */
   uint64_t GetNumTuple() const { return table_.data_table_->GetNumTuple(); }
 
+  /**
+   * @return Approximate heap usage of the table
+   */
+  size_t EstimateHeapUsage() const { return table_.data_table_->EstimateHeapUsage(); }
+
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
   friend class terrier::RandomSqlTableTransaction;

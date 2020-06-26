@@ -9,7 +9,6 @@
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
 #include "common/stat_registry.h"
-#include "common/worker_pool.h"
 #include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"

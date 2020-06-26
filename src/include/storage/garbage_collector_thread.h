@@ -4,7 +4,7 @@
 #include <thread>  //NOLINT
 
 #include "storage/garbage_collector.h"
-#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::metrics {
 class MetricsManager;

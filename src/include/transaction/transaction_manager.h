@@ -7,7 +7,6 @@
 #include "common/gate.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
-#include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/undo_record.h"
 #include "transaction/timestamp_manager.h"

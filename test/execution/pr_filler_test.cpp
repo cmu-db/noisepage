@@ -21,6 +21,7 @@
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
+#include "storage/index/index.h"
 #include "storage/sql_table.h"
 
 namespace terrier::execution::compiler::test {

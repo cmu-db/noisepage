@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
@@ -43,6 +44,10 @@ class ReplicationLogProvider;
 namespace terrier::transaction {
 class TransactionManager;
 } // namespace terrier::transaction
+
+namespace terrier::common {
+class ErrorData;
+}
 
 namespace terrier::trafficcop {
 
@@ -104,7 +109,7 @@ class TrafficCop {
    * @param connection_ctx used to maintain state
    * @return parser's ParseResult, nullptr if failed
    */
-  std::unique_ptr<parser::ParseResult> ParseQuery(
+  std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> ParseQuery(
       const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**

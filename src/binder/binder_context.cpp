@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/table_ref.h"
@@ -20,8 +20,11 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
                                     common::ManagedPointer<parser::TableRef> table_ref, const catalog::db_oid_t db_id) {
   if (!(table_ref->GetDatabaseName().empty())) {
     const auto db_oid = accessor->GetDatabaseOid(table_ref->GetDatabaseName());
-    if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-    if (db_oid != db_id) throw BINDER_EXCEPTION("Not connected to specified database");
+    if (db_oid == catalog::INVALID_DATABASE_OID)
+      throw BINDER_EXCEPTION("Database does not exist", common::ErrorCode::ERRCODE_UNDEFINED_DATABASE);
+    if (db_oid != db_id)
+      throw BINDER_EXCEPTION("cross-database references are not implemented: ",
+                             common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
   }
 
   AddRegularTable(accessor, db_id, table_ref->GetNamespaceName(), table_ref->GetTableName(), table_ref->GetAlias());
@@ -34,17 +37,20 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
   if (!namespace_name.empty()) {
     auto namespace_id = accessor->GetNamespaceOid(namespace_name);
     if (namespace_id == catalog::INVALID_NAMESPACE_OID) {
-      throw BINDER_EXCEPTION(("Unknown namespace name " + namespace_name).c_str());
+      throw BINDER_EXCEPTION(fmt::format("Unknown namespace name \"{}\"", namespace_name),
+                             common::ErrorCode::ERRCODE_UNDEFINED_SCHEMA);
     }
 
     table_id = accessor->GetTableOid(namespace_id, table_name);
     if (table_id == catalog::INVALID_TABLE_OID) {
-      throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", table_name));
+      throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", table_name),
+                             common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
     }
   } else {
     table_id = accessor->GetTableOid(table_name);
     if (table_id == catalog::INVALID_TABLE_OID) {
-      throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", table_name));
+      throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", table_name),
+                             common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
     }
   }
 
@@ -52,11 +58,13 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
   auto schema = accessor->GetSchema(table_id);
 
   if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
-    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
+    throw BINDER_EXCEPTION(fmt::format("Duplicate alias \"{}\"", table_alias),
+                           common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
   if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end()) {
-    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
+    throw BINDER_EXCEPTION(fmt::format("Duplicate alias \"{}\"", table_alias),
+                           common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
   regular_table_alias_map_[table_alias] = std::make_tuple(db_id, table_id, schema);
 }
@@ -65,7 +73,8 @@ void BinderContext::AddNewTable(const std::string &new_table_name,
                                 const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &new_columns) {
   if (regular_table_alias_map_.find(new_table_name) != regular_table_alias_map_.end() ||
       nested_table_alias_map_.find(new_table_name) != nested_table_alias_map_.end()) {
-    throw BINDER_EXCEPTION(("Duplicate alias " + new_table_name).c_str());
+    throw BINDER_EXCEPTION(fmt::format("Duplicate alias \"{}\"", new_table_name),
+                           common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
   std::unordered_map<std::string, type::TypeId> column_alias_map;
@@ -80,7 +89,8 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
                                    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
   if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
       nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
-    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
+    throw BINDER_EXCEPTION(fmt::format("Duplicate alias \"{}\"", table_alias),
+                           common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
   std::unordered_map<std::string, type::TypeId> column_alias_map;
@@ -138,7 +148,8 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
           SetColumnPosTuple(col_name, entry.second, expr);
           expr->SetTableName(entry.first);
         } else {
-          throw BINDER_EXCEPTION(("Ambiguous column name " + col_name).c_str());
+          throw BINDER_EXCEPTION(fmt::format("Ambiguous column name \"{}\"", col_name),
+                                 common::ErrorCode::ERRCODE_AMBIGUOUS_COLUMN);
         }
       }
     }
@@ -153,7 +164,8 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
           expr->SetReturnValueType(entry.second[col_name]);
           expr->SetColumnName(col_name);
         } else {
-          throw BINDER_EXCEPTION(("Ambiguous column name " + col_name).c_str());
+          throw BINDER_EXCEPTION(fmt::format("Ambiguous column name \"{}\"", col_name),
+                                 common::ErrorCode::ERRCODE_AMBIGUOUS_COLUMN);
         }
       }
     }
@@ -190,7 +202,8 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
     if (iter != current_context->nested_table_alias_map_.end()) {
       auto col_iter = iter->second.find(col_name);
       if (col_iter == iter->second.end()) {
-        throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
+        throw BINDER_EXCEPTION(fmt::format("Cannot find column \"{}\"", col_name),
+                               common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
       expr->SetReturnValueType(col_iter->second);
       expr->SetDepth(current_context->depth_);

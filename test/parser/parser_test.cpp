@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"

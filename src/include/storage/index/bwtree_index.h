@@ -47,6 +47,8 @@ class BwTreeIndex final : public Index {
 
   void PerformGarbageCollection() final;
 
+  size_t EstimateHeapUsage() const final;
+
   bool Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               TupleSlot location) final;
 
