@@ -328,7 +328,7 @@ void BytecodeEmitter::EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx,
 }
 
 void BytecodeEmitter::EmitTestCatalogIndexLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name,
-                                            uint32_t table_name_len) {
+                                                 uint32_t table_name_len) {
   EmitAll(Bytecode::TestCatalogIndexLookup, oid_var, exec_ctx, table_name, table_name_len);
 }
 

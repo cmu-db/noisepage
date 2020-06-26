@@ -105,8 +105,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Make the execution context
   exec::ExecutionSettings exec_settings{};
   exec::OutputPrinter printer(output_schema);
-  exec::ExecutionContext exec_ctx{db_oid, common::ManagedPointer(txn), printer, output_schema,
-                                  common::ManagedPointer(accessor), exec_settings};
+  exec::ExecutionContext exec_ctx{db_oid,        common::ManagedPointer(txn),      printer,
+                                  output_schema, common::ManagedPointer(accessor), exec_settings};
   // Add dummy parameters for tests
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
@@ -186,7 +186,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   std::unique_ptr<vm::BytecodeModule> bytecode_module;
   {
     util::ScopedTimer<std::milli> timer(&codegen_ms);
-    bytecode_module = vm::BytecodeGenerator::Compile(root, exec_settings, name);
+    bytecode_module = vm::BytecodeGenerator::Compile(root, name);
   }
 
   // Dump Bytecode

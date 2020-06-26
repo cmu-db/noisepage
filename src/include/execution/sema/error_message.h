@@ -88,7 +88,7 @@ namespace sema {
     "indexIteratorFree() expects (*IndexIterator) argument "                                                          \
     "types. Received type '%0' in position %1",                                                                       \
     (ast::Type *, uint32_t))                                                                                          \
-F(IsValNullExpectsSqlValue, "@isValNull() expects a SQL value input, received type '%0'", (ast::Type *))
+  F(IsValNullExpectsSqlValue, "@isValNull() expects a SQL value input, received type '%0'", (ast::Type *))
 
 /// Define the ErrorMessageId enumeration
 enum class ErrorMessageId : uint16_t {

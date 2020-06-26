@@ -230,11 +230,17 @@ void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier wo
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
-  // TODO(WAN): catalog lookups OK here?
   const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
-  auto type = schema.GetColumn(col_oid).Type();
-  auto nullable = schema.GetColumn(col_oid).Nullable();
-  return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, !col_oid);
+  for (uint32_t i = 0; i < schema.GetColumns().size(); ++i) {
+    const auto &col = schema.GetColumn(i);
+    if (col.Oid() == col_oid) {
+      auto type = schema.GetColumn(col_oid).Type();
+      auto nullable = schema.GetColumn(col_oid).Nullable();
+      return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, i);
+    }
+  }
+  throw EXECUTION_EXCEPTION(
+      fmt::format("GetTableColumn could not find coloid {} for tableoid {}.", col_oid, GetTableOid()));
 }
 
 void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {

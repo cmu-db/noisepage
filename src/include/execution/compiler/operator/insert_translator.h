@@ -1,8 +1,8 @@
 #pragma once
-#include <vector>
 #include <catalog/schema.h>
-#include "execution/compiler/expression/pr_filler.h"
+#include <vector>
 #include "execution/compiler/ast_fwd.h"
+#include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
 
 namespace terrier::planner {
@@ -53,20 +53,20 @@ class InsertTranslator : public OperatorTranslator {
   /**
    * Tear-down the inserter if required.
    */
-//  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *func) const override;
+  //  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *func) const override;
 
-//  void Abort(FunctionBuilder *builder) const override;
+  //  void Abort(FunctionBuilder *builder) const override;
 
-//  /**
-//   * @return The pipeline work function parameters. Just the *TVI.
-//   */
-//  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override;
-//
-//  /**
-//   * Launch a parallel table scan.
-//   * @param work_func The worker function that'll be called during the parallel scan.
-//   */
-//  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override;
+  //  /**
+  //   * @return The pipeline work function parameters. Just the *TVI.
+  //   */
+  //  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override;
+  //
+  //  /**
+  //   * Launch a parallel table scan.
+  //   * @param work_func The worker function that'll be called during the parallel scan.
+  //   */
+  //  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override;
 
  private:
   // Declare the inserter
@@ -103,7 +103,7 @@ class InsertTranslator : public OperatorTranslator {
   const catalog::Schema &table_schema_;
   std::vector<catalog::col_oid_t> all_oids_;
   storage::ProjectionMap table_pm_;
-//  PRFiller pr_filler_;
+  //  PRFiller pr_filler_;
 };
 
 }  // namespace terrier::execution::compiler

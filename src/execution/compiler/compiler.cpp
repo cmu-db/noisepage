@@ -68,7 +68,6 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
     return;
   }
 
-
   // -------------------------------------------------------
   // Phase 2 : Semantic Analysis (i.e., type-checking)
   // -------------------------------------------------------

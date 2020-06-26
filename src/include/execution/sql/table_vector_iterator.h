@@ -77,8 +77,8 @@ class EXPORT TableVectorIterator {
    * Scan function callback used to scan a partition of the table.
    * Convention: First argument is the opaque query state, second argument is the thread state,
    *             third argument is the table vector iterator configured to iterate a sub-range of
-   *             the table, fourth argument is the execution context. The first two arguments are void because their types are only known at
-   *             runtime (i.e., defined in generated code).
+   *             the table, fourth argument is the execution context. The first two arguments are void because their
+   * types are only known at runtime (i.e., defined in generated code).
    */
   using ScanFn = void (*)(void *, void *, TableVectorIterator *iter, exec::ExecutionContext *);
 
@@ -100,8 +100,8 @@ class EXPORT TableVectorIterator {
    * @param scan_fn The callback function invoked for vectors of table input.
    * @param min_grain_size The minimum number of blocks to give a scan task.
    */
-  static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
-                           void *query_state, exec::ExecutionContext *exec_ctx, ScanFn scan_fn,
+  static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
+                           exec::ExecutionContext *exec_ctx, ScanFn scan_fn,
                            uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
   /** When the column iterators receive new vectors of input, we need to refresh the projection with new data too. */

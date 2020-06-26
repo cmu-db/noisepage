@@ -4,11 +4,10 @@
 #include <string>
 #include <unordered_map>
 
-#include "llvm/Support/MemoryBuffer.h"
-
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 #include "execution/vm/bytecodes.h"
+#include "llvm/Support/MemoryBuffer.h"
 
 namespace terrier::execution::ast {
 class Type;
@@ -121,7 +120,10 @@ class LLVMEngine {
     /**
      * @return the path to the bytecode handlers bitcode file.
      */
-    std::string GetBytecodeHandlersBcPath() const { return "/Users/TNayak/Projects/terrier/cmake-build-debug/bytecode_handlers_ir.bc"; }
+    std::string GetBytecodeHandlersBcPath() const {
+      // TODO(WAN): eh...
+      return "/home/kapi/CLionProjects/terrier/cmake-build-debug/debug/bytecode_handlers_ir.bc";
+    }
 
    private:
     bool debug_{false};

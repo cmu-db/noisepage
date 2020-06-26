@@ -1018,7 +1018,7 @@ ast::Expr *CodeGen::CSVReaderClose(ast::Expr *reader) {
 }
 
 ast::Expr *CodeGen::StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid,
-    ast::Identifier col_oids, bool need_indexes) {
+                                         ast::Identifier col_oids, bool need_indexes) {
   ast::Expr *si_ptr = AddressOf(si);
   ast::Expr *table_oid_expr = Const64(static_cast<int64_t>(table_oid));
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
@@ -1027,7 +1027,6 @@ ast::Expr *CodeGen::StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx
   std::vector<ast::Expr *> args{si_ptr, exec_ctx, table_oid_expr, col_oids_expr, need_indexes_expr};
   return CallBuiltin(ast::Builtin::StorageInterfaceInit, args);
 }
-
 
 // ---------------------------------------------------------
 // Extras

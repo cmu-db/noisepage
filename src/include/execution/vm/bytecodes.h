@@ -555,7 +555,7 @@ namespace terrier::execution::vm {
   /* FOR TESTING ONLY */                                                                                               \
   F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4,                 \
     OperandType::Local, OperandType::UImm4)                                                                            \
-  F(TestCatalogIndexLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)            \
+  F(TestCatalogIndexLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)
 
 // clang-format on
 

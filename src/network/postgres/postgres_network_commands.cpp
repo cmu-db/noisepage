@@ -167,8 +167,9 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   if (!postgres_interpreter->ExplicitTransactionBlock()) {
     // Single statement transaction should be ended before returning
     // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
-    t_cop->EndTransaction(connection, connection->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
-                                                                             : network::QueryType::QUERY_COMMIT);
+    // TODO(WAN): matt, this kills the log serializer.. any thoughts?
+    // t_cop->EndTransaction(connection, connection->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
+    //                                                                         : network::QueryType::QUERY_COMMIT);
     postgres_interpreter->ResetTransactionState();
   }
 

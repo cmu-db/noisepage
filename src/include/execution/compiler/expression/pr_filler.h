@@ -8,16 +8,16 @@
 //#include "execution/compiler/operator/operator_translator.h"
 //#include "execution/compiler/translator_factory.h"
 //
-//namespace terrier::catalog {
-//class IndexSchema;
-//class Schema;
+// namespace terrier::catalog {
+// class IndexSchema;
+// class Schema;
 //}  // namespace terrier::catalog
 //
-//namespace terrier::execution::compiler {
+// namespace terrier::execution::compiler {
 ///**
 // * PRFiller is used to generate code that fills index PRs from table PRs
 // */
-//class PRFiller : public ExpressionEvaluator {
+// class PRFiller : public ExpressionEvaluator {
 // public:
 //  /**
 //   * Constructor

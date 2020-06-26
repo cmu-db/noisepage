@@ -626,8 +626,7 @@ class CodeGen {
 
   ast::Expr *PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx);
 
-  ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                            bool own);
+  ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val, bool own);
 
   // -------------------------------------------------------
   //
@@ -1180,8 +1179,8 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *CSVReaderClose(ast::Expr *reader);
 
-  ast::Expr *StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx,
-      uint32_t table_oid, ast::Identifier col_oids, bool need_indexes);
+  ast::Expr *StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid, ast::Identifier col_oids,
+                                  bool need_indexes);
 
   // ---------------------------------------------------------------------------
   //

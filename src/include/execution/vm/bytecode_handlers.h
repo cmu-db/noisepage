@@ -1751,7 +1751,6 @@ VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterfa
 
 VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);
 
-
 // ---------------------------------
 // Date function
 // ---------------------------------
@@ -1789,7 +1788,7 @@ VM_OP_WARM void OpTestCatalogLookup(uint32_t *oid_var, terrier::execution::exec:
 }
 
 VM_OP_WARM void OpTestCatalogIndexLookup(uint32_t *oid_var, terrier::execution::exec::ExecutionContext *exec_ctx,
-                                    const uint8_t *index_name_str, uint32_t index_name_length) {
+                                         const uint8_t *index_name_str, uint32_t index_name_length) {
   // TODO(WAN): wasteful std::string
   terrier::execution::sql::StringVal table_name{reinterpret_cast<const char *>(index_name_str), index_name_length};
   terrier::catalog::index_oid_t index_oid = exec_ctx->GetAccessor()->GetIndexOid(std::string(table_name.StringView()));
