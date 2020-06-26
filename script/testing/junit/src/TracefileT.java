@@ -19,18 +19,34 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Test class that dynamically generate test cases for each sql query
  * Specify file path in environment
  */
-public class TracefileTest {
+public class TracefileT {
     // cmake ..;  build terrier
-    private File file;
-    private MogSqlite mog;
+    private static File file;
+    private static MogSqlite mog;
     private static final String URL = "jdbc:postgresql://localhost/jeffdb";
     private static final String USER = "jeffniu";
 //    private static final String URL = "jdbc:postgresql://localhost:15721/";
 //    private static final String USER = "terrier";
     private static final String PASSWORD = "";
-    private MogDb db;
+    private static MogDb db;
     private static Connection conn;
+    private static String path;
+    public TracefileT(String input){
+        this.path = input;
+    }
 
+    public static void execute() throws IOException, SQLException {
+        setUp();
+        Collection<DynamicTest> cl = generateTest();
+        for(DynamicTest cur : cl){
+            try {
+                cur.getExecutable().execute();
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+                continue;
+            }
+        }
+    }
     /**
      * Set up connection to database
      * Clear previous existing table
@@ -38,20 +54,20 @@ public class TracefileTest {
      * @throws SQLException
      */
     @BeforeEach
-    public void setUp() throws FileNotFoundException, SQLException {
+    public static void setUp() throws FileNotFoundException, SQLException {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
-        System.setProperty("testFile", "src/select1.test");
-        String path = System.getProperty("testFile");
         file = new File(path);
         mog = new MogSqlite(file);
         db = new MogDb(URL, USER, PASSWORD);
-//        conn = db.getDbTest().newConn();
-        conn = TestUtility.makeDefaultConnection();
+        conn = db.getDbTest().newConn();
+//        conn = TestUtility.makeDefaultConnection();
         System.out.println(conn);
         Statement statement = conn.createStatement();
         List<String> tab = getAllExistingTableName(mog,db);
         removeExistingTable(tab,db);
     }
+
+
 
     // TODO: make the input path environment
     // TODO: try making a tracefile by hand, take SELECT.JAVA and convert it to select1.test
@@ -63,24 +79,19 @@ public class TracefileTest {
      * @throws SQLException
      */
     @TestFactory
-    public Collection<DynamicTest> generateTest() throws IOException, SQLException {
+    public static Collection<DynamicTest> generateTest() throws IOException, SQLException {
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
         List<Integer> queryLine = getQueryLineNum(file);
         // loop through every sql statement
         while (mog.next()) {
-            System.out.println(mog.sql);
             // case for create and insert statements
             if (mog.queryResults.size() == 0) {
                 Statement statement = conn.createStatement();
-                System.out.println(mog.sql);
                 statement.execute(mog.sql);
-                System.out.println("1");
-                System.out.println(conn);
             } else{
                 // case for query statements
-                System.out.println(conn);
                 if(mog.queryResults.get(0).contains("values")){
                     lineCounter++;
                     // parse the line from test file to get the hash
@@ -88,10 +99,7 @@ public class TracefileTest {
                     String hash = sentence[sentence.length-1];
                     // execute sql query to get result from database
                     Statement statement = conn.createStatement();
-                    System.out.println(mog.sql);
-                    System.out.println(conn);
                     statement.execute(mog.sql);
-                    System.out.println("2");
                     ResultSet rs = statement.getResultSet();
                     List<String> res = mog.processResults(rs);
                     // create an executable for the query
@@ -102,6 +110,7 @@ public class TracefileTest {
                     dTest.add(cur);
                 }
             }
+            mog.queryResults.clear();
         }
         return dTest;
 
@@ -171,11 +180,11 @@ public class TracefileTest {
         Statement st = conn.createStatement();
         String getTableName = "SELECT tablename FROM pg_tables WHERE schemaname = 'public';";
         String terrier_table = "SELECT relname FROM pg_class WHERE relkind = 114 AND relnamespace = 15;";
-//        st.execute(getTableName);
-        st.execute(terrier_table);
+        st.execute(getTableName);
+//        st.execute(terrier_table);
         ResultSet rs = st.getResultSet();
         List<String> res = mog.processResults(rs);
-        System.out.println("Current table   "+ res);
+//        System.out.println("Current table   "+ res);
         return res;
     }
 }
