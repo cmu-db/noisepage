@@ -224,6 +224,12 @@ class DataTable {
    */
   uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
 
+  size_t EstimateHeapUsage() const {
+    // This is a back-of-the-envelope calculation that could be innacurate. It does not account for the delta chain
+    // elements that are actually owned by TransactionContext
+    return blocks_.size() * common::Constants::BLOCK_SIZE;
+  }
+
  private:
   // The ArrowSerializer needs access to its blocks.
   friend class ArrowSerializer;
