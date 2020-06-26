@@ -10,6 +10,7 @@
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/compact_ints_key.h"
+#include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
