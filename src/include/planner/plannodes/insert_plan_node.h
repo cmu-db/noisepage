@@ -87,8 +87,8 @@ class InsertPlanNode : public AbstractPlanNode {
       TERRIER_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
                      "Must have parameter info for each value");
       return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, table_oid_,
-                                                                std::move(values_), std::move(parameter_info_)));
+                                                                database_oid_, table_oid_, std::move(values_),
+                                                                std::move(parameter_info_)));
     }
 
    protected:

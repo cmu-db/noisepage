@@ -59,8 +59,8 @@ class DropViewPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<DropViewPlanNode> Build() {
-      return std::unique_ptr<DropViewPlanNode>(new DropViewPlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, view_oid_, if_exists_));
+      return std::unique_ptr<DropViewPlanNode>(
+          new DropViewPlanNode(std::move(children_), std::move(output_schema_), database_oid_, view_oid_, if_exists_));
     }
 
    protected:

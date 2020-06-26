@@ -55,9 +55,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::unique_ptr<SeqScanPlanNode> Build() {
-      return std::unique_ptr<SeqScanPlanNode>(
-          new SeqScanPlanNode(std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_),
-                              is_for_update_, database_oid_, table_oid_));
+      return std::unique_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                  scan_predicate_, std::move(column_oids_),
+                                                                  is_for_update_, database_oid_, table_oid_));
     }
 
    protected:
