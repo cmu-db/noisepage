@@ -13,7 +13,7 @@
 namespace terrier {
 
 namespace parser {
-class ColumnDefinition;
+struct ColumnDefinition;
 class CreateStatement;
 class TableRef;
 }  // namespace parser

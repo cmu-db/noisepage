@@ -10,8 +10,8 @@
 #include "parser/parsenodes.h"
 
 namespace terrier::parser {
-class FuncParameter;
-class ReturnType;
+struct FuncParameter;
+struct ReturnType;
 class SQLStatement;
 class UpdateClause;
 class UpdateStatement;
