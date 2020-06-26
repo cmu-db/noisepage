@@ -498,11 +498,11 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
   for (auto &pred : inner_join->GetJoinPredicates()) join_preds.push_back(pred);
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> empty;
-  auto new_child = std::make_unique<OperatorNode>(
-      LogicalGet::Make(r_child->GetDatabaseOid(), r_child->GetNamespaceOid(), r_child->GetTableOid(), join_preds,
-                       r_child->GetTableAlias(), r_child->GetIsForUpdate())
-          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-      std::move(empty), context->GetOptimizerContext()->GetTxn());
+  auto new_child =
+      std::make_unique<OperatorNode>(LogicalGet::Make(r_child->GetDatabaseOid(), r_child->GetTableOid(), join_preds,
+                                                      r_child->GetTableAlias(), r_child->GetIsForUpdate())
+                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(empty), context->GetOptimizerContext()->GetTxn());
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> transform;
   LogicalGetToPhysicalIndexScan idx_scan_transform;

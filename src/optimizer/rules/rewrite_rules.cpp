@@ -1,3 +1,5 @@
+#include "optimizer/rules/rewrite_rules.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -13,7 +15,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
-#include "optimizer/rules/rewrite_rules.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
@@ -360,11 +361,10 @@ void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<AbstractOptimiz
   std::string tbl_alias = std::string(get->GetTableAlias());
   std::vector<AnnotatedExpression> predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto output =
-      std::make_unique<OperatorNode>(LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(),
-                                                      predicates, tbl_alias, get->GetIsForUpdate())
-                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                     std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto output = std::make_unique<OperatorNode>(
+      LogicalGet::Make(get->GetDatabaseOid(), get->GetTableOid(), predicates, tbl_alias, get->GetIsForUpdate())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
 }
 

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
@@ -71,9 +72,8 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    * @param is_for_update whether the scan is used for update
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
-                       std::string table_alias, bool is_for_update);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<AnnotatedExpression> predicates, std::string table_alias, bool is_for_update);
 
   /**
    * For select statement without a from table
@@ -95,11 +95,6 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    * @return the OID of the database
    */
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return the OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
@@ -126,11 +121,6 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table
@@ -725,8 +715,7 @@ class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
    * @return
    */
   static Operator Make(
-      catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-      std::vector<catalog::col_oid_t> &&columns,
+      catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
       common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
 
   /**
@@ -742,11 +731,6 @@ class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
    * @return OID of the database
    */
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return OID of the table
@@ -771,11 +755,6 @@ class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table
@@ -805,8 +784,7 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
    * @param table_oid OID of the table
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid);
 
   /**
    * Copy
@@ -823,11 +801,6 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return OID of the table
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
@@ -837,11 +810,6 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table
@@ -934,8 +902,7 @@ class LogicalDelete : public OperatorNodeContents<LogicalDelete> {
    * @param table_oid OID of the table
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
-                       catalog::table_oid_t table_oid);
+  static Operator Make(catalog::db_oid_t database_oid, std::string table_alias, catalog::table_oid_t table_oid);
 
   /**
    * Copy
@@ -952,11 +919,6 @@ class LogicalDelete : public OperatorNodeContents<LogicalDelete> {
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return alias
    */
   const std::string &GetTableAlias() const { return table_alias_; }
@@ -971,11 +933,6 @@ class LogicalDelete : public OperatorNodeContents<LogicalDelete> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * Alias
@@ -1001,8 +958,7 @@ class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
    * @param updates the update clauses from the SET portion of the query
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
-                       catalog::table_oid_t table_oid,
+  static Operator Make(catalog::db_oid_t database_oid, std::string table_alias, catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
 
   /**
@@ -1018,11 +974,6 @@ class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
    * @return OID of the database
    */
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return table alias
@@ -1044,11 +995,6 @@ class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * Table Alias
@@ -1830,8 +1776,7 @@ class LogicalDropTrigger : public OperatorNodeContents<LogicalDropTrigger> {
    * @param if_exists If "IF EXISTS" condition is used
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::trigger_oid_t trigger_oid, bool if_exists);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::trigger_oid_t trigger_oid, bool if_exists);
 
   /**
    * Copy
@@ -1848,11 +1793,6 @@ class LogicalDropTrigger : public OperatorNodeContents<LogicalDropTrigger> {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return OID of the trigger to drop
    */
   catalog::trigger_oid_t GetTriggerOid() const { return trigger_oid_; }
@@ -1867,11 +1807,6 @@ class LogicalDropTrigger : public OperatorNodeContents<LogicalDropTrigger> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the trigger to drop
@@ -1896,8 +1831,7 @@ class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
    * @param if_exists If "IF EXISTS" condition is used
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::view_oid_t view_oid, bool if_exists);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::view_oid_t view_oid, bool if_exists);
 
   /**
    * Copy
@@ -1914,11 +1848,6 @@ class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return OID of the view to drop
    */
   catalog::view_oid_t GetViewOid() const { return view_oid_; }
@@ -1933,11 +1862,6 @@ class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the view to drop
