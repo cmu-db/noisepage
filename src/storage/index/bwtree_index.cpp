@@ -21,7 +21,8 @@ template <typename KeyType>
 size_t BwTreeIndex<KeyType>::EstimateHeapUsage() const {
   // This is a back-of-the-envelope calculation that could be innacurate: it does not account for deltas within the
   // BwTree. Also the mapping table is anonymously mmap'd so getting its exact size is tricky.
-  constexpr auto max_elements_per_node = 128;  // constant from bwtree.h
+  constexpr auto max_elements_per_node = std::max(INNER_NODE_SIZE_UPPER_THRESHOLD,
+                                                  LEAF_NODE_SIZE_UPPER_THRESHOLD);  // constant from bwtree.h
 
   // Calculate the size of each node in the BwTree
   constexpr auto node_size = sizeof(KeyType) + sizeof(uint64_t) +                            // low_key
