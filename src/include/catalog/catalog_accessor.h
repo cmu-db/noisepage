@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-//#include "catalog/index_schema.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
