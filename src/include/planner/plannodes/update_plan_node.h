@@ -47,15 +47,6 @@ class UpdatePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param namespace_oid OID of the namespace
-     * @return builder object
-     */
-    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
-      namespace_oid_ = namespace_oid;
-      return *this;
-    }
-
-    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -97,7 +88,7 @@ class UpdatePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<UpdatePlanNode> Build() {
       return std::unique_ptr<UpdatePlanNode>(
-          new UpdatePlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
+          new UpdatePlanNode(std::move(children_), std::move(output_schema_), database_oid_, table_oid_,
                              update_primary_key_, indexed_update_, std::move(sets_)));
     }
 
@@ -106,11 +97,6 @@ class UpdatePlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
-
-    /**
-     * OID of namespace
-     */
-    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the table to update
@@ -145,11 +131,10 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @param sets SET clauses
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  bool update_primary_key, bool indexed_update, std::vector<SetClause> sets)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
-        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         update_primary_key_(update_primary_key),
         indexed_update_(indexed_update),
@@ -167,11 +152,6 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return OID of the namespace
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the target table to operate on
@@ -215,11 +195,6 @@ class UpdatePlanNode : public AbstractPlanNode {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table to update

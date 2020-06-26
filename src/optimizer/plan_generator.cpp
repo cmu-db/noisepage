@@ -199,7 +199,6 @@ void PlanGenerator::Visit(const SeqScan *op) {
   output_plan_ = planner::SeqScanPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOID())
-                     .SetNamespaceOid(op->GetNamespaceOID())
                      .SetTableOid(op->GetTableOID())
                      .SetScanPredicate(common::ManagedPointer(predicate))
                      .SetColumnOids(std::move(column_ids))
@@ -224,7 +223,6 @@ void PlanGenerator::Visit(const IndexScan *op) {
   builder.SetScanPredicate(common::ManagedPointer(predicate));
   builder.SetIsForUpdateFlag(op->GetIsForUpdate());
   builder.SetDatabaseOid(op->GetDatabaseOID());
-  builder.SetNamespaceOid(op->GetNamespaceOID());
   builder.SetIndexOid(op->GetIndexOID());
   builder.SetTableOid(tbl_oid);
   builder.SetColumnOids(std::move(column_ids));
@@ -722,7 +720,6 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const Aggregate *op) {
 void PlanGenerator::Visit(const Insert *op) {
   auto builder = planner::InsertPlanNode::Builder();
   builder.SetDatabaseOid(op->GetDatabaseOid());
-  builder.SetNamespaceOid(op->GetNamespaceOid());
   builder.SetTableOid(op->GetTableOid());
 
   std::vector<catalog::index_oid_t> indexes(op->GetIndexes());
