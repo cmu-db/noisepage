@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstring>
 #include <list>
 #include <unordered_map>
@@ -222,6 +223,15 @@ class DataTable {
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
+
+  /**
+   * @return Approximate heap usage of the table
+   */
+  size_t EstimateHeapUsage() const {
+    // This is a back-of-the-envelope calculation that could be innacurate. It does not account for the delta chain
+    // elements that are actually owned by TransactionContext
+    return blocks_.size() * common::Constants::BLOCK_SIZE;
+  }
 
  private:
   // The ArrowSerializer needs access to its blocks.

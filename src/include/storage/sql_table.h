@@ -1,4 +1,5 @@
 #pragma once
+
 #include <list>
 #include <set>
 #include <string>
@@ -205,6 +206,11 @@ class SqlTable {
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return table_.data_table_->GetNumTuple(); }
+
+  /**
+   * @return Approximate heap usage of the table
+   */
+  size_t EstimateHeapUsage() const { return table_.data_table_->EstimateHeapUsage(); }
 
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
