@@ -277,6 +277,3 @@ wal.log
 
 # JUnit intermediate out directory
 **/junit/out/
-
-# Personal github config file
-_config.yml
