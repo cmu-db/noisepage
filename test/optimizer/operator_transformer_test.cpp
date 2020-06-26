@@ -17,6 +17,7 @@
 #include "optimizer/operator_node.h"
 #include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/plan_generator.h"
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/rules/implementation_rules.h"

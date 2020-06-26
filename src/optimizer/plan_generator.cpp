@@ -12,6 +12,7 @@
 #include "execution/sql/value.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/util.h"

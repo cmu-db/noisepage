@@ -1,5 +1,7 @@
 #pragma once
 
+// THIS HEADER IS HUGE! DO NOT INCLUDE IT IN OTHER HEADERS!
+
 #include <memory>
 #include <string>
 #include <unordered_map>
