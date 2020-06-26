@@ -65,7 +65,6 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param predicates predicates for get
    * @param table_alias alias of table to get from
@@ -708,7 +707,6 @@ class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param columns list of columns to insert into
    * @param values list of expressions that provide the values to insert into columns
@@ -780,7 +778,6 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @return
    */
@@ -897,7 +894,6 @@ class LogicalDelete : public OperatorNodeContents<LogicalDelete> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_alias Alias
    * @param table_oid OID of the table
    * @return
@@ -952,7 +948,6 @@ class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_alias Table's Alias
    * @param table_oid OID of the table
    * @param updates the update clauses from the SET portion of the query
@@ -1771,7 +1766,6 @@ class LogicalDropTrigger : public OperatorNodeContents<LogicalDropTrigger> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param trigger_oid OID of the trigger to be dropped
    * @param if_exists If "IF EXISTS" condition is used
    * @return
@@ -1826,7 +1820,6 @@ class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param view_oid OID of the view to be dropped
    * @param if_exists If "IF EXISTS" condition is used
    * @return

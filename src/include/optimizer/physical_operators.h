@@ -57,7 +57,6 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param predicates predicates for get
    * @param table_alias alias of the table
@@ -136,7 +135,6 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param tbl_oid OID of the table
    * @param index_oid OID of the index
    * @param predicates query predicates
@@ -832,7 +830,6 @@ class Insert : public OperatorNodeContents<Insert> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param columns OIDs of columns to insert into
    * @param values expressions of values to insert
@@ -914,7 +911,6 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param index_oids the OIDs of the indexes to insert into
    * @return an InsertSelect operator
@@ -970,7 +966,6 @@ class Delete : public OperatorNodeContents<Delete> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_alias Alias of the table
    * @param table_oid OID of the table
    * @return an InsertSelect operator
@@ -1103,7 +1098,6 @@ class Update : public OperatorNodeContents<Update> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_alias Table Alias
    * @param table_oid OID of the table
    * @param updates update clause
@@ -1929,7 +1923,6 @@ class DropTrigger : public OperatorNodeContents<DropTrigger> {
  public:
   /**
    * @param database_oid OID of database
-   * @param namespace_oid OID of namespace
    * @param trigger_oid OID of trigger to drop
    * @param if_exists existence flag
    * @return
@@ -1994,7 +1987,6 @@ class DropView : public OperatorNodeContents<DropView> {
  public:
   /**
    * @param database_oid OID of database
-   * @param namespace_oid OID of namespace
    * @param view_oid OID of view to drop
    * @param if_exists existence flag
    * @return

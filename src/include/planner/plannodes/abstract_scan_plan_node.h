@@ -71,7 +71,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param predicate predicate used for performing scan
    * @param is_for_update scan is used for an update
    * @param database_oid database oid for scan
-   * @param namespace_oid OID of the namespace
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
