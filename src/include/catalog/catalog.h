@@ -8,12 +8,13 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "transaction/transaction_context.h"
+#include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
+class TransactionContext;
 class TransactionManager;
-}
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 class GarbageCollector;

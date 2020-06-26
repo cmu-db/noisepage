@@ -1,13 +1,14 @@
 #include "planner/plannodes/insert_plan_node.h"
+
 #include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/json.h"
 #include "parser/expression/constant_value_expression.h"
-#include "storage/sql_table.h"
 
 namespace terrier::planner {
 
