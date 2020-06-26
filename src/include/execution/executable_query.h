@@ -22,11 +22,11 @@ namespace terrier::execution {
 
 namespace ast {
 class Context;
-} // namespace ast
+}  // namespace ast
 
 namespace exec {
 class ExecutionContext;
-} // namespace exec
+}  // namespace exec
 
 namespace vm {
 enum class ExecutionMode : uint8_t;

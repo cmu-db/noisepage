@@ -20,7 +20,7 @@ class RandomSqlTableTransaction;
 
 namespace terrier::catalog {
 class Schema;
-} // namespace terrier::catalog
+}  // namespace terrier::catalog
 
 namespace terrier::storage {
 

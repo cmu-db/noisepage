@@ -16,7 +16,7 @@ namespace parser {
 class ColumnDefinition;
 class CreateStatement;
 class TableRef;
-}
+}  // namespace parser
 
 namespace transaction {
 class TransactionContext;
@@ -25,7 +25,7 @@ class TransactionContext;
 namespace catalog {
 class Catalog;
 class Schema;
-}
+}  // namespace catalog
 
 namespace binder {
 
