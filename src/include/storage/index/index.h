@@ -69,6 +69,11 @@ class Index {
   virtual void PerformGarbageCollection() {}
 
   /**
+   * @return approximate number of bytes allocated on the heap for this index data structure
+   */
+  virtual size_t EstimateHeapUsage() const = 0;
+
+  /**
    * Inserts a new key-value pair into the index, used for non-unique key indexes.
    * @param txn txn context for the calling txn, used to register abort actions
    * @param tuple key
