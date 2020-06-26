@@ -73,12 +73,11 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   DeclareInserter(function);
-  // Declare & Get table PR
+  // var insert_pr : *ProjectedRow
   DeclareInsertPR(function);
-  GetInsertPR(function);
 
   for (uint32_t idx = 0; idx < GetPlanAs<planner::InsertPlanNode>().GetBulkInsertCount(); idx++) {
-    // Get the table PR
+    // var insert_pr = getTablePR(...)
     GetInsertPR(function);
     // Set the table PR
     GenSetTablePR(function, context, idx);

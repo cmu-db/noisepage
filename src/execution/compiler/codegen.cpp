@@ -564,7 +564,7 @@ ast::Expr *CodeGen::VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, u
   return call;
 }
 
-ast::Expr *CodeGen::VPIFilter(ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx, ast::Expr *filter_val,
+ast::Expr *CodeGen::VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx, ast::Expr *filter_val,
                               ast::Expr *tids) {
   // Call @FilterComp(vpi, col_idx, col_type, filter_val)
   ast::Builtin builtin;
@@ -591,7 +591,7 @@ ast::Expr *CodeGen::VPIFilter(ast::Expr *vp, parser::ExpressionType comp_type, u
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("CodeGen: Vector filter type {} from VPI not supported.",
                                                   parser::ExpressionTypeToString(comp_type, true)));
   }
-  ast::Expr *call = CallBuiltin(builtin, {vp, Const32(col_idx), filter_val, tids});
+  ast::Expr *call = CallBuiltin(builtin, {exec_ctx, vp, Const32(col_idx), filter_val, tids});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -600,8 +600,8 @@ ast::Expr *CodeGen::VPIFilter(ast::Expr *vp, parser::ExpressionType comp_type, u
 // Filter Manager
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::FilterManagerInit(ast::Expr *filter_manager) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::FilterManagerInit, {filter_manager});
+ast::Expr *CodeGen::FilterManagerInit(ast::Expr *filter_manager, ast::Expr *exec_ctx) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::FilterManagerInit, {filter_manager, exec_ctx});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -624,8 +624,8 @@ ast::Expr *CodeGen::FilterManagerInsert(ast::Expr *filter_manager,
   return call;
 }
 
-ast::Expr *CodeGen::FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr *vpi) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::FilterManagerRunFilters, {filter_manager, vpi});
+ast::Expr *CodeGen::FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr *vpi, ast::Expr *exec_ctx) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::FilterManagerRunFilters, {filter_manager, vpi, exec_ctx});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

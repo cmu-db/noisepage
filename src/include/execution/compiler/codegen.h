@@ -615,14 +615,15 @@ class CodeGen {
   /**
    * Call @filter[Comparison](). Invokes the vectorized filter on the provided vector projection
    * and column index, populating the results in the provided tuple ID list.
+   * @param exec_ctx The execution context that we are running in.
    * @param vp The vector projection.
    * @param comp_type The comparison type.
    * @param col_idx The index of the column in the vector projection to apply the filter on.
    * @param filter_val The filtering value.
    * @param The TID list.
    */
-  ast::Expr *VPIFilter(ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx, ast::Expr *filter_val,
-                       ast::Expr *tids);
+  ast::Expr *VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx,
+                       ast::Expr *filter_val, ast::Expr *tids);
 
   ast::Expr *PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx);
 
@@ -637,8 +638,9 @@ class CodeGen {
   /**
    * Call @filterManagerInit(). Initialize the provided filter manager instance.
    * @param fm The filter manager pointer.
+   * @param exec_ctx The execution context variable.
    */
-  [[nodiscard]] ast::Expr *FilterManagerInit(ast::Expr *filter_manager);
+  [[nodiscard]] ast::Expr *FilterManagerInit(ast::Expr *filter_manager, ast::Expr *exec_ctx);
 
   /**
    * Call @filterManagerFree(). Destroy and clean up the provided filter manager instance.
@@ -657,8 +659,9 @@ class CodeGen {
    * Call @filterManagerRun(). Runs all filters on the input vector projection iterator.
    * @param fm The filter manager pointer.
    * @param vpi The input vector projection iterator.
+   * @param exec_ctx The execution context.
    */
-  [[nodiscard]] ast::Expr *FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr *vpi);
+  [[nodiscard]] ast::Expr *FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr *vpi, ast::Expr *exec_ctx);
 
   /**
    * Call @execCtxGetMemPool(). Return the memory pool within an execution context.

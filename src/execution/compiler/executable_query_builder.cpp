@@ -26,8 +26,7 @@ class Callbacks : public compiler::Compiler::Callbacks {
 
   void OnError(compiler::Compiler::Phase phase, compiler::Compiler *compiler) override {
     // TODO(WAN): how should we report errors?
-    UNREACHABLE("Figure out how we want to report errors.");
-    // compiler->GetErrorReporter()->PrintErrors(std::cout);
+    EXECUTION_LOG_ERROR(fmt::format("ERROR: {}", compiler->GetErrorReporter()->SerializeErrors()));
   }
 
   void TakeOwnership(std::unique_ptr<vm::Module> module) override { module_ = std::move(module); }

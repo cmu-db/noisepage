@@ -77,6 +77,7 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
     }
     ++(*start_pos);
   }
+  out_buffer->Reset(filled);
 }
 
 // for vectors, take out all the values

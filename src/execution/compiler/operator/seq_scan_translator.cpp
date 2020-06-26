@@ -95,23 +95,26 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
   }
 
   // At this point, we create a term.
-  // Signature: (vp: *VectorProjection, tids: *TupleIdList, ctx: *uint8) -> nil
+  // Signature: (execCtx: *ExecutionContext, vp: *VectorProjection, tids: *TupleIdList, ctx: *uint8) -> nil
   auto *codegen = GetCodeGen();
   auto fn_name = codegen->MakeFreshIdentifier(GetPipeline()->CreatePipelineFunctionName("FilterClause"));
   util::RegionVector<ast::FieldDecl *> params = codegen->MakeFieldList({
+      codegen->MakeField(codegen->MakeIdentifier("execCtx"), codegen->PointerType(ast::BuiltinType::ExecutionContext)),
       codegen->MakeField(codegen->MakeIdentifier("vp"), codegen->PointerType(ast::BuiltinType::VectorProjection)),
       codegen->MakeField(codegen->MakeIdentifier("tids"), codegen->PointerType(ast::BuiltinType::TupleIdList)),
       codegen->MakeField(codegen->MakeIdentifier("context"), codegen->PointerType(ast::BuiltinType::Uint8)),
   });
   FunctionBuilder builder(codegen, fn_name, std::move(params), codegen->Nil());
   {
-    ast::Expr *vector_proj = builder.GetParameterByPosition(0);
-    ast::Expr *tid_list = builder.GetParameterByPosition(1);
+    ast::Expr *exec_ctx = builder.GetParameterByPosition(0);
+    ast::Expr *vector_proj = builder.GetParameterByPosition(1);
+    ast::Expr *tid_list = builder.GetParameterByPosition(2);
     if (parser::ExpressionUtil::IsColumnCompareWithConst(*predicate)) {
       auto cve = predicate->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
       auto const_val = translator->DeriveValue(nullptr, nullptr);
-      builder.Append(codegen->VPIFilter(vector_proj,                     // The vector projection
+      builder.Append(codegen->VPIFilter(exec_ctx,                        // The execution context
+                                        vector_proj,                     // The vector projection
                                         predicate->GetExpressionType(),  // Comparison type
                                         !cve->GetColumnOid(),            // Column index
                                         const_val,                       // Constant value
@@ -164,7 +167,7 @@ void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) c
 
     if (HasPredicate()) {
       auto filter_manager = local_filter_manager_.GetPtr(codegen);
-      function->Append(codegen->FilterManagerRunFilters(filter_manager, vpi));
+      function->Append(codegen->FilterManagerRunFilters(filter_manager, vpi, GetExecutionContext()));
     }
 
     if (!ctx->GetPipeline().IsVectorized()) {
@@ -177,7 +180,7 @@ void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) c
 void SeqScanTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (HasPredicate()) {
     auto *codegen = GetCodeGen();
-    function->Append(codegen->FilterManagerInit(local_filter_manager_.GetPtr(codegen)));
+    function->Append(codegen->FilterManagerInit(local_filter_manager_.GetPtr(codegen), GetExecutionContext()));
     for (const auto &clause : filters_) {
       function->Append(codegen->FilterManagerInsert(local_filter_manager_.GetPtr(codegen), clause));
     }
