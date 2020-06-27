@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "common/macros.h"
+#include "common/version.h"
 #include "network/network_defs.h"
 #include "type/type_id.h"
 
@@ -22,7 +23,7 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
     {"is_superuser", "on"},
     {"server_encoding", "UTF8"},
     {"server_version", "9.5devel"},
-    {"session_authorization", "terrier"},
+    {"session_authorization", NOISEPAGE_NAME},
     {"standard_conforming_strings", "on"},
     {"TimeZone", "US/Eastern"}
 };

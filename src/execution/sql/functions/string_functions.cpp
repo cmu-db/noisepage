@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "common/version.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/bit_util.h"
 
@@ -365,7 +366,7 @@ void StringFunctions::Right(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, String
 
 // TODO(Deepayan): Do we need to print out OS name/version/compiler?
 void StringFunctions::Version(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result) {
-  const char *version = "NoisePage 1.0.0";
+  const char *version = NOISEPAGE_VERSION_STR;
   *result = StringVal(version);
 }
 
