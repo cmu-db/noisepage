@@ -17,16 +17,13 @@ public class RunAllTraceTest {
                 for(File tf : typeFiles){
                     if(tf.getName().contains("output")){
                         String fileDirectory = typeDirectory + "/" + tf.getName();
-                        TracefileT cur = new TracefileT(fileDirectory);
+                        TracefileTestor cur = new TracefileTestor(fileDirectory);
                         System.out.println(fileDirectory);
                         cur.execute();
+                        // TODO:
                     }
                 }
             }
         }
     }
-//    public static void main(String[] args) throws IOException, SQLException {
-//        runTraces();
-//
-//    }
 }

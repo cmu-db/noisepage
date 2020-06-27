@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Test class that dynamically generate test cases for each sql query
  * Specify file path in environment
  */
-public class TracefileT {
+public class TracefileTestor {
     // cmake ..;  build terrier
     private static File file;
     private static MogSqlite mog;
@@ -31,7 +31,7 @@ public class TracefileT {
     private static MogDb db;
     private static Connection conn;
     private static String path;
-    public TracefileT(String input){
+    public TracefileTestor(String input){
         this.path = input;
     }
 
