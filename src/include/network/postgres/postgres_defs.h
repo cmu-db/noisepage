@@ -22,6 +22,7 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
     {"IntervalStyle", "postgres"},
     {"is_superuser", "on"},
     {"server_encoding", "UTF8"},
+    // server_version must be at least 9 for libpqxx
     {"server_version", "9.5devel"},
     {"session_authorization", NOISEPAGE_NAME},
     {"standard_conforming_strings", "on"},
