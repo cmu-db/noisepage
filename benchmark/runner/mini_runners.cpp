@@ -1,9 +1,9 @@
 #include <common/macros.h>
 #include <gflags/gflags.h>
-#include <pqxx/pqxx>
 
 #include <cstdio>
 #include <functional>
+#include <pqxx/pqxx>
 #include <random>
 #include <utility>
 
@@ -27,6 +27,7 @@
 #include "optimizer/query_to_operator_transformer.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
 namespace terrier::runner {
