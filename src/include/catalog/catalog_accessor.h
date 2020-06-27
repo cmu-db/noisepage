@@ -25,6 +25,10 @@ namespace terrier::execution::functions {
 class FunctionContext;
 }
 
+namespace terrier::transaction {
+class TransactionContext;
+}
+
 namespace terrier::catalog {
 class Catalog;
 class DatabaseCatalog;
