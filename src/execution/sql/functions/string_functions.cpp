@@ -364,7 +364,6 @@ void StringFunctions::Right(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, String
   }
 }
 
-// TODO(Deepayan): Do we need to print out OS name/version/compiler?
 void StringFunctions::Version(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result) {
   const char *version = NOISEPAGE_VERSION_STR;
   *result = StringVal(version);
