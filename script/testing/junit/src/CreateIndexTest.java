@@ -107,59 +107,6 @@ public class CreateIndexTest extends TestUtility {
     }
 
     /**
-     * Does a simple create index on a populated table
-     */
-    @Test
-    public void testWriteBlocking() throws SQLException, InterruptedException {
-        String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100);";
-        Statement stmt = conn.createStatement();
-        int num_rows = 500;
-        for (int i = 0; i < num_rows; i++) {
-            stmt.execute(sql);
-        }
-        Thread[] threads = new Thread[NUM_EXTRA_THREADS];
-        for (int i = 0; i < NUM_EXTRA_THREADS; i++) {
-            final Connection conn2 = thread_conn[i];
-            final int i2  = i;
-            thread_conn[i].setAutoCommit(i % 2 == 0);
-            threads[i] = new Thread(() -> {
-                try {
-                    Statement stmt2 = conn2.createStatement();
-                    for (int j = 0; j < num_rows; j++) {
-                        stmt2.execute("INSERT INTO tbl VALUES (3, 4, 200);");
-                    }
-                    if(i2 % 2 == 1) {
-                        conn2.commit();
-                    }
-                } catch(SQLException e) {
-                    DumpSQLException(e);
-                    Assert.fail();
-                }
-            });
-            threads[i].start();
-        }
-        Thread.sleep(100);
-        stmt.execute("CREATE INDEX tbl_ind ON tbl (c2)");
-        for (Thread t : threads) {
-            t.join();
-        }
-        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC");
-        for (int i = 0; i < num_rows; i++) {
-            rs.next();
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
-        }
-        for (int i = 0; i < num_rows * NUM_EXTRA_THREADS; i++) {
-            rs.next();
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 4, 200});
-        }
-        for (int i = 0; i < num_rows; i++) {
-            rs.next();
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 100});
-        }
-        assertNoMoreRows(rs);
-    }
-
-    /**
      * Checks to see if delete propagates to index
      */
     @Test
@@ -197,61 +144,6 @@ public class CreateIndexTest extends TestUtility {
             rs.next();
             checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 102});
         }
-        assertNoMoreRows(rs);
-    }
-
-
-    /**
-     * Checks to see if delete propagates to index
-     */
-    @Test
-    public void testConcurrentDelete() throws SQLException, InterruptedException {
-        String sql = "INSERT INTO tbl VALUES (";
-        Statement stmt = conn.createStatement();
-        int num_rows = 500;
-        for (int i = 0; i < NUM_EXTRA_THREADS * num_rows; i++) {
-            stmt.execute(sql + (i + 5) + ", 2, 100);");
-        }
-
-        Thread[] threads = new Thread[NUM_EXTRA_THREADS];
-        for (int i = 0; i < NUM_EXTRA_THREADS; i++) {
-            final Connection conn2 = thread_conn[i];
-            final int i2 = i;
-            threads[i] = new Thread(() -> {
-                try {
-                    Statement stmt2 = conn2.createStatement();
-                    if(i2 % 2 == 0) {
-                        for (int j = 0; j < num_rows; j++) {
-                            stmt2.execute("INSERT INTO tbl VALUES (3, 4, 200);");
-                        }
-                    } else {
-                        for(int j = 0; j < num_rows; j++) {
-                            stmt2.execute("DELETE FROM tbl WHERE c1 =" + (num_rows * i2 + j + 5));
-                        }
-                    }
-                } catch(SQLException e) {
-                    DumpSQLException(e);
-                    Assert.fail();
-                }
-            });
-            threads[i].start();
-        }
-        Thread.sleep(100);
-        stmt.execute("CREATE INDEX tbl_ind ON tbl (c1)");
-        for (Thread t : threads) {
-            t.join();
-        }
-        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c1 > 0 ORDER BY c1 ASC");
-        for (int i = 0; i < num_rows * ((NUM_EXTRA_THREADS + 1) / 2); i++) {
-            rs.next();
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 4, 200});
-        }
-        for (int i = 0; i < NUM_EXTRA_THREADS * num_rows; i++) {
-            if (i / num_rows % 2 != 0) continue;
-            rs.next();
-            //System.out.println(i + ": " + rs.getInt(1));
-            checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {i + 5, 2, 100});
-}
         assertNoMoreRows(rs);
     }
 
