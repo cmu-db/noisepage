@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "type/type_id.h"
 
 namespace terrier::storage::index {
@@ -19,4 +21,12 @@ enum class IndexKeyKind : uint8_t { COMPACTINTSKEY, GENERICKEY, HASHKEY };
  */
 constexpr std::array<type::TypeId, 4> NUMERIC_KEY_TYPES{type::TypeId::TINYINT, type::TypeId::SMALLINT,
                                                         type::TypeId::INTEGER, type::TypeId::BIGINT};
+
+enum class ScanType : uint8_t {
+  Closed,   /* [low, high] range scan */
+  OpenLow,  /* [begin(), high] range scan */
+  OpenHigh, /* [low, end()] range scan */
+  OpenBoth  /* [begin(), end()] range scan */
+};
+
 }  // namespace terrier::storage::index

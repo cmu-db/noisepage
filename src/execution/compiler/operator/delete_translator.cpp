@@ -3,16 +3,17 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_accessor.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include "storage/index/index.h"
 
 namespace terrier::execution::compiler {
 DeleteTranslator::DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::DELETE),
       op_(op),
       deleter_(codegen->NewIdentifier("deleter")),
-      col_oids_(codegen->NewIdentifier("col_oids")),
-      oids_{1} {}
+      col_oids_(codegen->NewIdentifier("col_oids")) {}
 
 void DeleteTranslator::Produce(FunctionBuilder *builder) {
   DeclareDeleter(builder);
@@ -101,15 +102,8 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::i
 
 void DeleteTranslator::SetOids(FunctionBuilder *builder) {
   // Declare: var col_oids: [num_cols]uint32
-  ast::Expr *arr_type = codegen_->ArrayType(oids_.size(), ast::BuiltinType::Kind::Uint32);
+  ast::Expr *arr_type = codegen_->ArrayType(0, ast::BuiltinType::Kind::Uint32);
   builder->Append(codegen_->DeclareVariable(col_oids_, arr_type, nullptr));
-
-  // For each oid, set col_oids[i] = col_oid
-  for (uint16_t i = 0; i < oids_.size(); i++) {
-    ast::Expr *lhs = codegen_->ArrayAccess(col_oids_, i);
-    ast::Expr *rhs = codegen_->IntLiteral(!oids_[i]);
-    builder->Append(codegen_->Assign(lhs, rhs));
-  }
 }
 
 }  // namespace terrier::execution::compiler

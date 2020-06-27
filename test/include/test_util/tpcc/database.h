@@ -3,16 +3,13 @@
 #include <utility>
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
+#include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "storage/index/index.h"
 
 namespace terrier::storage {
 class SqlTable;
 }  // namespace terrier::storage
-
-namespace terrier::catalog {
-class Schema;
-}
 
 namespace terrier::tpcc {
 

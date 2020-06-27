@@ -185,8 +185,8 @@ namespace terrier::execution::vm {
   F(IntegerToReal, OperandType::Local, OperandType::Local)                                                            \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
-  F(InitTimestampHMSu, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                \
-    OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,            \
+    OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)               \
   F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                             \
   F(InitVarlen, OperandType::Local, OperandType::Local)                                                               \
   F(LessThanBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
@@ -475,6 +475,12 @@ namespace terrier::execution::vm {
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(NpRunnersEmitInt, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                 \
+    OperandType::Local)                                                                                               \
+  F(NpRunnersEmitReal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                \
+    OperandType::Local)                                                                                               \
+  F(NpRunnersDummyInt, OperandType::Local)                                                                            \
+  F(NpRunnersDummyReal, OperandType::Local)                                                                           \
                                                                                                                       \
   /* String functions */                                                                                              \
   F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \

@@ -19,13 +19,9 @@ class StarExpression : public AbstractExpression {
    * Copies this StarExpression
    * @returns this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    // TODO(Tianyu): This really should be a singleton object
-    // ^WAN: jokes on you there's mutable state now and it can't be hahahaha
-    auto expr = std::make_unique<StarExpression>();
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
+  // TODO(Tianyu): This really should be a singleton object
+  // ^WAN: jokes on you there's mutable state now and it can't be hahahaha
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -42,6 +38,6 @@ class StarExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(StarExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(StarExpression);
 
 }  // namespace terrier::parser

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_record.h"

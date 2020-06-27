@@ -8,6 +8,7 @@
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 // TODO(Tianyu): They are included here so they will get compiled and statically analyzed despite not being used
+#include "nlohmann/json.hpp"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"

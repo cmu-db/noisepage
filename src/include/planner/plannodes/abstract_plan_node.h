@@ -8,9 +8,13 @@
 #include <vector>
 
 #include "common/hash_util.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_node_defs.h"
+
+namespace terrier::runner {
+class MiniRunners;
+}
 
 namespace terrier::planner {
 
@@ -204,11 +208,20 @@ class AbstractPlanNode {
   virtual void Accept(common::ManagedPointer<PlanVisitor> v) const = 0;
 
  private:
+  friend class terrier::runner::MiniRunners;
+
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::unique_ptr<OutputSchema> output_schema_;
+
+  void SwapChildren() {
+    // Should only be called from the runners!
+    std::unique_ptr<AbstractPlanNode> left = std::move(children_[0]);
+    children_[0] = std::move(children_[1]);
+    children_[1] = std::move(left);
+  }
 };
 
-DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(AbstractPlanNode);
 
 /**
  * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions

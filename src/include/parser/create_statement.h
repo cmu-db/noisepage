@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "binder/sql_node_visitor.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "loggers/parser_logger.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"

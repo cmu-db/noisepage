@@ -3,6 +3,7 @@
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
 #include "benchmark_util/data_table_benchmark_util.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
@@ -23,13 +24,13 @@ class LoggingBenchmark : public benchmark::Fixture {
   storage::LogManager *log_manager_ = nullptr;
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
+  const std::chrono::microseconds gc_period_{1000};
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(nullptr);
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
-  const std::chrono::microseconds log_serialization_interval_{5};
-  const std::chrono::milliseconds log_persist_interval_{10};
+  const std::chrono::microseconds log_serialization_interval_{100};
+  const std::chrono::microseconds log_persist_interval_{100};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 };
 

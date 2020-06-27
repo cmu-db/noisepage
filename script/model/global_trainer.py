@@ -5,6 +5,7 @@ import argparse
 import pickle
 import logging
 import tqdm
+import random
 from sklearn import model_selection
 
 import model
@@ -82,11 +83,12 @@ class GlobalTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_results_path, ml_models, test_ratio, mini_model_map):
+    def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.ml_models = ml_models
         self.test_ratio = test_ratio
+        self.impact_model_ratio = impact_model_ratio
         self.mini_model_map = mini_model_map
 
     def train(self):
@@ -94,7 +96,8 @@ class GlobalTrainer:
 
         :return: the map of the trained models
         """
-        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path, self.mini_model_map,
+        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path,
+                                                                                      self.mini_model_map,
                                                                                       self.model_results_path)
 
         return self._train_global_models(resource_data_list, impact_data_list)
@@ -127,11 +130,14 @@ class GlobalTrainer:
         # Then train the global impact model
         x = []
         y = []
+        data_len = len(impact_data_list)
+        sample_list = random.sample(range(data_len), k=int(data_len*self.impact_model_ratio))
         # The input feature is (normalized mini model prediction, predicted global resource util, the predicted
         # resource util on the same core that the opunit group runs)
         # The output target is the ratio between the actual resource util (including the elapsed time) and the
         # normalized mini model prediction
-        for d in tqdm.tqdm(impact_data_list, desc="Construct data for the impact model"):
+        for idx in tqdm.tqdm(sample_list, desc="Construct data for the impact model"):
+            d = impact_data_list[idx]
             mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
             predicted_elapsed_us = mini_model_y_pred[data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.resource_data.y_pred,
@@ -169,6 +175,8 @@ if __name__ == '__main__':
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["huber"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
+    aparser.add_argument('--impact_model_ratio', type=float, default=1, help=
+                         'Sample ratio to train the global impact model')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
@@ -178,7 +186,8 @@ if __name__ == '__main__':
 
     with open(args.mini_model_file, 'rb') as pickle_file:
         model_map = pickle.load(pickle_file)
-    trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, model_map)
+    trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
+                            args.impact_model_ratio, model_map)
     resource_model, impact_model = trainer.train()
     with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
         pickle.dump(resource_model, file)

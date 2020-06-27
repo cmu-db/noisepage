@@ -28,13 +28,7 @@ class ConjunctionExpression : public AbstractExpression {
    * Copies ConjunctionExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    std::vector<std::unique_ptr<AbstractExpression>> children;
-    for (const auto &child : GetChildren()) {
-      children.emplace_back(child->Copy());
-    }
-    return CopyWithChildren(std::move(children));
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -43,15 +37,11 @@ class ConjunctionExpression : public AbstractExpression {
    * @returns copy of this with new children
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
-      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    auto expr = std::make_unique<ConjunctionExpression>(GetExpressionType(), std::move(children));
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(ConjunctionExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ConjunctionExpression);
 
 }  // namespace terrier::parser
