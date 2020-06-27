@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/storage_util.h"
 

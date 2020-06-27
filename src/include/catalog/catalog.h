@@ -18,7 +18,8 @@ class TransactionManager;
 
 namespace terrier::storage {
 class GarbageCollector;
-}
+class RecoveryManager;
+}  // namespace terrier::storage
 
 namespace terrier::catalog {
 
