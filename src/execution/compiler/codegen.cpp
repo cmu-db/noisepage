@@ -6,6 +6,8 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/executable_query_builder.h"
+#include "storage/index/index_defs.h"
+
 #include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::compiler {
@@ -356,6 +358,68 @@ ast::Expr *CodeGen::StringToSql(std::string_view str) const {
   return call;
 }
 
+ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_var, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
+                                      ast::Identifier col_oids) {
+  // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
+  ast::Expr *iter_ptr = AddressOf(iter);
+  ast::Expr *num_attrs_expr = Const32(static_cast<int32_t>(num_attrs));
+  ast::Expr *table_oid_expr = Const32(static_cast<int32_t>(table_oid));
+  ast::Expr *index_oid_expr = Const32(static_cast<int32_t>(index_oid));
+  ast::Expr *col_oids_expr = MakeExpr(col_oids);
+  std::vector<ast::Expr *> args
+      {iter_ptr, exec_ctx_var, num_attrs_expr, table_oid_expr, index_oid_expr, col_oids_expr};
+  return CallBuiltin(ast::Builtin::IndexIteratorInit, std::move(args));
+}
+
+ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit) {
+  // @indexIteratorScanKey(&iter)
+  ast::Builtin builtin;
+  bool asc_scan = false;
+  bool use_limit = false;
+  storage::index::ScanType asc_type;
+  switch (scan_type) {
+    case planner::IndexScanType::Exact:
+      builtin = ast::Builtin::IndexIteratorScanKey;
+      break;
+    case planner::IndexScanType::AscendingClosed:
+    case planner::IndexScanType::AscendingOpenHigh:
+    case planner::IndexScanType::AscendingOpenLow:
+    case planner::IndexScanType::AscendingOpenBoth:
+      asc_scan = true;
+      use_limit = true;
+      builtin = ast::Builtin::IndexIteratorScanAscending;
+      if (scan_type == planner::IndexScanType::AscendingClosed)
+        asc_type = storage::index::ScanType::Closed;
+      else if (scan_type == planner::IndexScanType::AscendingOpenHigh)
+        asc_type = storage::index::ScanType::OpenHigh;
+      else if (scan_type == planner::IndexScanType::AscendingOpenLow)
+        asc_type = storage::index::ScanType::OpenLow;
+      else if (scan_type == planner::IndexScanType::AscendingOpenBoth)
+        asc_type = storage::index::ScanType::OpenBoth;
+      break;
+    case planner::IndexScanType::Descending:
+      builtin = ast::Builtin::IndexIteratorScanDescending;
+      break;
+    case planner::IndexScanType::DescendingLimit:
+      use_limit = true;
+      builtin = ast::Builtin::IndexIteratorScanLimitDescending;
+      break;
+    default:
+      UNREACHABLE("Unknown scan type");
+  }
+
+  if (!use_limit && !asc_scan) return CallBuiltin(builtin, {AddressOf(iter)});
+
+//  ast::Expr *fun = BuiltinFunction(builtin);
+  ast::Expr *iter_ptr = AddressOf(iter);
+  std::vector<ast::Expr *> args{iter_ptr};
+
+  if (asc_scan) args.push_back(Const64(static_cast<int64_t>(asc_type)));
+  if (use_limit) args.push_back(Const32(limit));
+
+  return CallBuiltin(builtin, std::move(args));
+}
+
 ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx) {
   // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
@@ -395,8 +459,7 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return CallBuiltin(builtin, {pr, idx_expr});
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                          bool own) {
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::BOOLEAN:

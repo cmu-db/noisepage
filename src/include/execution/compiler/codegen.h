@@ -1,5 +1,7 @@
 #pragma once
 
+#include <planner/plannodes/plan_node_defs.h>
+
 #include <array>
 #include <initializer_list>
 #include <memory>
@@ -552,6 +554,27 @@ class CodeGen {
                                                 ast::Identifier col_oids, ast::Expr *query_state, ast::Expr *tls,
                                                 ast::Identifier worker_name);
 
+  /**
+   * Call indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
+   * @param iter The identifier of the index iterator.
+   * @param num_attrs Number of attributes
+   * @param table_oid The oid of the index's table.
+   * @param index_oid The oid the index.
+   * @param col_oids The identifier of the array of column oids to read.
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_var, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
+                               ast::Identifier col_oids);
+
+  /**
+   * Call IndexIteratorScanType(&iter[, limit])
+   * @param iter The identifier of the index iterator.
+   * @param scan_type The type of scan to perform.
+   * @param limit The limit of the scan in case of limited scans.
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
+
   // -------------------------------------------------------
   //
   // VPI stuff
@@ -627,7 +650,7 @@ class CodeGen {
 
   ast::Expr *PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx);
 
-  ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val, bool own);
+  ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
 
   // -------------------------------------------------------
   //
