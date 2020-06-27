@@ -89,7 +89,7 @@ def _interval_get_mini_runner_data(filename, model_results_path):
         y_list.append(np.average(interval_y_map[rounded_time], axis=0))
         io_util.write_csv_result(prediction_path, rounded_time, np.concatenate((x_list[-1], y_list[-1])))
 
-    return [OpUnitData(OpUnit[file_name.upper()], x, y)]
+    return [OpUnitData(OpUnit[file_name.upper()], np.array(x_list), np.array(y_list))]
 
 
 def _round_to_interval(time, interval):
