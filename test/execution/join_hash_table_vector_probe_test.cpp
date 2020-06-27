@@ -11,6 +11,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/util/hash.h"
 #include "storage/projected_columns.h"
+#include "storage/sql_table.h"
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
 
