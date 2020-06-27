@@ -44,7 +44,7 @@ struct IdxJoinTest : public TerrierTest {
     TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
 
     auto plan = tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult());
-    if (qtype >= network::QueryType::QUERY_CREATE_TABLE) {
+    if (qtype >= network::QueryType::QUERY_CREATE_TABLE && qtype != network::QueryType::QUERY_CREATE_INDEX) {
       result = tcop_->ExecuteCreateStatement(common::ManagedPointer(&context_), common::ManagedPointer(plan), qtype);
       TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
     } else {

@@ -934,18 +934,16 @@ BaseOperatorNodeContents *CreateIndex::Copy() const {
   op->table_oid_ = table_oid_;
   op->index_name_ = index_name_;
   op->schema_ = std::move(schema);
-  op->concurrent_ = concurrent_;
   return op;
 }
 
 Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                           std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema, bool concurrent) {
+                           std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema) {
   auto *op = new CreateIndex();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->index_name_ = std::move(index_name);
   op->schema_ = std::move(schema);
-  op->concurrent_ = concurrent;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 

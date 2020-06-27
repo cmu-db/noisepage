@@ -106,7 +106,6 @@ class DDLExecutors {
 
  private:
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,
-                          const std::string &name, catalog::table_oid_t table, const catalog::IndexSchema &input_schema,
-                          bool concurrent, common::ManagedPointer<transaction::TransactionContext> populate_txn);
+                          const std::string &name, catalog::table_oid_t table, const catalog::IndexSchema &input_schema);
 };
 }  // namespace terrier::execution::sql

@@ -842,7 +842,6 @@ void PlanGenerator::Visit(const CreateIndex *create_index) {
                      .SetTableOid(create_index->GetTableOid())
                      .SetIndexName(create_index->GetIndexName())
                      .SetSchema(std::move(idx_schema))
-                     .SetConcurrent(create_index->GetConcurrent())
                      .Build();
 }
 

@@ -1326,12 +1326,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @param unique If the index to be created should be unique
    * @param index_name Name of the index
    * @param index_attrs Attributes of the index
-   * @param concurrent Whether to allow concurrent modifications to the table while creating the index
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                        parser::IndexType index_type, bool unique, std::string index_name,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs, bool concurrent);
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
 
   /**
    * Copy
@@ -1372,11 +1371,6 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
 
-  /**
-   * @return Whether this create is concurrent
-   */
-  bool GetConcurrent() const { return concurrent_; }
-
  private:
   /**
    * OID of the namespace
@@ -1408,10 +1402,6 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs_;
 
-  /**
-   * Whether this create is concurrent
-   */
-  bool concurrent_ = false;
 };
 
 /**

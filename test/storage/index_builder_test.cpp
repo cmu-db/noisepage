@@ -122,8 +122,9 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
                            .SetKeySchema(index_schema_)
                            .SetSqlTableAndTransactionContext(common::ManagedPointer(index_build_txn), common::ManagedPointer(sql_table_), index_schema_);
   auto index = index_builder.Build();
-  index_builder.BulkInsert(index);
-
+  for (const auto& slot: reference) {
+    index_builder.Insert(common::ManagedPointer<storage::index::Index>(index), slot);
+  }
   txn_manager_->Commit(index_build_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   auto index_scan_txn = txn_manager_->BeginTransaction();
@@ -177,7 +178,9 @@ TEST_F(IndexBuilderTests, ConcurrentCreateIndex) {
                                .SetKeySchema(index_schema_)
                                .SetSqlTableAndTransactionContext(common::ManagedPointer(index_build_txn), common::ManagedPointer(sql_table_), index_schema_);
       new_index = index_builder.Build();
-      index_builder.BulkInsert(new_index);
+      for (const auto& slot: reference) {
+        index_builder.Insert(common::ManagedPointer<storage::index::Index>(new_index), slot);
+      }
 
       txn_manager_->Commit(index_build_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -219,7 +222,6 @@ TEST_F(IndexBuilderTests, ConcurrentCreateIndex) {
   }
 
   EXPECT_EQ(result.size(), num_inserts);
-  std::cerr << "same size" << std::endl;
   EXPECT_EQ(result, reference);
 
   txn_manager_->Commit(index_scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);

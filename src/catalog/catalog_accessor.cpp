@@ -93,9 +93,7 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
   return dbc_->GetTable(txn_, table);
 }
 
-common::ManagedPointer<std::shared_mutex> CatalogAccessor::GetTableLock(table_oid_t table) const {
-  return dbc_->GetTableLock(txn_, table);
-}
+
 
 bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const {
   return dbc_->UpdateSchema(txn_, table, new_schema);
@@ -148,7 +146,7 @@ index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, 
 
 index_oid_t CatalogAccessor::CreateIndexWrapper(namespace_oid_t ns, table_oid_t table, std::string name,
                                                 const IndexSchema &schema) const {
-  auto index_oid = CreateIndex(ns, table, name, schema);
+  auto index_oid = CreateIndex(ns, table, std::move(name), schema);
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(GetIndexSchema(index_oid));
   auto *const index = index_builder.Build();

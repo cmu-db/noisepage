@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -172,7 +173,6 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
 
-  common::ManagedPointer<std::shared_mutex> GetTableLock(table_oid_t table) const;
   common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
@@ -204,10 +204,9 @@ class CatalogAccessor {
   /**
    * A list of all indexes on the given table
    * @param table being queried
-   * @param only_live whether or not to only look for indexes that have been marked as live
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexOids(table_oid_t table, bool only_live = false) const;
+  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
 
   /**
    * Returns index pointers and schemas for every index on a table. Provides much better performance than individual

@@ -106,7 +106,7 @@ bool LogicalGetToPhysicalIndexScan::Check(common::ManagedPointer<AbstractOptimiz
 
   auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
   // Only access live indexes for this check: if we don't have a live index, we can't use it
-  return !accessor->GetIndexOids(get->GetTableOid(), true).empty();
+  return !accessor->GetIndexOids(get->GetTableOid()).empty();
 }
 
 void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
@@ -126,7 +126,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
     // Check if can satisfy sort property with an index
     auto sort_prop = sort->As<PropertySort>();
     if (IndexUtil::CheckSortProperty(sort_prop)) {
-      auto indexes = accessor->GetIndexOids(get->GetTableOid(), true);
+      auto indexes = accessor->GetIndexOids(get->GetTableOid());
       for (auto index : indexes) {
         if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
@@ -144,7 +144,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   // Check whether any index can fulfill predicate predicate evaluation
   if (!get->GetPredicates().empty()) {
     // Find match index for the predicates
-    auto indexes = accessor->GetIndexOids(get->GetTableOid(), true);
+    auto indexes = accessor->GetIndexOids(get->GetTableOid());
     for (auto &index : indexes) {
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
@@ -823,8 +823,7 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
                                                        false);  // is_immediate
 
   auto op = std::make_unique<OperatorNode>(
-      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema),
-                        ci_op->GetConcurrent())
+      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));

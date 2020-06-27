@@ -137,59 +137,6 @@ class DataTable {
   bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
               ProjectedRow *out_buffer) const;
 
-  /**
-   * This class represents what type of delta record we have reached during a version chain traversal
-   */
-  enum class VersionChainType {
-    /**
-     * Represents the value of a column right before an update delta record was applied
-     *
-     * Note that due to the version chain being traversed backwards, this type will be encountered
-     * after POST_UPDATE
-     */
-    PRE_UPDATE,
-
-    /**
-     * Represents the value of a row right after an update delta record was applied
-     *
-     * Note that due to the version chain being traversed backwards, this type will be encountered
-     * before POST_UPDATE
-     */
-    POST_UPDATE,
-
-    /**
-     * Represents the value of a row after an insert delta record was applied
-     */
-    INSERT,
-
-    /**
-     * Represents the value of a row before a delete delta record was applied
-     */
-    DELETE,
-
-    /**
-     * This record is the head of the version chain. This record is logically visible (i.e. present)
-     */
-    VISIBLE,
-
-    /**
-     * This record is the head of the version chain. This record is logically invisible (i.e. deleted)
-     */
-    INVISIBLE
-  };
-
-  /**
-   * Traverses the version chain whose head is at the tuple slot backwards, calling the given lambda at every
-   * delta record. The version chain is traversed until we reconstruct a version which is known to be visible
-   * to every transaction currently active.
-   *
-   * @param slot the head of the version chain
-   * @param out_buffer the location where the current value of the row will be stored when calling the lambda
-   * @param lambda a function to call at each spot in the delta record chain
-   */
-  template <class RowType>
-  void TraverseVersionChain(TupleSlot slot, RowType *out_buffer,
-                            const std::function<void(VersionChainType)> &lambda) const;
 
   // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
   // save a point of scan and come back to it later?

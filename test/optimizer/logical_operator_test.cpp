@@ -1569,7 +1569,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   Operator op1 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, false)
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATEINDEX);
@@ -1584,7 +1584,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   Operator op2 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, false)
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1596,7 +1596,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
           new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9)))};
   auto raw_values_copy = raw_values;
   Operator op3 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy), false)
+                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy))
                      .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op3.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_FALSE(op3 == op1);
@@ -1605,7 +1605,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   auto raw_values_copy2 = raw_values;
   Operator op4 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::move(raw_values_copy2), false)
+                               "index_1", std::move(raw_values_copy2))
           .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op4.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_TRUE(op3 == op4);
@@ -1619,7 +1619,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   auto raw_values_copy3 = raw_values_2;
   Operator op10 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::move(raw_values_copy3), false)
+                               "index_1", std::move(raw_values_copy3))
           .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op10.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
   EXPECT_FALSE(op3 == op10);
@@ -1627,35 +1627,35 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   Operator op5 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, false)
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   Operator op6 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(2), parser::IndexType::BWTREE, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, false)
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
   Operator op7 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::HASH, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, false)
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
   Operator op8 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, false,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, false)
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
 
   Operator op9 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_2", std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, false)
+                               "index_2", std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());

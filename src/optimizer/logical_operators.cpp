@@ -869,8 +869,7 @@ BaseOperatorNodeContents *LogicalCreateIndex::Copy() const { return new LogicalC
 
 Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                                   parser::IndexType index_type, bool unique, std::string index_name,
-                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
-                                  bool concurrent) {
+                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
   auto *op = new LogicalCreateIndex();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
@@ -878,7 +877,6 @@ Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalo
   op->unique_index_ = unique;
   op->index_name_ = std::move(index_name);
   op->index_attrs_ = std::move(index_attrs);
-  op->concurrent_ = concurrent;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 

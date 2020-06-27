@@ -71,7 +71,7 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
 
 catalog::index_oid_t StorageInterface::IndexCreate(catalog::namespace_oid_t ns, std::string index_name,
                                                    const catalog::IndexSchema &schema) {
-  auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns, table_oid_, index_name, schema);
+  auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns, table_oid_, std::move(index_name), schema);
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
@@ -102,7 +102,9 @@ bool StorageInterface::IndexInsertBulk(catalog::index_oid_t index_oid, storage::
   terrier::storage::index::IndexBuilder index_builder;
   index_builder.SetSqlTableAndTransactionContext(exec_ctx_->GetTxn(), table_,
                                                  exec_ctx_->GetAccessor()->GetIndexSchema(index_oid));
-  return index_builder.Insert(exec_ctx_->GetAccessor()->GetIndex(index_oid), table_tuple_slot);
+  auto result =  index_builder.Insert(exec_ctx_->GetAccessor()->GetIndex(index_oid), table_tuple_slot);
+  exec_ctx_->GetAccessor()->SetIndexLive(index_oid);
+  return result;
 }
 
 }  // namespace terrier::execution::sql

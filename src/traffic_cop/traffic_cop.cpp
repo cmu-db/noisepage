@@ -167,37 +167,7 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       }
       break;
     }
-    case network::QueryType::QUERY_CREATE_INDEX: {
-      auto create_index_plan = physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>();
 
-      auto table_oid = create_index_plan->GetTableOid();
-      if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
-        return {ResultType::ERROR,
-                "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction"};
-      }
-      auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
-      table_lock->lock();
-      auto *populate_txn = txn_manager_->BeginTransaction();
-      bool result = execution::sql::DDLExecutors::CreateIndexExecutor(
-          physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
-          common::ManagedPointer(populate_txn));
-      if (populate_txn->MustAbort()) {
-        txn_manager_->Abort(populate_txn);
-      } else {
-        // Set up a blocking callback. Will be invoked when we can tell the client that commit is complete.
-        std::promise<bool> promise;
-        auto future = promise.get_future();
-        TERRIER_ASSERT(future.valid(), "future must be valid for synchronization to work.");
-        txn_manager_->Commit(populate_txn, CommitCallback, &promise);
-        future.wait();
-        TERRIER_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
-      }
-      table_lock->unlock();
-      if (result) {
-        return {ResultType::COMPLETE, 0};
-      }
-      break;
-    }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
@@ -341,13 +311,6 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
                      query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
-
-  //  // Block potential inserts on creating indexes
-  //  std::unordered_set<catalog::table_oid_t> modified_table_oids;
-  //  physical_plan->GetModifiedTables(common::ManagedPointer(&modified_table_oids));
-  //  for (const auto table_oid : modified_table_oids) {
-  //    connection_ctx->Transaction()->LockIfNotLocked(table_oid, connection_ctx->Accessor()->GetTableLock(table_oid));
-  //  }
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...

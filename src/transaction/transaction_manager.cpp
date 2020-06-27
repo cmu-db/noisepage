@@ -109,13 +109,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   }
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
 
-  // Unlock all table locks this transaction may hold
-  for (auto table_lock : txn->held_table_locks_) {
-    table_lock->unlock_shared();
-  }
-  txn->held_table_locks_.clear();
-  txn->held_table_oids_.clear();
-
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
   if (gc_enabled_) {
     common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
@@ -177,13 +170,6 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
     }
   }
 
-  // Unlock all table locks this transaction may hold
-  for (auto table_lock : txn->held_table_locks_) {
-    table_lock->unlock_shared();
-  }
-
-  txn->held_table_locks_.clear();
-  txn->held_table_oids_.clear();
 
   // Now that the in-place versions have been restored, we need to check out an abort timestamp as well. This serves
   // to force the rest of the system to acknowledge the rollback, lest a reader suffers from an a-b-a problem in the

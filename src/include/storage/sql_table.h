@@ -2,7 +2,6 @@
 
 #include <list>
 #include <set>
-#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,13 +40,6 @@ class SqlTable {
   };
 
  public:
-  // TODO(astanesc): replace this with a std::shared_mutex once deadlock is fixed
-  /**
-   * This lock is held by any transaction that has made modifications to the table. If these modifications
-   * are UPDATE/INSERT/DELETEs, then the lock is held in read mode. If the modification is a CREATE INDEX, then the
-   * lock is held in write mode.
-   */
-  std::shared_mutex modify_lock_;
 
   /**
    * Constructs a new SqlTable with the given Schema, using the given BlockStore as the source
@@ -74,21 +66,6 @@ class SqlTable {
   bool Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
               ProjectedRow *const out_buffer) const {
     return table_.data_table_->Select(txn, slot, out_buffer);
-  }
-
-  /**
-   * Traverses the version chain whose head is at the tuple slot backwards, calling the given lambda at every
-   * delta record. The version chain is traversed until we reconstruct a version which is known to be visible
-   * to every transaction currently active.
-   *
-   * @param slot the head of the version chain
-   * @param out_buffer the location where the current value of the row will be stored when calling the lambda
-   * @param lambda a function to call at each spot in the delta record chain
-   */
-  template <class RowType>
-  void TraverseVersionChain(const TupleSlot slot, RowType *const out_buffer,
-                            const std::function<void(DataTable::VersionChainType)> lambda) const {
-    table_.data_table_->TraverseVersionChain(slot, out_buffer, lambda);
   }
 
   /**

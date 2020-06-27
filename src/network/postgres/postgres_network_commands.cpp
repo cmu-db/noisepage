@@ -44,37 +44,10 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
       connection_ctx->Transaction()->SetMustAbort();
       return;
     }
-    if (explicit_txn_block && query_type == network::QueryType::QUERY_CREATE_INDEX &&
-        physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>()->GetConcurrent()) {
-      out->WriteErrorResponse("ERROR:  CREATE INDEX CONCURRENTLY cannot run inside a transaction block");
-      connection_ctx->Transaction()->SetMustAbort();
-      return;
-    }
+
     if (query_type == network::QueryType::QUERY_CREATE_INDEX) {
-      auto create_index_plan = physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>();
-      if (!create_index_plan->GetConcurrent()) {
-        auto table_oid = create_index_plan->GetTableOid();
-        if (connection_ctx->Transaction()->IsTableLocked(table_oid)) {
-          out->WriteErrorResponse(
-              "ERROR:  CREATE INDEX cannot be called with uncommitted modifications to table in same transaction");
-          return;
-        }
-        auto table_lock = connection_ctx->Accessor()->GetTableLock(table_oid);
-        table_lock->lock();
         result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
-
-        // TODO(Wuwen): grab lock for creation
         result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
-        table_lock->unlock();
-        result = {trafficcop::ResultType::COMPLETE, 0};
-
-      } else {
-        // concurrent
-        result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
-
-        result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
-      }
-
     } else {
       result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
     }

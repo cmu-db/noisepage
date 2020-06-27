@@ -1349,7 +1349,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
   }
 
   return std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name,
-                                           std::move(index_attrs), root->concurrent_);
+                                           std::move(index_attrs));
 }
 
 // Postgres.CreateSchemaStmt -> terrier.CreateStatement

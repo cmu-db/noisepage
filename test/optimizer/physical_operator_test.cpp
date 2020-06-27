@@ -1617,7 +1617,7 @@ TEST(OperatorTests, CreateIndexTest) {
       storage::index::IndexType::BWTREE, true, true, true, true);
 
   Operator op1 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema), false)
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema))
           .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::CREATEINDEX);
@@ -1638,7 +1638,7 @@ TEST(OperatorTests, CreateIndexTest) {
           parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op2 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_2), false)
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_2))
           .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1649,7 +1649,7 @@ TEST(OperatorTests, CreateIndexTest) {
           parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op3 =
-      CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1", std::move(idx_schema_3), false)
+      CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1", std::move(idx_schema_3))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
@@ -1660,7 +1660,7 @@ TEST(OperatorTests, CreateIndexTest) {
           parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op4 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2", std::move(idx_schema_4), false)
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2", std::move(idx_schema_4))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
@@ -1671,7 +1671,7 @@ TEST(OperatorTests, CreateIndexTest) {
           parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op5 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5), false)
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
@@ -1686,7 +1686,7 @@ TEST(OperatorTests, CreateIndexTest) {
               parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
   Operator op6 =
-      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_6), false)
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_6))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
