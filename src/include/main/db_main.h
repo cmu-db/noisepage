@@ -8,7 +8,6 @@
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
-#include "common/stat_registry.h"
 #include "execution/execution_util.h"
 #include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
