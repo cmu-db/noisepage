@@ -30,6 +30,7 @@
 #include "optimizer/property_set.h"
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "parser/drop_statement.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "storage/recovery/replication_log_provider.h"
