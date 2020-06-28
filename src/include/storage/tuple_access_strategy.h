@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <vector>
+
 #include "common/container/concurrent_bitmap.h"
 #include "common/macros.h"
 #include "storage/arrow_block_metadata.h"

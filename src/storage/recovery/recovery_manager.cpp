@@ -19,6 +19,8 @@
 #include "common/dedicated_thread_registry.h"
 #include "storage/index/index_builder.h"
 #include "storage/write_ahead_log/log_io.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::storage {
 

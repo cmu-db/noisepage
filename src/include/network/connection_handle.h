@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"

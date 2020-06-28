@@ -5,6 +5,10 @@
 
 #include "catalog/catalog_defs.h"
 
+namespace terrier::parser {
+class AbstractExpression;
+}  // namespace terrier::parser
+
 namespace terrier::planner {
 
 //===--------------------------------------------------------------------===//

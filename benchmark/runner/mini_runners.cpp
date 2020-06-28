@@ -648,7 +648,7 @@ class MiniRunners : public benchmark::Fixture {
   std::unique_ptr<planner::AbstractPlanNode> JoinNonSelfCorrector(
       std::string build_tbl, common::ManagedPointer<transaction::TransactionContext> txn,
       std::unique_ptr<planner::AbstractPlanNode> plan) {
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto build_oid = accessor->GetTableOid(std::move(build_tbl));
 
     if (plan->GetPlanNodeType() != planner::PlanNodeType::HASHJOIN) throw "Expected HashJoin";
@@ -692,7 +692,7 @@ class MiniRunners : public benchmark::Fixture {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
     binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -724,7 +724,7 @@ class MiniRunners : public benchmark::Fixture {
       }
 
       auto txn = txn_manager_->BeginTransaction();
-      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn),
                                                                           execution::exec::NoOpResultConsumer(),
@@ -746,7 +746,7 @@ class MiniRunners : public benchmark::Fixture {
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
     auto qid = MiniRunners::query_id++;
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor));
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
@@ -952,7 +952,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
 
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   auto schema = std::make_unique<planner::OutputSchema>(std::move(cols));
 
   execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
@@ -1113,7 +1113,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   catalog::table_oid_t tbl_oid;
   {
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     tbl_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "tmp_table", tmp_schema);
     auto &schema = accessor->GetSchema(tbl_oid);
     auto *tmp_table = new storage::SqlTable(db_main->GetStorageLayer()->GetBlockStore(), schema);
@@ -1164,7 +1164,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   // Drop the table
   {
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     accessor->DropTable(tbl_oid);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
@@ -1595,7 +1595,7 @@ void InitializeRunnersState() {
   db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), "test_db", true);
 
   // Load the database
-  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid);
+  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                       nullptr, common::ManagedPointer(accessor));
 

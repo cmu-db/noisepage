@@ -7,9 +7,12 @@
 #include "common/shared_latch.h"
 #include "storage/access_observer.h"
 #include "storage/index/index.h"
-#include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/transaction_manager.h"
+
+namespace terrier::transaction {
+class TimestampManager;
+class TransactionManager;
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 
@@ -34,17 +37,9 @@ class GarbageCollector {
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
-  GarbageCollector(const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
-                   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
-                   const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer)
-      : timestamp_manager_(timestamp_manager),
-        deferred_action_manager_(deferred_action_manager),
-        txn_manager_(txn_manager),
-        observer_(observer),
-        last_unlinked_{0} {
-    TERRIER_ASSERT(txn_manager_->GCEnabled(),
-                   "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
-  }
+  GarbageCollector(common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
+                   common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+                   common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer);
 
   ~GarbageCollector() {
     TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");

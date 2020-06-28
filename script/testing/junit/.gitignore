@@ -1,4 +1,2 @@
-
-!Makefile
+# keep the jar files
 !lib/*.jar
-!out/
