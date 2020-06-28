@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "loggers/execution_logger.h"
 #include "parser/expression/constant_value_expression.h"

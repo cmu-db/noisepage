@@ -16,6 +16,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::sql::test {
 
