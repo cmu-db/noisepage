@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 
+// TODO(Deepayan): change back to lower value once all builtins are added
 #define HIGHEST_BUILTIN_PROC_ID proc_oid_t(1000)
 #define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
 

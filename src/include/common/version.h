@@ -4,8 +4,8 @@
 
 namespace terrier::common {
 
-#define NOISEPAGE_NAME "NoisePage"
-#define NOISEPAGE_VERSION "1.0.0"
-#define NOISEPAGE_VERSION_STR "NoisePage 1.0.0"
+constexpr std::string_view NOISEPAGE_NAME = "NoisePage";
+constexpr std::string_view NOISEPAGE_VERSION = "1.0.0";
+constexpr std::string_view NOISEPAGE_VERSION_STR = "NoisePage 1.0.0";
 
 }  // namespace terrier::common
