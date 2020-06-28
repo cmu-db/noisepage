@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/derived_value_expression.h"
@@ -276,9 +277,8 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   // Make different variations of the plan node and make
   // sure that they are not equal
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < 8; i++) {
     catalog::db_oid_t o_db_oid(1);
-    catalog::namespace_oid_t o_ns_oid(2);
     std::string o_file_name = "/home/file.txt";
     char o_delimiter = ',';
     char o_quote = '"';
@@ -292,27 +292,24 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
         o_db_oid = catalog::db_oid_t(999);
         break;
       case 1:
-        o_ns_oid = catalog::namespace_oid_t(3);
-        break;
-      case 2:
         o_file_name = "/home/file2.txt";
         break;
-      case 3:
+      case 2:
         o_delimiter = ' ';
         break;
-      case 4:
+      case 3:
         o_quote = 'q';
         break;
-      case 5:
+      case 4:
         o_escape = '\0';
         break;
-      case 6:
+      case 5:
         o_value_types = {type::TypeId::VARCHAR};
         break;
-      case 7:
+      case 6:
         o_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
         break;
-      case 8:
+      case 7:
         o_update = true;
         break;
     }
