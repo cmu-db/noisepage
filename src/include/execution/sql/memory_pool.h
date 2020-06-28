@@ -164,7 +164,7 @@ class MemoryPoolAllocator {
    * @param ptr array to deallocate
    * @param n size of the array
    */
-  void deallocate(T *ptr, std::size_t n) { memory_->Deallocate(ptr, n); }  // NOLINT
+  void deallocate(T *ptr, std::size_t n) { memory_->Deallocate(ptr, sizeof(T) * n); }  // NOLINT
 
   /**
    * Equality comparison for two memory pools

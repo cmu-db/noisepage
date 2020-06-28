@@ -8,10 +8,11 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/value.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/util.h"
@@ -47,6 +48,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 #include "settings/settings_manager.h"
+#include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
@@ -227,6 +229,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
   builder.SetIndexOid(op->GetIndexOID());
   builder.SetTableOid(tbl_oid);
   builder.SetColumnOids(std::move(column_ids));
+  builder.SetIndexSize(accessor_->GetTable(tbl_oid)->GetNumTuple());
 
   auto type = op->GetIndexScanType();
   builder.SetScanType(type);
@@ -508,6 +511,7 @@ void PlanGenerator::Visit(const InnerIndexJoin *op) {
       .SetIndexOid(op->GetIndexOID())
       .SetTableOid(op->GetTableOID())
       .SetScanType(op->GetScanType())
+      .SetIndexSize(accessor_->GetTable(op->GetTableOID())->GetNumTuple())
       .AddChild(std::move(children_plans_[0]));
 
   for (auto bound : op->GetJoinKeys()) {

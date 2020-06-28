@@ -14,7 +14,7 @@ class ReadBuffer;
 
 // This is to be stashed in a ConnectionContext as a unique identifier. This is really just the socket, but we don't
 // want anyone using it to directly access the socket downstream
-STRONG_TYPEDEF(connection_id_t, uint16_t);
+STRONG_TYPEDEF_HEADER(connection_id_t, uint16_t);
 
 // Number of seconds to timeout on a client read
 #define READ_TIMEOUT (20 * 60)
@@ -71,10 +71,6 @@ enum class NetworkMessageType : unsigned char {
   PG_PARAMETER_DESCRIPTION = 't',
   PG_ROW_DESCRIPTION = 'T',
   PG_DATA_ROW = 'D',
-  // Errors  // TODO(Matt): These should be their own enums. They're field types for ErrorResponse and NoticeResponse,
-  // not message types
-  PG_HUMAN_READABLE_ERROR = 'M',
-  PG_SQLSTATE_CODE_ERROR = 'C',
   // Commands
   PG_EXECUTE_COMMAND = 'E',
   PG_SYNC_COMMAND = 'S',

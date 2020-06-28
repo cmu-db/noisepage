@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t OrderByPlanNode::Hash() const {
@@ -92,5 +94,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJs
   offset_ = j.at("offset").get<size_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(OrderByPlanNode);
 
 }  // namespace terrier::planner

@@ -1,15 +1,14 @@
 #pragma once
+
 #include <list>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "catalog/schema.h"
 #include "storage/data_table.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
-#include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_context.h"
 
@@ -18,6 +17,10 @@ namespace terrier {
 class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
 }  // namespace terrier
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
 
 namespace terrier::storage {
 
@@ -201,6 +204,16 @@ class SqlTable {
    * @return the projection map
    */
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
+
+  /**
+   * @return a coarse estimation on the number of tuples in this table
+   */
+  uint64_t GetNumTuple() const { return table_.data_table_->GetNumTuple(); }
+
+  /**
+   * @return Approximate heap usage of the table
+   */
+  size_t EstimateHeapUsage() const { return table_.data_table_->EstimateHeapUsage(); }
 
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings

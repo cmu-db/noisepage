@@ -17,6 +17,7 @@
 #include "optimizer/operator_node.h"
 #include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/plan_generator.h"
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/rules/implementation_rules.h"
@@ -92,7 +93,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create table A
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a;
     cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
@@ -108,7 +109,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create Table B
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
 
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
@@ -123,7 +124,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create index on a1
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
 
     auto col = catalog::IndexSchema::Column(
         "a1", type::TypeId::INTEGER, true,
@@ -147,7 +148,7 @@ class OperatorTransformerTest : public TerrierTest {
     SetUpTables();
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
     binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
 
     trivial_cost_model_ = std::make_unique<optimizer::TrivialCostModel>();
@@ -206,7 +207,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -231,7 +232,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(insert_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -270,7 +271,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(insert_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -310,7 +311,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(update_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -348,7 +349,7 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -384,7 +385,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -418,7 +419,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -457,7 +458,7 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -496,7 +497,7 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -535,7 +536,7 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -574,7 +575,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -618,7 +619,7 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
@@ -641,7 +642,7 @@ TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
@@ -666,7 +667,7 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
@@ -686,7 +687,7 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
@@ -708,7 +709,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
@@ -731,7 +732,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -751,7 +752,7 @@ TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(delete_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   operator_transformer_ =
@@ -794,7 +795,7 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -818,7 +819,7 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   operator_transformer_ =
@@ -869,7 +870,7 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -888,7 +889,7 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -941,7 +942,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
 
   operator_transformer_ =
@@ -1095,7 +1096,7 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
   auto col_a2_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a2").Oid();
@@ -1194,7 +1195,7 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
 
   operator_transformer_ =
@@ -1282,7 +1283,7 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1333,7 +1334,7 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
 
   operator_transformer_ =
@@ -1414,7 +1415,7 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
 
@@ -1517,7 +1518,7 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1569,7 +1570,7 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1620,7 +1621,7 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1671,7 +1672,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1721,7 +1722,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1771,7 +1772,7 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1821,7 +1822,7 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1870,7 +1871,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
@@ -1927,7 +1928,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));

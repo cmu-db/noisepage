@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "storage/block_layout.h"
+
 namespace terrier::storage {
 ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRow &other) {
   auto *result = reinterpret_cast<ProjectedRow *>(head);

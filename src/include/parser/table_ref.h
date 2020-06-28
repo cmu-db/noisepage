@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "binder/sql_node_visitor.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
@@ -106,7 +106,7 @@ class JoinDefinition {
   common::ManagedPointer<AbstractExpression> condition_;
 };
 
-DEFINE_JSON_DECLARATIONS(JoinDefinition);
+DEFINE_JSON_HEADER_DECLARATIONS(JoinDefinition);
 
 /**
  * Holds references to tables, either via table names or a select statement.
@@ -262,7 +262,7 @@ class TableRef {
   std::unique_ptr<JoinDefinition> join_;
 };
 
-DEFINE_JSON_DECLARATIONS(TableRef);
+DEFINE_JSON_HEADER_DECLARATIONS(TableRef);
 
 }  // namespace parser
 }  // namespace terrier

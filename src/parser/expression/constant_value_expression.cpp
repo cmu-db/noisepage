@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "execution/sql/value.h"
 #include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
@@ -246,7 +247,8 @@ nlohmann::json ConstantValueExpression::ToJson() const {
       }
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY: {
-        j["value"] = Peek<std::string_view>();
+        std::string val{Peek<std::string_view>()};
+        j["value"] = val;
         break;
       }
       default:
@@ -307,6 +309,8 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
 
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(ConstantValueExpression);
 
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Val value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);

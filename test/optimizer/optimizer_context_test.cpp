@@ -1,19 +1,21 @@
+#include "optimizer/optimizer_context.h"
+
 #include <memory>
 #include <stack>
 #include <utility>
 #include <vector>
 
 #include "optimizer/binding.h"
-#include "optimizer/optimizer_context.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/pattern.h"
+#include "optimizer/physical_operators.h"
+#include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_manager.h"
-
-#include "test_util/test_harness.h"
 
 namespace terrier::optimizer {
 

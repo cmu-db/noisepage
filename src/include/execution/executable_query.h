@@ -6,7 +6,6 @@
 #include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "common/strong_typedef.h"
-#include "execution/ast/context.h"
 #include "execution/exec_defs.h"
 #include "execution/vm/module.h"
 
@@ -16,13 +15,18 @@ class AbstractPlanNode;
 
 namespace terrier::runner {
 class MiniRunners;
-}
+class MiniRunners_SEQ0_OutputRunners_Benchmark;
+}  // namespace terrier::runner
 
 namespace terrier::execution {
 
+namespace ast {
+class Context;
+}  // namespace ast
+
 namespace exec {
 class ExecutionContext;
-}
+}  // namespace exec
 
 namespace vm {
 enum class ExecutionMode : uint8_t;
@@ -51,12 +55,13 @@ class ExecutableQuery {
                   common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
   /**
-   * Construct and compile an executable TPL program in the given filename
+   * Construct and compile an executable TPL program from file or source
    *
-   * @param filename The name of the file on disk to compile
+   * @param contents Name of the file or TPL program
    * @param exec_ctx context to execute
+   * @param is_file Whether load from file
    */
-  ExecutableQuery(const std::string &filename, common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+  ExecutableQuery(const std::string &contents, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file);
 
   /**
    *
@@ -91,6 +96,14 @@ class ExecutableQuery {
     return path.substr(found + 1, size - found - 5);
   }
 
+  /**
+   * Set Pipeline Operating Units for use by mini_runners
+   * @param units Pipeline Operating Units
+   */
+  void SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units) {
+    pipeline_operating_units_ = std::move(units);
+  }
+
   // TPL bytecodes for this query.
   std::unique_ptr<vm::Module> tpl_module_ = nullptr;
 
@@ -109,5 +122,6 @@ class ExecutableQuery {
 
   // MiniRunners needs to set query_identifier
   friend class terrier::runner::MiniRunners;
+  friend class terrier::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
 };
 }  // namespace terrier::execution
