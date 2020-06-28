@@ -374,9 +374,6 @@ TEST(OperatorTests, LogicalGetTest) {
   Operator logical_get_01 = LogicalGet::Make(catalog::db_oid_t(2), catalog::table_oid_t(3),
                                              std::vector<AnnotatedExpression>(), "table", false)
                                 .RegisterWithTxnContext(txn_context);
-  Operator logical_get_02 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "table", false)
-                                .RegisterWithTxnContext(txn_context);
   Operator logical_get_03 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(4),
                                              std::vector<AnnotatedExpression>(), "table", false)
                                 .RegisterWithTxnContext(txn_context);
@@ -387,9 +384,6 @@ TEST(OperatorTests, LogicalGetTest) {
       LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", true)
           .RegisterWithTxnContext(txn_context);
   Operator logical_get_1 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", false)
-                               .RegisterWithTxnContext(txn_context);
-  Operator logical_get_2 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false)
                                .RegisterWithTxnContext(txn_context);
   Operator logical_get_3 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
@@ -416,20 +410,16 @@ TEST(OperatorTests, LogicalGetTest) {
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableAlias(), "table");
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
-  EXPECT_TRUE(logical_get_1 == logical_get_2);
   EXPECT_FALSE(logical_get_1 == logical_get_3);
   EXPECT_FALSE(logical_get_1 == logical_get_01);
-  EXPECT_FALSE(logical_get_1 == logical_get_02);
   EXPECT_FALSE(logical_get_1 == logical_get_03);
   EXPECT_FALSE(logical_get_1 == logical_get_04);
   EXPECT_FALSE(logical_get_1 == logical_get_05);
   EXPECT_FALSE(logical_get_1 == logical_get_4);
   EXPECT_FALSE(logical_get_4 == logical_get_5);
   EXPECT_FALSE(logical_get_1 == logical_get_6);
-  EXPECT_EQ(logical_get_1.Hash(), logical_get_2.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_3.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_01.Hash());
-  EXPECT_NE(logical_get_1.Hash(), logical_get_02.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_03.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_04.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_05.Hash());
@@ -2164,11 +2154,6 @@ TEST(OperatorTests, LogicalDropTriggerTest) {
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::trigger_oid_t(1), false)
-                     .RegisterWithTxnContext(txn_context);
-  EXPECT_FALSE(op1 == op4);
-  EXPECT_NE(op1.Hash(), op4.Hash());
-
   Operator op5 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::trigger_oid_t(2), false)
                      .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
@@ -2218,11 +2203,6 @@ TEST(OperatorTests, LogicalDropViewTest) {
       LogicalDropView::Make(catalog::db_oid_t(2), catalog::view_oid_t(1), false).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  Operator op4 =
-      LogicalDropView::Make(catalog::db_oid_t(1), catalog::view_oid_t(1), false).RegisterWithTxnContext(txn_context);
-  EXPECT_FALSE(op1 == op4);
-  EXPECT_NE(op1.Hash(), op4.Hash());
 
   Operator op5 =
       LogicalDropView::Make(catalog::db_oid_t(1), catalog::view_oid_t(2), false).RegisterWithTxnContext(txn_context);
