@@ -7,7 +7,7 @@ import traceback
 
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
-
+# TODO: turn on junit xml report (within xml), merge junit xml files https://gist.github.com/cgoldberg/4320815
 from junit.test_junit import TestJUnit
 
 if __name__ == "__main__":
@@ -25,13 +25,36 @@ if __name__ == "__main__":
 
     args = vars(aparser.parse_args())
 
-    try:
-        junit = TestJUnit(args)
-        exit_code = junit.run()
-    except:
-        print("Exception trying to run junit tests")
-        print("================ Python Error Output ==================")
-        traceback.print_exc(file=sys.stdout)
-        exit_code = 1
+    noise_trace_dir = os.getcwd() + "/noisepage-testfiles/sql_trace/"
+    for test_type in os.listdir(noise_trace_dir):
+        type_dir = noise_trace_dir + test_type
+        if os.path.isdir(type_dir):
+            for file in os.listdir(type_dir):
+                if "output" in file:
+                    path = type_dir + "/" + file
+                    os.environ["path"] = path
+                    print(path)
+                    try:
+                        junit = TestJUnit(args)
+                        exit_code = junit.run()
+                    except:
+                        print("Exception trying to run junit tests")
+                        print("================ Python Error Output ==================")
+                        traceback.print_exc(file=sys.stdout)
+                        exit_code = 1
 
-    sys.exit(exit_code)
+#                     sys.exit(exit_code)
+
+
+
+
+#     try:
+#         junit = TestJUnit(args)
+#         exit_code = junit.run()
+#     except:
+#         print("Exception trying to run junit tests")
+#         print("================ Python Error Output ==================")
+#         traceback.print_exc(file=sys.stdout)
+#         exit_code = 1
+#
+#     sys.exit(exit_code)

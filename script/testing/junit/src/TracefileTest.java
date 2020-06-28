@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Test class that dynamically generate test cases for each sql query
  * Specify file path in environment
  */
-public class TracefileTestor {
+public class TracefileTest {
     // cmake ..;  build terrier
     private static File file;
     private static MogSqlite mog;
@@ -30,23 +30,23 @@ public class TracefileTestor {
     private static final String PASSWORD = "";
     private static MogDb db;
     private static Connection conn;
-    private static String path;
-    public TracefileTestor(String input){
-        this.path = input;
-    }
+//    private static String path;
+//    public TracefileTester(String input){
+//        this.path = input;
+//    }
 
-    public static void execute() throws IOException, SQLException {
-        setUp();
-        Collection<DynamicTest> cl = generateTest();
-        for(DynamicTest cur : cl){
-            try {
-                cur.getExecutable().execute();
-            } catch (Throwable throwable) {
-                throwable.printStackTrace();
-                continue;
-            }
-        }
-    }
+//    public static void execute() throws IOException, SQLException {
+//        setUp();
+//        Collection<DynamicTest> cl = generateTest();
+//        for(DynamicTest cur : cl){
+//            try {
+//                cur.getExecutable().execute();
+//            } catch (Throwable throwable) {
+//                throwable.printStackTrace();
+//                continue;
+//            }
+//        }
+//    }
     /**
      * Set up connection to database
      * Clear previous existing table
@@ -54,17 +54,16 @@ public class TracefileTestor {
      * @throws SQLException
      */
     @BeforeEach
-    public static void setUp() throws FileNotFoundException, SQLException {
+    public void setUp() throws FileNotFoundException, SQLException {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
-        file = new File(path);
-        mog = new MogSqlite(file);
+        System.setProperty("testFile", "src/select1.test");
+
         db = new MogDb(URL, USER, PASSWORD);
-        conn = db.getDbTest().newConn();
-//        conn = TestUtility.makeDefaultConnection();
+//        conn = db.getDbTest().newConn();
+        conn = TestUtility.makeDefaultConnection();
         System.out.println(conn);
         Statement statement = conn.createStatement();
-        List<String> tab = getAllExistingTableName(mog,db);
-        removeExistingTable(tab,db);
+
     }
 
 
@@ -79,7 +78,14 @@ public class TracefileTestor {
      * @throws SQLException
      */
     @TestFactory
-    public static Collection<DynamicTest> generateTest() throws IOException, SQLException {
+    public Collection<DynamicTest> generateTest() throws IOException, SQLException {
+        String path = System.getenv("path");
+        System.out.println("hihihi");
+        System.out.println(path);
+        file = new File(path);
+        mog = new MogSqlite(file);
+        List<String> tab = getAllExistingTableName(mog,db);
+        removeExistingTable(tab,db);
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
@@ -180,8 +186,8 @@ public class TracefileTestor {
         Statement st = conn.createStatement();
         String getTableName = "SELECT tablename FROM pg_tables WHERE schemaname = 'public';";
         String terrier_table = "SELECT relname FROM pg_class WHERE relkind = 114 AND relnamespace = 15;";
-        st.execute(getTableName);
-//        st.execute(terrier_table);
+//        st.execute(getTableName);
+        st.execute(terrier_table);
         ResultSet rs = st.getResultSet();
         List<String> res = mog.processResults(rs);
 //        System.out.println("Current table   "+ res);

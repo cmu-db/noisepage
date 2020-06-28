@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 
-public class RunAllTraceTest {
-    @Test
+public class RunAllTraceTester {
+//    @Test
     public void runTraces() throws IOException, SQLException {
         String curDirectory = System.getProperty("user.dir");
         String traceDirectory = curDirectory + "/noisepage-testfiles/sql_trace";
@@ -17,9 +17,11 @@ public class RunAllTraceTest {
                 for(File tf : typeFiles){
                     if(tf.getName().contains("output")){
                         String fileDirectory = typeDirectory + "/" + tf.getName();
-                        TracefileTestor cur = new TracefileTestor(fileDirectory);
+//                        TracefileTester cur = new TracefileTester(fileDirectory);
+                        TracefileTest temp = new TracefileTest();
+
                         System.out.println(fileDirectory);
-                        cur.execute();
+//                        cur.execute();
                         // TODO:
                     }
                 }
