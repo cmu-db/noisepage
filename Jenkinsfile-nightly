@@ -1,0 +1,77 @@
+OLTP_TERMINALS = ['1','2','4','8','16']
+
+pipeline {
+    agent none
+
+    options {
+        buildDiscarder(logRotator(daysToKeepStr: '30'))
+        parallelsAlwaysFailFast()
+    }
+
+    triggers {
+        cron('H H(2-3) * * *')
+    }
+
+    stages {
+        stage('Performance') {
+            agent { label 'benchmark' }
+            steps {
+                loop_terminals_run_oltp(OLTP_TERMINALS)
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
+
+        stage('Microbenchmark') {
+            agent { label 'benchmark' }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh all'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
+                // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
+                //  # of Threads: 4
+                //  WAL Path: Ramdisk
+                sh 'cd script/micro_bench && ./run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
+                archiveArtifacts 'script/micro_bench/*.json'
+                junit 'script/micro_bench/*.xml'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
+    }
+    
+}
+
+def loop_terminals_run_oltp(list){
+    sh 'echo $NODE_NAME'
+    sh 'echo y | sudo ./script/installation/packages.sh all'
+    sh 'mkdir build'
+    sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
+    // for all the nightly benchmarks, we scale the number of terminals: 1,2,4,8,16
+    for(int i=0; i < list.size(); i++){
+        // tatp/smallbank/noop/ycsb are running with the default config: --scale-factor=1
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release \
+                                --loader-threads=4 --client-time=60 --terminals=${list[i]}"
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release \
+                                --loader-threads=4 --client-time=60 --terminals=${list[i]}"
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release \
+                                --client-time=60 --terminals=${list[i]}"
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=release \
+                                --loader-threads=4 --client-time=60 --terminals=${list[i]}"
+        // for TPC-C, --scale-factor=4
+        sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release \
+                                --loader-threads=4 --scale-factor=4 --client-time=60 --terminals=${list[i]}"
+    }
+    // Run TATP benchmark with six terminals for 10 minutes
+    sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release \
+                                --loader-threads=4 --client-time=600 --terminals=6"
+
+    archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
+}

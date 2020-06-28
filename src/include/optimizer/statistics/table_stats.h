@@ -107,25 +107,12 @@ class TableStats {
    * Serializes a table stats object
    * @return table stats object serialized to json
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["database_id"] = database_id_;
-    j["table_id"] = table_id_;
-    j["num_rows"] = num_rows_;
-    j["is_base_table"] = is_base_table_;
-    return j;
-  }
-
+  nlohmann::json ToJson() const;
   /**
    * Deserializes a table stats object
    * @param j - serialized table stats object
    */
-  void FromJson(const nlohmann::json &j) {
-    database_id_ = j.at("database_id").get<catalog::db_oid_t>();
-    table_id_ = j.at("table_id").get<catalog::table_oid_t>();
-    num_rows_ = j.at("num_rows").get<size_t>();
-    is_base_table_ = j.at("is_base_table").get<bool>();
-  }
+  void FromJson(const nlohmann::json &j);
 
  private:
   /**
@@ -153,5 +140,5 @@ class TableStats {
    */
   std::unordered_map<catalog::col_oid_t, std::unique_ptr<ColumnStats>> column_stats_;
 };
-DEFINE_JSON_DECLARATIONS(TableStats)
+DEFINE_JSON_HEADER_DECLARATIONS(TableStats);
 }  // namespace terrier::optimizer

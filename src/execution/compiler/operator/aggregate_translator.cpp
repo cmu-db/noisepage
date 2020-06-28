@@ -18,7 +18,7 @@ void AggregateBottomTranslator::InitializeStructs(util::RegionVector<ast::Decl *
   // Declare the values struct.
   helper_.GenValuesStruct(decls);
   // Declare the struct of each distinct aggregate.
-  helper_.GenAHTStructs(decls);
+  helper_.GenAHTStructs(&struct_decl_, decls);
 }
 
 void AggregateBottomTranslator::InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) {

@@ -96,6 +96,6 @@ class DropDatabasePlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(DropDatabasePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DropDatabasePlanNode);
 
 }  // namespace terrier::planner

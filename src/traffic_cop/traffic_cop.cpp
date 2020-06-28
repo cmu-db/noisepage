@@ -7,9 +7,11 @@
 #include <vector>
 
 #include "binder/bind_node_visitor.h"
+#include "binder/binder_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
-#include "common/exception.h"
+#include "common/error/error_data.h"
+#include "common/error/exception.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/executable_query.h"
@@ -46,7 +48,8 @@ void TrafficCop::BeginTransaction(const common::ManagedPointer<network::Connecti
                  "Invalid ConnectionContext state, already in a transaction.");
   const auto txn = txn_manager_->BeginTransaction();
   connection_ctx->SetTransaction(common::ManagedPointer(txn));
-  connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid()));
+  connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid(),
+                                                    connection_ctx->GetCatalogCache()));
 }
 
 void TrafficCop::EndTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -90,14 +93,16 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::FAIL,
                      "We're in an aborted state. This should have been caught already before calling this function.");
       if (explicit_txn_block) {
-        out->WriteNoticeResponse("WARNING:  there is already a transaction in progress");
+        out->WriteError({common::ErrorSeverity::WARNING, "there is already a transaction in progress",
+                         common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
         break;
       }
       break;
     }
     case network::QueryType::QUERY_COMMIT: {
       if (!explicit_txn_block) {
-        out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
+        out->WriteError({common::ErrorSeverity::WARNING, "there is no transaction in progress",
+                         common::ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION});
         break;
       }
       if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL) {
@@ -110,7 +115,8 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
     }
     case network::QueryType::QUERY_ROLLBACK: {
       if (!explicit_txn_block) {
-        out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
+        out->WriteError({common::ErrorSeverity::WARNING, "there is no transaction in progress",
+                         common::ErrorCode::ERRCODE_NO_ACTIVE_SQL_TRANSACTION});
         break;
       }
       EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);
@@ -175,11 +181,16 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       break;
     }
     default: {
-      return {ResultType::ERROR, "ERROR:  unsupported CREATE statement type"};
+      return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "unsupported CREATE statement type",
+                                                   common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED)};
     }
   }
   connection_ctx->Transaction()->SetMustAbort();
-  return {ResultType::ERROR, "ERROR:  failed to execute CREATE"};
+  // TODO(Matt): get more verbose failure info out of the catalog and DDL executors. I think at this point, if it's past
+  // binding, the only thing you could fail on is a conflict with a DDL change you already made in this txn or failure
+  // to acquire DDL lock?
+  return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "failed to execute CREATE",
+                                               common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
 }
 
 TrafficCopResult TrafficCop::ExecuteDropStatement(
@@ -224,23 +235,31 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       break;
     }
     default: {
-      return {ResultType::ERROR, "ERROR:  unsupported DROP statement type"};
+      return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "unsupported DROP statement type",
+                                                   common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED)};
     }
   }
   connection_ctx->Transaction()->SetMustAbort();
-  return {ResultType::ERROR, "ERROR:  failed to execute DROP"};
+  // TODO(Matt): get more verbose failure info out of the catalog and DDL executors. I think at this point, if it's past
+  // binding, the only thing you could fail on is a conflict with a DDL change you already made in this txn or failure
+  // to acquire DDL lock?
+  return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "failed to execute DROP",
+                                               common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
 }
 
-std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
+std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(
     const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
-  std::unique_ptr<parser::ParseResult> parse_result;
+  std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> result;
   try {
-    parse_result = parser::PostgresParser::BuildParseTree(query);
-  } catch (...) {
-    // Failed to parse
-    // TODO(Matt): handle this in some more verbose manner for the client (return more state)
+    auto parse_result = parser::PostgresParser::BuildParseTree(query);
+    result.emplace<std::unique_ptr<parser::ParseResult>>(std::move(parse_result));
+  } catch (const ParserException &e) {
+    common::ErrorData error(common::ErrorSeverity::ERROR, std::string(e.what()),
+                            common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+    error.AddField(common::ErrorField::POSITION, std::to_string(e.GetCursorPos()));
+    result.emplace<common::ErrorData>(std::move(error));
   }
-  return parse_result;
+  return result;
 }
 
 TrafficCopResult TrafficCop::BindQuery(
@@ -249,19 +268,39 @@ TrafficCopResult TrafficCop::BindQuery(
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
+
   try {
-    binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
-    visitor.BindNameToNode(statement->ParseResult(), parameters);
-  } catch (...) {
+    if (statement->PhysicalPlan() == nullptr || !UseQueryCache()) {
+      // it's not cached, bind it
+      binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
+      if (parameters != nullptr && !parameters->empty()) {
+        std::vector<type::TypeId> desired_param_types(
+            parameters->size());  // default construction of values is fine, Binding will overwrite it
+        visitor.BindNameToNode(statement->ParseResult(), parameters, common::ManagedPointer(&desired_param_types));
+        statement->SetDesiredParamTypes(std::move(desired_param_types));
+      } else {
+        visitor.BindNameToNode(statement->ParseResult(), nullptr, nullptr);
+      }
+    } else {
+      // it's cached. use the desired_param_types to fast-path the binding
+      binder::BinderUtil::PromoteParameters(parameters, statement->GetDesiredParamTypes());
+    }
+  } catch (BinderException &e) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
     // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
     if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
          statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-      return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
+      return {ResultType::NOTICE, common::ErrorData(common::ErrorSeverity::NOTICE,
+                                                    "binding failed with an IF EXISTS clause, skipping statement",
+                                                    common::ErrorCode::ERRCODE_SUCCESSFUL_COMPLETION)};
     }
-    return {ResultType::ERROR, "ERROR:  binding failed"};
+    auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
+    error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
+    error.AddField(common::ErrorField::FILE, e.GetFile());
+    return {ResultType::ERROR, error};
   }
+
   return {ResultType::COMPLETE, 0};
 }
 
@@ -336,7 +375,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
   // etc.) I suspect we would stash that in the ExecutionContext.
-  return {ResultType::ERROR, "Query failed."};
+  return {ResultType::ERROR,
+          common::ErrorData(common::ErrorSeverity::ERROR, "Query failed.", common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
@@ -351,7 +391,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
   }
 
   const auto ns_oid =
-      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)
+      catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED)
           ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(static_cast<uint16_t>(connection_id)));
   if (ns_oid == catalog::INVALID_NAMESPACE_OID) {
     // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
@@ -368,7 +408,7 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   TERRIER_ASSERT(db_oid != catalog::INVALID_DATABASE_OID, "Called DropTempNamespace() with an invalid database oid.");
   TERRIER_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID, "Called DropTempNamespace() with an invalid namespace oid.");
   auto *const txn = txn_manager_->BeginTransaction();
-  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
   TERRIER_ASSERT(db_accessor != nullptr, "Catalog failed to provide a CatalogAccessor. Was the db_oid still valid?");
 

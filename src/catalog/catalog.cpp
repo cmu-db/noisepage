@@ -6,13 +6,17 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_cache.h"
 #include "catalog/database_catalog.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_database.h"
+#include "storage/index/index.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::catalog {
@@ -201,10 +205,17 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(
 }
 
 std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                                      db_oid_t database) {
+                                                      db_oid_t database,
+                                                      const common::ManagedPointer<CatalogCache> cache) {
   auto dbc = this->GetDatabaseCatalog(common::ManagedPointer(txn), database);
   if (dbc == nullptr) return nullptr;
-  return std::make_unique<CatalogAccessor>(common::ManagedPointer(this), dbc, txn);
+  if (cache != DISABLED) {
+    const auto last_ddl_change = dbc->write_lock_.load();
+    const bool invalidate_cache = transaction::TransactionUtil::Committed(last_ddl_change) &&
+                                  transaction::TransactionUtil::NewerThan(last_ddl_change, cache->OldestEntry());
+    if (invalidate_cache) cache->Reset(txn->StartTime());
+  }
+  return std::make_unique<CatalogAccessor>(common::ManagedPointer(this), dbc, txn, cache);
 }
 
 bool Catalog::CreateDatabaseEntry(const common::ManagedPointer<transaction::TransactionContext> txn, const db_oid_t db,

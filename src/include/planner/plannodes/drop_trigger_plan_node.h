@@ -178,6 +178,6 @@ class DropTriggerPlanNode : public AbstractPlanNode {
   bool if_exists_;
 };
 
-DEFINE_JSON_DECLARATIONS(DropTriggerPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DropTriggerPlanNode);
 
 }  // namespace terrier::planner
