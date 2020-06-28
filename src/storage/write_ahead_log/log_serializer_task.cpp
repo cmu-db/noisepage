@@ -40,20 +40,23 @@ void LogSerializerTask::LogSerializerTaskLoop() {
     // If Process did not find any new buffers, we perform exponential back-off to reduce our rate of polling for new
     // buffers. We cap the maximum back-off, since in the case of large gaps of no txns, we don't want to unboundedly
     // sleep
-    curr_sleep = std::min(Process().second > 0 ? serialization_interval_ : curr_sleep * 2, max_sleep);
+    std::tie(num_bytes, num_records) = Process();
+    curr_sleep = std::min(num_records > 0 ? serialization_interval_ : curr_sleep * 2, max_sleep);
 
     if (common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING)) {
-      if (common::thread_context.resource_tracker_.IsRunning()) {
-        // Stop the resource tracker for this operating unit
-        common::thread_context.resource_tracker_.Stop();
-        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-        common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records,
-                                                                    serialization_interval_.count(), resource_metrics);
+      if (num_records > 0) {
+        if (common::thread_context.resource_tracker_.IsRunning()) {
+          // Stop the resource tracker for this operating unit
+          common::thread_context.resource_tracker_.Stop();
+          auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+          common::thread_context.metrics_store_->RecordSerializerData(
+              num_bytes, num_records, serialization_interval_.count(), resource_metrics);
+        }
+        num_bytes = num_records = 0;
+        // start the operating unit resource tracker
+        common::thread_context.resource_tracker_.Start();
       }
-      num_bytes = num_records = 0;
-      // start the operating unit resource tracker
-      common::thread_context.resource_tracker_.Start();
     }
   } while (run_task_);
   // To be extra sure we processed everything
