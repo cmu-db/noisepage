@@ -16,6 +16,7 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
+#include "parser/statements.h"
 #include "storage/garbage_collector.h"
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
