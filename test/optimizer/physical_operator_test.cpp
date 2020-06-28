@@ -83,9 +83,6 @@ TEST(OperatorTests, SeqScanTest) {
   Operator seq_scan_01 =
       SeqScan::Make(catalog::db_oid_t(2), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", false)
           .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_02 =
-      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", false)
-          .RegisterWithTxnContext(txn_context);
   Operator seq_scan_03 =
       SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), std::vector<AnnotatedExpression>(), "table", false)
           .RegisterWithTxnContext(txn_context);
@@ -126,7 +123,6 @@ TEST(OperatorTests, SeqScanTest) {
   EXPECT_TRUE(seq_scan_1 == seq_scan_2);
   EXPECT_FALSE(seq_scan_1 == seq_scan_3);
   EXPECT_FALSE(seq_scan_1 == seq_scan_01);
-  EXPECT_FALSE(seq_scan_1 == seq_scan_02);
   EXPECT_FALSE(seq_scan_1 == seq_scan_03);
   EXPECT_FALSE(seq_scan_1 == seq_scan_04);
   EXPECT_FALSE(seq_scan_1 == seq_scan_05);
@@ -136,7 +132,6 @@ TEST(OperatorTests, SeqScanTest) {
   EXPECT_EQ(seq_scan_1.Hash(), seq_scan_2.Hash());
   EXPECT_NE(seq_scan_1.Hash(), seq_scan_3.Hash());
   EXPECT_NE(seq_scan_1.Hash(), seq_scan_01.Hash());
-  EXPECT_NE(seq_scan_1.Hash(), seq_scan_02.Hash());
   EXPECT_NE(seq_scan_1.Hash(), seq_scan_03.Hash());
   EXPECT_NE(seq_scan_1.Hash(), seq_scan_04.Hash());
   EXPECT_NE(seq_scan_1.Hash(), seq_scan_05.Hash());
@@ -188,10 +183,6 @@ TEST(OperatorTests, IndexScanTest) {
   Operator index_scan_01 = IndexScan::Make(catalog::db_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
                                            std::vector<AnnotatedExpression>(), false, type, {})
                                .RegisterWithTxnContext(txn_context);
-  // different from index_scan_1 in namespace OID
-  Operator index_scan_02 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), false, type, {})
-                               .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in index OID
   Operator index_scan_03 = IndexScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::index_oid_t(4),
                                            std::vector<AnnotatedExpression>(), false, type, {})
@@ -238,7 +229,6 @@ TEST(OperatorTests, IndexScanTest) {
   EXPECT_TRUE(index_scan_1 == index_scan_2);
   EXPECT_FALSE(index_scan_1 == index_scan_3);
   EXPECT_FALSE(index_scan_1 == index_scan_01);
-  EXPECT_FALSE(index_scan_1 == index_scan_02);
   EXPECT_FALSE(index_scan_1 == index_scan_03);
   EXPECT_FALSE(index_scan_1 == index_scan_04);
   EXPECT_FALSE(index_scan_1 == index_scan_05);
@@ -248,7 +238,6 @@ TEST(OperatorTests, IndexScanTest) {
   EXPECT_EQ(index_scan_1.Hash(), index_scan_2.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_3.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_01.Hash());
-  EXPECT_NE(index_scan_1.Hash(), index_scan_02.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_03.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_04.Hash());
   EXPECT_NE(index_scan_1.Hash(), index_scan_05.Hash());
@@ -2152,11 +2141,6 @@ TEST(OperatorTests, DropTriggerTest) {
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 =
-      DropTrigger::Make(catalog::db_oid_t(1), catalog::trigger_oid_t(1), false).RegisterWithTxnContext(txn_context);
-  EXPECT_FALSE(op1 == op4);
-  EXPECT_NE(op1.Hash(), op4.Hash());
-
   Operator op5 =
       DropTrigger::Make(catalog::db_oid_t(1), catalog::trigger_oid_t(2), false).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
@@ -2191,7 +2175,6 @@ TEST(OperatorTests, DropViewTest) {
   EXPECT_EQ(op1.GetOpType(), OpType::DROPVIEW);
   EXPECT_EQ(op1.GetName(), "DropView");
   EXPECT_EQ(op1.GetContentsAs<DropView>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(op1.GetContentsAs<DropView>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
   EXPECT_EQ(op1.GetContentsAs<DropView>()->GetViewOid(), catalog::view_oid_t(1));
   EXPECT_FALSE(op1.GetContentsAs<DropView>()->IsIfExists());
 
@@ -2204,11 +2187,6 @@ TEST(OperatorTests, DropViewTest) {
       DropView::Make(catalog::db_oid_t(2), catalog::view_oid_t(1), false).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  Operator op4 =
-      DropView::Make(catalog::db_oid_t(1), catalog::view_oid_t(1), false).RegisterWithTxnContext(txn_context);
-  EXPECT_FALSE(op1 == op4);
-  EXPECT_NE(op1.Hash(), op4.Hash());
 
   Operator op5 =
       DropView::Make(catalog::db_oid_t(1), catalog::view_oid_t(2), false).RegisterWithTxnContext(txn_context);

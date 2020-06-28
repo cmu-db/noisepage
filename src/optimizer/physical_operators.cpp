@@ -1250,7 +1250,6 @@ Operator DropView::Make(catalog::db_oid_t database_oid, catalog::view_oid_t view
 common::hash_t DropView::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
   return hash;
@@ -1261,8 +1260,7 @@ bool DropView::operator==(const BaseOperatorNodeContents &r) {
   const DropView &node = *dynamic_cast<const DropView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (view_oid_ != node.view_oid_) return false;
-  if (if_exists_ != node.if_exists_) return false;
-  return node.namespace_oid_ == namespace_oid_;
+  return if_exists_ == node.if_exists_;
 }
 
 //===--------------------------------------------------------------------===//
