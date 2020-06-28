@@ -52,7 +52,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   ProcessDeferredActions(oldest_txn);
   ProcessIndexes();
 
-  if (gc_metrics_enabled) {
+  if ((txns_deallocated > 0 || txns_unlinked > 0) && gc_metrics_enabled) {
     if (common::thread_context.resource_tracker_.IsRunning()) {
       // Stop the resource tracker for this operating unit
       common::thread_context.resource_tracker_.Stop();

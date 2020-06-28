@@ -43,20 +43,18 @@ void LogSerializerTask::LogSerializerTaskLoop() {
     std::tie(num_bytes, num_records) = Process();
     curr_sleep = std::min(num_records > 0 ? serialization_interval_ : curr_sleep * 2, max_sleep);
 
-    if (common::thread_context.metrics_store_ != nullptr &&
+    if (num_records > 0 && common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING)) {
-      if (num_records > 0) {
-        if (common::thread_context.resource_tracker_.IsRunning()) {
-          // Stop the resource tracker for this operating unit
-          common::thread_context.resource_tracker_.Stop();
-          auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-          common::thread_context.metrics_store_->RecordSerializerData(
-              num_bytes, num_records, serialization_interval_.count(), resource_metrics);
-        }
-        num_bytes = num_records = 0;
-        // start the operating unit resource tracker
-        common::thread_context.resource_tracker_.Start();
+      if (common::thread_context.resource_tracker_.IsRunning()) {
+        // Stop the resource tracker for this operating unit
+        common::thread_context.resource_tracker_.Stop();
+        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+        common::thread_context.metrics_store_->RecordSerializerData(
+            num_bytes, num_records, serialization_interval_.count(), resource_metrics);
       }
+      num_bytes = num_records = 0;
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
     }
   } while (run_task_);
   // To be extra sure we processed everything
