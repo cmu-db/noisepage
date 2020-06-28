@@ -62,6 +62,7 @@ public class TracefileTest {
 //        conn = db.getDbTest().newConn();
         conn = TestUtility.makeDefaultConnection();
         System.out.println(conn);
+        System.out.println("lolololol");
         Statement statement = conn.createStatement();
 
     }
