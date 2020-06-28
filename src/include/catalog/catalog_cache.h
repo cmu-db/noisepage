@@ -6,6 +6,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
 class SqlTable;

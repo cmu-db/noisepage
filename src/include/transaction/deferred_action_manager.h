@@ -10,8 +10,6 @@
 
 namespace terrier::transaction {
 
-constexpr uint8_t MIN_GC_INVOCATIONS = 3;
-
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
  */

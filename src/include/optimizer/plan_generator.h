@@ -34,6 +34,10 @@ namespace transaction {
 class TransactionContext;
 }  // namespace transaction
 
+namespace planner {
+enum class AggregateStrategyType;
+}
+
 namespace optimizer {
 
 class PropertySet;

@@ -7,23 +7,25 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog.h"
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
-#include "parser/create_statement.h"
 
 namespace terrier {
 
 namespace parser {
+struct ColumnDefinition;
+class CreateStatement;
 class TableRef;
-}
+}  // namespace parser
 
 namespace transaction {
 class TransactionContext;
 }
 
 namespace catalog {
+class Catalog;
 class Schema;
-}
+}  // namespace catalog
 
 namespace binder {
 

@@ -5,6 +5,8 @@
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
+#include "execution/execution_util.h"
+
 namespace terrier {
 
 void DBMain::Run() {
@@ -28,5 +30,9 @@ void DBMain::ForceShutdown() {
 }
 
 DBMain::~DBMain() { ForceShutdown(); }
+
+DBMain::ExecutionLayer::ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
+
+DBMain::ExecutionLayer::~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
 
 }  // namespace terrier
