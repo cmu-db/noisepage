@@ -94,7 +94,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, Runner)(benchmark::State &state) 
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State &state) {
-  const auto interval = std::chrono::microseconds(static_cast<uint32_t>(state.range(0)));
+  const auto config_interval = std::chrono::microseconds(static_cast<uint32_t>(state.range(0)));
   const auto txn_length = static_cast<uint32_t>(state.range(1));
   const auto txn_interval = static_cast<uint32_t>(state.range(2));
   const auto num_thread = static_cast<uint32_t>(state.range(3));
@@ -119,7 +119,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, interval, interval,
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, config_interval, config_interval,
                                 log_persist_threshold_, common::ManagedPointer(&buffer_pool),
                                 common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
@@ -134,7 +134,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), interval * 10,
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), config_interval * 10,
                                                      common::ManagedPointer(metrics_manager));
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
@@ -171,19 +171,19 @@ static void UNUSED_ATTRIBUTE EnumeratedArguments(benchmark::internal::Benchmark 
 }
 
 static void UNUSED_ATTRIBUTE LoggingGCArguments(benchmark::internal::Benchmark *b) {
-  std::vector<uint32_t> intervals = {10, 100, 1000};
-  std::vector<uint32_t> txn_lengths = {1, 2, 4};
+  std::vector<uint32_t> config_intervals = {10, 100, 1000};
+  std::vector<uint32_t> txn_lengths = {1, 5, 10};
   // submit interval between two transactions (us)
-  std::vector<uint32_t> txn_intervals = {1, 10, 100, 1000};
-  std::vector<uint32_t> num_threads = {4};
+  std::vector<uint32_t> txn_intervals = {1, 10, 100, 1000, 3000, 5000};
+  std::vector<uint32_t> num_threads = {1};
 
-  for (uint32_t interval : intervals)
+  for (uint32_t config_interval : config_intervals)
     for (uint32_t txn_length : txn_lengths)
       for (uint32_t txn_interval : txn_intervals)
         for (uint32_t num_thread : num_threads)
           for (uint32_t insert = 0; insert <= 10; insert += 10)
             for (uint32_t update = 0; update <= 100 - insert; update += 50) {
-              b->Args({interval, txn_length, txn_interval, num_thread, insert, update, 100 - insert - update});
+              b->Args({config_interval, txn_length, txn_interval, num_thread, insert, update, 100 - insert - update});
             }
 }
 
