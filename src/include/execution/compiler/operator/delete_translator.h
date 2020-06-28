@@ -6,12 +6,12 @@
 //#include "execution/compiler/operator/operator_translator.h"
 //#include "planner/plannodes/delete_plan_node.h"
 //
-//namespace terrier::execution::compiler {
+// namespace terrier::execution::compiler {
 //
 ///**
 // * Delete Translator
 // */
-//class DeleteTranslator : public OperatorTranslator {
+// class DeleteTranslator : public OperatorTranslator {
 // public:
 //  /**
 //   * Constructor

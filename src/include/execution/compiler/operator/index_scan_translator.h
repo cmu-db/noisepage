@@ -18,37 +18,60 @@ class IndexScanTranslator : public OperatorTranslator {
    * @param op The plan node
    * @param codegen The code generator
    */
-  IndexScanTranslator(const planner::IndexScanPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
+  IndexScanTranslator(const planner::IndexScanPlanNode &plan, CompilationContext *compilation_context,
+                      Pipeline *pipeline);
 
   /**
    * This class cannot be copied or moved.
    */
   DISALLOW_COPY_AND_MOVE(IndexScanTranslator);
 
+  /**
+   * If the scan has a predicate, this function will define all clause functions.
+   * @param decls The top-level declarations.
+   */
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
+
+  /**
+   * Initialize
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
+
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  void Produce(FunctionBuilder *builder) override;
-  void Abort(FunctionBuilder *builder) override;
-  void Consume(FunctionBuilder *builder) override;
+  /**
+   * Tear-down
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *func) const override {}
+
+  /**
+   * @return The value (or value vector) of the column with the provided column OID in the table
+   *         this sequential scan is operating over.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
+
+  //  void Produce(FunctionBuilder *builder) override;
+  //  void Abort(FunctionBuilder *builder) override;
+  //  void Consume(FunctionBuilder *builder) override;
 
   // This is a materializer
-  bool IsMaterializer(bool *is_ptr) override {
-    *is_ptr = false;
-    return true;
-  }
+  //  bool IsMaterializer(bool *is_ptr) override {
+  //    *is_ptr = false;
+  //    return true;
+  //  }
 
-  // Return the projected row and its type
-  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
-    return {&table_pr_, &pr_type_};
-  }
+  //  // Return the projected row and its type
+  //  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
+  //    return {&table_pr_, &pr_type_};
+  //  }
 
-  ast::Expr *GetOutput(uint32_t attr_idx) override;
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
+  //  ast::Expr *GetOutput(uint32_t attr_idx) override;
+  //  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
+  //  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
 
   ast::Expr *GetSlot() const;
 
-//  const planner::AbstractPlanNode *Op() override { return op_; }
+  //  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   // Declare the index iterator
@@ -72,7 +95,7 @@ class IndexScanTranslator : public OperatorTranslator {
   void DeclareSlot(FunctionBuilder *builder) const;
 
  private:
-//  const planner::IndexScanPlanNode *op_;
+  //  const planner::IndexScanPlanNode *op_;
   std::vector<catalog::col_oid_t> input_oids_;
   const catalog::Schema &table_schema_;
   storage::ProjectionMap table_pm_;

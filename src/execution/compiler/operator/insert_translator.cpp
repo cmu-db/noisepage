@@ -28,10 +28,16 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
                     ->GetCatalogAccessor()
                     ->GetTable(GetPlanAs<planner::InsertPlanNode>().GetTableOid())
                     ->ProjectionMapForOids(all_oids_)) {
-  for (uint32_t idx = 0; idx < GetPlanAs<planner::InsertPlanNode>().GetBulkInsertCount(); idx++) {
+  for (uint32_t idx = 0; idx < plan.GetBulkInsertCount(); idx++) {
     const auto &node_vals = GetPlanAs<planner::InsertPlanNode>().GetValues(idx);
     for (size_t i = 0; i < node_vals.size(); i++) {
       compilation_context->Prepare(*node_vals[i].Get());
+    }
+  }
+  for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
+    auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
+    for (const auto &index_col : index_schema.GetColumns()){
+      compilation_context->Prepare(*index_col.StoredExpression().Get());
     }
   }
 }
@@ -119,7 +125,13 @@ ast::Expr *InsertTranslator::GetChildOutput(WorkContext *context, uint32_t child
   return nullptr;
 }
 
-ast::Expr *InsertTranslator::GetTableColumn(catalog::col_oid_t col_oid) const { return nullptr; }
+ast::Expr *InsertTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
+  auto column = table_schema_.GetColumn(col_oid);
+  auto type = column.Type();
+  auto nullable = column.Nullable();
+  auto attr_index = table_pm_.find(col_oid)->second;
+  return GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(insert_pr_), type, nullable, attr_index);
+}
 
 void InsertTranslator::SetOids(FunctionBuilder *builder) const {
   // Declare: var col_oids: [num_cols]uint32
@@ -155,7 +167,7 @@ void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *cont
     auto table_col_oid = all_oids_[i];
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     auto pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
-                                           table_pm_.find(table_col_oid)->second, src, true);
+                                           table_pm_.find(table_col_oid)->second, src);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 }
@@ -189,21 +201,24 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
     auto set_key_call =
-        GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_index_pr), attr_type, nullable, attr_offset, col_expr, true);
+        GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_index_pr), attr_type, nullable, attr_offset, col_expr);
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 
   // Insert into index
-  // if (insert not successfull) { Abort(); }
-  //  auto index_insert_call = GetCodeGen()->CallBuiltin(
-  //      index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert,
-  //      {GetCodeGen()->AddressOf(inserter_)});
-  //  auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
-  //  If check_index_insert_call(builder, cond);
-  //  {
-  //    Abort(builder);
-  //  }
-  //  check_index_insert_call.EndIf()
+  //   if (insert not successfull) { Abort(); }
+  auto index_insert_call =
+      GetCodeGen()->CallBuiltin(index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert,
+                                {GetCodeGen()->AddressOf(inserter_)});
+  //    auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
+  auto success = GetCodeGen()->MakeFreshIdentifier("success");
+  builder->Append(GetCodeGen()->DeclareVar(success, GetCodeGen()->BoolType(), GetCodeGen()->ConstBool(false)));
+  builder->Append(GetCodeGen()->Assign(GetCodeGen()->MakeExpr(success), index_insert_call));
+  //    {
+  //        builder->Append(GetCodeGen()->)
+  ////      Abort(builder);
+  //    }
+  //    check_index_insert_call.EndIf();
 }
 
 void InsertTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) const {

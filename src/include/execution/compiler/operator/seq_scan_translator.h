@@ -103,7 +103,6 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   void ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast::Expr *vpi) const;
 
  private:
-
   /** @return The index of the given column OID inside the col_oids that the plan is scanning over. */
   uint32_t GetColOidIndex(catalog::col_oid_t col_oid) const;
 

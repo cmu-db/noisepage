@@ -60,13 +60,13 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
     callbacks->EndPhase(Phase::Parsing, this);
   }
 
-  auto dump = ast::AstDump::Dump(root_);
-  std::cerr << dump;
-
   if (root_ == nullptr || GetErrorReporter()->HasErrors()) {
     callbacks->OnError(Phase::Parsing, this);
     return;
   }
+
+  auto dump = ast::AstDump::Dump(root_);
+  std::cerr << dump;
 
   // -------------------------------------------------------
   // Phase 2 : Semantic Analysis (i.e., type-checking)

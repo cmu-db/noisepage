@@ -23,6 +23,7 @@
 #include "execution/compiler/operator/csv_scan_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/limit_translator.h"
 #include "execution/compiler/operator/nested_loop_join_translator.h"
@@ -43,6 +44,7 @@
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
@@ -228,6 +230,11 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::INSERT: {
       const auto &insert = static_cast<const planner::InsertPlanNode &>(plan);
       translator = std::make_unique<InsertTranslator>(insert, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::INDEXSCAN: {
+      const auto &index_scan = static_cast<const planner::IndexScanPlanNode &>(plan);
+      translator = std::make_unique<IndexScanTranslator>(index_scan, this, pipeline);
       break;
     }
     default: {

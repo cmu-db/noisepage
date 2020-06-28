@@ -563,8 +563,8 @@ class CodeGen {
    * @param col_oids The identifier of the array of column oids to read.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_var, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
-                               ast::Identifier col_oids);
+  ast::Expr *IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_var, uint32_t num_attrs, uint32_t table_oid,
+                               uint32_t index_oid, ast::Identifier col_oids);
 
   /**
    * Call IndexIteratorScanType(&iter[, limit])

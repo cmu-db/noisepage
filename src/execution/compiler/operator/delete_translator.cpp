@@ -9,8 +9,8 @@
 //#include "execution/compiler/work_context.h"
 //#include "storage/index/index.h"
 //
-//namespace terrier::execution::compiler {
-//DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context,
+// namespace terrier::execution::compiler {
+// DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context,
 //                                   Pipeline *pipeline)
 //    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DELETE),
 //      deleter_(GetCodeGen()->MakeFreshIdentifier("deleter")),
@@ -22,13 +22,13 @@
 ////  GenDeleterFree(builder);
 ////}
 //
-//void DeleteTranslator::Abort(FunctionBuilder *builder) {
+// void DeleteTranslator::Abort(FunctionBuilder *builder) {
 //  GenDeleterFree(builder);
 //  child_translator_->Abort(builder);
 //  builder->Append(codegen_->ReturnStmt(nullptr));
 //}
 //
-//void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
+// void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
 //  // Delete from table
 //  GenTableDelete(context, function);
 //
@@ -39,7 +39,7 @@
 //  }
 //}
 //
-//void DeleteTranslator::DeclareDeleter(terrier::execution::compiler::FunctionBuilder *builder) {
+// void DeleteTranslator::DeclareDeleter(terrier::execution::compiler::FunctionBuilder *builder) {
 //  // Generate col oids
 //  SetOids(builder);
 //  // var deleter : StorageInterface
@@ -50,18 +50,18 @@
 //  builder->Append(codegen_->MakeStmt(deleter_setup));
 //}
 //
-//void DeleteTranslator::GenDeleterFree(terrier::execution::compiler::FunctionBuilder *builder) {
+// void DeleteTranslator::GenDeleterFree(terrier::execution::compiler::FunctionBuilder *builder) {
 //  // Call @storageInterfaceFree
 //  ast::Expr *deleter_free = codegen_->OneArgCall(ast::Builtin::StorageInterfaceFree, deleter_, true);
 //  builder->Append(codegen_->MakeStmt(deleter_free));
 //}
 //
-//ast::Expr *DeleteTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
+// ast::Expr *DeleteTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
 //  TERRIER_ASSERT(child_idx == 0, "Delete plan can only have one child");
 //  return child_translator_->GetOutput(attr_idx);
 //}
 //
-//void DeleteTranslator::GenTableDelete(WorkContext *context, FunctionBuilder *builder) const {
+// void DeleteTranslator::GenTableDelete(WorkContext *context, FunctionBuilder *builder) const {
 //  // Delete from table
 //  // if (delete not successfull) { Abort(); }
 //  auto op = GetPlanAs<planner::DeletePlanNode>();
@@ -75,7 +75,7 @@
 //  builder->FinishBlockStmt();
 //}
 //
-//void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const {
+// void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const {
 //  // var delete_index_pr = @getIndexPR(&deleter, oid)
 //  auto delete_index_pr = codegen_->NewIdentifier("delete_index_pr");
 //  std::vector<ast::Expr *> pr_call_args{codegen_->PointerTo(deleter_), codegen_->IntLiteral(!index_oid)};
@@ -103,7 +103,7 @@
 //  builder->Append(codegen_->MakeStmt(index_delete_call));
 //}
 //
-//void DeleteTranslator::SetOids(FunctionBuilder *builder) {
+// void DeleteTranslator::SetOids(FunctionBuilder *builder) {
 //  // Declare: var col_oids: [num_cols]uint32
 //  ast::Expr *arr_type = codegen_->ArrayType(0, ast::BuiltinType::Kind::Uint32);
 //  builder->Append(codegen_->DeclareVariable(col_oids_, arr_type, nullptr));
