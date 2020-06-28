@@ -12,3 +12,14 @@ def convert_string_to_numeric(value):
     finally:
         # Scientific notation
         return int(float(value))
+
+
+def round_to_interval(time, interval):
+    """ Round a timestamp based on interval
+
+    :param time: in us
+    :param interval: in us
+    :return: time in us rounded to the closest interval ahead
+    """
+    return time - time % interval
+

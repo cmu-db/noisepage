@@ -68,7 +68,7 @@ def _interval_get_mini_runner_data(filename, model_results_path):
     interval_y_map = {}
     n = x.shape[0]
     for i in tqdm.tqdm(list(range(n)), desc="Group data by interval"):
-        rounded_time = _round_to_interval(start_times[i], interval)
+        rounded_time = data_util.round_to_interval(start_times[i], interval)
         if rounded_time not in interval_x_map:
             interval_x_map[rounded_time] = []
             interval_y_map[rounded_time] = []
@@ -81,7 +81,7 @@ def _interval_get_mini_runner_data(filename, model_results_path):
     for rounded_time in interval_x_map:
         # Sum the features
         x_new = np.sum(interval_x_map[rounded_time], axis=0)
-        # Keep the parameter the same
+        # Keep the interval parameter the same
         # TODO: currently the interval parameter is always the last. Change the hard-coding later
         x_new[-1] /= len(interval_x_map[rounded_time])
         x_list.append(x_new)
@@ -90,15 +90,6 @@ def _interval_get_mini_runner_data(filename, model_results_path):
         io_util.write_csv_result(prediction_path, rounded_time, np.concatenate((x_list[-1], y_list[-1])))
 
     return [OpUnitData(OpUnit[file_name.upper()], np.array(x_list), np.array(y_list))]
-
-
-def _round_to_interval(time, interval):
-    """
-    :param time: in us
-    :param interval: in us
-    :return: time in us rounded to the closest interval ahead
-    """
-    return time - time % interval
 
 
 def _execution_get_mini_runner_data(filename, model_map, predict_cache):

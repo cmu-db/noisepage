@@ -2,6 +2,8 @@ import csv
 import numpy as np
 import copy
 import tqdm
+import pandas as pd
+import os
 
 from data_class import data_util
 from info import data_info, query_info
@@ -26,6 +28,9 @@ def get_grouped_op_unit_data(filename):
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
         return _pipeline_get_grouped_op_unit_data(filename)
+    if "gc" in filename or "log" in filename:
+        # Handle of the gc or log data with interval-based conversion
+        return _interval_get_grouped_op_unit_data(filename)
 
     return _default_get_global_data(filename)
 
@@ -92,6 +97,53 @@ def _pipeline_get_grouped_op_unit_data(filename):
 
             data_list.append(GroupedOpUnitData("q{} p{} {}".format(line[0], line[1], opunits), opunits,
                                                np.array(metrics)))
+
+    return data_list
+
+
+def _interval_get_grouped_op_unit_data(filename):
+    # In the default case, the data does not need any pre-processing and the file name indicates the opunit
+    df = pd.read_csv(filename)
+    file_name = os.path.splitext(os.path.basename(filename))[0]
+
+    x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
+    y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
+    start_times = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.START_TIME]].values
+    cpu_ids = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.CPU_ID]].values
+
+    interval = data_info.PERIODIC_OPUNIT_INTERVAL
+
+    # Map from interval start time to the data in this interval
+    interval_x_map = {}
+    interval_y_map = {}
+    interval_cpu_map = {}
+    n = x.shape[0]
+    for i in tqdm.tqdm(list(range(n)), desc="Group data by interval"):
+        rounded_time = data_util.round_to_interval(start_times[i], interval)
+        if rounded_time not in interval_x_map:
+            interval_x_map[rounded_time] = []
+            interval_y_map[rounded_time] = []
+        interval_x_map[rounded_time].append(x[i])
+        interval_y_map[rounded_time].append(y[i])
+        interval_cpu_map[rounded_time] = cpu_ids[i]
+
+    # Construct the new data
+    opunit = OpUnit[file_name.upper()]
+    data_list = []
+    for rounded_time in interval_x_map:
+        # Sum the features
+        x_new = np.sum(interval_x_map[rounded_time], axis=0)
+        # Keep the interval parameter the same
+        # TODO: currently the interval parameter is always the last. Change the hard-coding later
+        x_new[-1] /= len(interval_x_map[rounded_time])
+        # Change all the opunits in the group for this interval to be the new feature
+        opunits = [(opunit, x_new)]
+        # The prediction is the average behavior
+        y_new = np.average(interval_y_map[rounded_time], axis=0)
+        n = len(interval_x_map[rounded_time])
+        for i in range(n):
+            metrics = np.concatenate(([rounded_time + i * interval // n], [interval_cpu_map[rounded_time]], y_new))
+            data_list.append(GroupedOpUnitData("{} {}".format(file_name, opunits), opunits, metrics))
 
     return data_list
 
