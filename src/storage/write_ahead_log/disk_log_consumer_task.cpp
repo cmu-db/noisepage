@@ -98,7 +98,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     // 3) We are signaled to persist
     // 4) We are shutting down this task
     bool timeout = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() -
-                                                                         last_persist) > persist_interval_;
+                                                                         last_persist) > curr_sleep;
 
     if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
       std::unique_lock<std::mutex> lock(persist_lock_);
