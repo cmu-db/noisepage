@@ -177,7 +177,6 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
 
-  common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
    * schema as provided by the catalog.  There is no guarantee that the OIDs for

@@ -38,9 +38,17 @@ class CreateIndexTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
-  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Inserts don't output anything"); };
   const planner::AbstractPlanNode *Op() override { return op_; }
+
+  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Create Index don't output anything"); };
+
+  // Should not be called here
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
+  /**
+   * Get all col oids from the schema
+   * @param table_schema_ schema of the table
+   * @return a vector of col oids
+   */
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_);
 
  private:

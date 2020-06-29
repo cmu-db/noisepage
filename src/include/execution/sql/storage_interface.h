@@ -71,6 +71,13 @@ class EXPORT StorageInterface {
    */
   storage::TupleSlot TableInsert();
 
+  /**
+   * Create a new index based on given schema
+   * @param ns name space oid
+   * @param index_name the name of this index
+   * @param schema index schema
+   * @return index oid of new index
+   */
   catalog::index_oid_t IndexCreate(catalog::namespace_oid_t ns, std::string index_name,
                                    const catalog::IndexSchema &schema);
   /**
@@ -97,7 +104,13 @@ class EXPORT StorageInterface {
    */
   bool IndexInsertUnique();
 
-  bool IndexInsertBulk(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot);
+  /**
+   * Insert into the newly created index
+   * @param index_oid index oid
+   * @param table_tuple_slot tuple slot
+   * @return Whether insertion was successful.
+   */
+  bool IndexCreateInsert(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot);
 
  protected:
   /**

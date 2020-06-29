@@ -234,7 +234,7 @@ void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *st
 
 void OpStorageInterfaceIndexInsertBulk(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
                                        uint32_t index_oid, terrier::storage::TupleSlot *tuple_slot) {
-  *result = storage_interface->IndexInsertBulk(terrier::catalog::index_oid_t(index_oid), *tuple_slot);
+  *result = storage_interface->IndexCreateInsert(terrier::catalog::index_oid_t(index_oid), *tuple_slot);
 }
 
 void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface) {

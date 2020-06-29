@@ -98,7 +98,7 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 
-bool StorageInterface::IndexInsertBulk(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot) {
+bool StorageInterface::IndexCreateInsert(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot) {
   terrier::storage::index::IndexBuilder index_builder;
   index_builder.SetSqlTableAndTransactionContext(exec_ctx_->GetTxn(), table_,
                                                  exec_ctx_->GetAccessor()->GetIndexSchema(index_oid));

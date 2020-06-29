@@ -155,11 +155,6 @@ void CreateIndexTranslator::SetOids(FunctionBuilder *builder) {
   }
 }
 
-ast::Expr *CreateIndexTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
-  TERRIER_ASSERT(child_idx == 0, "Insert plan can only have one child");
-  return child_translator_->GetOutput(attr_idx);
-}
-
 std::vector<catalog::col_oid_t> CreateIndexTranslator::AllColOids(const catalog::Schema &table_schema_) {
   std::vector<catalog::col_oid_t> oids;
   for (const auto &col : table_schema_.GetColumns()) {
