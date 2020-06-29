@@ -10,6 +10,7 @@
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
