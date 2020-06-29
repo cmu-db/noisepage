@@ -1036,7 +1036,6 @@ bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::Tra
                  "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
                  "pg_index. Something broke.");
 
-  delete[] buffer;
 
   auto redo_record = txn->StageWrite(db_oid_, postgres::INDEX_TABLE_OID, get_live_indexes_pri_);
   auto *table_pr = redo_record->Delta();
@@ -1045,6 +1044,7 @@ bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::Tra
   *(reinterpret_cast<bool *>(table_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDISLIVE_COL_OID]))) = true;
   redo_record->SetTupleSlot(index_results[0]);
   indexes_->Update(txn, redo_record);
+  delete[] buffer;
   return true;
 }
 

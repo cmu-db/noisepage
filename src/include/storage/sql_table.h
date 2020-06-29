@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/schema.h"
 #include "storage/data_table.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
@@ -18,6 +17,10 @@ namespace terrier {
 class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
 }  // namespace terrier
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
 
 namespace terrier::storage {
 

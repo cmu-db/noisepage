@@ -2,15 +2,18 @@
 
 #include <memory>
 #include <unordered_map>
+
 #include "common/dedicated_thread_registry.h"
 #include "network/connection_handle.h"
-#include "network/connection_handler_task.h"
-#include "network/postgres/postgres_command_factory.h"
-#include "traffic_cop/traffic_cop.h"
+
+namespace terrier::trafficcop {
+class TrafficCop;
+}  // namespace terrier::trafficcop
 
 namespace terrier::network {
 
 class ConnectionHandlerTask;
+class ProtocolInterpreter;
 
 /**
  * @brief Factory class for constructing ConnectionHandle objects
