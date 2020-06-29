@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "common/version.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/bit_util.h"
 
@@ -362,11 +361,6 @@ void StringFunctions::Right(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, String
   } else {
     *result = StringVal(str.Content() + len, str.len_ - len);
   }
-}
-
-void StringFunctions::Version(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result) {
-  const char *version = NOISEPAGE_VERSION_STR;
-  *result = StringVal(version);
 }
 
 }  // namespace terrier::execution::sql

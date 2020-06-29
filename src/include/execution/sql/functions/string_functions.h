@@ -122,11 +122,6 @@ class EXPORT StringFunctions {
    * Converts the string to upper case
    */
   static void Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
-
-  /**
-   * Gets the version of the database
-   */
-  static void Version(exec::ExecutionContext *ctx, StringVal *result);
 };
 
 }  // namespace terrier::execution::sql
