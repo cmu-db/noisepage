@@ -139,6 +139,8 @@ bool TableVectorIterator::Advance() {
   return true;
 }
 
+const storage::TupleSlot &TableVectorIterator::GetCurrentSlot() { return iter_.get()->operator*(); }
+
 namespace {
 
 class ScanTask {

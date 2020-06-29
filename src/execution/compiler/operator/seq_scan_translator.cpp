@@ -20,7 +20,8 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SEQ_SCAN),
       tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
       vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")),
-      col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
+      col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
+      slot_var_(GetCodeGen()->MakeFreshIdentifier("slot")) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
   // If there's a predicate, prepare the expression and register a filter manager.
   if (HasPredicate()) {
@@ -160,6 +161,9 @@ void SeqScanTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast
 
 void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
+  auto make_slot = codegen->CallBuiltin(ast::Builtin::TableIterGetSlot, {codegen->MakeExpr(tvi_var_)});
+  auto assign = codegen->Assign(codegen->MakeExpr(slot_var_), make_slot);
+  function->Append(assign);
   Loop tvi_loop(function, codegen->TableIterAdvance(codegen->MakeExpr(tvi_var_)));
   {
     // var vpi = @tableIterGetVPI()
@@ -174,6 +178,7 @@ void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) c
     if (!ctx->GetPipeline().IsVectorized()) {
       ScanVPI(ctx, function, vpi);
     }
+    function->Append(assign);
   }
   tvi_loop.EndLoop();
 }
@@ -212,6 +217,9 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
         codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(), col_oids_var_));
   }
 
+  auto declare_slot = codegen->DeclareVarNoInit(slot_var_, ast::BuiltinType::TupleSlot);
+  function->Append(declare_slot);
+
   // Scan it.
   ScanTable(context, function);
 
@@ -240,6 +248,8 @@ ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto col_index = GetColOidIndex(col_oid);
   return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
 }
+
+ast::Expr *SeqScanTranslator::GetSlot() const { return GetCodeGen()->AddressOf(slot_var_); }
 
 void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();

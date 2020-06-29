@@ -542,6 +542,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     DISPATCH_NEXT();
   }
 
+  OP(TableVectorIteratorGetSlot) : {
+    auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
+    OpTableVectorIteratorGetSlot(slot, iter);
+    DISPATCH_NEXT();
+  }
+
   OP(ParallelScanTable) : {
     auto table_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());

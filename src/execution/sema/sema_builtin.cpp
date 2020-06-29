@@ -865,6 +865,11 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::TableIterGetSlot: {
+      // A single-arg builtin returning a TupleSlot
+      call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
+      break;
+    }
     default: {
       UNREACHABLE("Impossible table iteration call");
     }
@@ -2290,7 +2295,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::TableIterInit:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterGetVPI:
-    case ast::Builtin::TableIterClose: {
+    case ast::Builtin::TableIterClose:
+    case ast::Builtin::TableIterGetSlot: {
       CheckBuiltinTableIterCall(call, builtin);
       break;
     }
@@ -2298,7 +2304,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinTableIterParCall(call);
       break;
     }
-    case ast::Builtin::VPIInit:
     case ast::Builtin::VPIFree:
     case ast::Builtin::VPIIsFiltered:
     case ast::Builtin::VPIGetSelectedRowCount:

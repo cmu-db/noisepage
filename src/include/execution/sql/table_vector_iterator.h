@@ -63,6 +63,8 @@ class EXPORT TableVectorIterator {
    */
   bool Advance();
 
+  const storage::TupleSlot &GetCurrentSlot();
+
   /**
    * @return True if the iterator has been initialized; false otherwise.
    */

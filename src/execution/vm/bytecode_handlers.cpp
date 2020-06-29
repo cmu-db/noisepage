@@ -29,6 +29,11 @@ void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *ite
   iter->~TableVectorIterator();
 }
 
+void OpTableVectorIteratorGetSlot(terrier::storage::TupleSlot *slot,
+                                  terrier::execution::sql::TableVectorIterator *iter) {
+  *slot = iter->GetCurrentSlot();
+}
+
 void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi, terrier::execution::sql::VectorProjection *vp) {
   new (vpi) terrier::execution::sql::VectorProjectionIterator(vp);
 }

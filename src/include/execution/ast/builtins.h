@@ -46,6 +46,7 @@ namespace terrier::execution::ast {
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
+  F(TableIterGetSlot, tableIterGetSlot)                                 \
                                                                         \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \

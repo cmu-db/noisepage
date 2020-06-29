@@ -610,6 +610,12 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->Emit(Bytecode::TableVectorIteratorFree, iter);
       break;
     }
+    case ast::Builtin::TableIterGetSlot: {
+      LocalVar slot = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::TableVectorIteratorGetSlot, slot, iter);
+      GetExecutionResult()->SetDestination(slot.ValueOf());
+      break;
+    }
     default: {
       UNREACHABLE("Impossible table iteration call");
     }
@@ -1976,7 +1982,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::TableIterInit:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterGetVPI:
-    case ast::Builtin::TableIterClose: {
+    case ast::Builtin::TableIterClose:
+    case ast::Builtin::TableIterGetSlot: {
       VisitBuiltinTableIterCall(call, builtin);
       break;
     }

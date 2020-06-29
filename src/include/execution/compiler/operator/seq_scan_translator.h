@@ -77,6 +77,8 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
+  ast::Expr *GetSlot() const override;
+
  private:
   // Does the scan have a predicate?
   bool HasPredicate() const;
@@ -111,6 +113,8 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   ast::Identifier vpi_var_;
   // The name of the col_oids that the plan wants to scan over.
   ast::Identifier col_oids_var_;
+
+  ast::Identifier slot_var_;
 
   // Where the filter manager exists.
   StateDescriptor::Entry local_filter_manager_;

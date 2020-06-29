@@ -115,6 +115,7 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                   \
   F(TableVectorIteratorFree, OperandType::Local)                                                                       \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                 \
+  F(TableVectorIteratorGetSlot, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                 \
     OperandType::Local, OperandType::FunctionId)                                                                       \
                                                                                                                        \

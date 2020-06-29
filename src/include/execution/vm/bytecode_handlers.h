@@ -260,6 +260,9 @@ VM_OP_HOT void OpTableVectorIteratorGetVPI(terrier::execution::sql::VectorProjec
   *vpi = iter->GetVectorProjectionIterator();
 }
 
+VM_OP void OpTableVectorIteratorGetSlot(terrier::storage::TupleSlot *slot,
+                                        terrier::execution::sql::TableVectorIterator *iter);
+
 VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
                                    terrier::execution::exec::ExecutionContext *exec_ctx,
                                    const terrier::execution::sql::TableVectorIterator::ScanFn scanner) {
