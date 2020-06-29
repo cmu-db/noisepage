@@ -1150,7 +1150,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Delete from pg_index table
   txn->StageDelete(db_oid_, postgres::INDEX_TABLE_OID, index_results[0]);
-  const auto index_delete_result UNUSED_ATTRIBUTE= indexes_->Delete(txn, index_results[0]);
+  const auto index_delete_result UNUSED_ATTRIBUTE = indexes_->Delete(txn, index_results[0]);
   TERRIER_ASSERT(
       index_delete_result,
       "Delete from pg_index should always succeed as write-write conflicts are detected during delete from pg_class");
