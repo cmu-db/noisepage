@@ -5,6 +5,7 @@
 #include <thread>  // NOLINT
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "common/managed_pointer.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"

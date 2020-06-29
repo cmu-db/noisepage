@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/index_schema.h"
 #include "optimizer/properties.h"
 
 namespace terrier::catalog {

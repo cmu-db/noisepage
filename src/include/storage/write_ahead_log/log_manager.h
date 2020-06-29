@@ -13,7 +13,6 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
-#include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
