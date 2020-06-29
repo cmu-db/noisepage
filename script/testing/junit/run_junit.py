@@ -51,7 +51,7 @@ if __name__ == "__main__":
                         traceback.print_exc(file=sys.stdout)
                         exit_code = 1
 
-                    sys.exit(exit_code)
+#                     sys.exit(exit_code)
 
 
 
