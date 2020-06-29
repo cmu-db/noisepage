@@ -22,7 +22,7 @@ class SystemFunctionsTests : public TplTest {
 TEST_F(SystemFunctionsTests, Version) {
   auto result = StringVal("");
   SystemFunctions::Version(Ctx(), &result);
-  EXPECT_EQ(result, StringVal(common::NOISEPAGE_VERSION_STR.data()));
+  EXPECT_TRUE(StringVal(common::NOISEPAGE_VERSION_STR.data()) == result);
 }
 
 }  // namespace terrier::execution::sql::test
