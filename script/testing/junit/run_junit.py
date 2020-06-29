@@ -4,7 +4,9 @@ import os
 import sys
 import argparse
 import traceback
+import git
 
+git.Git(os.getcwd()).clone("https://github.com/cmu-db/noisepage-testfiles.git")
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 # TODO: turn on junit xml report (within xml), merge junit xml files https://gist.github.com/cgoldberg/4320815
@@ -49,7 +51,7 @@ if __name__ == "__main__":
                         traceback.print_exc(file=sys.stdout)
                         exit_code = 1
 
-#                     sys.exit(exit_code)
+                    sys.exit(exit_code)
 
 
 

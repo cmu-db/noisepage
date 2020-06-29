@@ -33,6 +33,19 @@
 </path>
 
 <target name="testconsole" depends="compile">
+  <mkdir dir='${build.testoutput.dir}/report' />
+  <junitreport todir="${build.testoutput.dir}">
+    <fileset dir='${build.testoutput.dir}'>
+      <include name="*.xml" />
+      <exclude name='TESTS-TestSuites.xml' />
+    </fileset>
+    <report format="noframes" todir="${build.testoutput.dir}/report"/>
+    <report
+            styledir="src"
+            format="noframes"
+            todir="${build.testoutput.dir}"
+    />
+  </junitreport>
   <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
         dir="."
         fork="yes"
