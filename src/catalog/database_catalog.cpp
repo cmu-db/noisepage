@@ -789,8 +789,8 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *const table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
-  result = classes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+  const auto index_select_result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(index_select_result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
   txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
@@ -1074,8 +1074,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
-  result = classes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+  const auto index_select_result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(index_select_result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
   txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
@@ -1141,8 +1141,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Select the tuple out of pg_index before deletion. We need the attributes to do index deletions later
   table_pr = delete_index_pri_.InitializeRow(buffer);
-  result = indexes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+  const auto pg_index_select_result UNUSED_ATTRIBUTE = indexes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(pg_index_select_result, "Select must succeed if the index scan gave a visible result.");
 
   TERRIER_ASSERT(index == *(reinterpret_cast<const index_oid_t *const>(
                               table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
@@ -1150,9 +1150,9 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Delete from pg_index table
   txn->StageDelete(db_oid_, postgres::INDEX_TABLE_OID, index_results[0]);
-  result = indexes_->Delete(txn, index_results[0]);
+  const auto index_delete_result UNUSED_ATTRIBUTE= indexes_->Delete(txn, index_results[0]);
   TERRIER_ASSERT(
-      result,
+      index_delete_result,
       "Delete from pg_index should always succeed as write-write conflicts are detected during delete from pg_class");
 
   // Get the table oid
@@ -2528,8 +2528,8 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
 
   auto oid_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<proc_oid_t *>(oid_pr->AccessForceNotNull(0))) = oid;
-  result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
-  TERRIER_ASSERT(result, "Oid insertion should be unique");
+  const auto proc_result UNUSED_ATTRIBUTE = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
+  TERRIER_ASSERT(proc_result, "Oid insertion should be unique");
 
   delete[] buffer;
   return true;
