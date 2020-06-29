@@ -6,13 +6,17 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var col_oids: [1]uint32
   col_oids[0] = 1 // colA
   var deleter: StorageInterface
-  @storageInterfaceInitBind(&deleter, execCtx, "test_1", col_oids, true)
+
+  var test_1_id = @testCatalogLookup(execCtx, "test_1", "")
+  @storageInterfaceInit(&deleter, execCtx, test_1_id, col_oids, true)
 
   // Iterate through rows with colA between 495 and 505
   // Init index iterator
   var index : IndexIterator
-  @indexIteratorInitBind(&index, execCtx, 1, "test_1", "index_1", col_oids)
+  var index_oid = @testCatalogIndexLookup(execCtx, "index_1")
+  @indexIteratorInit(&index, execCtx, 1, test_1_id, index_oid, col_oids)
   // Set iteration bounds
+
   var lo_index_pr = @indexIteratorGetLoPR(&index)
   var hi_index_pr = @indexIteratorGetHiPR(&index)
   @prSetInt(lo_index_pr, 0, @intToSql(495)) // Set colA in lo
@@ -31,7 +35,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
     }
 
     // Delete from index
-    var index_pr = @getIndexPRBind(&deleter, "index_1")
+    var index_pr = @getIndexPR(&deleter, index_oid)
     @prSetInt(index_pr, 0, colA)
     @indexDelete(&deleter, &slot)
   }
@@ -40,7 +44,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   // Check that table does not contain these tuples anymore
   var tvi: TableVectorIterator
-  @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
+  @tableIterInit(&tvi, execCtx, test_1_id, col_oids)
   for (@tableIterAdvance(&tvi)) {
     var vpi = @tableIterGetVPI(&tvi)
     for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {

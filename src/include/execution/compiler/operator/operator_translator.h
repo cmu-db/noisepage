@@ -197,6 +197,8 @@ class OperatorTranslator : public ColumnValueProvider {
   /** @return The plan node as a generic node. */
   const planner::AbstractPlanNode *Op() const { return &plan_; }
 
+  virtual ast::Expr *GetSlot() const { UNREACHABLE("This translator does not deal with tupleslots."); }
+
  protected:
   // Get the code generator instance.
   CodeGen *GetCodeGen() const;

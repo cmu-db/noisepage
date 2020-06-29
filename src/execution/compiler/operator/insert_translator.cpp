@@ -36,7 +36,7 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
   }
   for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
     auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
-    for (const auto &index_col : index_schema.GetColumns()){
+    for (const auto &index_col : index_schema.GetColumns()) {
       compilation_context->Prepare(*index_col.StoredExpression().Get());
     }
   }
@@ -121,8 +121,8 @@ void InsertTranslator::GenInserterFree(terrier::execution::compiler::FunctionBui
 
 ast::Expr *InsertTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {
   TERRIER_ASSERT(child_idx == 0, "Insert plan can only have one child");
-  //  return child_translator_->GetOutput(attr_idx);
-  return nullptr;
+
+  return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }
 
 ast::Expr *InsertTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

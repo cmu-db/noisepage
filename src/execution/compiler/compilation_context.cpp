@@ -21,6 +21,7 @@
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/csv_scan_translator.h"
+#include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
@@ -43,6 +44,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
+#include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
@@ -230,6 +232,11 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::INSERT: {
       const auto &insert = static_cast<const planner::InsertPlanNode &>(plan);
       translator = std::make_unique<InsertTranslator>(insert, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::DELETE: {
+      const auto &delete_node = static_cast<const planner::DeletePlanNode &>(plan);
+      translator = std::make_unique<DeleteTranslator>(delete_node, this, pipeline);
       break;
     }
     case planner::PlanNodeType::INDEXSCAN: {

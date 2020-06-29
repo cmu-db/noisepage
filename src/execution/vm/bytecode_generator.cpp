@@ -1578,7 +1578,7 @@ void BytecodeGenerator::VisitBuiltinTestCatalogLookup(ast::CallExpr *call) {
 
 void BytecodeGenerator::VisitBuiltinTestCatalogIndexLookup(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
-  LocalVar table_name = VisitExpressionForRValue(call->Arguments()[1]);
+  LocalVar table_name = VisitExpressionForRValue(call->Arguments()[1]).AddressOf();
   uint32_t table_name_len = call->Arguments()[1]->As<ast::LitExpr>()->StringVal().GetLength();
 
   LocalVar oid_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
