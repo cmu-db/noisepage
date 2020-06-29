@@ -19,6 +19,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/index/index_builder.h"
+#include "storage/sql_table.h"
 
 namespace terrier::catalog::postgres {
 

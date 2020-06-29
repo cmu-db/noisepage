@@ -1,7 +1,6 @@
 #include <list>
 
 #include "common/allocator.h"
-#include "common/performance_counter_body.h"
 #include "storage/block_access_controller.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
@@ -9,8 +8,6 @@
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
-
-DEFINE_PERFORMANCE_CLASS_BODY(DataTableCounter, DataTableCounterMembers);
 
 DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
@@ -39,7 +36,6 @@ DataTable::~DataTable() {
 
 bool DataTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
                        ProjectedRow *out_buffer) const {
-  data_table_counter_.IncrementNumSelect(1);
   return SelectIntoBuffer(txn, slot, out_buffer);
 }
 
@@ -132,7 +128,6 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
     // that's difficult with this implementation
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
-  data_table_counter_.IncrementNumUpdate(1);
 
   return true;
 }
@@ -209,7 +204,6 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   accessor_.ClearBlockBusyStatus(*block);
   InsertInto(txn, redo, result);
 
-  data_table_counter_.IncrementNumInsert(1);
   return result;
 }
 
@@ -235,7 +229,6 @@ void DataTable::InsertInto(const common::ManagedPointer<transaction::Transaction
 }
 
 bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
-  data_table_counter_.IncrementNumDelete(1);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
   slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
@@ -389,7 +382,6 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
-  data_table_counter_.IncrementNumNewBlock(1);
   return new_block;
 }
 

@@ -18,6 +18,35 @@ void BwTreeIndex<KeyType>::PerformGarbageCollection() {
 }
 
 template <typename KeyType>
+size_t BwTreeIndex<KeyType>::EstimateHeapUsage() const {
+  // This is a back-of-the-envelope calculation that could be innacurate: it does not account for deltas within the
+  // BwTree. Also the mapping table is anonymously mmap'd so getting its exact size is tricky.
+  constexpr auto max_elements_per_node = std::max(INNER_NODE_SIZE_UPPER_THRESHOLD,
+                                                  LEAF_NODE_SIZE_UPPER_THRESHOLD);  // constant from bwtree.h
+
+  // Calculate the size of each node in the BwTree
+  constexpr auto node_size = sizeof(KeyType) + sizeof(uint64_t) +                            // low_key
+                             sizeof(KeyType) + sizeof(uint64_t) +                            // high key
+                             +sizeof(uintptr_t) +                                            // end pointer
+                             max_elements_per_node * sizeof(std::pair<KeyType, uint64_t>) +  // elements in the node
+                             third_party::bwtree::BwTree<KeyType, TupleSlot>::AllocationMeta::CHUNK_SIZE();
+
+  // Read the size of the recycled node ID data structure
+  bwtree_->node_id_list_lock.lock();
+  const auto node_id_list_size = bwtree_->node_id_list.size();
+  bwtree_->node_id_list_lock.unlock();
+
+  // Compute the total number of live nodes
+  const auto number_of_nodes = bwtree_->next_unused_node_id.load() - node_id_list_size;
+
+  // Compute the size of the primary data structures in the BwTree
+  const auto mapping_table_size = number_of_nodes * sizeof(uintptr_t);
+  const auto tree_size = number_of_nodes * node_size;
+
+  return mapping_table_size + tree_size;
+}
+
+template <typename KeyType>
 bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const ProjectedRow &tuple, const TupleSlot location) {
   TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),

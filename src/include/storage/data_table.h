@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "common/performance_counter.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
@@ -26,17 +25,6 @@ class BwTreeIndex;
 template <typename KeyType>
 class HashIndex;
 }  // namespace index
-
-// clang-format off
-#define DataTableCounterMembers(f) \
-  f(uint64_t, NumSelect) \
-  f(uint64_t, NumUpdate) \
-  f(uint64_t, NumInsert) \
-  f(uint64_t, NumDelete) \
-  f(uint64_t, NumNewBlock)
-// clang-format on
-DEFINE_PERFORMANCE_CLASS_HEADER(DataTableCounter, DataTableCounterMembers)
-// #undef DataTableCounterMembers
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
@@ -209,12 +197,6 @@ class DataTable {
   bool Delete(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot);
 
   /**
-   * Return a pointer to the performance counter for the data table.
-   * @return pointer to the performance counter
-   */
-  DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
-
-  /**
    * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
@@ -223,6 +205,15 @@ class DataTable {
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
+
+  /**
+   * @return Approximate heap usage of the table
+   */
+  size_t EstimateHeapUsage() const {
+    // This is a back-of-the-envelope calculation that could be innacurate. It does not account for the delta chain
+    // elements that are actually owned by TransactionContext
+    return blocks_.size() * common::Constants::BLOCK_SIZE;
+  }
 
  private:
   // The ArrowSerializer needs access to its blocks.
@@ -262,7 +253,6 @@ class DataTable {
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
   void CheckMoveHead(std::list<RawBlock *>::iterator block);
-  mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView
