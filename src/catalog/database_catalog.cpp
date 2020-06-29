@@ -939,7 +939,6 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
   return common::ManagedPointer(reinterpret_cast<storage::SqlTable *>(ptr_pair.first));
 }
 
-
 bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table, const std::string &name) {
   if (!TryLock(txn)) return false;
@@ -1035,7 +1034,6 @@ bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::Tra
                  "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
                  "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
                  "pg_index. Something broke.");
-
 
   auto redo_record = txn->StageWrite(db_oid_, postgres::INDEX_TABLE_OID, get_live_indexes_pri_);
   auto *table_pr = redo_record->Delta();

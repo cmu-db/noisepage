@@ -1478,7 +1478,6 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    */
   common::ManagedPointer<catalog::IndexSchema> GetSchema() const { return common::ManagedPointer(schema_); }
 
-
  private:
   /**
    * OID of the namespace
@@ -1499,7 +1498,6 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    * Index Schema
    */
   std::unique_ptr<catalog::IndexSchema> schema_;
-
 };
 
 /**

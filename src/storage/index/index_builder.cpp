@@ -49,9 +49,9 @@ IndexBuilder &IndexBuilder::SetKeySchema(const catalog::IndexSchema &key_schema)
   return *this;
 }
 
-IndexBuilder &IndexBuilder::SetSqlTableAndTransactionContext(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                               common::ManagedPointer<storage::SqlTable> sql_table,
-                                               const catalog::IndexSchema &key_schema) {
+IndexBuilder &IndexBuilder::SetSqlTableAndTransactionContext(
+    const common::ManagedPointer<transaction::TransactionContext> txn,
+    common::ManagedPointer<storage::SqlTable> sql_table, const catalog::IndexSchema &key_schema) {
   TERRIER_ASSERT((sql_table == nullptr && txn == nullptr) || (sql_table != nullptr && txn != nullptr),
                  "sql_table / txn is null and txn / sql_table is not.");
   txn_ = txn;
@@ -60,7 +60,8 @@ IndexBuilder &IndexBuilder::SetSqlTableAndTransactionContext(const common::Manag
   return *this;
 }
 
-bool IndexBuilder::Insert(common::ManagedPointer<storage::index::Index> index, storage::TupleSlot table_tuple_slot) const {
+bool IndexBuilder::Insert(common::ManagedPointer<storage::index::Index> index,
+                          storage::TupleSlot table_tuple_slot) const {
   // Initialize index pr
   const auto index_pr_initializer = index->GetProjectedRowInitializer();
   const uint32_t index_pr_size = index_pr_initializer.ProjectedRowSize();

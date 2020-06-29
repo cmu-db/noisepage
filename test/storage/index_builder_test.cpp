@@ -120,9 +120,10 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   auto index_builder = IndexBuilder()
                            .SetKeySchema(index_schema_)
-                           .SetSqlTableAndTransactionContext(common::ManagedPointer(index_build_txn), common::ManagedPointer(sql_table_), index_schema_);
+                           .SetSqlTableAndTransactionContext(common::ManagedPointer(index_build_txn),
+                                                             common::ManagedPointer(sql_table_), index_schema_);
   auto index = index_builder.Build();
-  for (const auto& slot: reference) {
+  for (const auto &slot : reference) {
     index_builder.Insert(common::ManagedPointer<storage::index::Index>(index), slot);
   }
   txn_manager_->Commit(index_build_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -176,9 +177,10 @@ TEST_F(IndexBuilderTests, ConcurrentCreateIndex) {
 
       auto index_builder = IndexBuilder()
                                .SetKeySchema(index_schema_)
-                               .SetSqlTableAndTransactionContext(common::ManagedPointer(index_build_txn), common::ManagedPointer(sql_table_), index_schema_);
+                               .SetSqlTableAndTransactionContext(common::ManagedPointer(index_build_txn),
+                                                                 common::ManagedPointer(sql_table_), index_schema_);
       new_index = index_builder.Build();
-      for (const auto& slot: reference) {
+      for (const auto &slot : reference) {
         index_builder.Insert(common::ManagedPointer<storage::index::Index>(new_index), slot);
       }
 
@@ -227,7 +229,7 @@ TEST_F(IndexBuilderTests, ConcurrentCreateIndex) {
   txn_manager_->Commit(index_scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-//TEST_F(IndexBuilderTests, CreateIndexWhileUpdate) {
+// TEST_F(IndexBuilderTests, CreateIndexWhileUpdate) {
 //  auto table_txn = txn_manager_->BeginTransaction();
 //  auto row_initializer = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1), catalog::col_oid_t(2)});
 //  uint32_t num_inserts = 1000;

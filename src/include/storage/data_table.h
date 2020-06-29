@@ -125,7 +125,6 @@ class DataTable {
   bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
               ProjectedRow *out_buffer) const;
 
-
   // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
   // save a point of scan and come back to it later?
   // Alternatively, we can provide an easy wrapper that takes in a const SlotIterator & and returns a SlotIterator,

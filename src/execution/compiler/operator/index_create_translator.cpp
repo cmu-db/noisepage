@@ -136,7 +136,6 @@ void CreateIndexTranslator::GenSetIndexLive(FunctionBuilder *builder) {
   codegen_->Accessor()->SetIndexLive(index_oid_);
 }
 
-
 void CreateIndexTranslator::GenIndexInserterFree(FunctionBuilder *builder) {
   // Call @storageInterfaceFree
   ast::Expr *index_inserter_free = codegen_->OneArgCall(ast::Builtin::StorageInterfaceFree, index_inserter_, true);

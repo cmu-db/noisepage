@@ -88,7 +88,7 @@ bool StorageInterface::IndexCreateInsert(catalog::index_oid_t index_oid, storage
   terrier::storage::index::IndexBuilder index_builder;
   index_builder.SetSqlTableAndTransactionContext(exec_ctx_->GetTxn(), table_,
                                                  exec_ctx_->GetAccessor()->GetIndexSchema(index_oid));
-  auto result =  index_builder.Insert(exec_ctx_->GetAccessor()->GetIndex(index_oid), table_tuple_slot);
+  auto result = index_builder.Insert(exec_ctx_->GetAccessor()->GetIndex(index_oid), table_tuple_slot);
   exec_ctx_->GetAccessor()->SetIndexLive(index_oid);
   return result;
 }

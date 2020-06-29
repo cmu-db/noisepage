@@ -1,7 +1,7 @@
 #pragma once
 
-#include "storage/sql_table.h"
 #include "catalog/index_schema.h"
+#include "storage/sql_table.h"
 
 namespace terrier::storage::index {
 

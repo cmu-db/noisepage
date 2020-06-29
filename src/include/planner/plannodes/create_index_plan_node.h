@@ -95,7 +95,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * table schema
      */
     std::unique_ptr<catalog::IndexSchema> schema_;
-
   };
 
  private:
@@ -118,7 +117,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         index_name_(std::move(index_name)),
-        schema_(std::move(schema)){}
+        schema_(std::move(schema)) {}
 
  public:
   /**

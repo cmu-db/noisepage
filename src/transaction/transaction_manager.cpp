@@ -170,7 +170,6 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
     }
   }
 
-
   // Now that the in-place versions have been restored, we need to check out an abort timestamp as well. This serves
   // to force the rest of the system to acknowledge the rollback, lest a reader suffers from an a-b-a problem in the
   // version record

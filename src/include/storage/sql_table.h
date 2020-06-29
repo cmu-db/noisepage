@@ -43,7 +43,6 @@ class SqlTable {
   };
 
  public:
-
   /**
    * Constructs a new SqlTable with the given Schema, using the given BlockStore as the source
    * of its storage blocks.

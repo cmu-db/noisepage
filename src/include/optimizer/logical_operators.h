@@ -1403,7 +1403,6 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * Index attributes
    */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs_;
-
 };
 
 /**

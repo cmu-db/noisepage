@@ -1603,10 +1603,9 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   auto raw_values_copy2 = raw_values;
-  Operator op4 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::move(raw_values_copy2))
-          .RegisterWithTxnContext(txn_context);
+  Operator op4 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy2))
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op4.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_TRUE(op3 == op4);
   EXPECT_EQ(op4.Hash(), op3.Hash());
@@ -1617,10 +1616,9 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
       common::ManagedPointer<parser::AbstractExpression>(
           new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9)))};
   auto raw_values_copy3 = raw_values_2;
-  Operator op10 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::move(raw_values_copy3))
-          .RegisterWithTxnContext(txn_context);
+  Operator op10 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                           parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy3))
+                      .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op10.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
   EXPECT_FALSE(op3 == op10);
   EXPECT_NE(op10.Hash(), op3.Hash());

@@ -14,7 +14,6 @@
 #include "storage/index/index_builder.h"
 #include "type/type_id.h"
 
-
 namespace terrier::storage {
 class SqlTable;
 namespace index {
