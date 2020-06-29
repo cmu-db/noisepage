@@ -9,6 +9,7 @@
 
 #include "catalog/catalog.h"
 #include "execution/sql/projected_columns_iterator.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::sql::test {
 
