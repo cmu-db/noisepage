@@ -84,9 +84,10 @@ public class TracefileTest {
         System.out.println("hihihi");
         System.out.println(path);
         file = new File(path);
+        System.out.println(file.isFile());
         mog = new MogSqlite(file);
-        List<String> tab = getAllExistingTableName(mog,db);
-        removeExistingTable(tab,db);
+//        List<String> tab = getAllExistingTableName(mog,db);
+//        removeExistingTable(tab,db);
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
@@ -94,6 +95,7 @@ public class TracefileTest {
         // loop through every sql statement
         while (mog.next()) {
             // case for create and insert statements
+            System.out.println(mog.sql);
             if (mog.queryResults.size() == 0) {
                 Statement statement = conn.createStatement();
                 statement.execute(mog.sql);
