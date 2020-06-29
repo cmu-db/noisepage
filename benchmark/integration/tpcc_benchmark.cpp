@@ -478,14 +478,23 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    std::this_thread::sleep_for(std::chrono::seconds(10));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+//      uint32_t j = 0;
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+//        if (j >= 1000) {
+//          timer.Pause();
+//          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//          j = 0;
+//          timer.Resume();
+//        } else {
+//          j++;
+//        }
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, metrics_manager] {
           metrics_manager->RegisterThread();
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
@@ -585,18 +594,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      uint32_t j = 0;
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        if (j >= 1000) {
-          timer.Pause();
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
-          j = 0;
-          timer.Resume();
-        }
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
         });
-        j++;
       }
       thread_pool.WaitUntilAllFinished();
       log_manager_->ForceFlush();
