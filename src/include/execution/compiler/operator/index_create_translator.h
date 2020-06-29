@@ -43,7 +43,10 @@ class CreateIndexTranslator : public OperatorTranslator {
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Create Index don't output anything"); };
 
   // Should not be called here
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
+  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
+    UNREACHABLE("Create Index nodes does not have a child");
+  }
+
   /**
    * Get all col oids from the schema
    * @param table_schema_ schema of the table

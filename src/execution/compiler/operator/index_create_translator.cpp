@@ -8,6 +8,7 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 // TODO(Wuwen): not sure what is correct for ExecutionOperatingUnitType
@@ -22,7 +23,7 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
       table_schema_(codegen_->Accessor()->GetSchema(op_->GetTableOid())),
       index_oid_(),
       all_oids_(AllColOids(table_schema_)),
-      table_pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
+      table_pm_(codegen_->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
       pr_filler_(codegen_, table_schema_, table_pm_, index_inserter_) {}
 
 void CreateIndexTranslator::Produce(FunctionBuilder *builder) {

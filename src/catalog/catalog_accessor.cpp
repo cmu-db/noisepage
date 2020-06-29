@@ -1,7 +1,5 @@
 #include "catalog/catalog_accessor.h"
 
-#include <storage/index/index_builder.h>
-
 #include <string>
 #include <utility>
 #include <vector>
@@ -10,6 +8,7 @@
 #include "catalog/catalog_cache.h"
 #include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_proc.h"
+#include "storage/index/index_builder.h"
 
 namespace terrier::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(std::string name) const {

@@ -11,7 +11,9 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "storage/index/index_builder.h"
 #include "type/type_id.h"
+
 
 namespace terrier::storage {
 class SqlTable;

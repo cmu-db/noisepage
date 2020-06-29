@@ -72,15 +72,6 @@ class EXPORT StorageInterface {
   storage::TupleSlot TableInsert();
 
   /**
-   * Create a new index based on given schema
-   * @param ns name space oid
-   * @param index_name the name of this index
-   * @param schema index schema
-   * @return index oid of new index
-   */
-  catalog::index_oid_t IndexCreate(catalog::namespace_oid_t ns, std::string index_name,
-                                   const catalog::IndexSchema &schema);
-  /**
    * @param index_oid OID of the index to access.
    * @return PR of the index.
    */

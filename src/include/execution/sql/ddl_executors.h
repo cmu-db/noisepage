@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "storage/index/index_builder.h"
 #include "transaction/transaction_manager.h"
 namespace terrier::planner {
 class CreateDatabasePlanNode;
