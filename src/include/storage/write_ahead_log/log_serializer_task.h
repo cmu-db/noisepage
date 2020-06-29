@@ -129,16 +129,16 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * Process all the accumulated log records and serialize them to log consumer tasks. It's important that we serialize
    * the logs in order to ensure that a single transaction's logs are ordered. Only a single thread can serialize the
    * logs (without more sophisticated ordering checks).
-   * @return (number of bytes processed, number of records processed)
+   * @return (number of bytes processed, number of records processed, number of transactions processed)
    */
-  std::pair<uint64_t, uint64_t> Process();
+  std::tuple<uint64_t, uint64_t, uint64_t> Process();
 
   /**
    * Serialize out the task buffer to the current serialization buffer
    * @param buffer_to_serialize the iterator to the redo buffer to be serialized
-   * @return pair representing number of bytes and number of records serialized, used for metrics
+   * @return tuple representing number of bytes, number of records, and number of txns serialized, used for metrics
    */
-  std::pair<uint64_t, uint64_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
+  std::tuple<uint64_t, uint64_t, uint64_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
 
   /**
    * Serialize out the record to the log

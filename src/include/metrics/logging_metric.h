@@ -49,7 +49,8 @@ class LoggingMetricRawData : public AbstractRawData {
     auto &consumer_outfile = (*outfiles)[1];
 
     for (const auto &data : serializer_data_) {
-      serializer_outfile << data.num_bytes_ << ", " << data.num_records_ << ", " << data.interval_ << ", ";
+      serializer_outfile << data.num_bytes_ << ", " << data.num_records_ << ", " << data.num_txns_ << ", "
+                         << data.interval_ << ", ";
       data.resource_metrics_.ToCSV(serializer_outfile);
       serializer_outfile << std::endl;
     }
@@ -71,7 +72,7 @@ class LoggingMetricRawData : public AbstractRawData {
    * Columns to use for writing to CSV.
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"num_bytes, num_records, interval",
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"num_bytes, num_records, num_txns, interval",
                                                                       "num_bytes, num_buffers, interval"};
 
  private:
@@ -79,8 +80,8 @@ class LoggingMetricRawData : public AbstractRawData {
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
   void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
-                            const common::ResourceTracker::Metrics &resource_metrics) {
-    serializer_data_.emplace_back(num_bytes, num_records, interval, resource_metrics);
+                            const uint64_t num_txns, const common::ResourceTracker::Metrics &resource_metrics) {
+    serializer_data_.emplace_back(num_bytes, num_records, num_txns, interval, resource_metrics);
   }
 
   void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const uint64_t interval,
@@ -90,10 +91,15 @@ class LoggingMetricRawData : public AbstractRawData {
 
   struct SerializerData {
     SerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
-                   const common::ResourceTracker::Metrics &resource_metrics)
-        : num_bytes_(num_bytes), num_records_(num_records), interval_(interval), resource_metrics_(resource_metrics) {}
+                   const uint64_t num_txns, const common::ResourceTracker::Metrics &resource_metrics)
+        : num_bytes_(num_bytes),
+          num_records_(num_records),
+          num_txns_(num_txns),
+          interval_(interval),
+          resource_metrics_(resource_metrics) {}
     const uint64_t num_bytes_;
     const uint64_t num_records_;
+    const uint64_t num_txns_;
     const uint64_t interval_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
@@ -121,8 +127,8 @@ class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
   friend class MetricsStore;
 
   void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
-                            const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordSerializerData(num_bytes, num_records, interval, resource_metrics);
+                            const uint64_t num_txns, const common::ResourceTracker::Metrics &resource_metrics) {
+    GetRawData()->RecordSerializerData(num_bytes, num_records, num_txns, interval, resource_metrics);
   }
   void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const uint64_t interval,
                           const common::ResourceTracker::Metrics &resource_metrics) {
