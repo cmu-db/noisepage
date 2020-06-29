@@ -50,7 +50,7 @@ IndexBuilder &IndexBuilder::SetKeySchema(const catalog::IndexSchema &key_schema)
 }
 
 IndexBuilder &IndexBuilder::SetSqlTableAndTransactionContext(
-    const common::ManagedPointer<transaction::TransactionContext> txn,
+    common::ManagedPointer<transaction::TransactionContext> txn,
     common::ManagedPointer<storage::SqlTable> sql_table, const catalog::IndexSchema &key_schema) {
   TERRIER_ASSERT((sql_table == nullptr && txn == nullptr) || (sql_table != nullptr && txn != nullptr),
                  "sql_table / txn is null and txn / sql_table is not.");

@@ -38,7 +38,7 @@ class IndexBuilder {
    * @param key_schema the index schema
    * @return the builder object
    */
-  IndexBuilder &SetSqlTableAndTransactionContext(const common::ManagedPointer<transaction::TransactionContext> txn,
+  IndexBuilder &SetSqlTableAndTransactionContext(common::ManagedPointer<transaction::TransactionContext> txn,
                                                  common::ManagedPointer<storage::SqlTable> sql_table,
                                                  const catalog::IndexSchema &key_schema);
 
