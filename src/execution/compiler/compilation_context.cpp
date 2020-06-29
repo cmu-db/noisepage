@@ -34,6 +34,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/compiler/operator/static_aggregation_translator.h"
+#include "execution/compiler/operator/update_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -54,6 +55,7 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::compiler {
@@ -237,6 +239,11 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::DELETE: {
       const auto &delete_node = static_cast<const planner::DeletePlanNode &>(plan);
       translator = std::make_unique<DeleteTranslator>(delete_node, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::UPDATE: {
+      const auto &update_node = static_cast<const planner::UpdatePlanNode &>(plan);
+      translator = std::make_unique<UpdateTranslator>(update_node, this, pipeline);
       break;
     }
     case planner::PlanNodeType::INDEXSCAN: {
