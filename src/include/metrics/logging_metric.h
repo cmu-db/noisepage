@@ -90,8 +90,8 @@ class LoggingMetricRawData : public AbstractRawData {
   }
 
   struct SerializerData {
-    SerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
-                   const uint64_t num_txns, const common::ResourceTracker::Metrics &resource_metrics)
+    SerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
+                   const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics)
         : num_bytes_(num_bytes),
           num_records_(num_records),
           num_txns_(num_txns),
