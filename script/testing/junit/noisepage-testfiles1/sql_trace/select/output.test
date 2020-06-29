@@ -1,0 +1,79 @@
+statement ok
+CREATE TABLE tbl(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER)
+
+statement ok
+INSERT INTO tbl VALUES (1, 2, 3), (2, 3, 4)
+
+query I nosort
+SELECT c1,c1 FROM tbl
+----
+4 values hashing to 361619205d8fd52692717ea4890ccf94
+
+query I nosort
+SELECT c1 as new_name FROM tbl
+----
+2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
+
+query I nosort
+SELECT 1 as new_name FROM tbl
+----
+2 values hashing to f2160c8ffedf48068f2e1137e0a3a7e7
+
+query I nosort
+SELECT c1 as c2, c2 as c1 FROM tbl
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+query I nosort
+SELECT COUNT(*) AS cnt FROM tbl HAVING COUNT(*) > 10
+----
+0 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT c1 as c1, c2 as c2 FROM tbl
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+query I nosort
+SELECT c1, c2 as c1 FROM tbl
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+statement ok
+INSERT INTO tbl VALUES (3, 2, 10), (4, 3, 20)
+
+query I nosort
+SELECT COUNT(DISTINCT c2) AS STOCK_COUNT FROM tbl
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+statement ok
+CREATE TABLE tbl2 (a int, b float)
+
+statement ok
+INSERT INTO tbl2 VALUES (1, 1.37)
+
+query I nosort
+SELECT a + b AS AB FROM tbl2
+----
+1 values hashing to 5bc2fbbd3369944f6f8dea481840a335
+
+query I nosort
+SELECT 2+3
+----
+1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+
+statement ok
+CREATE TABLE xxx (c1 int, c2 timestamp)
+
+statement ok
+INSERT INTO xxx (c1, c2) VALUES (1, '2020-01-02 12:23:34.56789')
+
+statement ok
+INSERT INTO xxx (c1, c2) VALUES (2, '2020-01-02 11:22:33.721-05')
+
+query I nosort
+SELECT * FROM xxx WHERE c2 = '2020-01-02 11:22:33.721-05'
+----
+2 values hashing to f8152e0cd62d1bae23466256426ddc21
+

@@ -5,8 +5,19 @@ import sys
 import argparse
 import traceback
 import git
-
-git.Git(os.getcwd()).clone("https://github.com/cmu-db/noisepage-testfiles.git")
+from git import Repo
+noise_path = os.getcwd()+"/noisepage-testfiles"
+os.mkdir(noise_path)
+repo = Repo.clone_from("https://github.com/dniu16/noisepage-testfiles.git", noise_path)
+# if not repo.bare:
+#     print('Repo at {} successfully loaded.'.format(repo))
+#     tree = repo.heads.master.commit.tree
+#     print(tree.blobs)
+#     for blob in tree.blobs:
+#         print(blob.name)
+# else:
+#     print("hahaha")
+# git.Git(os.getcwd()).clone("https://github.com/cmu-db/noisepage-testfiles.git")
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 # TODO: turn on junit xml report (within xml), merge junit xml files https://gist.github.com/cgoldberg/4320815
