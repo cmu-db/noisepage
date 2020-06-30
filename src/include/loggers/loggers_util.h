@@ -21,6 +21,7 @@ using stdout_sink_mt = stdout_sink<details::console_stdout, details::console_mut
 
 extern std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;  // NOLINT
 
+/// @cond DOXYGEN_IGNORE
 extern template void spdlog::logger::trace<std::string>(const std::string &);
 extern template void spdlog::logger::debug<std::string>(const std::string &);
 extern template void spdlog::logger::info<std::string>(const std::string &);
@@ -38,6 +39,7 @@ extern template void spdlog::logger::debug<std::string_view>(const std::string_v
 extern template void spdlog::logger::info<std::string_view>(const std::string_view &);
 extern template void spdlog::logger::warn<std::string_view>(const std::string_view &);
 extern template void spdlog::logger::error<std::string_view>(const std::string_view &);
+/// @endcond
 
 namespace terrier {
 
