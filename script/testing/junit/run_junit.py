@@ -9,6 +9,7 @@ from git import Repo
 noise_path = os.getcwd()+"/noisepage-testfiles"
 os.mkdir(noise_path)
 repo = Repo.clone_from("https://github.com/dniu16/noisepage-testfiles.git", noise_path)
+# invoke git clone with run_command
 # if not repo.bare:
 #     print('Repo at {} successfully loaded.'.format(repo))
 #     tree = repo.heads.master.commit.tree

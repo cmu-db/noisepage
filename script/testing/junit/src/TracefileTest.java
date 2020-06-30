@@ -1,4 +1,5 @@
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.Executable;
@@ -69,8 +70,7 @@ public class TracefileTest {
 
 
 
-    // TODO: make the input path environment
-    // TODO: try making a tracefile by hand, take SELECT.JAVA and convert it to select1.test
+    // TODO: make a new branch
 
     /**
      * Factory method to generate test
