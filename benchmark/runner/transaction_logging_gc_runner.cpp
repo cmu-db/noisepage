@@ -176,7 +176,7 @@ static void UNUSED_ATTRIBUTE LoggingGCArguments(benchmark::internal::Benchmark *
   std::vector<uint32_t> config_intervals = {10, 100, 1000};
   std::vector<uint32_t> txn_lengths = {1, 5, 10};
   // submit interval between two transactions (us)
-  std::vector<uint32_t> txn_intervals = {1, 10, 100, 1000, 3000, 5000};
+  std::vector<uint32_t> txn_intervals = {100, 400, 600, 1000, 2000, 3000, 5000};
   std::vector<uint32_t> num_threads = {1};
 
   for (uint32_t config_interval : config_intervals)
