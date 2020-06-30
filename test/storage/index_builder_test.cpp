@@ -91,7 +91,7 @@ TEST_F(IndexBuilderTests, NullTable) {
   index->ScanAscending(*txn, storage::index::ScanType::OpenBoth, 1, nullptr, nullptr, 0, &values);
   EXPECT_EQ(values.size(), 0);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete  index;
+  delete index;
 }
 
 // NOLINTNEXTLINE
@@ -143,9 +143,7 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   txn_manager_->Commit(index_scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-
   delete index;
-
 }
 
 TEST_F(IndexBuilderTests, ConcurrentCreateIndex) {
