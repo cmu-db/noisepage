@@ -50,9 +50,9 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       before_queue_length_.store(other_db_metric->before_queue_length_.exchange(0));
     }
 
-    if (after_queue_length_ < other_db_metric->after_queue_length_) {
-      after_queue_length_.store(other_db_metric->after_queue_length_.exchange(0));
-    }
+//    if (after_queue_length_ < other_db_metric->after_queue_length_) {
+//      after_queue_length_.store(other_db_metric->after_queue_length_.exchange(0));
+//    }
 //      before_queue_length_ += other_db_metric->before_queue_length_.exchange(0);
 
 //    std::cout << "before record " << num_txns_processed_ << std::endl;
@@ -103,7 +103,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       daf_count_agg << ", " << (data.num_actions_processed_);
       daf_time_agg << ", " << (data.resource_metrics_.elapsed_us_);
     }
-    daf_count_agg << ", " << (total_processed) << ", " << (before_queue_length_) << ", " << (after_queue_length_) << ", " << (num_daf_wakeup_) << ", " << (num_txns_processed_) << ", ";
+    daf_count_agg << ", " << (total_processed) << ", " << (before_queue_length_) <<  ", " << (num_daf_wakeup_) << ", " << (num_txns_processed_) << ", ";
     resource_metrics.ToCSV(daf_count_agg);
     daf_count_agg << std::endl;
     daf_time_agg << ", " << (total_elapsed) << ", "  << (num_daf_wakeup_) << ", " << (num_txns_processed_) << ", ";
@@ -138,7 +138,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 //      "UNLINK, total_time"};
   static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {
       "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
-      "UNLINK, INVALID, total_num_actions, before_queue_length, after_queue_length, num_daf_wakeup, total_num_txns",
+      "UNLINK, INVALID, total_num_actions, max_queue_size, num_daf_wakeup, total_num_txns",
       "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
       "UNLINK, INVALID, total_time, num_daf_wakeup, total_num_txns"};
 

@@ -45,10 +45,10 @@ uint32_t DeferredActionManager::Process() {
 
   ProcessIndexes();
   visited_slots_.clear();
-
-  if (daf_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordAfterQueueSize(back_log_.size() + new_deferred_actions_.unsafe_size());
-  }
+//
+//  if (daf_metrics_enabled) {
+//    common::thread_context.metrics_store_->RecordAfterQueueSize(back_log_.size() + new_deferred_actions_.unsafe_size());
+//  }
   return processed;
 }
 
