@@ -43,9 +43,10 @@ class JoinManager {
  public:
   /**
    * Create a new join manager using the provided opaque context.
+   * @param exec_settings The execution settings to be used.
    * @param opaque_context An opaque context passed through each join function.
    */
-  explicit JoinManager(void *opaque_context);
+  explicit JoinManager(const exec::ExecutionSettings &exec_settings, void *opaque_context);
 
   /**
    * This class cannot be copied or moved.
@@ -69,9 +70,10 @@ class JoinManager {
 
   /**
    * Set the next set of input into the join.
+   * @param exec_ctx The execution context to be used.
    * @param input_vpi The next input batch into the join.
    */
-  void SetInputBatch(VectorProjectionIterator *input_vpi);
+  void SetInputBatch(exec::ExecutionContext *exec_ctx, VectorProjectionIterator *input_vpi);
 
   /**
    * Attempt to advance this fancy-ass multi-step join for the current input batch.

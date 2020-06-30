@@ -47,17 +47,17 @@ class EXPORT ExecutionContext {
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                   const exec::ExecutionSettings &exec_settings)
-      : db_oid_(db_oid),
+                   exec::ExecutionSettings *exec_settings)
+      : exec_settings_(exec_settings),
+        db_oid_(db_oid),
         txn_(txn),
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
         mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
-        thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
-        accessor_(accessor),
-        exec_settings_(exec_settings) {}
+        thread_state_container_(std::make_unique<sql::ThreadStateContainer>(exec_settings, mem_pool_.get())),
+        accessor_(accessor) {}
 
   /**
    * @return the transaction used by this query
@@ -96,7 +96,7 @@ class EXPORT ExecutionContext {
   catalog::CatalogAccessor *GetAccessor() { return accessor_.Get(); }
 
   /** @return The execution settings. */
-  const exec::ExecutionSettings &GetExecutionSettings() const { return exec_settings_; }
+  exec::ExecutionSettings *GetExecutionSettings() const { return exec_settings_; }
 
   /**
    * Start the resource tracker
@@ -165,6 +165,7 @@ class EXPORT ExecutionContext {
   }
 
  private:
+  exec::ExecutionSettings *exec_settings_;
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
   std::unique_ptr<sql::MemoryTracker> mem_tracker_;
@@ -178,7 +179,6 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
-  const exec::ExecutionSettings &exec_settings_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
 };

@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/math_util.h"
 #include "execution/ast/type.h"
-#include "execution/util/math_util.h"
 
 namespace terrier::execution::vm {
 
@@ -35,8 +35,8 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalI
   TERRIER_ASSERT(!name.empty(), "Local name cannot be empty");
 
   // Bump size to account for the alignment of the new local
-  if (!util::MathUtil::IsAligned(frame_size_, type->GetAlignment())) {
-    frame_size_ = util::MathUtil::AlignTo(frame_size_, type->GetAlignment());
+  if (!common::MathUtil::IsAligned(frame_size_, type->GetAlignment())) {
+    frame_size_ = common::MathUtil::AlignTo(frame_size_, type->GetAlignment());
   }
 
   const auto offset = static_cast<uint32_t>(frame_size_);

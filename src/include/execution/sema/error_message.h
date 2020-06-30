@@ -16,6 +16,7 @@ namespace sema {
 // TPL. Each macro has three parts: a unique message ID, a templated string
 // error message that will be displayed, and the types of each template argument
 #define MESSAGE_LIST(F)                                                                                               \
+  F(ScannerError, "Scanner error: %0", (const char *))                                                                \
   F(UnexpectedToken, "unexpected token '%0', expecting '%1'", (parsing::Token::Type, parsing::Token::Type))           \
   F(DuplicateArgName, "duplicate named argument '%0' in function '%0'", (ast::Identifier, ast::Identifier))           \
   F(DuplicateStructFieldName, "duplicate field name '%0' in struct '%1'", (ast::Identifier, ast::Identifier))         \

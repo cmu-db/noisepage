@@ -7,6 +7,10 @@
 #include "common/strong_typedef.h"
 #include "execution/sql/memory_pool.h"
 
+namespace terrier::execution::exec {
+class ExecutionSettings;
+}  // namespace terrier::execution::exec
+
 namespace terrier::execution::sql {
 
 /**
@@ -88,9 +92,9 @@ class EXPORT ThreadStateContainer {
  public:
   /**
    * Function used to initialize a thread's local state upon first use.
-   * Arguments: pointer to opaque context, pointer to a thread-local state.
+   * Arguments: pointer to execution settings, pointer to opaque context, pointer to a thread-local state.
    */
-  using InitFn = void (*)(void *, void *);
+  using InitFn = void (*)(void *, void *, void *);
 
   /**
    * Function used to destroy a thread's local state.
@@ -106,10 +110,11 @@ class EXPORT ThreadStateContainer {
   using IterateFn = void (*)(void *, void *);
 
   /**
-   * Construct a container for all thread state using the given allocator
-   * @param memory The memory allocator to use to allocate thread states
+   * Construct a container for all thread state using the given allocator.
+   * @param exec_settings The execution settings to run with.
+   * @param memory The memory allocator to use to allocate thread states.
    */
-  explicit ThreadStateContainer(MemoryPool *memory);
+  explicit ThreadStateContainer(exec::ExecutionSettings *exec_settings, MemoryPool *memory);
 
   /**
    * This class cannot be copied or moved.
@@ -237,7 +242,7 @@ class EXPORT ThreadStateContainer {
     TLSHandle();
 
     // Constructor
-    explicit TLSHandle(ThreadStateContainer *container);
+    explicit TLSHandle(exec::ExecutionSettings *exec_settings, ThreadStateContainer *container);
 
     // Destructor
     ~TLSHandle();

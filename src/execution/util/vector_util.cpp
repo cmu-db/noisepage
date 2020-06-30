@@ -2,8 +2,8 @@
 
 #include <immintrin.h>
 
+#include "common/math_util.h"
 #include "execution/util/bit_util.h"
-#include "execution/util/math_util.h"
 #include "execution/util/simd/types.h"
 
 namespace terrier::execution::util {
@@ -189,7 +189,7 @@ void VectorUtil::BitVectorToByteVector(const uint64_t *bit_vector, const uint32_
 
 uint32_t VectorUtil::BitVectorToSelectionVectorSparse(const uint64_t *bit_vector, uint32_t num_bits,
                                                       sel_t *sel_vector) {
-  const uint32_t num_words = MathUtil::DivRoundUp(num_bits, 64);
+  const uint32_t num_words = common::MathUtil::DivRoundUp(num_bits, 64);
 
   uint32_t k = 0;
   for (uint32_t i = 0; i < num_words; i++) {
@@ -215,7 +215,7 @@ uint32_t VectorUtil::BitVectorToSelectionVectorDenseAvX2(const uint64_t *bit_vec
   // Selection vector size
   uint32_t k = 0;
 
-  const uint32_t num_words = MathUtil::DivRoundUp(num_bits, 64);
+  const uint32_t num_words = common::MathUtil::DivRoundUp(num_bits, 64);
   for (uint32_t i = 0; i < num_words; i++) {
     uint64_t word = bit_vector[i];
     for (uint32_t j = 0; j < 8; j++) {
@@ -286,7 +286,7 @@ uint32_t VectorUtil::BitVectorToSelectionVector(const uint64_t *bit_vector, cons
   //               population counts. The sample is faster to collect and equally as representative
   //               as a full population count.
 
-  const uint32_t num_words = MathUtil::DivRoundUp(num_bits, 64);
+  const uint32_t num_words = common::MathUtil::DivRoundUp(num_bits, 64);
 
   // Calculate the density of the input bit vector in order to direct the algorithm to either the
   // sparse-optimized or dense-optimized unpacking implementation.

@@ -14,8 +14,9 @@
 
 namespace terrier::execution::vm {
 
-// Test
+namespace test {
 class BytecodeTrampolineTest;
+}  // namespace test
 
 /**
  * A Module instance is used to store all information associated with a single TPL program. Module's
@@ -97,8 +98,8 @@ class Module {
   const BytecodeModule *GetBytecodeModule() const { return bytecode_module_.get(); }
 
  private:
-  friend class VM;                      // For the VM to access raw bytecode.
-  friend class BytecodeTrampolineTest;  // For the tests to check private methods.
+  friend class VM;                            // For the VM to access raw bytecode.
+  friend class test::BytecodeTrampolineTest;  // For the tests to check private methods.
 
   // This class encapsulates the ability to asynchronously JIT compile a module.
   class AsyncCompileTask;

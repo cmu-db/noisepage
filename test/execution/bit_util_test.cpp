@@ -1,6 +1,6 @@
-#include "execution/tpl_test.h"
-
 #include "execution/util/bit_util.h"
+
+#include "execution/tpl_test.h"
 
 namespace terrier::execution::util::test {
 

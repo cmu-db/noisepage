@@ -87,7 +87,7 @@ class MemPoolPtr {
 
 template <typename T1, typename T2>
 inline bool operator==(const MemPoolPtr<T1> &a, const MemPoolPtr<T2> &b) {
-  return a.get() == b.get();
+  return a.Get() == b.Get();
 }
 
 template <typename T>
@@ -102,7 +102,7 @@ inline bool operator==(const MemPoolPtr<T> &a, std::nullptr_t) noexcept {
 
 template <typename T1, typename T2>
 inline bool operator!=(const MemPoolPtr<T1> &a, const MemPoolPtr<T2> &b) {
-  return a.get() != b.get();
+  return a.Get() != b.Get();
 }
 
 template <typename T>

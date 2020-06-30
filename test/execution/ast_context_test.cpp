@@ -1,11 +1,10 @@
 #include <string>
 #include <unordered_set>
 
-#include "execution/tpl_test.h"
-
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/sema/error_reporter.h"
+#include "execution/tpl_test.h"
 
 namespace terrier::execution::ast::test {
 

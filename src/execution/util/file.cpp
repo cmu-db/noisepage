@@ -50,9 +50,9 @@ namespace terrier::execution::util {
     eintr_wrapper_result;                                 \
   })
 
-File::File(const std::string_view &path, uint32_t flags) : error_(Error::OK) { Initialize(path, flags); }
+File::File(const std::filesystem::path &path, uint32_t flags) : error_(Error::OK) { Initialize(path, flags); }
 
-void File::Initialize(const std::string_view &path, uint32_t flags) {
+void File::Initialize(const std::filesystem::path &path, uint32_t flags) {
   // Close the existing file if it's open
   Close();
 
@@ -103,14 +103,14 @@ void File::Initialize(const std::string_view &path, uint32_t flags) {
 
   int32_t mode = S_IRUSR | S_IWUSR;
 
-  int32_t fd = open(path.data(), open_flags, mode);
+  int32_t fd = open(path.c_str(), open_flags, mode);
 
   if (flags & FLAG_OPEN_ALWAYS) {  // NOLINT
     // Check if the file is open, create it otherwise.
     if (fd == INVALID_DESCRIPTOR) {
       open_flags |= O_CREAT;
 
-      fd = HANDLE_EINTR(open(path.data(), open_flags, mode));
+      fd = HANDLE_EINTR(open(path.c_str(), open_flags, mode));
 
       if (fd >= 0) {
         created_ = true;
@@ -134,7 +134,7 @@ void File::Initialize(const std::string_view &path, uint32_t flags) {
   // read from it. When all open handles are closed, the file will be deleted
   // and its space will be reclaimed.
   if (flags & FLAG_DELETE_ON_CLOSE) {  // NOLINT
-    unlink(path.data());
+    unlink(path.c_str());
   }
 
   // Done
@@ -142,9 +142,9 @@ void File::Initialize(const std::string_view &path, uint32_t flags) {
   error_ = Error::OK;
 }
 
-void File::Open(const std::string_view &path, uint32_t flags) { Initialize(path, flags); }
+void File::Open(const std::filesystem::path &path, uint32_t flags) { Initialize(path, flags); }
 
-void File::Create(const std::string_view &path) { Open(path, FLAG_CREATE_ALWAYS | FLAG_WRITE); }
+void File::Create(const std::filesystem::path &path) { Open(path, FLAG_CREATE_ALWAYS | FLAG_WRITE); }
 
 void File::CreateTemp(bool delete_on_close) {
   // Close the existing file if it's open

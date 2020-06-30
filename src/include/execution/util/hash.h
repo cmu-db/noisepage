@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nmmintrin.h>
+
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -126,12 +127,12 @@ class EXPORT Hasher {
     return ((result2 << 32u) | result1) * 0x2545F4914F6CDD1Dull;
   }
 
- private:
   template <typename T>
   static auto HashCrc(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     return HashCrc(val, hash_t{0});
   }
 
+ private:
   static hash_t HashCrc(const uint8_t *buf, uint32_t len, hash_t seed) {
     // Thanks HyPer
     uint64_t hash = seed;

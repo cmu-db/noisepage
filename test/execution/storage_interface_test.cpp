@@ -78,7 +78,7 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
     for (; vpi->HasNext(); vpi->Advance()) {
-      auto *val_a = vpi->Get<int32_t, false>(0, nullptr);
+      auto *val_a = vpi->GetValue<int32_t, false>(0, nullptr);
       ASSERT_EQ(*val_a, inserted_vals[num_tuples]);
       num_tuples++;
     }

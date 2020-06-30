@@ -1,3 +1,5 @@
+#include "execution/compiler/expression/pr_filler.h"
+
 #include <functional>
 #include <limits>
 #include <memory>
@@ -8,8 +10,7 @@
 #include "catalog/catalog_defs.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/compiler/compiler.h"
-#include "execution/compiler/expression/pr_filler.h"
-#include "execution/compiler/expression_util.h"
+#include "execution/compiler/expression_maker.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/compiler/output_schema_util.h"
 #include "execution/exec/execution_context.h"
