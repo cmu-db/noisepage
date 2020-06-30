@@ -138,7 +138,7 @@ TEST_F(TopKElementsTests, SortedKeyTest) {
     // guarantee that the keys we shove in will have the exact amount
     // that we originally set them to.
 
-    OPTIMIZER_LOG_TRACE("Top-" + std::to_string(i) + ": " + key + " <-> " + expected_key);
+    OPTIMIZER_LOG_TRACE("Top-" + std::to_string(i) += ": " + key + " <-> " += expected_key);
     // EXPECT_EQ(key, expected_key) << "Iteration #" << i;
     i++;
   }
