@@ -159,16 +159,4 @@ public class FunctionsTest extends TestUtility {
         checkStringFunc("lower", "str_a_val", true, null);
     }
 
-    @Test
-    public void testVersion() throws SQLException {
-        String sql = String.format("SELECT version() AS result");
-
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery(sql);
-        boolean exists = rs.next();
-        assert(exists);
-        checkStringRow(rs, new String[]{"result"}, new String[]{"NoisePage 1.0.0"});
-        assertNoMoreRows(rs);
-    }
-
 }
