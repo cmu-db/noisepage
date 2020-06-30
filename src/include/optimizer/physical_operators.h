@@ -59,16 +59,14 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param predicates predicates for get
    * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
    * @return a SeqScan operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update);
 
   /**
    * Copy
@@ -84,11 +82,6 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
    * @return the OID of the database
    */
   const catalog::db_oid_t &GetDatabaseOID() const { return database_oid_; }
-
-  /**
-   * @return the OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
@@ -115,11 +108,6 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table
@@ -149,7 +137,6 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param tbl_oid OID of the table
    * @param index_oid OID of the index
    * @param predicates query predicates
@@ -158,8 +145,7 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * @param bounds Bounds for IndexScan
    * @return an IndexScan operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                        std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
                        std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
@@ -178,11 +164,6 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * @return the OID of the database
    */
   const catalog::db_oid_t &GetDatabaseOID() const { return database_oid_; }
-
-  /**
-   * @return the OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
@@ -221,11 +202,6 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table
@@ -856,15 +832,14 @@ class Insert : public OperatorNodeContents<Insert> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param columns OIDs of columns to insert into
    * @param values expressions of values to insert
    * @param index_oids the OIDs of the indexes to insert into
    * @return an Insert operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<catalog::col_oid_t> &&columns,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
                        std::vector<catalog::index_oid_t> &&index_oids);
 
@@ -881,11 +856,6 @@ class Insert : public OperatorNodeContents<Insert> {
    * @return OID of the database
    */
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return OID of the table
@@ -916,11 +886,6 @@ class Insert : public OperatorNodeContents<Insert> {
   catalog::db_oid_t database_oid_;
 
   /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
-
-  /**
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
@@ -948,13 +913,12 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param index_oids the OIDs of the indexes to insert into
    * @return an InsertSelect operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<catalog::index_oid_t> &&index_oids);
 
   /**
    * Copy
@@ -971,11 +935,6 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return OID of the table
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
@@ -990,11 +949,6 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table
@@ -1014,13 +968,11 @@ class Delete : public OperatorNodeContents<Delete> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_alias Alias of the table
    * @param table_oid OID of the table
    * @return an InsertSelect operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
-                       catalog::table_oid_t table_oid);
+  static Operator Make(catalog::db_oid_t database_oid, std::string table_alias, catalog::table_oid_t table_oid);
 
   /**
    * Copy
@@ -1037,11 +989,6 @@ class Delete : public OperatorNodeContents<Delete> {
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return Alias
    */
   const std::string &GetTableAlias() const { return table_alias_; }
@@ -1056,11 +1003,6 @@ class Delete : public OperatorNodeContents<Delete> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * Table Alias
@@ -1158,14 +1100,12 @@ class Update : public OperatorNodeContents<Update> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_alias Table Alias
    * @param table_oid OID of the table
    * @param updates update clause
    * @return an Update operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
-                       catalog::table_oid_t table_oid,
+  static Operator Make(catalog::db_oid_t database_oid, std::string table_alias, catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
   /**
    * Copy
@@ -1180,11 +1120,6 @@ class Update : public OperatorNodeContents<Update> {
    * @return OID of the database
    */
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return Table Alias
@@ -1206,11 +1141,6 @@ class Update : public OperatorNodeContents<Update> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * Table Alias
@@ -1995,13 +1925,11 @@ class DropTrigger : public OperatorNodeContents<DropTrigger> {
  public:
   /**
    * @param database_oid OID of database
-   * @param namespace_oid OID of namespace
    * @param trigger_oid OID of trigger to drop
    * @param if_exists existence flag
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::trigger_oid_t trigger_oid, bool if_exists);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::trigger_oid_t trigger_oid, bool if_exists);
 
   /**
    * Copy
@@ -2061,13 +1989,11 @@ class DropView : public OperatorNodeContents<DropView> {
  public:
   /**
    * @param database_oid OID of database
-   * @param namespace_oid OID of namespace
    * @param view_oid OID of view to drop
    * @param if_exists existence flag
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::view_oid_t view_oid, bool if_exists);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::view_oid_t view_oid, bool if_exists);
 
   /**
    * Copy
@@ -2084,11 +2010,6 @@ class DropView : public OperatorNodeContents<DropView> {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return OID of the view to drop
    */
   catalog::view_oid_t GetViewOid() const { return view_oid_; }
@@ -2103,11 +2024,6 @@ class DropView : public OperatorNodeContents<DropView> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the view to drop
