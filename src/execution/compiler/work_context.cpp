@@ -10,7 +10,7 @@ WorkContext::WorkContext(CompilationContext *compilation_context, const Pipeline
       pipeline_(pipeline),
       pipeline_iter_(pipeline_.Begin()),
       pipeline_end_(pipeline_.End()),
-      cache_enabled_(true) {}
+      cache_enabled_(false) {}
 
 ast::Expr *WorkContext::DeriveValue(const parser::AbstractExpression &expr, const ColumnValueProvider *provider) {
   if (cache_enabled_) {
