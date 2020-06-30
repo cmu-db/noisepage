@@ -52,7 +52,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
         common::thread_context.metrics_store_->RecordSerializerData(
             num_bytes, num_records, num_txns, serialization_interval_.count(), resource_metrics);
       }
-      num_bytes = num_records = 0;
+      num_bytes = num_records = num_txns = 0;
       // start the operating unit resource tracker
       common::thread_context.resource_tracker_.Start();
     }
