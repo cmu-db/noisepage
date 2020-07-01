@@ -285,23 +285,18 @@ class DBMain {
         metrics_manager = std::make_unique<metrics::MetricsManager>();
         if (use_settings_manager_) {
           if (settings_manager->GetBool(settings::Param::metrics_logging)) {
-            auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(0));
             metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
           }
           if (settings_manager->GetBool(settings::Param::metrics_transaction)) {
-            auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(0));
             metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
           }
           if (settings_manager->GetBool(settings::Param::metrics_gc)) {
-            auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(0));
             metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
           }
           if (settings_manager->GetBool(settings::Param::metrics_execution)) {
-            auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(0));
             metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION, 0);
           }
           if (settings_manager->GetBool(settings::Param::metrics_pipeline)) {
-            auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(0));
             metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
           }
         }
