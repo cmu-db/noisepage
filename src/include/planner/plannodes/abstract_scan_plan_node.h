@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -49,15 +50,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param namespace_oid namespace OID of table/index beind scanned
-     * @return builder object
-     */
-    ConcreteType &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
-      namespace_oid_ = namespace_oid;
-      return *dynamic_cast<ConcreteType *>(this);
-    }
-
-    /**
      * @param limit number of tuples to limit to
      * @return builder object
      */
@@ -92,11 +84,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     catalog::db_oid_t database_oid_;
 
     /**
-     * OID of namespace
-     */
-    catalog::namespace_oid_t namespace_oid_;
-
-    /**
      * The number of tuples that this scan should emit due to a LIMIT clause.
      */
     uint32_t scan_limit_{0};
@@ -124,7 +111,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param predicate predicate used for performing scan
    * @param is_for_update scan is used for an update
    * @param database_oid database oid for scan
-   * @param namespace_oid OID of the namespace
    * @param scan_limit limit of the scan if any
    * @param scan_has_limit flag to indicate if scan limit is set
    * @param scan_offset offset for scan
@@ -133,13 +119,12 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
                        common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
-                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, uint32_t scan_limit,
-                       bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset)
+                       catalog::db_oid_t database_oid, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
+                       bool scan_has_offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(predicate),
         is_for_update_(is_for_update),
         database_oid_(database_oid),
-        namespace_oid_(namespace_oid),
         scan_limit_(scan_limit),
         scan_has_limit_(scan_has_limit),
         scan_offset_(scan_offset),
@@ -169,11 +154,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @return database OID of index/table being scanned
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return namespace OID of index/table being scanned
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the hashed value of this plan node
@@ -224,11 +204,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * Database OID for scan
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * Namespace OID for scan
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * The number of tuples that this scan should emit due to a LIMIT clause.

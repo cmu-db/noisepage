@@ -5,17 +5,15 @@
 #include <utility>
 #include <vector>
 
-#include "binder/binder_context.h"
 #include "binder/binder_sherpa.h"
 #include "binder/sql_node_visitor.h"
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "parser/postgresparser.h"
-#include "parser/statements.h"
 
 namespace terrier {
 
 namespace parser {
-class SQLStatement;
 class AggregateExpression;
 class CaseExpression;
 class ConstantValueExpression;
@@ -23,6 +21,7 @@ class ColumnValueExpression;
 class OperatorExpression;
 class SubqueryExpression;
 class StarExpression;
+class SQLStatement;
 }  // namespace parser
 
 namespace catalog {
@@ -30,8 +29,7 @@ class CatalogAccessor;
 }  // namespace catalog
 
 namespace binder {
-
-class BinderSherpa;
+class BinderContext;
 
 /**
  * Interface to be notified of the composition of a bind node.

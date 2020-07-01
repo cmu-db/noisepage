@@ -200,7 +200,6 @@ void PlanGenerator::Visit(const SeqScan *op) {
   output_plan_ = planner::SeqScanPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOID())
-                     .SetNamespaceOid(op->GetNamespaceOID())
                      .SetTableOid(op->GetTableOID())
                      .SetScanPredicate(common::ManagedPointer(predicate))
                      .SetColumnOids(std::move(column_ids))
@@ -225,7 +224,6 @@ void PlanGenerator::Visit(const IndexScan *op) {
   builder.SetScanPredicate(common::ManagedPointer(predicate));
   builder.SetIsForUpdateFlag(op->GetIsForUpdate());
   builder.SetDatabaseOid(op->GetDatabaseOID());
-  builder.SetNamespaceOid(op->GetNamespaceOID());
   builder.SetIndexOid(op->GetIndexOID());
   builder.SetTableOid(tbl_oid);
   builder.SetColumnOids(std::move(column_ids));
@@ -723,7 +721,6 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const Aggregate *op) {
 void PlanGenerator::Visit(const Insert *op) {
   auto builder = planner::InsertPlanNode::Builder();
   builder.SetDatabaseOid(op->GetDatabaseOid());
-  builder.SetNamespaceOid(op->GetNamespaceOid());
   builder.SetTableOid(op->GetTableOid());
 
   std::vector<catalog::index_oid_t> indexes(op->GetIndexes());
@@ -753,7 +750,6 @@ void PlanGenerator::Visit(const InsertSelect *op) {
   output_plan_ = planner::InsertPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
@@ -767,7 +763,6 @@ void PlanGenerator::Visit(const Delete *op) {
   output_plan_ = planner::DeletePlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
@@ -800,7 +795,6 @@ void PlanGenerator::Visit(const Update *op) {
   // TODO(wz2): What is this SetUpdatePrimaryKey
   output_plan_ = builder.SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
                      .SetUpdatePrimaryKey(false)
                      .AddChild(std::move(children_plans_[0]))
@@ -956,7 +950,6 @@ void PlanGenerator::Visit(const DropTrigger *drop_trigger) {
 void PlanGenerator::Visit(const DropView *drop_view) {
   output_plan_ = planner::DropViewPlanNode::Builder()
                      .SetDatabaseOid(drop_view->GetDatabaseOid())
-                     .SetNamespaceOid(drop_view->GetNamespaceOid())
                      .SetViewOid(drop_view->GetViewOid())
                      .SetIfExist(drop_view->IsIfExists())
                      .Build();
