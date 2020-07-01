@@ -1572,10 +1572,12 @@ void BytecodeGenerator::VisitBuiltinOffsetOfCall(ast::CallExpr *call) {
 
 void BytecodeGenerator::VisitBuiltinTestCatalogLookup(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
-  LocalVar table_name = VisitExpressionForRValue(call->Arguments()[1]);
-  uint32_t table_name_len = call->Arguments()[1]->As<ast::LitExpr>()->StringVal().GetLength();
-  LocalVar col_name = VisitExpressionForRValue(call->Arguments()[2]).AddressOf();
-  uint32_t col_name_len = call->Arguments()[2]->As<ast::LitExpr>()->StringVal().GetLength();
+  auto table_name_lit = call->Arguments()[1]->As<ast::LitExpr>()->StringVal();
+  LocalVar table_name = NewStaticString(call->GetType()->GetContext(), table_name_lit);
+  uint32_t table_name_len = table_name_lit.GetLength();
+  auto col_name_lit = call->Arguments()[2]->As<ast::LitExpr>()->StringVal();
+  LocalVar col_name = NewStaticString(call->GetType()->GetContext(), col_name_lit);
+  uint32_t col_name_len = col_name_lit.GetLength();
 
   LocalVar oid_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   GetEmitter()->EmitTestCatalogLookup(oid_var, exec_ctx, table_name, table_name_len, col_name, col_name_len);
@@ -1584,8 +1586,9 @@ void BytecodeGenerator::VisitBuiltinTestCatalogLookup(ast::CallExpr *call) {
 
 void BytecodeGenerator::VisitBuiltinTestCatalogIndexLookup(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
-  LocalVar table_name = VisitExpressionForRValue(call->Arguments()[1]).AddressOf();
-  uint32_t table_name_len = call->Arguments()[1]->As<ast::LitExpr>()->StringVal().GetLength();
+  auto table_name_lit = call->Arguments()[1]->As<ast::LitExpr>()->StringVal();
+  LocalVar table_name = NewStaticString(call->GetType()->GetContext(), table_name_lit);
+  uint32_t table_name_len = table_name_lit.GetLength();
 
   LocalVar oid_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   GetEmitter()->EmitTestCatalogIndexLookup(oid_var, exec_ctx, table_name, table_name_len);

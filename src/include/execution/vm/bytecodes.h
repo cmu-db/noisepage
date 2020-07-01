@@ -554,9 +554,9 @@ namespace terrier::execution::vm {
   F(ExtractYear, OperandType::Local, OperandType::Local)                                                               \
                                                                                                                        \
   /* FOR TESTING ONLY */                                                                                               \
-  F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4,                 \
-    OperandType::Local, OperandType::UImm4)                                                                            \
-  F(TestCatalogIndexLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)
+  F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4,           \
+    OperandType::StaticLocal, OperandType::UImm4)                                                                      \
+  F(TestCatalogIndexLookup, OperandType::Local, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4)
 
 // clang-format on
 
