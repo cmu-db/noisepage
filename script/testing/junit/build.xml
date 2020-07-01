@@ -42,15 +42,30 @@
     <arg value="--scan-class-path" />
   </java>
 </target>
-<!--  batchtest-->
+
 <target name="test-trace" depends="compile">
-  <tests>
-  <fileset dir='$src'>
-    <include name='edu/brown/hstore/Test*.class'/>
-    <include name='edu/brown/hstore/**/Test*.class'/>
-    <include name='edu/brown/catalog/Test*.class'/>
-  </fileset>
-  </tests>
+  <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
+        dir="."
+        fork="yes"
+        failonerror="true">
+    <arg value="--class-path" />
+    <arg value="${toString:test.classpath}" />
+    <arg value="--scan-class-path" />
+    <arg value="--include-classname" />
+    <arg value="TracefileTest" />
+  </java>
+</target>
+<target name="test-unit" depends="compile">
+  <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
+        dir="."
+        fork="yes"
+        failonerror="true">
+    <arg value="--class-path" />
+    <arg value="${toString:test.classpath}" />
+    <arg value="--scan-class-path" />
+    <arg value="--exclude-classname" />
+    <arg value="TracefileTest" />
+  </java>
 </target>
 <target name="test" depends="compile">
   <junit fork="yes" haltonfailure="false" logfailedtests="true">

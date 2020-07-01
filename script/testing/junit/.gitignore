@@ -1,2 +1,4 @@
 # keep the jar files
 !lib/*.jar
+noisepage-testfiles/
+out/

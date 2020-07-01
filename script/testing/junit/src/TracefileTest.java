@@ -1,7 +1,4 @@
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.function.Executable;
 import java.io.*;
 import java.security.MessageDigest;
@@ -68,9 +65,6 @@ public class TracefileTest {
 
     }
 
-
-
-    // TODO: make a new branch
 
     /**
      * Factory method to generate test
