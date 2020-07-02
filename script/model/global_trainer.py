@@ -171,7 +171,7 @@ class GlobalTrainer:
 
         # Calculate the accumulated ratio error
         mini_model_y_pred = np.array(mini_model_y_pred)[test_indices]
-        y_pred = trained_model.predict(x)
+        y_pred = trained_model.predict(x)[test_indices]
         raw_y_pred = mini_model_y_pred * (y_pred + 1e-6)
         raw_y = np.array(raw_y)[test_indices]
         accumulated_raw_y = np.sum(raw_y, axis=0)
@@ -195,7 +195,7 @@ if __name__ == '__main__':
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
     aparser.add_argument('--mini_model_file', default='trained_nogen_model/mini_model_map.pickle',
                          help='File of the saved mini models')
-    aparser.add_argument('--ml_models', nargs='*', type=str, default=["huber"],
+    aparser.add_argument('--ml_models', nargs='*', type=str, default=["nn"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--impact_model_ratio', type=float, default=1,
