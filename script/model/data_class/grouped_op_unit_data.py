@@ -170,7 +170,7 @@ class GroupedOpUnitData:
         index_map = data_info.TARGET_CSV_INDEX
         self.start_time = metrics[index_map[Target.START_TIME]]
         self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
-        self.cpu_id = metrics[index_map[Target.CPU_ID]]
+        self.cpu_id = int(metrics[index_map[Target.CPU_ID]])
 
     def get_start_time(self, concurrent_counting_mode):
         """Get the start time for this group for counting the concurrent operations

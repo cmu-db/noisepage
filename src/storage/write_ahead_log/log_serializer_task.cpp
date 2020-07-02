@@ -17,14 +17,18 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   const std::chrono::microseconds max_sleep =
       std::chrono::microseconds(10000);  // We cap the back-off in case of long gaps with no transactions
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING)) {
-    // start the operating unit resource tracker
-    common::thread_context.resource_tracker_.Start();
-  }
   uint64_t num_bytes = 0, num_records = 0, num_txns = 0;
 
   do {
+    const bool logging_metrics_enabled =
+        common::thread_context.metrics_store_ != nullptr &&
+            common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
+    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
+    }
+
     // Serializing is now on the "critical txn path" because txns wait to commit until their logs are serialized. Thus,
     // a sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
     // buffers in our call to Process. Calls to Process will process as long as new buffers are available. We only
@@ -43,18 +47,13 @@ void LogSerializerTask::LogSerializerTaskLoop() {
     std::tie(num_bytes, num_records, num_txns) = Process();
     curr_sleep = std::min(num_records > 0 ? serialization_interval_ : curr_sleep * 2, max_sleep);
 
-    if (num_records > 0 && common::thread_context.metrics_store_ != nullptr &&
-        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING)) {
-      if (common::thread_context.resource_tracker_.IsRunning()) {
-        // Stop the resource tracker for this operating unit
-        common::thread_context.resource_tracker_.Stop();
-        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-        common::thread_context.metrics_store_->RecordSerializerData(
-            num_bytes, num_records, num_txns, serialization_interval_.count(), resource_metrics);
-      }
+    if (logging_metrics_enabled && num_records > 0) {
+      // Stop the resource tracker for this operating unit
+      common::thread_context.resource_tracker_.Stop();
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordSerializerData(
+          num_bytes, num_records, num_txns, serialization_interval_.count(), resource_metrics);
       num_bytes = num_records = num_txns = 0;
-      // start the operating unit resource tracker
-      common::thread_context.resource_tracker_.Start();
     }
   } while (run_task_);
   // To be extra sure we processed everything

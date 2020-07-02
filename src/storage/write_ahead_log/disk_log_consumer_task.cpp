@@ -1,4 +1,6 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
+
+#include "common/resource_tracker.h"
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
@@ -56,12 +58,6 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   // input for this operating unit
   uint64_t num_bytes = 0, num_buffers = 0;
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING)) {
-    // start the operating unit resource tracker
-    common::thread_context.resource_tracker_.Start();
-  }
-
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
   // Initialize sleep period
@@ -73,6 +69,15 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   // Disk log consumer task thread spins in this loop. When notified or periodically, we wake up and process serialized
   // buffers
   do {
+    const bool logging_metrics_enabled =
+        common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
+    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
+    }
+
     curr_sleep = next_sleep;
     {
       // Wait until we are told to flush buffers
@@ -113,18 +118,13 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       persist_cv_.notify_all();
     }
 
-    if (num_buffers > 0 && common::thread_context.metrics_store_ != nullptr &&
-        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING)) {
-      if (common::thread_context.resource_tracker_.IsRunning()) {
-        // Stop the resource tracker for this operating unit
-        common::thread_context.resource_tracker_.Stop();
-        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-        common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, persist_interval_.count(),
-                                                                  resource_metrics);
-      }
+    if (logging_metrics_enabled && num_buffers > 0) {
+      // Stop the resource tracker for this operating unit
+      common::thread_context.resource_tracker_.Stop();
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, persist_interval_.count(),
+                                                                resource_metrics);
       num_bytes = num_buffers = 0;
-      // start the operating unit resource tracker
-      common::thread_context.resource_tracker_.Start();
     }
   } while (run_task_);
   // Be extra sure we processed everything

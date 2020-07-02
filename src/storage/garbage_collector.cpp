@@ -32,7 +32,7 @@ GarbageCollector::GarbageCollector(
 }
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
-  bool gc_metrics_enabled =
+  const bool gc_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
           common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
 
