@@ -46,7 +46,7 @@ class CatalogCache;
  * as well as reinforces the design decision that the catalog is responsible
  * only for managing metadata and not the lifecycle of storage objects.
  */
-class CatalogAccessor {
+class EXPORT CatalogAccessor {
  public:
   /**
    * Given a database name, resolve it to the corresponding OID

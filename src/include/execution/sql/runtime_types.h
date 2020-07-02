@@ -316,7 +316,7 @@ class EXPORT Timestamp {
  * @tparam T The underlying native data type sufficiently large to store decimals of a pre-determined scale.
  */
 template <typename T>
-class Decimal {
+class EXPORT Decimal {
  public:
   /** Underlying native data type. */
   using NativeType = T;
@@ -412,7 +412,7 @@ using Decimal128 = Decimal<int128_t>;
 /**
  * A container for varlens.
  */
-class VarlenHeap {
+class EXPORT VarlenHeap {
  public:
   /**
    * Allocate memory from the heap whose contents will be filled in by the user BEFORE creating a varlen.
@@ -461,7 +461,7 @@ class VarlenHeap {
 /**
  * Simple structure representing a blob.
  */
-class Blob {
+class EXPORT Blob {
  public:
   /**
    * Crete an empty blob reference.

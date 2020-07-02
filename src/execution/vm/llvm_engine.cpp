@@ -32,6 +32,8 @@
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "loggers/execution_logger.h"
 
+extern void *__dso_handle __attribute__((__visibility__("hidden")));  // NOLINT
+
 namespace terrier::execution::vm {
 
 namespace {
@@ -62,10 +64,17 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
       return llvm::JITSymbol(iter->second);
     }
 
+    if (name == "__dso_handle") {
+      EXECUTION_LOG_DEBUG("'__dso_handle' resolved to {} ...", reinterpret_cast<uint64_t>(&__dso_handle));
+      return {reinterpret_cast<uint64_t>(&__dso_handle), {}};
+    }
+
     EXECUTION_LOG_TRACE("Symbol '{}' not found in cache, checking process ...", name);
 
     llvm::JITSymbol symbol = llvm::SectionMemoryManager::findSymbol(name);
-    TERRIER_ASSERT(symbol.getAddress(), "Resolved symbol has no address!");
+    // If you're here because you tripped the assertion, check that you have EXPORT'd symbol definitions.
+    // Symptoms may include your code working in interpreted, adaptive, and codegen, but not in JIT.
+    TERRIER_ASSERT(symbol.getAddress().get() != 0, "Resolved symbol has no address!");
     symbols_[name] = {symbol.getAddress().get(), symbol.getFlags()};
     return symbol;
   }
