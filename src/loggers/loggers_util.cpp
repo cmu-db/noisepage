@@ -8,6 +8,7 @@
 #include "loggers/common_logger.h"
 #include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
+#include "loggers/metrics_logger.h"
 #include "loggers/network_logger.h"
 #include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
@@ -31,11 +32,12 @@ void LoggersUtil::Initialize() {
     catalog::InitCatalogLogger();
     common::InitCommonLogger();
     execution::InitExecutionLogger();
-    storage::InitIndexLogger();
+    metrics::InitMetricsLogger();
     network::InitNetworkLogger();
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
     settings::InitSettingsLogger();
+    storage::InitIndexLogger();
     storage::InitStorageLogger();
     transaction::InitTransactionLogger();
 
