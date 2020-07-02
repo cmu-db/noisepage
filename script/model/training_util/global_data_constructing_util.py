@@ -96,9 +96,6 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
         resource_data = resource_data_map[interval_start_time]
         cpu_id = data.cpu_id
         same_core_x = resource_data.x_list[cpu_id - physical_core_num if cpu_id > physical_core_num else cpu_id]
-        # FIXME: fix the dummy memory value later
-        #memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
-        #same_core_x[memory_idx] = 1
         impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data, same_core_x))
 
     return list(resource_data_map.values()), impact_data_list
