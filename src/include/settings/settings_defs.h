@@ -187,6 +187,22 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    metrics_gc,
+    "Metrics collection for the GarbageCollector component (default: false).",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsGC
+)
+
+SETTING_bool(
+    metrics_execution,
+    "Metrics collection for the Execution component (default: false).",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsExecution
+)
+
+SETTING_bool(
     metrics_pipeline,
     "Metrics collection for the ExecutionEngine pipelines (default: false).",
     false,
