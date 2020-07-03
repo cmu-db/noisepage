@@ -17,6 +17,8 @@ import static org.junit.Assert.assertEquals;
 public class SelectTest extends TestUtility {
     private Connection conn;
     private ResultSet rs;
+    private ResultSet rs1;
+    private ResultSet rs2;
     private String S_SQL = "SELECT * FROM tbl;";
 
     private static final String SQL_DROP_TABLE =
@@ -275,8 +277,8 @@ public class SelectTest extends TestUtility {
       stmt.execute(insert_SQL1);
       stmt.execute(insert_SQL2);
       stmt.execute(insert_SQL3);
-      ResultSet rs1 = stmt.executeQuery(select_SQL1);
-      ResultSet rs2 = stmt.executeQuery(select_SQL2);
+      rs1 = stmt.executeQuery(select_SQL1);
+      rs2 = stmt.executeQuery(select_SQL2);
       while(rs1.next() && rs2.next()) {
         checkIntRow(rs2, new String [] {"c1", "c2", "c3"}, new int[] {rs1.getInt("c1"), rs1.getInt("c2"), rs1.getInt("c3")});
       }
