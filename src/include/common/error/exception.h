@@ -142,7 +142,6 @@ DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
-DEFINE_EXCEPTION(BinderException, ExceptionType::BINDER);
 DEFINE_EXCEPTION(ExecutionException, ExceptionType::EXECUTION);
 DEFINE_EXCEPTION(AbortException, ExceptionType::EXECUTION);
 

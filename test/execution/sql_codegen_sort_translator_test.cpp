@@ -54,10 +54,8 @@ TEST_F(SortTranslatorTest, SimpleSortTest) {
     auto predicate = expr_maker.CompareLt(col1, expr_maker.Constant(500));
     // Build
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetScanPredicate(predicate)
-                   .SetTableOid(table->GetId())
-                   .Build();
+    seq_scan =
+        builder.SetOutputSchema(std::move(schema)).SetScanPredicate(predicate).SetTableOid(table->GetId()).Build();
   }
   // Order By
   std::unique_ptr<planner::AbstractPlanNode> order_by;
@@ -118,10 +116,8 @@ TEST_F(SortTranslatorTest, TwoColumnSortTest) {
     auto predicate = expr_maker.CompareLt(col1, expr_maker.Constant(500));
     // Build
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetScanPredicate(predicate)
-                   .SetTableOid(table->GetId())
-                   .Build();
+    seq_scan =
+        builder.SetOutputSchema(std::move(schema)).SetScanPredicate(predicate).SetTableOid(table->GetId()).Build();
   }
   // Order By
   std::unique_ptr<planner::AbstractPlanNode> order_by;
@@ -252,8 +248,7 @@ void TestSortWithLimitAndOrOffset(uint64_t off, uint64_t lim) {
   if (lim == 0) {
     expected_tuple_count = table->GetTupleCount() > off ? table->GetTupleCount() - off : 0;
   } else {
-    expected_tuple_count =
-        table->GetTupleCount() > off ? std::min(lim, table->GetTupleCount() - off) : 0;
+    expected_tuple_count = table->GetTupleCount() > off ? std::min(lim, table->GetTupleCount() - off) : 0;
   }
   TupleCounterChecker tuple_count_checker(expected_tuple_count);
   SingleIntSortChecker col2_sort_checker(1);

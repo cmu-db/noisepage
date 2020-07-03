@@ -2,7 +2,7 @@
 
 #include "spdlog/fmt/fmt.h"
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 
 namespace terrier::execution::sql {
 

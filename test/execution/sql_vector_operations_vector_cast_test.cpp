@@ -1,7 +1,7 @@
 #include <numeric>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/vector.h"
 #include "execution/sql_test.h"
 #include "execution/util/bit_util.h"

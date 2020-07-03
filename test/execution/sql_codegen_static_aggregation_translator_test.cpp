@@ -116,10 +116,7 @@ TEST_F(StaticAggregationTranslatorTest, StaticAggregateWithHavingTest) {
     auto schema = seq_scan_out.MakeSchema();
     // Build
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetScanPredicate(nullptr)
-                   .SetTableOid(table->GetId())
-                   .Build();
+    seq_scan = builder.SetOutputSchema(std::move(schema)).SetScanPredicate(nullptr).SetTableOid(table->GetId()).Build();
   }
 
   // Make the aggregate.
@@ -131,8 +128,7 @@ TEST_F(StaticAggregationTranslatorTest, StaticAggregateWithHavingTest) {
     // Make the output expressions.
     agg_out.AddOutput("count_star", agg_out.GetAggTermForOutput("count_star"));
     // Having predicate.
-    auto having =
-        expr_maker.CompareLt(agg_out.GetAggTermForOutput("count_star"), expr_maker.Constant(0));
+    auto having = expr_maker.CompareLt(agg_out.GetAggTermForOutput("count_star"), expr_maker.Constant(0));
     // Build
     auto schema = agg_out.MakeSchema();
     planner::AggregatePlanNode::Builder builder;

@@ -1,6 +1,6 @@
 #include "execution/compiler/expression/constant_translator.h"
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/work_context.h"
 #include "execution/sql/generic_value.h"

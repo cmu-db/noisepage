@@ -1,4 +1,4 @@
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector.h"

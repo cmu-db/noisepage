@@ -280,7 +280,6 @@ class DataTable {
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
   void CheckMoveHead(uint32_t block_index);
-  mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView

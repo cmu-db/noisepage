@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {

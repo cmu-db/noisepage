@@ -2191,7 +2191,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
 }
 
 void Sema::CheckBuiltinAbortCall(ast::CallExpr *call) {
-  if(!CheckArgCount(call, 1)){
+  if (!CheckArgCount(call, 1)) {
     return;
   }
 

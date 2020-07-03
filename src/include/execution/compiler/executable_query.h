@@ -144,7 +144,7 @@ class ExecutableQuery {
   // The query state size.
   std::size_t query_state_size_;
 
-  //TODO(tanujnay112) unnecessary string creation?
+  // TODO(tanujnay112) unnecessary string creation?
   std::string teardown_fn_;
 };
 

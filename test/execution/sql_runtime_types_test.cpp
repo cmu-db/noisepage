@@ -1,4 +1,4 @@
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/tpl_test.h"
 
@@ -89,7 +89,7 @@ TEST_F(RuntimeTypesTest, DateToString) {
 TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
   // Valid timestamp.
   Timestamp t;
-  EXPECT_NO_THROW({ t = Timestamp::FromHMSu(2016, 12, 19, 10, 20, 30, 0); });
+  EXPECT_NO_THROW({ t = Timestamp::FromYMDHMSu(2016, 12, 19, 10, 20, 30, 0); });
   EXPECT_EQ(2016, t.ExtractYear());
   EXPECT_EQ(12, t.ExtractMonth());
   EXPECT_EQ(19, t.ExtractDay());
@@ -98,7 +98,7 @@ TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
   EXPECT_EQ(30, t.ExtractSecond());
 
   // BC timestamp.
-  EXPECT_NO_THROW({ t = Timestamp::FromHMSu(-4000, 1, 2, 12, 24, 48, 0); });
+  EXPECT_NO_THROW({ t = Timestamp::FromYMDHMSu(-4000, 1, 2, 12, 24, 48, 0); });
   EXPECT_EQ(-4000, t.ExtractYear());
   EXPECT_EQ(1, t.ExtractMonth());
   EXPECT_EQ(2, t.ExtractDay());
@@ -107,22 +107,22 @@ TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
   EXPECT_EQ(48, t.ExtractSecond());
 
   // Invalid
-  EXPECT_THROW({ t = Timestamp::FromHMSu(1234, 3, 4, 1, 1, 100, 0); }, ConversionException);
-  EXPECT_THROW({ t = Timestamp::FromHMSu(1234, 3, 4, 1, 100, 1, 0); }, ConversionException);
-  EXPECT_THROW({ t = Timestamp::FromHMSu(1234, 3, 4, 1, 100, 100, 0); }, ConversionException);
-  EXPECT_THROW({ t = Timestamp::FromHMSu(1234, 3, 4, 25, 1, 1, 0); }, ConversionException);
-  EXPECT_THROW({ t = Timestamp::FromHMSu(1234, 3, 4, 25, 1, 100, 0); }, ConversionException);
-  EXPECT_THROW({ t = Timestamp::FromHMSu(1234, 3, 4, 25, 100, 1, 0); }, ConversionException);
-  EXPECT_THROW({ t = Timestamp::FromHMSu(1234, 3, 4, 25, 100, 100, 0); }, ConversionException);
-  EXPECT_THROW({ t = Timestamp::FromHMSu(50000000, 12, 9, 100, 1, 1, 0); }, ConversionException);
-  EXPECT_THROW({ t = Timestamp::FromHMSu(50000000, 92187, 1, 13, 59, 60, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(1234, 3, 4, 1, 1, 100, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(1234, 3, 4, 1, 100, 1, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(1234, 3, 4, 1, 100, 100, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(1234, 3, 4, 25, 1, 1, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(1234, 3, 4, 25, 1, 100, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(1234, 3, 4, 25, 100, 1, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(1234, 3, 4, 25, 100, 100, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(50000000, 12, 9, 100, 1, 1, 0); }, ConversionException);
+  EXPECT_THROW({ t = Timestamp::FromYMDHMSu(50000000, 92187, 1, 13, 59, 60, 0); }, ConversionException);
 }
 
 TEST_F(RuntimeTypesTest, TimestampComparisons) {
-  Timestamp t1 = Timestamp::FromHMSu(2000, 1, 1, 12, 0, 0, 0);
-  Timestamp t2 = Timestamp::FromHMSu(2000, 1, 1, 16, 0, 0, 0);
+  Timestamp t1 = Timestamp::FromYMDHMSu(2000, 1, 1, 12, 0, 0, 0);
+  Timestamp t2 = Timestamp::FromYMDHMSu(2000, 1, 1, 16, 0, 0, 0);
   Timestamp t3 = t1;
-  Timestamp t4 = Timestamp::FromHMSu(2017, 1, 1, 18, 18, 18, 0);
+  Timestamp t4 = Timestamp::FromYMDHMSu(2017, 1, 1, 18, 18, 18, 0);
 
   EXPECT_NE(t1, t2);
   EXPECT_LT(t1, t2);
@@ -131,8 +131,8 @@ TEST_F(RuntimeTypesTest, TimestampComparisons) {
   EXPECT_GT(t4, t2);
   EXPECT_GT(t4, t1);
 
-  t1 = Timestamp::FromHMSu(-4000, 1, 1, 10, 10, 10, 0);
-  t2 = Timestamp::FromHMSu(-4000, 1, 1, 10, 10, 11, 0);
+  t1 = Timestamp::FromYMDHMSu(-4000, 1, 1, 10, 10, 10, 0);
+  t2 = Timestamp::FromYMDHMSu(-4000, 1, 1, 10, 10, 11, 0);
   EXPECT_NE(t1, t2);
   EXPECT_LT(t1, t2);
 }

@@ -61,10 +61,8 @@ TEST_F(SeqScanTranslatorTest, SimpleSeqScanTest) {
     auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
     // Build
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetScanPredicate(predicate)
-                   .SetTableOid(table->GetId())
-                   .Build();
+    seq_scan =
+        builder.SetOutputSchema(std::move(schema)).SetScanPredicate(predicate).SetTableOid(table->GetId()).Build();
   }
 
   auto last = seq_scan.get();
@@ -116,15 +114,13 @@ TEST_F(SeqScanTranslatorTest, NonVecFilterTest) {
     auto comp4 = expr_maker.CompareLt(col1, expr_maker.Constant(1000));
     auto comp5 = expr_maker.CompareEq(col2, expr_maker.Constant(3));
     auto comp6 = expr_maker.CompareEq(col2, expr_maker.Constant(7));
-    auto clause2 = expr_maker.ConjunctionAnd(expr_maker.ConjunctionAnd(comp3, comp4),
-                                             expr_maker.ConjunctionOr(comp5, comp6));
+    auto clause2 =
+        expr_maker.ConjunctionAnd(expr_maker.ConjunctionAnd(comp3, comp4), expr_maker.ConjunctionOr(comp5, comp6));
     auto predicate = expr_maker.ConjunctionOr(clause1, clause2);
     // Build
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetScanPredicate(predicate)
-                   .SetTableOid(table->GetId())
-                   .Build();
+    seq_scan =
+        builder.SetOutputSchema(std::move(schema)).SetScanPredicate(predicate).SetTableOid(table->GetId()).Build();
   }
   auto last = seq_scan.get();
   // Make the output checkers
@@ -178,10 +174,8 @@ TEST_F(SeqScanTranslatorTest, SeqScanWithProjection) {
     auto predicate = expr_maker.CompareLt(col1, expr_maker.Constant(500));
     // Build
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetScanPredicate(predicate)
-                   .SetTableOid(table->GetId())
-                   .Build();
+    seq_scan =
+        builder.SetOutputSchema(std::move(schema)).SetScanPredicate(predicate).SetTableOid(table->GetId()).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> proj;

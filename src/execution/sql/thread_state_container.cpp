@@ -18,8 +18,7 @@ namespace terrier::execution::sql {
 
 ThreadStateContainer::TLSHandle::TLSHandle() : container_(nullptr), state_(nullptr) {}
 
-ThreadStateContainer::TLSHandle::TLSHandle(ThreadStateContainer *container)
-    : container_(container) {
+ThreadStateContainer::TLSHandle::TLSHandle(ThreadStateContainer *container) : container_(container) {
   TERRIER_ASSERT(container_ != nullptr, "Container must be non-null");
   const auto state_size = container_->state_size_;
   state_ =
@@ -63,8 +62,7 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
       destroy_fn_(nullptr),
       ctx_(nullptr),
       impl_(std::make_unique<ThreadStateContainer::Impl>()) {
-  impl_->states_ =
-      tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
+  impl_->states_ = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
 }
 
 ThreadStateContainer::~ThreadStateContainer() { Clear(); }

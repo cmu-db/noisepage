@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/traits.h"
 #include "execution/sql/vector_operations/vector_operations.h"

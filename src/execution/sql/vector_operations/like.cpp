@@ -1,4 +1,4 @@
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/sql/operators/like_operators.h"
 #include "execution/sql/tuple_id_list.h"

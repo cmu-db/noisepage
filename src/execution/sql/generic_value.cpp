@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/math_util.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/value.h"
@@ -188,7 +188,7 @@ GenericValue GenericValue::CreateTimestamp(Timestamp timestamp) {
 
 GenericValue GenericValue::CreateTimestamp(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min,
                                            int32_t sec) {
-  return CreateTimestamp(Timestamp::FromHMSu(year, month, day, hour, min, sec, 0));
+  return CreateTimestamp(Timestamp::FromYMDHMS(year, month, day, hour, min, sec));
 }
 
 GenericValue GenericValue::CreateVarchar(std::string_view str) {

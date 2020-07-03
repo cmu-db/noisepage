@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/context.h"

@@ -1,6 +1,6 @@
 #include "execution/compiler/operator/operator_translator.h"
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/json.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/work_context.h"

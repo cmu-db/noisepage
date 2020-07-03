@@ -2,8 +2,6 @@
 
 #include <cstring>
 
-#include "date/date.h"
-
 #include "common/macros.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/util/string_heap.h"

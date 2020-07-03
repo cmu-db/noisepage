@@ -1,6 +1,6 @@
 // INSERT INTO empty_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 AND 505
 // Returns the number of tuples inserted (11)
-fun main(execCtx: *ExecutionContext) -> int64 {
+fun main(execCtx: *ExecutionContext) -> int32 {
   var count = 0 // output count
 
   // Init inserter

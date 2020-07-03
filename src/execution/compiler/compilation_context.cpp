@@ -4,7 +4,7 @@
 #include <atomic>
 #include <sstream>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/ast/context.h"
 #include "execution/compiler/codegen.h"

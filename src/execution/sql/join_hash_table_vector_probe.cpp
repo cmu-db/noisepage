@@ -1,7 +1,7 @@
 #include "execution/sql/join_hash_table_vector_probe.h"
 
 #include "common/constants.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/generic_value.h"
 #include "execution/sql/join_hash_table.h"

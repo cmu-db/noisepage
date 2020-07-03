@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/math_util.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/generic_value.h"

@@ -72,7 +72,6 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
 //  GenInserterFree(builder);
 //}
 
-
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   DeclareInserter(function);
   // var insert_pr : *ProjectedRow
@@ -208,9 +207,7 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
                                 {GetCodeGen()->AddressOf(inserter_)});
   auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(builder, cond);
-  {
-      builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
-  }
+  { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
   success.EndIf();
 }
 

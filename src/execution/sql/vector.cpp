@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/util/bit_util.h"
 #include "spdlog/fmt/fmt.h"
