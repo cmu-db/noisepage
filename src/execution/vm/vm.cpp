@@ -1680,6 +1680,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     DISPATCH_NEXT();
   }
 
+  OP(AbortTxn) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpAbortTxn(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // PR Calls
   // -------------------------------------------------------

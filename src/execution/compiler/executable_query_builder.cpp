@@ -60,7 +60,8 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
                       timer.GetBytecodeGenTimeMs(), timer.GetModuleGenTimeMs());
 
   // Create the fragment.
-  return std::make_unique<ExecutableQuery::Fragment>(std::move(step_functions_), std::move(module));
+  return std::make_unique<ExecutableQuery::Fragment>(std::move(step_functions_),
+                                                     teardown_fn_->Name().GetString(), std::move(module));
 }
 
 }  // namespace terrier::execution::compiler

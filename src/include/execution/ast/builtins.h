@@ -256,6 +256,8 @@ namespace terrier::execution::ast {
   F(NpRunnersDummyInt, NpRunnersDummyInt)                               \
   F(NpRunnersDummyReal, NpRunnersDummyReal)                             \
                                                                         \
+  F(AbortTxn, abortTxn)                                                 \
+                                                                        \
   /* FOR TESTING USE ONLY!!!!! */                                       \
   F(TestCatalogLookup, testCatalogLookup)                               \
   F(TestCatalogIndexLookup, testCatalogIndexLookup)

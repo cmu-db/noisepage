@@ -51,7 +51,7 @@ class ExecutableQuery {
      * @param functions The name of the functions to execute, in order.
      * @param module The module that contains the functions.
      */
-    Fragment(std::vector<std::string> &&functions, std::unique_ptr<vm::Module> module);
+    Fragment(std::vector<std::string> &&functions, std::string &&teardown_fn, std::unique_ptr<vm::Module> module);
 
     /**
      * Destructor.
@@ -74,6 +74,9 @@ class ExecutableQuery {
     // The functions that must be run (in the provided order) to execute this
     // query fragment.
     std::vector<std::string> functions_;
+
+    std::string teardown_fn_;
+
     // The module.
     std::unique_ptr<vm::Module> module_;
   };
@@ -140,6 +143,9 @@ class ExecutableQuery {
   std::vector<std::unique_ptr<Fragment>> fragments_;
   // The query state size.
   std::size_t query_state_size_;
+
+  //TODO(tanujnay112) unnecessary string creation?
+  std::string teardown_fn_;
 };
 
 }  // namespace terrier::execution::compiler

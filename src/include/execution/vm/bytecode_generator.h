@@ -70,6 +70,8 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   // Allocate a new function ID
   FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type);
 
+  void VisitAbortTxn(ast::CallExpr *call);
+
   // ONLY FOR TESTING!
   void VisitBuiltinTestCatalogLookup(ast::CallExpr *call);
   void VisitBuiltinTestCatalogIndexLookup(ast::CallExpr *call);

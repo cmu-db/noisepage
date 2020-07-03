@@ -195,6 +195,11 @@ class BytecodeEmitter {
    */
   void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, LocalVar index_oid);
 
+  /**
+   * Emits bytecode to abort the current transaction
+   */
+  void EmitAbortTxn(Bytecode bytecode, LocalVar exec_ctx);
+
  private:
   // Copy a scalar immediate value into the bytecode stream
   template <typename T>

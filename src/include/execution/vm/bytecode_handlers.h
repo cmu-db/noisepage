@@ -8,6 +8,7 @@
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/filter_manager.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/functions/casting_functions.h"
 #include "execution/sql/functions/comparison_functions.h"
@@ -1765,6 +1766,11 @@ VM_OP_WARM void OpExtractYear(terrier::execution::sql::Integer *result, terrier:
     result->is_null_ = false;
     result->val_ = input->val_.ExtractYear();
   }
+}
+
+VM_OP_WARM void OpAbortTxn(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->GetTxn()->SetMustAbort();
+  throw terrier::ABORT_EXCEPTION("transaction aborted");
 }
 
 // ---------------------------------

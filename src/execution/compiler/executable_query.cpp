@@ -17,8 +17,9 @@ namespace terrier::execution::compiler {
 //
 //===----------------------------------------------------------------------===//
 
-ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::unique_ptr<vm::Module> module)
-    : functions_(std::move(functions)), module_(std::move(module)) {}
+ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions,
+                                    std::string &&teardown_fn, std::unique_ptr<vm::Module> module)
+    : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {}
 
 ExecutableQuery::Fragment::~Fragment() = default;
 
@@ -29,7 +30,15 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
     if (!module_->GetFunction(func_name, mode, &func)) {
       throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name));
     }
-    func(query_state);
+    try {
+      func(query_state);
+    } catch (const AbortException &e) {
+      if (!module_->GetFunction(teardown_fn_, mode, &func)) {
+        throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name));
+      }
+      func(query_state);
+      return;
+    }
   }
 }
 
@@ -60,6 +69,7 @@ void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, 
 
   fragments_ = std::move(fragments);
   query_state_size_ = query_state_size;
+
 
   EXECUTION_LOG_INFO("Query has {} fragment{} with {}-byte query state.", fragments_.size(),
                      fragments_.size() > 1 ? "s" : "", query_state_size_);

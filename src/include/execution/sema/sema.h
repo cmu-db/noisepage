@@ -154,6 +154,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinIndexIteratorScan(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinIndexIteratorFree(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinAbortCall(ast::CallExpr *call);
 
   // FOR TESTING USE ONLY
   void CheckBuiltinTestCatalogLookup(ast::CallExpr *call);
