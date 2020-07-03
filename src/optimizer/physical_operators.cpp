@@ -1,4 +1,5 @@
 #include "optimizer/physical_operators.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -41,12 +42,10 @@ common::hash_t TableFreeScan::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *SeqScan::Copy() const { return new SeqScan(*this); }
 
-Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update) {
+Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update) {
   auto *scan = new SeqScan();
   scan->database_oid_ = database_oid;
-  scan->namespace_oid_ = namespace_oid;
   scan->table_oid_ = table_oid;
   scan->predicates_ = std::move(predicates);
   scan->is_for_update_ = is_for_update;
@@ -58,7 +57,6 @@ bool SeqScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::SEQSCAN) return false;
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
   if (database_oid_ != node.database_oid_) return false;
-  if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   if (predicates_.size() != node.predicates_.size()) return false;
   for (size_t i = 0; i < predicates_.size(); i++) {
@@ -71,7 +69,6 @@ bool SeqScan::operator==(const BaseOperatorNodeContents &r) {
 common::hash_t SeqScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
@@ -84,14 +81,12 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *IndexScan::Copy() const { return new IndexScan(*this); }
 
-Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                         catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                          std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                          planner::IndexScanType scan_type,
                          std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds) {
   auto *scan = new IndexScan();
   scan->database_oid_ = database_oid;
-  scan->namespace_oid_ = namespace_oid;
   scan->tbl_oid_ = tbl_oid;
   scan->index_oid_ = index_oid;
   scan->is_for_update_ = is_for_update;
@@ -104,9 +99,9 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
 bool IndexScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
-  if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
-      tbl_oid_ != node.tbl_oid_ || predicates_.size() != node.predicates_.size() ||
-      is_for_update_ != node.is_for_update_ || scan_type_ != node.scan_type_)
+  if (database_oid_ != node.database_oid_ || index_oid_ != node.index_oid_ || tbl_oid_ != node.tbl_oid_ ||
+      predicates_.size() != node.predicates_.size() || is_for_update_ != node.is_for_update_ ||
+      scan_type_ != node.scan_type_)
     return false;
 
   for (size_t i = 0; i < predicates_.size(); i++) {
@@ -133,7 +128,6 @@ bool IndexScan::operator==(const BaseOperatorNodeContents &r) {
 common::hash_t IndexScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(tbl_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
@@ -572,8 +566,8 @@ bool OuterHashJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *Insert::Copy() const { return new Insert(*this); }
 
-Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
+Operator Insert::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                      std::vector<catalog::col_oid_t> &&columns,
                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
                       std::vector<catalog::index_oid_t> &&index_oids) {
 #ifndef NDEBUG
@@ -586,7 +580,6 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 
   auto *op = new Insert();
   op->database_oid_ = database_oid;
-  op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   op->values_ = std::move(values);
@@ -597,7 +590,6 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 common::hash_t Insert::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
 
@@ -613,7 +605,6 @@ bool Insert::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::INSERT) return false;
   const Insert &node = *dynamic_cast<const Insert *>(&r);
   if (database_oid_ != node.database_oid_) return false;
-  if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   if (columns_ != node.columns_) return false;
   if (values_ != node.values_) return false;
@@ -625,11 +616,10 @@ bool Insert::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *InsertSelect::Copy() const { return new InsertSelect(*this); }
 
-Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                            catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids) {
+Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                            std::vector<catalog::index_oid_t> &&index_oids) {
   auto *insert_op = new InsertSelect();
   insert_op->database_oid_ = database_oid;
-  insert_op->namespace_oid_ = namespace_oid;
   insert_op->table_oid_ = table_oid;
   insert_op->index_oids_ = index_oids;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(insert_op));
@@ -638,7 +628,6 @@ Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_o
 common::hash_t InsertSelect::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
 }
@@ -647,7 +636,6 @@ bool InsertSelect::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::INSERTSELECT) return false;
   const InsertSelect &node = *dynamic_cast<const InsertSelect *>(&r);
   if (database_oid_ != node.database_oid_) return false;
-  if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   return (true);
 }
@@ -657,11 +645,9 @@ bool InsertSelect::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *Delete::Copy() const { return new Delete(*this); }
 
-Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
-                      catalog::table_oid_t table_oid) {
+Operator Delete::Make(catalog::db_oid_t database_oid, std::string table_alias, catalog::table_oid_t table_oid) {
   auto *delete_op = new Delete();
   delete_op->database_oid_ = database_oid;
-  delete_op->namespace_oid_ = namespace_oid;
   delete_op->table_alias_ = std::move(table_alias);
   delete_op->table_oid_ = table_oid;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(delete_op));
@@ -670,7 +656,6 @@ Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 common::hash_t Delete::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
@@ -680,7 +665,6 @@ bool Delete::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::DELETE) return false;
   const Delete &node = *dynamic_cast<const Delete *>(&r);
   if (database_oid_ != node.database_oid_) return false;
-  if (namespace_oid_ != node.namespace_oid_) return false;
   return table_oid_ == node.table_oid_;
 }
 
@@ -689,12 +673,10 @@ bool Delete::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *Update::Copy() const { return new Update(*this); }
 
-Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
-                      catalog::table_oid_t table_oid,
+Operator Update::Make(catalog::db_oid_t database_oid, std::string table_alias, catalog::table_oid_t table_oid,
                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
   auto *op = new Update();
   op->database_oid_ = database_oid;
-  op->namespace_oid_ = namespace_oid;
   op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
   op->updates_ = updates;
@@ -704,7 +686,6 @@ Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 common::hash_t Update::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
@@ -715,7 +696,6 @@ bool Update::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::UPDATE) return false;
   const Update &node = *dynamic_cast<const Update *>(&r);
   if (database_oid_ != node.database_oid_) return false;
-  if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   if (updates_ != node.updates_) return false;
   return table_alias_ == node.table_alias_;
@@ -1229,11 +1209,9 @@ bool DropNamespace::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *DropTrigger::Copy() const { return new DropTrigger(*this); }
 
-Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                           catalog::trigger_oid_t trigger_oid, bool if_exists) {
+Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::trigger_oid_t trigger_oid, bool if_exists) {
   auto *op = new DropTrigger();
   op->database_oid_ = database_oid;
-  op->namespace_oid_ = namespace_oid;
   op->trigger_oid_ = trigger_oid;
   op->if_exists_ = if_exists;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
@@ -1242,7 +1220,6 @@ Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oi
 common::hash_t DropTrigger::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
   return hash;
@@ -1262,11 +1239,9 @@ bool DropTrigger::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *DropView::Copy() const { return new DropView(*this); }
 
-Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                        catalog::view_oid_t view_oid, bool if_exists) {
+Operator DropView::Make(catalog::db_oid_t database_oid, catalog::view_oid_t view_oid, bool if_exists) {
   auto *op = new DropView();
   op->database_oid_ = database_oid;
-  op->namespace_oid_ = namespace_oid;
   op->view_oid_ = view_oid;
   op->if_exists_ = if_exists;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
@@ -1275,7 +1250,6 @@ Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t
 common::hash_t DropView::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
   return hash;
@@ -1286,8 +1260,7 @@ bool DropView::operator==(const BaseOperatorNodeContents &r) {
   const DropView &node = *dynamic_cast<const DropView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (view_oid_ != node.view_oid_) return false;
-  if (if_exists_ != node.if_exists_) return false;
-  return node.namespace_oid_ == namespace_oid_;
+  return if_exists_ == node.if_exists_;
 }
 
 //===--------------------------------------------------------------------===//
