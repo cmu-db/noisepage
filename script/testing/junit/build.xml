@@ -47,13 +47,19 @@
   <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
         dir="."
         fork="yes"
-        failonerror="true">
+        failonerror="false">
     <arg value="--class-path" />
     <arg value="${toString:test.classpath}" />
     <arg value="--scan-class-path" />
     <arg value="--include-classname" />
     <arg value="TracefileTest" />
   </java>
+  <junitreport todir="${out.dir}">
+    <fileset dir="${out.dir}">
+      <include name="TEST-*.xml"/>
+    </fileset>
+    <report format="frames" todir="${out.dir}"/>
+  </junitreport>
 </target>
 <target name="test-unit" depends="compile">
   <java jar="lib/junit-platform-console-standalone-1.1.0.jar"

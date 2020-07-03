@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Specify file path in environment
  */
 public class TracefileTest {
-    // cmake ..;  build terrier
     private static File file;
     private static MogSqlite mog;
     private static final String URL = "jdbc:postgresql://localhost/jeffdb";
@@ -28,23 +27,7 @@ public class TracefileTest {
     private static final String PASSWORD = "";
     private static MogDb db;
     private static Connection conn;
-//    private static String path;
-//    public TracefileTester(String input){
-//        this.path = input;
-//    }
 
-//    public static void execute() throws IOException, SQLException {
-//        setUp();
-//        Collection<DynamicTest> cl = generateTest();
-//        for(DynamicTest cur : cl){
-//            try {
-//                cur.getExecutable().execute();
-//            } catch (Throwable throwable) {
-//                throwable.printStackTrace();
-//                continue;
-//            }
-//        }
-//    }
     /**
      * Set up connection to database
      * Clear previous existing table
@@ -54,13 +37,11 @@ public class TracefileTest {
     @BeforeEach
     public void setUp() throws FileNotFoundException, SQLException {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
-        System.setProperty("testFile", "src/select1.test");
+//        System.setProperty("testFile", "src/select1.test");
 
         db = new MogDb(URL, USER, PASSWORD);
 //        conn = db.getDbTest().newConn();
         conn = TestUtility.makeDefaultConnection();
-        System.out.println(conn);
-        System.out.println("lolololol");
         Statement statement = conn.createStatement();
 
     }
@@ -75,13 +56,11 @@ public class TracefileTest {
     @TestFactory
     public Collection<DynamicTest> generateTest() throws IOException, SQLException {
         String path = System.getenv("path");
-        System.out.println("hihihi");
         System.out.println(path);
         file = new File(path);
-        System.out.println(file.isFile());
         mog = new MogSqlite(file);
-//        List<String> tab = getAllExistingTableName(mog,db);
-//        removeExistingTable(tab,db);
+        List<String> tab = getAllExistingTableName(mog,db);
+        removeExistingTable(tab,db);
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
@@ -89,7 +68,6 @@ public class TracefileTest {
         // loop through every sql statement
         while (mog.next()) {
             // case for create and insert statements
-            System.out.println(mog.sql);
             if (mog.queryResults.size() == 0) {
                 Statement statement = conn.createStatement();
                 statement.execute(mog.sql);
