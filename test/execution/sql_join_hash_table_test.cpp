@@ -160,7 +160,7 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
   container.Reset(
       sizeof(JoinHashTable),
       [](auto *exec_settings, auto *ctx, auto *s) {
-        new (s) JoinHashTable(reinterpret_cast<exec::ExecutionSettings *>(exec_settings),
+        new (s) JoinHashTable(*reinterpret_cast<exec::ExecutionSettings *>(exec_settings),
                               reinterpret_cast<MemoryPool *>(ctx), sizeof(Tuple), use_concise_ht);
       },
       [](auto *ctx, auto *s) { reinterpret_cast<JoinHashTable *>(s)->~JoinHashTable(); }, &memory);

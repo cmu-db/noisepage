@@ -327,7 +327,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   execution::exec::ExecutionSettings exec_settings{};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), &exec_settings);
+      connection_ctx->Accessor(), exec_settings);
 
   exec_ctx->SetParams(portal->Parameters());
 

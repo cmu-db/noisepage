@@ -93,7 +93,7 @@ namespace terrier::execution::sql {
  * you find yourself invoking this is in a hot-loop, or very often, reconsider your interaction
  * pattern with Vector, and think about writing a new vector primitive to achieve your objective.
  */
-class Vector {
+class EXPORT Vector {
   friend class VectorOps;
   friend class VectorProjectionIterator;
 
@@ -243,7 +243,10 @@ class Vector {
   /**
    * @return True if the value at index @em index is NULL; false otherwise.
    */
-  bool IsNull(const uint64_t index) const { return null_mask_[tid_list_ != nullptr ? (*tid_list_)[index] : index]; }
+  bool IsNull(const uint64_t index) const {
+    // TODO(WAN): poke Prashanth to see if this makes sense
+    return index >= GetCount() ? false : (null_mask_[tid_list_ != nullptr ? (*tid_list_)[index] : index]);
+  }
 
   /**
    * Set the value at position @em index to @em null.

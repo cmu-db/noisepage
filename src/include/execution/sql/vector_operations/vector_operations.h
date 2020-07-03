@@ -18,7 +18,7 @@ class TupleIdList;
 /**
  * A utility class containing several core vectorized operations.
  */
-class VectorOps : public common::AllStatic {
+class EXPORT VectorOps : public common::AllStatic {
  public:
   /**
    * Copy @em element_count elements from @em source starting at offset @em offset into the (opaque)

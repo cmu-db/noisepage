@@ -365,10 +365,9 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   container.Reset(
       sizeof(AggregationHashTable),
       // Init function.
-      [](void *settings, void *ctx, void *aht) {
-        auto exec_settings = reinterpret_cast<exec::ExecutionSettings *>(settings);
+      [](void *ctx, void *aht) {
         auto exec_ctx = reinterpret_cast<exec::ExecutionContext *>(ctx);
-        new (aht) AggregationHashTable(*exec_settings, exec_ctx->GetMemoryPool(), sizeof(AggTuple));
+        new (aht) AggregationHashTable(exec_ctx->GetExecutionSettings(), exec_ctx->GetMemoryPool(), sizeof(AggTuple));
       },
       // Tear-down function.
       [](void *ctx, void *aht) { std::destroy_at(reinterpret_cast<AggregationHashTable *>(aht)); }, exec_ctx.get());

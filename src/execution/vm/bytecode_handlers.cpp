@@ -50,8 +50,8 @@ void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->~V
 // ---------------------------------------------------------
 
 void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager,
-                         terrier::execution::exec::ExecutionSettings *exec_settings) {
-  new (filter_manager) terrier::execution::sql::FilterManager(*exec_settings);
+                         const terrier::execution::exec::ExecutionSettings &exec_settings) {
+  new (filter_manager) terrier::execution::sql::FilterManager(exec_settings);
 }
 
 void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager) {
@@ -78,7 +78,7 @@ void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager)
 void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
                          terrier::execution::exec::ExecutionSettings *exec_settings,
                          terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size) {
-  new (join_hash_table) terrier::execution::sql::JoinHashTable(exec_settings, memory, tuple_size);
+  new (join_hash_table) terrier::execution::sql::JoinHashTable(*exec_settings, memory, tuple_size);
 }
 
 void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }

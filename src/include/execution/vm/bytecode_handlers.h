@@ -426,7 +426,7 @@ VM_OP_HOT void OpHashCombine(terrier::hash_t *hash_val, terrier::hash_t new_hash
 // ---------------------------------------------------------
 
 VM_OP void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager,
-                               terrier::execution::exec::ExecutionSettings *exec_settings);
+                               const terrier::execution::exec::ExecutionSettings &exec_settings);
 
 VM_OP void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager);
 

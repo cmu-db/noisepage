@@ -20,7 +20,7 @@ struct Val;
  * This is purely a container class and isn't used for actual expression
  * evaluation or performance-critical execution.
  */
-class GenericValue {
+class EXPORT GenericValue {
   friend class Vector;
   friend class VectorOps;
   friend class GenericValueTests;
