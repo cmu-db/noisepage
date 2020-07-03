@@ -1570,6 +1570,11 @@ void BytecodeGenerator::VisitBuiltinOffsetOfCall(ast::CallExpr *call) {
   GetExecutionResult()->SetDestination(offset_var.ValueOf());
 }
 
+void BytecodeGenerator::VisitAbortTxn(ast::CallExpr *call) {
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  GetEmitter()->EmitAbortTxn(Bytecode::AbortTxn, exec_ctx);
+}
+
 void BytecodeGenerator::VisitBuiltinTestCatalogLookup(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   auto table_name_lit = call->Arguments()[1]->As<ast::LitExpr>()->StringVal();
@@ -2225,6 +2230,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::PtrCast: {
       Visit(call->Arguments()[1]);
+      break;
+    }
+    case ast::Builtin::AbortTxn: {
+      VisitAbortTxn(call);
       break;
     }
     case ast::Builtin::TestCatalogLookup: {

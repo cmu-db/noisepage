@@ -35,11 +35,6 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
 //  GenDeleterFree(builder);
 //}
 
-// void DeleteTranslator::Abort(FunctionBuilder *builder) {
-//  GenDeleterFree(builder);
-//  child_translator_->Abort(builder);
-//  builder->Append(GetCodeGen()->ReturnStmt(nullptr));
-//}
 
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table
@@ -93,7 +88,7 @@ void DeleteTranslator::GenTableDelete(WorkContext *context, FunctionBuilder *bui
   auto delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, std::move(delete_args));
   auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, delete_call);
   If check(builder, cond);
-  //  Abort(builder);
+  { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
   check.EndIf();
 }
 

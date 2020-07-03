@@ -553,6 +553,8 @@ namespace terrier::execution::vm {
   /* Date Functions */                                                                                                 \
   F(ExtractYear, OperandType::Local, OperandType::Local)                                                               \
                                                                                                                        \
+  F(AbortTxn, OperandType::Local)                                                                                      \
+                                                                                                                       \
   /* FOR TESTING ONLY */                                                                                               \
   F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4,           \
     OperandType::StaticLocal, OperandType::UImm4)                                                                      \

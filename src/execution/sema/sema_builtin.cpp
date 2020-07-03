@@ -2190,6 +2190,19 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
   }
 }
 
+void Sema::CheckBuiltinAbortCall(ast::CallExpr *call) {
+  if(!CheckArgCount(call, 1)){
+    return;
+  }
+
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), ast::BuiltinType::ExecutionContext)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::ExecutionContext)->PointerTo());
+    return;
+  }
+
+  call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+}
+
 void Sema::CheckBuiltinTestCatalogLookup(ast::CallExpr *call) {
   if (!CheckArgCount(call, 3)) {
     return;
@@ -2569,6 +2582,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::PtrCast: {
       UNREACHABLE("Pointer cast should be handled outside switch ...");
+    }
+    case ast::Builtin::AbortTxn: {
+      CheckBuiltinAbortCall(call);
+      break;
     }
     case ast::Builtin::TestCatalogLookup: {
       CheckBuiltinTestCatalogLookup(call);

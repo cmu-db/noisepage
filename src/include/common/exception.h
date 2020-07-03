@@ -23,6 +23,7 @@ namespace terrier {
 #define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
 #define BINDER_EXCEPTION(msg) BinderException(msg, __FILE__, __LINE__)
 #define EXECUTION_EXCEPTION(msg) ExecutionException(msg, __FILE__, __LINE__)
+#define ABORT_EXCEPTION(msg) AbortException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
@@ -142,5 +143,6 @@ DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
 DEFINE_EXCEPTION(BinderException, ExceptionType::BINDER);
 DEFINE_EXCEPTION(ExecutionException, ExceptionType::EXECUTION);
+DEFINE_EXCEPTION(AbortException, ExceptionType::EXECUTION);
 
 }  // namespace terrier

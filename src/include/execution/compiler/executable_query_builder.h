@@ -79,6 +79,8 @@ class ExecutableQueryFragmentBuilder {
    */
   std::unique_ptr<ExecutableQuery::Fragment> Compile();
 
+  void SetTeardownFn(ast::FunctionDecl *teardown_fn) { teardown_fn_ = teardown_fn; }
+
  private:
   // The AST context used to generate the TPL ast
   ast::Context *ctx_;
@@ -87,6 +89,8 @@ class ExecutableQueryFragmentBuilder {
   llvm::SmallVector<ast::FunctionDecl *, 16> functions_;
   // The list of function steps in the fragment.
   std::vector<std::string> step_functions_;
+
+  ast::FunctionDecl *teardown_fn_;
 };
 
 }  // namespace terrier::execution::compiler

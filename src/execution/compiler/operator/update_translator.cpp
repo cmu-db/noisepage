@@ -159,7 +159,7 @@ void UpdateTranslator::GenTableUpdate(FunctionBuilder *builder) const {
 
   auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, update_call);
   If success(builder, cond);
-//  Abort(builder);
+  builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
   success.EndIf();
 }
 

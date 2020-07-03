@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
@@ -1115,7 +1116,12 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
 
   for (const auto &func : module.GetFunctionsInfo()) {
     auto symbol = loader.getSymbol(func.GetName());
+    if(symbol.getAddress() == 0){
+      // for Mac portability
+      symbol = loader.getSymbol("_" + func.GetName());
+    }
     functions_[func.GetName()] = reinterpret_cast<void *>(symbol.getAddress());
+    TERRIER_ASSERT(symbol.getAddress() != 0, "symbol came out to be badly defined or missing");
   }
 
   // Done

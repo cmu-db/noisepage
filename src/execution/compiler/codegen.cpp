@@ -536,6 +536,10 @@ ast::Expr *CodeGen::IterateTableParallel(ast::Expr *exec_ctx, catalog::table_oid
   return call;
 }
 
+ast::Expr *CodeGen::AbortTxn(ast::Expr *exec_ctx){
+  return CallBuiltin(ast::Builtin::AbortTxn, {exec_ctx});
+}
+
 // ---------------------------------------------------------
 // Vector Projection Iterator
 // ---------------------------------------------------------
