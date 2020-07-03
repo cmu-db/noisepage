@@ -152,7 +152,6 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
     EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
     auto insert = reinterpret_cast<planner::InsertPlanNode *>(out_plan.get());
     EXPECT_EQ(insert->GetDatabaseOid(), db_);
-    EXPECT_EQ(insert->GetNamespaceOid(), accessor_->GetDefaultNamespace());
     EXPECT_EQ(insert->GetTableOid(), tbl_oid);
     EXPECT_EQ(insert->GetParameterInfo(), col_oids);
     EXPECT_EQ(insert->GetBulkInsertCount(), 1);

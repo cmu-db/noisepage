@@ -14,6 +14,8 @@ namespace terrier::execution::ast {
   F(BoolToSql, boolToSql)                                               \
   F(FloatToSql, floatToSql)                                             \
   F(DateToSql, dateToSql)                                               \
+  F(TimestampToSql, timestampToSql)                                     \
+  F(TimestampToSqlYMDHMSMU, timestampToSqlYMDHMSMU)                     \
   F(StringToSql, stringToSql)                                           \
   F(SqlToBool, sqlToBool)                                               \
   F(IsValNull, isValNull)                                               \
@@ -249,6 +251,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* String functions */                                                \
   F(Lower, lower)                                                       \
+  F(Version, version)                                                   \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \

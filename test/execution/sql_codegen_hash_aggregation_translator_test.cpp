@@ -55,10 +55,8 @@ TEST_F(HashAggregationTranslatorTest, SimpleAggregateTest) {
     auto predicate = expr_maker.CompareLt(col1, expr_maker.Constant(1000));
     // Build
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetScanPredicate(predicate)
-                   .SetTableOid(table->GetId())
-                   .Build();
+    seq_scan =
+        builder.SetOutputSchema(std::move(schema)).SetScanPredicate(predicate).SetTableOid(table->GetId()).Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg;

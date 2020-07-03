@@ -23,9 +23,9 @@ class UpdateTranslator : public OperatorTranslator {
   UpdateTranslator(const planner::UpdatePlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
   /**
-  * If the scan has a predicate, this function will define all clause functions.
-  * @param decls The top-level declarations.
-  */
+   * If the scan has a predicate, this function will define all clause functions.
+   * @param decls The top-level declarations.
+   */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
@@ -71,8 +71,7 @@ class UpdateTranslator : public OperatorTranslator {
   // Delete from table.
   void GenTableDelete(FunctionBuilder *builder) const;
   // Delete from index.
-  void GenIndexDelete(WorkContext *context,
-                      FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
+  void GenIndexDelete(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
 
   // Get all columns oids.
   static std::vector<catalog::col_oid_t> CollectOids(const planner::UpdatePlanNode &node) {
@@ -91,7 +90,7 @@ class UpdateTranslator : public OperatorTranslator {
   const catalog::Schema &table_schema_;
   std::vector<catalog::col_oid_t> all_oids_;
   storage::ProjectionMap table_pm_;
-//  PRFiller pr_filler_;
+  //  PRFiller pr_filler_;
 };
 
 }  // namespace terrier::execution::compiler

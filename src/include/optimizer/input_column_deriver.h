@@ -9,12 +9,17 @@
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
 
+namespace planner {
+enum class AggregateStrategyType;
+}
+
 namespace terrier::optimizer {
 
 class PropertySet;
 class GroupExpression;
 class OperatorNode;
 class Memo;
+class BaseOperatorNodeContents;
 
 /**
  * InputColumnDeriver generate input and output columns based on the required columns,

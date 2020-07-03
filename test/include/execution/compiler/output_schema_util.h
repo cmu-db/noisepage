@@ -16,9 +16,7 @@ class OutputSchemaHelper {
     return expr_maker_->DVE(cols_[attr_idx].GetType(), child_idx_, attr_idx);
   }
 
-  ExpressionMaker::Expression GetOutput(const std::string &col_name) {
-    return GetOutput(name_to_idx_.at(col_name));
-  }
+  ExpressionMaker::Expression GetOutput(const std::string &col_name) { return GetOutput(name_to_idx_.at(col_name)); }
 
   void AddOutput(const std::string &col_name, ExpressionMaker::Expression expr) {
     auto idx = uint32_t(cols_.size());
@@ -26,8 +24,7 @@ class OutputSchemaHelper {
     cols_.emplace_back(expr->GetReturnValueType(), true, expr);
   }
 
-  void AddOutput(const std::string &col_name, ExpressionMaker::Expression expr,
-                 sql::TypeId col_type) {
+  void AddOutput(const std::string &col_name, ExpressionMaker::Expression expr, sql::TypeId col_type) {
     auto idx = uint32_t(cols_.size());
     name_to_idx_.emplace(col_name, idx);
     cols_.emplace_back(col_type, true, expr);
@@ -53,9 +50,7 @@ class OutputSchemaHelper {
     gbys.emplace_back(expr);
   }
 
-  ExpressionMaker::Expression GetGroupByTerm(const std::string &col_name) {
-    return gbys[name_to_gby[col_name]];
-  }
+  ExpressionMaker::Expression GetGroupByTerm(const std::string &col_name) { return gbys[name_to_gby[col_name]]; }
 
   void AddAggTerm(const std::string &agg_name, ExpressionMaker::AggExpression expr) {
     auto idx = uint32_t(aggs.size());
@@ -63,13 +58,9 @@ class OutputSchemaHelper {
     aggs.emplace_back(expr);
   }
 
-  ExpressionMaker::AggExpression GetAggTerm(const std::string &agg_name) {
-    return aggs[name_to_agg[agg_name]];
-  }
+  ExpressionMaker::AggExpression GetAggTerm(const std::string &agg_name) { return aggs[name_to_agg[agg_name]]; }
 
-  std::unique_ptr<planner::OutputSchema> MakeSchema() {
-    return std::make_unique<planner::OutputSchema>(cols_);
-  }
+  std::unique_ptr<planner::OutputSchema> MakeSchema() { return std::make_unique<planner::OutputSchema>(cols_); }
 
  private:
   ExpressionMaker *expr_maker_;

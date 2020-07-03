@@ -77,10 +77,8 @@ TEST_F(NestedLoopJoinTranslatorTest, SimpleNestedLoopJoinTest) {
     auto predicate = expr_maker.CompareLt(col2, expr_maker.Constant(80));
     // Build.
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan2 = builder.SetOutputSchema(std::move(schema))
-                    .SetScanPredicate(predicate)
-                    .SetTableOid(table2->GetId())
-                    .Build();
+    seq_scan2 =
+        builder.SetOutputSchema(std::move(schema)).SetScanPredicate(predicate).SetTableOid(table2->GetId()).Build();
   }
 
   // NLJ plan.

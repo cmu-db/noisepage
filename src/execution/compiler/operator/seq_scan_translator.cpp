@@ -1,7 +1,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
 #include "catalog/catalog_accessor.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
@@ -12,6 +12,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 
@@ -274,7 +275,7 @@ uint32_t SeqScanTranslator::GetColOidIndex(catalog::col_oid_t col_oid) const {
       return i;
     }
   }
-  throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", col_oid));
+  throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", !col_oid));
 }
 
 }  // namespace terrier::execution::compiler

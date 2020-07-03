@@ -1,11 +1,15 @@
 #include "storage/garbage_collector.h"
+
 #include <unordered_set>
 #include <utility>
+
 #include "common/macros.h"
 #include "common/thread_context.h"
 #include "loggers/storage_logger.h"
 #include "metrics/metrics_store.h"
+#include "storage/access_observer.h"
 #include "storage/data_table.h"
+#include "storage/index/index.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
@@ -13,6 +17,19 @@
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
+
+GarbageCollector::GarbageCollector(
+    const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
+    const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+    const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer)
+    : timestamp_manager_(timestamp_manager),
+      deferred_action_manager_(deferred_action_manager),
+      txn_manager_(txn_manager),
+      observer_(observer),
+      last_unlinked_{0} {
+  TERRIER_ASSERT(txn_manager_->GCEnabled(),
+                 "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
+}
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   if (observer_ != nullptr) observer_->ObserveGCInvocation();

@@ -1,13 +1,15 @@
+#include "optimizer/child_property_deriver.h"
+
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
 #include "common/managed_pointer.h"
-#include "optimizer/child_property_deriver.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/index_util.h"
 #include "optimizer/memo.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "parser/expression_util.h"

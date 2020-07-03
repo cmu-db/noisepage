@@ -1,14 +1,13 @@
 #include "execution/compiler/codegen.h"
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/executable_query_builder.h"
-#include "storage/index/index_defs.h"
-
 #include "spdlog/fmt/fmt.h"
+#include "storage/index/index_defs.h"
 
 namespace terrier::execution::compiler {
 
@@ -340,8 +339,7 @@ ast::Expr *CodeGen::FloatToSql(double num) const {
 }
 
 ast::Expr *CodeGen::DateToSql(sql::Date date) const {
-  int32_t year;
-  uint32_t month, day;
+  int32_t year, month, day;
   date.ExtractComponents(&year, &month, &day);
   return DateToSql(year, month, day);
 }
@@ -536,9 +534,7 @@ ast::Expr *CodeGen::IterateTableParallel(ast::Expr *exec_ctx, catalog::table_oid
   return call;
 }
 
-ast::Expr *CodeGen::AbortTxn(ast::Expr *exec_ctx){
-  return CallBuiltin(ast::Builtin::AbortTxn, {exec_ctx});
-}
+ast::Expr *CodeGen::AbortTxn(ast::Expr *exec_ctx) { return CallBuiltin(ast::Builtin::AbortTxn, {exec_ctx}); }
 
 // ---------------------------------------------------------
 // Vector Projection Iterator

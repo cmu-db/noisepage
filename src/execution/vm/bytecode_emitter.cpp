@@ -355,8 +355,6 @@ void BytecodeEmitter::EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar
   EmitAll(bytecode, pr, storage_interface, index_oid);
 }
 
-void BytecodeEmitter::EmitAbortTxn(Bytecode bytecode, LocalVar exec_ctx) {
-  EmitAll(bytecode, exec_ctx);
-}
+void BytecodeEmitter::EmitAbortTxn(Bytecode bytecode, LocalVar exec_ctx) { EmitAll(bytecode, exec_ctx); }
 
 }  // namespace terrier::execution::vm

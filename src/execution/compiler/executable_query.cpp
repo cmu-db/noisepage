@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/ast/context.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sema/error_reporter.h"
@@ -17,8 +17,8 @@ namespace terrier::execution::compiler {
 //
 //===----------------------------------------------------------------------===//
 
-ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions,
-                                    std::string &&teardown_fn, std::unique_ptr<vm::Module> module)
+ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::string &&teardown_fn,
+                                    std::unique_ptr<vm::Module> module)
     : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {}
 
 ExecutableQuery::Fragment::~Fragment() = default;
@@ -69,7 +69,6 @@ void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, 
 
   fragments_ = std::move(fragments);
   query_state_size_ = query_state_size;
-
 
   EXECUTION_LOG_INFO("Query has {} fragment{} with {}-byte query state.", fragments_.size(),
                      fragments_.size() > 1 ? "s" : "", query_state_size_);

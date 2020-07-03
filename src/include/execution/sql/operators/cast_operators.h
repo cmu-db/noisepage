@@ -4,10 +4,10 @@
 #include <limits>
 #include <string>
 
+#include "common/error/exception.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sql.h"
 #include "storage/storage_defs.h"
-#include "util/time_util.h"
 
 namespace terrier::execution::sql {
 
@@ -385,12 +385,12 @@ template <>
 struct TryCast<storage::VarlenEntry, Timestamp> {
   bool operator()(const storage::VarlenEntry &input, Timestamp *output) const {
     // TODO(WAN): deepayan's stuff
-    auto parse = terrier::util::TimeConvertor::ParseTimestamp(std::string(input.StringView()));
-    if (parse.first) {
-      *output = Timestamp::FromNative(!parse.second);
+    try {
+      *output = Timestamp::FromString(input.StringView());
       return true;
+    } catch (const ConversionException &e) {
+      return false;
     }
-    return false;
   }
 };
 

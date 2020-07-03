@@ -18,15 +18,14 @@ namespace terrier::execution::sql {
 
 ThreadStateContainer::TLSHandle::TLSHandle() : container_(nullptr), state_(nullptr) {}
 
-ThreadStateContainer::TLSHandle::TLSHandle(exec::ExecutionSettings *exec_settings, ThreadStateContainer *container)
-    : container_(container) {
+ThreadStateContainer::TLSHandle::TLSHandle(ThreadStateContainer *container) : container_(container) {
   TERRIER_ASSERT(container_ != nullptr, "Container must be non-null");
   const auto state_size = container_->state_size_;
   state_ =
       static_cast<byte *>(container_->memory_->AllocateAligned(state_size, common::Constants::CACHELINE_SIZE, true));
 
   if (auto init_fn = container_->init_fn_; init_fn != nullptr) {
-    init_fn(exec_settings, container_->ctx_, state_);
+    init_fn(container_->ctx_, state_);
   }
 }
 
@@ -56,15 +55,14 @@ struct ThreadStateContainer::Impl {
 //
 //===----------------------------------------------------------------------===//
 
-ThreadStateContainer::ThreadStateContainer(exec::ExecutionSettings *exec_settings, MemoryPool *memory)
+ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
     : memory_(memory),
       state_size_(0),
       init_fn_(nullptr),
       destroy_fn_(nullptr),
       ctx_(nullptr),
       impl_(std::make_unique<ThreadStateContainer::Impl>()) {
-  impl_->states_ =
-      tbb::enumerable_thread_specific<TLSHandle>([&, exec_settings]() { return TLSHandle(exec_settings, this); });
+  impl_->states_ = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
 }
 
 ThreadStateContainer::~ThreadStateContainer() { Clear(); }

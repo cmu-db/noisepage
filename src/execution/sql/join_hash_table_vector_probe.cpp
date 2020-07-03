@@ -1,7 +1,7 @@
 #include "execution/sql/join_hash_table_vector_probe.h"
 
 #include "common/constants.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/generic_value.h"
 #include "execution/sql/join_hash_table.h"
@@ -52,7 +52,7 @@ void JoinHashTableVectorProbe::Init(VectorProjection *input) {
 
   // Filter out non-null entries, storing the result in the non-null TID list.
   ConstantVector null_ptr(GenericValue::CreatePointer<HashTableEntry>(nullptr));
-  VectorOps::SelectNotEqual(*table_.GetExecutionSettings(), initial_matches_, null_ptr, &initial_match_list_);
+  VectorOps::SelectNotEqual(table_.GetExecutionSettings(), initial_matches_, null_ptr, &initial_match_list_);
 
   // At this point, initial-matches contains a list of pointers to bucket chains in the hash table,
   // and the initial-matches-list contains only the TIDS of non-null entries.

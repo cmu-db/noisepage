@@ -1,4 +1,4 @@
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/sql/runtime_types.h"

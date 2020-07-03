@@ -12,11 +12,26 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
-#include "execution/functions/function_context.h"
-#include "storage/index/index.h"
-#include "storage/sql_table.h"
-#include "transaction/transaction_context.h"
+#include "common/managed_pointer.h"
+#include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
+
+namespace terrier::execution::functions {
+class FunctionContext;
+}  // namespace terrier::execution::functions
+
+namespace terrier::transaction {
+class TransactionContext;
+}
+
+namespace terrier::storage {
+class GarbageCollector;
+class RecoveryManager;
+class SqlTable;
+namespace index {
+class Index;
+}
+}  // namespace terrier::storage
 
 namespace terrier::catalog {
 

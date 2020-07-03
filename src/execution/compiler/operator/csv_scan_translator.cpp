@@ -1,6 +1,6 @@
 #include "execution/compiler/operator/csv_scan_translator.h"
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"

@@ -797,7 +797,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     auto left_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                                             \
     auto right_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                                            \
     auto *tid_list = frame->LocalAt<sql::TupleIdList *>(READ_LOCAL_ID());                                      \
-    Op##BYTECODE(*exec_ctx->GetExecutionSettings(), vector_projection, left_col_idx, right_col_idx, tid_list);  \
+    Op##BYTECODE(exec_ctx->GetExecutionSettings(), vector_projection, left_col_idx, right_col_idx, tid_list);  \
     DISPATCH_NEXT();                                                                                           \
   }                                                                                                            \
   OP(BYTECODE##Val) : {                                                                                        \
@@ -806,7 +806,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     auto left_col_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                                             \
     auto right_val = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());                                              \
     auto *tid_list = frame->LocalAt<sql::TupleIdList *>(READ_LOCAL_ID());                                      \
-    Op##BYTECODE##Val(*exec_ctx->GetExecutionSettings(), vector_projection, left_col_idx, right_val, tid_list); \
+    Op##BYTECODE##Val(exec_ctx->GetExecutionSettings(), vector_projection, left_col_idx, right_val, tid_list); \
     DISPATCH_NEXT();                                                                                           \
   }
 

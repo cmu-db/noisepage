@@ -35,7 +35,6 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
 //  GenDeleterFree(builder);
 //}
 
-
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table
   DeclareDeleter(function);

@@ -1,12 +1,12 @@
 #include "execution/vm/llvm_engine.h"
 
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
@@ -1116,7 +1116,7 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
 
   for (const auto &func : module.GetFunctionsInfo()) {
     auto symbol = loader.getSymbol(func.GetName());
-    if(symbol.getAddress() == 0){
+    if (symbol.getAddress() == 0) {
       // for Mac portability
       symbol = loader.getSymbol("_" + func.GetName());
     }

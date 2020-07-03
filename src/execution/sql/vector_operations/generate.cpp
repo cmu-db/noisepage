@@ -1,4 +1,4 @@
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 

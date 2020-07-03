@@ -7,7 +7,7 @@
 
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/hash_util.h"
 #include "common/json_header.h"
 #include "common/macros.h"

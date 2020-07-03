@@ -14,6 +14,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/work_context.h"
 #include "storage/index/index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, CompilationContext *compilation_context,
@@ -70,7 +71,6 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
 //  }
 //  GenInserterFree(builder);
 //}
-
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   DeclareInserter(function);
@@ -207,9 +207,7 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
                                 {GetCodeGen()->AddressOf(inserter_)});
   auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(builder, cond);
-  {
-      builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
-  }
+  { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
   success.EndIf();
 }
 

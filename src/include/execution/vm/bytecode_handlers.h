@@ -8,7 +8,6 @@
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/filter_manager.h"
-#include "execution/sql/storage_interface.h"
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/functions/casting_functions.h"
 #include "execution/sql/functions/comparison_functions.h"
@@ -19,6 +18,7 @@
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/operators/hash_operators.h"
 #include "execution/sql/sorter.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_filter_executor.h"
@@ -427,7 +427,7 @@ VM_OP_HOT void OpHashCombine(terrier::hash_t *hash_val, terrier::hash_t new_hash
 // ---------------------------------------------------------
 
 VM_OP void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager,
-                               terrier::execution::exec::ExecutionSettings *exec_settings);
+                               const terrier::execution::exec::ExecutionSettings &exec_settings);
 
 VM_OP void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager);
 

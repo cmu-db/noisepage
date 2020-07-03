@@ -1,5 +1,5 @@
 #include "common/constants.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/util/bit_vector.h"

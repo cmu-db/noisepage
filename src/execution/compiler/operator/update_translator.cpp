@@ -11,6 +11,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/work_context.h"
 #include "storage/index/index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, CompilationContext *compilation_context,
@@ -39,8 +40,7 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
   }
 }
 
-
-//void UpdateTranslator::Abort(FunctionBuilder *builder) {
+// void UpdateTranslator::Abort(FunctionBuilder *builder) {
 //  GenUpdaterFree(builder);
 //  child_translator_->Abort(builder);
 //  builder->Append(GetCodeGen()->ReturnStmt(nullptr));
@@ -82,15 +82,15 @@ void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuil
   auto storage_interface_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
   builder->Append(GetCodeGen()->DeclareVar(updater_, storage_interface_type, nullptr));
   // Call @storageInterfaceInit
-  ast::Expr *updater_setup = GetCodeGen()->StorageInterfaceInit(updater_, GetExecutionContext(),
-                                                                !op.GetTableOid(), col_oids_, true);
+  ast::Expr *updater_setup =
+      GetCodeGen()->StorageInterfaceInit(updater_, GetExecutionContext(), !op.GetTableOid(), col_oids_, true);
   builder->Append(GetCodeGen()->MakeStmt(updater_setup));
 }
 
 void UpdateTranslator::GenUpdaterFree(terrier::execution::compiler::FunctionBuilder *builder) const {
   // Call @storageInterfaceFree
-  ast::Expr *updater_free = GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree,
-                                                      {GetCodeGen()->AddressOf(updater_)});
+  ast::Expr *updater_free =
+      GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {GetCodeGen()->AddressOf(updater_)});
   builder->Append(GetCodeGen()->MakeStmt(updater_free));
 }
 
@@ -144,7 +144,7 @@ void UpdateTranslator::FillPRFromChild(WorkContext *context,
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     auto clause_expr = context->DeriveValue(*clause.second.Get(), this);
     auto pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
-                                       table_pm_.find(table_col_oid)->second, clause_expr);
+                                           table_pm_.find(table_col_oid)->second, clause_expr);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 }
@@ -166,14 +166,13 @@ void UpdateTranslator::GenTableUpdate(FunctionBuilder *builder) const {
 void UpdateTranslator::GenTableInsert(FunctionBuilder *builder) const {
   // var insert_slot = @tableInsert(&updater_)
   auto insert_slot = GetCodeGen()->MakeFreshIdentifier("insert_slot");
-  auto insert_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableInsert,
-                                               {GetCodeGen()->AddressOf(updater_)});
+  auto insert_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableInsert, {GetCodeGen()->AddressOf(updater_)});
 
   builder->Append(GetCodeGen()->DeclareVar(insert_slot, nullptr, insert_call));
 }
 
-void UpdateTranslator::GenIndexInsert(WorkContext *context,
-                                      FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const {
+void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *builder,
+                                      const catalog::index_oid_t &index_oid) const {
   // var insert_index_pr = @getIndexPR(&inserter, oid)
   auto insert_index_pr = GetCodeGen()->MakeFreshIdentifier("insert_index_pr");
   std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(updater_), GetCodeGen()->Const32(!index_oid)};
@@ -185,7 +184,7 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context,
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
 
-//  pr_filler_.GenFiller(index_pm, index_schema, GetCodeGen()->MakeExpr(insert_index_pr), builder);
+  //  pr_filler_.GenFiller(index_pm, index_schema, GetCodeGen()->MakeExpr(insert_index_pr), builder);
 
   // Fill index_pr using table_pr
   for (const auto &index_col : index_schema.GetColumns()) {
@@ -200,12 +199,12 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context,
 
   // Insert into index
   // if (insert not successfull) { Abort(); }
-  auto index_insert_call = GetCodeGen()->CallBuiltin(
-      index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert,
-      {GetCodeGen()->AddressOf(updater_)});
+  auto index_insert_call =
+      GetCodeGen()->CallBuiltin(index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert,
+                                {GetCodeGen()->AddressOf(updater_)});
   auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(builder, cond);
-//  Abort(builder);
+  //  Abort(builder);
   success.EndIf();
 }
 
@@ -219,12 +218,12 @@ void UpdateTranslator::GenTableDelete(FunctionBuilder *builder) const {
   auto delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, std::move(delete_args));
   auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, delete_call);
   If success(builder, cond);
-//  Abort(builder);
+  //  Abort(builder);
   success.EndIf();
 }
 
-void UpdateTranslator::GenIndexDelete(WorkContext *context,
-                                      FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const {
+void UpdateTranslator::GenIndexDelete(WorkContext *context, FunctionBuilder *builder,
+                                      const catalog::index_oid_t &index_oid) const {
   // var delete_index_pr = @getIndexPR(&deleter, oid)
   auto delete_index_pr = GetCodeGen()->MakeFreshIdentifier("delete_index_pr");
   std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(updater_), GetCodeGen()->Const32(!index_oid)};
@@ -244,8 +243,8 @@ void UpdateTranslator::GenIndexDelete(WorkContext *context,
     // For example, if the child is a seq scan, the index expressions could contain ColumnValueExpressions.
 
     auto val = context->DeriveValue(*index_col.StoredExpression().Get(), child_translator);
-    auto pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(), index_col.Nullable(),
-                                       index_pm.at(index_col.Oid()), val);
+    auto pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(),
+                                           index_col.Nullable(), index_pm.at(index_col.Oid()), val);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 

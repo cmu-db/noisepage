@@ -92,9 +92,10 @@ class EXPORT ThreadStateContainer {
  public:
   /**
    * Function used to initialize a thread's local state upon first use.
-   * Arguments: pointer to execution settings, pointer to opaque context, pointer to a thread-local state.
+   * TODO(WAN): this currently is forced to be an execution context because we want to extract the execution settings
+   * Arguments: pointer to opaque context (execution context), pointer to a thread-local state.
    */
-  using InitFn = void (*)(void *, void *, void *);
+  using InitFn = void (*)(void *, void *);
 
   /**
    * Function used to destroy a thread's local state.
@@ -114,7 +115,7 @@ class EXPORT ThreadStateContainer {
    * @param exec_settings The execution settings to run with.
    * @param memory The memory allocator to use to allocate thread states.
    */
-  explicit ThreadStateContainer(exec::ExecutionSettings *exec_settings, MemoryPool *memory);
+  explicit ThreadStateContainer(MemoryPool *memory);
 
   /**
    * This class cannot be copied or moved.
@@ -242,7 +243,7 @@ class EXPORT ThreadStateContainer {
     TLSHandle();
 
     // Constructor
-    explicit TLSHandle(exec::ExecutionSettings *exec_settings, ThreadStateContainer *container);
+    explicit TLSHandle(ThreadStateContainer *container);
 
     // Destructor
     ~TLSHandle();

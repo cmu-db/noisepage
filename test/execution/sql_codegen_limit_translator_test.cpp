@@ -54,10 +54,7 @@ void TestLimitAndOrOffset(uint64_t off, uint64_t lim) {
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetScanPredicate(nullptr)
-                   .SetTableOid(table->GetId())
-                   .Build();
+    seq_scan = builder.SetOutputSchema(std::move(schema)).SetScanPredicate(nullptr).SetTableOid(table->GetId()).Build();
   }
 
   // Limit.
@@ -94,8 +91,7 @@ void TestLimitAndOrOffset(uint64_t off, uint64_t lim) {
   if (lim == 0) {
     expected_tuple_count = table->GetTupleCount() > off ? table->GetTupleCount() - off : 0;
   } else {
-    expected_tuple_count =
-        table->GetTupleCount() > off ? std::min(lim, table->GetTupleCount() - off) : 0;
+    expected_tuple_count = table->GetTupleCount() > off ? std::min(lim, table->GetTupleCount() - off) : 0;
   }
   TupleCounterChecker num_checker(expected_tuple_count);
   MultiChecker multi_checker({&num_checker, &row_check});

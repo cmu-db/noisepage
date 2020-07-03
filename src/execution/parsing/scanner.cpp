@@ -343,7 +343,7 @@ Token::Type Scanner::CheckIdentifierOrKeyword(const char *input, uint32_t input_
   // The main switch statement that outlines all keywords
   switch (input[0]) {
     default:
-    KEYWORDS()
+      KEYWORDS()
   }
 
   // The input isn't a keyword, it must be an identifier
