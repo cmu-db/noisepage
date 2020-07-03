@@ -59,8 +59,8 @@ public class TracefileTest {
         System.out.println(path);
         file = new File(path);
         mog = new MogSqlite(file);
-        List<String> tab = getAllExistingTableName(mog,db);
-        removeExistingTable(tab,db);
+//        List<String> tab = getAllExistingTableName(mog,db);
+//        removeExistingTable(tab,db);
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
