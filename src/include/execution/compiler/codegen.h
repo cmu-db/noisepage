@@ -554,6 +554,8 @@ class CodeGen {
                                                 ast::Identifier col_oids, ast::Expr *query_state, ast::Expr *tls,
                                                 ast::Identifier worker_name);
 
+  ast::Expr *AbortTxn(ast::Expr *exec_ctx);
+
   /**
    * Call indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
    * @param iter The identifier of the index iterator.

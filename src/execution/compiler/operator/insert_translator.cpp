@@ -71,11 +71,6 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
 //  GenInserterFree(builder);
 //}
 
-// void InsertTranslator::Abort(FunctionBuilder *builder) const {
-//  GenInserterFree(builder);
-////  if (child_translator_ != nullptr) child_translator_->Abort(builder);
-//  builder->Append(GetCodeGen()->Return(nullptr));
-//}
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   DeclareInserter(function);
@@ -210,15 +205,12 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
   auto index_insert_call =
       GetCodeGen()->CallBuiltin(index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert,
                                 {GetCodeGen()->AddressOf(inserter_)});
-  //    auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
-  auto success = GetCodeGen()->MakeFreshIdentifier("success");
-  builder->Append(GetCodeGen()->DeclareVar(success, GetCodeGen()->BoolType(), GetCodeGen()->ConstBool(false)));
-  builder->Append(GetCodeGen()->Assign(GetCodeGen()->MakeExpr(success), index_insert_call));
-  //    {
-  //        builder->Append(GetCodeGen()->)
-  ////      Abort(builder);
-  //    }
-  //    check_index_insert_call.EndIf();
+  auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
+  If success(builder, cond);
+  {
+      builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  }
+  success.EndIf();
 }
 
 void InsertTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) const {

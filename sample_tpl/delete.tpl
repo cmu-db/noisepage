@@ -57,7 +57,5 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   }
   @tableIterClose(&tvi)
 
-  @abortTxn(execCtx)
-
   return count
 }
