@@ -423,8 +423,8 @@ namespace terrier::execution::vm {
   F(ResultBufferFinalize, OperandType::Local)                                                                          \
                                                                                                                       \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::UImm4,                \
-    OperandType::UImm4, OperandType::Local, OperandType::UImm4)                                                       \
+  F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
+    OperandType::Local, OperandType::Local, OperandType::UImm4)                                                       \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
   F(IndexIteratorScanAscending, OperandType::Local, OperandType::Local, OperandType::Local)                           \
@@ -489,13 +489,13 @@ namespace terrier::execution::vm {
   F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                  \
                                                                                                                       \
   /* StorageInterface */                                                                                              \
-  F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,             \
+  F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,             \
     OperandType::UImm4, OperandType::Local)                                                                           \
   F(StorageInterfaceGetTablePR, OperandType::Local, OperandType::Local)                                               \
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
-  F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
