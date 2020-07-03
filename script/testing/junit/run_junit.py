@@ -44,7 +44,7 @@ if __name__ == "__main__":
                          help="Threshold under the 'extened' query mode")
 
     args = vars(aparser.parse_args())
-    exit_code = -1
+    exit_code = 0
     noise_trace_dir = os.getcwd() + "/noisepage-testfiles/sql_trace/"
     for test_type in os.listdir(noise_trace_dir):
         type_dir = noise_trace_dir + test_type
