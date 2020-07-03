@@ -1,47 +1,48 @@
-// Perform:
-//
-// SELECT col_b, count(col_a) FROM test_1 GROUP BY col_b
-//
-// Should output 10 (number of distinct col_b)
+// Expected output: 10
+// SQL: SELECT col_b, count(col_a) FROM test_1 GROUP BY col_b
 
 struct State {
-  table: AggregationHashTable
-  count: int32
+    table: AggregationHashTable
+    count: int32
 }
 
 struct Agg {
-  key: Integer
-  count: CountStarAggregate
+    key: Integer
+    count: CountStarAggregate
 }
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
-  state.count = 0
-  @aggHTInit(&state.table, @execCtxGetMem(execCtx), @sizeOf(Agg))
+    state.count = 0
+    @aggHTInit(&state.table, execCtx, @execCtxGetMem(execCtx), @sizeOf(Agg))
 }
 
 fun tearDownState(state: *State) -> nil {
-  @aggHTFree(&state.table)
+    @aggHTFree(&state.table)
 }
 
 fun keyCheck(agg: *Agg, vpi: *VectorProjectionIterator) -> bool {
-  var key = @vpiGetInt(vpi, 1)
-  return @sqlToBool(key == agg.key)
+    var key = @vpiGetInt(vpi, 1)
+    return @sqlToBool(key == agg.key)
 }
 
 fun constructAgg(agg: *Agg, vpi: *VectorProjectionIterator) -> nil {
-  agg.key = @vpiGetInt(vpi, 1)
-  @aggInit(&agg.count)
+    agg.key = @vpiGetInt(vpi, 1)
+    @aggInit(&agg.count)
 }
 
 fun updateAgg(agg: *Agg, vpi: *VectorProjectionIterator) -> nil {
-  var input = @vpiGetInt(vpi, 0)
-  @aggAdvance(&agg.count, &input)
+    var input = @vpiGetInt(vpi, 0)
+    @aggAdvance(&agg.count, &input)
 }
 
-fun pipeline_1(state: *State) -> nil {
-  var ht = &state.table
-  var tvi: TableVectorIterator
-    for (@tableIterInit(&tvi, "test_1"); @tableIterAdvance(&tvi); ) {
+fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
+    var ht = &state.table
+    var tvi: TableVectorIterator
+    var table_oid = @testCatalogLookup(execCtx, "test_1", "")
+    var col_oids: [2]uint32
+    col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
+    col_oids[1] = @testCatalogLookup(execCtx, "test_1", "colB")
+    for (@tableIterInit(&tvi, execCtx, table_oid, col_oids); @tableIterAdvance(&tvi); ) {
         var vec = @tableIterGetVPI(&tvi)
         for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
             var hash_val = @hash(@vpiGetInt(vec, 1))
@@ -68,21 +69,17 @@ fun pipeline_2(state: *State) -> nil {
 }
 
 fun execQuery(execCtx: *ExecutionContext, qs: *State) -> nil {
-  pipeline_1(qs)
-  pipeline_2(qs)
+    pipeline_1(execCtx, qs)
+    pipeline_2(qs)
 }
 
 fun main(execCtx: *ExecutionContext) -> int32 {
-  var state: State
+    var state: State
 
-  // Initialize state.
-  setUpState(execCtx, &state)
-  // Execute the query.
-  execQuery(execCtx, &state)
-  // This test case returns how many distinct values are present.
-  var ret = state.count
-  // Teardown the state.
-  tearDownState(&state)
+    setUpState(execCtx, &state)
+    execQuery(execCtx, &state)
+    tearDownState(&state)
 
-  return ret
+    var ret = state.count
+    return ret
 }

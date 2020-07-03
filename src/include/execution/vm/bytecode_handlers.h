@@ -482,12 +482,12 @@ VM_OP_HOT void OpInitBool(terrier::execution::sql::BoolVal *result, bool input) 
   result->val_ = input;
 }
 
-VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int32_t input) {
+VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int64_t input) {
   result->is_null_ = false;
   result->val_ = input;
 }
 
-VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, float input) {
+VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, double input) {
   result->is_null_ = false;
   result->val_ = input;
 }
@@ -698,7 +698,7 @@ VM_OP_HOT void OpRemReal(terrier::execution::sql::Real *const result, const terr
 // ---------------------------------------------------------
 
 VM_OP void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *agg_hash_table,
-                                      terrier::execution::exec::ExecutionSettings *exec_settings,
+                                      terrier::execution::exec::ExecutionContext *exec_ctx,
                                       terrier::execution::sql::MemoryPool *memory, uint32_t payload_size);
 
 VM_OP_HOT void OpAggregationHashTableAllocTuple(terrier::byte **result,
@@ -1145,7 +1145,7 @@ VM_OP_HOT void OpAvgAggregateFree(terrier::execution::sql::AvgAggregate *agg) { 
 // ---------------------------------------------------------
 
 VM_OP void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
-                               terrier::execution::exec::ExecutionSettings *exec_settings,
+                               terrier::execution::exec::ExecutionContext *exec_ctx,
                                terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size);
 
 VM_OP_HOT void OpJoinHashTableAllocTuple(terrier::byte **result,

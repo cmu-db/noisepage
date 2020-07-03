@@ -893,9 +893,10 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
   switch (builtin) {
     case ast::Builtin::AggHashTableInit: {
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, memory, entry_size);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar memory = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, exec_ctx, memory, entry_size);
       break;
     }
     case ast::Builtin::AggHashTableInsert: {
@@ -1236,9 +1237,10 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
 
   switch (builtin) {
     case ast::Builtin::JoinHashTableInit: {
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, memory, entry_size);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar memory = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, exec_ctx, memory, entry_size);
       break;
     }
     case ast::Builtin::JoinHashTableInsert: {

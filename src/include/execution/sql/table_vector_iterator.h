@@ -122,10 +122,7 @@ class EXPORT TableVectorIterator {
 
   std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
 
-  // TODO(WAN): Matt, does this have to be done for memory tracking reasons?
-  // A vector projection and its buffer.
-  void *vp_buffer_ = nullptr;
-  VectorProjection *vector_projection_ = nullptr;
+  VectorProjection vector_projection_;
 
   // An iterator over the currently active projection.
   VectorProjectionIterator vector_projection_iterator_;

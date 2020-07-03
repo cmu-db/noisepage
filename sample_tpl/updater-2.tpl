@@ -1,3 +1,5 @@
+// TODO(WAN): test this
+
 fun index_count_2(execCtx: *ExecutionContext, key : int64, key2 : int64) -> int64 {
   var count = 0 // output count
   // The following code initializes the index iterator.

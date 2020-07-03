@@ -20,7 +20,6 @@ TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint3
     : exec_ctx_(exec_ctx), table_oid_(table_oid), col_oids_(col_oids, col_oids + num_oids) {}
 
 TableVectorIterator::~TableVectorIterator() {
-  exec_ctx_->GetMemoryPool()->Deallocate(vp_buffer_, sizeof(VectorProjection));
 }
 
 bool TableVectorIterator::Init() {
@@ -50,11 +49,9 @@ bool TableVectorIterator::Init() {
   }
 
   // Create an owning vector.
-  vp_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(sizeof(VectorProjection), alignof(uint64_t), false);
-  vector_projection_ = new (vp_buffer_) VectorProjection();
-  vector_projection_->SetStorageColIds(col_ids);
-  vector_projection_->Initialize(col_types);
-  vector_projection_->Reset(common::Constants::K_DEFAULT_VECTOR_SIZE);
+  vector_projection_.SetStorageColIds(col_ids);
+  vector_projection_.Initialize(col_types);
+  vector_projection_.Reset(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   // All good.
   initialized_ = true;
@@ -88,11 +85,9 @@ bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
   }
 
   // Create an owning vector.
-  vp_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(sizeof(VectorProjection), alignof(uint64_t), false);
-  vector_projection_ = new (vp_buffer_) VectorProjection();
-  vector_projection_->SetStorageColIds(col_ids);
-  vector_projection_->Initialize(col_types);
-  vector_projection_->Reset(common::Constants::K_DEFAULT_VECTOR_SIZE);
+  vector_projection_.SetStorageColIds(col_ids);
+  vector_projection_.Initialize(col_types);
+  vector_projection_.Reset(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   // All good.
   initialized_ = true;
@@ -108,17 +103,17 @@ void TableVectorIterator::RefreshVectorProjection() {
                              [&](const auto &iter) { return tuple_count == iter.GetTupleCount(); }),
                  "Not all iterators have the same size?");
 
-  vector_projection_->Reset(tuple_count);
+  vector_projection_.Reset(tuple_count);
   for (uint64_t col_idx = 0; col_idx < column_iterators_.size(); col_idx++) {
-    Vector *column_vector = vector_projection_->GetColumn(col_idx);
+    Vector *column_vector = vector_projection_.GetColumn(col_idx);
     column_vector->Reference(column_iterators_[col_idx].GetColumnData(),
                              column_iterators_[col_idx].GetColumnNullBitmap(),
                              column_iterators_[col_idx].GetTupleCount());
   }
-  vector_projection_->CheckIntegrity();
+  vector_projection_.CheckIntegrity();
 
   // Insert our vector projection instance into the vector projection iterator.
-  vector_projection_iterator_.SetVectorProjection(vector_projection_);
+  vector_projection_iterator_.SetVectorProjection(&vector_projection_);
 }
 
 bool TableVectorIterator::Advance() {
@@ -133,8 +128,8 @@ bool TableVectorIterator::Advance() {
   }
 
   // Otherwise, scan the table to set the vector projection.
-  table_->Scan(exec_ctx_->GetTxn(), iter_.get(), vector_projection_);
-  vector_projection_iterator_.SetVectorProjection(vector_projection_);
+  table_->Scan(exec_ctx_->GetTxn(), iter_.get(), &vector_projection_);
+  vector_projection_iterator_.SetVectorProjection(&vector_projection_);
 
   return true;
 }

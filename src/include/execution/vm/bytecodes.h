@@ -280,7 +280,7 @@ namespace terrier::execution::vm {
   F(HashCombine, OperandType::Local, OperandType::Local)                                                               \
                                                                                                                        \
   /* Aggregation Hash Table */                                                                                         \
-  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)          \
   F(AggregationHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   F(AggregationHashTableAllocTuplePartitioned, OperandType::Local, OperandType::Local, OperandType::Local)             \
   F(AggregationHashTableLinkHashTableEntry, OperandType::Local, OperandType::Local)                                    \
@@ -393,7 +393,7 @@ namespace terrier::execution::vm {
   F(AvgAggregateFree, OperandType::Local)                                                                              \
                                                                                                                        \
   /* Hash Joins */                                                                                                     \
-  F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                 \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                               \
   F(JoinHashTableBuild, OperandType::Local)                                                                            \
   F(JoinHashTableBuildParallel, OperandType::Local, OperandType::Local, OperandType::Local)                            \

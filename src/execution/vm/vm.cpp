@@ -839,14 +839,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
 
   OP(InitInteger) : {
     auto *sql_int = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    auto val = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto val = frame->LocalAt<int64_t>(READ_LOCAL_ID());
     OpInitInteger(sql_int, val);
     DISPATCH_NEXT();
   }
 
   OP(InitReal) : {
     auto *sql_real = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
-    auto val = frame->LocalAt<float>(READ_LOCAL_ID());
+    auto val = frame->LocalAt<double>(READ_LOCAL_ID());
     OpInitReal(sql_real, val);
     DISPATCH_NEXT();
   }
@@ -1027,10 +1027,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
 
   OP(AggregationHashTableInit) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
-    auto *exec_settings = frame->LocalAt<exec::ExecutionSettings *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto payload_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpAggregationHashTableInit(agg_hash_table, exec_settings, memory, payload_size);
+    OpAggregationHashTableInit(agg_hash_table, exec_ctx, memory, payload_size);
     DISPATCH_NEXT();
   }
 
@@ -1357,10 +1357,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
 
   OP(JoinHashTableInit) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
-    auto *exec_settings = frame->LocalAt<exec::ExecutionSettings *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *memory = frame->LocalAt<sql::MemoryPool *>(READ_LOCAL_ID());
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpJoinHashTableInit(join_hash_table, exec_settings, memory, tuple_size);
+    OpJoinHashTableInit(join_hash_table, exec_ctx, memory, tuple_size);
     DISPATCH_NEXT();
   }
 

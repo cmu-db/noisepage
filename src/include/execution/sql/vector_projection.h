@@ -77,7 +77,7 @@ class ColumnVectorIterator;
  * // vp size and selected is 20
  * @endcode
  */
-class VectorProjection {
+class EXPORT VectorProjection {
   friend class VectorProjectionIterator;
 
  public:

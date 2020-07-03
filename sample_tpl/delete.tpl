@@ -1,5 +1,6 @@
-// DELETE FROM test_1 WHERE colA BETWEEN 495 AND 505
-// Returns the number of tuples in that range after the delete (0)
+// Expected output: 0 (number of tuples in that range after the delete)
+// SQL: DELETE FROM test_1 WHERE colA BETWEEN 495 AND 505
+
 fun main(execCtx: *ExecutionContext) -> int32 {
   var count = 0 // output count
   // Init deleter

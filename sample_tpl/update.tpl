@@ -1,3 +1,5 @@
+// TODO(WAN): test this
+
 // UPDATE test_1 SET colA = 100000 + colA WHERE colA BETWEEN 495 AND 505
 // Returns the tuples with values BETWEEN 100495 AND 100505 (11)
 

@@ -1,65 +1,45 @@
-// Perform a vectorized scan for:
-//
-// SELECT * FROM test_1 WHERE cola < 500
-//
-// Should return 500 (number of output rows)
+// Expected output: 500 (number of output rows)
+// SQL: SELECT * FROM test_1 WHERE cola < 500
 
-
-fun Lt500(vpi: *VectorProjectionIterator) -> int32 {
-  var param: Integer = @intToSql(500)
-  var cola: Integer
-  if (@vpiIsFiltered(vpi)) {
-    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
-      cola = @vpiGetInt(vpi, 0)
-      @vpiMatch(vpi, cola < param)
-    }
-  } else {
-    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
-      cola = @vpiGetInt(vpi, 0)
-      @vpiMatch(vpi, cola < param)
-    }
-  }
-  @vpiResetFiltered(vpi)
-  return 0
-}
-
-fun Lt500_Vec(vpi: *VectorProjectionIterator) -> int32 {
-  return @filterLt(vpi, 0, 4, 500)
+fun filter_clause0term0(execCtx: *ExecutionContext, vector_proj: *VectorProjection, tids: *TupleIdList, ctx: *uint8) -> nil {
+    @filterLt(execCtx, vector_proj, 0, @intToSql(500), tids)
 }
 
 fun count(vpi: *VectorProjectionIterator) -> int32 {
-  var ret = 0
-  if (@vpiIsFiltered(vpi)) {
-    for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
-      ret = ret + 1
+    var ret = 0
+    if (@vpiIsFiltered(vpi)) {
+        for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {
+          ret = ret + 1
+        }
+    } else {
+        for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+          ret = ret + 1
+        }
     }
-  } else {
-    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
-      ret = ret + 1
-    }
-  }
-  @vpiResetFiltered(vpi)
-  return ret
+    @vpiResetFiltered(vpi)
+    return ret
 }
 
 fun main(execCtx: *ExecutionContext) -> int {
-  var ret :int = 0
+    var ret : int = 0
 
-  var filter: FilterManager
-  @filterManagerInit(&filter)
-  @filterManagerInsertFilter(&filter, Lt500, Lt500_Vec)
-  @filterManagerFinalize(&filter)
+    var filter: FilterManager
+    @filterManagerInit(&filter, execCtx)
+    @filterManagerInsertFilter(&filter, filter_clause0term0)
 
-  var tvi: TableVectorIterator
-  var col_oids : [1]uint32
-  col_oids[0] = 1
-  for (@tableIterInitBind(&tvi, execCtx, "test_1", col_oids); @tableIterAdvance(&tvi); ) {
-    var vpi = @tableIterGetVPI(&tvi)
-    @filterManagerRunFilters(&filter, vpi)
-    ret = ret + count(vpi)
-  }
+    var tvi: TableVectorIterator
+    var table_oid = @testCatalogLookup(execCtx, "test_1", "")
+    var col_oids: [2]uint32
+    col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
+    col_oids[1] = @testCatalogLookup(execCtx, "test_1", "colB")
+    col_oids[2] = @testCatalogLookup(execCtx, "test_1", "colC")
+    for (@tableIterInit(&tvi, execCtx, table_oid, col_oids); @tableIterAdvance(&tvi); ) {
+        var vpi = @tableIterGetVPI(&tvi)
+        @filterManagerRunFilters(&filter, vpi, execCtx)
+        ret = ret + count(vpi)
+    }
 
-  @filterManagerFree(&filter)
-  @tableIterClose(&tvi)
-  return ret
+    @filterManagerFree(&filter)
+    @tableIterClose(&tvi)
+    return ret
 }
