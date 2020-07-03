@@ -12,6 +12,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 

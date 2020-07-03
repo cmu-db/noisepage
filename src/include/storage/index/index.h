@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "common/performance_counter.h"
+#include "common/managed_pointer.h"
 #include "storage/data_table.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
@@ -66,6 +66,11 @@ class Index {
    * Invoke garbage collection on the index. For some underlying index types this may be a no-op.
    */
   virtual void PerformGarbageCollection() {}
+
+  /**
+   * @return approximate number of bytes allocated on the heap for this index data structure
+   */
+  virtual size_t EstimateHeapUsage() const = 0;
 
   /**
    * Inserts a new key-value pair into the index, used for non-unique key indexes.

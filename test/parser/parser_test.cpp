@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -16,6 +16,8 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
+#include "parser/statements.h"
+#include "spdlog/spdlog.h"
 #include "test_util/test_harness.h"
 
 namespace terrier::parser {

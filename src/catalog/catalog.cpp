@@ -10,6 +10,7 @@
 #include "catalog/database_catalog.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_database.h"
+#include "storage/index/index.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"

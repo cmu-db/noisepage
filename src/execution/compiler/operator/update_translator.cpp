@@ -11,6 +11,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/work_context.h"
 #include "storage/index/index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, CompilationContext *compilation_context,

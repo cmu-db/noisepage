@@ -8,9 +8,6 @@
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
-#include "common/stat_registry.h"
-#include "common/worker_pool.h"
-#include "execution/execution_util.h"
 #include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"
@@ -262,8 +259,8 @@ class DBMain {
    */
   class ExecutionLayer {
    public:
-    ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
-    ~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
+    ExecutionLayer();
+    ~ExecutionLayer();
   };
 
   /**
@@ -284,7 +281,26 @@ class DBMain {
           use_settings_manager_ ? BootstrapSettingsManager(common::ManagedPointer(db_main)) : DISABLED;
 
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
-      if (use_metrics_) metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (use_metrics_) {
+        metrics_manager = std::make_unique<metrics::MetricsManager>();
+        if (use_settings_manager_) {
+          if (settings_manager->GetBool(settings::Param::metrics_logging)) {
+            metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+          }
+          if (settings_manager->GetBool(settings::Param::metrics_transaction)) {
+            metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
+          }
+          if (settings_manager->GetBool(settings::Param::metrics_gc)) {
+            metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+          }
+          if (settings_manager->GetBool(settings::Param::metrics_execution)) {
+            metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION, 0);
+          }
+          if (settings_manager->GetBool(settings::Param::metrics_pipeline)) {
+            metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+          }
+        }
+      }
 
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {

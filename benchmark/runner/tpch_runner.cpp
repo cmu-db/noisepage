@@ -1,5 +1,6 @@
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
+#include "common/worker_pool.h"
 #include "execution/execution_util.h"
 #include "execution/vm/module.h"
 #include "main/db_main.h"

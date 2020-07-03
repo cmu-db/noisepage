@@ -1,11 +1,11 @@
 #pragma once
+
 #include <list>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "catalog/schema.h"
 #include "storage/data_table.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
@@ -22,6 +22,10 @@ namespace terrier::execution::sql {
 class TableVectorIterator;
 class VectorProjection;
 }  // namespace terrier::execution::sql
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
 
 namespace terrier::storage {
 
@@ -219,6 +223,11 @@ class SqlTable {
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return table_.data_table_->GetNumTuple(); }
+
+  /**
+   * @return Approximate heap usage of the table
+   */
+  size_t EstimateHeapUsage() const { return table_.data_table_->EstimateHeapUsage(); }
 
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
