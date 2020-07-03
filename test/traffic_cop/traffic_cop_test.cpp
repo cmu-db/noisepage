@@ -145,28 +145,6 @@ TEST_F(TrafficCopTests, BasicTest) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST_F(TrafficCopTests, OrderTest) {
-  try {
-    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                                            port_, catalog::DEFAULT_DATABASE));
-
-    pqxx::work txn1(connection);
-    txn1.exec("DROP TABLE IF EXISTS TableB");
-    txn1.exec("CREATE TABLE TableB (id INT PRIMARY KEY, data TEXT, num INT);");
-    txn1.exec("INSERT INTO TableB VALUES (1, 'abc', 3);");
-    txn1.exec("INSERT INTO TableB VALUES (2, 'abc', 2);");
-    txn1.exec("INSERT INTO TableB VALUES (3, 'abc', 1);");
-    pqxx::result r = txn1.exec("SELECT id,data,num FROM TableB ORDER BY num");
-    int value = 0;
-    r.begin().at(0).to(value);
-    EXPECT_EQ(value, 3);
-    txn1.commit();
-  } catch (const std::exception &e) {
-    EXPECT_TRUE(false);
-  }
-}
-
 /**
  * Test whether a temporary namespace is created for a connection to the database
  */
