@@ -1,4 +1,6 @@
-fun main() -> int64 {
+// Expected output: 0
+
+fun main() -> int {
   var present1 = @dateToSql(2019, 9, 20)
   var present2 = @dateToSql(2019, 9, 20)
   var future = @dateToSql(2019, 11, 2)

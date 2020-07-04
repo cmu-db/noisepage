@@ -1,3 +1,4 @@
+// TODO(WAN): port this
 // Perform an index nested loop join for the queury:
 // SELECT test_1.colA, test_1.colB, test_2.col1, test_2.col2 FROM test_1, test_2 WHERE test_1.colA=test_2.col1 AND test_1.colB=test_2.col2
 // returns 0 if the output rows match.

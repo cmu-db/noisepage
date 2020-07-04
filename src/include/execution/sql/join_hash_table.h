@@ -45,7 +45,7 @@ class Vector;
  * global join hash table through a call to JoinHashTable::MergeParallel(). After this call, the
  * global table takes ownership of all thread-local allocated memory and hash index.
  */
-class JoinHashTable {
+class EXPORT JoinHashTable {
  public:
   /** Default precision to use for HLL estimations. */
   static constexpr uint32_t DEFAULT_HLL_PRECISION = 10;

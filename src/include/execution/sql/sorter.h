@@ -64,7 +64,7 @@ class VectorProjectionIterator;
  * across all threads, the primary thread uses Sorter::SortParallel() or Sorter::SortTopKParallel()
  * for parallel sort and parallel Top-K, respectively.
  */
-class Sorter {
+class EXPORT Sorter {
  public:
   /**
    * Minimum number of tuples to have before using a parallel sort. We use a smaller value in DEBUG

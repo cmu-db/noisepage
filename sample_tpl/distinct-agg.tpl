@@ -1,7 +1,5 @@
-// Perform:
-//
-// SELECT SUM(DISTINCT colB) from test_1;
-
+// Expected output: 45
+// SQL: SELECT SUM(DISTINCT colB) from test_1;
 
 struct State {
   sum: IntegerSumAggregate
@@ -26,7 +24,7 @@ fun distinctKeyCheck(old: *DistinctEntry, new: *Values) -> bool {
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @aggInit(&state.sum)
-  @aggHTInit(&state.distinct_table, @execCtxGetMem(execCtx), @sizeOf(DistinctEntry))
+  @aggHTInit(&state.distinct_table, execCtx, @execCtxGetMem(execCtx), @sizeOf(DistinctEntry))
   state.count = 0
 }
 
@@ -36,10 +34,11 @@ fun tearDownState(state: *State) -> nil {
 
 fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var tvi: TableVectorIterator
-  var col_oids : [2]uint32
-  col_oids[0] = 1
-  col_oids[1] = 2
-  @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
+  var table_oid = @testCatalogLookup(execCtx, "test_1", "")
+  var col_oids: [2]uint32
+  col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
+  col_oids[1] = @testCatalogLookup(execCtx, "test_1", "colB")
+  @tableIterInit(&tvi, execCtx, table_oid, col_oids)
   for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetVPI(&tvi)
     for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
@@ -61,12 +60,12 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
-  var out = @ptrCast(*Values, @outputAlloc(execCtx))
+  var out = @ptrCast(*Values, @resultBufferAllocRow(execCtx))
   out.sum = @aggResult(&state.sum)
   for (var i : int64 = 0; @sqlToBool(i < out.sum); i = i + 1) {
     state.count = state.count + 1
   }
-  @outputFinalize(execCtx)
+  @resultBufferFinalize(execCtx)
 }
 
 fun main(execCtx: *ExecutionContext) -> int32 {

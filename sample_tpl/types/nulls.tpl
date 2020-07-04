@@ -1,4 +1,6 @@
-fun main() -> int64 {
+// Expected output: 0
+
+fun main() -> int {
   var sql_int : Integer
   var null_int = @nullToSql(&sql_int)
 

@@ -195,19 +195,25 @@ void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builti
 
   switch (builtin) {
     case ast::Builtin::AggHashTableInit: {
-      if (!CheckArgCount(call, 3)) {
+      if (!CheckArgCount(call, 4)) {
         return;
       }
-      // Second argument is a memory pool pointer
+      // Second argument is the execution context.
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+      // Third argument is a memory pool pointer
       const auto mem_pool_kind = ast::BuiltinType::MemoryPool;
-      if (!IsPointerToSpecificBuiltin(args[1]->GetType(), mem_pool_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(mem_pool_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(args[2]->GetType(), mem_pool_kind)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(mem_pool_kind)->PointerTo());
         return;
       }
-      // Third argument is the payload size, a 32-bit value
+      // Fourth argument is the payload size, a 32-bit value
       const auto uint_kind = ast::BuiltinType::Uint32;
-      if (!args[2]->GetType()->IsSpecificBuiltin(uint_kind)) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(uint_kind));
+      if (!args[3]->GetType()->IsSpecificBuiltin(uint_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(uint_kind));
         return;
       }
       // Nil return
@@ -540,7 +546,7 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
 }
 
 void Sema::CheckBuiltinJoinHashTableInit(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 3)) {
+  if (!CheckArgCount(call, 4)) {
     return;
   }
 
@@ -553,16 +559,23 @@ void Sema::CheckBuiltinJoinHashTableInit(ast::CallExpr *call) {
     return;
   }
 
-  // Second argument must be a pointer to a MemoryPool
-  const auto region_kind = ast::BuiltinType::MemoryPool;
-  if (!IsPointerToSpecificBuiltin(args[1]->GetType(), region_kind)) {
-    ReportIncorrectCallArg(call, 1, GetBuiltinType(region_kind)->PointerTo());
+  // Second argument is the execution context.
+  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
     return;
   }
 
-  // Third and last argument must be a 32-bit number representing the tuple size
-  if (!args[2]->GetType()->IsIntegerType()) {
-    ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
+  // Third argument must be a pointer to a MemoryPool
+  const auto region_kind = ast::BuiltinType::MemoryPool;
+  if (!IsPointerToSpecificBuiltin(args[2]->GetType(), region_kind)) {
+    ReportIncorrectCallArg(call, 2, GetBuiltinType(region_kind)->PointerTo());
+    return;
+  }
+
+  // Fourth and last argument must be a 32-bit number representing the tuple size
+  if (!args[3]->GetType()->IsIntegerType()) {
+    ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
     return;
   }
 

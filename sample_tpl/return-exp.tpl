@@ -1,5 +1,5 @@
+// Expected output: 2
 // Check that the return stmt can have an arbitrary expression
-// Should return 2.
 
 fun f() -> int32 {
   return 1

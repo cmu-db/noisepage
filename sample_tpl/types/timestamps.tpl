@@ -1,4 +1,6 @@
-fun main() -> int64 {
+// Expected output:
+
+fun main() -> int {
   var present1 = @timestampToSqlYMDHMSMU(2019, 1, 2, 11, 22, 33, 120, 0)
   var present2 = @timestampToSqlYMDHMSMU(2019, 1, 2, 11, 22, 33, 120, 0)
   var future = @timestampToSqlYMDHMSMU(2019, 1, 2, 11, 22, 33, 121, 0)

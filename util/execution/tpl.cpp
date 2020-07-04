@@ -204,14 +204,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (kIsSQL) {
-      std::function<uint32_t(exec::ExecutionContext *)> main;
+      std::function<int32_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
       EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<uint32_t()> main;
+      std::function<int32_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
@@ -228,14 +228,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
     if (kIsSQL) {
-      std::function<uint32_t(exec::ExecutionContext *)> main;
+      std::function<int32_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
       EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<uint32_t()> main;
+      std::function<int32_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
@@ -251,7 +251,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
     if (kIsSQL) {
-      std::function<uint32_t(exec::ExecutionContext *)> main;
+      std::function<int32_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
@@ -262,7 +262,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       x.Stop();
       EXECUTION_LOG_INFO("Jit exec: {} ms", x.GetElapsed());
     } else {
-      std::function<uint32_t()> main;
+      std::function<int32_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;

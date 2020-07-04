@@ -1,4 +1,6 @@
-fun main() -> int64 {
+// Expected output:
+
+fun main() -> int {
   // Init aggregates
   var sum_agg : IntegerSumAggregate
   var count_agg : CountAggregate

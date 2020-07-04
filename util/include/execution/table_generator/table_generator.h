@@ -18,7 +18,7 @@ namespace terrier::execution::sql {
 /**
  * Size of the first table
  */
-constexpr uint32_t TEST1_SIZE = 1000000;
+constexpr uint32_t TEST1_SIZE = 10000;
 /**
  * Size of the second table
  */
