@@ -261,7 +261,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                 y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
 
             # Hack to adjust the recorded metrics of q30
-            if 'q70 p0' in data.name:
+            if 'q28 p0' in data.name:
                 if opunit_feature[0] == OpUnit.IDX_SCAN and x[0][2] == 2:
                     # Inner index loop will execute 200 times, so scale the prediction
                     # by 200 times to account for 200 separate index scans

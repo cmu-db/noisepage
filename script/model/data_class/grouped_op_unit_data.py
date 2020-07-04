@@ -98,7 +98,7 @@ def _pipeline_get_grouped_op_unit_data(filename):
                 p_id = int(line[1])
 
                 # Hack to tweak the feature based on the query
-                if q_id == 58 and p_id == 0:
+                if q_id == 33 and p_id == 0:
                     # q31 returns ~850 tuples from IDX_SCAN to SORT_BUILD
                     if feature == 'SORT_BUILD':
                         # Set # input rows to SORT_BUILD as 850
@@ -108,7 +108,7 @@ def _pipeline_get_grouped_op_unit_data(filename):
                     elif feature == 'IDX_SCAN':
                         # Set # output rows of IDX_SCAN as 850
                         x_loc[3] = 850
-                elif q_id == 70 and p_id == 0:
+                elif q_id == 28 and p_id == 0:
                     if feature == 'AGG_BUILD':
                         # Set agg_build input rows to 200, assume output unchanged
                         # Since there's distinct, set the correct key size/input key
