@@ -51,7 +51,7 @@ class ExecutableQuery {
      * @param functions The name of the functions to execute, in order.
      * @param module The module that contains the functions.
      */
-    Fragment(std::vector<std::string> &&functions, std::string &&teardown_fn, std::unique_ptr<vm::Module> module);
+    Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns, std::unique_ptr<vm::Module> module);
 
     /**
      * Destructor.
@@ -75,7 +75,7 @@ class ExecutableQuery {
     // query fragment.
     std::vector<std::string> functions_;
 
-    std::string teardown_fn_;
+    std::vector<std::string> teardown_fn_;
 
     // The module.
     std::unique_ptr<vm::Module> module_;

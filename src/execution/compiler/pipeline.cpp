@@ -260,7 +260,9 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
   // Register the main init, run, tear-down functions as steps, in that order.
   builder->RegisterStep(GenerateInitPipelineFunction());
   builder->RegisterStep(GenerateRunPipelineFunction());
-  builder->RegisterStep(GenerateTearDownPipelineFunction());
+  auto teardown = GenerateTearDownPipelineFunction();
+  builder->RegisterStep(teardown);
+  builder->AddTeardownFn(teardown);
 }
 
 }  // namespace terrier::execution::compiler

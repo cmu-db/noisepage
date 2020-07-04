@@ -148,7 +148,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   auto teardown = GenerateTearDownFunction();
   main_builder.RegisterStep(teardown);
 
-  main_builder.SetTeardownFn(teardown);
+  main_builder.AddTeardownFn(teardown);
 
   // Compile and finish.
   fragments.emplace_back(main_builder.Compile());

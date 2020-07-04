@@ -60,7 +60,11 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
                       timer.GetBytecodeGenTimeMs(), timer.GetModuleGenTimeMs());
 
   // Create the fragment.
-  return std::make_unique<ExecutableQuery::Fragment>(std::move(step_functions_), teardown_fn_->Name().GetString(),
+  std::vector<std::string> teardown_names;
+  for (auto &decl : teardown_fn_){
+    teardown_names.push_back(decl->Name().GetString());
+  }
+  return std::make_unique<ExecutableQuery::Fragment>(std::move(step_functions_), std::move(teardown_names),
                                                      std::move(module));
 }
 

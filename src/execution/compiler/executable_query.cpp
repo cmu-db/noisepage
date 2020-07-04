@@ -8,6 +8,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::execution::compiler {
 
@@ -17,7 +18,7 @@ namespace terrier::execution::compiler {
 //
 //===----------------------------------------------------------------------===//
 
-ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::string &&teardown_fn,
+ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fn,
                                     std::unique_ptr<vm::Module> module)
     : functions_(std::move(functions)), teardown_fn_(std::move(teardown_fn)), module_(std::move(module)) {}
 
@@ -25,6 +26,11 @@ ExecutableQuery::Fragment::~Fragment() = default;
 
 void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) const {
   using Function = std::function<void(void *)>;
+
+  auto exec_ctx = *reinterpret_cast<exec::ExecutionContext **>(query_state);
+  if (exec_ctx->GetTxn()->MustAbort()){
+    return;
+  }
   for (const auto &func_name : functions_) {
     Function func;
     if (!module_->GetFunction(func_name, mode, &func)) {
@@ -33,10 +39,12 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
     try {
       func(query_state);
     } catch (const AbortException &e) {
-      if (!module_->GetFunction(teardown_fn_, mode, &func)) {
-        throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name));
+      for (const auto &teardown_name : teardown_fn_) {
+        if (!module_->GetFunction(teardown_name, mode, &func)) {
+          throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name));
+        }
+        func(query_state);
       }
-      func(query_state);
       return;
     }
   }
