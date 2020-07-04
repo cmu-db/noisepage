@@ -176,9 +176,13 @@ class GlobalTrainer:
         raw_y = np.array(raw_y)[test_indices]
         accumulated_raw_y = np.sum(raw_y, axis=0)
         accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
-        percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + 1)
+        accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + 1)
+        original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
+                accumulated_raw_y + 1)
 
-        logging.info('Accumulated Ratio Error: {}'.format(percentage_error))
+        logging.info('Original Ratio Error: {}'.format(np.average(y[test_indices], axis=0)))
+        logging.info('Original Accumulated Ratio Error: {}'.format(original_accumulated_percentage_error))
+        logging.info('Accumulated Ratio Error: {}'.format(accumulated_percentage_error))
 
         return trained_model
 
