@@ -282,5 +282,7 @@ public class SelectTest extends TestUtility {
       while(rs1.next() && rs2.next()) {
         checkIntRow(rs2, new String [] {"c1", "c2", "c3"}, new int[] {rs1.getInt("c1"), rs1.getInt("c2"), rs1.getInt("c3")});
       }
+      assertNoMoreRows(rs1);
+      assertNoMoreRows(rs2);
     }
 }
