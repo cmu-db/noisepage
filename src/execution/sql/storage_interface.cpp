@@ -1,8 +1,11 @@
 #include "execution/sql/storage_interface.h"
 
 #include <algorithm>
+#include <vector>
 
+#include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
+#include "execution/util/execution_common.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 

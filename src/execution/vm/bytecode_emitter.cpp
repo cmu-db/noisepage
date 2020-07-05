@@ -376,5 +376,4 @@ void BytecodeEmitter::EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar
                                                      uint32_t index_oid) {
   EmitAll(bytecode, pr, storage_interface, index_oid);
 }
-
 }  // namespace terrier::execution::vm

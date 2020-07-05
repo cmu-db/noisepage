@@ -106,7 +106,6 @@ bool LogicalGetToPhysicalIndexScan::Check(common::ManagedPointer<AbstractOptimiz
   }
 
   auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
-  // Only access live indexes for this check: if we don't have a live index, we can't use it
   return !accessor->GetIndexOids(get->GetTableOid()).empty();
 }
 
