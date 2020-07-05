@@ -269,7 +269,7 @@ void Sema::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
 
   switch (node->Op()) {
     case parsing::Token::Type::BANG: {
-      if (!expr_type->IsBoolType()) {
+      if (!expr_type->IsBoolType() && !expr_type->IsSqlBooleanType()) {
         GetErrorReporter()->Report(node->Position(), ErrorMessages::kInvalidOperation, node->Op(), expr_type);
         return;
       }
