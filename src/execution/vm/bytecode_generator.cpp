@@ -410,8 +410,7 @@ void BytecodeGenerator::VisitLogicalNotExpr(ast::UnaryOpExpr *op) {
     input = VisitExpressionForRValue(op->Expression());
     Emitter()->EmitUnaryOp(Bytecode::Not, dest, input);
     ExecutionResult()->SetDestination(dest.ValueOf());
-  }
-  else if (op->GetType()->IsSqlBooleanType()) {
+  } else if (op->GetType()->IsSqlBooleanType()) {
     input = VisitExpressionForLValue(op->Expression());
     Emitter()->EmitUnaryOp(Bytecode::NotSql, dest, input);
     ExecutionResult()->SetDestination(dest);

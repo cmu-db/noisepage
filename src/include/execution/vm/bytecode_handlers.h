@@ -67,15 +67,13 @@ ALL_TYPES(COMPARISONS);
 
 VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 
-VM_OP_HOT void OpNotSql(terrier::execution::sql::BoolVal* result,
-                        terrier::execution::sql::BoolVal* input) {
+VM_OP_HOT void OpNotSql(terrier::execution::sql::BoolVal *result, terrier::execution::sql::BoolVal *input) {
   if (input->is_null_) {
     *result = terrier::execution::sql::BoolVal::Null();
   } else {
     *result = terrier::execution::sql::BoolVal(!input->val_);
   }
 }
-
 
 // ---------------------------------------------------------
 // Primitive arithmetic

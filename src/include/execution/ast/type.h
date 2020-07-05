@@ -276,7 +276,6 @@ class Type : public util::RegionObject {
    */
   bool IsSqlValueType() const;
 
-
   /**
    * Checks whether this is a sql boolean type
    * @return true iff this is a sql boolean type
