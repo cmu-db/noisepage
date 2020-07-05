@@ -78,6 +78,11 @@ class EXPORT StorageInterface {
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 
   /**
+   * @param size size of this index pr
+   */
+  void SetIndexPR(uint32_t size);
+
+  /**
    * Delete item from the current index.
    * @param table_tuple_slot slot corresponding to the item.
    */
@@ -96,12 +101,13 @@ class EXPORT StorageInterface {
   bool IndexInsertUnique();
 
   /**
-   * Insert into the newly created index
-   * @param index_oid index oid
+   * Fill table pr using a given tuple slot
    * @param table_tuple_slot tuple slot
    * @return Whether insertion was successful.
    */
-  bool IndexCreateInsert(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot);
+  bool FillTablePR(storage::TupleSlot table_tuple_slot);
+
+  storage::ProjectedRow *InitTablePR(catalog::index_oid_t index_oid);
 
  protected:
   /**
@@ -144,6 +150,18 @@ class EXPORT StorageInterface {
    * The index PR.
    */
   storage::ProjectedRow *index_pr_{nullptr};
+
+  /**
+   * The PR's buffer.
+   */
+  void *table_pr_buffer_;
+  /**
+   * The table PR.
+   */
+  storage::ProjectedRow *table_pr_{nullptr};
+  bool has_table_pr_;
+  uint32_t table_pr_size_;
+  catalog::index_oid_t index_oid_;
 
   /**
    * Reusable ProjectedRowInitializer for this table access

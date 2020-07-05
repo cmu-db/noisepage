@@ -778,14 +778,14 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
 storage::index::Index *Builder::BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
   TERRIER_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
   storage::index::IndexBuilder index_builder;
-  index_builder.SetSqlTableAndTransactionContext(nullptr, nullptr, key_schema);
+  index_builder.SetKeySchema(key_schema);
   return index_builder.Build();
 }
 
 storage::index::Index *Builder::BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
   TERRIER_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
   storage::index::IndexBuilder index_builder;
-  index_builder.SetSqlTableAndTransactionContext(nullptr, nullptr, key_schema);
+  index_builder.SetKeySchema(key_schema);
   return index_builder.Build();
 }
 

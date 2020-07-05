@@ -1,5 +1,4 @@
 #pragma once
-#include <unordered_set>
 #include <vector>
 
 #include "common/macros.h"
@@ -50,20 +49,6 @@ class TransactionContext {
         finish_time_(finish),
         undo_buffer_(buffer_pool.Get()),
         redo_buffer_(log_manager.Get(), buffer_pool.Get()) {}
-
-  /**
-   * Constructs a new transaction context.
-   *
-   * @warning In the src/ folder this should only be called in TransactionManager::BeginTransaction to adhere to MVCC
-   * semantics. Tests are allowed to deterministically construct them in ways that violate the current MVCC semantics.
-   * @warning Beware that the buffer pool given must be the same one the log manager uses,
-   * if logging is enabled.
-   * @param start the start timestamp of the transaction. Should be unique within the system.
-   * @param finish in HyPer parlance this is txn id. Should be larger than all start times and commit times in current
-   * MVCC semantics
-   */
-  TransactionContext(const timestamp_t start, const timestamp_t finish)
-      : start_time_(start), finish_time_(finish), undo_buffer_(nullptr), redo_buffer_(nullptr, nullptr) {}
 
   /**
    * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests

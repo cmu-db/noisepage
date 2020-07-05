@@ -69,7 +69,6 @@ class CreateIndexTranslator : public OperatorTranslator {
   // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
   void GenPCILoop(FunctionBuilder *builder);
 
-  void GenSetIndexLive(FunctionBuilder *builder);
   // @tableIterReset(&tvi)
   // void GenTVIReset(FunctionBuilder *builder);
   void GenTVIClose(FunctionBuilder *builder);
@@ -78,6 +77,10 @@ class CreateIndexTranslator : public OperatorTranslator {
   // Insert into table.
   void GenCreateIndex(FunctionBuilder *builder);
 
+  void GenGetIndexPR(FunctionBuilder *builder);
+  void GenGetTablePR(FunctionBuilder *builder);
+  void GenFillTablePR(FunctionBuilder *builder);
+  void GenPRCopy(FunctionBuilder *builder);
   void GenIndexInsert(FunctionBuilder *builder);
 
   void SetOids(FunctionBuilder *builder);
@@ -85,6 +88,8 @@ class CreateIndexTranslator : public OperatorTranslator {
  private:
   const planner::CreateIndexPlanNode *op_;
   ast::Identifier index_inserter_;
+  ast::Identifier index_pr_;
+  ast::Identifier table_pr_;
   ast::Identifier col_oids_;
   ast::Identifier tvi_;
   ast::Identifier pci_;

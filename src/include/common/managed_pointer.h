@@ -24,7 +24,7 @@ class ManagedPointer {
    * Constructs a new ManagedPointer.
    * @param ptr the pointer value this ManagedPointer wraps
    */
-  explicit ManagedPointer(Underlying *ptr) : underlying_(ptr) {}
+  explicit ManagedPointer(Underlying *ptr): underlying_(ptr) {}
 
   /**
    * Constructs a new ManagedPointer.

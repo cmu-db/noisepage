@@ -5,6 +5,7 @@
 #include <memory>
 #include <random>
 #include <vector>
+#include <time.h>
 
 #include "main/db_main.h"
 #include "parser/expression/column_value_expression.h"
@@ -98,9 +99,10 @@ TEST_F(IndexBuilderTests, NullTable) {
 TEST_F(IndexBuilderTests, OneTxnFullTable) {
   auto table_txn = txn_manager_->BeginTransaction();
   auto row_initializer = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1), catalog::col_oid_t(2)});
-  uint32_t num_inserts = 1000;
+  uint32_t num_inserts = 1000000;
   std::vector<uint32_t> keys;
   std::unordered_set<TupleSlot> reference;
+  const clock_t begin_time = clock();
   for (uint32_t i = 0; i < num_inserts; i++) {
     // NOLINTNEXTLINE (random is fine for tests)
     uint32_t key = random();
@@ -116,8 +118,15 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
     reference.insert(sql_table_->Insert(common::ManagedPointer(table_txn), redo_record));
   }
 
-  txn_manager_->Commit(table_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  std::cerr << "=========================" << std::endl;
+  std::cerr << "=========================" << std::endl;
+  std::cerr << "=========================" << std::endl;
+  std::cerr << "=========================" << std::endl;
 
+  txn_manager_->Commit(table_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  std::cerr << "insert time" << float( clock () - begin_time ) /  CLOCKS_PER_SEC;
+
+  const clock_t begin_time_index = clock();
   auto index_build_txn = txn_manager_->BeginTransaction();
 
   auto index_builder = IndexBuilder()
@@ -143,6 +152,7 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   txn_manager_->Commit(index_scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  std::cerr << "index time" << float( clock () - begin_time_index ) /  CLOCKS_PER_SEC;
   delete index;
 }
 

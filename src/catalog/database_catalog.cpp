@@ -329,10 +329,6 @@ void DatabaseCatalog::BootstrapPRIs() {
   const std::vector<col_oid_t> get_indexes_oids{postgres::INDOID_COL_OID};
   get_indexes_pri_ = indexes_->InitializerForProjectedRow(get_class_oid_kind_oids);
 
-  const std::vector<col_oid_t> get_live_indexes_oids{postgres::INDOID_COL_OID, postgres::INDISLIVE_COL_OID};
-  get_live_indexes_pri_ = indexes_->InitializerForProjectedRow(get_live_indexes_oids);
-  get_live_indexes_prm_ = indexes_->ProjectionMapForOids(get_live_indexes_oids);
-
   const std::vector<col_oid_t> delete_index_oids{postgres::INDOID_COL_OID, postgres::INDRELID_COL_OID};
   delete_index_pri_ = indexes_->InitializerForProjectedRow(delete_index_oids);
   delete_index_prm_ = indexes_->ProjectionMapForOids(delete_index_oids);
@@ -789,8 +785,8 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *const table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
-  const auto index_select_result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(index_select_result, "Select must succeed if the index scan gave a visible result.");
+  result = classes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
   txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
@@ -971,7 +967,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 }
 
 std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
-    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, bool only_live) {
+    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
@@ -984,8 +980,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_scan_results;
-  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
-  indexes_table_index_->ScanKey(fake_txn, *key_pr, &index_scan_results);
+  indexes_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
 
   // If we found no indexes, return an empty list
   if (index_scan_results.empty()) {
@@ -995,15 +990,11 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
 
   std::vector<index_oid_t> index_oids;
   index_oids.reserve(index_scan_results.size());
-  auto *select_pr = get_live_indexes_pri_.InitializeRow(buffer);
+  auto *select_pr = get_indexes_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
-    const auto result UNUSED_ATTRIBUTE = indexes_->Select(common::ManagedPointer(&fake_txn), slot, select_pr);
+    const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
-    if (!only_live || *(reinterpret_cast<bool *>(
-                          select_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDISLIVE_COL_OID])))) {
-      index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(
-          select_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDOID_COL_OID]))));
-    }
+    index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
   }
 
   // Finish
@@ -1017,33 +1008,6 @@ index_oid_t DatabaseCatalog::CreateIndex(const common::ManagedPointer<transactio
   if (!TryLock(txn)) return INVALID_INDEX_OID;
   const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
   return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
-}
-
-bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                   index_oid_t index) {
-  if (!TryLock(txn)) return false;
-  const auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
-
-  // Find the entry in pg_index using the oid index
-  std::vector<storage::TupleSlot> index_results;
-  auto *const buffer = common::AllocationUtil::AllocateAligned(index_oid_pr.ProjectedRowSize());
-  auto *key_pr = index_oid_pr.InitializeRow(buffer);
-  *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
-  indexes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(index_results.size() == 1,
-                 "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
-                 "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
-                 "pg_index. Something broke.");
-
-  auto redo_record = txn->StageWrite(db_oid_, postgres::INDEX_TABLE_OID, get_live_indexes_pri_);
-  auto *table_pr = redo_record->Delta();
-  bool UNUSED_ATTRIBUTE result = indexes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(result, "Index should be visible for this transaction");
-  *(reinterpret_cast<bool *>(table_pr->AccessForceNotNull(get_live_indexes_prm_[postgres::INDISLIVE_COL_OID]))) = true;
-  redo_record->SetTupleSlot(index_results[0]);
-  indexes_->Update(txn, redo_record);
-  delete[] buffer;
-  return true;
 }
 
 bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1074,8 +1038,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
-  const auto index_select_result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(index_select_result, "Select must succeed if the index scan gave a visible result.");
+  result  = classes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
   txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
@@ -1141,8 +1105,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Select the tuple out of pg_index before deletion. We need the attributes to do index deletions later
   table_pr = delete_index_pri_.InitializeRow(buffer);
-  const auto pg_index_select_result UNUSED_ATTRIBUTE = indexes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(pg_index_select_result, "Select must succeed if the index scan gave a visible result.");
+  result = indexes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   TERRIER_ASSERT(index == *(reinterpret_cast<const index_oid_t *const>(
                               table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
@@ -1150,9 +1114,9 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Delete from pg_index table
   txn->StageDelete(db_oid_, postgres::INDEX_TABLE_OID, index_results[0]);
-  const auto index_delete_result UNUSED_ATTRIBUTE = indexes_->Delete(txn, index_results[0]);
+  result = indexes_->Delete(txn, index_results[0]);
   TERRIER_ASSERT(
-      index_delete_result,
+      result,
       "Delete from pg_index should always succeed as write-write conflicts are detected during delete from pg_class");
 
   // Get the table oid
@@ -1261,8 +1225,7 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
     const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
-  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
-  const auto ptr_pair = GetClassPtrKind(common::ManagedPointer(&fake_txn), static_cast<uint32_t>(index));
+  const auto ptr_pair = GetClassPtrKind(common::ManagedPointer(txn), static_cast<uint32_t>(index));
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);
@@ -1282,8 +1245,7 @@ index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transactio
 
 const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                    index_oid_t index) {
-  transaction::TransactionContext fake_txn(transaction::timestamp_t{UINT64_MAX}, transaction::timestamp_t{UINT64_MAX});
-  auto ptr_pair = GetClassSchemaPtrKind(common::ManagedPointer(&fake_txn), static_cast<uint32_t>(index));
+  auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(index));
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
@@ -1591,7 +1553,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   *(reinterpret_cast<bool *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISREADY_COL_OID]))) = true;
   *(reinterpret_cast<bool *>(
-      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = false;
+      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = true;
   *(reinterpret_cast<storage::index::IndexType *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::IND_TYPE_COL_OID]))) = schema.type_;
 
@@ -2528,8 +2490,8 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
 
   auto oid_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<proc_oid_t *>(oid_pr->AccessForceNotNull(0))) = oid;
-  const auto proc_result UNUSED_ATTRIBUTE = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
-  TERRIER_ASSERT(proc_result, "Oid insertion should be unique");
+  result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
+  TERRIER_ASSERT(result, "Oid insertion should be unique");
 
   delete[] buffer;
   return true;

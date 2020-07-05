@@ -21,6 +21,19 @@ void PRFiller::GenFiller(const std::unordered_map<catalog::indexkeycol_oid_t, ui
   }
 }
 
+void PRFiller::GenFiller(const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm,
+                         const catalog::IndexSchema &index_schema, ast::Expr *index_pr, ast::Expr *table_pr, FunctionBuilder *builder) {
+  // Fill index_pr using table_pr
+  for (const auto &index_col : index_schema.GetColumns()) {
+    auto translator = TranslatorFactory::CreateExpressionTranslator(index_col.StoredExpression().Get(), codegen_);
+    uint16_t attr_offset = index_pm.at(index_col.Oid());
+    type::TypeId attr_type = index_col.Type();
+    bool nullable = index_col.Nullable();
+    auto set_key_call = codegen_->PRSet(index_pr, attr_type, nullable, attr_offset, table_pr);
+    builder->Append(codegen_->MakeStmt(set_key_call));
+  }
+}
+
 std::pair<ast::File *, std::string> PRFiller::GenFiller(
     const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm,
     const catalog::IndexSchema &index_schema) {

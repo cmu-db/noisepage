@@ -141,18 +141,6 @@ index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, 
   return dbc_->CreateIndex(txn_, ns, name, table, schema);
 }
 
-index_oid_t CatalogAccessor::CreateIndexWrapper(namespace_oid_t ns, table_oid_t table, std::string name,
-                                                const IndexSchema &schema) const {
-  auto index_oid = CreateIndex(ns, table, std::move(name), schema);
-  storage::index::IndexBuilder index_builder;
-  index_builder.SetKeySchema(GetIndexSchema(index_oid));
-  auto *const index = index_builder.Build();
-  bool result UNUSED_ATTRIBUTE = SetIndexPointer(index_oid, index);
-  return index_oid;
-}
-
-bool CatalogAccessor::SetIndexLive(index_oid_t index) const { return dbc_->SetIndexLive(txn_, index); }
-
 const IndexSchema &CatalogAccessor::GetIndexSchema(index_oid_t index) const {
   return dbc_->GetIndexSchema(txn_, index);
 }

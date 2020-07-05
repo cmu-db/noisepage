@@ -50,6 +50,9 @@ class PRFiller : public ExpressionEvaluator {
   void GenFiller(const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm,
                  const catalog::IndexSchema &index_schema, ast::Expr *index_pr, FunctionBuilder *builder);
 
+  void GenFiller(const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm,
+                 const catalog::IndexSchema &index_schema, ast::Expr *index_pr, ast::Expr *table_pr, FunctionBuilder *builder);
+
   /**
    * Generate a standalone function containing the projected row filler.
    * @param index_pm projection map of the index

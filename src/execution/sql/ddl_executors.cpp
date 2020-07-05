@@ -101,8 +101,13 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 }
 
 bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::CreateIndexPlanNode> node,
-                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                       common::ManagedPointer<transaction::TransactionContext> populate_txn) {
+                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
+                     *(node->GetSchema()));
+}
+
+bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<const planner::CreateIndexPlanNode> node,
+                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
                      *(node->GetSchema()));
 }
@@ -157,7 +162,6 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
 
-  accessor->SetIndexLive(index_oid);
   return true;
 }
 }  // namespace terrier::execution::sql

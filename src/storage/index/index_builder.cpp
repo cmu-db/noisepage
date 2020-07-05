@@ -11,7 +11,6 @@
 #include "storage/index/index_builder.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
-#include "storage/projected_row.h"
 
 namespace terrier::storage::index {
 
@@ -47,58 +46,6 @@ Index *IndexBuilder::Build() const {
 IndexBuilder &IndexBuilder::SetKeySchema(const catalog::IndexSchema &key_schema) {
   key_schema_ = key_schema;
   return *this;
-}
-
-IndexBuilder &IndexBuilder::SetSqlTableAndTransactionContext(
-    common::ManagedPointer<transaction::TransactionContext> txn, common::ManagedPointer<storage::SqlTable> sql_table,
-    const catalog::IndexSchema &key_schema) {
-  TERRIER_ASSERT((sql_table == nullptr && txn == nullptr) || (sql_table != nullptr && txn != nullptr),
-                 "sql_table / txn is null and txn / sql_table is not.");
-  txn_ = txn;
-  sql_table_ = sql_table;
-  key_schema_ = key_schema;
-  return *this;
-}
-
-bool IndexBuilder::Insert(common::ManagedPointer<storage::index::Index> index,
-                          storage::TupleSlot table_tuple_slot) const {
-  // Initialize index pr
-  const auto index_pr_initializer = index->GetProjectedRowInitializer();
-  const uint32_t index_pr_size = index_pr_initializer.ProjectedRowSize();
-  byte *index_pr_buffer = common::AllocationUtil::AllocateAligned(index_pr_size);
-  ProjectedRow *index_pr = index_pr_initializer.InitializeRow(index_pr_buffer);
-  // get all index col oid and Initialize table pr
-  const auto &indexed_attributes = key_schema_.GetIndexedColOids();
-  const auto table_pr_initializer = sql_table_->InitializerForProjectedRow(indexed_attributes);
-  const uint32_t table_pr_size = table_pr_initializer.ProjectedRowSize();
-  byte *table_pr_buffer = common::AllocationUtil::AllocateAligned(table_pr_size);
-  ProjectedRow *table_pr = table_pr_initializer.InitializeRow(table_pr_buffer);
-
-  auto pr_map = sql_table_->ProjectionMapForOids(indexed_attributes);
-
-  sql_table_->Select(txn_, table_tuple_slot, table_pr);
-
-  // Insert into the index
-  auto num_index_cols = key_schema_.GetColumns().size();
-  TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
-  for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
-    const auto &col = key_schema_.GetColumn(col_idx);
-    auto index_col_oid = col.Oid();
-    const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
-    if (table_pr->IsNull(pr_map[table_col_oid])) {
-      index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
-    } else {
-      // TODO(Wuwen): This may not be thread safe
-      auto size = AttrSizeBytes(col.AttrSize());
-      std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
-                  table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
-    }
-  }
-  auto insert_result = index->Insert(txn_, *index_pr, table_tuple_slot);
-
-  delete[] index_pr_buffer;
-  delete[] table_pr_buffer;
-  return insert_result;
 }
 
 Index *IndexBuilder::BuildBwTreeIntsKey(IndexMetadata metadata) const {

@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "parser/parameter.h"
@@ -198,14 +197,6 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @return SET clauses
    */
   const std::vector<SetClause> &GetSetClauses() const { return sets_; }
-  /**
-   * Populates the given set with all of the tables that this plan will perform modifications for (e.g. UPDATE, INSERT
-   * or DELETE)
-   * @param tables the set to populate
-   */
-  void GetModifiedTables(common::ManagedPointer<std::unordered_set<catalog::table_oid_t>> tables) const override {
-    tables->insert(table_oid_);
-  }
 
   /**
    * @return the hashed value of this plan node

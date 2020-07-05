@@ -124,10 +124,10 @@ TEST_F(DDLExecutorsTests, CreateNamespacePlanNodeNameConflict) {
 TEST_F(DDLExecutorsTests, CreateTablePlanNode) {
   planner::CreateTablePlanNode::Builder builder;
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo")
-                               .SetBlockStore(block_store_)
-                               .Build();
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo")
+      .SetBlockStore(block_store_)
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
@@ -142,10 +142,10 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNode) {
 TEST_F(DDLExecutorsTests, CreateTablePlanNodeAbort) {
   planner::CreateTablePlanNode::Builder builder;
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo")
-                               .SetBlockStore(block_store_)
-                               .Build();
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo")
+      .SetBlockStore(block_store_)
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
@@ -160,10 +160,10 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodeAbort) {
 TEST_F(DDLExecutorsTests, CreateTablePlanNodeTableNameConflict) {
   planner::CreateTablePlanNode::Builder builder;
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo")
-                               .SetBlockStore(block_store_)
-                               .Build();
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo")
+      .SetBlockStore(block_store_)
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
@@ -185,12 +185,12 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKey) {
 
   planner::CreateTablePlanNode::Builder builder;
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo")
-                               .SetBlockStore(block_store_)
-                               .SetHasPrimaryKey(true)
-                               .SetPrimaryKey(std::move(pk_info))
-                               .Build();
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo")
+      .SetBlockStore(block_store_)
+      .SetHasPrimaryKey(true)
+      .SetPrimaryKey(std::move(pk_info))
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
@@ -209,12 +209,12 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyAbort) {
 
   planner::CreateTablePlanNode::Builder builder;
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo")
-                               .SetBlockStore(block_store_)
-                               .SetHasPrimaryKey(true)
-                               .SetPrimaryKey(std::move(pk_info))
-                               .Build();
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo")
+      .SetBlockStore(block_store_)
+      .SetHasPrimaryKey(true)
+      .SetPrimaryKey(std::move(pk_info))
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
@@ -233,12 +233,12 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyNameConflict) {
 
   planner::CreateTablePlanNode::Builder builder;
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo")
-                               .SetBlockStore(block_store_)
-                               .SetHasPrimaryKey(true)
-                               .SetPrimaryKey(std::move(pk_info))
-                               .Build();
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo")
+      .SetBlockStore(block_store_)
+      .SetHasPrimaryKey(true)
+      .SetPrimaryKey(std::move(pk_info))
+      .Build();
   EXPECT_FALSE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
@@ -251,31 +251,15 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyNameConflict) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNode) {
-  planner::CreateTablePlanNode::Builder create_table_builder;
-  auto create_table_node = create_table_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo_table")
-                               .SetBlockStore(block_store_)
-                               .Build();
-  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
-      common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
-
-  auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_table");
-  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-
   planner::CreateIndexPlanNode::Builder builder;
   auto create_index_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableOid(table_oid)
-                               .SetSchema(std::move(index_schema_))
-                               .SetIndexName("foo")
-                               .Build();
-
+      .SetTableOid(CatalogTestUtil::TEST_TABLE_OID)
+      .SetSchema(std::move(index_schema_))
+      .SetIndexName("foo")
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_),
-      common::ManagedPointer<transaction::TransactionContext>(txn_)));
-
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   auto index_ptr = accessor_->GetIndex(index_oid);
@@ -285,29 +269,15 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNode) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNodeAbort) {
-  planner::CreateTablePlanNode::Builder create_table_builder;
-  auto create_table_node = create_table_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo_table")
-                               .SetBlockStore(block_store_)
-                               .Build();
-  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
-      common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
-
-  auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_table");
-  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-
   planner::CreateIndexPlanNode::Builder builder;
   auto create_index_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableOid(table_oid)
-                               .SetSchema(std::move(index_schema_))
-                               .SetIndexName("foo")
-                               .Build();
+      .SetTableOid(CatalogTestUtil::TEST_TABLE_OID)
+      .SetSchema(std::move(index_schema_))
+      .SetIndexName("foo")
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_),
-      common::ManagedPointer<transaction::TransactionContext>(txn_)));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   auto index_ptr = accessor_->GetIndex(index_oid);
@@ -317,36 +287,22 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeAbort) {
 
 // NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
-  planner::CreateTablePlanNode::Builder create_table_builder;
-  auto create_table_node = create_table_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo_table")
-                               .SetBlockStore(block_store_)
-                               .Build();
-  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
-      common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));
-
-  auto table_oid = accessor_->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_table");
-  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-
   planner::CreateIndexPlanNode::Builder builder;
   auto create_index_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableOid(table_oid)
-                               .SetSchema(std::move(index_schema_))
-                               .SetIndexName("foo")
-                               .Build();
+      .SetTableOid(CatalogTestUtil::TEST_TABLE_OID)
+      .SetSchema(std::move(index_schema_))
+      .SetIndexName("foo")
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), nullptr));
-
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
   auto index_oid = accessor_->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   auto index_ptr = accessor_->GetIndex(index_oid);
   EXPECT_NE(index_ptr, nullptr);
   EXPECT_FALSE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
-      common::ManagedPointer<catalog::CatalogAccessor>(accessor_), nullptr));
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
   txn_manager_->Abort(txn_);
 }
 
@@ -354,10 +310,10 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
 TEST_F(DDLExecutorsTests, DropTablePlanNode) {
   planner::CreateTablePlanNode::Builder create_builder;
   auto create_table_node = create_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
-                               .SetTableSchema(std::move(table_schema_))
-                               .SetTableName("foo")
-                               .SetBlockStore(block_store_)
-                               .Build();
+      .SetTableSchema(std::move(table_schema_))
+      .SetTableName("foo")
+      .SetBlockStore(block_store_)
+      .Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_));

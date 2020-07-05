@@ -1992,12 +1992,15 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       break;
     }
 
-    case ast::Builtin::IndexInsertBulk: {
-      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+    case ast::Builtin::InitTablePR: {
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitAll(Bytecode::StorageInterfaceIndexInsertBulk, cond, storage_interface, index_oid, tuple_slot);
-      ExecutionResult()->SetDestination(cond.ValueOf());
+      Emitter()->EmitStorageInterfaceGetIndexPR(Bytecode::StorageInterfaceGetIndexPR, pr, storage_interface, index_oid);
+      break;
+    }
+    case ast::Builtin::FillTablePR: {
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceIndexDelete, storage_interface, tuple_slot);
       break;
     }
 
@@ -2320,6 +2323,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::StorageInterfaceInit:
     case ast::Builtin::StorageInterfaceInitBind:
+      case ast::Builtin::InitTablePR:
+      case ast::Builtin::FillTablePR:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:
@@ -2329,7 +2334,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
-    case ast::Builtin::IndexInsertBulk:
     case ast::Builtin::StorageInterfaceFree: {
       VisitBuiltinStorageInterfaceCall(call, builtin);
       break;

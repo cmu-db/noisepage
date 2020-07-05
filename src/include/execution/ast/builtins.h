@@ -220,6 +220,8 @@ namespace terrier::execution::ast {
   /* SQL Table Calls */                                                 \
   F(StorageInterfaceInit, storageInterfaceInit)                         \
   F(StorageInterfaceInitBind, storageInterfaceInitBind)                 \
+  F(InitTablePR, initTablePR)                                           \
+  F(FillTablePR, fillTablePR)                                           \
   F(GetTablePR, getTablePR)                                             \
   F(TableInsert, tableInsert)                                           \
   F(TableDelete, tableDelete)                                           \
@@ -229,7 +231,6 @@ namespace terrier::execution::ast {
   F(IndexInsert, indexInsert)                                           \
   F(IndexInsertUnique, indexInsertUnique)                               \
   F(IndexDelete, indexDelete)                                           \
-  F(IndexInsertBulk, indexInsertBulk)                                   \
   F(StorageInterfaceFree, storageInterfaceFree)                         \
                                                                         \
   /* Parameter calls */                                                 \

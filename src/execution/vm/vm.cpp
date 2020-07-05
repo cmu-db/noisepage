@@ -1730,13 +1730,21 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     OpStorageInterfaceIndexDelete(storage_interface, tuple_slot);
     DISPATCH_NEXT();
   }
-  OP(StorageInterfaceIndexInsertBulk) : {
-    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-    auto index_oid = READ_UIMM4();
-    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-    OpStorageInterfaceIndexInsertBulk(result, storage_interface, index_oid, tuple_slot);
-    DISPATCH_NEXT();
+
+  OP(StorageInterfaceInitTablePR) : {
+  auto *pr_result = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
+  auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+  auto index_oid = READ_UIMM4();
+
+  OpStorageInterfaceInitTablePR(pr_result, storage_interface, index_oid);
+  DISPATCH_NEXT();
+  }
+
+  OP(StorageInterfaceFillTablePR) : {
+  auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+  auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+  OpStorageInterfaceFillTablePR(storage_interface, tuple_slot);
+  DISPATCH_NEXT();
   }
 
   OP(StorageInterfaceFree) : {

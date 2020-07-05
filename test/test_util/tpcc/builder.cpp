@@ -209,19 +209,6 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
   TERRIER_ASSERT(item_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
   TERRIER_ASSERT(stock_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
 
-  // Set the indices to be live
-  accessor->SetIndexLive(warehouse_primary_index_oid);
-  accessor->SetIndexLive(district_primary_index_oid);
-  accessor->SetIndexLive(customer_primary_index_oid);
-  accessor->SetIndexLive(customer_secondary_index_oid);
-  accessor->SetIndexLive(new_order_primary_index_oid);
-  accessor->SetIndexLive(order_primary_index_oid);
-  accessor->SetIndexLive(order_secondary_index_oid);
-  accessor->SetIndexLive(order_line_primary_index_oid);
-  accessor->SetIndexLive(order_line_primary_index_oid);
-  accessor->SetIndexLive(item_primary_index_oid);
-  accessor->SetIndexLive(stock_primary_index_oid);
-
   // get the schemas from the catalog
 
   warehouse_primary_index_schema = accessor->GetIndexSchema(warehouse_primary_index_oid);

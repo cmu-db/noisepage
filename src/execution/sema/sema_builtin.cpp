@@ -2156,24 +2156,30 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::IndexInsertBulk: {
-      if (!CheckArgCount(call, 3)) {
+    case ast::Builtin::InitTablePR: {
+      if (!CheckArgCount(call, 2)) {
         return;
       }
+
       if (!call_args[1]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
         return;
       }
 
-      // third argument is a tuple slot
-      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
-      auto current_type = call_args[2]->GetType();
-      if (!IsPointerToSpecificBuiltin(current_type, tuple_slot_type)) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(tuple_slot_type)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      break;
+    }
+    case ast::Builtin::FillTablePR: {
+      if (!CheckArgCount(call, 2)) {
         return;
       }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      // Second argument is a tuple slot
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::StorageInterfaceFree: {
@@ -2597,6 +2603,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::StorageInterfaceInit:
     case ast::Builtin::StorageInterfaceInitBind:
+    case ast::Builtin::InitTablePR:
+    case ast::Builtin::FillTablePR:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:
@@ -2606,7 +2614,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
-    case ast::Builtin::IndexInsertBulk:
     case ast::Builtin::StorageInterfaceFree: {
       CheckBuiltinStorageInterfaceCall(call, builtin);
       break;
