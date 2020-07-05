@@ -1038,7 +1038,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
-  result  = classes_->Select(txn, index_results[0], table_pr);
+  result = classes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
@@ -1225,7 +1225,7 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
     const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
-  const auto ptr_pair = GetClassPtrKind(common::ManagedPointer(txn), static_cast<uint32_t>(index));
+  const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(index));
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);

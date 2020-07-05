@@ -1,11 +1,8 @@
 #include "execution/sql/storage_interface.h"
 
 #include <algorithm>
-#include <vector>
 
 #include "execution/exec/execution_context.h"
-#include "execution/util/execution_common.h"
-#include "storage/index/index_builder.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
@@ -36,7 +33,7 @@ StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::ta
 
 StorageInterface::~StorageInterface() {
   if (need_indexes_) exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer_, max_pr_size_);
-  if(has_table_pr_) exec_ctx_->GetMemoryPool()->Deallocate(table_pr_buffer_, table_pr_size_);
+  if (has_table_pr_) exec_ctx_->GetMemoryPool()->Deallocate(table_pr_buffer_, table_pr_size_);
 }
 
 storage::ProjectedRow *StorageInterface::GetTablePR() {
@@ -49,7 +46,8 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   curr_index_ = exec_ctx_->GetAccessor()->GetIndex(index_oid);
   // index is created after the initialization of storage interface
   if (curr_index_ != nullptr && !need_indexes_) {
-    index_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(curr_index_->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
+    index_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(
+        curr_index_->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
     need_indexes_ = true;
   }
   index_pr_ = curr_index_->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
@@ -124,8 +122,7 @@ bool StorageInterface::FillTablePR(storage::TupleSlot table_tuple_slot) {
     }
   }
 
- return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
+  return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
-
 
 }  // namespace terrier::execution::sql

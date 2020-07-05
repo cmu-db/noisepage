@@ -95,25 +95,19 @@ public class CreateIndexTest extends TestUtility {
         String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100), (3, 4, 100);";
         Statement stmt = conn.createStatement();
 
-                int num_rows = 10000;
-                System.out.println("begin insert");
-                long startTime = System.currentTimeMillis();
         for (int i = 0; i < num_rows; i++) { stmt.execute(sql); }
         long elapsedTime = (new Date()).getTime() - startTime;
-        System.out.println("finish insert " + elapsedTime);
-        System.out.println("begin indexing");
-         startTime = System.currentTimeMillis();
+
         stmt.execute("CREATE INDEX tbl_ind ON tbl (c2)");
-         elapsedTime = (new Date()).getTime() - startTime;
-        System.out.println("finish indexing " + elapsedTime);
-//        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC");
-//        rs.next();
-//        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
-//        rs.next();
-//        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 4, 100});
-//        rs.next();
-//        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 100});
-//        assertNoMoreRows(rs);
+
+        ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC");
+        rs.next();
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 100});
+        rs.next();
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 4, 100});
+        rs.next();
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {5, 6, 100});
+        assertNoMoreRows(rs);
     }
 
     /**

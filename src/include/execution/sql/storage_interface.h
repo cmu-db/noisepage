@@ -78,11 +78,6 @@ class EXPORT StorageInterface {
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 
   /**
-   * @param size size of this index pr
-   */
-  void SetIndexPR(uint32_t size);
-
-  /**
    * Delete item from the current index.
    * @param table_tuple_slot slot corresponding to the item.
    */

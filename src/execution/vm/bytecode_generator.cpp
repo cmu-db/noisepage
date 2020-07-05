@@ -2323,8 +2323,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::StorageInterfaceInit:
     case ast::Builtin::StorageInterfaceInitBind:
-      case ast::Builtin::InitTablePR:
-      case ast::Builtin::FillTablePR:
+    case ast::Builtin::InitTablePR:
+    case ast::Builtin::FillTablePR:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:

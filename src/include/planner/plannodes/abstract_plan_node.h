@@ -4,7 +4,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -150,7 +149,6 @@ class AbstractPlanNode {
   //===--------------------------------------------------------------------===//
   // Utilities
   //===--------------------------------------------------------------------===//
-
 
   /**
    * Derived plan nodes should call this method from their override of Hash() to hash data belonging to the base class

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/index_schema.h"
-#include "storage/sql_table.h"
 
 namespace terrier::storage::index {
 
@@ -14,8 +13,6 @@ class IndexMetadata;
 class IndexBuilder {
  private:
   catalog::IndexSchema key_schema_;
-  common::ManagedPointer<storage::SqlTable> sql_table_{};
-  common::ManagedPointer<transaction::TransactionContext> txn_{};
 
  public:
   IndexBuilder() = default;

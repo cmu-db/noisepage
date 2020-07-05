@@ -233,7 +233,7 @@ void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *st
 }
 
 void OpStorageInterfaceInitTablePR(terrier::storage::ProjectedRow **pr_result,
-                                  terrier::execution::sql::StorageInterface *storage_interface, uint32_t index_oid) {
+                                   terrier::execution::sql::StorageInterface *storage_interface, uint32_t index_oid) {
   *pr_result = storage_interface->InitTablePR(terrier::catalog::index_oid_t(index_oid));
 }
 

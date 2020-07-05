@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,7 +10,6 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
-#include "storage/index/index_builder.h"
 #include "type/type_id.h"
 
 namespace terrier::storage {
