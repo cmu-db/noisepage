@@ -58,9 +58,9 @@ class EndtoendEstimator:
         for i, data in enumerate(resource_data_list):
             data.y_pred = y_pred[i]
 
-        self._model_prediction_with_derived_data("impact")
+        self._model_prediction_with_derived_data(impact_data_list, "impact")
 
-        self._model_prediction_with_derived_data("direct")
+        self._model_prediction_with_derived_data(impact_data_list, "direct")
 
     def _model_prediction_with_derived_data(self, impact_data_list, model_name):
         # Then apply the global impact model
