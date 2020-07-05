@@ -35,7 +35,8 @@ class EndtoendEstimator:
 
         :return: the map of the trained models
         """
-        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path, self.mini_model_map,
+        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path,
+                                                                                      self.mini_model_map,
                                                                                       self.model_results_path)
         return self._global_model_prediction(resource_data_list, impact_data_list)
 
@@ -58,11 +59,11 @@ class EndtoendEstimator:
         for i, data in enumerate(resource_data_list):
             data.y_pred = y_pred[i]
 
-        self._model_prediction_with_derived_data(impact_data_list, "impact")
+        self._model_prediction_with_derived_data(impact_data_list, "impact", self.global_impact_model)
 
-        self._model_prediction_with_derived_data(impact_data_list, "direct")
+        self._model_prediction_with_derived_data(impact_data_list, "direct", self.global_direct_model)
 
-    def _model_prediction_with_derived_data(self, impact_data_list, model_name):
+    def _model_prediction_with_derived_data(self, impact_data_list, model_name, model):
         # Then apply the global impact model
         x = []
         y = []
@@ -73,6 +74,7 @@ class EndtoendEstimator:
         for d in tqdm.tqdm(impact_data_list, desc="Construct data for the {} model".format(model_name)):
             mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
             predicted_elapsed_us = mini_model_y_pred[data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
+            predicted_resource_util = None
             if model_name == "impact":
                 predicted_resource_util = d.resource_data.y_pred
             if model_name == "direct":
@@ -85,7 +87,7 @@ class EndtoendEstimator:
         # Predict
         x = np.array(x)
         y = np.array(y)
-        y_pred = self.global_impact_model.predict(x)
+        y_pred = model.predict(x)
 
         # Record results
         self._record_results(x, y, y_pred, model_name)
@@ -113,8 +115,8 @@ class EndtoendEstimator:
             original_ratio_error = np.average(np.abs(y - x[:, :y.shape[1]]) / (y + 1e-6), axis=0)
         else:
             original_ratio_error = np.average(np.abs(1/(y+1e-6) - 1), axis=0)
-        logging.info('Original Ratio Error: {}'.format(original_ratio_error))
-        logging.info('Ratio Error: {}'.format(ratio_error))
+        logging.info('{} Model Original Ratio Error: {}'.format(label, original_ratio_error))
+        logging.info('{} Model Ratio Error: {}'.format(label, ratio_error))
 
 
 # ==============================================
