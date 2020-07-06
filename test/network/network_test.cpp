@@ -11,6 +11,7 @@
 #include "gtest/gtest.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
+#include "spdlog/spdlog.h"
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
