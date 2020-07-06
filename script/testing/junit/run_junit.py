@@ -45,6 +45,7 @@ if __name__ == "__main__":
 
     args = vars(aparser.parse_args())
     exit_code = 0
+    code = []
     noise_trace_dir = os.getcwd() + "/noisepage-testfiles/sql_trace/"
     for test_type in os.listdir(noise_trace_dir):
         type_dir = noise_trace_dir + test_type
@@ -53,15 +54,25 @@ if __name__ == "__main__":
                 if "output" in file:
                     path = type_dir + "/" + file
                     os.environ["path"] = path
-                    print(path)
                     try:
                         junit = TestJUnit(args)
                         exit_code = junit.run()
+                        f = open("src/output.txt", "r")
+                        lines =  f.readlines()
+                        num = lines[0][-1]
+                        code.append(num)
+                        f.close()
+                        os.remove("src/output.txt")
+
                     except:
                         print("Exception trying to run junit tests")
                         print("================ Python Error Output ==================")
                         traceback.print_exc(file=sys.stdout)
                         exit_code = 1
+    final_code = 0
+    for c in code:
+        final_code = final_code or c
+    print("Final exit code: " + final_code)
     sys.exit(exit_code)
 
 

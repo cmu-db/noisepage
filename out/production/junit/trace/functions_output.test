@@ -1,0 +1,49 @@
+statement ok
+CREATE TABLE data (int_val INT, double_val DECIMAL, str_i_val VARCHAR(32), str_a_val VARCHAR(32), is_null INT)
+
+statement ok
+INSERT INTO data(int_val, double_val, str_i_val, str_a_val, is_null) VALUES(123, 12.34, '123456', 'AbCdEf', 0)
+
+statement ok
+INSERT INTO data(int_val, double_val, str_i_val, str_a_val, is_null) VALUES(NULL, NULL, NULL, NULL, 1)
+
+query I nosort
+SELECT cos(double_val) AS result FROM data WHERE is_null = 0
+----
+1 values hashing to 01dcd7dd3c9b53b56458344b65ccaf0c
+
+query I nosort
+SELECT cos(double_val) AS result FROM data WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT sin(double_val) AS result FROM data WHERE is_null = 0
+----
+1 values hashing to 4f8d696bc1625f15a3b432266214c599
+
+query I nosort
+SELECT sin(double_val) AS result FROM data WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT tan(double_val) AS result FROM data WHERE is_null = 0
+----
+1 values hashing to 848085c535a3777f926b5b7ba32ac4a3
+
+query I nosort
+SELECT tan(double_val) AS result FROM data WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT lower(str_a_val) AS result FROM data WHERE is_null = 0
+----
+1 values hashing to 5ab557c937e38f15291c04b7e99544ad
+
+query I nosort
+SELECT lower(str_a_val) AS result FROM data WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+

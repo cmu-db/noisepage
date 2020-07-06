@@ -26,6 +26,7 @@ public class generateTrace {
     public static final String QUERY_I_NOSORT = "query I nosort";
     public static final String SEPARATION = "----";
     public static void main(String[] args) throws Throwable {
+        System.out.println("Working Directory = " + System.getProperty("user.dir"));
         String path = args[0];
         File file = new File(path);
         MogSqlite mog = new MogSqlite(file);
@@ -39,11 +40,11 @@ public class generateTrace {
 
         String line;
         BufferedReader br = new BufferedReader(new FileReader(file));
-        FileWriter writer = new FileWriter(new File("script/testing/junit/src","output.test"));
+        FileWriter writer = new FileWriter(new File("script/testing/junit/src","ins_output.test"));
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         while (null != (line = br.readLine())) {
             line = line.trim();
-            System.out.println(line);
+//            System.out.println(line);
             Statement statement = conn.createStatement();
             statement.execute(line);
             if(line.startsWith("SELECT")){
@@ -52,6 +53,8 @@ public class generateTrace {
                 writeToFile(writer, SEPARATION);
                 ResultSet rs = statement.getResultSet();
                 List<String> res = mog.processResults(rs);
+                System.out.println(line);
+                System.out.println(res);
                 MessageDigest md;
                 try {
                     md = MessageDigest.getInstance("MD5");
@@ -69,7 +72,6 @@ public class generateTrace {
             }else{
                 writeToFile(writer, STATEMENT_OK);
                 writeToFile(writer, line);
-                System.out.println("hii "+line);
                 writer.write('\n');
             }
         }

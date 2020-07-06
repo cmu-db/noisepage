@@ -36,8 +36,7 @@ public class TracefileTest {
      */
     @BeforeEach
     public void setUp() throws FileNotFoundException, SQLException {
-        System.out.println("Working Directory = " + System.getProperty("user.dir"));
-//        System.setProperty("testFile", "src/select1.test");
+//        System.out.println("Working Directory = " + System.getProperty("user.dir"));
 
         db = new MogDb(URL, USER, PASSWORD);
 //        conn = db.getDbTest().newConn();
@@ -56,7 +55,9 @@ public class TracefileTest {
     @TestFactory
     public Collection<DynamicTest> generateTest() throws IOException, SQLException {
         String path = System.getenv("path");
-        System.out.println(path);
+//        System.setProperty("testFile", "src/select1.test");
+//        String path = System.getProperty("testFile");
+//        System.out.println(path);
         file = new File(path);
         mog = new MogSqlite(file);
 //        List<String> tab = getAllExistingTableName(mog,db);
@@ -85,7 +86,7 @@ public class TracefileTest {
                     List<String> res = mog.processResults(rs);
                     // create an executable for the query
                     Executable exec = () -> assertEquals(getHashFromDb(res), hash);
-                    String testName = "Line: " + queryLine.get(lineCounter)+"|Hash: "+hash;
+                    String testName = "Line:" + queryLine.get(lineCounter)+" | Hash:"+hash;
                     // create the DynamicTest object
                     DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
                     dTest.add(cur);
