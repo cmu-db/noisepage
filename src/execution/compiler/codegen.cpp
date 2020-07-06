@@ -633,7 +633,7 @@ ast::Expr *CodeGen::VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, u
 
 ast::Expr *CodeGen::VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx,
                               ast::Expr *filter_val, ast::Expr *tids) {
-  // Call @FilterComp(vpi, col_idx, col_type, filter_val)
+  // Call @FilterComp(execCtx, vpi, col_idx, col_type, filter_val)
   ast::Builtin builtin;
   switch (comp_type) {
     case parser::ExpressionType::COMPARE_EQUAL:

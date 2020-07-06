@@ -1,5 +1,7 @@
 #include "execution/compiler/compiler.h"
 
+#include <iostream>
+
 #include "execution/ast/context.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
@@ -7,10 +9,6 @@
 #include "execution/sema/sema.h"
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/module.h"
-
-#include "execution/ast/ast_dump.h"
-
-#include <iostream>
 
 namespace terrier::execution::compiler {
 
@@ -64,9 +62,6 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
     callbacks->OnError(Phase::Parsing, this);
     return;
   }
-
-  auto dump = ast::AstDump::Dump(root_);
-  std::cerr << dump;
 
   // -------------------------------------------------------
   // Phase 2 : Semantic Analysis (i.e., type-checking)

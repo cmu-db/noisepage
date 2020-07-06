@@ -556,6 +556,28 @@ namespace terrier::execution::vm {
                                                                                                                        \
   F(AbortTxn, OperandType::Local)                                                                                      \
                                                                                                                        \
+                                                                                                                       \
+  /* Mini-runners. */                                                                                                  \
+  F(NpRunnersEmitInt, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                  \
+    OperandType::Local)                                                                                                \
+  F(NpRunnersEmitReal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                 \
+    OperandType::Local)                                                                                                \
+  F(NpRunnersDummyInt, OperandType::Local)                                                                             \
+  F(NpRunnersDummyReal, OperandType::Local)                                                                            \
+  F(Version, OperandType::Local, OperandType::Local)                                                                   \
+                                                                                                                       \
+  /* Parameter support. */                                                                                             \
+  F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
+  F(GetParamTinyInt, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(GetParamSmallInt, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GetParamInt, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(GetParamBigInt, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(GetParamReal, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
+  F(GetParamDouble, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(GetParamDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(GetParamTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
+  F(GetParamString, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+                                                                                                                       \
   /* FOR TESTING ONLY */                                                                                               \
   F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4,           \
     OperandType::StaticLocal, OperandType::UImm4)                                                                      \

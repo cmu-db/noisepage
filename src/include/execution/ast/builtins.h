@@ -249,6 +249,18 @@ namespace terrier::execution::ast {
   F(OffsetOf, offsetOf)                                                 \
   F(PtrCast, ptrCast)                                                   \
                                                                         \
+  /* Parameter calls */                                                 \
+  F(GetParamBool, getParamBool)                                         \
+  F(GetParamTinyInt, getParamTinyInt)                                   \
+  F(GetParamSmallInt, getParamSmallInt)                                 \
+  F(GetParamInt, getParamInt)                                           \
+  F(GetParamBigInt, getParamBigInt)                                     \
+  F(GetParamReal, getParamReal)                                         \
+  F(GetParamDouble, getParamDouble)                                     \
+  F(GetParamDate, getParamDate)                                         \
+  F(GetParamTimestamp, getParamTimestamp)                               \
+  F(GetParamString, getParamString)                                     \
+                                                                        \
   /* String functions */                                                \
   F(Lower, lower)                                                       \
   F(Version, version)                                                   \

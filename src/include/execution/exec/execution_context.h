@@ -138,7 +138,7 @@ class EXPORT ExecutionContext {
 
   /**
    * Set the execution parameters.
-   * @param params The exection parameters.
+   * @param params The execution parameters.
    */
   void SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params) {
     params_ = params;

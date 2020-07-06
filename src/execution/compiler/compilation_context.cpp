@@ -19,6 +19,7 @@
 #include "execution/compiler/expression/conjunction_translator.h"
 #include "execution/compiler/expression/constant_translator.h"
 #include "execution/compiler/expression/null_check_translator.h"
+#include "execution/compiler/expression/param_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/csv_scan_translator.h"
@@ -43,6 +44,7 @@
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/derived_value_expression.h"
 #include "parser/expression/operator_expression.h"
+#include "parser/expression/parameter_value_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
@@ -328,14 +330,11 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
       translator = std::make_unique<DerivedValueTranslator>(derived_value, this);
       break;
     }
-    // TODO(WAN): ??
-#if 0
-    case parser::ExpressionType::BUILTIN_FUNCTION: {
-      const auto &builtin_func = static_cast<const parser::BuiltinFunctionExpression &>(expression);
-      translator = std::make_unique<BuiltinFunctionTranslator>(builtin_func, this);
+    case parser::ExpressionType::VALUE_PARAMETER: {
+      const auto &param = static_cast<const parser::ParameterValueExpression &>(expression);
+      translator = std::make_unique<ParamValueTranslator>(param, this);
       break;
     }
-#endif
     default: {
       throw NOT_IMPLEMENTED_EXCEPTION(
           fmt::format("Code generation for expression type '{}' not supported.",

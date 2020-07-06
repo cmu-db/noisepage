@@ -2,7 +2,9 @@
 
 #include <iostream>
 
+#include "execution/ast/ast_dump.h"
 #include "execution/ast/ast_node_factory.h"
+#include "execution/ast/ast_pretty_print.h"
 #include "execution/ast/context.h"
 #include "execution/compiler/compiler.h"
 #include "execution/sema/error_reporter.h"
@@ -25,8 +27,10 @@ class Callbacks : public compiler::Compiler::Callbacks {
   Callbacks() : module_(nullptr) {}
 
   void OnError(compiler::Compiler::Phase phase, compiler::Compiler *compiler) override {
-    // TODO(WAN): how should we report errors?
+    // TODO(WAN): how should we report errors? Probably refactor pretty print dump to serialize to string.
     EXECUTION_LOG_ERROR(fmt::format("ERROR: {}", compiler->GetErrorReporter()->SerializeErrors()));
+    std::cerr << ast::AstDump::Dump(compiler->GetAST());
+    ast::AstPrettyPrint::Dump(std::cerr, compiler->GetAST());
   }
 
   void TakeOwnership(std::unique_ptr<vm::Module> module) override { module_ = std::move(module); }
@@ -61,7 +65,7 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
 
   // Create the fragment.
   std::vector<std::string> teardown_names;
-  for (auto &decl : teardown_fn_){
+  for (auto &decl : teardown_fn_) {
     teardown_names.push_back(decl->Name().GetString());
   }
   return std::make_unique<ExecutableQuery::Fragment>(std::move(step_functions_), std::move(teardown_names),

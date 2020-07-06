@@ -1948,6 +1948,64 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
   }
 }
 
+void BytecodeGenerator::VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar param_idx = VisitExpressionForRValue(call->Arguments()[1]);
+  LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  switch (builtin) {
+    case ast::Builtin::GetParamBool:
+      GetEmitter()->Emit(Bytecode::GetParamBool, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamTinyInt:
+      GetEmitter()->Emit(Bytecode::GetParamTinyInt, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamSmallInt:
+      GetEmitter()->Emit(Bytecode::GetParamSmallInt, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamInt:
+      GetEmitter()->Emit(Bytecode::GetParamInt, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamBigInt:
+      GetEmitter()->Emit(Bytecode::GetParamBigInt, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamReal:
+      GetEmitter()->Emit(Bytecode::GetParamReal, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamDouble:
+      GetEmitter()->Emit(Bytecode::GetParamDouble, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamDate:
+      GetEmitter()->Emit(Bytecode::GetParamDateVal, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamTimestamp:
+      GetEmitter()->Emit(Bytecode::GetParamTimestampVal, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamString:
+      GetEmitter()->Emit(Bytecode::GetParamString, ret, exec_ctx, param_idx);
+      break;
+    default:
+      UNREACHABLE("Impossible parameter call!");
+  }
+}
+
+void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  switch (builtin) {
+    case ast::Builtin::Lower: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Lower, exec_ctx, ret, input_string);
+      break;
+    }
+    case ast::Builtin::Version: {
+      GetEmitter()->Emit(Bytecode::Version, exec_ctx, ret);
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented string function!");
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ast::Builtin builtin;
 
@@ -2243,6 +2301,50 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::AbortTxn: {
       VisitAbortTxn(call);
+      break;
+    }
+    case ast::Builtin::GetParamBool:
+    case ast::Builtin::GetParamTinyInt:
+    case ast::Builtin::GetParamSmallInt:
+    case ast::Builtin::GetParamInt:
+    case ast::Builtin::GetParamBigInt:
+    case ast::Builtin::GetParamReal:
+    case ast::Builtin::GetParamDouble:
+    case ast::Builtin::GetParamDate:
+    case ast::Builtin::GetParamTimestamp:
+    case ast::Builtin::GetParamString: {
+      VisitBuiltinParamCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::Lower:
+    case ast::Builtin::Version: {
+      VisitBuiltinStringCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::NpRunnersEmitInt:
+    case ast::Builtin::NpRunnersEmitReal: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar num_tuple = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar num_col = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar int_col = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar real_col = VisitExpressionForRValue(call->Arguments()[4]);
+      if (builtin == ast::Builtin::NpRunnersEmitInt) {
+        GetEmitter()->Emit(Bytecode::NpRunnersEmitInt, exec_ctx, num_tuple, num_col, int_col, real_col);
+      } else {
+        GetEmitter()->Emit(Bytecode::NpRunnersEmitReal, exec_ctx, num_tuple, num_col, int_col, real_col);
+      }
+
+      break;
+    }
+    case ast::Builtin::NpRunnersDummyInt:
+    case ast::Builtin::NpRunnersDummyReal: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      if (builtin == ast::Builtin::NpRunnersDummyInt) {
+        GetEmitter()->Emit(Bytecode::NpRunnersDummyInt, exec_ctx);
+      } else {
+        GetEmitter()->Emit(Bytecode::NpRunnersDummyReal, exec_ctx);
+      }
+
       break;
     }
     case ast::Builtin::TestCatalogLookup: {

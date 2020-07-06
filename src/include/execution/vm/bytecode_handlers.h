@@ -14,6 +14,7 @@
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/functions/runners_functions.h"
 #include "execution/sql/functions/string_functions.h"
+#include "execution/sql/functions/system_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/operators/hash_operators.h"
@@ -23,6 +24,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_filter_executor.h"
 #include "execution/util/csv_reader.h"
+#include "parser/expression/constant_value_expression.h"
 
 // All VM bytecode op handlers must use this macro
 #define VM_OP EXPORT
@@ -1519,6 +1521,10 @@ VM_OP_WARM void OpUpper(terrier::execution::sql::StringVal *result, terrier::exe
   terrier::execution::sql::StringFunctions::Upper(result, ctx, *str);
 }
 
+VM_OP_WARM void OpVersion(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result) {
+  terrier::execution::sql::SystemFunctions::Version(ctx, result);
+}
+
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------
@@ -1773,8 +1779,32 @@ VM_OP_WARM void OpAbortTxn(terrier::execution::exec::ExecutionContext *exec_ctx)
   throw terrier::ABORT_EXCEPTION("transaction aborted");
 }
 
+// Parameter calls
+#define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                   \
+  VM_OP_HOT void OpGetParam##Name(terrier::execution::sql::SqlType *ret,                                      \
+                                  terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) { \
+    const auto &cve = exec_ctx->GetParam(param_idx);                                                          \
+    if (cve.IsNull()) {                                                                                       \
+      ret->is_null_ = true;                                                                                   \
+    } else {                                                                                                  \
+      *ret = cve.Get##SqlType();                                                                              \
+    }                                                                                                         \
+  }
+
+GEN_SCALAR_PARAM_GET(Bool, BoolVal)
+GEN_SCALAR_PARAM_GET(TinyInt, Integer)
+GEN_SCALAR_PARAM_GET(SmallInt, Integer)
+GEN_SCALAR_PARAM_GET(Int, Integer)
+GEN_SCALAR_PARAM_GET(BigInt, Integer)
+GEN_SCALAR_PARAM_GET(Real, Real)
+GEN_SCALAR_PARAM_GET(Double, Real)
+GEN_SCALAR_PARAM_GET(DateVal, DateVal)
+GEN_SCALAR_PARAM_GET(TimestampVal, TimestampVal)
+GEN_SCALAR_PARAM_GET(String, StringVal)
+#undef GEN_SCALAR_PARAM_GET
+
 // ---------------------------------
-// Testing only function
+// Testing only functions
 // ---------------------------------
 
 VM_OP_WARM void OpTestCatalogLookup(uint32_t *oid_var, terrier::execution::exec::ExecutionContext *exec_ctx,

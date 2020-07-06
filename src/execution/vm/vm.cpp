@@ -1854,6 +1854,30 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     DISPATCH_NEXT();
   }
 
+  // ----------------------------
+  // Parameter calls
+  // -----------------------------
+#define GEN_PARAM_GET(Name, SqlType)                                            \
+  OP(GetParam##Name) : {                                                        \
+    auto *ret = frame->LocalAt<sql::SqlType *>(READ_LOCAL_ID());                \
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID()); \
+    auto param_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                 \
+    OpGetParam##Name(ret, exec_ctx, param_idx);                                 \
+    DISPATCH_NEXT();                                                            \
+  }
+
+  GEN_PARAM_GET(Bool, BoolVal)
+  GEN_PARAM_GET(TinyInt, Integer)
+  GEN_PARAM_GET(SmallInt, Integer)
+  GEN_PARAM_GET(Int, Integer)
+  GEN_PARAM_GET(BigInt, Integer)
+  GEN_PARAM_GET(Real, Real)
+  GEN_PARAM_GET(Double, Real)
+  GEN_PARAM_GET(DateVal, DateVal)
+  GEN_PARAM_GET(TimestampVal, TimestampVal)
+  GEN_PARAM_GET(String, StringVal)
+#undef GEN_PARAM_GET
+
   // -------------------------------------------------------
   // Trig functions
   // -------------------------------------------------------
@@ -1928,8 +1952,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
   // -------------------------------------------------------
   // Mini runners functions
   // -------------------------------------------------------
-// TODO(WAN): RE-ENABLE
-#if 0
+
   OP(NpRunnersEmitInt) : {
     auto *ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *num_tuple = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
@@ -1961,7 +1984,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     OpNpRunnersDummyReal(ctx);
     DISPATCH_NEXT();
   }
-#endif
 
   // -------------------------------------------------------
   // String functions
@@ -2142,6 +2164,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     auto *table_name = module_->GetBytecodeModule()->AccessStaticLocalDataRaw(LocalVar::Decode(READ_STATIC_LOCAL_ID()));
     auto table_name_len = READ_IMM4();
     OpTestCatalogIndexLookup(oid_var, exec_ctx, table_name, table_name_len);
+    DISPATCH_NEXT();
+  }
+
+  OP(Version) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    OpVersion(exec_ctx, result);
     DISPATCH_NEXT();
   }
 

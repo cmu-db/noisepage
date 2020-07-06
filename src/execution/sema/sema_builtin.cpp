@@ -2216,6 +2216,117 @@ void Sema::CheckBuiltinAbortCall(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
+void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 2)) {
+    return;
+  }
+
+  // first argument is an exec ctx
+  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+    return;
+  }
+
+  // second argument is the index of the parameter
+  if (!call->Arguments()[1]->GetType()->IsIntegerType()) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::Kind::Uint32));
+    return;
+  }
+
+  // Type output sql value
+  ast::BuiltinType::Kind sql_type;
+  switch (builtin) {
+    case ast::Builtin::GetParamBool: {
+      sql_type = ast::BuiltinType::Bool;
+      break;
+    }
+    case ast::Builtin::GetParamTinyInt:
+    case ast::Builtin::GetParamSmallInt:
+    case ast::Builtin::GetParamInt:
+    case ast::Builtin::GetParamBigInt: {
+      sql_type = ast::BuiltinType::Integer;
+      break;
+    }
+    case ast::Builtin::GetParamReal:
+    case ast::Builtin::GetParamDouble: {
+      sql_type = ast::BuiltinType::Real;
+      break;
+    }
+    case ast::Builtin::GetParamDate: {
+      sql_type = ast::BuiltinType::Date;
+      break;
+    }
+    case ast::Builtin::GetParamTimestamp: {
+      sql_type = ast::BuiltinType::Timestamp;
+      break;
+    }
+    case ast::Builtin::GetParamString: {
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    default:
+      UNREACHABLE("Undefined parameter call!!");
+  }
+
+  // Return sql type
+  call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
+}
+
+void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::BuiltinType::Kind sql_type;
+  switch (builtin) {
+    case ast::Builtin::Lower: {
+      // check to make sure this function has two arguments
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      auto *resolved_type = Resolve(call->Arguments()[1]);
+      if (resolved_type == nullptr) {
+        return;
+      }
+      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    case ast::Builtin::Version: {
+      // check to make sure this function has one arguments
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented string call!!");
+  }
+
+  call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
+}
+
 void Sema::CheckBuiltinTestCatalogLookup(ast::CallExpr *call) {
   if (!CheckArgCount(call, 3)) {
     return;
@@ -2330,6 +2441,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinTableIterParCall(call);
       break;
     }
+    case ast::Builtin::VPIInit:
     case ast::Builtin::VPIFree:
     case ast::Builtin::VPIIsFiltered:
     case ast::Builtin::VPIGetSelectedRowCount:
@@ -2598,6 +2710,81 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::AbortTxn: {
       CheckBuiltinAbortCall(call);
+      break;
+    }
+    case ast::Builtin::GetParamBool:
+    case ast::Builtin::GetParamTinyInt:
+    case ast::Builtin::GetParamSmallInt:
+    case ast::Builtin::GetParamInt:
+    case ast::Builtin::GetParamBigInt:
+    case ast::Builtin::GetParamReal:
+    case ast::Builtin::GetParamDouble:
+    case ast::Builtin::GetParamDate:
+    case ast::Builtin::GetParamTimestamp:
+    case ast::Builtin::GetParamString: {
+      CheckBuiltinParamCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::Lower:
+    case ast::Builtin::Version: {
+      CheckBuiltinStringCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::NpRunnersEmitInt:
+    case ast::Builtin::NpRunnersEmitReal: {
+      if (!CheckArgCount(call, 5)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      const auto &call_args = call->Arguments();
+      if (!call_args[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      if (!call_args[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      if (!call_args[3]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      if (!call_args[4]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      auto builtin_type = GetBuiltinType(ast::BuiltinType::Integer);
+      if (builtin == ast::Builtin::NpRunnersEmitReal) builtin_type = GetBuiltinType(ast::BuiltinType::Real);
+      call->SetType(builtin_type);
+      break;
+    }
+    case ast::Builtin::NpRunnersDummyInt:
+    case ast::Builtin::NpRunnersDummyReal: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      auto builtin_type = GetBuiltinType(ast::BuiltinType::Integer);
+      if (builtin == ast::Builtin::NpRunnersDummyReal) builtin_type = GetBuiltinType(ast::BuiltinType::Real);
+      call->SetType(builtin_type);
       break;
     }
     case ast::Builtin::TestCatalogLookup: {
