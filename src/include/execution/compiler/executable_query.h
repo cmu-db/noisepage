@@ -45,11 +45,7 @@ namespace terrier::execution::compiler {
 class ExecutableQuery {
  public:
   /**
-   * A self-contained unit of execu
-namespace terrier::brain {
-class PipelineOperatingUnits;
-}  // namespace terrier::brain
-tion that represents a chunk of a larger query. All executable
+   * A self-contained unit of execution that represents a chunk of a larger query. All executable
    * queries are composed of at least one fragment.
    */
   class Fragment {
