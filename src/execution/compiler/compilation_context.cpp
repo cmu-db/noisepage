@@ -20,6 +20,7 @@
 #include "execution/compiler/expression/constant_translator.h"
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/param_value_translator.h"
+#include "execution/compiler/expression/star_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/csv_scan_translator.h"
@@ -45,6 +46,7 @@
 #include "parser/expression/derived_value_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
+#include "parser/expression/star_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
@@ -333,6 +335,11 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
     case parser::ExpressionType::VALUE_PARAMETER: {
       const auto &param = static_cast<const parser::ParameterValueExpression &>(expression);
       translator = std::make_unique<ParamValueTranslator>(param, this);
+      break;
+    }
+    case parser::ExpressionType::STAR: {
+      const auto &star = static_cast<const parser::StarExpression &>(expression);
+      translator = std::make_unique<StarTranslator>(star, this);
       break;
     }
     default: {

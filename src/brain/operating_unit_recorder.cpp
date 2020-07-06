@@ -321,7 +321,7 @@ void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoi
 
 void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
   // TODO(WAN): wz2 port
-  UNREACHABLE("FIX ME WAN");
+  throw EXECUTION_EXCEPTION("EXEC PORT WAN -- poke lin and william");
 #if 0
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_BUILD) {
     for (auto key : plan->GetLeftHashKeys()) {
@@ -520,7 +520,7 @@ void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
 
 void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
   // TODO(WAN): what do
-  UNREACHABLE("FIX ME WAN");
+  throw EXECUTION_EXCEPTION("EXEC PORT WAN -- poke lin and william");
 #if 0
   if (plan_feature_type_ == ExecutionOperatingUnitType::SORT_BUILD) {
     // SORT_BUILD will operate on sort keys
@@ -562,7 +562,7 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
   // TODO(WAN): FIX EXEC PORT
-  UNREACHABLE("EXEC PORT WAN");
+  throw EXECUTION_EXCEPTION("EXEC PORT WAN -- poke lin and william");
 #if 0
   if (plan_feature_type_ == ExecutionOperatingUnitType::AGGREGATE_BUILD) {
     for (auto key : plan->GetAggregateTerms()) {
