@@ -14,6 +14,7 @@
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/functions/runners_functions.h"
 #include "execution/sql/functions/string_functions.h"
+#include "execution/sql/functions/system_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/projected_columns_iterator.h"
@@ -1454,6 +1455,11 @@ VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier
                         const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Upper(ctx, result, *str);
 }
+
+VM_OP_WARM void OpVersion(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result) {
+  terrier::execution::sql::SystemFunctions::Version(ctx, result);
+}
+
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------

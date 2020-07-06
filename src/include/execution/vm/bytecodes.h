@@ -483,6 +483,7 @@ namespace terrier::execution::vm {
     OperandType::Local)                                                                                               \
   F(NpRunnersDummyInt, OperandType::Local)                                                                            \
   F(NpRunnersDummyReal, OperandType::Local)                                                                           \
+  F(Version, OperandType::Local, OperandType::Local)                                                                  \
                                                                                                                       \
   /* String functions */                                                                                              \
   F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \

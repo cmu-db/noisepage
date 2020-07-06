@@ -2018,6 +2018,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(Version) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    OpVersion(exec_ctx, result);
+    DISPATCH_NEXT();
+  }
+
   // Impossible
   UNREACHABLE("Impossible to reach end of interpreter loop. Bad code!");
 }  // NOLINT (function is too long)
