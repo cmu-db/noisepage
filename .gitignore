@@ -278,3 +278,4 @@ wal.log
 
 # JUnit intermediate out directory
 **/junit/out/
+out/

@@ -2,5 +2,6 @@
 !lib/*.jar
 noisepage-testfiles/
 out/
+trace/
 src/insert.test
 src/ins_output.test
