@@ -12,14 +12,14 @@
 #include "loggers/metrics_logger.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
+#include "metrics/bind_command_metric.h"
+#include "metrics/execute_command_metric.h"
 #include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
 #include "metrics/pipeline_metric.h"
 #include "metrics/transaction_metric.h"
-#include "metrics/bind_command_metric.h"
-#include "metrics/execute_command_metric.h"
 
 namespace terrier::metrics {
 
@@ -70,12 +70,13 @@ class MetricsStore {
   }
 
   /**
-<<<<<<< HEAD
    * Record metrics from GC
-   * @param num_processed first entry of metrics datapoint
-   * @param num_buffers second entry of metrics datapoint
-   * @param num_readonly third entry of metrics datapoint
-   * @param resource_metrics forth entry of metrics datapoint
+   * @param txns_deallocated first entry of metrics datapoint
+   * @param txns_unlinked second entry of metrics datapoint
+   * @param buffer_unlinked third entry of metrics datapoint
+   * @param readonly_unlinked fourth entry of metrics datapoint
+   * @param interval fifth entry of metrics datapoint
+   * @param resource_metrics sixth entry of metrics datapoint
    */
   void RecordGCData(uint64_t txns_deallocated, uint64_t txns_unlinked, uint64_t buffer_unlinked,
                     uint64_t readonly_unlinked, uint64_t interval,
@@ -152,6 +153,7 @@ class MetricsStore {
    * Record metrics for the bind command
    * @param param_num the number of bind parameters
    * @param query_text_size the size of the query text
+   * @param resource_metrics Metrics
    */
   void RecordBindCommandData(uint64_t param_num, uint64_t query_text_size,
                              const common::ResourceTracker::Metrics &resource_metrics) {
@@ -163,6 +165,7 @@ class MetricsStore {
   /**
    * Record metrics for the execute command
    * @param portal_name_size the size of the portal name
+   * @param resource_metrics Metrics
    */
   void RecordExecuteCommandData(uint64_t portal_name_size, const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTE_COMMAND), "ExecuteCommandMetric not enabled.");
