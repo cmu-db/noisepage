@@ -67,8 +67,8 @@ ALL_TYPES(COMPARISONS);
 
 VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 
-VM_OP_HOT void OpNotSql(terrier::execution::sql::BoolVal *result, terrier::execution::sql::BoolVal *input) {
-  terrier::execution::sql::ComparisonFunctions::NotBoolVal(result, input);
+VM_OP_HOT void OpNotSql(terrier::execution::sql::BoolVal *const result, terrier::execution::sql::BoolVal *const input) {
+  terrier::execution::sql::ComparisonFunctions::NotBoolVal(result, *input);
 }
 
 // ---------------------------------------------------------

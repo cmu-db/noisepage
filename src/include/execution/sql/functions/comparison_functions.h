@@ -219,9 +219,9 @@ class EXPORT ComparisonFunctions {
   /**
    * Logical negation for SQL booleans
    */
-  static void NotBoolVal(terrier::execution::sql::BoolVal *result, terrier::execution::sql::BoolVal *input) {
-    *result = terrier::execution::sql::BoolVal(!input->val_);
-    result->is_null_ = input->is_null_;
+  static void NotBoolVal(BoolVal *result, const BoolVal &input) {
+    result->is_null_ = input.is_null_;
+    result->val_ = !input.val_;
   }
 
  private:
