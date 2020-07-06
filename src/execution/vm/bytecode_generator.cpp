@@ -1995,12 +1995,13 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
     case ast::Builtin::InitTablePR: {
       LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitStorageInterfaceGetIndexPR(Bytecode::StorageInterfaceGetIndexPR, pr, storage_interface, index_oid);
+      Emitter()->EmitStorageInterfaceGetIndexPR(Bytecode::StorageInterfaceInitTablePR, pr, storage_interface,
+                                                index_oid);
       break;
     }
     case ast::Builtin::FillTablePR: {
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::StorageInterfaceIndexDelete, storage_interface, tuple_slot);
+      Emitter()->Emit(Bytecode::StorageInterfaceFillTablePR, storage_interface, tuple_slot);
       break;
     }
 

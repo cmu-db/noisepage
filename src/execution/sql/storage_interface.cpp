@@ -77,11 +77,17 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
 
 bool StorageInterface::IndexInsert() {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+  if (has_table_pr_) {
+    return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot_);
+  }
   return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
 
 bool StorageInterface::IndexInsertUnique() {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+  if (has_table_pr_) {
+    return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot_);
+  }
   return curr_index_->InsertUnique(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
 
@@ -102,30 +108,9 @@ storage::ProjectedRow *StorageInterface::InitTablePR(catalog::index_oid_t index_
 }
 
 bool StorageInterface::FillTablePR(storage::TupleSlot table_tuple_slot) {
-  // TODO(Wuwen): Move it to a better place
-
-  table_->Select(exec_ctx_->GetTxn(), table_tuple_slot, table_pr_);
-  const auto key_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid_);
-  const auto &indexed_attributes = key_schema.GetIndexedColOids();
-  auto pr_map = table_->ProjectionMapForOids(indexed_attributes);
-
-  auto num_index_cols = key_schema.GetColumns().size();
-  TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
-  for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
-    const auto &col = key_schema.GetColumn(col_idx);
-    auto index_col_oid = col.Oid();
-    const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
-    if (table_pr_->IsNull(pr_map[table_col_oid])) {
-      index_pr_->SetNull(curr_index_->GetKeyOidToOffsetMap().at(index_col_oid));
-    } else {
-      // TODO(Wuwen): This may not be thread safe
-      auto size = storage::AttrSizeBytes(col.AttrSize());
-      std::memcpy(index_pr_->AccessForceNotNull(curr_index_->GetKeyOidToOffsetMap().at(index_col_oid)),
-                  table_pr_->AccessWithNullCheck(pr_map[table_col_oid]), size);
-    }
-  }
-
-  return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
+  table_tuple_slot_ = table_tuple_slot;
+  return exec_ctx_->GetAccessor()->CopyPR(exec_ctx_->GetTxn(), table_pr_, index_pr_, index_oid_, table_,
+                                          table_tuple_slot);
 }
 
 }  // namespace terrier::execution::sql

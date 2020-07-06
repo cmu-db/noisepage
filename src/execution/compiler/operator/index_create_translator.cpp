@@ -81,8 +81,9 @@ void CreateIndexTranslator::GenCreateIndex(FunctionBuilder *builder) {
   auto plan_node = common::ManagedPointer<const planner::CreateIndexPlanNode>(op_);
   auto result = sql::DDLExecutors::CreateIndexExecutor(
       plan_node, common::ManagedPointer<catalog::CatalogAccessor>(codegen_->Accessor()));
-  TERRIER_ASSERT(result, "create index");
-  // TODO(Wuwen): A better failure check
+  if (!result) {
+    Abort(builder);
+  }
   index_oid_ = codegen_->Accessor()->GetIndexOid(op_->GetIndexName());
 }
 
@@ -102,24 +103,20 @@ void CreateIndexTranslator::GenGetTablePR(FunctionBuilder *builder) {
 
 void CreateIndexTranslator::GenFillTablePR(FunctionBuilder *builder) {
   std::vector<ast::Expr *> insert_args{codegen_->PointerTo(index_inserter_), codegen_->PointerTo(slot_)};
-  codegen_->BuiltinCall(ast::Builtin::FillTablePR, std::move(insert_args));
+  auto fill_pr_call = codegen_->BuiltinCall(ast::Builtin::FillTablePR, std::move(insert_args));
+  builder->Append(codegen_->MakeStmt(fill_pr_call));
 }
 
 // TODO(Wuwen): find out if GenFiller could work in this case
 void CreateIndexTranslator::GenIndexInsert(FunctionBuilder *builder) {
-  //  auto index = codegen_->Accessor()->GetIndex(index_oid_);
-  //  const auto &index_pm = index->GetKeyOidToOffsetMap();
-  //  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid_);
-  //
-  //  pr_filler_.GenFiller(index_pm, index_schema, codegen_->MakeExpr(index_pr_), codegen_->MakeExpr(table_pr_),
-  //  builder);
+  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid_);
 
-  //  auto index_insert_call = codegen_->OneArgCall(
-  //      index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert, index_inserter_, true);
-  //  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
-  //  builder->StartIfStmt(cond);
-  //  Abort(builder);
-  //  builder->FinishBlockStmt();
+  auto index_insert_call = codegen_->OneArgCall(
+      index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert, index_inserter_, true);
+  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
+  builder->StartIfStmt(cond);
+  Abort(builder);
+  builder->FinishBlockStmt();
 }
 
 void CreateIndexTranslator::DeclareTVI(FunctionBuilder *builder) {
