@@ -202,6 +202,7 @@ namespace terrier::execution::vm {
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                            \
   F(InitBool, OperandType::Local, OperandType::Local)                                                                  \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                               \
+  F(InitInteger64, OperandType::Local, OperandType::Local)                                                             \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                  \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(InitString, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4)                                      \

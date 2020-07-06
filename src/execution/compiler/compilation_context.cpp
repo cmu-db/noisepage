@@ -4,6 +4,7 @@
 #include <atomic>
 #include <sstream>
 
+#include "brain/operating_unit_recorder.h"
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/ast/context.h"
@@ -142,6 +143,12 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   for (auto *pipeline : execution_order) {
     pipeline->Prepare(query_->GetExecutionSettings());
     pipeline->GeneratePipeline(&main_builder);
+
+    // Extract and record the translators.
+    brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
+                                          common::ManagedPointer(codegen_.GetAstContext()));
+    auto features = recorder.RecordTranslators(pipeline->GetTranslators());
+    codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
   }
 
   // Register the tear-down function.
@@ -152,7 +159,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 
   // Compile and finish.
   fragments.emplace_back(main_builder.Compile());
-  query_->Setup(std::move(fragments), query_state_.GetSize());
+  query_->Setup(std::move(fragments), query_state_.GetSize(), std::move(codegen_.ReleasePipelineOperatingUnits()));
 }
 
 // static

@@ -193,7 +193,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
       common::ManagedPointer(accessor));
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
+  auto executable = execution::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
   executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
@@ -308,7 +308,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
       common::ManagedPointer(accessor));
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
+  auto executable = execution::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
   executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
@@ -385,7 +385,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
       common::ManagedPointer(accessor));
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
+  auto executable = execution::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
   executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
@@ -448,7 +448,7 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
       common::ManagedPointer(accessor));
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
+  auto executable = execution::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
   executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
@@ -511,7 +511,7 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
       common::ManagedPointer(accessor));
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
+  auto executable = execution::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
   executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
@@ -587,7 +587,7 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
       common::ManagedPointer(accessor));
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
+  auto executable = execution::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
   executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 

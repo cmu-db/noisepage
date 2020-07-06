@@ -40,7 +40,12 @@ std::string CodeGen::Scope::GetFreshName(const std::string &name) {
 //===----------------------------------------------------------------------===//
 
 CodeGen::CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor)
-    : context_(context), position_{0, 0}, num_cached_scopes_(0), scope_(nullptr), accessor_(accessor) {
+    : context_(context),
+      position_{0, 0},
+      num_cached_scopes_(0),
+      scope_(nullptr),
+      accessor_(accessor),
+      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()) {
   for (auto &scope : scope_cache_) {
     scope = std::make_unique<Scope>(nullptr);
   }

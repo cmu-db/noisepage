@@ -171,7 +171,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Dump AST
   if (kPrintAst) {
-    ast::AstDump::Dump(root);
+    std::cout << ast::AstDump::Dump(root);  // NOLINT
   }
 
   // Pretty-print AST

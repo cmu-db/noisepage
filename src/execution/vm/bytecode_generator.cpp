@@ -262,7 +262,14 @@ void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
     }
     case ast::CastKind::IntToSqlInt: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-      GetEmitter()->Emit(Bytecode::InitInteger, dest, input);
+      int64_t node_val = node->As<ast::LitExpr>()->Int64Val();
+
+      if (static_cast<int64_t>(std::numeric_limits<int>::lowest()) <= node_val &&
+          node_val <= static_cast<int64_t>(std::numeric_limits<int>::max())) {
+        GetEmitter()->Emit(Bytecode::InitInteger, dest, input);
+      } else {
+        GetEmitter()->Emit(Bytecode::InitInteger64, dest, input);
+      }
       GetExecutionResult()->SetDestination(dest);
       break;
     }
@@ -2406,12 +2413,17 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Int: {
-      GetEmitter()->EmitAssignImm4(target, node->Int64Val());
+      if (static_cast<int64_t>(std::numeric_limits<int>::lowest()) <= node->Int64Val() &&
+          node->Int64Val() <= static_cast<int64_t>(std::numeric_limits<int>::max())) {
+        GetEmitter()->EmitAssignImm4(target, node->Int64Val());
+      } else {
+        GetEmitter()->EmitAssignImm8(target, node->Int64Val());
+      }
       GetExecutionResult()->SetDestination(target.ValueOf());
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      GetEmitter()->EmitAssignImm4F(target, static_cast<float>(node->Float64Val()));
+      GetEmitter()->EmitAssignImm8F(target, static_cast<float>(node->Float64Val()));
       GetExecutionResult()->SetDestination(target.ValueOf());
       break;
     }

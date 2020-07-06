@@ -44,7 +44,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @returns Vector of extracted features (ExecutionOperatingUnitFeature)
    */
   ExecutionOperatingUnitFeatureVector RecordTranslators(
-      const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators);
+      const std::vector<execution::compiler::OperatorTranslator *> &translators);
 
  private:
   /**
@@ -152,7 +152,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Current Translator
    */
-  //  common::ManagedPointer<execution::compiler::OperatorTranslator> current_translator_;
+  common::ManagedPointer<execution::compiler::OperatorTranslator> current_translator_;
 
   /**
    * Arithmetic features for a given plan

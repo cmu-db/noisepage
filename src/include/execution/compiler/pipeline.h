@@ -9,6 +9,7 @@
 #include "execution/ast/ast_fwd.h"
 #include "execution/ast/identifier.h"
 #include "execution/compiler/state_descriptor.h"
+#include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
 
 namespace terrier::execution::exec {
@@ -195,6 +196,15 @@ class Pipeline {
 
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
+
+ private:
+  // Internals which are exposed for minirunners.
+  friend class compiler::CompilationContext;
+
+  /** @return The vector of pipeline operators that make up the pipeline. */
+  const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
+  /** @return The unique ID of this pipeline. */
+  const pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
  private:
   // A unique pipeline ID.

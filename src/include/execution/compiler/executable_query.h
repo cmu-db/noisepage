@@ -10,6 +10,10 @@
 #include "execution/ast/ast_fwd.h"
 #include "execution/vm/vm_defs.h"
 
+namespace terrier::brain {
+class PipelineOperatingUnits;
+}  // namespace terrier::brain
+
 namespace terrier::execution {
 namespace exec {
 class ExecutionContext;
@@ -41,7 +45,11 @@ namespace terrier::execution::compiler {
 class ExecutableQuery {
  public:
   /**
-   * A self-contained unit of execution that represents a chunk of a larger query. All executable
+   * A self-contained unit of execu
+namespace terrier::brain {
+class PipelineOperatingUnits;
+}  // namespace terrier::brain
+tion that represents a chunk of a larger query. All executable
    * queries are composed of at least one fragment.
    */
   class Fragment {
@@ -51,7 +59,8 @@ class ExecutableQuery {
      * @param functions The name of the functions to execute, in order.
      * @param module The module that contains the functions.
      */
-    Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns, std::unique_ptr<vm::Module> module);
+    Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,
+             std::unique_ptr<vm::Module> module);
 
     /**
      * Destructor.
@@ -104,8 +113,10 @@ class ExecutableQuery {
    *                  they're to be executed.
    * @param query_state_size The size of the state structure this query needs. This value is
    *                         represented in bytes.
+   * @param pipeline_operating_units The pipeline operating units that were generated with the fragments.
    */
-  void Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, std::size_t query_state_size);
+  void Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, std::size_t query_state_size,
+             std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units);
 
   /**
    * Execute the query.
@@ -128,6 +139,11 @@ class ExecutableQuery {
   /** @return The execution settings used for this query. */
   const exec::ExecutionSettings &GetExecutionSettings() const { return exec_settings_; }
 
+  /** @return The pipeline operating units that were used to generate this query. Setup must have been called! */
+  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() const {
+    return common::ManagedPointer(pipeline_operating_units_);
+  }
+
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
@@ -146,6 +162,9 @@ class ExecutableQuery {
 
   // TODO(tanujnay112) unnecessary string creation?
   std::string teardown_fn_;
+
+  // The pipeline operating units that were generated as part of this query.
+  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 };
 
 }  // namespace terrier::execution::compiler

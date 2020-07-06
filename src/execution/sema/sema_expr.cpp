@@ -1,8 +1,7 @@
-#include "execution/sema/sema.h"
-
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
+#include "execution/sema/sema.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sema {
@@ -238,13 +237,19 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Float: {
-      // Literal floats default to float32
-      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float32));
+      // Literal floats default to float64
+      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Float64));
       break;
     }
     case ast::LitExpr::LitKind::Int: {
-      // Literal integers default to int32
-      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int32));
+      // TODO(WAN): get prashanth's blessing
+      // Literal integers default to int32 or int64 depending on their value
+      if (static_cast<int64_t>(std::numeric_limits<int>::lowest()) <= node->Int64Val() &&
+          node->Int64Val() <= static_cast<int64_t>(std::numeric_limits<int>::max())) {
+        node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int32));
+      } else {
+        node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int64));
+      }
       break;
     }
     case ast::LitExpr::LitKind::String: {

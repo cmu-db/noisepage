@@ -34,6 +34,13 @@ Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : 
 
 void Pipeline::RegisterStep(OperatorTranslator *op) {
   TERRIER_ASSERT(std::count(steps_.begin(), steps_.end(), op) == 0, "Duplicate registration of operator in pipeline.");
+  auto num_steps = steps_.size();
+  if (num_steps > 0) {
+    auto last_step = common::ManagedPointer(steps_[num_steps - 1]);
+    // TODO(WAN): MAYDAY CHECK WITH LIN AND PRASHANTH, did ordering of these change?
+    last_step->SetChildTranslator(common::ManagedPointer(op));
+    op->SetParentTranslator(last_step);
+  }
   steps_.push_back(op);
 }
 

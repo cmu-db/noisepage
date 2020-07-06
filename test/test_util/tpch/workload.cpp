@@ -31,7 +31,7 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
   // Make the execution context
   execution::exec::ExecutionContext exec_ctx{
       db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), nullptr,
-      nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor),   &exec_settings_};
+      nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor),   exec_settings_};
 
   // create the TPCH database and compile the queries
   GenerateTPCHTables(&exec_ctx, table_root);
@@ -111,7 +111,7 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     // execution::exec::OutputPrinter printer(output_schema);
     execution::exec::ExecutionContext exec_ctx{
         db_oid_,       common::ManagedPointer<transaction::TransactionContext>(txn), printer,
-        output_schema, common::ManagedPointer<catalog::CatalogAccessor>(accessor),   &exec_settings_};
+        output_schema, common::ManagedPointer<catalog::CatalogAccessor>(accessor),   exec_settings_};
     const auto params = GetQueryParams(query_name);
     exec_ctx.SetParams(common::ManagedPointer(&params));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);

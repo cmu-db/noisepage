@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "brain/operating_unit.h"
 #include "common/error/exception.h"
 #include "execution/ast/context.h"
 #include "execution/exec/execution_context.h"
@@ -28,7 +29,7 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
   using Function = std::function<void(void *)>;
 
   auto exec_ctx = *reinterpret_cast<exec::ExecutionContext **>(query_state);
-  if (exec_ctx->GetTxn()->MustAbort()){
+  if (exec_ctx->GetTxn()->MustAbort()) {
     return;
   }
   for (const auto &func_name : functions_) {
@@ -63,12 +64,14 @@ ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const ex
       context_region_(std::make_unique<util::Region>("context_region")),
       errors_(std::make_unique<sema::ErrorReporter>(errors_region_.get())),
       ast_context_(std::make_unique<ast::Context>(context_region_.get(), errors_.get())),
-      query_state_size_(0) {}
+      query_state_size_(0),
+      pipeline_operating_units_(nullptr) {}
 
 // Needed because we forward-declare classes used as template types to std::unique_ptr<>
 ExecutableQuery::~ExecutableQuery() = default;
 
-void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size) {
+void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size,
+                            std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units) {
   TERRIER_ASSERT(
       std::all_of(fragments.begin(), fragments.end(), [](const auto &fragment) { return fragment->IsCompiled(); }),
       "All query fragments are not compiled!");
@@ -77,6 +80,7 @@ void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, 
 
   fragments_ = std::move(fragments);
   query_state_size_ = query_state_size;
+  pipeline_operating_units_ = std::move(pipeline_operating_units);
 
   EXECUTION_LOG_INFO("Query has {} fragment{} with {}-byte query state.", fragments_.size(),
                      fragments_.size() > 1 ? "s" : "", query_state_size_);

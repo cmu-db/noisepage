@@ -51,7 +51,7 @@ class SqlBasedTest : public TplTest {
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
                                                       const planner::OutputSchema *schema = nullptr) {
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback, schema,
-                                                    common::ManagedPointer(accessor_), exec_settings_.get());
+                                                    common::ManagedPointer(accessor_), *exec_settings_);
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {

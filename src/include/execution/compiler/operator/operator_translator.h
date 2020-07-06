@@ -12,6 +12,10 @@
 #include "execution/util/region_containers.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
+namespace terrier::brain {
+class OperatingUnitRecorder;
+}  // namespace terrier::brain
+
 namespace terrier::planner {
 class AbstractPlanNode;
 }  // namespace terrier::planner
@@ -234,6 +238,19 @@ class OperatorTranslator : public ColumnValueProvider {
                                util::RegionVector<ast::FieldDecl *> *fields) const;
 
  private:
+  // For mini-runner stuff.
+  friend class Pipeline;
+  /** Set the child translator. */
+  void SetChildTranslator(common::ManagedPointer<OperatorTranslator> translator) { child_translator_ = translator; }
+  /** Set the parent translator.. */
+  void SetParentTranslator(common::ManagedPointer<OperatorTranslator> translator) { parent_translator_ = translator; }
+  friend class brain::OperatingUnitRecorder;
+  /** @returns The child translator. */
+  common::ManagedPointer<OperatorTranslator> GetChildTranslator() const { return child_translator_; }
+  /** @returns The parent translator. */
+  common::ManagedPointer<OperatorTranslator> GetParentTranslator() const { return parent_translator_; }
+
+ private:
   // The plan node.
   const planner::AbstractPlanNode &plan_;
   // The compilation context.
@@ -241,6 +258,10 @@ class OperatorTranslator : public ColumnValueProvider {
   // The pipeline the operator belongs to.
   Pipeline *pipeline_;
 
+  /** The child operator translator. */
+  common::ManagedPointer<OperatorTranslator> child_translator_{nullptr};
+  /** The parent operator translator. */
+  common::ManagedPointer<OperatorTranslator> parent_translator_{nullptr};
   /** ExecutionOperatingUnitType. */
   brain::ExecutionOperatingUnitType feature_type_{brain::ExecutionOperatingUnitType::INVALID};
 };

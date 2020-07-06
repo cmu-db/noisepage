@@ -839,6 +839,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
 
   OP(InitInteger) : {
     auto *sql_int = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto val = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    OpInitInteger(sql_int, val);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitInteger64) : {
+    auto *sql_int = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
     auto val = frame->LocalAt<int64_t>(READ_LOCAL_ID());
     OpInitInteger(sql_int, val);
     DISPATCH_NEXT();

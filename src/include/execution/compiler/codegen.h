@@ -1,7 +1,5 @@
 #pragma once
 
-#include <planner/plannodes/plan_node_defs.h>
-
 #include <array>
 #include <initializer_list>
 #include <memory>
@@ -9,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "brain/operating_unit.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
@@ -19,6 +18,7 @@
 #include "execution/util/region_containers.h"
 #include "llvm/ADT/StringMap.h"
 #include "parser/expression_defs.h"
+#include "planner/plannodes/plan_node_defs.h"
 
 namespace terrier::catalog {
 class CatalogAccessor;
@@ -1279,6 +1279,25 @@ class CodeGen {
    */
   void UnIndent() { position_.column_ -= 4; }
 
+  // ---------------------------------------------------------------------------
+  //
+  // Minirunner support.
+  //
+  // ---------------------------------------------------------------------------
+
+  /** @return PipelineOperatingUnits instance. */
+  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() const {
+    return common::ManagedPointer(pipeline_operating_units_);
+  }
+
+  /** @return The AST context used for compilation. */
+  common::ManagedPointer<ast::Context> GetAstContext() const { return common::ManagedPointer(context_); }
+
+  /** @return Release ownership of the PipelineOperatingUnits instance. */
+  std::unique_ptr<brain::PipelineOperatingUnits> ReleasePipelineOperatingUnits() {
+    return std::move(pipeline_operating_units_);
+  }
+
  private:
   // Enter a new lexical scope.
   void EnterScope();
@@ -1301,6 +1320,8 @@ class CodeGen {
   Scope *scope_;
   // The catalog accessor.
   catalog::CatalogAccessor *accessor_;
+  // Minirunner-related.
+  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 };
 
 }  // namespace terrier::execution::compiler

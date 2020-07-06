@@ -1284,10 +1284,10 @@ class IdentifierExpr : public Expr {
  * An enumeration capturing all possible casting operations.
  */
 enum class CastKind : uint8_t {
-  // Conversion of a 32-bit integer into a non-nullable SQL Integer value
+  // Conversion of a 64-bit integer into a non-nullable SQL Integer value
   IntToSqlInt,
 
-  // Conversion of a 32-bit integer into a non-nullable SQL Decimal value
+  // Conversion of a 64-bit integer into a non-nullable SQL Decimal value
   IntToSqlDecimal,
 
   // Conversion of a SQL boolean value (potentially nullable) into a primitive
