@@ -2635,13 +2635,13 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
   // Execute Table Scan
   {
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
@@ -2683,7 +2683,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   // Execute index scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};

@@ -489,6 +489,11 @@ VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int64_t i
   result->val_ = input;
 }
 
+VM_OP_HOT void OpInitInteger64(terrier::execution::sql::Integer *result, int64_t input) {
+  result->is_null_ = false;
+  result->val_ = input;
+}
+
 VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, double input) {
   result->is_null_ = false;
   result->val_ = input;

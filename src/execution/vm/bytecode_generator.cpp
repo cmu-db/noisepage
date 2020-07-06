@@ -262,10 +262,10 @@ void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
     }
     case ast::CastKind::IntToSqlInt: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-      int64_t node_val = node->As<ast::LitExpr>()->Int64Val();
+      int64_t input_val = node->Input()->As<ast::LitExpr>()->Int64Val();
 
-      if (static_cast<int64_t>(std::numeric_limits<int>::lowest()) <= node_val &&
-          node_val <= static_cast<int64_t>(std::numeric_limits<int>::max())) {
+      if (static_cast<int64_t>(std::numeric_limits<int>::lowest()) <= input_val &&
+          input_val <= static_cast<int64_t>(std::numeric_limits<int>::max())) {
         GetEmitter()->Emit(Bytecode::InitInteger, dest, input);
       } else {
         GetEmitter()->Emit(Bytecode::InitInteger64, dest, input);

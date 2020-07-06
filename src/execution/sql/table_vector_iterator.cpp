@@ -134,7 +134,7 @@ bool TableVectorIterator::Advance() {
   return true;
 }
 
-const storage::TupleSlot &TableVectorIterator::GetCurrentSlot() { return iter_.get()->operator*(); }
+const storage::TupleSlot &TableVectorIterator::GetCurrentSlot() { return **iter_; }
 
 namespace {
 
