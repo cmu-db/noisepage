@@ -72,7 +72,7 @@ if __name__ == "__main__":
     final_code = 0
     for c in code:
         final_code = final_code or c
-    print("Final exit code: " + final_code)
+    print("Final exit code: " + str(final_code))
     sys.exit(exit_code)
 
 
