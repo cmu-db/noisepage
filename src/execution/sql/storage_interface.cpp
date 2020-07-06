@@ -116,7 +116,7 @@ storage::ProjectedRow *StorageInterface::InitTablePR(catalog::index_oid_t index_
 
 void StorageInterface::FillTablePR(storage::TupleSlot table_tuple_slot) {
   table_tuple_slot_ = table_tuple_slot;
-  auto result = table_->Select(exec_ctx_->GetTxn(), table_tuple_slot, table_pr_);
+  auto result UNUSED_ATTRIBUTE = table_->Select(exec_ctx_->GetTxn(), table_tuple_slot, table_pr_);
   TERRIER_ASSERT(result, "Select should not fail");
 
   for (uint32_t col_idx = 0; col_idx < num_index_cols_; col_idx++) {
