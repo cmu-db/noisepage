@@ -101,6 +101,11 @@ class EXPORT StorageInterface {
    */
   void FillTablePR(storage::TupleSlot table_tuple_slot);
 
+  /**
+   * Init table pr and stash necessary variables
+   * @param index_oid the index oid
+   * @return Table Projected Row
+   */
   storage::ProjectedRow *InitTablePR(catalog::index_oid_t index_oid);
 
  protected:
@@ -153,11 +158,29 @@ class EXPORT StorageInterface {
    * The table PR.
    */
   storage::ProjectedRow *table_pr_{nullptr};
+  /**
+   * Whether table pr is initialized
+   */
   bool has_table_pr_;
+  /**
+   * The size of table pr
+   */
   uint32_t table_pr_size_;
+  /**
+   * The index schema of current index
+   */
   common::ManagedPointer<const catalog::IndexSchema> index_schema_{nullptr};
+  /**
+   * Index attribute of the index
+   */
   std::vector<catalog::col_oid_t> indexed_attributes_{};
+  /**
+   * pr map
+   */
   storage::ProjectionMap pr_map_{};
+  /**
+   * Num of the index cols
+   */
   uint32_t num_index_cols_;
 
   /**

@@ -67,6 +67,11 @@ class DDLExecutors {
   static bool CreateIndexExecutor(common::ManagedPointer<planner::CreateIndexPlanNode> node,
                                   common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
+  /**
+   * @param node node to executed
+   * @param accessor accessor to use for execution
+   * @return true if operation succeeded, false otherwise
+   */
   static bool CreateIndexExecutor(common::ManagedPointer<const planner::CreateIndexPlanNode> node,
                                   common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
