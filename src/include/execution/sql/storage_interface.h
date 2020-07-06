@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "execution/util/execution_common.h"
 #include "storage/projected_row.h"
