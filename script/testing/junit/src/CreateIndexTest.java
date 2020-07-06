@@ -95,9 +95,6 @@ public class CreateIndexTest extends TestUtility {
         String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100), (3, 4, 100);";
         Statement stmt = conn.createStatement();
 
-        for (int i = 0; i < num_rows; i++) { stmt.execute(sql); }
-        long elapsedTime = (new Date()).getTime() - startTime;
-
         stmt.execute("CREATE INDEX tbl_ind ON tbl (c2)");
 
         ResultSet rs = stmt.executeQuery("SELECT * FROM tbl WHERE c2 > 0 ORDER BY c2 ASC");
