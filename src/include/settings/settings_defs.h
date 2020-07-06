@@ -171,14 +171,6 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    metrics_gc,
-    "Metrics collection for the GC component.",
-    false,
-    true,
-    terrier::settings::Callbacks::MetricsGC
-)
-
-SETTING_bool(
     metrics_transaction,
     "Metrics collection for the TransactionManager component (default: false).",
     false,
