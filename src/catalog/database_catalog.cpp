@@ -1330,38 +1330,6 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   return index_objects;
 }
 
-bool DatabaseCatalog::CopyPR(common::ManagedPointer<transaction::TransactionContext> txn,
-                             storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr, index_oid_t index_oid,
-                             common::ManagedPointer<terrier::storage::SqlTable> table,
-                             storage::TupleSlot table_tuple_slot) {
-  const auto key_schema = GetIndexSchema(txn, index_oid);
-  const auto index = GetIndex(txn, index_oid);
-  const auto &indexed_attributes = key_schema.GetIndexedColOids();
-  auto pr_map = table->ProjectionMapForOids(indexed_attributes);
-
-  auto result = table->Select(txn, table_tuple_slot, table_pr);
-  if (!result) {
-    return false;
-  }
-
-  auto num_index_cols = key_schema.GetColumns().size();
-  TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
-  for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
-    const auto &col = key_schema.GetColumn(col_idx);
-    auto index_col_oid = col.Oid();
-    const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
-    if (table_pr->IsNull(pr_map[table_col_oid])) {
-      index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
-    } else {
-      // TODO(Wuwen): This may not be thread safe
-      auto size = storage::AttrSizeBytes(col.AttrSize());
-      std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
-                  table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
-    }
-  }
-  return true;
-}
-
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<parser::AbstractExpression *> expressions;
   std::vector<Schema *> table_schemas;

@@ -265,10 +265,6 @@ class DatabaseCatalog {
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  bool CopyPR(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr,
-              storage::ProjectedRow *index_pr, index_oid_t index_oid,
-              common::ManagedPointer<terrier::storage::SqlTable> table, storage::TupleSlot table_tuple_slot);
-
   /**
    * Creates a language entry into the pg_language table
    * @param txn transaction to use

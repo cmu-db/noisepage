@@ -280,9 +280,6 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
-  bool CopyPR(common::ManagedPointer<transaction::TransactionContext> txn, storage::ProjectedRow *table_pr,
-              storage::ProjectedRow *index_pr, index_oid_t index_oid,
-              common::ManagedPointer<terrier::storage::SqlTable> table, storage::TupleSlot table_tuple_slot);
   /**
    * Adds a language to the catalog (with default parameters for now) if
    * it doesn't exist in pg_language already

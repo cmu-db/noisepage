@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "catalog/index_schema.h"
 #include "execution/util/execution_common.h"
 #include "storage/projected_row.h"
 
@@ -97,9 +98,8 @@ class EXPORT StorageInterface {
   /**
    * Fill table pr using a given tuple slot
    * @param table_tuple_slot tuple slot
-   * @return Whether insertion was successful.
    */
-  bool FillTablePR(storage::TupleSlot table_tuple_slot);
+  void FillTablePR(storage::TupleSlot table_tuple_slot);
 
   storage::ProjectedRow *InitTablePR(catalog::index_oid_t index_oid);
 
@@ -155,7 +155,10 @@ class EXPORT StorageInterface {
   storage::ProjectedRow *table_pr_{nullptr};
   bool has_table_pr_;
   uint32_t table_pr_size_;
-  catalog::index_oid_t index_oid_;
+  common::ManagedPointer<const catalog::IndexSchema> index_schema_{nullptr};
+  std::vector<catalog::col_oid_t> indexed_attributes_{};
+  storage::ProjectionMap pr_map_{};
+  uint32_t num_index_cols_;
 
   /**
    * Reusable ProjectedRowInitializer for this table access

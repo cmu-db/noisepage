@@ -163,13 +163,6 @@ common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oi
   return dbc_->GetIndex(txn_, index);
 }
 
-bool CatalogAccessor::CopyPR(common::ManagedPointer<transaction::TransactionContext> txn,
-                             storage::ProjectedRow *table_pr, storage::ProjectedRow *index_pr, index_oid_t index_oid,
-                             common::ManagedPointer<terrier::storage::SqlTable> table,
-                             storage::TupleSlot table_tuple_slot) {
-  return dbc_->CopyPR(txn, table_pr, index_pr, index_oid, table, table_tuple_slot);
-}
-
 language_oid_t CatalogAccessor::CreateLanguage(const std::string &lanname) {
   return dbc_->CreateLanguage(txn_, lanname);
 }
