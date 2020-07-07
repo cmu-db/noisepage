@@ -985,10 +985,28 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     auto idx = 0;
     auto &child_plan_cols = output_plan_->GetOutputSchema()->GetColumns();
     std::vector<planner::OutputSchema::Column> child_columns;
+    std::vector<planner::OutputSchema::Column> inner_columns;
     for (auto &col : child_plan_cols) {
       auto dve = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
+      auto dve_copy = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
       child_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve));
+      inner_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve_copy));
       idx++;
+    }
+
+    auto op = common::ManagedPointer<planner::AbstractPlanNode>(output_plan_);
+    while (op != nullptr) {
+      if (op->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
+        auto schema = std::make_unique<planner::OutputSchema>(std::move(inner_columns));
+        auto cte_scan_plan_node = op.CastManagedPointerTo<planner::CteScanPlanNode>();
+        cte_scan_plan_node->SetTableOutputSchema(std::move(schema));
+      }
+      if (op->GetChildrenSize() > 0) {
+        op = op->GetChildren()[0];
+      }
+      else {
+        break;
+      }
     }
 
     std::vector<planner::OutputSchema::Column> columns;
