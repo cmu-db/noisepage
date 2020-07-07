@@ -1011,9 +1011,13 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     auto idx = 0;
     auto &child_plan_cols = output_plan_->GetOutputSchema()->GetColumns();
     std::vector<planner::OutputSchema::Column> child_columns;
+    // A copy of child_columns maintained to create an identical output schema to be
+    // passed on to a child of the current CTE node (the recursive read in recursive/
+    // iterative CTEs)
     std::vector<planner::OutputSchema::Column> inner_columns;
     for (auto &col : child_plan_cols) {
       auto dve = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
+      // Made a second version to avoid ownership issues
       auto dve_copy = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
       child_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve));
       inner_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve_copy));
