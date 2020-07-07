@@ -25,6 +25,7 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/index_join_plan_node.h"
@@ -67,6 +68,36 @@ class CompilerTest : public SqlBasedTest {
 
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 };
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleCreateIndexTest) {
+  auto accessor = MakeAccessor();
+  auto table_oid = accessor->GetTableOid(NSOid(), "create_index_table");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> create_index_node;
+  ExpressionMaker expr_maker;
+  std::vector<catalog::IndexSchema::Column> keycols;
+  keycols.emplace_back("colA", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(DBOid(), table_oid,
+                                                     catalog::col_oid_t(1)));
+  auto index_schema =
+      std::make_unique<catalog::IndexSchema>(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
+  planner::CreateIndexPlanNode::Builder builder;
+  create_index_node = builder.SetNamespaceOid(NSOid())
+      .SetTableOid(table_oid)
+      .SetSchema(std::move(index_schema))
+      .SetIndexName("index1")
+      .Build();
+
+  MultiChecker multi_checker{std::vector<OutputChecker *>{}};
+  OutputStore store{&multi_checker, create_index_node->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(create_index_node->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), create_index_node->GetOutputSchema().Get());
+  auto executable = ExecutableQuery(common::ManagedPointer(create_index_node), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+}
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {

@@ -276,7 +276,7 @@ void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
 
 void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   /**
-   * This array configures each of the test tables. Each able is configured
+   * This array configures each of the test tables. Each table is configured
    * with a name, size, and schema. We also configure the columns of the table. If
    * you add a new table, set it up here.
    */
@@ -329,6 +329,11 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
         {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
         {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
+
+      // Create index table
+      {"create_index_table", CREATE_INDEX_SIZE,
+          {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
+              {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999}}}
   };
 
   if (is_mini_runner) {

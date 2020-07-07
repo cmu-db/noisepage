@@ -86,7 +86,7 @@ bool StorageInterface::IndexInsert() {
 bool StorageInterface::IndexInsertUnique() {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   if (has_table_pr_) {
-    return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot_);
+    return curr_index_->InsertUnique(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot_);
   }
   return curr_index_->InsertUnique(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
