@@ -94,6 +94,7 @@ public class CreateIndexTest extends TestUtility {
     public void testSimpleCreate() throws SQLException {
         String sql = "INSERT INTO tbl VALUES (1, 2, 100), (5, 6, 100), (3, 4, 100);";
         Statement stmt = conn.createStatement();
+        stmt.execute(sql);
 
         stmt.execute("CREATE INDEX tbl_ind ON tbl (c2)");
 
