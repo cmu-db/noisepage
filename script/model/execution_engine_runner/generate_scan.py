@@ -88,6 +88,7 @@ def generate_all(include_output):
 
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--include_output', type=int, default=0, help='Test data split ratio')
+    aparser.add_argument('--include_output', type=int, default=0,
+                         help='Whether to write to the OutputBuffer (1 represents yes)')
     args = aparser.parse_args()
     generate_all(args.include_output)
