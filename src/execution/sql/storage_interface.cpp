@@ -107,7 +107,7 @@ storage::ProjectedRow *StorageInterface::InitTablePR(catalog::index_oid_t index_
   // Init table pr
   const auto table_pr_initializer = table_->InitializerForProjectedRow(indexed_attributes_);
   table_pr_size_ = table_pr_initializer.ProjectedRowSize();
-  table_pr_buffer_ = common::AllocationUtil::AllocateAligned(table_pr_size_);
+  table_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pr_size_, alignof(uint64_t), false);
   table_pr_ = table_pr_initializer.InitializeRow(table_pr_buffer_);
   has_table_pr_ = true;
 
