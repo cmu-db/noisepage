@@ -19,6 +19,7 @@ namespace terrier::execution::ast {
   F(StringToSql, stringToSql)                                           \
   F(SqlToBool, sqlToBool)                                               \
   F(IsValNull, isValNull)                                               \
+  F(InitSqlNull, initSqlNull)                                           \
                                                                         \
   /* SQL Conversions */                                                 \
   F(ConvertBoolToInteger, convertBoolToInt)                             \
@@ -72,6 +73,7 @@ namespace terrier::execution::ast {
   F(VPIGetReal, vpiGetReal)                                             \
   F(VPIGetDouble, vpiGetDouble)                                         \
   F(VPIGetDate, vpiGetDate)                                             \
+  F(VPIGetTimestamp, vpiGetTimestamp)                                   \
   F(VPIGetString, vpiGetString)                                         \
   F(VPIGetPointer, vpiGetPointer)                                       \
   F(VPISetBool, vpiSetBool)                                             \
@@ -82,6 +84,7 @@ namespace terrier::execution::ast {
   F(VPISetReal, vpiSetReal)                                             \
   F(VPISetDouble, vpiSetDouble)                                         \
   F(VPISetDate, vpiSetDate)                                             \
+  F(VPISetTimestamp, vpiSetTimestamp)                                   \
   F(VPISetString, vpiSetString)                                         \
   F(VPIFree, vpiFree)                                                   \
                                                                         \

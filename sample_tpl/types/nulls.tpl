@@ -2,7 +2,7 @@
 
 fun main() -> int {
   var sql_int : Integer
-  var null_int = @nullToSql(&sql_int)
+  var null_int = @initSqlNull(&sql_int)
 
   if (@isSqlNotNull(null_int)) {
     return -1
@@ -12,7 +12,7 @@ fun main() -> int {
   }
 
   var sql_date : Date
-  var null_date = @nullToSql(&sql_date)
+  var null_date = @initSqlNull(&sql_date)
 
   if (@isSqlNotNull(null_date)) {
     return -1

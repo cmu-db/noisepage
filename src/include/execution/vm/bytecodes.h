@@ -144,6 +144,7 @@ namespace terrier::execution::vm {
   F(VPIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
   F(VPIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                            \
+  F(VPIGetTimestamp, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
   F(VPIGetString, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
   F(VPIGetPointer, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
@@ -155,6 +156,7 @@ namespace terrier::execution::vm {
   F(VPIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
   F(VPIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(VPIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPIGetTimestampNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
   F(VPIGetStringNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
   F(VPISetBool, OperandType::Local, OperandType::Local, OperandType::UImm4)                                            \
   F(VPISetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
@@ -165,6 +167,7 @@ namespace terrier::execution::vm {
   F(VPISetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
   F(VPISetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPISetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                            \
+  F(VPISetTimestamp, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
   F(VPISetString, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
   F(VPISetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
   F(VPISetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
@@ -175,6 +178,7 @@ namespace terrier::execution::vm {
   F(VPISetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
   F(VPISetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
   F(VPISetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPISetTimestampNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
   F(VPISetStringNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
                                                                                                                        \
   /* Filter Manager */                                                                                                 \
@@ -200,11 +204,15 @@ namespace terrier::execution::vm {
                                                                                                                        \
   /* SQL value creation */                                                                                             \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                            \
+  F(InitSqlNull, OperandType::Local)                                                                                   \
   F(InitBool, OperandType::Local, OperandType::Local)                                                                  \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                               \
   F(InitInteger64, OperandType::Local, OperandType::Local)                                                             \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                  \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(InitTimestamp, OperandType::Local, OperandType::Local)                                                             \
+  F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,             \
+    OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                \
   F(InitString, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4)                                      \
   /* SQL value conversion */                                                                                           \
   F(BoolToInteger, OperandType::Local, OperandType::Local)                                                             \

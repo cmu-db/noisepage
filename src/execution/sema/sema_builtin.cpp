@@ -55,6 +55,71 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
+  // SQL Timestamp.
+  if (builtin == ast::Builtin::TimestampToSql) {
+    if (!CheckArgCountAtLeast(call, 1)) {
+      return;
+    }
+    auto uint64_t_kind = ast::BuiltinType::Uint64;
+    // First argument (julian_usec) is a uint64_t
+    if (!call->Arguments()[0]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(uint64_t_kind));
+      return;
+    }
+    call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
+    return;
+  }
+
+  // SQL Timestamp, YMDHMSMU.
+  if (builtin == ast::Builtin::TimestampToSqlYMDHMSMU) {
+    if (!CheckArgCountAtLeast(call, 8)) {
+      return;
+    }
+    auto int32_t_kind = ast::BuiltinType::Int32;
+    // First argument (year) is a int32_t
+    if (!call->Arguments()[0]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Second argument (month) is a int32_t
+    if (!call->Arguments()[1]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Third argument (day) is a int32_t
+    if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Fourth argument (hour) is a int32_t
+    if (!call->Arguments()[3]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 3, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Fifth argument (minute) is a int32_t
+    if (!call->Arguments()[4]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 4, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Sixth argument (second) is a int32_t
+    if (!call->Arguments()[5]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 5, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Seventh argument (millisecond) is a int32_t
+    if (!call->Arguments()[6]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 6, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Eighth argument (microsecond) is a int32_t
+    if (!call->Arguments()[7]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 7, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
+    return;
+  }
+
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -130,13 +195,29 @@ void Sema::CheckNullValueCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin
   if (!CheckArgCount(call, 1)) {
     return;
   }
-  // Input must be a SQL value.
-  if (auto type = call->Arguments()[0]->GetType(); !type->IsSqlValueType()) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kIsValNullExpectsSqlValue, type);
-    return;
+  auto input_type = call->Arguments()[0]->GetType();
+  switch (builtin) {
+    case ast::Builtin::IsValNull: {
+      // Input must be a SQL value.
+      if (!input_type->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "sql_type");
+        return;
+      }
+      // Returns a primitive boolean.
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::InitSqlNull: {
+      if (!input_type->IsPointerType() || !input_type->GetPointeeType()->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "&sql_type");
+        return;
+      }
+      call->SetType(input_type->GetPointeeType());
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported NULL type.");
   }
-  // Returns a primitive boolean.
-  call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
 }
 
 void Sema::CheckBuiltinStringLikeCall(ast::CallExpr *call) {
@@ -1071,6 +1152,13 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Date));
       break;
     }
+    case ast::Builtin::VPIGetTimestamp: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
+      break;
+    }
     case ast::Builtin::VPIGetString: {
       if (!CheckArgCount(call, 2)) {
         return;
@@ -1091,17 +1179,32 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::VPISetReal:
     case ast::Builtin::VPISetDouble:
     case ast::Builtin::VPISetDate:
+    case ast::Builtin::VPISetTimestamp:
     case ast::Builtin::VPISetString: {
       if (!CheckArgCount(call, 3)) {
         return;
       }
       // Second argument must be either an Integer or Real
-      const auto sql_kind =
-          (builtin == ast::Builtin::VPISetReal || builtin == ast::Builtin::VPISetDouble
-               ? ast::BuiltinType::Real
-               : builtin == ast::Builtin::VPISetDate
-                     ? ast::BuiltinType::Date
-                     : builtin == ast::Builtin::VPISetString ? ast::BuiltinType::StringVal : ast::BuiltinType::Integer);
+      ast::BuiltinType::Kind sql_kind;
+      switch (builtin) {
+        case ast::Builtin::VPISetReal: // fallthrough
+        case ast::Builtin::VPISetDouble: {
+          sql_kind = ast::BuiltinType::Real;
+          break;
+        }
+        case ast::Builtin::VPISetDate: {
+          sql_kind = ast::BuiltinType::Date;
+          break;
+        }
+        case ast::Builtin::VPISetTimestamp: {
+          sql_kind = ast::BuiltinType::Timestamp;
+          break;
+        }
+        default: {
+          sql_kind = ast::BuiltinType::Integer;
+          break;
+        }
+      }
       if (!call_args[1]->GetType()->IsSpecificBuiltin(sql_kind)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(sql_kind));
         return;
@@ -2392,6 +2495,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
+    case ast::Builtin::TimestampToSql:
+    case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:
     case ast::Builtin::SqlToBool:
     case ast::Builtin::ConvertBoolToInteger:
@@ -2405,7 +2510,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckSqlConversionCall(call, builtin);
       break;
     }
-    case ast::Builtin::IsValNull: {
+    case ast::Builtin::IsValNull:
+    case ast::Builtin::InitSqlNull: {
       CheckNullValueCall(call, builtin);
       break;
     }
@@ -2463,6 +2569,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::VPIGetReal:
     case ast::Builtin::VPIGetDouble:
     case ast::Builtin::VPIGetDate:
+    case ast::Builtin::VPIGetTimestamp:
     case ast::Builtin::VPIGetString:
     case ast::Builtin::VPIGetPointer:
     case ast::Builtin::VPISetBool:
@@ -2473,6 +2580,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::VPISetReal:
     case ast::Builtin::VPISetDouble:
     case ast::Builtin::VPISetDate:
+    case ast::Builtin::VPISetTimestamp:
     case ast::Builtin::VPISetString: {
       CheckBuiltinVPICall(call, builtin);
       break;

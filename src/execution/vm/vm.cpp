@@ -709,6 +709,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
   GEN_VPI_ACCESS(Double, sql::Real)
   GEN_VPI_ACCESS(Decimal, sql::DecimalVal)
   GEN_VPI_ACCESS(Date, sql::DateVal)
+  GEN_VPI_ACCESS(Timestamp, sql::TimestampVal)
   GEN_VPI_ACCESS(String, sql::StringVal)
 #undef GEN_VPI_ACCESS
 
@@ -830,6 +831,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     DISPATCH_NEXT();
   }
 
+  OP(InitSqlNull) : {
+    auto *sql_null = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());
+    OpInitSqlNull(sql_null);
+    DISPATCH_NEXT();
+  }
+
   OP(InitBool) : {
     auto *sql_bool = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
     auto val = frame->LocalAt<bool>(READ_LOCAL_ID());
@@ -864,6 +871,27 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     auto month = frame->LocalAt<int32_t>(READ_LOCAL_ID());
     auto day = frame->LocalAt<int32_t>(READ_LOCAL_ID());
     OpInitDate(sql_date, year, month, day);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitTimestamp) : {
+    auto *sql_timestamp = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());
+    auto usec = frame->LocalAt<uint64_t>(READ_LOCAL_ID());
+    OpInitTimestamp(sql_timestamp, usec);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitTimestampYMDHMSMU) : {
+    auto *sql_timestamp = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());
+    auto year = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto month = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto day = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto h = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto m = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto s = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto ms = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto us = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    OpInitTimestampYMDHMSMU(sql_timestamp, year, month, day, h, m, s, ms, us);
     DISPATCH_NEXT();
   }
 

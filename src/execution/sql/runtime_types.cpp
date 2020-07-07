@@ -113,7 +113,7 @@ int64_t BuildTime(int32_t hour, int32_t min, int32_t sec, int32_t milli = 0, int
 
 // Given a time in microseconds, split it into hour, minute, second, and
 // fractional second components.
-void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *fsec) {
+void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *millisec, int32_t *microsec) {
   int64_t time = jd;
 
   *hour = time / K_MICRO_SECONDS_PER_HOUR;
@@ -121,7 +121,9 @@ void SplitTime(int64_t jd, int32_t *hour, int32_t *min, int32_t *sec, int32_t *f
   *min = time / K_MICRO_SECONDS_PER_MINUTE;
   time -= (*min) * K_MICRO_SECONDS_PER_MINUTE;
   *sec = time / K_MICRO_SECONDS_PER_SECOND;
-  *fsec = time - (*sec * K_MICRO_SECONDS_PER_SECOND);
+  int32_t fsec = time - (*sec * K_MICRO_SECONDS_PER_SECOND);
+  *millisec = fsec / 1000;
+  *microsec = fsec % 1000;
 }
 
 // Check if a string value ends with string ending
@@ -286,8 +288,8 @@ int32_t Timestamp::ExtractHour() const {
   StripTime(value_, &date, &time);
 
   // Extract hour from time.
-  int32_t hour, min, sec, fsec;
-  SplitTime(time, &hour, &min, &sec, &fsec);
+  int32_t hour, min, sec, millisec, microsec;
+  SplitTime(time, &hour, &min, &sec, &millisec, &microsec);
   return hour;
 }
 
@@ -297,8 +299,8 @@ int32_t Timestamp::ExtractMinute() const {
   StripTime(value_, &date, &time);
 
   // Extract minute from time.
-  int32_t hour, min, sec, fsec;
-  SplitTime(time, &hour, &min, &sec, &fsec);
+  int32_t hour, min, sec, millisec, microsec;
+  SplitTime(time, &hour, &min, &sec, &millisec, &microsec);
   return min;
 }
 
@@ -308,8 +310,8 @@ int32_t Timestamp::ExtractSecond() const {
   StripTime(value_, &date, &time);
 
   // Extract second from time.
-  int32_t hour, min, sec, fsec;
-  SplitTime(time, &hour, &min, &sec, &fsec);
+  int32_t hour, min, sec, millisec, microsec;
+  SplitTime(time, &hour, &min, &sec, &millisec, &microsec);
   return sec;
 }
 
@@ -319,9 +321,9 @@ int32_t Timestamp::ExtractMillis() const {
   StripTime(value_, &date, &time);
 
   // Extract millisecond from time.
-  int32_t hour, min, sec, fsec;
-  SplitTime(time, &hour, &min, &sec, &fsec);
-  return fsec / 1000;
+  int32_t hour, min, sec, millisec, microsec;
+  SplitTime(time, &hour, &min, &sec, &millisec, &microsec);
+  return millisec;
 }
 
 int32_t Timestamp::ExtractMicros() const {
@@ -330,9 +332,9 @@ int32_t Timestamp::ExtractMicros() const {
   StripTime(value_, &date, &time);
 
   // Extract microsecond from time.
-  int32_t hour, min, sec, fsec;
-  SplitTime(time, &hour, &min, &sec, &fsec);
-  return fsec % 1000;
+  int32_t hour, min, sec, millisec, microsec;
+  SplitTime(time, &hour, &min, &sec, &millisec, &microsec);
+  return microsec;
 }
 
 int32_t Timestamp::ExtractDayOfWeek() const {
@@ -358,12 +360,12 @@ int32_t Timestamp::ExtractDayOfYear() const {
 }
 
 void Timestamp::ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min,
-                                  int32_t *sec, int32_t *fsec) const {
+                                  int32_t *sec, int32_t *millisec, int32_t *microsec) const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
   SplitJulianDate(date, year, month, day);
-  SplitTime(time, hour, min, sec, fsec);
+  SplitTime(time, hour, min, sec, millisec, microsec);
 }
 
 uint64_t Timestamp::ToNative() const { return value_; }
@@ -374,10 +376,10 @@ std::string Timestamp::ToString() const {
   int64_t date, time;
   StripTime(value_, &date, &time);
 
-  int32_t year, month, day, hour, min, sec, fsec;
-  ExtractComponents(&year, &month, &day, &hour, &min, &sec, &fsec);
+  int32_t year, month, day, hour, min, sec, millisec, microsec;
+  ExtractComponents(&year, &month, &day, &hour, &min, &sec, &millisec, &microsec);
 
-  return fmt::format("{}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}", year, month, day, hour, min, sec, fsec);
+  return fmt::format("{}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}", year, month, day, hour, min, sec, millisec + microsec);
 }
 
 Timestamp Timestamp::FromString(const char *str, std::size_t len) {

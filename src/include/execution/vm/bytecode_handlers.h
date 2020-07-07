@@ -368,6 +368,7 @@ GEN_VPI_GET(Real, Real, float);
 GEN_VPI_GET(Double, Real, double);
 GEN_VPI_GET(Decimal, DecimalVal, terrier::execution::sql::Decimal64);
 GEN_VPI_GET(Date, DateVal, terrier::execution::sql::Date);
+GEN_VPI_GET(Timestamp, TimestampVal, terrier::execution::sql::Timestamp);
 GEN_VPI_GET(String, StringVal, terrier::storage::VarlenEntry);
 
 GEN_VPI_SET(Bool, BoolVal, bool);
@@ -379,6 +380,7 @@ GEN_VPI_SET(Real, Real, float);
 GEN_VPI_SET(Double, Real, double);
 GEN_VPI_SET(Decimal, DecimalVal, terrier::execution::sql::Decimal64);
 GEN_VPI_SET(Date, DateVal, terrier::execution::sql::Date);
+GEN_VPI_SET(Timestamp, TimestampVal, terrier::execution::sql::Timestamp);
 GEN_VPI_SET(String, StringVal, terrier::storage::VarlenEntry);
 
 #undef GEN_VPI_SET
@@ -479,6 +481,8 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
+VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) { *result = terrier::execution::sql::Val(true); }
+
 VM_OP_HOT void OpInitBool(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;
   result->val_ = input;
@@ -502,6 +506,19 @@ VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, double input) {
 VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year, int32_t month, int32_t day) {
   result->is_null_ = false;
   result->val_ = terrier::execution::sql::Date::FromYMD(year, month, day);
+}
+
+VM_OP_HOT void OpInitTimestamp(terrier::execution::sql::TimestampVal *result, uint64_t usec) {
+  result->is_null_ = false;
+  result->val_ = terrier::execution::sql::Timestamp::FromMicroseconds(usec);
+}
+
+VM_OP_HOT void OpInitTimestampYMDHMSMU(terrier::execution::sql::TimestampVal *result, int32_t year, int32_t month,
+                                       int32_t day, int32_t hour, int32_t minute, int32_t sec, int32_t milli,
+                                       int32_t micro) {
+  result->is_null_ = false;
+  auto res = terrier::execution::sql::Timestamp::FromYMDHMSMU(year, month, day, hour, minute, sec, milli, micro);
+  result->val_ = res;
 }
 
 VM_OP_HOT void OpInitString(terrier::execution::sql::StringVal *result, const uint8_t *str, uint32_t length) {

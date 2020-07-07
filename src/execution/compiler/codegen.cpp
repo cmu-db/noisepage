@@ -355,6 +355,23 @@ ast::Expr *CodeGen::DateToSql(int32_t year, int32_t month, int32_t day) const {
   return call;
 }
 
+ast::Expr *CodeGen::TimestampToSql(sql::Timestamp timestamp) const {
+  int32_t year, month, day, hour, min, sec, millisec, microsec;
+  timestamp.ExtractComponents(&year, &month, &day, &hour, &min, &sec, &millisec, &microsec);
+  ast::Expr *call = CallBuiltin(ast::Builtin::TimestampToSqlYMDHMSMU,
+                                {Const32(year), Const32(month), Const32(day), Const32(hour), Const32(min), Const32(sec),
+                                 Const32(millisec), Const32(microsec)});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Timestamp));
+  return call;
+}
+
+ast::Expr *CodeGen::TimestampToSql(uint64_t julian_usec) const {
+  ast::Expr *usec_expr = Const64(julian_usec);
+  ast::Expr *call = CallBuiltin(ast::Builtin::TimestampToSql, {usec_expr});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Timestamp));
+  return call;
+}
+
 ast::Expr *CodeGen::StringToSql(std::string_view str) const {
   ast::Expr *call = CallBuiltin(ast::Builtin::StringToSql, {ConstString(str)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::StringVal));
@@ -496,7 +513,11 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       UNREACHABLE("Unsupported index set type!");
   }
   ast::Expr *idx_expr = GetFactory()->NewIntLiteral(position_, attr_idx);
-  return CallBuiltin(builtin, {pr, idx_expr, val});
+  if (builtin == ast::Builtin::PRSetVarlenNull || builtin == ast::Builtin::PRSetVarlen) {
+    return CallBuiltin(builtin, {pr, idx_expr, val, ConstBool(false)});
+  } else {
+    return CallBuiltin(builtin, {pr, idx_expr, val});
+  }
 }
 
 // ---------------------------------------------------------
@@ -617,6 +638,10 @@ ast::Expr *CodeGen::VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, u
     case sql::TypeId::Date:
       builtin = ast::Builtin::VPIGetDate;
       ret_kind = ast::BuiltinType::Date;
+      break;
+    case sql::TypeId::Timestamp:
+      builtin = ast::Builtin::VPIGetTimestamp;
+      ret_kind = ast::BuiltinType::Timestamp;
       break;
     case sql::TypeId::Varchar:
       builtin = ast::Builtin::VPIGetString;

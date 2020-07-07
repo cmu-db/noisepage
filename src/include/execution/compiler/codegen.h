@@ -488,6 +488,35 @@ class CodeGen {
   [[nodiscard]] ast::Expr *DateToSql(int32_t year, int32_t month, int32_t day) const;
 
   /**
+   * Call @timestampToSql(). Create a timestamp value.
+   * @param timestamp The timestamp
+   * @return The generated sql Timestamp.
+   */
+  [[nodiscard]] ast::Expr *TimestampToSql(sql::Timestamp timestamp) const;
+
+  /**
+   * Call @timestampToSql(). Create a timestamp value.
+   * @param julian_usec The number of microseconds in Julian time.
+   * @return The generated sql Timestamp.
+   */
+  [[nodiscard]] ast::Expr *TimestampToSql(uint64_t julian_usec) const;
+
+  /**
+   * Call @timestampToSql(). Create a timestamp value.
+   * @param year Years.
+   * @param month Months.
+   * @param day Days.
+   * @param h Hours.
+   * @param m Minutes.
+   * @param s Seconds.
+   * @param ms Milliseconds.
+   * @param us Microseconds.
+   * @return The SQL date.
+   */
+  [[nodiscard]] ast::Expr *TimestampToSql(int32_t year, int32_t month, int32_t day, int32_t h, int32_t m, int32_t s,
+                                          int32_t ms, int32_t us) const;
+
+  /**
    * Call @stringToSql(). Convert a string literal into a SQL string.
    * @param str The string.
    * @return The SQL varlen.

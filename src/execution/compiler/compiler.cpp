@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "execution/ast/ast_pretty_print.h"
 #include "execution/ast/context.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
@@ -80,6 +81,8 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
   }
 
   callbacks->EndPhase(Phase::SemanticAnalysis, this);
+
+  ast::AstPrettyPrint::Dump(std::cerr, root_);
 
   // -------------------------------------------------------
   // Phase 3 : Bytecode Generation

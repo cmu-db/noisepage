@@ -245,10 +245,11 @@ class EXPORT Timestamp {
    * @param[out] hour The hour corresponding to this date.
    * @param[out] min The minute corresponding to this date.
    * @param[out] sec The second corresponding to this date.
-   * @param[out] fsec The fractional second corresponding to this date.
+   * @param[out] millisec The millisecond corresponding to this date.
+   * @param[out] microsec The millisecond corresponding to this date.
    */
   void ExtractComponents(int32_t *year, int32_t *month, int32_t *day, int32_t *hour, int32_t *min, int32_t *sec,
-                         int32_t *fsec) const;
+                         int32_t *millisec, int32_t *microsec) const;
 
   /**
    * Convert this timestamp instance into a date instance.

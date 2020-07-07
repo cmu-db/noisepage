@@ -518,6 +518,23 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::InitDate, dest, year, month, day);
       break;
     }
+    case ast::Builtin::TimestampToSql: {
+      auto usec = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::InitTimestamp, dest, usec);
+      break;
+    }
+    case ast::Builtin::TimestampToSqlYMDHMSMU: {
+      auto year = VisitExpressionForRValue(call->Arguments()[0]);
+      auto month = VisitExpressionForRValue(call->Arguments()[1]);
+      auto day = VisitExpressionForRValue(call->Arguments()[2]);
+      auto h = VisitExpressionForRValue(call->Arguments()[3]);
+      auto m = VisitExpressionForRValue(call->Arguments()[4]);
+      auto s = VisitExpressionForRValue(call->Arguments()[5]);
+      auto ms = VisitExpressionForRValue(call->Arguments()[6]);
+      auto us = VisitExpressionForRValue(call->Arguments()[7]);
+      GetEmitter()->Emit(Bytecode::InitTimestampYMDHMSMU, dest, year, month, day, h, m, s, ms, us);
+      break;
+    }
     case ast::Builtin::StringToSql: {
       auto string_lit = call->Arguments()[0]->As<ast::LitExpr>()->StringVal();
       auto static_string = NewStaticString(call->GetType()->GetContext(), string_lit);
@@ -554,10 +571,28 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
 }
 
 void BytecodeGenerator::VisitNullValueCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
-  LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-  LocalVar input = VisitExpressionForLValue(call->Arguments()[0]);
-  GetEmitter()->Emit(Bytecode::ValIsNull, result, input);
-  GetExecutionResult()->SetDestination(result.ValueOf());
+  switch (builtin) {
+    case ast::Builtin::IsValNull: {
+      LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar input = VisitExpressionForLValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::ValIsNull, result, input);
+      GetExecutionResult()->SetDestination(result.ValueOf());
+      break;
+    }
+    case ast::Builtin::InitSqlNull: {
+      // The type of NULL to be created should have been set in sema.
+      // Per discussions with pmenon, the NULL type should be determined during bytecode generation.
+      // Currently, all SQL types do not need special behavior for NULLs, and it suffices to create
+      // a Val::Null() to handle every use-case. However, if custom NULL objects are required in the
+      // future, then the switching on the type of the NULL should also be done in this function.
+      // The idea is to avoid the overhead of doing it at runtime.
+      auto dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::InitSqlNull, dest);
+      break;
+    }
+    default:
+      UNREACHABLE("VisitNullValueCall unknown builtin type.");
+  }
 }
 
 void BytecodeGenerator::VisitSqlStringLikeCall(ast::CallExpr *call) {
@@ -742,6 +777,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
     GEN_CASE(VPIGetReal, Bytecode::VPIGetReal);
     GEN_CASE(VPIGetDouble, Bytecode::VPIGetDouble);
     GEN_CASE(VPIGetDate, Bytecode::VPIGetDate);
+    GEN_CASE(VPIGetTimestamp, Bytecode::VPIGetTimestamp);
     GEN_CASE(VPIGetString, Bytecode::VPIGetString);
     GEN_CASE(VPIGetPointer, Bytecode::VPIGetPointer);
       // clang-format on
@@ -764,6 +800,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
     GEN_CASE(VPISetReal, Bytecode::VPISetReal);
     GEN_CASE(VPISetDouble, Bytecode::VPISetDouble);
     GEN_CASE(VPISetDate, Bytecode::VPISetDate);
+    GEN_CASE(VPISetTimestamp, Bytecode::VPISetTimestamp);
     GEN_CASE(VPISetString, Bytecode::VPISetString);
       // clang-format on
 #undef GEN_CASE
@@ -2017,6 +2054,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
+    case ast::Builtin::TimestampToSql:
+    case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::StringToSql:
     case ast::Builtin::SqlToBool:
     case ast::Builtin::ConvertBoolToInteger:
@@ -2030,7 +2069,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitSqlConversionCall(call, builtin);
       break;
     }
-    case ast::Builtin::IsValNull: {
+    case ast::Builtin::IsValNull:
+    case ast::Builtin::InitSqlNull: {
       VisitNullValueCall(call, builtin);
       break;
     }
@@ -2088,6 +2128,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::VPIGetReal:
     case ast::Builtin::VPIGetDouble:
     case ast::Builtin::VPIGetDate:
+    case ast::Builtin::VPIGetTimestamp:
     case ast::Builtin::VPIGetString:
     case ast::Builtin::VPIGetPointer:
     case ast::Builtin::VPISetBool:
@@ -2098,6 +2139,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::VPISetReal:
     case ast::Builtin::VPISetDouble:
     case ast::Builtin::VPISetDate:
+    case ast::Builtin::VPISetTimestamp:
     case ast::Builtin::VPISetString: {
       VisitBuiltinVPICall(call, builtin);
       break;

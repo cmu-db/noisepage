@@ -97,6 +97,8 @@ class BytecodeEmitter {
             LocalVar operand_5, LocalVar operand_6, LocalVar operand_7);
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
             LocalVar operand_5, LocalVar operand_6, LocalVar operand_7, LocalVar operand_8);
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
+            LocalVar operand_5, LocalVar operand_6, LocalVar operand_7, LocalVar operand_8, LocalVar operand_9);
 
   // -------------------------------------------------------
   // Special
