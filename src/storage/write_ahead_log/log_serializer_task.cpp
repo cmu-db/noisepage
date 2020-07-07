@@ -42,7 +42,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 
 bool LogSerializerTask::Process() {
   uint64_t num_bytes = 0, num_records = 0;
-  bool logging_metrics_enabled =
+  const bool logging_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
   if (logging_metrics_enabled) {
