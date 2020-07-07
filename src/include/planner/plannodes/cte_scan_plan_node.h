@@ -108,6 +108,16 @@ class CteScanPlanNode : public AbstractPlanNode {
   void SetLeader() { is_leader_ = true; }
 
   /**
+   * @return True is this node is for a recursive CTE table
+   */
+  bool IsRecursive() const { return is_recursive_; }
+
+  /**
+   * Assigns a boolean for whether this node is for a recursive tabl
+   */
+  void SetRecursive() { is_recursive_ = true; }
+
+  /**
    * @return table output schema for the node. The output schema contains information on columns of the output of the
    * plan node operator
    */
@@ -135,6 +145,7 @@ class CteScanPlanNode : public AbstractPlanNode {
  private:
   // Boolean to indicate whether this plan node is leader or not
   bool is_leader_;
+  bool is_recursive_;
   // Output table schema for CTE scan
   std::unique_ptr<OutputSchema> table_output_schema_;
 };
