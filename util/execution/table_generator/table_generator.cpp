@@ -331,10 +331,10 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
         {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
 
       // Create index table
-      {"create_index_table", CREATE_INDEX_SIZE,
-          {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
-              {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999}}}
-  };
+      {"create_index_table",
+       CREATE_INDEX_SIZE,
+       {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
+        {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999}}}};
 
   if (is_mini_runner) {
     auto mini_runner_table_metas = GenerateMiniRunnerTableMetas();

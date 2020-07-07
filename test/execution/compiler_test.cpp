@@ -78,24 +78,25 @@ TEST_F(CompilerTest, SimpleCreateIndexTest) {
   ExpressionMaker expr_maker;
   std::vector<catalog::IndexSchema::Column> keycols;
   keycols.emplace_back("colA", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(DBOid(), table_oid,
-                                                     catalog::col_oid_t(1)));
+                       parser::ColumnValueExpression(DBOid(), table_oid, catalog::col_oid_t(1)));
   auto index_schema =
       std::make_unique<catalog::IndexSchema>(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
   planner::CreateIndexPlanNode::Builder builder;
   create_index_node = builder.SetNamespaceOid(NSOid())
-      .SetTableOid(table_oid)
-      .SetSchema(std::move(index_schema))
-      .SetIndexName("index1")
-      .Build();
+                          .SetTableOid(table_oid)
+                          .SetSchema(std::move(index_schema))
+                          .SetIndexName("index1")
+                          .Build();
 
   MultiChecker multi_checker{std::vector<OutputChecker *>{}};
   OutputStore store{&multi_checker, create_index_node->GetOutputSchema().Get()};
   exec::OutputPrinter printer(create_index_node->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  const clock_t begin_time = clock();
   auto exec_ctx = MakeExecCtx(std::move(callback), create_index_node->GetOutputSchema().Get());
   auto executable = ExecutableQuery(common::ManagedPointer(create_index_node), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  std::cout << float(clock() - begin_time) / CLOCKS_PER_SEC;
   multi_checker.CheckCorrectness();
 }
 

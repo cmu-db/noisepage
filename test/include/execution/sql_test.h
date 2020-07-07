@@ -40,7 +40,7 @@ class SqlBasedTest : public TplTest {
   ~SqlBasedTest() override { txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr); }
 
   catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
-  catalog::db_oid_t DBOid() {return test_db_oid_;}
+  catalog::db_oid_t DBOid() { return test_db_oid_; }
 
   common::ManagedPointer<storage::BlockStore> BlockStore() { return block_store_; }
 
