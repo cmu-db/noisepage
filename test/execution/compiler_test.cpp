@@ -92,11 +92,11 @@ TEST_F(CompilerTest, SimpleCreateIndexTest) {
   OutputStore store{&multi_checker, create_index_node->GetOutputSchema().Get()};
   exec::OutputPrinter printer(create_index_node->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  const clock_t begin_time = clock();
+  // const clock_t begin_time = clock();
   auto exec_ctx = MakeExecCtx(std::move(callback), create_index_node->GetOutputSchema().Get());
   auto executable = ExecutableQuery(common::ManagedPointer(create_index_node), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
-  std::cout << float(clock() - begin_time) / CLOCKS_PER_SEC;
+  // std::cout << float(clock() - begin_time) / CLOCKS_PER_SEC;
   multi_checker.CheckCorrectness();
 }
 
