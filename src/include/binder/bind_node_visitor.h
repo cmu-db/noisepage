@@ -9,7 +9,9 @@
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/postgresparser.h"
+#include "parser/select_statement.h"
 
 namespace terrier {
 
@@ -113,6 +115,26 @@ class BindNodeVisitor : public SqlNodeVisitor {
         throw BINDER_EXCEPTION("cross-database references are not implemented: ",
                                common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
     }
+  }
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> UnifyOrderByExpression(
+      common::ManagedPointer<parser::OrderByDescription> order_by_description,
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> select_items) {
+    auto exprs = order_by_description->GetOrderByExpressions();
+    auto size = order_by_description->GetOrderByExpressionsSize();
+    for (size_t idx = 0; idx < size; idx++) {
+      if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
+        auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
+        int64_t column_id = constant_value_expression->GetInteger().val_;
+        if (column_id > 0 && static_cast<size_t>(column_id) <= select_items.size()) {
+          exprs[idx] = select_items[column_id - 1];
+        } else {
+          exprs[idx] = common::ManagedPointer<parser::AbstractExpression>(new parser::ColumnValueExpression(
+              catalog::INVALID_DATABASE_OID, catalog::INVALID_TABLE_OID, static_cast<catalog::col_oid_t>(column_id)));
+        }
+      }
+    }
+    return exprs;
   }
 };
 

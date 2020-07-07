@@ -53,23 +53,6 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
       auto types = order_by->GetOrderByTypes();
       auto exprs = order_by->GetOrderByExpressions();
       for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
-        if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
-          common::ManagedPointer<parser::ConstantValueExpression> constant_value_expression =
-              exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
-          int64_t column_id = constant_value_expression->GetInteger().val_;
-          common::ManagedPointer<parser::SelectStatement> select_statement =
-              query->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
-          common::ManagedPointer<parser::AbstractExpression> column =
-              select_statement->GetSelectColumns()[column_id - 1];
-          common::ManagedPointer<parser::ColumnValueExpression> column_value_expression =
-              column.CastManagedPointerTo<parser::ColumnValueExpression>();
-          common::ManagedPointer<parser::AbstractExpression> column_value_expr =
-              common::ManagedPointer<parser::AbstractExpression>(new parser::ColumnValueExpression(
-                  column_value_expression->GetTableName(), column_value_expression->GetColumnName(), db_oid,
-                  accessor->GetTableOid(sel_stmt->GetSelectTable()->GetTableName()), catalog::col_oid_t(column_id),
-                  column_value_expression->GetReturnValueType()));
-          exprs[idx] = column_value_expr;
-        }
         sort_exprs.emplace_back(exprs[idx]);
         sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
                                                                        : optimizer::OrderByOrderingType::DESC);

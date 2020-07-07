@@ -133,7 +133,6 @@ TEST_F(TrafficCopTests, BasicTest) {
                                             port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(connection);
-    txn1.exec("DROP TABLE IF EXISTS TableA");
     txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
 

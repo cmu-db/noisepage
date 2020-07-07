@@ -462,8 +462,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     node->GetSelectCondition()->DeriveDepth();
     node->GetSelectCondition()->DeriveSubqueryFlag();
   }
-  if (node->GetSelectOrderBy() != nullptr)
-    node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
   if (node->GetSelectLimit() != nullptr)
     node->GetSelectLimit()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -494,6 +492,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   }
   node->SetSelectColumns(new_select_list);
   node->SetDepth(context_->GetDepth());
+
+  if (node->GetSelectOrderBy() != nullptr) {
+    auto orderByExpressions = UnifyOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
+    node->GetSelectOrderBy()->GetOrderByExpressions().swap(orderByExpressions);
+    node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  }
 
   context_ = context_->GetUpperContext();
 }
@@ -569,6 +573,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
   SqlNodeVisitor::Visit(expr);
 
   sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
+
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //  That is, the object would not be initialized using ColumnValueExpression(database_oid, table_oid, column_oid)
   //  at this point
@@ -576,7 +581,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
     std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
     std::string table_name = expr->GetTableName();
     std::string col_name = expr->GetColumnName();
-
+    if (table_name.empty() && col_name.empty() && expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
+      throw BINDER_EXCEPTION(fmt::format("ORDER BY position \"{}\" is not in select list", expr->GetColumnOid()),
+                             common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
+    }
     // Convert all the names to lower cases
     std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);
     std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
