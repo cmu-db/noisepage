@@ -446,7 +446,6 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<PostgresPacketWriter> out,
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
-
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND)) {
     // start the operating unit resource tracker

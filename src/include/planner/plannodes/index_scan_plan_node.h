@@ -195,8 +195,8 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
-  * @return The scan type
-  */
+   * @return The scan type
+   */
   IndexScanType GetScanType() const { return scan_type_; }
 
   /**
@@ -228,9 +228,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   /**
    * @return the estimation for the number of tuples in the underlying table
    */
-  uint64_t GetTableNumTuple() const {
-    return table_num_tuple_;
-  }
+  uint64_t GetTableNumTuple() const { return table_num_tuple_; }
 
   /**
    * @return The scan limit

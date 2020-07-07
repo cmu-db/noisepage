@@ -34,7 +34,7 @@ GarbageCollector::GarbageCollector(
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   const bool gc_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
-          common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
 
   if (observer_ != nullptr) observer_->ObserveGCInvocation();
   timestamp_manager_->CheckOutTimestamp();
@@ -87,7 +87,6 @@ uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldes
 
 std::tuple<uint32_t, uint32_t, uint32_t> GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
   transaction::TransactionContext *txn = nullptr;
-
 
   // Get the completed transactions from the TransactionManager
   transaction::TransactionQueue completed_txns = txn_manager_->CompletedTransactionsForGC();

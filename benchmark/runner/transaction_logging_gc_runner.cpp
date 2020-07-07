@@ -120,10 +120,9 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
 
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, config_interval, config_interval,
-                                log_persist_threshold_, common::ManagedPointer(&buffer_pool),
-                                common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, config_interval, config_interval,
+                                           log_persist_threshold_, common::ManagedPointer(&buffer_pool),
+                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
@@ -155,7 +154,6 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
-
 
 static void UNUSED_ATTRIBUTE TransactionArguments(benchmark::internal::Benchmark *b) {
   std::vector<uint32_t> txn_lengths = {2};
@@ -190,7 +188,7 @@ static void UNUSED_ATTRIBUTE LoggingGCArguments(benchmark::internal::Benchmark *
 }
 
 BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, TransactionRunner)
-->Unit(benchmark::kMillisecond)
+    ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Iterations(1)
     ->Apply(TransactionArguments);

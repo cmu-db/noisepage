@@ -72,7 +72,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
                     uint64_t readonly_unlinked, const uint64_t interval,
                     const common::ResourceTracker::Metrics &resource_metrics) {
     gc_data_.emplace_back(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, interval,
-                           resource_metrics);
+                          resource_metrics);
   }
 
   struct GCData {

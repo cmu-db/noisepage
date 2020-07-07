@@ -22,7 +22,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   do {
     const bool logging_metrics_enabled =
         common::thread_context.metrics_store_ != nullptr &&
-            common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
 
     if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
       // start the operating unit resource tracker
@@ -51,8 +51,8 @@ void LogSerializerTask::LogSerializerTaskLoop() {
       // Stop the resource tracker for this operating unit
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordSerializerData(
-          num_bytes, num_records, num_txns, serialization_interval_.count(), resource_metrics);
+      common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records, num_txns,
+                                                                  serialization_interval_.count(), resource_metrics);
       num_bytes = num_records = num_txns = 0;
     }
   } while (run_task_);

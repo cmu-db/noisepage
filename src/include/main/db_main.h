@@ -623,7 +623,7 @@ class DBMain {
     bool use_metrics_ = false;
     uint32_t metrics_interval_ = 10000;
     bool use_metrics_thread_ = false;
-    bool metrics_pipeline_= false;
+    bool metrics_pipeline_ = false;
     bool metrics_transaction_ = false;
     bool metrics_logging_ = false;
     bool metrics_gc_ = false;
@@ -715,7 +715,6 @@ class DBMain {
 
       return metrics_manager;
     }
-
   };
 
   /**
