@@ -110,7 +110,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-     * @param estimated number of tuples in the table
+     * @param table_num_tuple estimated number of tuples in the table
      * @return builder object
      */
     Builder &SetTableNumTuple(uint64_t table_num_tuple) {

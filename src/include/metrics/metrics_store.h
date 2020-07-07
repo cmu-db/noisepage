@@ -39,8 +39,9 @@ class MetricsStore {
    * Record metrics from the LogSerializerTask
    * @param num_bytes first entry of metrics datapoint
    * @param num_records second entry of metrics datapoint
-   * @param interval third entry of metrics datapoint
-   * @param resource_metrics third entry of metrics datapoint
+   * @param num_txns third entry of metrics datapoint
+   * @param interval fourth entry of metrics datapoint
+   * @param resource_metrics fifth entry of metrics datapoint
    */
   void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
                             const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics) {
