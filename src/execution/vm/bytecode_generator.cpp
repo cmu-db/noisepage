@@ -405,9 +405,16 @@ void BytecodeGenerator::VisitArithmeticUnaryExpr(ast::UnaryOpExpr *op) {
 
 void BytecodeGenerator::VisitLogicalNotExpr(ast::UnaryOpExpr *op) {
   LocalVar dest = ExecutionResult()->GetOrCreateDestination(op->GetType());
-  LocalVar input = VisitExpressionForRValue(op->Expression());
-  Emitter()->EmitUnaryOp(Bytecode::Not, dest, input);
-  ExecutionResult()->SetDestination(dest.ValueOf());
+  LocalVar input;
+  if (op->GetType()->IsBoolType()) {
+    input = VisitExpressionForRValue(op->Expression());
+    Emitter()->EmitUnaryOp(Bytecode::Not, dest, input);
+    ExecutionResult()->SetDestination(dest.ValueOf());
+  } else if (op->GetType()->IsSqlBooleanType()) {
+    input = VisitExpressionForLValue(op->Expression());
+    Emitter()->EmitUnaryOp(Bytecode::NotSql, dest, input);
+    ExecutionResult()->SetDestination(dest);
+  }
 }
 
 void BytecodeGenerator::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {

@@ -328,6 +328,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(NotSql) : {
+    auto *dest = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    OpNotSql(dest, input);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Jumps
   // -------------------------------------------------------
