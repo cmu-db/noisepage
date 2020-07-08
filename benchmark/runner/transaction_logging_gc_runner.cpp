@@ -69,8 +69,6 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     log_manager_->ForceFlush();
 
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
