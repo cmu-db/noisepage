@@ -2,6 +2,7 @@
 import os
 from datetime import datetime
 from util.constants import DIR_TMP
+import logging
 
 # git settings of OLTP
 OLTP_GIT_URL = "https://github.com/oltpbenchmark/oltpbench.git"
@@ -37,3 +38,12 @@ OLTP_ANT_COMMANDS = [
     OLTP_ANT_COMMAND_BOOTSTRAP, OLTP_ANT_COMMAND_RESOLVE,
     OLTP_ANT_COMMAND_BUILD
 ]
+
+# Logging settings
+LOG = logging.getLogger(__name__)
+LOG_handler = logging.StreamHandler()
+LOG_formatter = logging.Formatter(fmt='%(asctime)s,%(msecs)03d [%(filename)s:%(lineno)03d] %(levelname)-5s: %(message)s',
+                                  datefmt='%m-%d-%Y %H:%M:%S')
+LOG_handler.setFormatter(LOG_formatter)
+LOG.addHandler(LOG_handler)
+LOG.setLevel(logging.INFO)
