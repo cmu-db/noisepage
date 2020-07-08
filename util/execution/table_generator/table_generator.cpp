@@ -347,7 +347,7 @@ void TableGenerator::GenerateMiniRunnerIndexes() {
   std::vector<TableInsertMeta> table_metas;
   std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
   std::vector<uint32_t> row_nums = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000};
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   for (auto row_num : row_nums) {
     for (type::TypeId type : types) {
       auto table_name = GenerateTableIndexName(type, row_num);

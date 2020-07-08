@@ -596,6 +596,10 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
       if (!keys.empty()) {
         key_size = ComputeKeySize(keys);
         num_keys = keys.size();
+      } else {
+        // This case is typically just numerics (i.e COUNT)
+        // We still record something to differentiate in the models.
+        num_keys = plan->GetAggregateTerms().size();
       }
     }
 
