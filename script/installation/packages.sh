@@ -11,35 +11,116 @@
 ##  * macOS
 ## =================================================================
 
+# IMPORTANT: We special case the handling of the llvm package to make sure 
+# to get the correct version that we want. So it is not included in this list.
+# See the 'install_mac' function below.
+OSX_BUILD_PACKAGES=(\
+  "cmake" \
+  "coreutils" \
+  "doxygen" \
+  "git" \
+  "jemalloc" \
+  "libevent" \
+  "libpqxx" \
+  "openssl@1.1" \
+  "tbb" \
+)
+OSX_TEST_PACKAGES=(\
+  "ant" \
+  "postgresql" \
+)
+
+# IMPORTANT: If you change anything listed below, you must 
+# also change it in the Dockerfile in the root directory of the repository!
+LINUX_BUILD_PACKAGES=(\
+  "build-essential" \
+  "clang-8" \
+  "clang-format-8" \
+  "clang-tidy-8" \
+  "cmake" \
+  "doxygen" \
+  "git" \
+  "g++-7" \
+  "libevent-dev" \
+  "libjemalloc-dev" \
+  "libpq-dev" \
+  "libssl-dev" \
+  "libtbb-dev" \
+  "zlib1g-dev" \
+  "llvm-8" \
+  "pkg-config" \
+  "postgresql-client" \
+  "wget" \
+  "python3-pip" \
+)
+LINUX_TEST_PACKAGES=(\
+  "ant" \
+  "curl" \
+  "lcov" \
+  "ccache" \
+  "lsof" \
+)
+
+# These are the packages that we will install with pip3
+# We will install these for both build and test.
+PYTHON_PACKAGES=(\
+  "pyarrow" \
+  "pandas" \
+)
+
+
+## =================================================================
+
+
 main() {
   set -o errexit
 
-    echo "PACKAGES WILL BE INSTALLED. THIS MAY BREAK YOUR EXISTING TOOLCHAIN."
-    echo "YOU ACCEPT ALL RESPONSIBILITY BY PROCEEDING."
-    read -p "Proceed? [Y/n] : " yn
-    case $yn in
-        Y|y) install;;
-        *) ;;
-    esac
+  INSTALL_TYPE="$1"
+  if [ -z "$INSTALL_TYPE" ]; then
+    INSTALL_TYPE="build"
+  fi
+  ALLOWED=("build" "test" "all")
+  FOUND=0
+  for key in "${ALLOWED[@]}"; do
+    if [ "$key" == "$INSTALL_TYPE" ] ; then
+      FOUND=1
+    fi
+  done
+  if [ "$FOUND" = "0" ]; then
+    echo "Invalid installation type '$INSTALL_TYPE'"
+    echo -n "Allowed Values: "
+    ( IFS=$' '; echo "${ALLOWED[*]}" )
+    exit 1
+  fi
+  
+  echo "PACKAGES WILL BE INSTALLED. THIS MAY BREAK YOUR EXISTING TOOLCHAIN."
+  echo "YOU ACCEPT ALL RESPONSIBILITY BY PROCEEDING."
+  echo
+  echo "INSTALLATION TYPE: $INSTALL_TYPE"
+  read -p "Proceed? [Y/n] : " yn
+  case $yn in
+      Y|y) install;;
+      *) ;;
+  esac
 
-    echo "Script complete."
+  echo "Script complete."
 }
 
 give_up() {
-    set +x
-    OS=$1
-    VERSION=$2
-    [ ! -z "$VERSION" ] && VERSION=" $VERSION"
-    
-    echo
-    echo "Unsupported distribution '${OS}${VERSION}'"
-    echo "Please contact our support team for additional help."
-    echo "Be sure to include the contents of this message."
-    echo "Platform: $(uname -a)"
-    echo
-    echo "https://github.com/cmu-db/terrier/issues"
-    echo
-    exit 1
+  set +x
+  OS=$1
+  VERSION=$2
+  [ ! -z "$VERSION" ] && VERSION=" $VERSION"
+  
+  echo
+  echo "Unsupported distribution '${OS}${VERSION}'"
+  echo "Please contact our support team for additional help."
+  echo "Be sure to include the contents of this message."
+  echo "Platform: $(uname -a)"
+  echo
+  echo "https://github.com/cmu-db/terrier/issues"
+  echo
+  exit 1
 }
 
 install() {
@@ -82,59 +163,46 @@ install_mac() {
   fi
   # Update Homebrew.
   brew update
+  
   # Install packages.
-  brew ls --versions cmake || brew install cmake
-  brew ls --versions coreutils || brew install coreutils
-  brew ls --versions doxygen || brew install doxygen
-  brew ls --versions git || brew install git
-  brew ls --versions jemalloc || brew install jemalloc
-  brew ls --versions libevent || brew install libevent
-  brew ls --versions libpqxx || brew install libpqxx
+  if [ "$INSTALL_TYPE" == "build" -o "$INSTALL_TYPE" = "all" ]; then
+    for pkg in "${OSX_BUILD_PACKAGES[@]}"; do
+      brew ls --versions $pkg || brew install $pkg
+    done
+  fi
+  if [ "$INSTALL_TYPE" == "test" -o "$INSTALL_TYPE" = "all" ]; then
+    for pkg in "${OSX_TEST_PACKAGES[@]}"; do
+      brew ls --versions $pkg || brew install $pkg
+    done
+  fi
+  
+  # Special case for llvm
   (brew ls --versions llvm@8 | grep 8) || brew install llvm@8
-  brew ls --versions openssl@1.1 || brew install openssl@1.1
-  brew ls --versions postgresql || brew install postgresql
-  brew ls --versions tbb || brew install tbb
-  brew ls --versions ant || brew install ant
+  
+  # Always install Python stuff
   python3 -m pip --version || install_pip
-  #install pyarrow
-  python3 -m pip show pyarrow || python3 -m pip install pyarrow
-  python3 -m pip show pandas || python3 -m pip install pandas
+  for pkg in "${PYTHON_PACKAGES[@]}"; do
+    python3 -m pip show $pkg || python3 -m pip install $pkg
+  done
 }
 
 install_linux() {
   # Update apt-get.
   apt-get -y update
   
-  # IMPORTANT: If you change anything listed below, you must also change it in the Dockerfile
-  # in the root directory of the repository!
-  apt-get -y install \
-      build-essential \
-      clang-8 \
-      clang-format-8 \
-      clang-tidy-8 \
-      cmake \
-      doxygen \
-      git \
-      g++-7 \
-      libevent-dev \
-      libjemalloc-dev \
-      libpq-dev \
-      libssl-dev \
-      libtbb-dev \
-      zlib1g-dev \
-      llvm-8 \
-      pkg-config \
-      postgresql-client \
-      sqlite3 \
-      libsqlite3-dev \
-      ant \
-      wget \
-      python3-pip
-
-  #install pyarrow
-  python3 -m pip show pyarrow || python3 -m pip install pyarrow
-  #install pandas
-  python3 -m pip show pandas || python3 -m pip install pandas
+  # Install packages.
+  if [ "$INSTALL_TYPE" == "build" -o "$INSTALL_TYPE" = "all" ]; then
+    apt-get -y install `( IFS=$' '; echo "${LINUX_BUILD_PACKAGES[*]}" )`
+  fi
+  if [ "$INSTALL_TYPE" == "test" -o "$INSTALL_TYPE" = "all" ]; then
+    apt-get -y install `( IFS=$' '; echo "${LINUX_TEST_PACKAGES[*]}" )`
+  fi
+  
+  # Always install Python stuff
+  # python3 -m pip --version || install_pip
+  for pkg in "${PYTHON_PACKAGES[@]}"; do
+    python3 -m pip show $pkg || python3 -m pip install $pkg
+  done
          
   # IMPORTANT: Ubuntu 18.04 does not have libpqxx-6.2 available. So we have to download the package
   # manually and install it ourselves. We are *not* able to upgrade to libpqxx-6.4 because 18.04
@@ -147,7 +215,9 @@ install_linux() {
     "libpqxx-dev_${LIBPQXX_VERSION}_amd64.deb" \
   )
   for file in "${LIBPQXX_FILES[@]}"; do
-    wget ${LIBPQXX_URL}/$file
+    if [ ! -f "$file" ]; then
+      wget ${LIBPQXX_URL}/$file
+    fi
     dpkg -i $file
     rm $file
   done

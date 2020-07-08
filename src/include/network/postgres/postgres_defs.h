@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "common/macros.h"
+#include "common/version.h"
 #include "network/network_defs.h"
 #include "type/type_id.h"
 
@@ -21,8 +22,10 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
     {"IntervalStyle", "postgres"},
     {"is_superuser", "on"},
     {"server_encoding", "UTF8"},
+    // Warning: The DBMS must report that its 'server_version' is at least "9" for libpqxx
+    // Do not change this parameter unless you know what you are doing!
     {"server_version", "9.5devel"},
-    {"session_authorization", "terrier"},
+    {"session_authorization", common::NOISEPAGE_NAME.data()},
     {"standard_conforming_strings", "on"},
     {"TimeZone", "US/Eastern"}
 };
@@ -35,7 +38,6 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
  * For more information, see 'pg_type.h' in Postgres
  * https://github.com/postgres/postgres/blob/master/src/include/catalog/pg_type.h#L273
  */
-
 enum class PostgresValueType : int32_t {
   INVALID = INVALID_TYPE_ID,
   BOOLEAN = 16,

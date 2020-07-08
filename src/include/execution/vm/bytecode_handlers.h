@@ -14,6 +14,7 @@
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/functions/runners_functions.h"
 #include "execution/sql/functions/string_functions.h"
+#include "execution/sql/functions/system_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/projected_columns_iterator.h"
@@ -26,7 +27,6 @@
 #include "execution/util/hash.h"
 #include "metrics/metrics_defs.h"
 #include "parser/expression/constant_value_expression.h"
-#include "util/time_util.h"
 
 // All VM terrier::bytecode op handlers must use this macro
 #define VM_OP EXPORT
@@ -66,6 +66,10 @@ ALL_TYPES(COMPARISONS);
 #undef COMPARISONS
 
 VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
+
+VM_OP_HOT void OpNotSql(terrier::execution::sql::BoolVal *const result, const terrier::execution::sql::BoolVal *input) {
+  terrier::execution::sql::ComparisonFunctions::NotBoolVal(result, *input);
+}
 
 // ---------------------------------------------------------
 // Primitive arithmetic
@@ -642,7 +646,8 @@ VM_OP_HOT void OpIntegerToReal(terrier::execution::sql::Real *result, const terr
 
 VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year, uint32_t month, uint32_t day) {
   result->is_null_ = false;
-  result->val_ = terrier::execution::sql::Date::FromYMD(year, month, day);
+  auto res = terrier::execution::sql::Date::FromYMD(year, month, day);
+  result->val_ = res;
 }
 
 VM_OP_HOT void OpInitTimestamp(terrier::execution::sql::TimestampVal *result, uint64_t usec) {
@@ -650,10 +655,12 @@ VM_OP_HOT void OpInitTimestamp(terrier::execution::sql::TimestampVal *result, ui
   result->val_ = terrier::execution::sql::Timestamp::FromMicroseconds(usec);
 }
 
-VM_OP_HOT void OpInitTimestampHMSu(terrier::execution::sql::TimestampVal *result, int32_t year, uint32_t month,
-                                   uint32_t day, uint8_t hour, uint8_t minute, uint8_t sec, uint64_t usec) {
+VM_OP_HOT void OpInitTimestampYMDHMSMU(terrier::execution::sql::TimestampVal *result, int32_t year, int32_t month,
+                                       int32_t day, int32_t hour, int32_t minute, int32_t sec, int32_t milli,
+                                       int32_t micro) {
   result->is_null_ = false;
-  result->val_ = terrier::execution::sql::Timestamp::FromHMSu(year, month, day, hour, minute, sec, usec);
+  auto res = terrier::execution::sql::Timestamp::FromYMDHMSMU(year, month, day, hour, minute, sec, milli, micro);
+  result->val_ = res;
 }
 
 VM_OP_HOT void OpInitString(terrier::execution::sql::StringVal *result, uint64_t length, uintptr_t data) {
@@ -1452,6 +1459,11 @@ VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier
                         const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Upper(ctx, result, *str);
 }
+
+VM_OP_WARM void OpVersion(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result) {
+  terrier::execution::sql::SystemFunctions::Version(ctx, result);
+}
+
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------

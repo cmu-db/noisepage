@@ -38,7 +38,7 @@ struct IdxJoinTest : public TerrierTest {
     std::vector<parser::ConstantValueExpression> params;
     tcop_->BeginTransaction(common::ManagedPointer(&context_));
     auto parse = tcop_->ParseQuery(sql, common::ManagedPointer(&context_));
-    auto stmt = network::Statement(std::move(sql), std::move(parse));
+    auto stmt = network::Statement(std::move(sql), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse)));
     auto result = tcop_->BindQuery(common::ManagedPointer(&context_), common::ManagedPointer(&stmt),
                                    common::ManagedPointer(&params));
     TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
@@ -133,7 +133,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -247,7 +247,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -325,7 +325,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -402,7 +402,7 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -465,7 +465,7 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -528,7 +528,7 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 

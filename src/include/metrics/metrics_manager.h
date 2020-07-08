@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <memory>
 #include <thread>  // NOLINT
 #include <unordered_map>

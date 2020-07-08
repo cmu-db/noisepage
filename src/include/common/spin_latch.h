@@ -4,7 +4,7 @@
 // TODO(WAN): Prashanth has two macro-text tokens called TRUE and FALSE and he wants to keep it that way.
 //  Meanwhile in TBB land, they include boolean.h for some unfathomable reason which on OSX will define
 //  TRUE to be 1 and FALSE to be 0 which causes a series of unfortunate events that end in cryptic errors
-//  and wastes lots of time, so as a temporary hack...
+//  and wastes lots of time, so as a temporary hack... (The same hack is required in util/execution/tpl.cpp)
 #undef TRUE
 #undef FALSE
 #include "common/macros.h"

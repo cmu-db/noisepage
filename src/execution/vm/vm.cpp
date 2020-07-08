@@ -328,6 +328,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(NotSql) : {
+    auto *dest = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    OpNotSql(dest, input);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Jumps
   // -------------------------------------------------------
@@ -848,16 +855,17 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(InitTimestampHMSu) : {
+  OP(InitTimestampYMDHMSMU) : {
     auto *sql_timestamp = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());
     auto year = frame->LocalAt<int32_t>(READ_LOCAL_ID());
-    auto month = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    auto day = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    auto h = frame->LocalAt<uint8_t>(READ_LOCAL_ID());
-    auto m = frame->LocalAt<uint8_t>(READ_LOCAL_ID());
-    auto s = frame->LocalAt<uint8_t>(READ_LOCAL_ID());
-    auto us = frame->LocalAt<uint64_t>(READ_LOCAL_ID());
-    OpInitTimestampHMSu(sql_timestamp, year, month, day, h, m, s, us);
+    auto month = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto day = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto h = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto m = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto s = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto ms = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto us = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    OpInitTimestampYMDHMSMU(sql_timestamp, year, month, day, h, m, s, ms, us);
     DISPATCH_NEXT();
   }
 
@@ -1998,6 +2006,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     OpUpper(exec_ctx, result, str);
+    DISPATCH_NEXT();
+  }
+
+  OP(Version) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    OpVersion(exec_ctx, result);
     DISPATCH_NEXT();
   }
 

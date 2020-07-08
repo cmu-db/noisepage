@@ -1,4 +1,5 @@
 #pragma once
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -7,9 +8,13 @@
 #include <cerrno>
 #include <cstring>
 #include <string>
+#include <utility>
+#include <vector>
+
 #include "common/constants.h"
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
 
@@ -210,4 +215,16 @@ class BufferedLogReader {
 
   void RefillBuffer();
 };
+
+/**
+ * Callback function and arguments to be called when record is persisted
+ */
+using CommitCallback = std::pair<transaction::callback_fn, void *>;
+
+/**
+ * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are
+ * serialized in this BufferedLogWriter
+ */
+using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
+
 }  // namespace terrier::storage

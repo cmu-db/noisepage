@@ -20,7 +20,7 @@ namespace terrier::execution::ast {
   F(VarlenToSql, varlenToSql)                                           \
   F(DateToSql, dateToSql)                                               \
   F(TimestampToSql, timestampToSql)                                     \
-  F(TimestampToSqlHMSu, timestampToSqlHMSu)                             \
+  F(TimestampToSqlYMDHMSMU, timestampToSqlYMDHMSMU)                     \
                                                                         \
   /* Date Functions */                                                  \
   F(ExtractYear, extractYear)                                           \
@@ -245,6 +245,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* String functions */                                                \
   F(Lower, lower)                                                       \
+  F(Version, version)                                                   \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \

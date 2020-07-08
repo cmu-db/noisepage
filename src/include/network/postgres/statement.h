@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "execution/ast/context.h"
 #include "execution/executable_query.h"
-#include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -45,33 +45,19 @@ class Statement {
             std::vector<type::TypeId> &&param_types);
 
   /**
-   * @return true if parser succeeded and this statement is usable
-   */
-  bool Valid() const { return parse_result_ != nullptr; }
-
-  /**
    * @return true if the statement is empty
    */
-  bool Empty() const {
-    TERRIER_ASSERT(Valid(), "Attempting to check emptiness without a valid parsed result.");
-    return parse_result_->Empty();
-  }
+  bool Empty() const { return parse_result_->Empty(); }
 
   /**
    * @return managed pointer to the output of the parser for this statement
    */
-  common::ManagedPointer<parser::ParseResult> ParseResult() const {
-    TERRIER_ASSERT(Valid(), "Attempting to get parse results without a valid parsed result.");
-    return common::ManagedPointer(parse_result_);
-  }
+  common::ManagedPointer<parser::ParseResult> ParseResult() const { return common::ManagedPointer(parse_result_); }
 
   /**
    * @return managed pointer to the  root statement of the ParseResult. Just shorthand for ParseResult->GetStatement(0)
    */
-  common::ManagedPointer<parser::SQLStatement> RootStatement() const {
-    TERRIER_ASSERT(Valid(), "Attempting to get root statement without a valid parsed result.");
-    return common::ManagedPointer(root_statement_);
-  }
+  common::ManagedPointer<parser::SQLStatement> RootStatement() const { return common::ManagedPointer(root_statement_); }
 
   /**
    * @return vector of the statements parameters (if any)
