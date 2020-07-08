@@ -102,11 +102,13 @@ class EndtoendEstimator:
         accumulated_raw_y = np.sum(raw_y, axis=0)
         accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
         original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + 1), axis=0)
+        ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + 1), axis=0)
         accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + 1)
         original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
                 accumulated_raw_y + 1)
 
         logging.info('Original Ratio Error: {}'.format(original_ratio_error))
+        logging.info('Ratio Error: {}'.format(ratio_error))
         logging.info('Original Accumulated Ratio Error: {}'.format(original_accumulated_percentage_error))
         logging.info('Accumulated Ratio Error: {}'.format(accumulated_percentage_error))
 
@@ -133,8 +135,8 @@ class EndtoendEstimator:
             original_ratio_error = np.average(np.abs(y - x[:, :y.shape[1]]) / (y + 1e-6), axis=0)
         else:
             original_ratio_error = np.average(np.abs(1/(y+1e-6) - 1), axis=0)
-        logging.info('{} Model Original Ratio Error: {}'.format(label, original_ratio_error))
-        logging.info('{} Model Ratio Error: {}'.format(label, ratio_error))
+        logging.info('Model Original Ratio Error ({}): {}'.format(label, original_ratio_error))
+        logging.info('Model Ratio Error ({}): {}'.format(label, ratio_error))
         logging.info('')
 
 
