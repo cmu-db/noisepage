@@ -8,7 +8,7 @@
   <javac srcdir="${src.dir}"
          destdir="${out.dir}"
          includeantruntime="false"
-         debug="true">
+         debug="true" nowarn="on">
     <classpath refid="test.jars"/>
     </javac>
 </target>
@@ -31,7 +31,7 @@
   <path refid="test.jars"/>
   <pathelement location="${out.dir}" />
 </path>
-
+<!--hide warnings-->
 <target name="testconsole" depends="compile">
   <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
         dir="."

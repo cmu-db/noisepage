@@ -18,13 +18,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 /**
- * one class file dynamically generate test cases for each query
- * provide
+ * class that convert sql statements to trace format
+ * first, establish a local postgesql database
+ * second, start the database server with "pg_ctl -D /usr/local/var/postgres start"
+ * third, provide path to a file, run generateTrace with the file path as argument
+ * input file format: sql statements, one per line
+ * output file: to be tested by TracefileTest
  */
 public class generateTrace {
     private static final String STATEMENT_OK = "statement ok";
     public static final String QUERY_I_NOSORT = "query I nosort";
     public static final String SEPARATION = "----";
+
     public static void main(String[] args) throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         String path = args[0];
@@ -34,27 +39,32 @@ public class generateTrace {
         String user = "jeffniu";
         String password = "";
         MogDb db = new MogDb(url, user, password);
+        // open connection to postgresql database specifying user and password with jdbc
         Connection conn = db.getDbTest().newConn();
+        // remove existing table name
         List<String> tab = getAllExistingTableName(mog,db);
         removeExistingTable(tab,db);
 
         String line;
         BufferedReader br = new BufferedReader(new FileReader(file));
-        FileWriter writer = new FileWriter(new File("script/testing/junit/src","ins_output.test"));
+        // create output file
+        FileWriter writer = new FileWriter(new File("script/testing/junit/src","ins2_output.test"));
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         while (null != (line = br.readLine())) {
             line = line.trim();
 //            System.out.println(line);
+            // execute sql statement
             Statement statement = conn.createStatement();
             statement.execute(line);
             if(line.startsWith("SELECT")){
+                // SELECT statement, query from database to construct trace format
+                String[] lines = line.split(",");
                 writeToFile(writer, QUERY_I_NOSORT);
                 writeToFile(writer, line);
                 writeToFile(writer, SEPARATION);
                 ResultSet rs = statement.getResultSet();
                 List<String> res = mog.processResults(rs);
-                System.out.println(line);
-                System.out.println(res);
+                // compute the hash
                 MessageDigest md;
                 try {
                     md = MessageDigest.getInstance("MD5");
@@ -70,72 +80,27 @@ public class generateTrace {
                 writeToFile(writer, queryResult);
                 writer.write('\n');
             }else{
+                // other sql statements
                 writeToFile(writer, STATEMENT_OK);
                 writeToFile(writer, line);
                 writer.write('\n');
             }
         }
         writer.close();
-
-//        while (mog.next()) {
-//            System.out.println(mog.queryResults);
-//            System.out.println(mog.sql);
-//            Statement statement = db.getDbTest().getConn().createStatement();
-//            statement.execute(mog.sql);
-//            if(mog.sql.startsWith("SELECT")){
-//                System.out.println("hi");
-//                ResultSet rs = statement.getResultSet();
-//                // res contains a list of results
-//                List<String> res = mog.processResults(rs);
-//                System.out.println(res);
-//                System.out.println("hi2");
-//                }
-
-//            if (mog.queryResults.size() == 0) {
-////                Statement statement = db.getDbTest().getConn().createStatement();
-////                statement.execute(mog.sql);
-//                Statement statement = db.getDbTest().getConn().createStatement();
-//                statement.execute(mog.sql);
-//                if(mog.sql.startsWith("SELECT")){
-//                    System.out.println("hi");
-//                    ResultSet rs = statement.getResultSet();
-//                    // res contains a list of results
-//                    List<String> res = mog.processResults(rs);
-//                    System.out.println(res);
-//
-//                    System.out.println("hi");
-//                }
-//            } else{
-//                System.out.println("enter");
-//                System.out.println(mog.queryResults);
-//                if(mog.queryResults.get(0).contains("values")){
-//                    lineCounter++;
-//                    // parse the hash
-//                    String[] sentence = mog.queryResults.get(0).split(" ");
-//                    String hash = sentence[sentence.length-1];
-////                    System.out.println(queryLine.get(lineCounter));
-////                    System.out.println(mog.sql);
-////                    System.out.println(mog.lineNum);
-////                    System.out.println(mog.lineCounter);
-////                    System.out.println("enternow");
-//
-////                    System.out.println(hash);
-////                    System.out.println(queryHashFromDb(mog,db));
-//
-//                    assertEquals(hash, queryHashFromDb(mog,db));
-//                    if(counter>5){
-//                        break;
-//                    }
-//                    counter++;
-////                    assertEquals(hash,queryHashFromDb(mog,db));
-////                }
-//            }
-//        }
     }
     public static void writeToFile(FileWriter writer, String str) throws IOException {
         writer.write(str);
         writer.write('\n');
     }
+
+    /**
+     * query hash from the database
+     * @param mog
+     * @param db
+     * @return
+     * @throws SQLException
+     * @throws IOException
+     */
     public static String queryHashFromDb(MogSqlite mog, MogDb db) throws SQLException, IOException {
         Statement statement = db.getDbTest().getConn().createStatement();
         statement.execute(mog.sql);

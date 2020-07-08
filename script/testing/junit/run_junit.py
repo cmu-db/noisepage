@@ -55,6 +55,7 @@ if __name__ == "__main__":
                     path = type_dir + "/" + file
                     os.environ["path"] = path
                     try:
+                        print(os.environ["path"])
                         junit = TestJUnit(args)
                         exit_code = junit.run()
                         f = open("src/output.txt", "r")
