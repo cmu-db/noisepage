@@ -159,7 +159,7 @@ class GlobalTrainer:
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, predicted_resource_util)))
             raw_y.append(d.target_grouped_op_unit_data.y)
-            y.append(raw_y[-1] / (mini_model_y_pred[-1] + 1e-6))
+            y.append(raw_y[-1] / (mini_model_y_pred[-1] + 1))
 
         # Training
         metrics_path = "{}/global_{}_model_metrics.csv".format(self.model_results_path, model_name)
@@ -172,11 +172,11 @@ class GlobalTrainer:
         # Calculate the accumulated ratio error
         mini_model_y_pred = np.array(mini_model_y_pred)[test_indices]
         y_pred = trained_model.predict(x)[test_indices]
-        raw_y_pred = mini_model_y_pred * (y_pred + 1e-6)
+        raw_y_pred = mini_model_y_pred * (y_pred + 1)
         raw_y = np.array(raw_y)[test_indices]
         accumulated_raw_y = np.sum(raw_y, axis=0)
         accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
-        original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + 1e-6), axis=0)
+        original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + 1), axis=0)
         accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + 1)
         original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
                 accumulated_raw_y + 1)
