@@ -1052,6 +1052,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     output_plan_ = planner::CteScanPlanNode::Builder()
                        .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
                        .SetTableOutputSchema(std::move(cte_scan_out))
+                       .SetIsIterative(cte_scan->GetIsIterative())
                        .AddChild(std::move(output_plan_))
                        .Build();
   } else {
@@ -1067,6 +1068,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
 
     output_plan_ = planner::CteScanPlanNode::Builder()
                        .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                       .SetIsIterative(cte_scan->GetIsIterative())
                        .Build();
   }
 }

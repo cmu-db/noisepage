@@ -48,17 +48,23 @@ class CteScanPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+    Builder &SetIsIterative(bool is_iterative){
+      is_iterative_ = is_iterative;
+      return *this;
+    }
+
     /**
      * Build the limit plan node
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
       return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(children_), std::move(output_schema_),
-                                                                  is_leader_, std::move(table_output_schema_)));
+                                                                  is_leader_, std::move(table_output_schema_), is_iterative_));
     }
 
    private:
     bool is_leader_ = false;
+    bool is_iterative_ = false;
     std::unique_ptr<OutputSchema> table_output_schema_;
   };
 
@@ -69,9 +75,10 @@ class CteScanPlanNode : public AbstractPlanNode {
    */
   CteScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, bool is_leader,
-                  std::unique_ptr<OutputSchema> table_output_schema)
+                  std::unique_ptr<OutputSchema> table_output_schema, bool is_iterative)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         is_leader_(is_leader),
+        is_iterative_(is_iterative),
         table_output_schema_(std::move(table_output_schema)) {}
 
  public:
@@ -110,18 +117,18 @@ class CteScanPlanNode : public AbstractPlanNode {
   /**
    * @return True is this node is for a recursive CTE table
    */
-  bool IsRecursive() const { return is_recursive_; }
+  bool IsIterative() const { return is_iterative_; }
 
   /**
    * Assigns a boolean for whether this node is for a recursive tabl
    */
-  void SetRecursive() { is_recursive_ = true; }
+  void SetIterative() { is_iterative_ = true; }
 
   /**
    * @return table output schema for the node. The output schema contains information on columns of the output of the
    * plan node operator
    */
-  common::ManagedPointer<OutputSchema> GetTableOutputSchema() const {
+  common::ManagedPointer<OutputSchema> GeffTableOutputSchema() const {
     return common::ManagedPointer(table_output_schema_);
   }
 
@@ -145,7 +152,7 @@ class CteScanPlanNode : public AbstractPlanNode {
  private:
   // Boolean to indicate whether this plan node is leader or not
   bool is_leader_;
-  bool is_recursive_;
+  bool is_iterative_;
   // Output table schema for CTE scan
   std::unique_ptr<OutputSchema> table_output_schema_;
 };

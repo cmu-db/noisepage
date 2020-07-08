@@ -2102,7 +2102,7 @@ class CteScan : public OperatorNodeContents<CteScan> {
    * @return
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
-                       std::string table_alias);
+                       std::string table_alias, bool is_iterative);
 
   /**
    * Copy
@@ -2126,6 +2126,8 @@ class CteScan : public OperatorNodeContents<CteScan> {
    */
   const std::string &GetTableAlias() const { return table_alias_; }
 
+  bool GetIsIterative() const { return is_iterative_; }
+
  private:
   std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions_;
 
@@ -2133,6 +2135,8 @@ class CteScan : public OperatorNodeContents<CteScan> {
    * Table alias
    */
   std::string table_alias_;
+
+  bool is_iterative_;
 };
 
 }  // namespace optimizer
