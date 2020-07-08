@@ -6,11 +6,11 @@ import json
 import traceback
 import shutil
 from util.constants import ErrorCode
+from util.constants import LOG
 from util.common import run_command
 from util.test_server import TestServer
 from xml.etree import ElementTree
 from oltpbench import constants
-from oltpbench.constants import LOG
 
 
 class TestOLTPBench(TestServer):

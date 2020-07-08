@@ -9,7 +9,7 @@ base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
 from oltpbench.test_oltpbench import TestOLTPBench
-from oltpbench.constants import LOG
+from util.constants import LOG
 
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(description="Timeseries")
