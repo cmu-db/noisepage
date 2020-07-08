@@ -210,6 +210,7 @@ void PlanGenerator::Visit(const SeqScan *op) {
 void PlanGenerator::Visit(const IndexScan *op) {
   auto tbl_oid = op->GetTableOID();
   auto output_schema = GenerateScanOutputSchema(tbl_oid);
+  uint64_t table_num_tuple = accessor_->GetTable(tbl_oid)->GetNumTuple();
 
   // Generate the predicate in the scan
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates()).release();
@@ -227,6 +228,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
   builder.SetIndexOid(op->GetIndexOID());
   builder.SetTableOid(tbl_oid);
   builder.SetColumnOids(std::move(column_ids));
+  builder.SetTableNumTuple(table_num_tuple);
   builder.SetIndexSize(accessor_->GetTable(tbl_oid)->GetNumTuple());
 
   auto type = op->GetIndexScanType();

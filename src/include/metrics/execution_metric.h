@@ -24,7 +24,7 @@ class ExecutionMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<ExecutionMetricRawData *>(other);
     if (!other_db_metric->execution_data_.empty()) {
-      execution_data_.splice(execution_data_.cbegin(), other_db_metric->execution_data_);
+      execution_data_.splice(execution_data_.cend(), other_db_metric->execution_data_);
     }
   }
 
@@ -69,7 +69,7 @@ class ExecutionMetricRawData : public AbstractRawData {
 
   void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
-    execution_data_.emplace_front(feature, len, execution_mode, resource_metrics);
+    execution_data_.emplace_back(feature, len, execution_mode, resource_metrics);
   }
 
   struct ExecutionData {
