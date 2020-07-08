@@ -1127,7 +1127,8 @@ void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<AbstractO
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()))
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()),
+                    logical_op->GetIsIterative())
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
@@ -1159,7 +1160,8 @@ void LogicalCteScanToPhysicalEmptyCteScan::Transform(common::ManagedPointer<Abst
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias())), std::move(c),
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()),
+                    logical_op->GetIsIterative()), std::move(c),
       context->GetOptimizerContext()->GetTxn());
 
   transformed->emplace_back(std::move(result_plan));

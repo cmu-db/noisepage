@@ -182,6 +182,13 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     output_expr_ = std::move(limit_expr);
   }
 
+  if (op->GetUnionSelect() != nullptr) {
+    auto temp_expr = std::move(output_expr_);
+    op->GetUnionSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    temp_expr->PushChild(std::move(output_expr_));
+    output_expr_ = std::move(temp_expr);
+  }
+
   if (op->GetSelectWith() != nullptr) {
     // Store the current logical tree in another expression
     auto child_expr = std::move(output_expr_);
@@ -314,7 +321,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     if (node->GetTableName() == cte_table_name_) {
       // CTE table referred
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_expressions_).RegisterWithTxnContext(txn_context),
+          LogicalCteScan::Make(node->GetAlias(), cte_expressions_, node->GetCteRecursive())
+              .RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {

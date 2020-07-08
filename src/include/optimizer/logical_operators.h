@@ -2005,6 +2005,29 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
   std::vector<catalog::col_oid_t> columns_;
 };
 
+//class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
+// public:
+//  static Operator Make();
+//
+//  static Operator Make(bool is_all,
+//                       common::ManagedPointer<parser::AbstractExpression> left_expr,
+//                       common::ManagedPointer<parser::AbstractExpression> right_expr);
+//
+// /**
+//  * Copy
+//  * @returns copy of this
+//  */
+//  BaseOperatorNodeContents *Copy() const override;
+//
+//  bool operator==(const BaseOperatorNodeContents &r) override;
+//  common::hash_t Hash() const override;
+//
+// private:
+//  bool is_all_;
+//  common::ManagedPointer<parser::AbstractExpression> left_expr_;
+//  common::ManagedPointer<parser::AbstractExpression> right_expr_;
+//};
+
 /**
  * Logical operator for CTE SCAN
  */
@@ -2016,7 +2039,8 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
   static Operator Make();
 
   static Operator Make(std::string table_alias,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions);
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
+                       bool is_iterative);
 
   /**
    * Copy
@@ -2039,12 +2063,15 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetExpressions() { return child_expressions_; }
 
+  bool GetIsIterative() const { return is_iterative_; }
+
  private:
   /**
    * Alias of the table to get from
    */
   std::string table_alias_;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions_;
+  bool is_iterative_;
 };
 
 }  // namespace terrier::optimizer

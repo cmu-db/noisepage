@@ -1261,10 +1261,12 @@ Operator LogicalCteScan::Make() {
 }
 
 Operator LogicalCteScan::Make(std::string table_alias,
-                              std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions) {
+                              std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
+                              bool is_iterative) {
   auto *op = new LogicalCteScan();
   op->table_alias_ = std::move(table_alias);
   op->child_expressions_ = std::move(child_expressions);
+  op->is_iterative_ = is_iterative;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
