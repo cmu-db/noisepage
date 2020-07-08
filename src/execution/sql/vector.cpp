@@ -270,6 +270,24 @@ void Vector::Reference(byte *data, const uint32_t *null_mask, uint64_t size) {
   }
 }
 
+void Vector::ReferenceNullMask(byte *data, const NullMask *null_mask, uint64_t size) {
+  TERRIER_ASSERT(owned_data_ == nullptr, "Cannot reference a vector if owning data");
+  count_ = size;
+  num_elements_ = size;
+  data_ = data;
+  tid_list_ = nullptr;
+  null_mask_.Resize(num_elements_);
+
+  // TODO(pmenon): Optimize me if this is a bottleneck
+  if (null_mask == nullptr) {
+    null_mask_.Reset();
+  } else {
+    for (uint64_t i = 0; i < size; i++) {
+      null_mask_[i] = null_mask->Test(i);
+    }
+  }
+}
+
 void Vector::Reference(const Vector *other) {
   TERRIER_ASSERT(owned_data_ == nullptr, "Cannot reference a vector if owning data");
   type_ = other->type_;

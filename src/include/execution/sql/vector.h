@@ -341,6 +341,14 @@ class EXPORT Vector {
   void Reference(byte *data, const uint32_t *null_mask, uint64_t size);
 
   /**
+   * Reference a specific chunk of data.
+   * @param data The data.
+   * @param null_mask The NULL bitmap.
+   * @param size The number of elements in the array.
+   */
+  void ReferenceNullMask(byte *data, const NullMask *null_mask, uint64_t size);
+
+  /**
    * Change this vector to reference data held (and potentially owned) by the provided vector.
    * @param other The vector to reference.
    */

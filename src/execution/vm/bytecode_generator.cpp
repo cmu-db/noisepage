@@ -761,13 +761,25 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
       break;
     }
 
+    case ast::Builtin::VPIGetPointer: {
+      LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      const uint32_t col_idx = call->Arguments()[1]->As<ast::LitExpr>()->Int64Val();
+      GetEmitter()->EmitVPIGet(Bytecode::VPIGetPointer, result, vpi, col_idx);
+      break;
+    }
 #define GEN_CASE(BuiltinName, Bytecode)                                              \
   case ast::Builtin::BuiltinName: {                                                  \
     LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType()); \
     const uint32_t col_idx = call->Arguments()[1]->As<ast::LitExpr>()->Int64Val();   \
     GetEmitter()->EmitVPIGet(Bytecode, result, vpi, col_idx);                        \
     break;                                                                           \
-  }
+  }                                                                                  \
+  case ast::Builtin::BuiltinName##Null: {                                            \
+    LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType()); \
+    const uint32_t col_idx = call->Arguments()[1]->As<ast::LitExpr>()->Int64Val();   \
+    GetEmitter()->EmitVPIGet(Bytecode##Null, result, vpi, col_idx);                  \
+    break;                                                                           \
+  }                                                                                  \
       // clang-format off
     GEN_CASE(VPIGetBool, Bytecode::VPIGetBool);
     GEN_CASE(VPIGetTinyInt, Bytecode::VPIGetTinyInt);
@@ -779,7 +791,6 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
     GEN_CASE(VPIGetDate, Bytecode::VPIGetDate);
     GEN_CASE(VPIGetTimestamp, Bytecode::VPIGetTimestamp);
     GEN_CASE(VPIGetString, Bytecode::VPIGetString);
-    GEN_CASE(VPIGetPointer, Bytecode::VPIGetPointer);
       // clang-format on
 #undef GEN_CASE
 
@@ -788,6 +799,12 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
     auto input = VisitExpressionForLValue(call->Arguments()[1]);         \
     auto col_idx = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val(); \
     GetEmitter()->EmitVPISet(Bytecode, vpi, input, col_idx);             \
+    break;                                                               \
+  }                                                                      \
+  case ast::Builtin::BuiltinName##Null: {                                \
+    auto input = VisitExpressionForLValue(call->Arguments()[1]);         \
+    auto col_idx = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val(); \
+    GetEmitter()->EmitVPISet(Bytecode##Null, vpi, input, col_idx);       \
     break;                                                               \
   }
 
@@ -2121,26 +2138,46 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::VPIReset:
     case ast::Builtin::VPIResetFiltered:
     case ast::Builtin::VPIGetBool:
+    case ast::Builtin::VPIGetBoolNull:
     case ast::Builtin::VPIGetTinyInt:
+    case ast::Builtin::VPIGetTinyIntNull:
     case ast::Builtin::VPIGetSmallInt:
+    case ast::Builtin::VPIGetSmallIntNull:
     case ast::Builtin::VPIGetInt:
+    case ast::Builtin::VPIGetIntNull:
     case ast::Builtin::VPIGetBigInt:
+    case ast::Builtin::VPIGetBigIntNull:
     case ast::Builtin::VPIGetReal:
+    case ast::Builtin::VPIGetRealNull:
     case ast::Builtin::VPIGetDouble:
+    case ast::Builtin::VPIGetDoubleNull:
     case ast::Builtin::VPIGetDate:
+    case ast::Builtin::VPIGetDateNull:
     case ast::Builtin::VPIGetTimestamp:
+    case ast::Builtin::VPIGetTimestampNull:
     case ast::Builtin::VPIGetString:
+    case ast::Builtin::VPIGetStringNull:
     case ast::Builtin::VPIGetPointer:
     case ast::Builtin::VPISetBool:
+    case ast::Builtin::VPISetBoolNull:
     case ast::Builtin::VPISetTinyInt:
+    case ast::Builtin::VPISetTinyIntNull:
     case ast::Builtin::VPISetSmallInt:
+    case ast::Builtin::VPISetSmallIntNull:
     case ast::Builtin::VPISetInt:
+    case ast::Builtin::VPISetIntNull:
     case ast::Builtin::VPISetBigInt:
+    case ast::Builtin::VPISetBigIntNull:
     case ast::Builtin::VPISetReal:
+    case ast::Builtin::VPISetRealNull:
     case ast::Builtin::VPISetDouble:
+    case ast::Builtin::VPISetDoubleNull:
     case ast::Builtin::VPISetDate:
+    case ast::Builtin::VPISetDateNull:
     case ast::Builtin::VPISetTimestamp:
-    case ast::Builtin::VPISetString: {
+    case ast::Builtin::VPISetTimestampNull:
+    case ast::Builtin::VPISetString:
+    case ast::Builtin::VPISetStringNull: {
       VisitBuiltinVPICall(call, builtin);
       break;
     }

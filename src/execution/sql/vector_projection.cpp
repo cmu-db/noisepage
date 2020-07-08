@@ -107,7 +107,7 @@ void VectorProjection::Reset(uint64_t num_tuples) {
   if (owned_buffer_ != nullptr) {
     auto ptr = owned_buffer_.get();
     for (const auto &col : columns_) {
-      col->Reference(ptr, nullptr, num_tuples);
+      col->ReferenceNullMask(ptr, &col->null_mask_, num_tuples);
       ptr += GetTypeIdSize(col->GetTypeId()) * common::Constants::K_DEFAULT_VECTOR_SIZE;
     }
   } else {

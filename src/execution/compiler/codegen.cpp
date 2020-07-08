@@ -608,43 +608,43 @@ ast::Expr *CodeGen::VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, u
   ast::BuiltinType::Kind ret_kind;
   switch (type_id) {
     case sql::TypeId::Boolean:
-      builtin = ast::Builtin::VPIGetBool;
+      builtin = nullable ? ast::Builtin::VPIGetBoolNull : ast::Builtin::VPIGetBool;
       ret_kind = ast::BuiltinType::Boolean;
       break;
     case sql::TypeId::TinyInt:
-      builtin = ast::Builtin::VPIGetTinyInt;
+      builtin = nullable ? ast::Builtin::VPIGetTinyIntNull : ast::Builtin::VPIGetTinyInt;
       ret_kind = ast::BuiltinType::Integer;
       break;
     case sql::TypeId::SmallInt:
-      builtin = ast::Builtin::VPIGetSmallInt;
+      builtin = nullable ? ast::Builtin::VPIGetSmallIntNull : ast::Builtin::VPIGetSmallInt;
       ret_kind = ast::BuiltinType::Integer;
       break;
     case sql::TypeId::Integer:
-      builtin = ast::Builtin::VPIGetInt;
+      builtin = nullable ? ast::Builtin::VPIGetIntNull : ast::Builtin::VPIGetInt;
       ret_kind = ast::BuiltinType::Integer;
       break;
     case sql::TypeId::BigInt:
-      builtin = ast::Builtin::VPIGetBigInt;
+      builtin = nullable ? ast::Builtin::VPIGetBigIntNull : ast::Builtin::VPIGetBigInt;
       ret_kind = ast::BuiltinType::Integer;
       break;
     case sql::TypeId::Float:
-      builtin = ast::Builtin::VPIGetReal;
+      builtin = nullable ? ast::Builtin::VPIGetRealNull : ast::Builtin::VPIGetReal;
       ret_kind = ast::BuiltinType::Real;
       break;
     case sql::TypeId::Double:
-      builtin = ast::Builtin::VPIGetDouble;
+      builtin = nullable ? ast::Builtin::VPIGetDoubleNull : ast::Builtin::VPIGetDouble;
       ret_kind = ast::BuiltinType::Real;
       break;
     case sql::TypeId::Date:
-      builtin = ast::Builtin::VPIGetDate;
+      builtin = nullable ? ast::Builtin::VPIGetDateNull : ast::Builtin::VPIGetDate;
       ret_kind = ast::BuiltinType::Date;
       break;
     case sql::TypeId::Timestamp:
-      builtin = ast::Builtin::VPIGetTimestamp;
+      builtin = nullable ? ast::Builtin::VPIGetTimestampNull : ast::Builtin::VPIGetTimestamp;
       ret_kind = ast::BuiltinType::Timestamp;
       break;
     case sql::TypeId::Varchar:
-      builtin = ast::Builtin::VPIGetString;
+      builtin = nullable ? ast::Builtin::VPIGetStringNull : ast::Builtin::VPIGetString;
       ret_kind = ast::BuiltinType::StringVal;
       break;
     default:

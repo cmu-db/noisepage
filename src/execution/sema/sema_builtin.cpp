@@ -1120,7 +1120,8 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::VPIGetBool: {
+    case ast::Builtin::VPIGetBool:
+    case ast::Builtin::VPIGetBoolNull: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1128,9 +1129,13 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::VPIGetTinyInt:
+    case ast::Builtin::VPIGetTinyIntNull:
     case ast::Builtin::VPIGetSmallInt:
+    case ast::Builtin::VPIGetSmallIntNull:
     case ast::Builtin::VPIGetInt:
-    case ast::Builtin::VPIGetBigInt: {
+    case ast::Builtin::VPIGetIntNull:
+    case ast::Builtin::VPIGetBigInt:
+    case ast::Builtin::VPIGetBigIntNull: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1138,28 +1143,33 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::VPIGetReal:
-    case ast::Builtin::VPIGetDouble: {
+    case ast::Builtin::VPIGetRealNull:
+    case ast::Builtin::VPIGetDouble:
+    case ast::Builtin::VPIGetDoubleNull: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Real));
       break;
     }
-    case ast::Builtin::VPIGetDate: {
+    case ast::Builtin::VPIGetDate:
+    case ast::Builtin::VPIGetDateNull: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Date));
       break;
     }
-    case ast::Builtin::VPIGetTimestamp: {
+    case ast::Builtin::VPIGetTimestamp:
+    case ast::Builtin::VPIGetTimestampNull: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
       break;
     }
-    case ast::Builtin::VPIGetString: {
+    case ast::Builtin::VPIGetString:
+    case ast::Builtin::VPIGetStringNull: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1174,29 +1184,40 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::VPISetSmallInt:
+    case ast::Builtin::VPISetSmallIntNull:
     case ast::Builtin::VPISetInt:
+    case ast::Builtin::VPISetIntNull:
     case ast::Builtin::VPISetBigInt:
+    case ast::Builtin::VPISetBigIntNull:
     case ast::Builtin::VPISetReal:
+    case ast::Builtin::VPISetRealNull:
     case ast::Builtin::VPISetDouble:
+    case ast::Builtin::VPISetDoubleNull:
     case ast::Builtin::VPISetDate:
+    case ast::Builtin::VPISetDateNull:
     case ast::Builtin::VPISetTimestamp:
-    case ast::Builtin::VPISetString: {
+    case ast::Builtin::VPISetTimestampNull:
+    case ast::Builtin::VPISetString:
+    case ast::Builtin::VPISetStringNull: {
       if (!CheckArgCount(call, 3)) {
         return;
       }
-      // Second argument must be either an Integer or Real
       ast::BuiltinType::Kind sql_kind;
       switch (builtin) {
-        case ast::Builtin::VPISetReal: // fallthrough
-        case ast::Builtin::VPISetDouble: {
+        case ast::Builtin::VPISetReal:
+        case ast::Builtin::VPISetRealNull:
+        case ast::Builtin::VPISetDouble:
+        case ast::Builtin::VPISetDoubleNull: {
           sql_kind = ast::BuiltinType::Real;
           break;
         }
-        case ast::Builtin::VPISetDate: {
+        case ast::Builtin::VPISetDate:
+        case ast::Builtin::VPISetDateNull: {
           sql_kind = ast::BuiltinType::Date;
           break;
         }
-        case ast::Builtin::VPISetTimestamp: {
+        case ast::Builtin::VPISetTimestamp:
+        case ast::Builtin::VPISetTimestampNull: {
           sql_kind = ast::BuiltinType::Timestamp;
           break;
         }
@@ -2562,26 +2583,46 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::VPIReset:
     case ast::Builtin::VPIResetFiltered:
     case ast::Builtin::VPIGetBool:
+    case ast::Builtin::VPIGetBoolNull:
     case ast::Builtin::VPIGetTinyInt:
+    case ast::Builtin::VPIGetTinyIntNull:
     case ast::Builtin::VPIGetSmallInt:
+    case ast::Builtin::VPIGetSmallIntNull:
     case ast::Builtin::VPIGetInt:
+    case ast::Builtin::VPIGetIntNull:
     case ast::Builtin::VPIGetBigInt:
+    case ast::Builtin::VPIGetBigIntNull:
     case ast::Builtin::VPIGetReal:
+    case ast::Builtin::VPIGetRealNull:
     case ast::Builtin::VPIGetDouble:
+    case ast::Builtin::VPIGetDoubleNull:
     case ast::Builtin::VPIGetDate:
+    case ast::Builtin::VPIGetDateNull:
     case ast::Builtin::VPIGetTimestamp:
+    case ast::Builtin::VPIGetTimestampNull:
     case ast::Builtin::VPIGetString:
+    case ast::Builtin::VPIGetStringNull:
     case ast::Builtin::VPIGetPointer:
     case ast::Builtin::VPISetBool:
+    case ast::Builtin::VPISetBoolNull:
     case ast::Builtin::VPISetTinyInt:
+    case ast::Builtin::VPISetTinyIntNull:
     case ast::Builtin::VPISetSmallInt:
+    case ast::Builtin::VPISetSmallIntNull:
     case ast::Builtin::VPISetInt:
+    case ast::Builtin::VPISetIntNull:
     case ast::Builtin::VPISetBigInt:
+    case ast::Builtin::VPISetBigIntNull:
     case ast::Builtin::VPISetReal:
+    case ast::Builtin::VPISetRealNull:
     case ast::Builtin::VPISetDouble:
+    case ast::Builtin::VPISetDoubleNull:
     case ast::Builtin::VPISetDate:
+    case ast::Builtin::VPISetDateNull:
     case ast::Builtin::VPISetTimestamp:
-    case ast::Builtin::VPISetString: {
+    case ast::Builtin::VPISetTimestampNull:
+    case ast::Builtin::VPISetString:
+    case ast::Builtin::VPISetStringNull: {
       CheckBuiltinVPICall(call, builtin);
       break;
     }

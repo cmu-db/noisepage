@@ -66,26 +66,46 @@ namespace terrier::execution::ast {
   F(VPIReset, vpiReset)                                                 \
   F(VPIResetFiltered, vpiResetFiltered)                                 \
   F(VPIGetBool, vpiGetBool)                                             \
+  F(VPIGetBoolNull, vpiGetBoolNull)                                     \
   F(VPIGetTinyInt, vpiGetTinyInt)                                       \
+  F(VPIGetTinyIntNull, vpiGetTinyIntNull)                               \
   F(VPIGetSmallInt, vpiGetSmallInt)                                     \
+  F(VPIGetSmallIntNull, vpiGetSmallIntNull)                             \
   F(VPIGetInt, vpiGetInt)                                               \
+  F(VPIGetIntNull, vpiGetIntNull)                                       \
   F(VPIGetBigInt, vpiGetBigInt)                                         \
+  F(VPIGetBigIntNull, vpiGetBigIntNull)                                 \
   F(VPIGetReal, vpiGetReal)                                             \
+  F(VPIGetRealNull, vpiGetRealNull)                                     \
   F(VPIGetDouble, vpiGetDouble)                                         \
+  F(VPIGetDoubleNull, vpiGetDoubleNull)                                 \
   F(VPIGetDate, vpiGetDate)                                             \
+  F(VPIGetDateNull, vpiGetDateNull)                                     \
   F(VPIGetTimestamp, vpiGetTimestamp)                                   \
+  F(VPIGetTimestampNull, vpiGetTimestampNull)                           \
   F(VPIGetString, vpiGetString)                                         \
+  F(VPIGetStringNull, vpiGetStringNull)                                 \
   F(VPIGetPointer, vpiGetPointer)                                       \
   F(VPISetBool, vpiSetBool)                                             \
+  F(VPISetBoolNull, vpiSetBoolNull)                                     \
   F(VPISetTinyInt, vpiSetTinyInt)                                       \
+  F(VPISetTinyIntNull, vpiSetTinyIntNull)                               \
   F(VPISetSmallInt, vpiSetSmallInt)                                     \
+  F(VPISetSmallIntNull, vpiSetSmallIntNull)                             \
   F(VPISetInt, vpiSetInt)                                               \
+  F(VPISetIntNull, vpiSetIntNull)                                       \
   F(VPISetBigInt, vpiSetBigInt)                                         \
+  F(VPISetBigIntNull, vpiSetBigIntNull)                                 \
   F(VPISetReal, vpiSetReal)                                             \
+  F(VPISetRealNull, vpiSetRealNull)                                     \
   F(VPISetDouble, vpiSetDouble)                                         \
+  F(VPISetDoubleNull, vpiSetDoubleNull)                                 \
   F(VPISetDate, vpiSetDate)                                             \
+  F(VPISetDateNull, vpiSetDateNull)                                     \
   F(VPISetTimestamp, vpiSetTimestamp)                                   \
+  F(VPISetTimestampNull, vpiSetTimestampNull)                           \
   F(VPISetString, vpiSetString)                                         \
+  F(VPISetStringNull, vpiSetStringNull)                                 \
   F(VPIFree, vpiFree)                                                   \
                                                                         \
   /* Hashing */                                                         \
