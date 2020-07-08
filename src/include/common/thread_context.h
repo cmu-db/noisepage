@@ -1,7 +1,10 @@
 #pragma once
+#include <unordered_set>
+#include <queue>
 
 #include "common/managed_pointer.h"
 #include "common/resource_tracker.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::metrics {
 class MetricsStore;
@@ -27,6 +30,13 @@ struct ThreadContext {
    * nullptr if not registered with MetricsManager
    */
   ResourceTracker resource_tracker_;
+
+  // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
+  // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
+  // wasteful traversals of the version chain.
+  std::unordered_set<storage::TupleSlot> visited_slots_;
+
+  std::queue<std::pair<transaction::timestamp_t, std::pair<transaction::DeferredAction, transaction::DafId>>> back_log_;
 };
 
 /**

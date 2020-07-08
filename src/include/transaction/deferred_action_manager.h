@@ -31,7 +31,7 @@ class DeferredActionManager {
   }
 
   ~DeferredActionManager() {
-    TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
+//    TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
     TERRIER_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
   }
 

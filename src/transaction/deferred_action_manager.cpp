@@ -26,12 +26,12 @@ uint32_t DeferredActionManager::Process() {
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   // Check out a timestamp from the transaction manager to determine the progress of
   // running transactions in the system.
-  const auto backlog_size = static_cast<uint32_t>(back_log_.size());
+  const auto backlog_size = static_cast<uint32_t>(common::thread_context.back_log_.size());
   bool daf_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
   if (daf_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordQueueSize(back_log_.size() + new_deferred_actions_.unsafe_size());
+    common::thread_context.metrics_store_->RecordQueueSize(common::thread_context.back_log_.size() + new_deferred_actions_.unsafe_size());
     common::thread_context.metrics_store_->RecordDafWakeup();
   }
   uint32_t processed = ClearBacklog(oldest_txn, daf_metrics_enabled);
@@ -44,7 +44,7 @@ uint32_t DeferredActionManager::Process() {
   }
 
   ProcessIndexes();
-  visited_slots_.clear();
+  common::thread_context.visited_slots_.clear();
 //
 //  if (daf_metrics_enabled) {
 //    common::thread_context.metrics_store_->RecordAfterQueueSize(back_log_.size() + new_deferred_actions_.unsafe_size());
@@ -83,16 +83,16 @@ uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn, bool metric
   // TODO(Tianyu): This will not work if somehow the timestamps we compare against has sign bit flipped.
   //  (for uncommitted transactions, or on overflow)
   // Although that should never happen, we need to be aware that this might be a problem in the future.
-  while (!back_log_.empty() && transaction::TransactionUtil::NewerThan(oldest_txn, back_log_.front().first)) {
+  while (!common::thread_context.back_log_.empty() && transaction::TransactionUtil::NewerThan(oldest_txn, back_log_.front().first)) {
     if (metrics_enabled) common::thread_context.resource_tracker_.Start();
-    back_log_.front().second.first(oldest_txn);
+    common::thread_context.back_log_.front().second.first(oldest_txn);
     if (metrics_enabled) {
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordActionData(back_log_.front().second.second, resource_metrics);
+      common::thread_context.metrics_store_->RecordActionData(common::thread_context.back_log_.front().second.second, resource_metrics);
     }
     processed++;
-    back_log_.pop();
+    common::thread_context.back_log_.pop();
   }
   return processed;
 }
@@ -125,7 +125,7 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
     processed++;
     processe_curr = true;
   }
-  if (!processe_curr && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);
+  if (!processe_curr && curr_action.first != INVALID_TXN_TIMESTAMP) common::thread_context.back_log_.push(curr_action);
   return processed;
 }
 
