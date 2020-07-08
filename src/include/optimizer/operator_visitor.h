@@ -531,6 +531,8 @@ class OperatorVisitor {
    * @param logical_cte_scan operator
    */
   virtual void Visit(const LogicalCteScan *logical_cte_scan) {}
+
+  virtual void Visit(const LogicalUnion *logical_union) {}
 };
 
 }  // namespace terrier::optimizer

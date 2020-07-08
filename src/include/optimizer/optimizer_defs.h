@@ -81,6 +81,7 @@ enum class OpType {
   LOGICALDROPVIEW,
   LOGICALANALYZE,
   LOGICALCTESCAN,
+  LOGICALUNION,
   // Separation of logical and physical operators
   LOGICALPHYSICALDELIMITER,
 

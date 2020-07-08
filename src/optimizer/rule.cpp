@@ -63,6 +63,7 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughAggregation());
+  AddRule(RuleSetName::UNNEST_SUBQUERY, new RewriteUnionWithRecursiveCTE());
 }
 
 }  // namespace terrier::optimizer

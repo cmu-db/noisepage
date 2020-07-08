@@ -182,13 +182,6 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     output_expr_ = std::move(limit_expr);
   }
 
-  if (op->GetUnionSelect() != nullptr) {
-    auto temp_expr = std::move(output_expr_);
-    op->GetUnionSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-    temp_expr->PushChild(std::move(output_expr_));
-    output_expr_ = std::move(temp_expr);
-  }
-
   if (op->GetSelectWith() != nullptr) {
     // Store the current logical tree in another expression
     auto child_expr = std::move(output_expr_);
@@ -201,6 +194,19 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
     // Replace the complete logical tree back
     output_expr_ = std::move(child_expr);
+  }
+
+  if (op->GetUnionSelect() != nullptr) {
+    auto left_expr = std::move(output_expr_);
+    op->GetUnionSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    auto right_expr = std::move(output_expr_);
+    // TODO(tanujnay112): unhardcode the is_all flag when we get parser to take in that info for union
+    output_expr_ = std::make_unique<OperatorNode>(
+        LogicalUnion::Make(true, op, op->GetUnionSelect())
+            .RegisterWithTxnContext(txn_context),
+        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    output_expr_->PushChild(std::move(left_expr));
+    output_expr_->PushChild(std::move(right_expr));
   }
 
   predicates_ = std::move(pre_predicates);

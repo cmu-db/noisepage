@@ -1223,6 +1223,41 @@ bool LogicalAnalyze::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalUnion
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalUnion::Copy() const { return new LogicalUnion(*this); }
+
+Operator LogicalUnion::Make() {
+  auto *op = new LogicalUnion();
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
+}
+
+Operator LogicalUnion::Make(bool is_all,
+                              common::ManagedPointer<parser::SelectStatement> left_expr,
+                              common::ManagedPointer<parser::SelectStatement> right_expr) {
+  auto *op = new LogicalUnion();
+  op->left_expr_ = left_expr;
+  op->right_expr_ = right_expr;
+  op->is_all_ = is_all;
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
+}
+
+bool LogicalUnion::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetOpType() != OpType::LOGICALUNION) return false;
+  const LogicalUnion &node = *dynamic_cast<const LogicalUnion *>(&r);
+  return node.right_expr_ == right_expr_ && node.left_expr_ == left_expr_ && node.is_all_ == is_all_;
+}
+
+common::hash_t LogicalUnion::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, left_expr_->Hash());
+  hash = common::HashUtil::CombineHashes(hash, right_expr_->Hash());
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_all_));
+  return hash;
+}
+
+
+//===--------------------------------------------------------------------===//
 // LogicalCteScan
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCteScan::Copy() const { return new LogicalCteScan(*this); }
@@ -1333,6 +1368,8 @@ template <>
 const char *OperatorNodeContents<LogicalAnalyze>::name = "LogicalAnalyze";
 template <>
 const char *OperatorNodeContents<LogicalCteScan>::name = "LogicalCteScan";
+template <>
+const char *OperatorNodeContents<LogicalUnion>::name = "LogicalUnion";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1407,6 +1444,8 @@ template <>
 OpType OperatorNodeContents<LogicalAnalyze>::type = OpType::LOGICALANALYZE;
 template <>
 OpType OperatorNodeContents<LogicalCteScan>::type = OpType::LOGICALCTESCAN;
+template <>
+OpType OperatorNodeContents<LogicalUnion>::type = OpType::LOGICALUNION;
 
 template <typename T>
 bool OperatorNodeContents<T>::IsLogical() const {
