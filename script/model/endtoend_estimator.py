@@ -97,6 +97,7 @@ class EndtoendEstimator:
 
         # Calculate the accumulated ratio error
         mini_model_y_pred = np.array(mini_model_y_pred)
+        raw_y = np.array(raw_y)
         raw_y_pred = (mini_model_y_pred + 1) * y_pred
         accumulated_raw_y = np.sum(raw_y, axis=0)
         accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
