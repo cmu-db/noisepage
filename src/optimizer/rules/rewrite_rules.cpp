@@ -421,6 +421,38 @@ void RewritePullFilterThroughMarkJoin::Transform(common::ManagedPointer<Abstract
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// RewriteUnionWithRecursiveCTE
+///////////////////////////////////////////////////////////////////////////////
+RewriteUnionWithRecursiveCTE::RewriteUnionWithRecursiveCTE() {
+  type_ = RuleType::UNION_WITH_RECURSIVE_CTE;
+
+  match_pattern_ = new Pattern(OpType::LOGICALCTESCAN);
+  match_pattern_->AddChild(new Pattern(OpType::LOGICALUNION));
+}
+
+RulePromise RewriteUnionWithRecursiveCTE::Promise(GroupExpression *group_expr) const {
+  return RulePromise::LOGICAL_PROMISE;
+}
+
+bool RewriteUnionWithRecursiveCTE::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                         OptimizationContext *context) const {
+  auto cte_scan = plan->Contents()->GetContentsAs<LogicalCteScan>();
+  return cte_scan->GetIsIterative();
+}
+
+void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                             std::vector<std::unique_ptr<AbstractOptimizerNode> > *transformed,
+                                             OptimizationContext *context) const {
+  auto new_root = input->Copy();
+  auto union_node = input->GetChildren()[0];
+  auto left_node = union_node->GetChildren()[0];
+  auto right_node = union_node->GetChildren()[1];
+  new_root->PushChild(left_node->Copy());
+  new_root->PushChild(right_node->Copy());
+  transformed->push_back(std::move(new_root));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// RewritePullFilterThroughAggregation
 ///////////////////////////////////////////////////////////////////////////////
 RewritePullFilterThroughAggregation::RewritePullFilterThroughAggregation() {

@@ -2005,28 +2005,28 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
   std::vector<catalog::col_oid_t> columns_;
 };
 
-//class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
-// public:
-//  static Operator Make();
-//
-//  static Operator Make(bool is_all,
-//                       common::ManagedPointer<parser::AbstractExpression> left_expr,
-//                       common::ManagedPointer<parser::AbstractExpression> right_expr);
-//
-// /**
-//  * Copy
-//  * @returns copy of this
-//  */
-//  BaseOperatorNodeContents *Copy() const override;
-//
-//  bool operator==(const BaseOperatorNodeContents &r) override;
-//  common::hash_t Hash() const override;
-//
-// private:
-//  bool is_all_;
-//  common::ManagedPointer<parser::AbstractExpression> left_expr_;
-//  common::ManagedPointer<parser::AbstractExpression> right_expr_;
-//};
+class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
+ public:
+  static Operator Make();
+
+  static Operator Make(bool is_all,
+                       common::ManagedPointer<parser::SelectStatement> left_expr,
+                       common::ManagedPointer<parser::SelectStatement> right_expr);
+
+ /**
+  * Copy
+  * @returns copy of this
+  */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+ private:
+  bool is_all_;
+  common::ManagedPointer<parser::SelectStatement> left_expr_;
+  common::ManagedPointer<parser::SelectStatement> right_expr_;
+};
 
 /**
  * Logical operator for CTE SCAN
