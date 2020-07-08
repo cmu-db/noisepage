@@ -36,7 +36,7 @@ class ErrorCode:
 # Logging settings
 LOG = logging.getLogger(__name__)
 LOG_handler = logging.StreamHandler()
-LOG_formatter = logging.Formatter(fmt='%(asctime)s,%(msecs)03d [%(filename)s:%(lineno)03d] %(levelname)-5s: %(message)s',
+LOG_formatter = logging.Formatter(fmt='%(asctime)s,%(msecs)03d [%(pathname)s:%(lineno)d] %(levelname)-5s: %(message)s',
                                   datefmt='%m-%d-%Y %H:%M:%S')
 LOG_handler.setFormatter(LOG_formatter)
 LOG.addHandler(LOG_handler)

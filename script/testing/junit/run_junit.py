@@ -9,6 +9,7 @@ base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
 from junit.test_junit import TestJUnit
+from util.constants import LOG
 
 if __name__ == "__main__":
 
@@ -35,8 +36,8 @@ if __name__ == "__main__":
         junit = TestJUnit(args)
         exit_code = junit.run()
     except:
-        print("Exception trying to run junit tests")
-        print("================ Python Error Output ==================")
+        LOG.error("Exception trying to run junit tests")
+        LOG.error("================ Python Error Output ==================")
         traceback.print_exc(file=sys.stdout)
         exit_code = 1
 
