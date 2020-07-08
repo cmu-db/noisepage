@@ -160,6 +160,8 @@ class GlobalTrainer:
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, predicted_resource_util)))
             raw_y.append(d.target_grouped_op_unit_data.y)
             y.append(raw_y[-1] / (mini_model_y_pred[-1] + 1))
+            # Do not adjust memory consumption since it shouldn't change
+            y[-1][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = 1
 
         # Training
         metrics_path = "{}/global_{}_model_metrics.csv".format(self.model_results_path, model_name)
