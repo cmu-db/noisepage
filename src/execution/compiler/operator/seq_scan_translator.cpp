@@ -198,6 +198,10 @@ void SeqScanTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast
     Loop vpi_loop(function, nullptr, codegen->VPIHasNext(vpi, is_filtered),
                   codegen->MakeStmt(codegen->VPIAdvance(vpi, is_filtered)));
     {
+      // var slot = @tableIterGetSlot(vpi)
+      auto make_slot = codegen->CallBuiltin(ast::Builtin::VPIGetSlot, {codegen->MakeExpr(vpi_var_)});
+      auto assign = codegen->Assign(codegen->MakeExpr(slot_var_), make_slot);
+      function->Append(assign);
       // Push to parent.
       ctx->Push(function);
     }
@@ -209,15 +213,14 @@ void SeqScanTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast
 
 void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-  auto make_slot = codegen->CallBuiltin(ast::Builtin::TableIterGetSlot, {codegen->MakeExpr(tvi_var_)});
-  auto assign = codegen->Assign(codegen->MakeExpr(slot_var_), make_slot);
-  function->Append(assign);
+  // for (@tableIterAdvance(tvi))
   Loop tvi_loop(function, codegen->TableIterAdvance(codegen->MakeExpr(tvi_var_)));
   {
-    // var vpi = @tableIterGetVPI()
+    // var vpi = @tableIterGetVPI(tvi)
     auto vpi = codegen->MakeExpr(vpi_var_);
     function->Append(codegen->DeclareVarWithInit(vpi_var_, codegen->TableIterGetVPI(codegen->MakeExpr(tvi_var_))));
 
+    // if (predicate)
     if (HasPredicate()) {
       auto filter_manager = local_filter_manager_.GetPtr(codegen);
       function->Append(codegen->FilterManagerRunFilters(filter_manager, vpi, GetExecutionContext()));
@@ -226,7 +229,6 @@ void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) c
     if (!ctx->GetPipeline().IsVectorized()) {
       ScanVPI(ctx, function, vpi);
     }
-    function->Append(assign);
   }
   tvi_loop.EndLoop();
 }

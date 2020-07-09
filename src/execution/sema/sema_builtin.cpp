@@ -959,11 +959,6 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::TableIterGetSlot: {
-      // A single-arg builtin returning a TupleSlot
-      call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
-      break;
-    }
     default: {
       UNREACHABLE("Impossible table iteration call");
     }
@@ -1085,7 +1080,7 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
       break;
     }
-    case ast::Builtin ::VPIGetVectorProjection: {
+    case ast::Builtin::VPIGetVectorProjection: {
       call->SetType(GetBuiltinType(ast::BuiltinType::VectorProjection)->PointerTo());
       break;
     }
@@ -1118,6 +1113,10 @@ void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::VPIGetSlot: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
       break;
     }
     case ast::Builtin::VPIGetBool:
@@ -2507,8 +2506,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::TableIterInit:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterGetVPI:
-    case ast::Builtin::TableIterClose:
-    case ast::Builtin::TableIterGetSlot: {
+    case ast::Builtin::TableIterClose: {
       CheckBuiltinTableIterCall(call, builtin);
       break;
     }
@@ -2530,6 +2528,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::VPIMatch:
     case ast::Builtin::VPIReset:
     case ast::Builtin::VPIResetFiltered:
+    case ast::Builtin::VPIGetSlot:
     case ast::Builtin::VPIGetBool:
     case ast::Builtin::VPIGetBoolNull:
     case ast::Builtin::VPIGetTinyInt:

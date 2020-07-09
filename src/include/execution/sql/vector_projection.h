@@ -10,6 +10,7 @@
 #include "execution/sql/sql.h"
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::storage {
 class BlockLayout;
@@ -159,6 +160,9 @@ class EXPORT VectorProjection {
       if (IsNull(projection_list_index)) SetNotNull(projection_list_index);
       return underlying_->GetColumn(projection_list_index)->GetValuePointer(row_offset_);
     }
+
+    /** Associate the current row offset with the provided tuple slot. */
+    void SetTupleSlot(const storage::TupleSlot &slot) { underlying_->SetTupleSlot(slot, row_offset_); }
 
    private:
     friend class VectorProjection;
@@ -359,6 +363,17 @@ class EXPORT VectorProjection {
    */
   const std::vector<storage::col_id_t> &ColumnIds() const { return storage_col_ids_; }
 
+  /**
+   * Set the specified row offset to contain the given tuple slot.
+   * TODO(WAN): how does this interact with filtering?
+   * @param slot The tuple slot.
+   * @param row_offset The row to set the tuple slot for.
+   */
+  void SetTupleSlot(const storage::TupleSlot &slot, uint32_t row_offset) { tuple_slots_[row_offset] = slot; }
+
+  /** @return The tuple slot at the specified row offset. */
+  storage::TupleSlot GetTupleSlot(uint32_t row_offset) { return tuple_slots_[row_offset]; }
+
  private:
   // Propagate the active TID list to child vectors, if necessary.
   void RefreshFilteredTupleIdList();
@@ -389,40 +404,9 @@ class EXPORT VectorProjection {
   // If the vector projection allocates memory for all contained vectors, this
   // pointer owns that memory.
   std::unique_ptr<byte[]> owned_buffer_;
-};
 
-class VectorProjectionInitializer {
- public:
-  VectorProjectionInitializer(const std::vector<catalog::col_oid_t> &col_oids, const storage::ColumnMap &map,
-                              uint32_t max_tuples);
-
-  VectorProjection *Initialize(void *head) const;
-
-  /**
-   * @return size of the VectorProjection in memory, in bytes, that this initializer constructs.
-   */
-  uint32_t VectorProjectionSize() const { return size_; }
-
-  /**
-   * @return the maximum number of tuples this VectorProjection can hold.
-   */
-  uint32_t MaxTuples() const { return max_tuples_; }
-
-  /**
-   * @return number of columns in the projection list
-   */
-  uint16_t NumColumns() const { return static_cast<uint16_t>(col_ids_.size()); }
-
-  /**
-   * @return column ids at the given offset in the projection list
-   */
-  storage::col_id_t ColId(uint16_t i) const { return col_ids_.at(i); }
-
- private:
-  uint32_t size_ = 0;
-  uint32_t max_tuples_;
-  std::vector<storage::col_id_t> col_ids_;
-  std::vector<execution::sql::TypeId> type_ids_;
+  // The tuple slots in this vector projection.
+  std::vector<storage::TupleSlot> tuple_slots_;
 };
 
 }  // namespace terrier::execution::sql

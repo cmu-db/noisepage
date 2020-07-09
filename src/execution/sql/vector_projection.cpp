@@ -115,6 +115,8 @@ void VectorProjection::Reset(uint64_t num_tuples) {
       col->Resize(num_tuples);
     }
   }
+
+  tuple_slots_.resize(num_tuples);
 }
 
 void VectorProjection::Pack() {

@@ -115,7 +115,6 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                   \
   F(TableVectorIteratorFree, OperandType::Local)                                                                       \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                 \
-  F(TableVectorIteratorGetSlot, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                 \
     OperandType::Local, OperandType::FunctionId)                                                                       \
                                                                                                                        \
@@ -135,6 +134,7 @@ namespace terrier::execution::vm {
   F(VPIMatch, OperandType::Local, OperandType::Local)                                                                  \
   F(VPIReset, OperandType::Local)                                                                                      \
   F(VPIResetFiltered, OperandType::Local)                                                                              \
+  F(VPIGetSlot, OperandType::Local, OperandType::Local)                                                                \
   F(VPIGetBool, OperandType::Local, OperandType::Local, OperandType::UImm4)                                            \
   F(VPIGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(VPIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \

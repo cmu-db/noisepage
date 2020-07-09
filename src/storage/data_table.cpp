@@ -69,6 +69,7 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
     const TupleSlot slot = **start_pos;
     // Only fill the buffer with valid, visible tuples
     if (SelectIntoBuffer(txn, slot, &row)) {
+      row.SetTupleSlot(slot);
       filled++;
     }
     ++(*start_pos);

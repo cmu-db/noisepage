@@ -49,7 +49,6 @@ namespace terrier::execution::ast {
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
-  F(TableIterGetSlot, tableIterGetSlot)                                 \
                                                                         \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \
@@ -65,6 +64,7 @@ namespace terrier::execution::ast {
   F(VPIMatch, vpiMatch)                                                 \
   F(VPIReset, vpiReset)                                                 \
   F(VPIResetFiltered, vpiResetFiltered)                                 \
+  F(VPIGetSlot, vpiGetSlot)                                             \
   F(VPIGetBool, vpiGetBool)                                             \
   F(VPIGetBoolNull, vpiGetBoolNull)                                     \
   F(VPIGetTinyInt, vpiGetTinyInt)                                       \

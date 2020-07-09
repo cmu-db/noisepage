@@ -246,6 +246,9 @@ class VectorProjectionIterator {
    */
   uint32_t GetTotalTupleCount() const { return vector_projection_->GetTotalTupleCount(); }
 
+  /** @return The vector projection's current tuple slot. */
+  storage::TupleSlot GetCurrentSlot() const { return vector_projection_->GetTupleSlot(curr_idx_); }
+
  private:
   void Init(VectorProjection *vector_projection, TupleIdList *tid_list) {
     TERRIER_ASSERT(vector_projection != nullptr, "NULL projection");
