@@ -22,10 +22,10 @@ class TransactionMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<TransactionMetricRawData *>(other);
     if (!other_db_metric->begin_data_.empty()) {
-      begin_data_.splice(begin_data_.cbegin(), other_db_metric->begin_data_);
+      begin_data_.splice(begin_data_.cend(), other_db_metric->begin_data_);
     }
     if (!other_db_metric->commit_data_.empty()) {
-      commit_data_.splice(commit_data_.cbegin(), other_db_metric->commit_data_);
+      commit_data_.splice(commit_data_.cend(), other_db_metric->commit_data_);
     }
   }
 

@@ -3,5 +3,5 @@
 noisepage-testfiles/
 out/
 trace/
-src/insert.test
+src/sel.test
 src/ins_output.test

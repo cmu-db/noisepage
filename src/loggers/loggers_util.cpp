@@ -8,12 +8,15 @@
 #include "loggers/common_logger.h"
 #include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
+#include "loggers/metrics_logger.h"
 #include "loggers/network_logger.h"
 #include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
 #include "loggers/settings_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 
 std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink = nullptr;  // NOLINT
 
@@ -29,11 +32,12 @@ void LoggersUtil::Initialize() {
     catalog::InitCatalogLogger();
     common::InitCommonLogger();
     execution::InitExecutionLogger();
-    storage::InitIndexLogger();
+    metrics::InitMetricsLogger();
     network::InitNetworkLogger();
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
     settings::InitSettingsLogger();
+    storage::InitIndexLogger();
     storage::InitStorageLogger();
     transaction::InitTransactionLogger();
 
@@ -53,3 +57,21 @@ void LoggersUtil::ShutDown() {
   }
 }
 }  // namespace terrier
+
+template void spdlog::logger::trace<std::string>(const std::string &);
+template void spdlog::logger::debug<std::string>(const std::string &);
+template void spdlog::logger::info<std::string>(const std::string &);
+template void spdlog::logger::warn<std::string>(const std::string &);
+template void spdlog::logger::error<std::string>(const std::string &);
+
+template void spdlog::logger::trace<>(const char *fmt);
+template void spdlog::logger::debug<>(const char *fmt);
+template void spdlog::logger::info<>(const char *fmt);
+template void spdlog::logger::warn<>(const char *fmt);
+template void spdlog::logger::error<>(const char *fmt);
+
+template void spdlog::logger::trace<std::string_view>(const std::string_view &);
+template void spdlog::logger::debug<std::string_view>(const std::string_view &);
+template void spdlog::logger::info<std::string_view>(const std::string_view &);
+template void spdlog::logger::warn<std::string_view>(const std::string_view &);
+template void spdlog::logger::error<std::string_view>(const std::string_view &);

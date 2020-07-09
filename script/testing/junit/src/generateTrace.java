@@ -48,7 +48,7 @@ public class generateTrace {
         String line;
         BufferedReader br = new BufferedReader(new FileReader(file));
         // create output file
-        FileWriter writer = new FileWriter(new File("script/testing/junit/src","ins2_output.test"));
+        FileWriter writer = new FileWriter(new File("script/testing/junit/src","select_output.test"));
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         while (null != (line = br.readLine())) {
             line = line.trim();

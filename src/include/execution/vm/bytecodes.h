@@ -66,6 +66,7 @@ namespace terrier::execution::vm {
   CREATE_FOR_ALL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   /* Boolean complement */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
+  F(NotSql, OperandType::Local, OperandType::Local)                                                                   \
                                                                                                                       \
   /* Branching */                                                                                                     \
   F(Jump, OperandType::JumpOffset)                                                                                    \
@@ -481,6 +482,7 @@ namespace terrier::execution::vm {
     OperandType::Local)                                                                                               \
   F(NpRunnersDummyInt, OperandType::Local)                                                                            \
   F(NpRunnersDummyReal, OperandType::Local)                                                                           \
+  F(Version, OperandType::Local, OperandType::Local)                                                                  \
                                                                                                                       \
   /* String functions */                                                                                              \
   F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \

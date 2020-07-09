@@ -60,7 +60,7 @@ if __name__ == "__main__":
                         exit_code = junit.run()
                         f = open("src/output.txt", "r")
                         lines =  f.readlines()
-                        num = lines[0][-1]
+                        num = int(lines[0][-1])
                         code.append(num)
                         f.close()
                         os.remove("src/output.txt")
