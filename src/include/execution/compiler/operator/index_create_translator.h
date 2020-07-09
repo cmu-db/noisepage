@@ -2,7 +2,10 @@
 #include <vector>
 #include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/create_index_plan_node.h"
+
+namespace terrier::planner {
+class CreateIndexPlanNode;
+}
 
 namespace terrier::execution::compiler {
 
@@ -44,8 +47,7 @@ class CreateIndexTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
-  const planner::AbstractPlanNode *Op() override { return op_; }
-
+  const planner::AbstractPlanNode *Op() override;
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Create Index don't output anything"); };
 
   // Should not be called here

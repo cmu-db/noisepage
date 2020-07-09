@@ -29,6 +29,7 @@
 #include "execution/compiler/operator/static_aggregate_translator.h"
 #include "execution/compiler/operator/update_translator.h"
 #include "execution/compiler/pipeline.h"
+#include "planner/plannodes/create_index_plan_node.h"
 
 namespace terrier::execution::compiler {
 

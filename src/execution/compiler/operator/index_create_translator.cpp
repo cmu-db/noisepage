@@ -7,6 +7,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/sql/ddl_executors.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
@@ -190,5 +191,7 @@ std::vector<catalog::col_oid_t> CreateIndexTranslator::AllColOids(const catalog:
   }
   return oids;
 }
+
+const planner::AbstractPlanNode *CreateIndexTranslator::Op() { return op_; }
 
 }  // namespace terrier::execution::compiler
