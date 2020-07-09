@@ -58,12 +58,7 @@ if __name__ == "__main__":
                         print(os.environ["path"])
                         junit = TestJUnit(args)
                         exit_code = junit.run()
-                        f = open("src/output.txt", "r")
-                        lines =  f.readlines()
-                        num = int(lines[0][-1])
-                        code.append(num)
-                        f.close()
-                        os.remove("src/output.txt")
+                        code.append(int(exit_code))
 
                     except:
                         print("Exception trying to run junit tests")
