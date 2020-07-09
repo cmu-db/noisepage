@@ -158,10 +158,8 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
-
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
-
   return true;
 }
 }  // namespace terrier::execution::sql

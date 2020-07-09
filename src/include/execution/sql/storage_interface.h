@@ -2,9 +2,12 @@
 
 #include <vector>
 #include "catalog/catalog_defs.h"
-#include "catalog/index_schema.h"
 #include "execution/util/execution_common.h"
 #include "storage/projected_row.h"
+
+namespace terrier::catalog {
+class IndexSchema;
+}
 
 namespace terrier::storage {
 class ProjectedRow;

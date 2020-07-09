@@ -10,7 +10,6 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
-#include "storage/projected_row.h"
 #include "type/type_id.h"
 
 namespace terrier::storage {

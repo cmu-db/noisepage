@@ -15,10 +15,7 @@ import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings("ALL")
 public class CreateIndexTest extends TestUtility {
-    private static final int NUM_EXTRA_THREADS = 2;
-
     private Connection conn;
-    private Connection[] thread_conn = new Connection[NUM_EXTRA_THREADS];
 
     private static final String SQL_DROP_TABLE =
             "DROP TABLE IF EXISTS tbl;";
@@ -47,10 +44,6 @@ public class CreateIndexTest extends TestUtility {
         try {
             conn = makeDefaultConnection();
             conn.setAutoCommit(true);
-            for (int i = 0; i < NUM_EXTRA_THREADS; i++) {
-                thread_conn[i] = makeDefaultConnection();
-                thread_conn[i].setAutoCommit(true);
-            }
             initDatabase();
         } catch (SQLException e) {
             DumpSQLException(e);
@@ -72,9 +65,6 @@ public class CreateIndexTest extends TestUtility {
             try {
                 if (conn != null) {
                     conn.close();
-                }
-                for (int i = 0; i < NUM_EXTRA_THREADS; i++) {
-                    thread_conn[i].close();
                 }
             } catch (SQLException e) {
                 DumpSQLException(e);
