@@ -19,11 +19,20 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/index/index_builder.h"
-#include "storage/sql_table.h"
+#include "type/type_id.h"
 
 namespace terrier::catalog::postgres {
 
 constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
+
+/**
+ * Helper function to handle generating the implicit "NULL" default values
+ * @param type of the value which is NULL
+ * @return NULL expression with the correct type
+ */
+static parser::ConstantValueExpression MakeNull(type::TypeId col_type) {
+  return parser::ConstantValueExpression(col_type);
+}
 
 Schema Builder::GetDatabaseTableSchema() {
   std::vector<Schema::Column> columns;

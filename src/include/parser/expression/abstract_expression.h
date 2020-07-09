@@ -7,6 +7,7 @@
 
 #include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
+#include "common/json.h"
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "parser/expression_defs.h"

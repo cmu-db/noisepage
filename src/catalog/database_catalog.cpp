@@ -1241,30 +1241,6 @@ int DatabaseCatalog::FKDelete(common::ManagedPointer<transaction::TransactionCon
   return affected_row;
 }
 
-bool DatabaseCatalog::VerifyFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
-                                         const PG_Constraint &con_obj, storage::ProjectedRow *pr) {
-  // get the index of the constraint
-  index_oid_t fk_index = con_obj.conindid_;
-  table_oid_t src_table = con_obj.conrelid_;
-  common::ManagedPointer<storage::index::Index> ref_table_index = GetIndex(txn, fk_index);
-  // get the schema of the ref table
-  auto ref_index_pri = ref_table_index->GetProjectedRowInitializer();
-  auto *const buffer = common::AllocationUtil::AllocateAligned(ref_index_pri.ProjectedRowSize());
-  auto *key_pr = ref_index_pri.InitializeRow(buffer);
-  TERRIER_ASSERT(con_obj.fkMetadata_.fk_srcs_.size() == con_obj.fkMetadata_.fk_refs_.size(),
-                 "Src and Ref should have the same amound of column");
-  CopyColumnData(txn, pr, key_pr, con_obj.fkMetadata_.fk_srcs_, src_table, fk_index, ref_table_index);
-  std::vector<storage::TupleSlot> index_scan_results;
-  ref_table_index->ScanKey(*txn, *key_pr, &index_scan_results);
-  // set the index projected row from source projected row
-  if (index_scan_results.empty()) {
-    delete[] buffer;
-    return false;
-  }
-  delete[] buffer;
-  return true;
-}
-
 PGConstraint DatabaseCatalog::PGConstraintPRToObj(storage::ProjectedRow *select_pr) {
   auto offset = select_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONOID_COL_OID]);
   constraint_oid_t con_oid = *(reinterpret_cast<constraint_oid_t *>(offset));
@@ -2453,6 +2429,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
         expressions.emplace_back(exprs[i]);
       }
     }
+  }
 
     // pg_proc (func_contexts)
   const std::vector<col_oid_t> pg_proc_contexts{postgres::PRO_CTX_PTR_COL_OID};

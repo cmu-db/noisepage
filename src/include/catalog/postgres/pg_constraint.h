@@ -7,6 +7,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
+#include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog::postgres {
@@ -69,15 +70,16 @@ constexpr col_oid_t CONEXCLOP_COL_OID = col_oid_t(
     23);  // VARCHAR - [] space separated op id If an exclusion constraint, list of the per-column exclusion operators
 constexpr col_oid_t CONBIN_COL_OID =
     col_oid_t(24);  // BIGINT - If a check constraint, an internal representation of the expression
+constexpr col_oid_t CONSRC_COL_OID = col_oid_t(25);
 
-constexpr uint8_t NUM_PG_CONSTRAINT_COLS = 24;
+constexpr uint8_t NUM_PG_CONSTRAINT_COLS = 25;
 
 constexpr std::array<col_oid_t, NUM_PG_CONSTRAINT_COLS> PG_CONSTRAINT_ALL_COL_OIDS = {
     CONOID_COL_OID,      CONNAME_COL_OID,      CONNAMESPACE_COL_OID, CONTYPE_COL_OID,       CONDEFERRABLE_COL_OID,
     CONDEFERRED_COL_OID, CONVALIDATED_COL_OID, CONRELID_COL_OID,     CONINDID_COL_OID,      CONPARENTID_COL_OID,
     CONFRELID_COL_OID,   CONFUPDTYPE_COL_OID,  CONFDELTYPE_COL_OID,  CONFMATCHTYPE_COL_OID, CONISLOCAL_COL_OID,
     CONINHCOUNT_COL_OID, CONNOINHERIT_COL_OID, CONKEY_COL_OID,       CONFKEY_COL_OID,       CONPFEQOP_COL_OID,
-    CONPPEQOP_COL_OID,   CONFFEQOP_COL_OID,    CONEXCLOP_COL_OID,    CONBIN_COL_OID};
+    CONPPEQOP_COL_OID,   CONFFEQOP_COL_OID,    CONEXCLOP_COL_OID,    CONBIN_COL_OID,        CONSRC_COL_OID};
 
 enum class ConstraintType : char {
   CHECK = 'c',

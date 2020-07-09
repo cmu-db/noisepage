@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc ../release/libbenchmark_util.a  CMakeFiles/benchmark_util.dir/benchmark_util/benchmark_config.cpp.o CMakeFiles/benchmark_util.dir/benchmark_util/benchmark_main.cpp.o CMakeFiles/benchmark_util.dir/benchmark_util/data_table_benchmark_util.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib ../release/libbenchmark_util.a
