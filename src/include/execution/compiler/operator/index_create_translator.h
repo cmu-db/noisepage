@@ -88,7 +88,6 @@ class CreateIndexTranslator : public OperatorTranslator {
   void GenGetIndexPR(FunctionBuilder *builder);
   void GenGetTablePR(FunctionBuilder *builder);
   void GenFillTablePR(FunctionBuilder *builder);
-  void GenPRCopy(FunctionBuilder *builder);
   void GenIndexInsert(FunctionBuilder *builder);
 
   void SetOids(FunctionBuilder *builder);
