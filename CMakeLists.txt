@@ -387,7 +387,6 @@ set(TERRIER_DEPENDENCIES
 
 set(TERRIER_TEST_LINK_LIBS
         test_util
-        terrier_shared
         gtest
         gmock_main
         gflags
@@ -396,12 +395,24 @@ set(TERRIER_TEST_LINK_LIBS
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
         test_util
-        terrier_shared
         benchmark
         gtest
         gmock_main
         gflags
         ${CMAKE_DL_LIBS})
+
+# Mandate static linking on mac OS
+if (APPLE) 
+    list(APPEND TERRIER_TEST_LINK_LIBS terrier_static)
+    list(APPEND TERRIER_BENCHMARK_LINK_LIBS terrier_static)
+    if (TERRIER_BUILD_SHARED) 
+        set(TERRIER_BUILD_SHARED OFF CACHE BOOL "Build the libterrier shared libraries" FORCE)
+        message("Disabling TERRIER_BUILD_SHARED due to lack of support on mac OS.")
+    endif ()
+else ()
+    list(APPEND TERRIER_TEST_LINK_LIBS terrier_shared)
+    list(APPEND TERRIER_BENCHMARK_LINK_LIBS terrier_shared)
+endif ()
 
 # configure settings for ctest
 configure_file(

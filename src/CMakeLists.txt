@@ -77,4 +77,4 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 add_executable(terrier main/terrier.cpp)
 set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
-target_link_libraries(terrier terrier_shared ${TERRIER_LINK_LIBS})
+target_link_libraries(terrier $<IF:$<PLATFORM_ID:Darwin>,terrier_static,terrier_shared> ${TERRIER_LINK_LIBS})
