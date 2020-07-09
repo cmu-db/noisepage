@@ -150,7 +150,8 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 
     // Extract and record the translators.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
-                                          common::ManagedPointer(codegen_.GetAstContext()));
+                                          common::ManagedPointer(codegen_.GetAstContext()),
+                                          common::ManagedPointer(pipeline));
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
   }

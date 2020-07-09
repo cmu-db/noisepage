@@ -56,7 +56,9 @@ void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl 
   if (GetPlanAs<planner::HashJoinPlanNode>().RequiresLeftMark()) {
     fields.push_back(codegen->MakeField(build_mark_, codegen->BoolType()));
   }
-  decls->push_back(codegen->DeclareStruct(build_row_type_, std::move(fields)));
+  ast::StructDecl *struct_decl = codegen->DeclareStruct(build_row_type_, std::move(fields));
+  struct_decl_ = struct_decl;
+  decls->push_back(struct_decl);
 }
 
 void HashJoinTranslator::InitializeJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {

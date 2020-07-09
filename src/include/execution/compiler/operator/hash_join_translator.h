@@ -7,6 +7,10 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/state_descriptor.h"
 
+namespace terrier::brain {
+class OperatingUnitRecorder;
+}  // namespace terrier::brain
+
 namespace terrier::parser {
 class AbstractExpression;
 }  // namespace terrier::parser
@@ -94,6 +98,8 @@ class HashJoinTranslator : public OperatorTranslator {
   }
 
  private:
+  friend class brain::OperatingUnitRecorder;
+
   // Is the given pipeline this join's left pipeline?
   bool IsLeftPipeline(const Pipeline &pipeline) const { return &left_pipeline_ == &pipeline; }
 
@@ -129,6 +135,9 @@ class HashJoinTranslator : public OperatorTranslator {
   // Check the join predicate.
   void CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *function) const;
 
+  /** @return The struct that was declared, used for the minirunner. */
+  ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
  private:
   // The name of the materialized row when inserting or probing into join hash
   // table.
@@ -144,6 +153,9 @@ class HashJoinTranslator : public OperatorTranslator {
   // table is stored.
   StateDescriptor::Entry global_join_ht_;
   StateDescriptor::Entry local_join_ht_;
+
+  // Struct declaration for minirunner.
+  ast::StructDecl *struct_decl_;
 };
 
 }  // namespace terrier::execution::compiler

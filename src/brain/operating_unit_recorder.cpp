@@ -320,10 +320,10 @@ void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoi
 }
 
 void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
-  // TODO(WAN): wz2 port
-  throw EXECUTION_EXCEPTION("EXEC PORT WAN -- poke lin and william");
-#if 0
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_BUILD) {
+  auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashJoinTranslator>();
+
+  // Build
+  if (translator->IsLeftPipeline(*current_pipeline_)) {
     for (auto key : plan->GetLeftHashKeys()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key);
       arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
@@ -333,7 +333,6 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Get Struct and compute memory scaling factor
     auto offset = sizeof(execution::sql::HashTableEntry);
     auto key_size = ComputeKeySize(plan->GetLeftHashKeys());
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashJoinLeftTranslator>();
     auto scale = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, offset);
 
     // Record features using the row/cardinality of left plan
@@ -342,7 +341,8 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     AggregateFeatures(plan_feature_type_, key_size, plan->GetLeftHashKeys().size(), c_plan, 1, scale);
   }
 
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
+  // Probe
+  if (translator->IsRightPipeline(*current_pipeline_)) {
     for (auto key : plan->GetRightHashKeys()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key);
       arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
@@ -360,7 +360,6 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
   // use the rows/cardinalities of what the HJ plan produces
   VisitAbstractJoinPlanNode(plan);
   RecordArithmeticFeatures(plan, 1);
-#endif
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
@@ -386,7 +385,7 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
       RecordArithmeticFeatures(c_plan, o_num_rows - 1);
 
       // Get all features/card estimates from the right child
-      OperatingUnitRecorder rec(accessor_, ast_ctx_);
+      OperatingUnitRecorder rec(accessor_, ast_ctx_, current_pipeline_);
       rec.plan_feature_type_ = plan_feature_type_;
       plan->GetChild(1)->Accept(common::ManagedPointer<planner::PlanVisitor>(&rec));
       for (auto &feature : rec.pipeline_features_) {
