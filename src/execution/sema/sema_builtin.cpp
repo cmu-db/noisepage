@@ -2178,45 +2178,6 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::StorageInterfaceInitBind: {
-      if (!CheckArgCount(call, 5)) {
-        return;
-      }
-
-      // exec_ctx
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      // table_name
-      if (!call_args[2]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
-        return;
-      }
-
-      // uint32_t *col_oids
-      if (!call_args[3]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
-        return;
-      }
-      auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
-      auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
-        ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
-      }
-
-      // needs indexes
-      if (!call_args[4]->GetType()->IsBoolType()) {
-        ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Bool));
-        return;
-      }
-
-      // void
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
     case ast::Builtin::GetTablePR: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -2268,19 +2229,6 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
 
       if (!call_args[1]->GetType()->IsIntegerType()) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
-      break;
-    }
-    case ast::Builtin::GetIndexPRBind: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      if (!call_args[1]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
         return;
       }
 
@@ -2821,13 +2769,11 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::StorageInterfaceInit:
-    case ast::Builtin::StorageInterfaceInitBind:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
     case ast::Builtin::GetIndexPR:
-    case ast::Builtin::GetIndexPRBind:
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:

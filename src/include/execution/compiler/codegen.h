@@ -678,10 +678,28 @@ class CodeGen {
    */
   ast::Expr *VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx,
                        ast::Expr *filter_val, ast::Expr *tids);
+  /**
+   * Call @prGet(pr, attr_idx).
+   * @param pr The projected row being accessed.
+   * @param type The type of the column being accessed.
+   * @param nullable Whether the column being accessed is nullable.
+   * @param attr_idx Index of the column being accessed.
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *PRGet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
 
-  ast::Expr *PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx);
-
-  ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
+  /**
+   * Call prSet(pr, attr_idx, val).
+   * @param pr The projected row being accessed.
+   * @param type The type of the column being accessed.
+   * @param nullable Whether the column being accessed is nullable.
+   * @param attr_idx Index of the column being accessed.
+   * @param val The value to set the column to.
+   * @param own When inserting varchars, whether the VarlenEntry should own its content.
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                   bool own = false);
 
   // -------------------------------------------------------
   //

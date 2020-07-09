@@ -478,7 +478,7 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return CallBuiltin(builtin, {pr, idx_expr});
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val, bool own) {
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::BOOLEAN:
@@ -514,7 +514,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   }
   ast::Expr *idx_expr = GetFactory()->NewIntLiteral(position_, attr_idx);
   if (builtin == ast::Builtin::PRSetVarlenNull || builtin == ast::Builtin::PRSetVarlen) {
-    return CallBuiltin(builtin, {pr, idx_expr, val, ConstBool(false)});
+    return CallBuiltin(builtin, {pr, idx_expr, val, ConstBool(own)});
   } else {
     return CallBuiltin(builtin, {pr, idx_expr, val});
   }

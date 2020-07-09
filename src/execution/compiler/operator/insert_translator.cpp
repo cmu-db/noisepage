@@ -162,7 +162,7 @@ void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, WorkContext *cont
     auto table_col_oid = all_oids_[i];
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     auto pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
-                                           table_pm_.find(table_col_oid)->second, src);
+                                           table_pm_.find(table_col_oid)->second, src, true);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 }
@@ -196,7 +196,7 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
     auto set_key_call =
-        GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_index_pr), attr_type, nullable, attr_offset, col_expr);
+        GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_index_pr), attr_type, nullable, attr_offset, col_expr, true);
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 
@@ -209,20 +209,6 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
   If success(builder, cond);
   { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
   success.EndIf();
-}
-
-void InsertTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) const {
-  //  const auto &cols = table_schema_.GetColumns();
-  //
-  //  for (uint32_t i = 0; i < all_oids_.size(); i++) {
-  //    const auto &table_col = cols[i];
-  //    const auto &table_col_oid = all_oids_[i];
-  //    auto val = GetChildOutput(0, i, table_col.Type());
-  //    auto pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(insert_pr_), table_col.Type(),
-  //    table_col.Nullable(),
-  //                                       table_pm_.find(table_col_oid)->second, val, true);
-  //    builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
-  //  }
 }
 
 }  // namespace terrier::execution::compiler

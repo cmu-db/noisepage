@@ -144,7 +144,7 @@ void UpdateTranslator::FillPRFromChild(WorkContext *context,
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     auto clause_expr = context->DeriveValue(*clause.second.Get(), this);
     auto pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
-                                           table_pm_.find(table_col_oid)->second, clause_expr);
+                                           table_pm_.find(table_col_oid)->second, clause_expr, true);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 }

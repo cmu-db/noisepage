@@ -78,8 +78,6 @@ class InsertTranslator : public OperatorTranslator {
   void DeclareInsertPR(FunctionBuilder *builder) const;
   // Get the pr to insert
   void GetInsertPR(FunctionBuilder *builder) const;
-  // Fill the insert PR from the child's output
-  void FillPRFromChild(FunctionBuilder *builder) const;
   // Set the table PR from raw values
   void GenSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const;
   // Insert into table.

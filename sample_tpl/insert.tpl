@@ -9,7 +9,7 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   var empty_table_oid : int32
   empty_table_oid = @testCatalogLookup(execCtx, "empty_table", "")
   var col_oids: [1]uint32
-  col_oids[0] = 1 // colA
+  col_oids[0] = @testCatalogLookup(execCtx, "empty_table", "colA")
   @storageInterfaceInit(&inserter, execCtx, empty_table_oid, col_oids, true)
 
   // Iterate through rows with colA between 495 and 505
