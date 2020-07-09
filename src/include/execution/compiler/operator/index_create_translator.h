@@ -8,7 +8,13 @@ namespace terrier::execution::compiler {
 
 /**
  * Create Index Translator
+ * This translator takes in an CreateIndexPlanNode to perform a sequantial scan and index population. It first
+ * initialize a storage interface and create the index through ddl_executor. Based on the GetIndexPR and InitTablePR in
+ * the storage_interface, index PR and table PR are fetched/initialized. Then a sequantial scan similar to
+ * seq_scan_translator is performed to scan through tuples. For each tuple, FillTablePR in the storage_interface is
+ * called to fill the index PR. Finally we'll insert into the index given the PR and the tuple.
  */
+
 class CreateIndexTranslator : public OperatorTranslator {
  public:
   /**
