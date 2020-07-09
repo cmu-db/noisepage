@@ -5,7 +5,7 @@
             "base": {
                 "benchmark": "tatp",
                 "weights": "2,35,10,35,2,14,2",
-                "query_mode": "extended",
+                "query_mode": "simple",
                 "scale_factor": 1,
                 "terminals": 1,
                 "loader_threads": 4,
@@ -19,7 +19,7 @@
             "base": {
                 "benchmark": "smallbank",
                 "weights": "15,15,15,25,15,15",
-                "query_mode": "extended",
+                "query_mode": "simple",
                 "scale_factor": 1,
                 "terminals": 1,
                 "loader_threads": 4,
@@ -33,7 +33,7 @@
             "base": {
                 "benchmark": "noop",
                 "weights": "100",
-                "query_mode": "extended",
+                "query_mode": "simple",
                 "scale_factor": 1,
                 "terminals": 1,
                 "client_time": 60
@@ -46,7 +46,7 @@
             "base": {
                 "benchmark": "ycsb",
                 "weights": "50,5,15,10,10,10",
-                "query_mode": "extended",
+                "query_mode": "simple",
                 "scale_factor": 1,
                 "terminals": 1,
                 "loader_threads": 4,
@@ -60,7 +60,7 @@
             "base": {
                 "benchmark": "tpcc",
                 "weights": "45,43,4,4,4",
-                "query_mode": "extended",
+                "query_mode": "simple",
                 "scale_factor": 4,
                 "terminals": 1,
                 "loader_threads": 4,
@@ -74,7 +74,7 @@
             "base": {
                 "benchmark": "tatp",
                 "weights": "2,35,10,35,2,14,2",
-                "query_mode": "extended",
+                "query_mode": "simple",
                 "terminals": 8,
                 "loader_threads": 4,
                 "client_time": 600
