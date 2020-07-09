@@ -66,6 +66,7 @@ public class TracefileTest {
         int lineCounter = -1;
         // get all query start numbers
         List<Integer> queryLine = getQueryLineNum(file);
+
         // loop through every sql statement
         while (mog.next()) {
             // case for create and insert statements
