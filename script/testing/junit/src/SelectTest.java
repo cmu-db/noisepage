@@ -17,8 +17,6 @@ import static org.junit.Assert.assertEquals;
 public class SelectTest extends TestUtility {
     private Connection conn;
     private ResultSet rs;
-    private ResultSet rs1;
-    private ResultSet rs2;
     private String S_SQL = "SELECT * FROM tbl;";
 
     private static final String SQL_DROP_TABLE =
@@ -271,18 +269,13 @@ public class SelectTest extends TestUtility {
       String insert_SQL1 = "INSERT INTO tbl VALUES (11, 21, 33);";
       String insert_SQL2 = "INSERT INTO tbl VALUES (12, 22, 32);";
       String insert_SQL3 = "INSERT INTO tbl VALUES (13, 23, 31);";
-      String select_SQL1 = "SELECT * FROM tbl ORDER BY c3";
       String select_SQL2 = "SELECT * FROM tbl ORDER BY 3";
       Statement stmt = conn.createStatement();
       stmt.execute(insert_SQL1);
       stmt.execute(insert_SQL2);
       stmt.execute(insert_SQL3);
-      rs1 = stmt.executeQuery(select_SQL1);
-      rs2 = stmt.executeQuery(select_SQL2);
-      while(rs1.next() && rs2.next()) {
-        checkIntRow(rs2, new String [] {"c1", "c2", "c3"}, new int[] {rs1.getInt("c1"), rs1.getInt("c2"), rs1.getInt("c3")});
-      }
-      assertNoMoreRows(rs1);
-      assertNoMoreRows(rs2);
+      rs = stmt.executeQuery(select_SQL2);
+      rs.next();
+      checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int[] {13, 23, 31});
     }
 }
