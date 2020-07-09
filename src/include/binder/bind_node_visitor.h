@@ -119,7 +119,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> UnifyOrderByExpression(
       common::ManagedPointer<parser::OrderByDescription> order_by_description,
-      const std::vector<common::ManagedPointer<parser::AbstractExpression>> select_items) {
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
     auto exprs = order_by_description->GetOrderByExpressions();
     auto size = order_by_description->GetOrderByExpressionsSize();
     for (size_t idx = 0; idx < size; idx++) {

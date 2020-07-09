@@ -494,8 +494,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   node->SetDepth(context_->GetDepth());
 
   if (node->GetSelectOrderBy() != nullptr) {
-    auto orderByExpressions = UnifyOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
-    node->GetSelectOrderBy()->GetOrderByExpressions().swap(orderByExpressions);
+    auto order_by_expressions = UnifyOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
+    node->GetSelectOrderBy()->GetOrderByExpressions().swap(order_by_expressions);
     node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
 
