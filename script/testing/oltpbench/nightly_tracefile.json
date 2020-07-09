@@ -12,14 +12,7 @@
                 "client_time": 60
             },
             "loop": {
-                "key": "terminals",
-                "values": [
-                    1,
-                    2,
-                    4,
-                    8,
-                    16
-                ]
+                "terminals":[1,2,4,8,16]
             }
         },
         {
@@ -33,14 +26,7 @@
                 "client_time": 60
             },
             "loop": {
-                "key": "terminals",
-                "values": [
-                    1,
-                    2,
-                    4,
-                    8,
-                    16
-                ]
+                "terminals":[1,2,4,8,16]
             }
         },
         {
@@ -53,14 +39,7 @@
                 "client_time": 60
             },
             "loop": {
-                "key": "terminals",
-                "values": [
-                    1,
-                    2,
-                    4,
-                    8,
-                    16
-                ]
+                "terminals":[1,2,4,8,16]
             }
         },
         {
@@ -74,14 +53,7 @@
                 "client_time": 60
             },
             "loop": {
-                "key": "terminals",
-                "values": [
-                    1,
-                    2,
-                    4,
-                    8,
-                    16
-                ]
+                "terminals":[1,2,4,8,16]
             }
         },
         {
@@ -95,14 +67,7 @@
                 "client_time": 60
             },
             "loop": {
-                "key": "terminals",
-                "values": [
-                    1,
-                    2,
-                    4,
-                    8,
-                    16
-                ]
+                "terminals":[1,2,4,8,16]
             }
         },
         {

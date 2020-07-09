@@ -190,22 +190,22 @@ class TestServerV2:
 
         return ret_val
 
-    def run(self, test_cases):
+    def run(self, test_suite):
         """ Orchestrate the overall test execution """
         ret_val = None
         try:
             self.check_db_binary()
             self.run_pre_suite()
 
-            for case in test_cases:
-                if case.test_fresh_db_on_start:
+            for test_case in test_suite:
+                if test_case.test_fresh_db_on_start:
                     self.run_db()
 
-                ret_val = self.run_test(case)
+                ret_val = self.run_test(test_case)
 
-                self.print_output(case.test_output_file)
+                self.print_output(test_case.test_output_file)
 
-                if case.test_stop_db_on_finish:
+                if test_case.test_stop_db_on_finish:
                     self.stop_db()
 
                 if ret_val is None or ret_val != constants.ErrorCode.SUCCESS:
