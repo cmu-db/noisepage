@@ -102,6 +102,15 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
+     * @param table_num_tuple estimated number of tuples in the table
+     * @return builder object
+     */
+    Builder &SetTableNumTuple(uint64_t table_num_tuple) {
+      table_num_tuple_ = table_num_tuple;
+      return *this;
+    }
+
+    /**
      * Build the Index scan plan node
      * @return plan node
      */
@@ -109,7 +118,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
       return std::unique_ptr<IndexScanPlanNode>(new IndexScanPlanNode(
           std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_), is_for_update_,
           database_oid_, index_oid_, table_oid_, scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_),
-          scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, index_size_));
+          scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, index_size_, table_num_tuple_));
     }
 
    private:
@@ -117,6 +126,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     catalog::index_oid_t index_oid_;
     catalog::table_oid_t table_oid_;
     std::vector<catalog::col_oid_t> column_oids_;
+    uint64_t table_num_tuple_{0};
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
     uint64_t index_size_{0};
@@ -145,7 +155,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
                     uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset,
-                    uint64_t index_size)
+                    uint64_t index_size, uint64_t table_num_tuple)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
                              scan_limit, scan_has_limit, scan_offset, scan_has_offset),
         scan_type_(scan_type),
@@ -154,6 +164,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
         column_oids_(column_oids),
         lo_index_cols_(std::move(lo_index_cols)),
         hi_index_cols_(std::move(hi_index_cols)),
+        table_num_tuple_(table_num_tuple),
         index_size_(index_size) {}
 
  public:
@@ -173,6 +184,11 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @return the OID of the table
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return The scan type
+   */
+  IndexScanType GetScanType() const { return scan_type_; }
 
   /**
    * @return OIDs of columns to scan
@@ -201,9 +217,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   }
 
   /**
-   * @return The scan type
+   * @return the estimation for the number of tuples in the underlying table
    */
-  IndexScanType GetScanType() const { return scan_type_; }
+  uint64_t GetTableNumTuple() const { return table_num_tuple_; }
 
   /**
    * @return index size
@@ -233,6 +249,8 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   std::vector<catalog::col_oid_t> column_oids_;
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
+  uint32_t scan_limit_;
+  uint64_t table_num_tuple_;
   uint64_t index_size_;
 };
 

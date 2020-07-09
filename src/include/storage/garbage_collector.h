@@ -1,6 +1,7 @@
 #pragma once
 
 #include <queue>
+#include <tuple>
 #include <unordered_set>
 #include <utility>
 
@@ -78,6 +79,13 @@ class GarbageCollector {
    */
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
+  /**
+   * Set the GC interval for metrics collection
+   * TODO(lma): this need to be called in the settings callback after we add the ability to change the GC interval
+   * @param gc_interval interval to set (in us)
+   */
+  void SetGCInterval(uint64_t gc_interval) { gc_interval_ = gc_interval; }
+
  private:
   /**
    * Process the deallocate queue
@@ -87,9 +95,12 @@ class GarbageCollector {
 
   /**
    * Process the unlink queue
-   * @return number of txns (not UndoRecords) processed for debugging/testing
+   * @return a tuple
+   *   first element - number of txns processed
+   *   second element - number UndoRecords processed
+   *   first element - number of read-only txns processed
    */
-  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
+  std::tuple<uint32_t, uint32_t, uint32_t> ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process deferred actions
@@ -117,6 +128,8 @@ class GarbageCollector {
 
   std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
+
+  uint64_t gc_interval_{0};
 };
 
 }  // namespace terrier::storage
