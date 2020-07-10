@@ -407,6 +407,10 @@ class CodeGen {
    */
   ast::Identifier NewIdentifier(const std::string &prefix);
 
+  ast::Identifier MakeIdentifier(const std::string &prefix);
+
+  ast::Identifier GetIdentifier(const std::string &query);
+
   /**
    * @return an empty BlockStmt
    */
@@ -547,6 +551,8 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types);
+
+  ast::Expr *IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types);
 
   /**
    * Make a generic builtin call with the given arguments.

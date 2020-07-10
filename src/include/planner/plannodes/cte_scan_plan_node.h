@@ -53,16 +53,22 @@ class CteScanPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+    Builder &SetCTETableName(std::string &&table_name) {
+      cte_table_name_ = std::move(table_name);
+      return *this;
+    }
+
     /**
      * Build the limit plan node
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
-      return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(
+      return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(cte_table_name_),
           std::move(children_), std::move(output_schema_), is_leader_, std::move(table_output_schema_), is_iterative_));
     }
 
    private:
+    std::string cte_table_name_;
     bool is_leader_ = false;
     bool is_iterative_ = false;
     std::unique_ptr<OutputSchema> table_output_schema_;
@@ -73,10 +79,11 @@ class CteScanPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    */
-  CteScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+  CteScanPlanNode(std::string &&cte_table_name, std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, bool is_leader,
                   std::unique_ptr<OutputSchema> table_output_schema, bool is_iterative)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
         is_iterative_(is_iterative),
         table_output_schema_(std::move(table_output_schema)) {}
@@ -132,6 +139,10 @@ class CteScanPlanNode : public AbstractPlanNode {
     return common::ManagedPointer(table_output_schema_);
   }
 
+  const std::string &GetCTETableName() const {
+    return cte_table_name_;
+  }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -150,6 +161,7 @@ class CteScanPlanNode : public AbstractPlanNode {
   }
 
  private:
+  std::string cte_table_name_;
   // Boolean to indicate whether this plan node is leader or not
   bool is_leader_;
   bool is_iterative_;

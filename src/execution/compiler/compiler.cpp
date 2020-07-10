@@ -129,13 +129,23 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
     case terrier::planner::PlanNodeType::CTESCAN: {
       auto cte_scan_plan_node = reinterpret_cast<const terrier::planner::CteScanPlanNode *>(&op);
       if (cte_scan_plan_node->IsLeader()) {
-        auto bottom_translator = TranslatorFactory::CteScanLeaderNodeTranslator(&op, codegen_);
         auto top_translator = TranslatorFactory::CteScanNodeTranslator(&op, codegen_);
 
         // The "build" side is a pipeline breaker. It belongs to a new pipeline.
         auto next_pipeline = std::make_unique<Pipeline>(codegen_);
         MakePipelines(*op.GetChild(0), next_pipeline.get());
-        next_pipeline->Add(std::move(bottom_translator));
+
+        if(cte_scan_plan_node->IsIterative()){
+
+          auto base_translator = TranslatorFactory::IterCteScanLeaderNodeTranslator(&op, codegen_, nullptr, 0);
+          auto ind_translator = TranslatorFactory::IterCteScanLeaderNodeTranslator(&op, codegen_, base_translator.get(), 1);
+          next_pipeline->Add(std::move(base_translator));
+          MakePipelines(*op.GetChild(1), next_pipeline.get());
+          next_pipeline->Add(std::move(ind_translator));
+        }else{
+          auto bottom_translator = TranslatorFactory::CteScanLeaderNodeTranslator(&op, codegen_);
+          next_pipeline->Add(std::move(bottom_translator));
+        }
         pipelines_.emplace_back(std::move(next_pipeline));
 
         curr_pipeline->Add(std::move(top_translator));

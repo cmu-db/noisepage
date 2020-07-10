@@ -35,6 +35,10 @@ class TranslatorFactory {
   static std::unique_ptr<OperatorTranslator> CteScanLeaderNodeTranslator(const terrier::planner::AbstractPlanNode *op,
                                                                          CodeGen *codegen);
 
+  static std::unique_ptr<OperatorTranslator> IterCteScanLeaderNodeTranslator(const terrier::planner::AbstractPlanNode *op,
+                                                                         CodeGen *codegen, OperatorTranslator *base_case,
+                                                                             int index);
+
   /**
    * Translator for Follower Cte Scan nodes
    */

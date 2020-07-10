@@ -1,5 +1,7 @@
 #include "execution/compiler/translator_factory.h"
 
+#include <execution/compiler/operator/iter_cte_scan_leader_translator.h>
+
 #include <memory>
 
 #include "common/macros.h"
@@ -70,6 +72,12 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CteScanNodeTranslator(
     const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
   return std::make_unique<CteScanTranslator>(static_cast<const planner::CteScanPlanNode *>(op), codegen);
+}
+
+std::unique_ptr<OperatorTranslator> TranslatorFactory::IterCteScanLeaderNodeTranslator(
+    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, OperatorTranslator *base_case, int index) {
+  return std::make_unique<IterCteScanLeaderTranslator>(static_cast<const planner::CteScanPlanNode *>(op), codegen,
+                                                       base_case, index);
 }
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CteScanLeaderNodeTranslator(

@@ -82,6 +82,19 @@ ast::Identifier CodeGen::NewIdentifier(const std::string &prefix) {
   return Context()->GetIdentifier(id_str);
 }
 
+ast::Identifier CodeGen::MakeIdentifier(const std::string &prefix) {
+  // TODO(Amadou/Wan): John notes that there could be an extra string allocation and deallocation for the id count.
+  //  An explicit string formatting call could avoid this.
+  // Use the custom allocator because the id will outlive the std::string.
+  auto *id_str = Region()->AllocateArray<char>(prefix.size() + 1);
+  std::memcpy(id_str, prefix.c_str(), prefix.size() + 1);
+  return Context()->GetIdentifier(id_str);
+}
+
+ast::Identifier CodeGen::GetIdentifier(const std::string &query) {
+  return Context()->GetIdentifier(query);
+}
+
 ast::Expr *CodeGen::ZeroArgCall(ast::Builtin builtin) {
   ast::Expr *fun = BuiltinFunction(builtin);
   util::RegionVector<ast::Expr *> args{{}, Region()};
@@ -621,6 +634,16 @@ ast::Expr *CodeGen::StorageInterfaceInit(ast::Identifier si, uint32_t table_oid,
 
 ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::CteScanInit);
+  ast::Expr *si_ptr = GetStateMemberPtr(si);
+  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *col_oids_expr = MakeExpr(col_types);
+
+  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::IterCteScanInit);
   ast::Expr *si_ptr = GetStateMemberPtr(si);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
   ast::Expr *col_oids_expr = MakeExpr(col_types);
