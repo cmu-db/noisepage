@@ -105,14 +105,18 @@ void CteScanTranslator::Consume(FunctionBuilder *builder) {
   GenReadTVIReset(builder);
 }
 
+ast::Identifier CteScanTranslator::GetCteScanIterator() {
+  return codegen_->GetIdentifier(op_->GetCTETableName());
+}
+
 void CteScanTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
   // Generate col types
   SetColumnTypes(builder);
   // var cte_scan_iterator : CteScanIterator
   auto cte_scan_iterator_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-  builder->Append(codegen_->DeclareVariable(codegen_->GetCteScanIdentifier(), cte_scan_iterator_type, nullptr));
+  builder->Append(codegen_->DeclareVariable(GetCteScanIterator(), cte_scan_iterator_type, nullptr));
   // Call @cteScanIteratorInit
-  ast::Expr *cte_scan_iterator_setup = codegen_->CteScanIteratorInit(codegen_->GetCteScanIdentifier(), col_types_);
+  ast::Expr *cte_scan_iterator_setup = codegen_->CteScanIteratorInit(GetCteScanIterator(), col_types_);
   builder->Append(codegen_->MakeStmt(cte_scan_iterator_setup));
 }
 void CteScanTranslator::SetColumnTypes(FunctionBuilder *builder) {
@@ -137,7 +141,7 @@ void CteScanTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBu
 void CteScanTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
   auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR,
-                                          codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
+                                          codegen_->GetStateMemberPtr(GetCteScanIterator()));
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
 }
 
@@ -145,7 +149,7 @@ void CteScanTranslator::GenTableInsert(FunctionBuilder *builder) {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto insert_slot = codegen_->NewIdentifier("insert_slot");
   auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert,
-                                          codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
+                                          codegen_->GetStateMemberPtr(GetCteScanIterator()));
   builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
 }
 
@@ -181,7 +185,7 @@ void CteScanTranslator::DeclareReadTVI(FunctionBuilder *builder) {
   builder->Append(codegen_->DeclareVariable(read_tvi_, iter_type, nullptr));
 
   // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
-  ast::Expr *init_call = codegen_->TempTableIterInit(read_tvi_, codegen_->GetCteScanIdentifier(), read_col_oids_);
+  ast::Expr *init_call = codegen_->TempTableIterInit(read_tvi_, GetCteScanIterator(), read_col_oids_);
   builder->Append(codegen_->MakeStmt(init_call));
 }
 void CteScanTranslator::GenReadTVIClose(FunctionBuilder *builder) {

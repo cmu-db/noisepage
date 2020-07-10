@@ -1303,6 +1303,9 @@ class CodeGen {
    */
   ast::Expr *CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types);
 
+
+  ast::Expr *IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types);
+
   // ---------------------------------------------------------------------------
   //
   // Identifiers

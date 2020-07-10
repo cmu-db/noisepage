@@ -73,6 +73,8 @@ class CteScanLeaderTranslator : public OperatorTranslator {
 
  private:
   const planner::CteScanPlanNode *op_;
+
+  ast::Identifier GetCteScanIterator();
   // Declare Cte Scan Itarator
   void DeclareCteScanIterator(FunctionBuilder *builder);
   // Set Column Types for insertion
