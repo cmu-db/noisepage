@@ -105,17 +105,6 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   FreeIterator(function);
 }
 
-// ast::Expr *IndexScanTranslator::GetOutput(uint32_t attr_idx) {
-//  auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-//  std::unique_ptr<ExpressionTranslator> translator =
-//      TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), GetCodeGen());
-//  return translator->DeriveExpr(this);
-//}
-
-// ast::Expr *IndexScanTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, type::TypeId type) {
-//  UNREACHABLE("IndexScan nodes should use column value expressions");
-//}
-
 ast::Expr *IndexScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   auto type = table_schema_.GetColumn(col_oid).Type();
   auto nullable = table_schema_.GetColumn(col_oid).Nullable();
@@ -189,12 +178,11 @@ void IndexScanTranslator::FillKey(
     const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs) const {
   // Set key.attr_i = expr_i for each key attribute
   for (const auto &key : index_exprs) {
-    //    auto translator = TranslatorFactory::CreateExpressionTranslator(key.second.Get(), GetCodeGen());
     uint16_t attr_offset = index_pm_.at(key.first);
     type::TypeId attr_type = index_schema_.GetColumn(!key.first - 1).Type();
     bool nullable = index_schema_.GetColumn(!key.first - 1).Nullable();
     auto set_key_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(pr), attr_type, nullable, attr_offset,
-                                            context->DeriveValue(*key.second.Get(), this));
+                                            context->DeriveValue(*key.second.Get(), this), true);
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 }

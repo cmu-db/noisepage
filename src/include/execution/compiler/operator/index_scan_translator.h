@@ -50,28 +50,7 @@ class IndexScanTranslator : public OperatorTranslator {
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
-  //  void Produce(FunctionBuilder *builder) override;
-  //  void Abort(FunctionBuilder *builder) override;
-  //  void Consume(FunctionBuilder *builder) override;
-
-  // This is a materializer
-  //  bool IsMaterializer(bool *is_ptr) override {
-  //    *is_ptr = false;
-  //    return true;
-  //  }
-
-  //  // Return the projected row and its type
-  //  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
-  //    return {&table_pr_, &pr_type_};
-  //  }
-
-  //  ast::Expr *GetOutput(uint32_t attr_idx) override;
-  //  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-  //  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
-
   ast::Expr *GetSlotAddress() const override;
-
-  //  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   // Declare the index iterator
