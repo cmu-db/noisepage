@@ -1,14 +1,12 @@
 #include "execution/compiler/operator/delete_translator.h"
 
-#include <execution/compiler/if.h>
-
-#include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
+#include "execution/compiler/if.h"
 #include "execution/compiler/work_context.h"
 #include "storage/index/index.h"
 
@@ -32,7 +30,7 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table
   DeclareDeleter(function);
-  GenTableDelete(context, function);
+  GenTableDelete(function);
 
   // Delete from every index
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
@@ -63,7 +61,7 @@ void DeleteTranslator::GenDeleterFree(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->MakeStmt(deleter_free));
 }
 
-void DeleteTranslator::GenTableDelete(WorkContext *context, FunctionBuilder *builder) const {
+void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
   // if (!@tableDelete(&deleter, &slot)) { Abort(); }
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
   const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
@@ -85,7 +83,6 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   const auto &get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(delete_index_pr, nullptr, get_index_pr_call));
 
-  // Fill up the index pr
   auto index = GetCodeGen()->GetCatalogAccessor()->GetIndex(index_oid);
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
@@ -94,15 +91,16 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
   const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
   for (const auto &index_col : index_cols) {
+    // @prSetCall(delete_index_pr, type, nullable, attr_idx, val)
     // NOTE: index expressions refer to columns in the child translator.
     // For example, if the child is a seq scan, the index expressions would contain ColumnValueExpressions
     const auto &val = context->DeriveValue(*index_col.StoredExpression().Get(), child);
     const auto &pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(),
-                                           index_col.Nullable(), index_pm.at(index_col.Oid()), val);
+                                                  index_col.Nullable(), index_pm.at(index_col.Oid()), val);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 
-  // Delete from index
+  // @indexDelete(&deleter)
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), child->GetSlot()};
   const auto &index_delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::IndexDelete, delete_args);
   builder->Append(GetCodeGen()->MakeStmt(index_delete_call));

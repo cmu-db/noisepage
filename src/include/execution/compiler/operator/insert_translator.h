@@ -1,6 +1,8 @@
 #pragma once
-#include <catalog/schema.h>
+
 #include <vector>
+
+#include "catalog/schema.h"
 #include "execution/compiler/ast_fwd.h"
 #include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
@@ -12,7 +14,7 @@ class InsertPlanNode;
 namespace terrier::execution::compiler {
 
 /**
- * Insert Translator
+ * InsertTranslator
  */
 class InsertTranslator : public OperatorTranslator {
  public:
@@ -50,41 +52,16 @@ class InsertTranslator : public OperatorTranslator {
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
-  /**
-   * Tear-down the inserter if required.
-   */
-  //  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *func) const override;
-
-  //  void Abort(FunctionBuilder *builder) const override;
-
-  //  /**
-  //   * @return The pipeline work function parameters. Just the *TVI.
-  //   */
-  //  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override;
-  //
-  //  /**
-  //   * Launch a parallel table scan.
-  //   * @param work_func The worker function that'll be called during the parallel scan.
-  //   */
-  //  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override;
-
  private:
-  // Declare the inserter
   void DeclareInserter(FunctionBuilder *builder) const;
   void GenInserterFree(FunctionBuilder *builder) const;
-  // Set the oids variable
   void SetOids(FunctionBuilder *builder) const;
-  // Declare the insert PR
   void DeclareInsertPR(FunctionBuilder *builder) const;
-  // Get the pr to insert
   void GetInsertPR(FunctionBuilder *builder) const;
-  // Set the table PR from raw values
   void GenSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const;
-  // Insert into table.
   void GenTableInsert(FunctionBuilder *builder) const;
-  // Insert into index.
   void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
-  // Get all columns oids.
+
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
     std::vector<catalog::col_oid_t> oids;
     for (const auto &col : table_schema_.GetColumns()) {
@@ -101,7 +78,6 @@ class InsertTranslator : public OperatorTranslator {
   const catalog::Schema &table_schema_;
   std::vector<catalog::col_oid_t> all_oids_;
   storage::ProjectionMap table_pm_;
-  //  PRFiller pr_filler_;
 };
 
 }  // namespace terrier::execution::compiler

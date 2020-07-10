@@ -47,29 +47,13 @@ class DeleteTranslator : public OperatorTranslator {
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override { UNREACHABLE("Delete doesn't provide values"); }
 
-  // Produce and consume logic
-  //  void Produce(FunctionBuilder *builder) override;
-  //  void Abort(FunctionBuilder *builder) override;
-  //  void Consume(FunctionBuilder *builder) override;
-
-  //  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Deletes don't output anything"); };
-
-  //  const planner::AbstractPlanNode *Op() override { return op_; }
-
-  //  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-
  private:
-  // Declare the deleter
   void DeclareDeleter(FunctionBuilder *builder) const;
-  // Free the deleter
   void GenDeleterFree(FunctionBuilder *builder) const;
-  // Set the oids variable
   void SetOids(FunctionBuilder *builder) const;
-  // Delete from table.
-  void GenTableDelete(WorkContext *context, FunctionBuilder *builder) const;
-  // Delete from index.
+  void GenTableDelete(FunctionBuilder *builder) const;
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
-  // Get all columns oids.
+
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
     std::vector<catalog::col_oid_t> oids;
     for (const auto &col : table_schema_.GetColumns()) {
@@ -81,8 +65,6 @@ class DeleteTranslator : public OperatorTranslator {
  private:
   ast::Identifier deleter_;
   ast::Identifier col_oids_;
-
-  // TODO(Amadou): If tpl supports null arrays, leave this empty. Otherwise, put a dummy value of 1 inside.
   std::vector<catalog::col_oid_t> oids_;
 };
 

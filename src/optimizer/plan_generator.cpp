@@ -792,13 +792,14 @@ void PlanGenerator::Visit(const Update *op) {
   // Empty OutputSchema for update
   auto output_schema = std::make_unique<planner::OutputSchema>();
 
-  bool indexed_update = !accessor_->GetIndexOids(op->GetTableOid()).empty();
+  // TODO(WAN): I think Tanuj fixed this, but damn it breaks everything.
+  // bool indexed_update = !accessor_->GetIndexOids(op->GetTableOid()).empty();
 
   // TODO(wz2): What is this SetUpdatePrimaryKey
   output_plan_ = builder.SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
                      .SetTableOid(op->GetTableOid())
-                     .SetIndexedUpdate(indexed_update)
+                     // .SetIndexedUpdate(indexed_update)
                      .SetUpdatePrimaryKey(false)
                      .AddChild(std::move(children_plans_[0]))
                      .Build();

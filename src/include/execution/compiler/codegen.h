@@ -689,7 +689,7 @@ class CodeGen {
   ast::Expr *PRGet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
 
   /**
-   * Call prSet(pr, attr_idx, val).
+   * Call @prSet(pr, attr_idx, val, [own]).
    * @param pr The projected row being accessed.
    * @param type The type of the column being accessed.
    * @param nullable Whether the column being accessed is nullable.

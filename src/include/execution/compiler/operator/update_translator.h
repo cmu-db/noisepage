@@ -50,30 +50,20 @@ class UpdateTranslator : public OperatorTranslator {
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
  private:
-  // Declare the updater
-  void DeclareUpdater(FunctionBuilder *builder) const;
-  // Free the updater
-  void GenUpdaterFree(FunctionBuilder *builder) const;
-  // Set the oids variable
-  void SetOids(FunctionBuilder *builder) const;
-  // Declare the update PR
-  void DeclareUpdatePR(FunctionBuilder *builder) const;
-  // Get the pr to update
-  void GetUpdatePR(FunctionBuilder *builder) const;
-  // Fill the update PR from the child's output
-  void FillPRFromChild(WorkContext *context, FunctionBuilder *builder) const;
   // Update on table.
   void GenTableUpdate(FunctionBuilder *builder) const;
-  // Insert into table.
-  void GenTableInsert(FunctionBuilder *builder) const;
-  // Insert into index.
-  void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
-  // Delete from table.
-  void GenTableDelete(FunctionBuilder *builder) const;
-  // Delete from index.
-  void GenIndexDelete(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
 
-  // Get all columns oids.
+  void DeclareUpdater(FunctionBuilder *builder) const;
+  void GenUpdaterFree(FunctionBuilder *builder) const;
+  void SetOids(FunctionBuilder *builder) const;
+  void DeclareUpdatePR(FunctionBuilder *builder) const;
+  void GetUpdatePR(FunctionBuilder *builder) const;
+  void GenSetTablePR(FunctionBuilder *builder, WorkContext *context) const;
+  void GenTableInsert(FunctionBuilder *builder) const;
+  void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
+  void GenTableDelete(FunctionBuilder *builder) const;
+  void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
+
   static std::vector<catalog::col_oid_t> CollectOids(const planner::UpdatePlanNode &node) {
     std::vector<catalog::col_oid_t> oids;
     for (const auto &clause : node.GetSetClauses()) {
