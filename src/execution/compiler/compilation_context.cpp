@@ -266,6 +266,9 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
       translator = std::make_unique<IndexScanTranslator>(index_scan, this, pipeline);
       break;
     }
+    case planner::PlanNodeType::INDEXNLJOIN: {
+
+    }
     default: {
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("code generation for plan node type '{}'",
                                                   planner::PlanNodeTypeToString(plan.GetPlanNodeType())));
