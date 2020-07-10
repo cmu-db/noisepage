@@ -4,13 +4,14 @@
 #include <string>
 #include <variant>
 
+#include "common/thread_context.h"
+#include "metrics/metrics_store.h"
 #include "network/network_util.h"
 #include "network/postgres/postgres_packet_util.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "traffic_cop/traffic_cop.h"
-#include "traffic_cop/traffic_cop_util.h"
 
 namespace terrier::network {
 
@@ -264,6 +265,12 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<PostgresPacketWriter> out,
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              const common::ManagedPointer<ConnectionContext> connection) {
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::BIND_COMMAND)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
   TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
@@ -306,6 +313,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // read the params
   auto params =
       PostgresPacketUtil::ReadParameters(common::ManagedPointer(&in_), statement->ParamTypes(), param_formats);
+  uint64_t param_num = params.size();
 
   // read out the result formats
   auto result_formats = PostgresPacketUtil::ReadFormatCodes(common::ManagedPointer(&in_));
@@ -387,6 +395,14 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     postgres_interpreter->SetWaitingForSync();
   }
 
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::BIND_COMMAND)) {
+    common::thread_context.resource_tracker_.Stop();
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    common::thread_context.metrics_store_->RecordBindCommandData(param_num, statement->GetQueryText().size(),
+                                                                 resource_metrics);
+  }
+
   return Transition::PROCEED;
 }
 
@@ -438,6 +454,12 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<PostgresPacketWriter> out,
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
   TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
                  "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
@@ -476,6 +498,13 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     // We don't yet support query types with values greater than this
     out->WriteCommandComplete(query_type, 0);
     return Transition::PROCEED;
+  }
+
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND)) {
+    common::thread_context.resource_tracker_.Stop();
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    common::thread_context.metrics_store_->RecordExecuteCommandData(portal_name.size(), resource_metrics);
   }
 
   if (portal->PhysicalPlan() != nullptr) {
