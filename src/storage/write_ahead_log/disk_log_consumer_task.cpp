@@ -73,7 +73,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
         common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
 
-    if (logging_metrics_enabled) {
+    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
       // start the operating unit resource tracker
       common::thread_context.resource_tracker_.Start();
     }
@@ -118,13 +118,12 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       persist_cv_.notify_all();
     }
 
-    if (logging_metrics_enabled) {
+    if (logging_metrics_enabled && num_buffers > 0) {
       // Stop the resource tracker for this operating unit
       common::thread_context.resource_tracker_.Stop();
-      if (num_bytes > 0) {
-        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-        common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, resource_metrics);
-      }
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, persist_interval_.count(),
+                                                                resource_metrics);
       num_bytes = num_buffers = 0;
     }
   } while (run_task_);
