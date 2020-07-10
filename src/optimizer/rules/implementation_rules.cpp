@@ -1106,15 +1106,15 @@ LogicalCteScanToPhysicalCteScanIterative::LogicalCteScanToPhysicalCteScanIterati
 }
 
 bool LogicalCteScanToPhysicalCteScanIterative::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
-                                            OptimizationContext *context) const {
+                                                     OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void LogicalCteScanToPhysicalCteScanIterative::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
-                                                std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
-                                                OptimizationContext *context) const {
+void LogicalCteScanToPhysicalCteScanIterative::Transform(
+    common::ManagedPointer<AbstractOptimizerNode> input,
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed, OptimizationContext *context) const {
   (void)context;
   TERRIER_ASSERT(input->GetChildren().size() == 2, "LogicalCteScan should have 2 children");
 
@@ -1200,8 +1200,8 @@ void LogicalCteScanToPhysicalEmptyCteScan::Transform(common::ManagedPointer<Abst
 
   auto result_plan = std::make_unique<OperatorNode>(
       CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()),
-                    logical_op->GetIsIterative()), std::move(c),
-      context->GetOptimizerContext()->GetTxn());
+                    logical_op->GetIsIterative()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
 
   transformed->emplace_back(std::move(result_plan));
 }

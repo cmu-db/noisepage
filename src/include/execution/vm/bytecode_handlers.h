@@ -17,6 +17,7 @@
 #include "execution/sql/functions/system_functions.h"
 #include "execution/sql/iter_cte_scan_iterator.h"
 #include "execution/sql/index_iterator.h"
+#include "execution/sql/iter_cte_scan_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/operators/hash_operators.h"
 #include "execution/sql/sorter.h"
@@ -307,31 +308,30 @@ VM_OP void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter);
 // ---------------------------------------------------------
 
 VM_OP void OpIterCteScanInit(terrier::execution::sql::IterCteScanIterator *iter,
-    terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type, uint32_t num_schema_cols);
+                             terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
+                             uint32_t num_schema_cols);
 
 VM_OP void OpIterCteScanGetReadTable(terrier::storage::SqlTable **sql_table,
-    terrier::execution::sql::IterCteScanIterator *iter);
+                                     terrier::execution::sql::IterCteScanIterator *iter);
 
 VM_OP void OpIterCteScanGetWriteTable(terrier::storage::SqlTable **sql_table,
-    terrier::execution::sql::IterCteScanIterator *iter);
+                                      terrier::execution::sql::IterCteScanIterator *iter);
 
 VM_OP void OpIterCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid,
-    terrier::execution::sql::IterCteScanIterator *iter);
+                                        terrier::execution::sql::IterCteScanIterator *iter);
 
-VM_OP void OpIterCteScanAccumulate(bool *accumulate_bool,
-                                   terrier::execution::sql::IterCteScanIterator *iter);
+VM_OP void OpIterCteScanAccumulate(bool *accumulate_bool, terrier::execution::sql::IterCteScanIterator *iter);
 
 VM_OP void OpIterCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
-                                       terrier::execution::sql::IterCteScanIterator *iter);
+                                             terrier::execution::sql::IterCteScanIterator *iter);
 
 VM_OP void OpIterCteScanGetResult(terrier::execution::sql::CteScanIterator **result,
-    terrier::execution::sql::IterCteScanIterator *iter);
+                                  terrier::execution::sql::IterCteScanIterator *iter);
 
 VM_OP void OpIterCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot,
-    terrier::execution::sql::IterCteScanIterator *iter);
+                                    terrier::execution::sql::IterCteScanIterator *iter);
 
 VM_OP void OpIterCteScanFree(terrier::execution::sql::IterCteScanIterator *iter);
-
 
 // ---------------------------------------------------------
 // Vector Projection Iterator

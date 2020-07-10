@@ -10,31 +10,23 @@
 
 namespace terrier::execution::sql {
 
-IterCteScanIterator::IterCteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
-                                                                                              uint32_t num_schema_cols)
+IterCteScanIterator::IterCteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx,
+                                         uint32_t *schema_cols_type, uint32_t num_schema_cols)
     : cte_scan_1_{exec_ctx, schema_cols_type, num_schema_cols},
-      cte_scan_2_{exec_ctx, schema_cols_type, num_schema_cols}, cte_scan_read_{&cte_scan_1_},
-      cte_scan_write_{&cte_scan_2_}, written_{false} {}
+      cte_scan_2_{exec_ctx, schema_cols_type, num_schema_cols},
+      cte_scan_read_{&cte_scan_1_},
+      cte_scan_write_{&cte_scan_2_},
+      written_{false} {}
 
-storage::SqlTable *IterCteScanIterator::GetWriteTable() {
-  return cte_scan_write_->GetTable();
-}
+storage::SqlTable *IterCteScanIterator::GetWriteTable() { return cte_scan_write_->GetTable(); }
 
-storage::SqlTable *IterCteScanIterator::GetReadTable() {
-  return cte_scan_read_->GetTable();
-}
+storage::SqlTable *IterCteScanIterator::GetReadTable() { return cte_scan_read_->GetTable(); }
 
-CteScanIterator *IterCteScanIterator::GetResultCTE() {
-  return cte_scan_read_;
-}
+CteScanIterator *IterCteScanIterator::GetResultCTE() { return cte_scan_read_; }
 
-catalog::table_oid_t IterCteScanIterator::GetReadTableOid() {
-  return cte_scan_write_->GetTableOid();
-}
+catalog::table_oid_t IterCteScanIterator::GetReadTableOid() { return cte_scan_write_->GetTableOid(); }
 
-storage::ProjectedRow *IterCteScanIterator::GetInsertTempTablePR() {
-  return cte_scan_write_->GetInsertTempTablePR();
-}
+storage::ProjectedRow *IterCteScanIterator::GetInsertTempTablePR() { return cte_scan_write_->GetInsertTempTablePR(); }
 
 storage::TupleSlot IterCteScanIterator::TableInsert() {
   written_ = true;
@@ -42,7 +34,7 @@ storage::TupleSlot IterCteScanIterator::TableInsert() {
 }
 
 bool IterCteScanIterator::Accumulate() {
-  if(written_){
+  if (written_) {
     // swap the tables
     auto temp_table = cte_scan_write_;
     cte_scan_write_ = cte_scan_read_;

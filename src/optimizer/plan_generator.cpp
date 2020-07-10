@@ -1033,8 +1033,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
       }
       if (op->GetChildrenSize() > 0) {
         op = op->GetChildren()[0];
-      }
-      else {
+      } else {
         break;
       }
     }
@@ -1049,21 +1048,21 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     }
 
     auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
-    if(children_plans_.size() == 2){
+    if (children_plans_.size() == 2) {
       output_plan_ = planner::CteScanPlanNode::Builder()
-          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
-          .SetTableOutputSchema(std::move(cte_scan_out))
-          .SetIsIterative(cte_scan->GetIsIterative())
-          .AddChild(std::move(output_plan_))
-          .AddChild(std::move(children_plans_[1]))
-          .Build();
-    }else{
+                         .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                         .SetTableOutputSchema(std::move(cte_scan_out))
+                         .SetIsIterative(cte_scan->GetIsIterative())
+                         .AddChild(std::move(output_plan_))
+                         .AddChild(std::move(children_plans_[1]))
+                         .Build();
+    } else {
       output_plan_ = planner::CteScanPlanNode::Builder()
-          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
-          .SetTableOutputSchema(std::move(cte_scan_out))
-          .SetIsIterative(cte_scan->GetIsIterative())
-          .AddChild(std::move(output_plan_))
-          .Build();
+                         .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                         .SetTableOutputSchema(std::move(cte_scan_out))
+                         .SetIsIterative(cte_scan->GetIsIterative())
+                         .AddChild(std::move(output_plan_))
+                         .Build();
     }
   } else {
     // make schema from output columns

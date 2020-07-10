@@ -69,14 +69,13 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   predicates_ = {};
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
-  if(op->GetSelectWith() != nullptr) {
+  if (op->GetSelectWith() != nullptr) {
     op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     // SELECT statement has CTE, register CTE table name
     cte_table_name_ = op->GetSelectWith()->GetAlias();
     auto cte_scan_expr = std::make_unique<OperatorNode>(
         LogicalCteScan::Make(cte_table_name_, {}, op->GetSelectWith()->GetCteRecursive()),
-        std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
-        txn_context);
+        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     cte_scan_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(cte_scan_expr);
     std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
@@ -88,7 +87,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     if (op->GetSelectWith()->GetSelect()->GetUnionSelect() != nullptr) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>> second_expressions;
       auto &second_columns = op->GetSelectWith()->GetSelect()->GetUnionSelect()->GetSelectColumns();
-      for(auto &elems : second_columns) {
+      for (auto &elems : second_columns) {
         second_expressions.push_back(elems);
       }
       cte_expressions_.push_back(std::move(second_expressions));
@@ -100,7 +99,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else {
     // SELECT without FROM
-    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(),
+                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   }
 
   if (op->GetSelectCondition() != nullptr) {
@@ -213,8 +213,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     auto right_expr = std::move(output_expr_);
     // TODO(tanujnay112): unhardcode the is_all flag when we get parser to take in that info for union
     output_expr_ = std::make_unique<OperatorNode>(
-        LogicalUnion::Make(true, op, op->GetUnionSelect())
-            .RegisterWithTxnContext(txn_context),
+        LogicalUnion::Make(true, op, op->GetUnionSelect()).RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     output_expr_->PushChild(std::move(left_expr));
     output_expr_->PushChild(std::move(right_expr));
@@ -339,17 +338,16 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
       // CTE table referred
       auto is_recursive = node->GetCteRecursive();
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_expressions_, is_recursive)
-              .RegisterWithTxnContext(txn_context),
+          LogicalCteScan::Make(node->GetAlias(), cte_expressions_, is_recursive).RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {
-        // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
-        output_expr_ = std::make_unique<OperatorNode>(
-            LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
-                             node->GetAlias(), false)
-                .RegisterWithTxnContext(txn_context),
-            std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+      // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
+      output_expr_ = std::make_unique<OperatorNode>(
+          LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
+                           node->GetAlias(), false)
+              .RegisterWithTxnContext(txn_context),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     }
   }
 }

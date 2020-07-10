@@ -48,7 +48,7 @@ class CteScanPlanNode : public AbstractPlanNode {
       return *this;
     }
 
-    Builder &SetIsIterative(bool is_iterative){
+    Builder &SetIsIterative(bool is_iterative) {
       is_iterative_ = is_iterative;
       return *this;
     }
@@ -58,8 +58,8 @@ class CteScanPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
-      return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(children_), std::move(output_schema_),
-                                                                  is_leader_, std::move(table_output_schema_), is_iterative_));
+      return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(
+          std::move(children_), std::move(output_schema_), is_leader_, std::move(table_output_schema_), is_iterative_));
     }
 
    private:

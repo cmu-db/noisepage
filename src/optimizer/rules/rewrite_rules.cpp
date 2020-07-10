@@ -447,7 +447,7 @@ bool RewriteUnionWithRecursiveCTE::Check(common::ManagedPointer<AbstractOptimize
 }
 
 void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
-                                             std::vector<std::unique_ptr<AbstractOptimizerNode> > *transformed,
+                                             std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                              OptimizationContext *context) const {
   auto cte_scan = input->Contents()->GetContentsAs<LogicalCteScan>();
   auto derived_query_get = input->GetChildren()[0];
@@ -455,22 +455,23 @@ void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOpti
   auto left_node = union_node->GetChildren()[0];
   auto right_node = union_node->GetChildren()[1];
 
-//  auto new_derived_query_get_contents =
-//      Operator(common::ManagedPointer<BaseOperatorNodeContents>
-//          (derived_query_get->Contents()->GetContentsAs<LogicalQueryDerivedGet>()->Copy()))
-//          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn());
-//  std::vector<std::unique_ptr<AbstractOptimizerNode>> get_children;
-//  get_children.push_back(left_node->Copy());
-//  get_children.push_back(right_node->Copy());
-//  auto new_derived_query_get = std::make_unique<OperatorNode>(new_derived_query_get_contents, std::move(get_children),
-//                                                              context->GetOptimizerContext()->GetTxn());
+  //  auto new_derived_query_get_contents =
+  //      Operator(common::ManagedPointer<BaseOperatorNodeContents>
+  //          (derived_query_get->Contents()->GetContentsAs<LogicalQueryDerivedGet>()->Copy()))
+  //          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn());
+  //  std::vector<std::unique_ptr<AbstractOptimizerNode>> get_children;
+  //  get_children.push_back(left_node->Copy());
+  //  get_children.push_back(right_node->Copy());
+  //  auto new_derived_query_get = std::make_unique<OperatorNode>(new_derived_query_get_contents,
+  //  std::move(get_children),
+  //                                                              context->GetOptimizerContext()->GetTxn());
   std::vector<std::unique_ptr<AbstractOptimizerNode>> children;
   children.push_back(left_node->Copy());
   children.push_back(right_node->Copy());
-  auto new_root = std::make_unique<OperatorNode>(
-      LogicalCteScan::Make(cte_scan->GetTableAlias(), cte_scan->GetExpressions(), true)
-          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-      std::move(children), context->GetOptimizerContext()->GetTxn());
+  auto new_root =
+      std::make_unique<OperatorNode>(LogicalCteScan::Make(cte_scan->GetTableAlias(), cte_scan->GetExpressions(), true)
+                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(children), context->GetOptimizerContext()->GetTxn());
   transformed->push_back(std::move(new_root));
 }
 

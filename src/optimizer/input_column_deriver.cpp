@@ -114,7 +114,7 @@ void InputColumnDeriver::Visit(const CteScan *op) {
 
   PT2 child_cols;
 
-  for(auto child_exprs : op->GetChildExpressions()) {
+  for (auto child_exprs : op->GetChildExpressions()) {
     bool alias_present = false;
     for (auto &elem : child_exprs) {
       if (!elem->GetAlias().empty()) {

@@ -198,8 +198,8 @@ class RewritePullFilterThroughMarkJoin : public Rule {
 };
 
 /**
-* Remove unions under recursive/iterative CTE's
-*/
+ * Remove unions under recursive/iterative CTE's
+ */
 class RewriteUnionWithRecursiveCTE : public Rule {
  public:
   /**

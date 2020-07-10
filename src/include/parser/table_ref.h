@@ -144,9 +144,13 @@ class TableRef {
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for the columns
    */
-  TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<std::string> cte_col_aliases, bool cte_recursive)
-      : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)),
-        cte_col_aliases_(std::move(cte_col_aliases)), cte_recursive_(cte_recursive) {}
+  TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<std::string> cte_col_aliases,
+           bool cte_recursive)
+      : type_(TableReferenceType::SELECT),
+        alias_(std::move(alias)),
+        select_(std::move(select)),
+        cte_col_aliases_(std::move(cte_col_aliases)),
+        cte_recursive_(cte_recursive) {}
 
   /**
    * @param list table refs to use in creation
@@ -184,7 +188,9 @@ class TableRef {
    * @param cte_col_aliases aliases for column names
    * @return unique pointer to the created (CTE) table ref
    */
-  static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<std::string> cte_col_aliases, bool cte_recursive) {
+  static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select,
+                                                             std::vector<std::string> cte_col_aliases,
+                                                             bool cte_recursive) {
     return std::make_unique<TableRef>(std::move(alias), std::move(select), std::move(cte_col_aliases), cte_recursive);
   }
 

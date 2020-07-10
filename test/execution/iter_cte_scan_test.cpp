@@ -42,7 +42,7 @@ TEST_F(IterCTEScanTest, IterCTEEmptyAccumulateTest) {
                                static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadTable()));
   auto *pci = seq_iter.GetProjectedColumnsIterator();
-  auto count = 0; // The number of records found
+  auto count = 0;  // The number of records found
 
   while (seq_iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {

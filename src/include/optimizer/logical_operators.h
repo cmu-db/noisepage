@@ -1928,14 +1928,13 @@ class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
  public:
   static Operator Make();
 
-  static Operator Make(bool is_all,
-                       common::ManagedPointer<parser::SelectStatement> left_expr,
+  static Operator Make(bool is_all, common::ManagedPointer<parser::SelectStatement> left_expr,
                        common::ManagedPointer<parser::SelectStatement> right_expr);
 
- /**
-  * Copy
-  * @returns copy of this
-  */
+  /**
+   * Copy
+   * @returns copy of this
+   */
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
@@ -1980,7 +1979,9 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    * Get the list of child expression for this Cte node
    * @return vector of child expressions
    */
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetExpressions() { return child_expressions_; }
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetExpressions() {
+    return child_expressions_;
+  }
 
   bool GetIsIterative() const { return is_iterative_; }
 

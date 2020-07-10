@@ -16,7 +16,7 @@ class IterCteScanIterator {
    */
 
   IterCteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
-                  uint32_t num_schema_cols);
+                      uint32_t num_schema_cols);
 
   /**
    * Returns the temporary table that the cte has made
