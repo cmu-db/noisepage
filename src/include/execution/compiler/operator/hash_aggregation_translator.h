@@ -1,6 +1,5 @@
 #pragma once
 
-#include "execution/compiler/operator/base_aggregation_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
@@ -18,7 +17,7 @@ class FunctionBuilder;
 /**
  * A translator for hash-based aggregations.
  */
-class HashAggregationTranslator : public OperatorTranslator, public PipelineDriver, public BaseAggregationTranslator {
+class HashAggregationTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
    * Create a new translator for the given aggregation plan.
@@ -111,8 +110,8 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   const planner::AggregatePlanNode &GetAggPlan() const { return GetPlanAs<planner::AggregatePlanNode>(); }
 
   // Check if the input pipeline is either the build-side or producer-side.
-  bool IsBuildPipeline(const Pipeline &pipeline) const override { return &build_pipeline_ == &pipeline; }
-  bool IsProducePipeline(const Pipeline &pipeline) const override { return GetPipeline() == &pipeline; }
+  bool IsBuildPipeline(const Pipeline &pipeline) const { return &build_pipeline_ == &pipeline; }
+  bool IsProducePipeline(const Pipeline &pipeline) const { return GetPipeline() == &pipeline; }
 
   // Declare the payload and input structures. Called from DefineHelperStructs().
   ast::StructDecl *GeneratePayloadStruct();
@@ -155,7 +154,11 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // Scan the final aggregation hash table.
   void ScanAggregationHashTable(WorkContext *context, FunctionBuilder *function, ast::Expr *agg_ht) const;
 
+  // For minirunners.
+  ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
  private:
+  friend class brain::OperatingUnitRecorder;
   // The name of the variable used to:
   // 1. Materialize an input row and insert into the aggregation hash table.
   // 2. Read from an iterator when iterating over all aggregates.
@@ -175,6 +178,9 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // The global and thread-local aggregation hash tables.
   StateDescriptor::Entry global_agg_ht_;
   StateDescriptor::Entry local_agg_ht_;
+
+  // For minirunners
+  ast::StructDecl *struct_decl_;
 };
 
 }  // namespace terrier::execution::compiler

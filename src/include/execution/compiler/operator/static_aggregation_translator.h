@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "execution/compiler/operator/base_aggregation_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
@@ -18,7 +17,7 @@ class FunctionBuilder;
 /**
  * A translator for static aggregations.
  */
-class StaticAggregationTranslator : public OperatorTranslator, public PipelineDriver, public BaseAggregationTranslator {
+class StaticAggregationTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
    * Create a new translator for the given static aggregation  plan. The translator occurs within
@@ -93,8 +92,8 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   const planner::AggregatePlanNode &GetAggPlan() const { return GetPlanAs<planner::AggregatePlanNode>(); }
 
   // Check if the input pipeline is either the build-side or producer-side.
-  bool IsBuildPipeline(const Pipeline &pipeline) const override { return &build_pipeline_ == &pipeline; }
-  bool IsProducePipeline(const Pipeline &pipeline) const override { return GetPipeline() == &pipeline; }
+  bool IsBuildPipeline(const Pipeline &pipeline) const { return &build_pipeline_ == &pipeline; }
+  bool IsProducePipeline(const Pipeline &pipeline) const { return GetPipeline() == &pipeline; }
 
   ast::Expr *GetAggregateTerm(ast::Expr *agg_row, uint32_t attr_idx) const;
   ast::Expr *GetAggregateTermPtr(ast::Expr *agg_row, uint32_t attr_idx) const;
@@ -106,7 +105,12 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
 
   void UpdateGlobalAggregate(WorkContext *ctx, FunctionBuilder *function) const;
 
+  // For minirunners.
+  ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
  private:
+  friend class brain::OperatingUnitRecorder;
+
   ast::Identifier agg_row_var_;
   ast::Identifier agg_payload_type_;
   ast::Identifier agg_values_type_;
@@ -120,6 +124,9 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   // States.
   StateDescriptor::Entry global_aggs_;
   StateDescriptor::Entry local_aggs_;
+
+  // For minirunners
+  ast::StructDecl *struct_decl_;
 };
 
 }  // namespace terrier::execution::compiler

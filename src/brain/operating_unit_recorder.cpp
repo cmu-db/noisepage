@@ -7,9 +7,10 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/type.h"
-#include "execution/compiler/operator/base_aggregation_translator.h"
+#include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
+#include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
 #include "parser/expression/constant_value_expression.h"
@@ -558,8 +559,18 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  auto translator = current_translator_.CastManagedPointerTo<execution::compiler::BaseAggregationTranslator>();
+  if (plan_feature_type_ == ExecutionOperatingUnitType::HASH_AGGREGATE) {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  } else if (plan_feature_type_ == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  }
+}
 
+template <typename Translator>
+void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Translator> translator,
+                                                      const planner::AggregatePlanNode *plan) {
   if (translator->IsBuildPipeline(*current_pipeline_)) {
     for (auto key : plan->GetAggregateTerms()) {
       auto key_cm = common::ManagedPointer<parser::AbstractExpression>(key.Get());

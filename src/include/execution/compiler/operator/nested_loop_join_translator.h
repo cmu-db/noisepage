@@ -29,13 +29,13 @@ class NestedLoopJoinTranslator : public OperatorTranslator {
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
-    UNREACHABLE("Nested-loop joins do not produce columns from base tables.");
-  }
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
  private:
   // Get the NLJ plan node.
   const planner::NestedLoopJoinPlanNode &GetNLJPlan() const { return GetPlanAs<planner::NestedLoopJoinPlanNode>(); }
+
+  bool IsOidProvider(const planner::AbstractPlanNode &plan, catalog::col_oid_t oid) const;
 };
 
 }  // namespace terrier::execution::compiler

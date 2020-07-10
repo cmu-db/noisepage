@@ -84,6 +84,9 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::ProjectionPlanNode *plan) override;
   void Visit(const planner::AggregatePlanNode *plan) override;
 
+  template <typename Translator>
+  void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
+
   /**
    * Accumulate Feature Information
    * @param type Type

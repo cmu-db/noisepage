@@ -4,23 +4,24 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/schema.h"
 #include "catalog/index_schema.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/index_scan_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
 
 namespace terrier::execution::compiler {
 
 /**
- * Index scan translator.
+ * Index join translator.
  */
-class IndexScanTranslator : public OperatorTranslator {
+class IndexJoinTranslator : public OperatorTranslator {
  public:
-  /** Translate IndexScanPlanNode. */
-  IndexScanTranslator(const planner::IndexScanPlanNode &plan, CompilationContext *compilation_context,
+  /** Translate IndexJoinPlanNode. */
+  IndexJoinTranslator(const planner::IndexJoinPlanNode &plan, CompilationContext *compilation_context,
                       Pipeline *pipeline);
 
   /** This class cannot be copied or moved. */
-  DISALLOW_COPY_AND_MOVE(IndexScanTranslator);
+  DISALLOW_COPY_AND_MOVE(IndexJoinTranslator);
 
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
@@ -58,7 +59,6 @@ class IndexScanTranslator : public OperatorTranslator {
   // Structs and local variables
   ast::Identifier index_iter_;
   ast::Identifier col_oids_;
-  ast::Identifier index_pr_;
   ast::Identifier lo_index_pr_;
   ast::Identifier hi_index_pr_;
   ast::Identifier table_pr_;

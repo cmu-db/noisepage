@@ -22,7 +22,7 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
   for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
-      compilation_context->Prepare(*index_col.StoredExpression().Get());
+      compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
 }

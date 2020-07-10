@@ -187,7 +187,6 @@ void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, F
 
 ast::Expr *StaticAggregationTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE uint32_t child_idx,
                                                        uint32_t attr_idx) const {
-  TERRIER_ASSERT(child_idx == 0, "Aggregations can only have a single child.");
   if (IsProducePipeline(context->GetPipeline())) {
     auto *codegen = GetCodeGen();
     return codegen->AggregatorResult(GetAggregateTermPtr(codegen->MakeExpr(agg_row_var_), attr_idx));

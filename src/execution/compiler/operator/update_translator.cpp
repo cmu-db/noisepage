@@ -25,13 +25,13 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
   compilation_context->Prepare(*plan.GetChild(0), pipeline);
 
   for (const auto &clause : plan.GetSetClauses()) {
-    compilation_context->Prepare(*clause.second.Get());
+    compilation_context->Prepare(*clause.second);
   }
 
   for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
-      compilation_context->Prepare(*index_col.StoredExpression().Get());
+      compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
 }

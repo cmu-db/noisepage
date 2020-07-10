@@ -27,6 +27,7 @@
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/limit_translator.h"
@@ -247,27 +248,29 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
       break;
     }
     case planner::PlanNodeType::INSERT: {
-      const auto &insert = static_cast<const planner::InsertPlanNode &>(plan);
+      const auto &insert = dynamic_cast<const planner::InsertPlanNode &>(plan);
       translator = std::make_unique<InsertTranslator>(insert, this, pipeline);
       break;
     }
     case planner::PlanNodeType::DELETE: {
-      const auto &delete_node = static_cast<const planner::DeletePlanNode &>(plan);
+      const auto &delete_node = dynamic_cast<const planner::DeletePlanNode &>(plan);
       translator = std::make_unique<DeleteTranslator>(delete_node, this, pipeline);
       break;
     }
     case planner::PlanNodeType::UPDATE: {
-      const auto &update_node = static_cast<const planner::UpdatePlanNode &>(plan);
+      const auto &update_node = dynamic_cast<const planner::UpdatePlanNode &>(plan);
       translator = std::make_unique<UpdateTranslator>(update_node, this, pipeline);
       break;
     }
     case planner::PlanNodeType::INDEXSCAN: {
-      const auto &index_scan = static_cast<const planner::IndexScanPlanNode &>(plan);
+      const auto &index_scan = dynamic_cast<const planner::IndexScanPlanNode &>(plan);
       translator = std::make_unique<IndexScanTranslator>(index_scan, this, pipeline);
       break;
     }
     case planner::PlanNodeType::INDEXNLJOIN: {
-
+      const auto &index_join = dynamic_cast<const planner::IndexJoinPlanNode &>(plan);
+      translator = std::make_unique<IndexJoinTranslator>(index_join, this, pipeline);
+      break;
     }
     default: {
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("code generation for plan node type '{}'",

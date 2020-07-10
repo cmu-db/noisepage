@@ -105,7 +105,7 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   }
 
  private:
-  friend brain::OperatingUnitRecorder;
+  friend class brain::OperatingUnitRecorder;
 
   // Check if the given pipelines are build or scan
   bool IsBuildPipeline(const Pipeline &pipeline) const { return &build_pipeline_ == &pipeline; }

@@ -30,13 +30,13 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
   for (uint32_t idx = 0; idx < plan.GetBulkInsertCount(); idx++) {
     const auto &node_vals = GetPlanAs<planner::InsertPlanNode>().GetValues(idx);
     for (const auto &node_val : node_vals) {
-      compilation_context->Prepare(*node_val.Get());
+      compilation_context->Prepare(*node_val);
     }
   }
   for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
-      compilation_context->Prepare(*index_col.StoredExpression().Get());
+      compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
 }

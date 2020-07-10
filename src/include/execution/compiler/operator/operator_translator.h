@@ -237,6 +237,9 @@ class OperatorTranslator : public ColumnValueProvider {
   void GetAllChildOutputFields(uint32_t child_index, const std::string &field_name_prefix,
                                util::RegionVector<ast::FieldDecl *> *fields) const;
 
+  // TODO(WAN): this may be a terrible hack.
+  OperatorTranslator *LookupPreparedChildTranslator(const planner::AbstractPlanNode &plan) const;
+
  private:
   // For mini-runner stuff.
   friend class Pipeline;

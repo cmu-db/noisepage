@@ -82,4 +82,8 @@ void OperatorTranslator::GetAllChildOutputFields(const uint32_t child_index, con
   }
 }
 
+OperatorTranslator *OperatorTranslator::LookupPreparedChildTranslator(const planner::AbstractPlanNode &plan) const {
+  return compilation_context_->LookupTranslator(plan);
+}
+
 }  // namespace terrier::execution::compiler
