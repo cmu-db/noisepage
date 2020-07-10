@@ -32,8 +32,8 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {
-    ast::Expr *cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-    state_fields->emplace_back(codegen_->MakeField(codegen_->GetCteScanIdentifier(), cte_scan_type));
+//    ast::Expr *cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
+//    state_fields->emplace_back(codegen_->MakeField(Get, cte_scan_type));
   }
 
   // Does nothing
@@ -47,9 +47,9 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
 
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {
-    ast::Expr *cte_free_call =
-        codegen_->OneArgCall(ast::Builtin::CteScanFree, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
-    teardown_stmts->emplace_back(codegen_->MakeStmt(cte_free_call));
+//    ast::Expr *cte_free_call =
+//        codegen_->OneArgCall(ast::Builtin::CteScanFree, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
+//    teardown_stmts->emplace_back(codegen_->MakeStmt(cte_free_call));
   }
 
   ast::Expr *GetOutput(uint32_t attr_idx) override {

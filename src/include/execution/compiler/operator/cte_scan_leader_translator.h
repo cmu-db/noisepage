@@ -32,7 +32,7 @@ class CteScanLeaderTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {
     ast::Expr *cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-    state_fields->emplace_back(codegen_->MakeField(codegen_->GetCteScanIdentifier(), cte_scan_type));
+    state_fields->emplace_back(codegen_->MakeField(GetCteScanIterator(), cte_scan_type));
   }
 
   // Does nothing
@@ -47,7 +47,7 @@ class CteScanLeaderTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {
     ast::Expr *cte_free_call =
-        codegen_->OneArgCall(ast::Builtin::CteScanFree, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
+        codegen_->OneArgCall(ast::Builtin::CteScanFree, codegen_->GetStateMemberPtr(GetCteScanIterator()));
     teardown_stmts->emplace_back(codegen_->MakeStmt(cte_free_call));
   }
 
