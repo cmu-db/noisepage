@@ -1127,7 +1127,7 @@ Bytecode OpForAgg<AggOpKind::Init>(const ast::BuiltinType::Kind agg_kind) {
 #define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
   case ast::BuiltinType::Type:                              \
     return Bytecode::Init;
-    AGG_CODES(ENTRY)
+      AGG_CODES(ENTRY)
 #undef ENTRY
   }
 }
@@ -1141,7 +1141,7 @@ Bytecode OpForAgg<AggOpKind::Advance>(const ast::BuiltinType::Kind agg_kind) {
 #define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
   case ast::BuiltinType::Type:                              \
     return Bytecode::Advance;
-    AGG_CODES(ENTRY)
+      AGG_CODES(ENTRY)
 #undef ENTRY
   }
 }
@@ -1155,7 +1155,7 @@ Bytecode OpForAgg<AggOpKind::GetResult>(const ast::BuiltinType::Kind agg_kind) {
 #define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
   case ast::BuiltinType::Type:                              \
     return Bytecode::GetResult;
-    AGG_CODES(ENTRY)
+      AGG_CODES(ENTRY)
 #undef ENTRY
   }
 }
@@ -1169,7 +1169,7 @@ Bytecode OpForAgg<AggOpKind::Merge>(const ast::BuiltinType::Kind agg_kind) {
 #define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
   case ast::BuiltinType::Type:                              \
     return Bytecode::Merge;
-    AGG_CODES(ENTRY)
+      AGG_CODES(ENTRY)
 #undef ENTRY
   }
 }
@@ -1183,7 +1183,7 @@ Bytecode OpForAgg<AggOpKind::Reset>(const ast::BuiltinType::Kind agg_kind) {
 #define ENTRY(Type, Init, Advance, GetResult, Merge, Reset) \
   case ast::BuiltinType::Type:                              \
     return Bytecode::Reset;
-    AGG_CODES(ENTRY)
+      AGG_CODES(ENTRY)
 #undef ENTRY
   }
 }
@@ -3081,7 +3081,7 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
       // Emit the initialization codes
       Emitter()->EmitCteScanIteratorInit(Bytecode::IterCteScanInit, iterator, exec_ctx, col_oids,
-                                     static_cast<uint32_t>(arr_type->Length()));
+                                         static_cast<uint32_t>(arr_type->Length()));
       break;
     }
     case ast::Builtin::IterCteScanGetResult: {

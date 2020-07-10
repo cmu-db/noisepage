@@ -445,20 +445,22 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     cte_table_name_ = node->GetSelectWith()->GetAlias();
 
     if (node->GetSelectWith()->GetSelect() != nullptr) {
-      auto column_aliases = node->GetSelectWith()->GetCteColumnAliases(); // Get aliases from TableRef
-      auto columns = node->GetSelectWith()->GetSelect()->GetSelectColumns(); // AbstractExpressions in select
+      auto column_aliases = node->GetSelectWith()->GetCteColumnAliases();     // Get aliases from TableRef
+      auto columns = node->GetSelectWith()->GetSelect()->GetSelectColumns();  // AbstractExpressions in select
 
       auto num_aliases = column_aliases.size();
       auto num_columns = columns.size();
 
       if (num_aliases > num_columns) {
-        throw BINDER_EXCEPTION(("WITH query " + cte_table_name_ + " has " + std::to_string(num_columns) + " columns available but " + std::to_string(num_aliases) + " specified").c_str());
+        throw BINDER_EXCEPTION(("WITH query " + cte_table_name_ + " has " + std::to_string(num_columns) +
+                                " columns available but " + std::to_string(num_aliases) + " specified")
+                                   .c_str());
       }
       for (unsigned long i = 0; i < num_aliases; i++) {
         columns[i]->SetAlias(column_aliases[i]);
       }
 
-      if (node->GetSelectWith()->GetCteRecursive()){
+      if (node->GetSelectWith()->GetCteRecursive()) {
         // get schema
         auto union_larg = node->GetSelectWith()->GetSelect();
         auto base_case = union_larg->GetUnionSelect();

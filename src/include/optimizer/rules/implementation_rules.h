@@ -917,7 +917,8 @@ class LogicalCteScanToPhysicalCteScanIterative : public Rule {
    * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<AbstractOptimizerNode> input, std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -945,7 +946,8 @@ class LogicalCteScanToPhysicalCteScan : public Rule {
    * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<AbstractOptimizerNode> input, std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -973,7 +975,8 @@ class LogicalCteScanToPhysicalEmptyCteScan : public Rule {
    * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<AbstractOptimizerNode> input, std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 

@@ -1260,9 +1260,8 @@ Operator LogicalUnion::Make() {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-Operator LogicalUnion::Make(bool is_all,
-                              common::ManagedPointer<parser::SelectStatement> left_expr,
-                              common::ManagedPointer<parser::SelectStatement> right_expr) {
+Operator LogicalUnion::Make(bool is_all, common::ManagedPointer<parser::SelectStatement> left_expr,
+                            common::ManagedPointer<parser::SelectStatement> right_expr) {
   auto *op = new LogicalUnion();
   op->left_expr_ = left_expr;
   op->right_expr_ = right_expr;
@@ -1284,7 +1283,6 @@ common::hash_t LogicalUnion::Hash() const {
   return hash;
 }
 
-
 //===--------------------------------------------------------------------===//
 // LogicalCteScan
 //===--------------------------------------------------------------------===//
@@ -1295,9 +1293,9 @@ Operator LogicalCteScan::Make() {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-Operator LogicalCteScan::Make(std::string table_alias,
-                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                              bool is_iterative) {
+Operator LogicalCteScan::Make(
+    std::string table_alias,
+    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions, bool is_iterative) {
   auto *op = new LogicalCteScan();
   op->table_alias_ = std::move(table_alias);
   op->child_expressions_ = std::move(child_expressions);
