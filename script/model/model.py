@@ -10,6 +10,7 @@ from sklearn import ensemble
 from sklearn import preprocessing
 from sklearn import neural_network
 from sklearn import multioutput
+from sklearn import svm
 
 # import warnings filter
 from warnings import simplefilter
@@ -25,14 +26,17 @@ def _get_base_ml_model(method):
     if method == 'lr':
         regressor = linear_model.LinearRegression()
     if method == 'huber':
-        regressor = linear_model.HuberRegressor(max_iter=100)
+        regressor = linear_model.HuberRegressor(max_iter=50)
+        regressor = multioutput.MultiOutputRegressor(regressor)
+    if method == 'svr':
+        regressor = svm.LinearSVR()
         regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'kr':
         regressor = kernel_ridge.KernelRidge(kernel='rbf')
     if method == 'rf':
         regressor = ensemble.RandomForestRegressor(n_estimators=50, n_jobs=8)
     if method == 'gbm':
-        regressor = lgb.LGBMRegressor(max_depth=20, num_leaves=5000, n_estimators=100, min_child_samples=5,
+        regressor = lgb.LGBMRegressor(max_depth=20, num_leaves=1000, n_estimators=100, min_child_samples=5,
                                       random_state=42)
         regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'nn':
