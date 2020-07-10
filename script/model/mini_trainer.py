@@ -82,7 +82,9 @@ class MiniTrainer:
                     y_pred = regressor.predict(evaluate_x)
                     logging.debug("x shape: {}".format(evaluate_x.shape))
                     logging.debug("y shape: {}".format(y_pred.shape))
-                    percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1 + error_bias), axis=0)
+                    weights = np.where(evaluate_y > 5, np.ones(evaluate_y.shape), np.full(evaluate_y.shape, 1e-6))
+                    percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + error_bias), axis=0,
+                                                  weights=weights)
                     results += list(percentage_error) + [""]
 
                     logging.info('{} Percentage Error: {}'.format(train_test_label[j], percentage_error))
