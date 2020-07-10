@@ -58,7 +58,9 @@ void SortTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *
   auto *codegen = GetCodeGen();
   auto fields = codegen->MakeEmptyFieldList();
   GetAllChildOutputFields(0, SORT_ROW_ATTR_PREFIX, &fields);
-  decls->push_back(codegen->DeclareStruct(sort_row_type_, std::move(fields)));
+  ast::StructDecl *struct_decl = codegen->DeclareStruct(sort_row_type_, std::move(fields));
+  struct_decl_ = struct_decl;
+  decls->push_back(struct_decl);
 }
 
 void SortTranslator::GenerateComparisonFunction(FunctionBuilder *function) {

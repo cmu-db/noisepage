@@ -299,7 +299,9 @@ ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
 }
 
-ast::Expr *SeqScanTranslator::GetSlot() const { return GetCodeGen()->AddressOf(slot_var_); }
+ast::Expr *SeqScanTranslator::GetSlotAddress() const { return GetCodeGen()->AddressOf(slot_var_); }
+
+ast::Expr *SeqScanTranslator::GetVPI() const { return GetCodeGen()->MakeExpr(vpi_var_); }
 
 void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();

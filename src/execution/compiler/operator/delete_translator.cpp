@@ -45,7 +45,7 @@ void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {
   // var col_oids : [0]uint32
   SetOids(builder);
   // var deleter : StorageInterface
-  const auto &storage_interface_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
+  auto *storage_interface_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
   builder->Append(GetCodeGen()->DeclareVarNoInit(deleter_, storage_interface_type));
   // @storageInterfaceInit(&deleter, execCtx, table_oid, col_oids, true)
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
@@ -66,10 +66,10 @@ void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
   const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
   TERRIER_ASSERT(child != nullptr, "delete should have a child");
-  const auto &delete_slot = child->GetSlot();
+  const auto &delete_slot = child->GetSlotAddress();
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), delete_slot};
-  const auto &delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, delete_args);
-  const auto &cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, delete_call);
+  auto *delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, delete_args);
+  auto *cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, delete_call);
   If check(builder, cond);
   { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
   check.EndIf();
@@ -80,7 +80,7 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   // var delete_index_pr = @getIndexPR(&deleter, oid)
   auto delete_index_pr = GetCodeGen()->MakeFreshIdentifier("delete_index_pr");
   std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(deleter_), GetCodeGen()->Const32(!index_oid)};
-  const auto &get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
+  auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(delete_index_pr, nullptr, get_index_pr_call));
 
   auto index = GetCodeGen()->GetCatalogAccessor()->GetIndex(index_oid);
@@ -95,14 +95,14 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
     // NOTE: index expressions refer to columns in the child translator.
     // For example, if the child is a seq scan, the index expressions would contain ColumnValueExpressions
     const auto &val = context->DeriveValue(*index_col.StoredExpression().Get(), child);
-    const auto &pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(),
+    auto *pr_set_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(delete_index_pr), index_col.Type(),
                                                   index_col.Nullable(), index_pm.at(index_col.Oid()), val);
     builder->Append(GetCodeGen()->MakeStmt(pr_set_call));
   }
 
   // @indexDelete(&deleter)
-  std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), child->GetSlot()};
-  const auto &index_delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::IndexDelete, delete_args);
+  std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), child->GetSlotAddress()};
+  auto *index_delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::IndexDelete, delete_args);
   builder->Append(GetCodeGen()->MakeStmt(index_delete_call));
 }
 

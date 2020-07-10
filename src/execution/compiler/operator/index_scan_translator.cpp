@@ -199,7 +199,7 @@ void IndexScanTranslator::FillKey(
   }
 }
 
-ast::Expr *IndexScanTranslator::GetSlot() const { return GetCodeGen()->AddressOf(slot_); }
+ast::Expr *IndexScanTranslator::GetSlotAddress() const { return GetCodeGen()->AddressOf(slot_); }
 
 void IndexScanTranslator::FreeIterator(FunctionBuilder *builder) const {
   // @indexIteratorFree(&index_iter_)

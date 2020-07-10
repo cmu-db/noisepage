@@ -1,5 +1,6 @@
 #pragma once
 
+#include "execution/compiler/operator/base_aggregation_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
@@ -17,7 +18,7 @@ class FunctionBuilder;
 /**
  * A translator for hash-based aggregations.
  */
-class HashAggregationTranslator : public OperatorTranslator, public PipelineDriver {
+class HashAggregationTranslator : public OperatorTranslator, public PipelineDriver, public BaseAggregationTranslator {
  public:
   /**
    * Create a new translator for the given aggregation plan.
@@ -110,8 +111,8 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   const planner::AggregatePlanNode &GetAggPlan() const { return GetPlanAs<planner::AggregatePlanNode>(); }
 
   // Check if the input pipeline is either the build-side or producer-side.
-  bool IsBuildPipeline(const Pipeline &pipeline) const { return &build_pipeline_ == &pipeline; }
-  bool IsProducePipeline(const Pipeline &pipeline) const { return GetPipeline() == &pipeline; }
+  bool IsBuildPipeline(const Pipeline &pipeline) const override { return &build_pipeline_ == &pipeline; }
+  bool IsProducePipeline(const Pipeline &pipeline) const override { return GetPipeline() == &pipeline; }
 
   // Declare the payload and input structures. Called from DefineHelperStructs().
   ast::StructDecl *GeneratePayloadStruct();

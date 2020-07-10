@@ -69,7 +69,7 @@ class IndexScanTranslator : public OperatorTranslator {
   //  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
   //  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
 
-  ast::Expr *GetSlot() const override;
+  ast::Expr *GetSlotAddress() const override;
 
   //  const planner::AbstractPlanNode *Op() override { return op_; }
 

@@ -77,7 +77,9 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
-  ast::Expr *GetSlot() const override;
+  ast::Expr *GetSlotAddress() const override;
+
+  ast::Expr *GetVPI() const;
 
  private:
   // Does the scan have a predicate?

@@ -81,6 +81,7 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 
 void StaticAggregationTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
   decls->push_back(GeneratePayloadStruct());
+
   decls->push_back(GenerateValuesStruct());
 }
 

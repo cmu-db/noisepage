@@ -61,6 +61,8 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   auto parse_result = std::make_unique<ParseResult>();
   try {
     ListTransform(parse_result.get(), result.tree);
+    // TODO(WAN): get rid of this later
+    std::cerr << text << std::endl;
   } catch (const Exception &e) {
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);

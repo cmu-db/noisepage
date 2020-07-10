@@ -105,7 +105,9 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   }
 
  private:
-  // Check if the given pipelines are t
+  friend brain::OperatingUnitRecorder;
+
+  // Check if the given pipelines are build or scan
   bool IsBuildPipeline(const Pipeline &pipeline) const { return &build_pipeline_ == &pipeline; }
   bool IsScanPipeline(const Pipeline &pipeline) const { return GetPipeline() == &pipeline; }
 
@@ -128,6 +130,9 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   // Generate comparison function.
   void GenerateComparisonFunction(FunctionBuilder *function);
 
+  // For minirunners.
+  ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
  private:
   // The name of the materialized sort row when inserting into sorter or pulling
   // from an iterator.
@@ -145,6 +150,9 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
 
   enum class CurrentRow { Child, Lhs, Rhs };
   CurrentRow current_row_;
+
+  // For minirunners.
+  ast::StructDecl *struct_decl_;
 };
 
 }  // namespace terrier::execution::compiler

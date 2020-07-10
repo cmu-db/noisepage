@@ -7,6 +7,7 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/type.h"
+#include "execution/compiler/operator/base_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/sql/aggregators.h"
@@ -518,10 +519,9 @@ void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
-  // TODO(WAN): what do
-  throw EXECUTION_EXCEPTION("EXEC PORT WAN -- poke lin and william");
-#if 0
-  if (plan_feature_type_ == ExecutionOperatingUnitType::SORT_BUILD) {
+  auto translator = current_translator_.CastManagedPointerTo<execution::compiler::SortTranslator>();
+
+  if (translator->IsBuildPipeline(*current_pipeline_)) {
     // SORT_BUILD will operate on sort keys
     std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
     for (auto key : plan->GetSortKeys()) {
@@ -534,14 +534,13 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
 
     // Get Struct and compute memory scaling factor
     auto key_size = ComputeKeySize(keys);
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::SortBottomTranslator>();
     auto scale = ComputeMemoryScaleFactor(translator->GetStructDecl(), 0, key_size, 0);
 
     // Sort build sizes/operations are based on the input (from child)
-    auto *c_plan = plan->GetChild(0);
+    const auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
     AggregateFeatures(plan_feature_type_, key_size, keys.size(), c_plan, 1, scale);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::SORT_ITERATE) {
+  } else if (translator->IsScanPipeline(*current_pipeline_)) {
     // SORT_ITERATE will do any output computations
     VisitAbstractPlanNode(plan);
     RecordArithmeticFeatures(plan, 1);
@@ -551,7 +550,6 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     auto key_size = ComputeKeySizeOutputSchema(plan);
     AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
   }
-#endif
 }
 
 void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
@@ -560,10 +558,9 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  // TODO(WAN): FIX EXEC PORT
-  throw EXECUTION_EXCEPTION("EXEC PORT WAN -- poke lin and william");
-#if 0
-  if (plan_feature_type_ == ExecutionOperatingUnitType::AGGREGATE_BUILD) {
+  auto translator = current_translator_.CastManagedPointerTo<execution::compiler::BaseAggregationTranslator>();
+
+  if (translator->IsBuildPipeline(*current_pipeline_)) {
     for (auto key : plan->GetAggregateTerms()) {
       auto key_cm = common::ManagedPointer<parser::AbstractExpression>(key.Get());
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key_cm);
@@ -590,10 +587,12 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
       num_keys = plan->GetGroupByTerms().size();
 
       // Get Struct and compute memory scaling factor
+      // TODO(WAN): THIS IS NOT BEING SET PROPERLY
+#if 0
       auto offset = sizeof(execution::sql::HashTableEntry);
       auto ref_offset = offset + sizeof(execution::sql::CountAggregate);
-      auto translator = current_translator_.CastManagedPointerTo<execution::compiler::AggregateBottomTranslator>();
       mem_factor = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, ref_offset);
+#endif
     } else {
       std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
       for (auto term : plan->GetAggregateTerms()) {
@@ -609,7 +608,7 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
     }
 
     AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1, mem_factor);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::AGGREGATE_ITERATE) {
+  } else if (translator->IsProducePipeline(*current_pipeline_)) {
     // AggregateTopTranslator handles any exprs/computations in the output
     VisitAbstractPlanNode(plan);
 
@@ -625,7 +624,6 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
     auto key_size = ComputeKeySizeOutputSchema(plan);
     AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
   }
-#endif
 }
 
 ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
