@@ -71,16 +71,27 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
   if(op->GetSelectWith() != nullptr) {
     op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    // SELECT statement has CTE, register CTE table name
+    cte_table_name_ = op->GetSelectWith()->GetAlias();
     auto cte_scan_expr = std::make_unique<OperatorNode>(
-        LogicalCteScan::Make(),
+        LogicalCteScan::Make(cte_table_name_, {}, op->GetSelectWith()->GetCteRecursive()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
         txn_context);
     cte_scan_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(cte_scan_expr);
-    // SELECT statement has CTE, register CTE table name
-    cte_table_name_ = op->GetSelectWith()->GetAlias();
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
     for (auto &elem : op->GetSelectWith()->GetSelect()->GetSelectColumns()) {
-      cte_expressions_.push_back(elem);
+      expressions.push_back(elem);
+    }
+    cte_expressions_.push_back(std::move(expressions));
+
+    if (op->GetSelectWith()->GetSelect()->GetUnionSelect() != nullptr) {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> second_expressions;
+      auto &second_columns = op->GetSelectWith()->GetSelect()->GetUnionSelect()->GetSelectColumns();
+      for(auto &elems : second_columns) {
+        second_expressions.push_back(elems);
+      }
+      cte_expressions_.push_back(std::move(second_expressions));
     }
   }
 
@@ -326,8 +337,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
 
     if (node->GetTableName() == cte_table_name_) {
       // CTE table referred
+      auto is_recursive = node->GetCteRecursive();
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_expressions_, node->GetCteRecursive())
+          LogicalCteScan::Make(node->GetAlias(), cte_expressions_, is_recursive)
               .RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);

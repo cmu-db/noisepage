@@ -1296,7 +1296,7 @@ Operator LogicalCteScan::Make() {
 }
 
 Operator LogicalCteScan::Make(std::string table_alias,
-                              std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
+                              std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
                               bool is_iterative) {
   auto *op = new LogicalCteScan();
   op->table_alias_ = std::move(table_alias);
@@ -1308,11 +1308,12 @@ Operator LogicalCteScan::Make(std::string table_alias,
 bool LogicalCteScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::LOGICALCTESCAN) return false;
   const LogicalCteScan &node = *dynamic_cast<const LogicalCteScan *>(&r);
-  return table_alias_ == node.table_alias_;
+  return table_alias_ == node.table_alias_ && is_iterative_ == node.is_iterative_;
 }
 
 common::hash_t LogicalCteScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, is_iterative_);
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   return hash;
 }

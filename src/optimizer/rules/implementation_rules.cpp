@@ -1098,6 +1098,48 @@ void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<AbstractO
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// LogicalCteScanToPhysicalCteScanIterative
+///////////////////////////////////////////////////////////////////////////////
+LogicalCteScanToPhysicalCteScanIterative::LogicalCteScanToPhysicalCteScanIterative() {
+  type_ = RuleType::CTESCAN_TO_PHYSICAL;
+
+  match_pattern_ = new Pattern(OpType::LOGICALCTESCAN);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
+}
+
+bool LogicalCteScanToPhysicalCteScanIterative::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                            OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+void LogicalCteScanToPhysicalCteScanIterative::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                                std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                                                OptimizationContext *context) const {
+  (void)context;
+  TERRIER_ASSERT(input->GetChildren().size() == 2, "LogicalCteScan should have 2 children");
+
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
+  auto child1 = input->GetChildren()[0]->Copy();
+  c.emplace_back(std::move(child1));
+  auto child2 = input->GetChildren()[1]->Copy();
+  c.emplace_back(std::move(child2));
+
+  auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
+
+  TERRIER_ASSERT(logical_op->GetIsIterative(), "LogicalCteScan should be iterative");
+
+  auto result_plan = std::make_unique<OperatorNode>(
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()),
+                    logical_op->GetIsIterative())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
+  transformed->emplace_back(std::move(result_plan));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// LogicalCteScanToPhysicalCteScan
 ///////////////////////////////////////////////////////////////////////////////
 LogicalCteScanToPhysicalCteScan::LogicalCteScanToPhysicalCteScan() {

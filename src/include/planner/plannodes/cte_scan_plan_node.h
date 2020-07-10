@@ -128,7 +128,7 @@ class CteScanPlanNode : public AbstractPlanNode {
    * @return table output schema for the node. The output schema contains information on columns of the output of the
    * plan node operator
    */
-  common::ManagedPointer<OutputSchema> GeffTableOutputSchema() const {
+  common::ManagedPointer<OutputSchema> GetTableOutputSchema() const {
     return common::ManagedPointer(table_output_schema_);
   }
 

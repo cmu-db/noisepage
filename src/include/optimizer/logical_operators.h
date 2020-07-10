@@ -2039,7 +2039,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
   static Operator Make();
 
   static Operator Make(std::string table_alias,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
+                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
                        bool is_iterative);
 
   /**
@@ -2061,7 +2061,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    * Get the list of child expression for this Cte node
    * @return vector of child expressions
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetExpressions() { return child_expressions_; }
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetExpressions() { return child_expressions_; }
 
   bool GetIsIterative() const { return is_iterative_; }
 
@@ -2070,7 +2070,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    * Alias of the table to get from
    */
   std::string table_alias_;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions_;
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
   bool is_iterative_;
 };
 
