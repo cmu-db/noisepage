@@ -197,7 +197,17 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     :param model_results_path: file path to log the prediction results
     """
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
+    pipeline_path = "{}/grouped_pipeline.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
+    io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us", "Us Error"])
+
+    # Track pipeline cumulative numbers
+    num_pipelines = 0
+    total_actual = None
+    total_predicted = None
+    actual_pipelines = {}
+    predicted_pipelines = {}
+    count_pipelines = {}
 
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}
@@ -262,3 +272,37 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                                  list(ratio_error))
 
         logging.debug("")
+
+        # Record cumulative numbers
+        if data.name not in actual_pipelines:
+            actual_pipelines[data.name] = copy.deepcopy(y)
+            predicted_pipelines[data.name] = copy.deepcopy(pipeline_y_pred)
+            count_pipelines[data.name] = 1
+        else:
+            actual_pipelines[data.name] += y
+            predicted_pipelines[data.name] += pipeline_y_pred
+            count_pipelines[data.name] += 1
+
+        # Update totals
+        if total_actual is None:
+            total_actual = copy.deepcopy(y)
+            total_predicted = copy.deepcopy(pipeline_y_pred)
+        else:
+            total_actual += y
+            total_predicted += pipeline_y_pred
+
+        num_pipelines += 1
+
+    for pipeline in actual_pipelines:
+        actual = actual_pipelines[pipeline]
+        predicted = predicted_pipelines[pipeline]
+        num = count_pipelines[pipeline]
+
+        ratio_error = abs(actual - predicted) / (actual + 1)
+        io_util.write_csv_result(pipeline_path, pipeline, [num, num*1.0/num_pipelines, actual[-1], predicted[-1], ratio_error[-1]] +
+                                 [""] + list(actual) + [""] + list(predicted) + [""] + list(ratio_error))
+
+    ratio_error = abs(total_actual - total_predicted) / (total_actual + 1)
+    io_util.write_csv_result(pipeline_path, "Total Pipeline", [num_pipelines, 1, total_actual[-1], total_predicted[-1], ratio_error[-1]] +
+                             [""] + list(total_actual) + [""] + list(total_predicted) + [""] + list(ratio_error))
+
