@@ -1001,8 +1001,8 @@ void PlanGenerator::Visit(const Analyze *analyze) {
 
 void PlanGenerator::Visit(const CteScan *cte_scan) {
   // CteScan has the same output schema as the child plan!
-  TERRIER_ASSERT(children_plans_.size() == 1 || children_plans_.empty(), "CteScan needs 1 child plan");
-  if (children_plans_.size() == 1) {
+  TERRIER_ASSERT(children_plans_.size() <= 2, "CteScan needs at most 2 child plans");
+  if (children_plans_.size() >= 1) {
     output_plan_ = std::move(children_plans_[0]);
     // CteScan OutputSchema does not add/drop columns. All output columns of CteScan
     // are the same as the output columns of the child plan. As such, the OutputSchema
@@ -1049,12 +1049,22 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     }
 
     auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
-    output_plan_ = planner::CteScanPlanNode::Builder()
-                       .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
-                       .SetTableOutputSchema(std::move(cte_scan_out))
-                       .SetIsIterative(cte_scan->GetIsIterative())
-                       .AddChild(std::move(output_plan_))
-                       .Build();
+    if(children_plans_.size() == 2){
+      output_plan_ = planner::CteScanPlanNode::Builder()
+          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+          .SetTableOutputSchema(std::move(cte_scan_out))
+          .SetIsIterative(cte_scan->GetIsIterative())
+          .AddChild(std::move(output_plan_))
+          .AddChild(std::move(children_plans_[1]))
+          .Build();
+    }else{
+      output_plan_ = planner::CteScanPlanNode::Builder()
+          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+          .SetTableOutputSchema(std::move(cte_scan_out))
+          .SetIsIterative(cte_scan->GetIsIterative())
+          .AddChild(std::move(output_plan_))
+          .Build();
+    }
   } else {
     // make schema from output columns
     std::vector<planner::OutputSchema::Column> columns;

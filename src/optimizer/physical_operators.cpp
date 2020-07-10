@@ -1299,7 +1299,7 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *CteScan::Copy() const { return new CteScan(*this); }
 
-Operator CteScan::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions,
+Operator CteScan::Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
                        std::string table_alias, bool is_iterative) {
   auto *cte_scan_op = new CteScan();
   cte_scan_op->child_expressions_ = std::move(child_expressions);

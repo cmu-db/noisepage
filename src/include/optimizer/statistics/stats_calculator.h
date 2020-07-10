@@ -63,6 +63,8 @@ class StatsCalculator : public OperatorVisitor {
    */
   void Visit(const LogicalLimit *op) override;
 
+  void Visit(const LogicalUnion *op) override;
+
  private:
   /**
    * Add the base table stats if the base table maintain stats, or else

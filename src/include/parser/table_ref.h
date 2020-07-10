@@ -284,7 +284,7 @@ class TableRef {
   std::unique_ptr<SelectStatement> select_;
 
   std::vector<std::string> cte_col_aliases_;
-  bool cte_recursive_;
+  bool cte_recursive_{false};
 
   std::vector<std::unique_ptr<TableRef>> list_;
   std::unique_ptr<JoinDefinition> join_;
