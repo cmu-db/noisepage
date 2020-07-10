@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import moglib.*;
 
 /**
  * Test class that dynamically generate test cases for each sql query

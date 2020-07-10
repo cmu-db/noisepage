@@ -1,6 +1,7 @@
 # JUnit Testing Script
 
-This directory contains tests using Junit4 and JDBC.
+This directory contains tests using Junit5.
+Under 
 
 ## Installation and pre-requisites
 

@@ -1,3 +1,5 @@
+package moglib;
+
 /**
  * MogUtil is a dumping ground for random functions that seem like they might be useful in various places.
  */
