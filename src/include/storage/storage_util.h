@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/schema.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "storage/storage_defs.h"
@@ -247,6 +248,19 @@ class StorageUtil {
     auto ret = storage::VarlenEntry::CreateInline(contents, static_cast<uint32_t>(total_size));
     delete[] contents;
     return ret;
+  }
+
+  /**
+   * Get all col oids from the schema
+   * @param table_schema_ schema of the table
+   * @return a vector of col oids
+   */
+  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
+    std::vector<catalog::col_oid_t> oids;
+    for (const auto &col : table_schema_.GetColumns()) {
+      oids.emplace_back(col.Oid());
+    }
+    return oids;
   }
 };
 }  // namespace terrier::storage

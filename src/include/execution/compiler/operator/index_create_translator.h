@@ -55,13 +55,6 @@ class CreateIndexTranslator : public OperatorTranslator {
     UNREACHABLE("Create Index nodes does not have a child");
   }
 
-  /**
-   * Get all col oids from the schema
-   * @param table_schema_ schema of the table
-   * @return a vector of col oids
-   */
-  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_);
-
  private:
   // Declare the index_inserter
   void DeclareIndexInserter(FunctionBuilder *builder);

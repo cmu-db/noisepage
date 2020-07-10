@@ -60,14 +60,6 @@ class InsertTranslator : public OperatorTranslator {
   void GenTableInsert(FunctionBuilder *builder);
   // Insert into index.
   void GenIndexInsert(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
-  // Get all columns oids.
-  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : table_schema_.GetColumns()) {
-      oids.emplace_back(col.Oid());
-    }
-    return oids;
-  }
 
  private:
   const planner::InsertPlanNode *op_;

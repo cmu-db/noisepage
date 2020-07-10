@@ -10,6 +10,7 @@
 #include "planner/plannodes/create_index_plan_node.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
+#include "storage/storage_util.h"
 
 namespace terrier::execution::compiler {
 // TODO(Wuwen): not sure what is correct for ExecutionOperatingUnitType
@@ -25,7 +26,7 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
       slot_(codegen_->NewIdentifier("slot")),
       table_schema_(codegen_->Accessor()->GetSchema(op_->GetTableOid())),
       index_oid_(),
-      all_oids_(AllColOids(table_schema_)),
+      all_oids_(storage::StorageUtil::AllColOids(table_schema_)),
       table_pm_(codegen_->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
       pr_filler_(codegen_, table_schema_, table_pm_, index_inserter_) {}
 
@@ -182,14 +183,6 @@ void CreateIndexTranslator::SetOids(FunctionBuilder *builder) {
     ast::Expr *rhs = codegen_->IntLiteral(!all_oids_[i]);
     builder->Append(codegen_->Assign(lhs, rhs));
   }
-}
-
-std::vector<catalog::col_oid_t> CreateIndexTranslator::AllColOids(const catalog::Schema &table_schema_) {
-  std::vector<catalog::col_oid_t> oids;
-  for (const auto &col : table_schema_.GetColumns()) {
-    oids.emplace_back(col.Oid());
-  }
-  return oids;
 }
 
 const planner::AbstractPlanNode *CreateIndexTranslator::Op() { return op_; }

@@ -17,7 +17,7 @@ InsertTranslator::InsertTranslator(const terrier::planner::InsertPlanNode *op, C
       insert_pr_(codegen->NewIdentifier("insert_pr")),
       col_oids_(codegen->NewIdentifier("col_oids")),
       table_schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
-      all_oids_(AllColOids(table_schema_)),
+      all_oids_(storage::StorageUtil::AllColOids(table_schema_)),
       table_pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
       pr_filler_(codegen_, table_schema_, table_pm_, insert_pr_) {}
 

@@ -57,14 +57,6 @@ class DeleteTranslator : public OperatorTranslator {
   void GenTableDelete(FunctionBuilder *builder);
   // Delete from index.
   void GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
-  // Get all columns oids.
-  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : table_schema_.GetColumns()) {
-      oids.emplace_back(col.Oid());
-    }
-    return oids;
-  }
 
  private:
   const planner::DeletePlanNode *op_;
