@@ -137,17 +137,20 @@ void IterCteScanLeaderTranslator::Consume(FunctionBuilder *builder) {
   GenTableInsert(builder);
 }
 
-ast::Identifier IterCteScanLeaderTranslator::GetReadCteScanIterator() {
-  return codegen_->GetIdentifier(op_->GetCTETableName());
+ast::Expr *IterCteScanLeaderTranslator::GetReadCteScanIterator() {
+  return codegen_->GetStateMemberPtr(codegen_->GetIdentifier(op_->GetCTETableName()));
+}
+
+ast::Expr *IterCteScanLeaderTranslator::GetIterCteScanIterator() {
+  return codegen_->GetStateMemberPtr(iter_cte_scan_);
 }
 
 void IterCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *builder) {
-  // Generate col types
-  SetColumnTypes(builder);
 
   ast::Expr *cte_scan_iterator_setup =
-      codegen_->OneArgCall(ast::Builtin::IterCteScanGetResult, iter_cte_scan_);
-  ast::Stmt *assign = codegen_->Assign(codegen_->MakeExpr(GetReadCteScanIterator()), cte_scan_iterator_setup);
+      codegen_->OneArgCall(ast::Builtin::IterCteScanGetResult, GetIterCteScanIterator());
+  ast::Stmt *assign = codegen_->Assign(codegen_->UnaryOp(parsing::Token::Type::STAR,
+                                                         GetReadCteScanIterator()), cte_scan_iterator_setup);
   builder->Append(assign);
 }
 
@@ -155,17 +158,17 @@ void IterCteScanLeaderTranslator::DeclareIterCteScanIterator(FunctionBuilder *bu
   // Generate col types
   SetColumnTypes(builder);
   // Call @cteScanIteratorInit
-  ast::Stmt *declare = codegen_->DeclareVariable(iter_cte_scan_,
-                                                 codegen_->BuiltinType(ast::BuiltinType::IterCteScanIterator),
-                                                 nullptr);
-  builder->Append(declare);
+//  ast::Stmt *setup = codegen_->DeclareVariable(iter_cte_scan_,
+//                                                 codegen_->BuiltinType(ast::BuiltinType::Kind::IterCteScanIterator),
+//                                                 nullptr);
+//  builder->Append(setup);
   ast::Expr *cte_scan_iterator_setup = codegen_->IterCteScanIteratorInit(iter_cte_scan_, col_types_);
   builder->Append(codegen_->MakeStmt(cte_scan_iterator_setup));
 
-  declare = codegen_->DeclareVariable(iter_cte_scan_,
-                                      codegen_->BuiltinType(ast::BuiltinType::CteScanIterator),
-                                      nullptr);
-  builder->Append(declare);
+//  declare = codegen_->DeclareVariable(GetReadCteScanIterator(),
+//                                      codegen_->BuiltinType(ast::BuiltinType::CteScanIterator),
+//                                      nullptr);
+//  builder->Append(declare);
 }
 void IterCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) {
   // Declare: var col_types: [num_cols]uint32
@@ -189,7 +192,7 @@ void IterCteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::
 void IterCteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
   auto get_pr_call = codegen_->OneArgCall(ast::Builtin::IterCteScanGetInsertTempTablePR,
-                                            codegen_->PointerTo(iter_cte_scan_));
+                                            GetIterCteScanIterator());
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
 }
 
@@ -197,7 +200,7 @@ void IterCteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto insert_slot = codegen_->NewIdentifier("insert_slot");
   auto insert_call = codegen_->OneArgCall(ast::Builtin::IterCteScanTableInsert,
-                                          codegen_->PointerTo(iter_cte_scan_));
+                                          GetIterCteScanIterator());
   builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
 }
 
@@ -226,18 +229,18 @@ void IterCteScanLeaderTranslator::DeclareSlot(FunctionBuilder *builder) {
 
 void IterCteScanLeaderTranslator::DeclareAccumulateChecker(FunctionBuilder *builder) {
   // var accumulated = true
-  auto decl = codegen_->DeclareVariable(accumulate_checker_, codegen_->BuiltinType(ast::BuiltinType::Bool),
+  auto decl = codegen_->DeclareVariable(accumulate_checker_, codegen_->BuiltinType(ast::BuiltinType::Kind::Bool),
                             codegen_->BoolLiteral(true));
   builder->Append(decl);
 }
 
 void IterCteScanLeaderTranslator::GenInductiveLoop(FunctionBuilder *builder) {
   // for(var accumulated = true;accumlated;accumulated = @iterCteScanAccumulate(&iter_cte_scan_iterator)
-  auto decl = codegen_->DeclareVariable(accumulate_checker_, codegen_->BuiltinType(ast::BuiltinType::Bool),
+  auto decl = codegen_->DeclareVariable(accumulate_checker_, codegen_->BuiltinType(ast::BuiltinType::Kind::Bool),
                                         codegen_->BoolLiteral(true));
   auto accumulate_stmt = codegen_->Assign(codegen_->MakeExpr(accumulate_checker_),
                                           codegen_->OneArgCall(ast::Builtin::IterCteScanAccumulate,
-                                                               codegen_->PointerTo(iter_cte_scan_)));
+                                                               GetIterCteScanIterator()));
   builder->StartForStmt(decl, codegen_->MakeExpr(accumulate_checker_), accumulate_stmt);
   child_translator_->Produce(builder);
   builder->FinishBlockStmt();

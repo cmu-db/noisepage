@@ -32,8 +32,11 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {
-//    ast::Expr *cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-//    state_fields->emplace_back(codegen_->MakeField(Get, cte_scan_type));
+    ast::Expr *cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
+    state_fields->emplace_back(codegen_->MakeField(codegen_->GetIdentifier(op_->GetCTETableName()), cte_scan_type));
+
+    ast::Expr *iter_cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::IterCteScanIterator);
+    state_fields->emplace_back(codegen_->MakeField(iter_cte_scan_, iter_cte_scan_type));
   }
 
   // Does nothing
@@ -47,9 +50,9 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
 
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {
-//    ast::Expr *cte_free_call =
-//        codegen_->OneArgCall(ast::Builtin::CteScanFree, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
-//    teardown_stmts->emplace_back(codegen_->MakeStmt(cte_free_call));
+    ast::Expr *cte_free_call =
+        codegen_->OneArgCall(ast::Builtin::IterCteScanFree, codegen_->GetStateMemberPtr(iter_cte_scan_));
+    teardown_stmts->emplace_back(codegen_->MakeStmt(cte_free_call));
   }
 
   ast::Expr *GetOutput(uint32_t attr_idx) override {
@@ -75,7 +78,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
  private:
   const planner::CteScanPlanNode *op_;
 
-  ast::Identifier GetReadCteScanIterator();
+  ast::Expr *GetReadCteScanIterator();
   void PopulateReadCteScanIterator(FunctionBuilder *builder);
   // Declare Cte Scan Itarator
   void DeclareIterCteScanIterator(FunctionBuilder *builder);
@@ -120,6 +123,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
   void GenInductiveLoop(FunctionBuilder *builder);
   int current_index_;
   parser::ConstantValueExpression DummyLeaderCVE();
+  ast::Expr *GetIterCteScanIterator();
 };
 
 }  // namespace terrier::execution::compiler

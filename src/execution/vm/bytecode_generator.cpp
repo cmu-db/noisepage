@@ -3364,7 +3364,12 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       break;
     }
     case ast::Builtin::IterCteScanFree: {
-      Emitter()->Emit(Bytecode::CteScanFree, iterator);
+      Emitter()->Emit(Bytecode::IterCteScanFree, iterator);
+      break;
+    }
+    case ast::Builtin::IterCteScanAccumulate: {
+      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IterCteScanAccumulate, result, iterator);
       break;
     }
 
