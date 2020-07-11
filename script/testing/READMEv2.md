@@ -9,8 +9,9 @@
 ## Util
 `util` folder contains a list of common Python scripts
 - `TestServer`: the base class for running all types of tests
-- `TestJUnit`: the test class for running junit tests
-- `TestOLTPBench`: the test class for configuring oltp and running oltp bench tests
+- `TestCase`: the base class for all types of tests
+- `TestJUnit`: the test class for junit tests
+- `TestOLTPBench`: the test class for oltp bench tests
 - `constants`: all the constants used in the any file under the `util`
 
 ## How to run a test
@@ -29,17 +30,20 @@ If you specify the `--query-mode extended`, you then can also indicate the prepa
 `TestServer` is the base class for running all types of the tests. 
 
 ### Test workflow
-- prepare the DB
-  - check if the terrier bin exists
-  - fork a subprocess to start the DB (via python subprocess.Popen)
+- check if the terrier bin exists
 - run the pre-suite task (test suite specific)
-  - e.g. install oltp bin
-- run the test
+  - e.g. install oltp bin 
+- run the test sequentially
+  - [Optional] fork a subprocess to start the DB (via python subprocess.Popen) 
+    - if skip this step, the test will run on the used database
+  - run the pre-test task (test specific)
   - fork a subprocess to start the test process using the command (via python subprocess.Popen)
   - check the return code from the OS
   - write the stdout and the stderr to the test output log file
-- run the post-suite task (test suite specific)
-- stop the DB
+  - run the post-test task (test specific)
+  - [Optional] stop the DB
+    - if skip this step, the populated database can be used for following experiments
+- run the post-suite task (test suite specific) 
 - print out the logs to the stdout
 
 ### Adding a new test case

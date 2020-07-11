@@ -20,13 +20,10 @@ class TestCase:
         # test execution command
         self.test_command = ""
         self.test_command_cwd = None
-        self.test_error_msg = ""
+        self.test_error_msg = "Unknown Error"
 
-        # whether the test should run on a fresh or used database
-        self.test_fresh_db_on_start = True
-
-        # after the test case finish, whether the database instance should stop or not
-        self.test_stop_db_on_finish = True
+        # whether the DB should restart before the test begin
+        self.restart_db = True
 
     def run_pre_test(self):
         pass

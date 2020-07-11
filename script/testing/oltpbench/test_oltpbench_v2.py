@@ -6,6 +6,7 @@ import json
 import traceback
 import shutil
 from util.constants import ErrorCode
+from util.constants import LOG
 from util.common import run_command
 from util.test_server_v2 import TestServerV2
 from xml.etree import ElementTree
@@ -30,7 +31,7 @@ class TestOLTPBenchV2(TestServerV2):
         rc, stdout, stderr = run_command(constants.OLTP_GIT_CLEAN_COMMAND,
                                          "Error: unable to clean OLTP repo")
         if rc != ErrorCode.SUCCESS:
-            print(stderr)
+            LOG.error(stderr)
             sys.exit(rc)
 
     def download_oltp(self):
@@ -38,7 +39,7 @@ class TestOLTPBenchV2(TestServerV2):
             constants.OLTP_GIT_COMMAND,
             "Error: unable to git clone OLTP source code")
         if rc != ErrorCode.SUCCESS:
-            print(stderr)
+            LOG.error(stderr)
             sys.exit(rc)
 
     def build_oltp(self):
@@ -46,5 +47,5 @@ class TestOLTPBenchV2(TestServerV2):
             error_msg = "Error: unable to run \"{}\"".format(command)
             rc, stdout, stderr = run_command(command, error_msg)
             if rc != ErrorCode.SUCCESS:
-                print(stderr)
+                LOG.error(stderr)
                 sys.exit(rc)

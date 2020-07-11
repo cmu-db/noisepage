@@ -14,6 +14,7 @@ OLTP_DEFAULT_TIME = 30
 OLTP_DEFAULT_TERMINALS = 1
 OLTP_DEFAULT_LOADER_THREADS = 1
 OLTP_DEFAULT_SCALEFACTOR = 1
+OLTP_DEFAULT_BUCKETS = 5
 OLTP_DEFAULT_TRANSACTION_ISOLATION = "TRANSACTION_SERIALIZABLE"
 OLTP_DEFAULT_USERNAME = "postgres"
 OLTP_DEFAULT_PASSWORD = "postgres"
@@ -22,6 +23,12 @@ OLTP_DEFAULT_DRIVER = "org.postgresql.Driver"
 OLTP_DEFAULT_RATE = "unlimited"
 OLTP_DEFAULT_BIN = os.path.join(OLTP_GIT_LOCAL_PATH, "oltpbenchmark")
 OLTP_DEFAULT_COMMAND_FLAGS = "--histograms  --create=true --load=true --execute=true -s 5"
+OLTP_DEFAULT_DATABASE_RESTART = True
+OLTP_DEFAULT_DATABASE_CREATE = True
+OLTP_DEFAULT_DATABASE_LOAD= True
+OLTP_DEFAULT_DATABASE_EXECUTE= True
+OLTP_DEFAULT_REPORT_SERVER = None
+
 OLTP_DIR_CONFIG = os.path.join(OLTP_GIT_LOCAL_PATH, "config")
 OLTP_DIR_TEST_RESULT = os.path.join(OLTP_GIT_LOCAL_PATH, "results")
 OLTP_TEST_ERROR_MSG = "Error: failed to complete oltpbench test"
@@ -37,3 +44,11 @@ OLTP_ANT_COMMANDS = [
     OLTP_ANT_COMMAND_BOOTSTRAP, OLTP_ANT_COMMAND_RESOLVE,
     OLTP_ANT_COMMAND_BUILD
 ]
+
+# Performance Storage Service
+PERFORMANCE_STORAGE_SERVICE_API = {
+    "none":"",
+    "test":"http://incrudibles-testing.db.pdl.cmu.edu/performance-results",
+    "staging":"http://incrudibles-staging.db.pdl.cmu.edu/performance-results",
+    "prod":"http://incrudibles-testing.db.pdl.cmu.edu/performance-results"
+}
