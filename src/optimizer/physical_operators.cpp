@@ -1318,6 +1318,9 @@ bool CteScan::operator==(const BaseOperatorNodeContents &r) {
 
 common::hash_t CteScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, is_iterative_);
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashInRange(hash, scan_predicate_.begin(), scan_predicate_.end());
   return hash;
 }
 
