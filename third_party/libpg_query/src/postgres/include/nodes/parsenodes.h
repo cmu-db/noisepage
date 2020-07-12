@@ -1131,7 +1131,8 @@ typedef struct WithClause
 {
 	NodeTag		type;
 	List	   *ctes;			/* list of CommonTableExprs */
-	bool		recursive;		/* true = WITH RECURSIVE */
+	bool		recursive;		/* true = WITH RECURSIVE or WITH ITERATIVE */
+        bool        iterative;                  /* true = WITH ITERATIVE */
 	int			location;		/* token location, or -1 if unknown */
 } WithClause;
 
