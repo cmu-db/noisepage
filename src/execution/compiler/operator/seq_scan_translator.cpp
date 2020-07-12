@@ -50,6 +50,7 @@ void SeqScanTranslator::Abort(FunctionBuilder *builder) {
   if (child_translator_ != nullptr) child_translator_->Abort(builder);
 }
 
+
 void SeqScanTranslator::DoTableScan(FunctionBuilder *builder) {
   // Start looping over the table
   GenTVILoop(builder);

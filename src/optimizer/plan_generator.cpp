@@ -976,6 +976,8 @@ void PlanGenerator::Visit(const Analyze *analyze) {
 void PlanGenerator::Visit(const CteScan *cte_scan) {
   // CteScan has the same output schema as the child plan!
   TERRIER_ASSERT(children_plans_.size() <= 2, "CteScan needs at most 2 child plans");
+  auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(cte_scan->GetScanPredicate()).release();
+  RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
   if (children_plans_.size() >= 1) {
     output_plan_ = std::move(children_plans_[0]);
     // CteScan OutputSchema does not add/drop columns. All output columns of CteScan
@@ -1030,6 +1032,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
                          .AddChild(std::move(output_plan_))
                          .AddChild(std::move(children_plans_[1]))
                          .SetCTETableName(std::string(cte_scan->GetTableAlias()))
+                         .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
                          .Build();
     } else {
       output_plan_ = planner::CteScanPlanNode::Builder()
@@ -1038,6 +1041,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
                          .SetIsIterative(cte_scan->GetIsIterative())
                          .AddChild(std::move(output_plan_))
                          .SetCTETableName(std::string(cte_scan->GetTableAlias()))
+                         .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
                          .Build();
     }
   } else {
@@ -1055,6 +1059,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
                        .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
                        .SetIsIterative(cte_scan->GetIsIterative())
                        .SetCTETableName(std::string(cte_scan->GetTableAlias()))
+                       .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
                        .Build();
   }
 }

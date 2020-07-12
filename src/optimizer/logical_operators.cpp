@@ -1295,24 +1295,33 @@ Operator LogicalCteScan::Make() {
 
 Operator LogicalCteScan::Make(
     std::string table_alias,
-    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions, bool is_iterative) {
+    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions, bool is_iterative,
+    std::vector<AnnotatedExpression> &&scan_predicate) {
   auto *op = new LogicalCteScan();
   op->table_alias_ = std::move(table_alias);
   op->child_expressions_ = std::move(child_expressions);
   op->is_iterative_ = is_iterative;
+  op->scan_predicate_ = std::move(scan_predicate);
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 bool LogicalCteScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::LOGICALCTESCAN) return false;
   const LogicalCteScan &node = *dynamic_cast<const LogicalCteScan *>(&r);
-  return table_alias_ == node.table_alias_ && is_iterative_ == node.is_iterative_;
+  bool ret = (table_alias_ == node.table_alias_ && is_iterative_ == node.is_iterative_);
+  if (scan_predicate_.size() != node.scan_predicate_.size()) return false;
+  std::cerr << scan_predicate_.size() << " " << node.scan_predicate_.size() << "\n";
+  for (size_t i = 0; i < scan_predicate_.size(); i++) {
+    if (scan_predicate_[i].GetExpr() != node.scan_predicate_[i].GetExpr()) return false;
+  }
+  return ret;
 }
 
 common::hash_t LogicalCteScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, is_iterative_);
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashInRange(hash, scan_predicate_.begin(), scan_predicate_.end());
   return hash;
 }
 

@@ -138,7 +138,7 @@ void IterCteScanLeaderTranslator::Consume(FunctionBuilder *builder) {
 }
 
 ast::Expr *IterCteScanLeaderTranslator::GetReadCteScanIterator() {
-  return codegen_->GetStateMemberPtr(codegen_->GetIdentifier(op_->GetCTETableName()));
+  return codegen_->GetStateMember(codegen_->GetIdentifier(op_->GetCTETableName()));
 }
 
 ast::Expr *IterCteScanLeaderTranslator::GetIterCteScanIterator() {
@@ -149,8 +149,7 @@ void IterCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *b
 
   ast::Expr *cte_scan_iterator_setup =
       codegen_->OneArgCall(ast::Builtin::IterCteScanGetResult, GetIterCteScanIterator());
-  ast::Stmt *assign = codegen_->Assign(codegen_->UnaryOp(parsing::Token::Type::STAR,
-                                                         GetReadCteScanIterator()), cte_scan_iterator_setup);
+  ast::Stmt *assign = codegen_->Assign(GetReadCteScanIterator(), cte_scan_iterator_setup);
   builder->Append(assign);
 }
 

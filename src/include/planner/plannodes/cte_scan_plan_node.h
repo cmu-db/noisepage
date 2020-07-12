@@ -58,13 +58,19 @@ class CteScanPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+    Builder &SetScanPredicate(common::ManagedPointer<parser::AbstractExpression> scan_predicate) {
+      scan_predicate_ = scan_predicate;
+      return *this;
+    }
+
     /**
      * Build the limit plan node
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
       return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(cte_table_name_),
-          std::move(children_), std::move(output_schema_), is_leader_, std::move(table_output_schema_), is_iterative_));
+          std::move(children_), std::move(output_schema_), is_leader_, std::move(table_output_schema_), is_iterative_,
+                                                                  scan_predicate_));
     }
 
    private:
@@ -72,6 +78,7 @@ class CteScanPlanNode : public AbstractPlanNode {
     bool is_leader_ = false;
     bool is_iterative_ = false;
     std::unique_ptr<OutputSchema> table_output_schema_;
+    common::ManagedPointer<parser::AbstractExpression> scan_predicate_{nullptr};
   };
 
  private:
@@ -81,12 +88,14 @@ class CteScanPlanNode : public AbstractPlanNode {
    */
   CteScanPlanNode(std::string &&cte_table_name, std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, bool is_leader,
-                  std::unique_ptr<OutputSchema> table_output_schema, bool is_iterative)
+                  std::unique_ptr<OutputSchema> table_output_schema, bool is_iterative,
+                  common::ManagedPointer<parser::AbstractExpression> scan_predicate)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
         is_iterative_(is_iterative),
-        table_output_schema_(std::move(table_output_schema)) {}
+        table_output_schema_(std::move(table_output_schema)),
+        scan_predicate_(scan_predicate) {}
 
  public:
   /**
@@ -143,6 +152,10 @@ class CteScanPlanNode : public AbstractPlanNode {
     return cte_table_name_;
   }
 
+  common::ManagedPointer<parser::AbstractExpression> GetScanPredicate() const {
+    return scan_predicate_;
+  }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -167,6 +180,11 @@ class CteScanPlanNode : public AbstractPlanNode {
   bool is_iterative_;
   // Output table schema for CTE scan
   std::unique_ptr<OutputSchema> table_output_schema_;
+
+  /**
+   * Selection predicate.
+   */
+  common::ManagedPointer<parser::AbstractExpression> scan_predicate_;
 };
 
 }  // namespace terrier::planner

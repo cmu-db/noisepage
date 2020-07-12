@@ -166,6 +166,8 @@ class CodeGen {
    */
   ast::Expr *GetStateMemberPtr(ast::Identifier ident);
 
+  ast::Expr *GetStateMember(ast::Identifier ident);
+
   /**
    * Creates a field declaration
    * @param field_name name of field
@@ -453,7 +455,7 @@ class CodeGen {
    * @param col_oids The identifier of the array of column oids to read.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator, ast::Identifier col_oids);
+  ast::Expr *TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator, ast::Identifier col_oids);
 
   /**
    * Call pciGetTypeNullable(pci, idx)

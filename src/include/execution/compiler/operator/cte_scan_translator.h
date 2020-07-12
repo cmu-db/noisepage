@@ -68,9 +68,7 @@ class CteScanTranslator : public OperatorTranslator {
   bool IsVectorizable() override { return true; }
 
   // Should not be called here
-  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override {
-    UNREACHABLE("Projection nodes should not use column value expressions");
-  }
+  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
 
   const planner::AbstractPlanNode *Op() override { return op_; }
 
@@ -114,6 +112,8 @@ class CteScanTranslator : public OperatorTranslator {
   void GenPCILoop(FunctionBuilder *builder);
 
   void GenReadTVIReset(FunctionBuilder *builder);
+  void GenScanCondition(FunctionBuilder *builder);
+  catalog::Schema schema_;
 };
 
 }  // namespace terrier::execution::compiler

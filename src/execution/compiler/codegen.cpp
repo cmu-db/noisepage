@@ -72,6 +72,8 @@ ast::Stmt *CodeGen::ExecCall(ast::Identifier fn_name) {
 
 ast::Expr *CodeGen::GetStateMemberPtr(ast::Identifier ident) { return PointerTo(MemberExpr(state_var_, ident)); }
 
+ast::Expr *CodeGen::GetStateMember(ast::Identifier ident) { return MemberExpr(state_var_, ident); }
+
 ast::Identifier CodeGen::NewIdentifier(const std::string &prefix) {
   // TODO(Amadou/Wan): John notes that there could be an extra string allocation and deallocation for the id count.
   //  An explicit string formatting call could avoid this.
@@ -142,12 +144,12 @@ ast::Expr *CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator,
+ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr,
                                       ast::Identifier col_oids) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::TempTableIterInitBind);
   ast::Expr *tvi_ptr = PointerTo(tvi);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
-  ast::Expr *cte_scan_iterator_ptr = GetStateMemberPtr(cte_scan_iterator);
+//  ast::Expr *cte_scan_iterator_ptr = GetStateMemberPtr(cte_scan_iterator);
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
 
   util::RegionVector<ast::Expr *> args{{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr}, Region()};
