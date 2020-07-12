@@ -370,6 +370,43 @@ void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<AbstractOptimiz
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// RewriteEmbedFilterIntoChildlessCteScan
+///////////////////////////////////////////////////////////////////////////////
+RewriteEmbedFilterIntoChildlessCteScan::RewriteEmbedFilterIntoChildlessCteScan() {
+  type_ = RuleType::EMBED_FILTER_INTO_CTE_SCAN;
+
+  match_pattern_ = new Pattern(OpType::LOGICALFILTER);
+  auto child = new Pattern(OpType::LOGICALCTESCAN);
+
+  match_pattern_->AddChild(child);
+}
+
+bool RewriteEmbedFilterIntoChildlessCteScan::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                          OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+void RewriteEmbedFilterIntoChildlessCteScan::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                              std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto get = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalCteScan>();
+  std::string tbl_alias = std::string(get->GetTableAlias());
+  std::vector<AnnotatedExpression> predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
+  for(auto child : input->GetChildren()[0]->GetChildren()){
+    c.push_back(child->Copy());
+  }
+  auto output =
+      std::make_unique<OperatorNode>(LogicalCteScan::Make(get->GetTableAlias(), get->GetExpressions(), get->GetIsIterative(),
+                                                          std::move(predicates))
+                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(c), context->GetOptimizerContext()->GetTxn());
+  transformed->emplace_back(std::move(output));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// RewriteEmbedFilterIntoCteScan
 ///////////////////////////////////////////////////////////////////////////////
 RewriteEmbedFilterIntoCteScan::RewriteEmbedFilterIntoCteScan() {
@@ -493,6 +530,15 @@ void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOpti
   auto left_node = union_node->GetChildren()[0];
   auto right_node = union_node->GetChildren()[1];
 
+  auto derived_node = derived_query_get->Contents()->GetContentsAs<LogicalQueryDerivedGet>();
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> derived_children;
+  derived_children.push_back(left_node->Copy());
+  auto new_derived = std::make_unique<OperatorNode>(
+      Operator(common::ManagedPointer<BaseOperatorNodeContents>(derived_node->Copy()))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(derived_children),
+      context->GetOptimizerContext()->GetTxn());
+
   //  auto new_derived_query_get_contents =
   //      Operator(common::ManagedPointer<BaseOperatorNodeContents>
   //          (derived_query_get->Contents()->GetContentsAs<LogicalQueryDerivedGet>()->Copy()))
@@ -504,7 +550,7 @@ void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOpti
   //  std::move(get_children),
   //                                                              context->GetOptimizerContext()->GetTxn());
   std::vector<std::unique_ptr<AbstractOptimizerNode>> children;
-  children.push_back(left_node->Copy());
+  children.push_back(std::move(new_derived));
   children.push_back(right_node->Copy());
   auto new_root =
       std::make_unique<OperatorNode>(LogicalCteScan::Make(cte_scan->GetTableAlias(), cte_scan->GetExpressions(), true,

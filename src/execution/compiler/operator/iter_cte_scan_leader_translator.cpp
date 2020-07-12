@@ -6,7 +6,7 @@
 namespace terrier::execution::compiler {
 void IterCteScanLeaderTranslator::Produce(FunctionBuilder *builder) {
 
-  if(current_index_ == 0) {
+  if(base_translator_ == nullptr) {
     DeclareIterCteScanIterator(builder);
     PopulateReadCteScanIterator(builder);
 
@@ -39,7 +39,7 @@ IterCteScanLeaderTranslator::IterCteScanLeaderTranslator(const terrier::planner:
       current_index_(index)
 {
 //  inductive_case_translator_ = child_translator_;
-  if(current_index_ == 0){
+  if(base_case == nullptr){
     iter_cte_scan_ = codegen->NewIdentifier("iter_cte_scan");
     accumulate_checker_ = codegen_->NewIdentifier("accumlate_checker");
     col_types_ = codegen->NewIdentifier("col_types");
@@ -48,14 +48,14 @@ IterCteScanLeaderTranslator::IterCteScanLeaderTranslator(const terrier::planner:
     read_tvi_ = codegen_->NewIdentifier("temp_table_iterator");
     read_pci_ = codegen_->NewIdentifier("read_pci");
   }else{
-    auto base_translator = dynamic_cast<IterCteScanLeaderTranslator*>(base_case);
-    iter_cte_scan_ = base_translator->iter_cte_scan_;
-    accumulate_checker_ = base_translator->accumulate_checker_;
-    col_types_ = base_translator->col_types_;
-    insert_pr_ = base_translator->insert_pr_;
-    read_col_oids_ = base_translator->read_col_oids_;
-    read_tvi_ = base_translator->read_tvi_;
-    read_pci_ = base_translator->read_pci_;
+    base_translator_ = dynamic_cast<IterCteScanLeaderTranslator*>(base_case);
+    iter_cte_scan_ = base_translator_->iter_cte_scan_;
+    accumulate_checker_ = base_translator_->accumulate_checker_;
+    col_types_ = base_translator_->col_types_;
+    insert_pr_ = base_translator_->insert_pr_;
+    read_col_oids_ = base_translator_->read_col_oids_;
+    read_tvi_ = base_translator_->read_tvi_;
+    read_pci_ = base_translator_->read_pci_;
   }
   // ToDo(Gautam,Preetansh): Send the complete schema in the plan node.
   auto &all_columns = op_->GetTableOutputSchema()->GetColumns();
@@ -241,6 +241,7 @@ void IterCteScanLeaderTranslator::GenInductiveLoop(FunctionBuilder *builder) {
                                           codegen_->OneArgCall(ast::Builtin::IterCteScanAccumulate,
                                                                GetIterCteScanIterator()));
   builder->StartForStmt(decl, codegen_->MakeExpr(accumulate_checker_), accumulate_stmt);
+  PopulateReadCteScanIterator(builder);
   child_translator_->Produce(builder);
   builder->FinishBlockStmt();
 }
