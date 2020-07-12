@@ -1958,7 +1958,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
 
   static Operator Make(std::string table_alias,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       bool is_iterative);
+                       bool is_iterative, std::vector<AnnotatedExpression> &&scan_predicate);
 
   /**
    * Copy
@@ -1985,6 +1985,10 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
 
   bool GetIsIterative() const { return is_iterative_; }
 
+  std::vector<AnnotatedExpression> GetScanPredicate() const {
+    return scan_predicate_;
+  }
+
  private:
   /**
    * Alias of the table to get from
@@ -1992,6 +1996,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
   std::string table_alias_;
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
   bool is_iterative_;
+  std::vector<AnnotatedExpression> scan_predicate_;
 };
 
 }  // namespace terrier::optimizer

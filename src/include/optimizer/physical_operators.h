@@ -2102,7 +2102,8 @@ class CteScan : public OperatorNodeContents<CteScan> {
    * @return
    */
   static Operator Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       std::string table_alias, bool is_iterative);
+                       std::string table_alias, bool is_iterative,
+                       std::vector<AnnotatedExpression> &&scan_predicate);
 
   /**
    * Copy
@@ -2121,6 +2122,10 @@ class CteScan : public OperatorNodeContents<CteScan> {
     return child_expressions_;
   }
 
+  std::vector<AnnotatedExpression> GetScanPredicate() const {
+    return scan_predicate_;
+  }
+
   /**
    * @return the alias of the table to get from
    */
@@ -2137,6 +2142,8 @@ class CteScan : public OperatorNodeContents<CteScan> {
   std::string table_alias_;
 
   bool is_iterative_;
+
+  std::vector<AnnotatedExpression> scan_predicate_;
 };
 
 }  // namespace optimizer

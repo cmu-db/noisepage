@@ -33,7 +33,9 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {
     ast::Expr *cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-    state_fields->emplace_back(codegen_->MakeField(codegen_->GetIdentifier(op_->GetCTETableName()), cte_scan_type));
+    ast::Expr *cte_scan_ptr_type = codegen_->PointerType(cte_scan_type);
+    state_fields->emplace_back(codegen_->MakeField(codegen_->GetIdentifier(op_->GetCTETableName()),
+                                                   cte_scan_ptr_type));
 
     ast::Expr *iter_cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::IterCteScanIterator);
     state_fields->emplace_back(codegen_->MakeField(iter_cte_scan_, iter_cte_scan_type));

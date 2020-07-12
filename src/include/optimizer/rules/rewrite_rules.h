@@ -162,6 +162,37 @@ class RewriteEmbedFilterIntoGet : public Rule {
 };
 
 /**
+ * Rule embeds a filter into a scan operator. After predicate push-down, we
+ * eliminate all filters in the operator trees. Predicates should be associated
+ * with get or join
+ */
+class RewriteEmbedFilterIntoCteScan : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  RewriteEmbedFilterIntoCteScan();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan AbstractOptimizerNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input AbstractOptimizerNode passes the check
+   */
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
  * Rewrite Pull Filter through Mark Join
  */
 class RewritePullFilterThroughMarkJoin : public Rule {

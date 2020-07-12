@@ -96,6 +96,8 @@ CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op
   // Populate the projection map using the in-order iterator on std::map
   uint16_t i = 0;
   for (auto &iter : inverse_map) projection_map_[iter.second] = i++;
+
+  schema_ = schema;
 }
 
 void CteScanTranslator::Consume(FunctionBuilder *builder) {
@@ -109,64 +111,13 @@ ast::Identifier CteScanTranslator::GetCteScanIterator() {
   return codegen_->GetIdentifier(op_->GetCTETableName());
 }
 
-void CteScanTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
-  // Generate col types
-  SetColumnTypes(builder);
-  // var cte_scan_iterator : CteScanIterator
-  auto cte_scan_iterator_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-  builder->Append(codegen_->DeclareVariable(GetCteScanIterator(), cte_scan_iterator_type, nullptr));
-  // Call @cteScanIteratorInit
-  ast::Expr *cte_scan_iterator_setup = codegen_->CteScanIteratorInit(GetCteScanIterator(), col_types_);
-  builder->Append(codegen_->MakeStmt(cte_scan_iterator_setup));
-}
-void CteScanTranslator::SetColumnTypes(FunctionBuilder *builder) {
-  // Declare: var col_types: [num_cols]uint32
-  ast::Expr *arr_type = codegen_->ArrayType(all_types_.size(), ast::BuiltinType::Kind::Uint32);
-  builder->Append(codegen_->DeclareVariable(col_types_, arr_type, nullptr));
-
-  // For each oid, set col_oids[i] = col_oid
-  for (uint16_t i = 0; i < all_types_.size(); i++) {
-    ast::Expr *lhs = codegen_->ArrayAccess(col_types_, i);
-    ast::Expr *rhs = codegen_->IntLiteral(all_types_[i]);
-    builder->Append(codegen_->Assign(lhs, rhs));
-  }
+ast::Expr *CteScanTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) {
+  auto type = static_cast<type::TypeId>(all_types_[!col_oid]);
+  auto nullable = false;
+  uint16_t attr_idx = projection_map_[col_oid];
+  return codegen_->PCIGet(read_pci_, type, nullable, attr_idx);
 }
 
-void CteScanTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
-  // var insert_pr : *ProjectedRow
-  auto pr_type = codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
-  builder->Append(codegen_->DeclareVariable(insert_pr_, codegen_->PointerType(pr_type), nullptr));
-}
-
-void CteScanTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
-  // var insert_pr = cteScanGetInsertTempTablePR(...)
-  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR,
-                                          codegen_->GetStateMemberPtr(GetCteScanIterator()));
-  builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
-}
-
-void CteScanTranslator::GenTableInsert(FunctionBuilder *builder) {
-  // var insert_slot = @cteScanTableInsert(&inserter_)
-  auto insert_slot = codegen_->NewIdentifier("insert_slot");
-  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert,
-                                          codegen_->GetStateMemberPtr(GetCteScanIterator()));
-  builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
-}
-
-void CteScanTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) {
-  const auto &cols = op_->GetTableOutputSchema()->GetColumns();
-
-  for (uint32_t i = 0; i < col_oids_.size(); i++) {
-    const auto &table_col = cols[i];
-    const auto &table_col_oid = col_oids_[i];
-    auto val = GetChildOutput(0, i, table_col.GetType());
-    // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
-    // Right now it is only Non Null
-    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), table_col.GetType(), false,
-                                       projection_map_[table_col_oid], val, true);
-    builder->Append(codegen_->MakeStmt(pr_set_call));
-  }
-}
 void CteScanTranslator::SetReadOids(FunctionBuilder *builder) {
   // Declare: var col_oids: [num_cols]uint32
   ast::Expr *arr_type = codegen_->ArrayType(col_oids_.size(), ast::BuiltinType::Kind::Uint32);
@@ -179,13 +130,16 @@ void CteScanTranslator::SetReadOids(FunctionBuilder *builder) {
     builder->Append(codegen_->Assign(lhs, rhs));
   }
 }
+
 void CteScanTranslator::DeclareReadTVI(FunctionBuilder *builder) {
   // var tvi: TableVectorIterator
   ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::Kind::TableVectorIterator);
   builder->Append(codegen_->DeclareVariable(read_tvi_, iter_type, nullptr));
 
   // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
-  ast::Expr *init_call = codegen_->TempTableIterInit(read_tvi_, GetCteScanIterator(), read_col_oids_);
+  ast::Expr *init_call = codegen_->TempTableIterInit(read_tvi_,
+                                                     codegen_->GetStateMember(GetCteScanIterator()),
+                                                     read_col_oids_);
   builder->Append(codegen_->MakeStmt(init_call));
 }
 void CteScanTranslator::GenReadTVIClose(FunctionBuilder *builder) {
@@ -193,15 +147,36 @@ void CteScanTranslator::GenReadTVIClose(FunctionBuilder *builder) {
   ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, read_tvi_, true);
   builder->Append(codegen_->MakeStmt(close_call));
 }
+
+void CteScanTranslator::GenScanCondition(FunctionBuilder *builder) {
+  // Generate tuple at a time scan condition
+  auto predicate = op_->GetScanPredicate();
+  auto cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.Get(), codegen_);
+  ast::Expr *cond = cond_translator->DeriveExpr(this);
+  builder->StartIfStmt(cond);
+}
+
 void CteScanTranslator::DoTableScan(FunctionBuilder *builder) {
   // Start looping over the table
   GenTVILoop(builder);
   DeclarePCI(builder);
+
+  bool has_if_stmt = false;
   GenPCILoop(builder);
+
+  if(op_->GetScanPredicate() != nullptr){
+    GenScanCondition(builder);
+    has_if_stmt = true;
+  }
+
   // Declare Slot.
   DeclareSlot(builder);
   // Let parent consume.
   parent_translator_->Consume(builder);
+
+  if (has_if_stmt) {
+    builder->FinishBlockStmt();
+  }
 
   // Close PCI loop
   builder->FinishBlockStmt();

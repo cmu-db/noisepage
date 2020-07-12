@@ -182,6 +182,8 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *Float64Type() const;
 
+  ast::Expr *GetStateMember(ast::Identifier ident);
+
   /**
    * @return The type representation for the provided builtin type.
    */
@@ -593,7 +595,7 @@ class CodeGen {
    * @param col_oids The identifier of the array of column oids to read.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator, ast::Identifier col_oids);
+  ast::Expr *TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator, ast::Identifier col_oids);
 
   /**
    * Call \@abortTxn(exec_ctx).

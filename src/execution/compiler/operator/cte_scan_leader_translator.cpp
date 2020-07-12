@@ -24,6 +24,7 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScan
   // ToDo(Gautam,Preetansh): Send the complete schema in the plan node.
   auto &all_columns = op_->GetTableOutputSchema()->GetColumns();
   codegen->MakeIdentifier(op->GetCTETableName());
+  codegen_->MakeIdentifier(op->GetCTETableName() + "_val");
   for (auto &col : all_columns) {
     all_types_.emplace_back(static_cast<int>(col.GetType()));
   }
@@ -101,6 +102,10 @@ void CteScanLeaderTranslator::Consume(FunctionBuilder *builder) {
   GenTableInsert(builder);
 }
 
+ast::Identifier CteScanLeaderTranslator::GetCteScanIteratorVal() {
+  return codegen_->GetIdentifier(op_->GetCTETableName() + "_val");
+}
+
 ast::Identifier CteScanLeaderTranslator::GetCteScanIterator() {
   return codegen_->GetIdentifier(op_->GetCTETableName());
 }
@@ -109,8 +114,12 @@ void CteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
   // Generate col types
   SetColumnTypes(builder);
   // Call @cteScanIteratorInit
-  ast::Expr *cte_scan_iterator_setup = codegen_->CteScanIteratorInit(GetCteScanIterator(), col_types_);
+  ast::Expr *cte_scan_iterator_setup = codegen_->CteScanIteratorInit(GetCteScanIteratorVal(), col_types_);
   builder->Append(codegen_->MakeStmt(cte_scan_iterator_setup));
+
+  ast::Stmt *pointer_setup = codegen_->Assign(codegen_->GetStateMember(GetCteScanIterator()),
+                                              codegen_->GetStateMemberPtr(GetCteScanIteratorVal()));
+  builder->Append(pointer_setup);
 }
 void CteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) {
   // Declare: var col_types: [num_cols]uint32
@@ -134,7 +143,7 @@ void CteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::Func
 void CteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
   auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR,
-                                          codegen_->GetStateMemberPtr(GetCteScanIterator()));
+                                          codegen_->GetStateMember(GetCteScanIterator()));
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
 }
 
@@ -142,7 +151,7 @@ void CteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto insert_slot = codegen_->NewIdentifier("insert_slot");
   auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert,
-                                          codegen_->GetStateMemberPtr(GetCteScanIterator()));
+                                          codegen_->GetStateMember(GetCteScanIterator()));
   builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
 }
 
@@ -172,35 +181,7 @@ void CteScanLeaderTranslator::SetReadOids(FunctionBuilder *builder) {
     builder->Append(codegen_->Assign(lhs, rhs));
   }
 }
-void CteScanLeaderTranslator::DeclareReadTVI(FunctionBuilder *builder) {
-  // var tvi: TableVectorIterator
-  ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::Kind::TableVectorIterator);
-  builder->Append(codegen_->DeclareVariable(read_tvi_, iter_type, nullptr));
 
-  // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
-  ast::Expr *init_call = codegen_->TempTableIterInit(read_tvi_, GetCteScanIterator(), read_col_oids_);
-  builder->Append(codegen_->MakeStmt(init_call));
-}
-void CteScanLeaderTranslator::GenReadTVIClose(FunctionBuilder *builder) {
-  // Close iterator
-  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, read_tvi_, true);
-  builder->Append(codegen_->MakeStmt(close_call));
-}
-void CteScanLeaderTranslator::DoTableScan(FunctionBuilder *builder) {
-  // Start looping over the table
-  GenTVILoop(builder);
-  DeclarePCI(builder);
-  GenPCILoop(builder);
-  // Declare Slot.
-  DeclareSlot(builder);
-  // Let parent consume.
-  parent_translator_->Consume(builder);
-
-  // Close PCI loop
-  builder->FinishBlockStmt();
-  // Close TVI loop
-  builder->FinishBlockStmt();
-}
 
 // Generate for(@tableIterAdvance(&tvi)) {...}
 void CteScanLeaderTranslator::GenTVILoop(FunctionBuilder *builder) {
