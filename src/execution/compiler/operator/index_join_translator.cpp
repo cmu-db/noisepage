@@ -40,6 +40,8 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
   for (const auto &key : plan.GetLoIndexColumns()) {
     compilation_context->Prepare(*key.second);
   }
+
+  compilation_context->Prepare(*GetPlan().GetChild(0), pipeline);
 }
 
 void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {

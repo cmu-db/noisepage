@@ -416,15 +416,19 @@ class VarlenEntry {
    */
   template <bool EqualityCheck>
   static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
-    // Compare the size and prefix in one fell swoop.
-    if (std::memcmp(&left, &right, sizeof(size_) + PrefixSize()) == 0) {
+    TERRIER_ASSERT(left.Size() >= 0, "Left VarlenEntry has negative size?");
+    TERRIER_ASSERT(right.Size() >= 0, "Right VarlenEntry has negative size?");
+
+    // Compare the size and prefix in one fell swoop, ignoring the sign bit indicating reclaimability.
+    if (std::memcmp(reinterpret_cast<const char *>(&left) + 1, reinterpret_cast<const char *>(&right) + 1,
+                    sizeof(left.size_) + left.PrefixSize() - 1) == 0) {
       // Prefix and length are equal.
       if (left.IsInlined()) {
-        if (std::memcmp(left.prefix_, right.prefix_, left.size_) == 0) {
+        if (std::memcmp(left.prefix_, right.prefix_, left.PrefixSize()) == 0) {
           return EqualityCheck ? true : false;
         }
       } else {
-        if (std::memcmp(left.content_, right.content_, left.size_) == 0) {
+        if (std::memcmp(left.content_, right.content_, left.Size() - left.PrefixSize()) == 0) {
           return EqualityCheck ? true : false;
         }
       }
