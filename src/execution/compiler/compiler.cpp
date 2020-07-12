@@ -114,7 +114,7 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
       return;
     }
     case terrier::planner::PlanNodeType::NESTLOOP: {
-      // The two sides of the nested loop join belong to the same pipeline. They are just concatenated together.
+      // The two sides of the ffff loop join belong to the same pipeline. They are just concatenated together.
       // These two translator glue the two sides together and ensure that expression evaluation is correctly done.
       auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_);
       auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_);
@@ -133,16 +133,16 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
 
         // The "build" side is a pipeline breaker. It belongs to a new pipeline.
         auto next_pipeline = std::make_unique<Pipeline>(codegen_);
-        MakePipelines(*op.GetChild(0), next_pipeline.get());
 
         if(cte_scan_plan_node->IsIterative()){
-
+          MakePipelines(*op.GetChild(0), next_pipeline.get());
           auto base_translator = TranslatorFactory::IterCteScanLeaderNodeTranslator(&op, codegen_, nullptr, 0);
           auto ind_translator = TranslatorFactory::IterCteScanLeaderNodeTranslator(&op, codegen_, base_translator.get(), 1);
-          next_pipeline->Add(std::move(base_translator));
-          MakePipelines(*op.GetChild(1), next_pipeline.get());
           next_pipeline->Add(std::move(ind_translator));
+          MakePipelines(*op.GetChild(1), next_pipeline.get());
+          next_pipeline->Add(std::move(base_translator));
         }else{
+          MakePipelines(*op.GetChild(0), next_pipeline.get());
           auto bottom_translator = TranslatorFactory::CteScanLeaderNodeTranslator(&op, codegen_);
           next_pipeline->Add(std::move(bottom_translator));
         }

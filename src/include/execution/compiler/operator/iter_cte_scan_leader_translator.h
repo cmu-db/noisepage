@@ -32,6 +32,9 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {
+    if(base_translator_ != nullptr){
+      return;
+    }
     ast::Expr *cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
     ast::Expr *cte_scan_ptr_type = codegen_->PointerType(cte_scan_type);
     state_fields->emplace_back(codegen_->MakeField(codegen_->GetIdentifier(op_->GetCTETableName()),
@@ -52,6 +55,9 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
 
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {
+    if(base_translator_ != nullptr){
+      return;
+    }
     ast::Expr *cte_free_call =
         codegen_->OneArgCall(ast::Builtin::IterCteScanFree, codegen_->GetStateMemberPtr(iter_cte_scan_));
     teardown_stmts->emplace_back(codegen_->MakeStmt(cte_free_call));
@@ -126,6 +132,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
   int current_index_;
   parser::ConstantValueExpression DummyLeaderCVE();
   ast::Expr *GetIterCteScanIterator();
+  IterCteScanLeaderTranslator *base_translator_{nullptr};
 };
 
 }  // namespace terrier::execution::compiler

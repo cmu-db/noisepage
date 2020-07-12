@@ -26,11 +26,12 @@ class ProjectionTranslator : public OperatorTranslator {
 
   // Pass through
   void Produce(FunctionBuilder *builder) override {
+    // if we have a "SELECT 1" like query then first have the parent consume
+    if(UNLIKELY(op_->GetChildrenSize() == 0)){
+      parent_translator_->Consume(builder);
+    }
     if (LIKELY(nullptr != child_translator_)) {
       child_translator_->Produce(builder);
-    } else {
-      // For queries like "SELECT 1", the parent translator will consume the ProjectionTranslator's output directly.
-      parent_translator_->Consume(builder);
     }
   }
 
