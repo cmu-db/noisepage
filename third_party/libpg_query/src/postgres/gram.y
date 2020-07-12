@@ -598,7 +598,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	IDENTITY_P IF_P ILIKE IMMEDIATE IMMUTABLE IMPLICIT_P IMPORT_P IN_P
 	INCLUDING INCREMENT INDEX INDEXES INHERIT INHERITS INITIALLY INLINE_P
 	INNER_P INOUT INPUT_P INSENSITIVE INSERT INSTEAD INT_P INTEGER
-	INTERSECT INTERVAL INTO INVOKER IS ISNULL ISOLATION
+	INTERSECT INTERVAL INTO INVOKER IS ISNULL ISOLATION ITERATIVE
 
 	JOIN
 
@@ -10059,7 +10059,7 @@ simple_select:
 /*
  * SQL standard WITH clause looks like:
  *
- * WITH [ RECURSIVE ] <query name> [ (<column>,...) ]
+ * WITH [ RECURSIVE|ITERATIVE ] <query name> [ (<column>,...) ]
  *		AS (query) [ SEARCH or CYCLE clause ]
  *
  * We don't currently support the SEARCH or CYCLE clause.
@@ -10072,6 +10072,7 @@ with_clause:
 				$$ = makeNode(WithClause);
 				$$->ctes = $2;
 				$$->recursive = false;
+				$$->iterative = false;
 				$$->location = @1;
 			}
 		| WITH_LA cte_list
@@ -10079,6 +10080,7 @@ with_clause:
 				$$ = makeNode(WithClause);
 				$$->ctes = $2;
 				$$->recursive = false;
+				$$->iterative = false;
 				$$->location = @1;
 			}
 		| WITH RECURSIVE cte_list
@@ -10086,8 +10088,17 @@ with_clause:
 				$$ = makeNode(WithClause);
 				$$->ctes = $3;
 				$$->recursive = true;
+				$$->iterative = false;
 				$$->location = @1;
 			}
+		| WITH ITERATIVE cte_list
+		    {
+		        $$ = makeNode(WithClause);
+                $$->ctes = $3;
+                $$->recursive = false;
+                $$->iterative = true;
+                $$->location = @1;
+		    }
 		;
 
 cte_list:
@@ -13773,6 +13784,7 @@ unreserved_keyword:
 			| INSTEAD
 			| INVOKER
 			| ISOLATION
+			| ITERATIVE
 			| KEY
 			| LABEL
 			| LANGUAGE

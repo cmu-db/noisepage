@@ -197,7 +197,8 @@ using RangeVar = struct RangeVar {
 using WithClause = struct WithClause {
   NodeTag type_;
   List *ctes_;     /* list of CommonTableExprs */
-  bool recursive_; /* true = WITH RECURSIVE */
+  bool recursive_; /* true = WITH RECURSIVE OR WITH ITERATIVE*/
+  bool iterative;  /* true = WITH ITERATIVE */
   int location_;   /* token location, or -1 if unknown */
 };
 
