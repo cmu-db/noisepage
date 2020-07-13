@@ -35,8 +35,8 @@ public class TracefileTest {
         String path = System.getenv("path");
         file = new File(path);
         mog = new MogSqlite(file);
-        List<String> tab = getAllExistingTableName(mog);
-        removeExistingTable(tab);
+//        List<String> tab = getAllExistingTableName(mog);
+//        removeExistingTable(tab);
     }
 
 
