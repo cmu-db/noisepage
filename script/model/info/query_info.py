@@ -47,14 +47,14 @@ _Q5_P2 = [(OpUnit.SEQ_SCAN, [25, 24, 3, 25]),
           ]
 
 _Q5_P3 = [(OpUnit.SEQ_SCAN, [15000, 8, 2, 15000]),
-          (OpUnit.HASHJOIN_PROBE, [15000, 4, 1, 3000]),
-          (OpUnit.HASHJOIN_BUILD, [3000, 4, 1, 3000]),
+          (OpUnit.HASHJOIN_PROBE, [15000, 4, 1, 35000]),
+          (OpUnit.HASHJOIN_BUILD, [35000, 4, 1, 35000]),
           ]
 
 _Q5_P4 = [(OpUnit.SEQ_SCAN, [150000, 12, 3, 150000]),
           (OpUnit.OP_INTEGER_COMPARE, [300000, 4, 1, 300000]),
-          (OpUnit.HASHJOIN_PROBE, [150000, 4, 1, 30000]),
-          (OpUnit.HASHJOIN_BUILD, [30000, 4, 1, 30000]),
+          (OpUnit.HASHJOIN_PROBE, [150000, 4, 1, 65000]),
+          (OpUnit.HASHJOIN_BUILD, [65000, 4, 1, 65000]),
           ]
 
 _Q5_P5 = [(OpUnit.SEQ_SCAN, [1000, 8, 2, 1000]),
@@ -63,10 +63,10 @@ _Q5_P5 = [(OpUnit.SEQ_SCAN, [1000, 8, 2, 1000]),
 
 _Q5_P6 = [(OpUnit.SEQ_SCAN, [600000, 24, 4, 600000]),
           (OpUnit.HASHJOIN_PROBE, [600000, 4, 1, 120000]),
-          (OpUnit.HASHJOIN_PROBE, [120000, 4, 1, 6000]),
-          (OpUnit.AGG_BUILD, [6000, 16, 1, 5]),
-          (OpUnit.OP_DECIMAL_MULTIPLY, [6000, 4, 1, 6000]),
-          (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [12000, 4, 1, 12000]),
+          (OpUnit.HASHJOIN_PROBE, [120000, 4, 1, 40000]),
+          (OpUnit.AGG_BUILD, [40000, 16, 1, 5]),
+          (OpUnit.OP_DECIMAL_MULTIPLY, [40000, 4, 1, 40000]),
+          (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [80000, 4, 1, 80000]),
           ]
 
 _Q5_P7 = [(OpUnit.AGG_ITERATE, [5, 20, 2, 5]),
@@ -141,20 +141,20 @@ _Q11_P3 = [(OpUnit.SEQ_SCAN, [80000, 16, 3, 80000]),
            ]
 
 _Q11_P4 = [(OpUnit.SEQ_SCAN, [80000, 20, 4, 80000]),
-           (OpUnit.HASHJOIN_PROBE, [80000, 4, 1, 4000]),
-           (OpUnit.OP_DECIMAL_MULTIPLY, [4000, 4, 1, 4000]),
-           (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [4000, 4, 1, 4000]),
-           (OpUnit.AGG_BUILD, [4000, 4, 1, 4000]),
+           (OpUnit.HASHJOIN_PROBE, [80000, 4, 1, 6000]),
+           (OpUnit.OP_DECIMAL_MULTIPLY, [6000, 4, 1, 6000]),
+           (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [6000, 4, 1, 6000]),
+           (OpUnit.AGG_BUILD, [6000, 4, 1, 6000]),
            ]
 
-_Q11_P5 = [(OpUnit.AGG_ITERATE, [4000, 12, 2, 4000]),
-           (OpUnit.OP_DECIMAL_MULTIPLY, [4000, 4, 1, 4000]),
-           (OpUnit.OP_DECIMAL_COMPARE, [4000, 4, 1, 4000]),
-           (OpUnit.SORT_BUILD, [2500, 8, 1, 2500]),
+_Q11_P5 = [(OpUnit.AGG_ITERATE, [6000, 12, 2, 6000]),
+           (OpUnit.OP_DECIMAL_MULTIPLY, [6000, 4, 1, 6000]),
+           (OpUnit.OP_DECIMAL_COMPARE, [6000, 4, 1, 6000]),
+           (OpUnit.SORT_BUILD, [5000, 8, 1, 5000]),
            ]
 
-_Q11_P6 = [(OpUnit.SORT_ITERATE, [2500, 12, 2, 2500]),
-           (OpUnit.OUTPUT, [2500, 12, 2, 2500]),
+_Q11_P6 = [(OpUnit.SORT_ITERATE, [5000, 12, 2, 5000]),
+           (OpUnit.OUTPUT, [5000, 12, 2, 5000]),
            ]
 
 
