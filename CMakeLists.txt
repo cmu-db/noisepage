@@ -378,6 +378,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif ()
 
 set(TERRIER_LINK_LIBS
+        terrier_static
         gflags
         ${TERRIER_LINK_LIBS}
         pg_query)
@@ -404,15 +405,16 @@ set(TERRIER_BENCHMARK_LINK_LIBS
 # Mandate static linking on mac OS
 if (APPLE) 
     list(APPEND TERRIER_TEST_LINK_LIBS terrier_static)
-    list(APPEND TERRIER_BENCHMARK_LINK_LIBS terrier_static)
     if (TERRIER_BUILD_SHARED) 
         set(TERRIER_BUILD_SHARED OFF CACHE BOOL "Build the libterrier shared libraries" FORCE)
         message("Disabling TERRIER_BUILD_SHARED due to lack of support on mac OS.")
     endif ()
 else ()
     list(APPEND TERRIER_TEST_LINK_LIBS terrier_shared)
-    list(APPEND TERRIER_BENCHMARK_LINK_LIBS terrier_shared)
 endif ()
+
+# Mandate static linking of the benchmark
+list(APPEND TERRIER_BENCHMARK_LINK_LIBS terrier_static)
 
 # configure settings for ctest
 configure_file(
