@@ -65,6 +65,7 @@ if __name__ == "__main__":
                         print("================ Python Error Output ==================")
                         traceback.print_exc(file=sys.stdout)
                         exit_code = 1
+
     final_code = 0
     for c in code:
         final_code = final_code or c
