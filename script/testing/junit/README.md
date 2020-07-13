@@ -1,7 +1,14 @@
 # JUnit Testing Script
 
 This directory contains tests using Junit5.
-Under 
+Under src, the moglib directory contains APIs from Wan's mogjdbc library used to
+handle database interaction
+GenerateTrace converts input file consisting of sql statements to tracefile format
+TracefileTest takes in path to a tracefile and dynamically generate a test case
+for each query. (Test case: execute the query, get the result from database and
+check if the hash match)
+TrafficCopTest and WireTest are non-tracefile related tests.
+TestUtility provides a list of utility methods
 
 ## Installation and pre-requisites
 

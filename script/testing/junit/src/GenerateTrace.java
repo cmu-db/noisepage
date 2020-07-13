@@ -1,20 +1,11 @@
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.api.function.Executable;
-
 import java.io.*;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import moglib.*;
 
 /**
@@ -36,13 +27,8 @@ public class GenerateTrace {
         String path = args[0];
         File file = new File(path);
         MogSqlite mog = new MogSqlite(file);
-        System.out.println(args[1]);
-        System.out.println(args[2]);
         // open connection to postgresql database with jdbc
-        String url = args[1];
-        String user = args[2];
-        String password = "";
-        MogDb db = new MogDb(url, user, password);
+        MogDb db = new MogDb(args[1], args[2], args[3]);
         Connection conn = db.getDbTest().newConn();
         // remove existing table name
         List<String> tab = getAllExistingTableName(mog,conn);
@@ -51,8 +37,7 @@ public class GenerateTrace {
         String line;
         BufferedReader br = new BufferedReader(new FileReader(file));
         // create output file
-        FileWriter writer = new FileWriter(new File("script/testing/junit/src","hahaha_output.test"));
-        System.out.println("Working Directory = " + System.getProperty("user.dir"));
+        FileWriter writer = new FileWriter(new File("src","output.test"));
         while (null != (line = br.readLine())) {
             line = line.trim();
             // execute sql statement

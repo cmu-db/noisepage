@@ -2,14 +2,14 @@
 <property name="src.dir" value="./src" />
 <property name="lib.dir" value="./lib" />
 <property name="out.dir" value="./out" />
-<property name="mog.dir" value="./src/moglib" />
+
 <target name="compile">
   <mkdir dir="${out.dir}"/>
   <javac srcdir="${src.dir}"
          destdir="${out.dir}"
          includeantruntime="false"
          debug="true" nowarn="on">
-    <classpath refid="test.jars"/>
+    <classpath refid="lib.classpath"/>
     </javac>
 </target>
 
@@ -21,17 +21,17 @@
   </delete>
 </target>
 
-<path id="test.jars">
+<path id="lib.classpath">
   <fileset dir="${lib.dir}">
     <include name="**/*.jar"/>
   </fileset>
 </path>
 
 <path id="test.classpath">
-  <path refid="test.jars"/>
+  <path refid="lib.classpath"/>
   <pathelement location="${out.dir}" />
 </path>
-<target name="testconsole">
+<target name="test-all">
   <antcall target="test-trace"/>
   <antcall target="test-unit"/>
 </target>
@@ -39,7 +39,7 @@
   <java classname="GenerateTrace" fork="yes">
     <classpath>
       <pathelement location="${out.dir}" />
-      <pathelement location="${lib.dir}" />
+      <path refid="lib.classpath" />
     </classpath>
     <arg value="${path}"></arg>
     <arg value="${db-url}"></arg>
@@ -51,7 +51,7 @@
   <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
         dir="."
         fork="yes"
-        failonerror="false">
+        failonerror="true">
     <arg value="--class-path" />
     <arg value="${toString:test.classpath}" />
     <arg value="--scan-class-path" />
@@ -63,7 +63,7 @@
   <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
         dir="."
         fork="yes"
-        failonerror="false">
+        failonerror="true">
     <arg value="--class-path" />
     <arg value="${toString:test.classpath}" />
     <arg value="--scan-class-path" />

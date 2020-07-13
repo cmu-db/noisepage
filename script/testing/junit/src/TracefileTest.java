@@ -15,17 +15,11 @@ import moglib.*;
 
 /**
  * Test class that dynamically generate test cases for each sql query
- * Specify file path in environment
+ * Get file path from environment variable
  */
 public class TracefileTest {
     private static File file;
     private static MogSqlite mog;
-    private static final String URL = "jdbc:postgresql://localhost/jeffdb";
-    private static final String USER = "jeffniu";
-//    private static final String URL = "jdbc:postgresql://localhost:15721/";
-//    private static final String USER = "terrier";
-    private static final String PASSWORD = "";
-    private static MogDb db;
     private static Connection conn;
 
     /**
@@ -36,13 +30,13 @@ public class TracefileTest {
      */
     @BeforeEach
     public void setUp() throws FileNotFoundException, SQLException {
-//        System.out.println("Working Directory = " + System.getProperty("user.dir"));
-
-        db = new MogDb(URL, USER, PASSWORD);
-//        conn = db.getDbTest().newConn();
+        System.out.println("Working Directory = " + System.getProperty("user.dir"));
         conn = TestUtility.makeDefaultConnection();
-        Statement statement = conn.createStatement();
-
+        String path = System.getenv("path");
+        file = new File(path);
+        mog = new MogSqlite(file);
+        List<String> tab = getAllExistingTableName(mog);
+        removeExistingTable(tab);
     }
 
 
@@ -54,14 +48,6 @@ public class TracefileTest {
      */
     @TestFactory
     public Collection<DynamicTest> generateTest() throws IOException, SQLException {
-        String path = System.getenv("path");
-//        System.setProperty("testFile", "src/select1.test");
-//        String path = System.getProperty("testFile");
-//        System.out.println(path);
-        file = new File(path);
-        mog = new MogSqlite(file);
-//        List<String> tab = getAllExistingTableName(mog,db);
-//        removeExistingTable(tab,db);
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
@@ -141,10 +127,9 @@ public class TracefileTest {
     /**
      * Remove existing table from database
      * @param tab list of strings containing existing table names
-     * @param db testing database
      * @throws SQLException
      */
-    public static void removeExistingTable(List<String> tab, MogDb db) throws SQLException {
+    public static void removeExistingTable(List<String> tab) throws SQLException {
         for(String i:tab){
             Statement st = conn.createStatement();
             String sql = "DROP TABLE IF EXISTS " + i + " CASCADE";
@@ -155,19 +140,15 @@ public class TracefileTest {
     /**
      * Get existing table names
      * @param mog MogSqlite obj
-     * @param db testing database
      * @return list of strings containing existing table names
      * @throws SQLException
      */
-    public static List<String> getAllExistingTableName(MogSqlite mog,MogDb db) throws SQLException {
+    public static List<String> getAllExistingTableName(MogSqlite mog) throws SQLException {
         Statement st = conn.createStatement();
-        String getTableName = "SELECT tablename FROM pg_tables WHERE schemaname = 'public';";
         String terrier_table = "SELECT relname FROM pg_class WHERE relkind = 114 AND relnamespace = 15;";
-//        st.execute(getTableName);
         st.execute(terrier_table);
         ResultSet rs = st.getResultSet();
         List<String> res = mog.processResults(rs);
-//        System.out.println("Current table   "+ res);
         return res;
     }
 }

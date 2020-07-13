@@ -1,27 +1,26 @@
-#!/usr/bin/python3
-
 import os
 import sys
 import argparse
 import traceback
 import git
 from git import Repo
-noise_path = os.getcwd()+"/noisepage-testfiles"
-os.mkdir(noise_path)
-repo = Repo.clone_from("https://github.com/dniu16/noisepage-testfiles.git", noise_path)
-# invoke git clone with run_command
-# if not repo.bare:
-#     print('Repo at {} successfully loaded.'.format(repo))
-#     tree = repo.heads.master.commit.tree
-#     print(tree.blobs)
-#     for blob in tree.blobs:
-#         print(blob.name)
-# else:
-#     print("hahaha")
-# git.Git(os.getcwd()).clone("https://github.com/cmu-db/noisepage-testfiles.git")
+
+def is_git_repo(path):
+    try:
+        _ = git.Repo(path).git_dir
+        return True
+    except git.exc.InvalidGitRepositoryError:
+        return False
+
+def download_git_repo():
+    noise_path = os.getcwd()+"/noisepage-testfiles"
+    if not os.path.isdir(noise_path):
+        os.mkdir(noise_path)
+    if not is_git_repo(noise_path):
+        repo = Repo.clone_from("https://github.com/dniu16/noisepage-testfiles.git", noise_path)
+
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
-# TODO: turn on junit xml report (within xml), merge junit xml files https://gist.github.com/cgoldberg/4320815
 from junit.test_junit import TestJUnit
 
 if __name__ == "__main__":
@@ -43,6 +42,7 @@ if __name__ == "__main__":
                          type=int,
                          help="Threshold under the 'extened' query mode")
 
+    download_git_repo()
     args = vars(aparser.parse_args())
     exit_code = 0
     code = []
@@ -58,7 +58,7 @@ if __name__ == "__main__":
                         print(os.environ["path"])
                         junit = TestJUnit(args)
                         exit_code = junit.run()
-                        code.append(int(exit_code))
+                        code.append(exit_code)
 
                     except:
                         print("Exception trying to run junit tests")
@@ -70,17 +70,3 @@ if __name__ == "__main__":
         final_code = final_code or c
     print("Final exit code: " + str(final_code))
     sys.exit(exit_code)
-
-
-
-
-#     try:
-#         junit = TestJUnit(args)
-#         exit_code = junit.run()
-#     except:
-#         print("Exception trying to run junit tests")
-#         print("================ Python Error Output ==================")
-#         traceback.print_exc(file=sys.stdout)
-#         exit_code = 1
-#
-#     sys.exit(exit_code)
