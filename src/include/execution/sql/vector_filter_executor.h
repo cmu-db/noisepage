@@ -22,8 +22,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are equal to the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectEqualVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                              uint32_t col_idx, const GenericValue &val, TupleIdList *tid_list);
@@ -31,8 +34,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are equal to the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectEqualVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                              uint32_t col_idx, const Val &val, TupleIdList *tid_list);
@@ -40,8 +46,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are greater than or equal to the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectGreaterThanEqualVal(const exec::ExecutionSettings &exec_settings,
                                         VectorProjection *vector_projection, uint32_t col_idx, const GenericValue &val,
@@ -50,8 +59,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are greater than or equal to the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectGreaterThanEqualVal(const exec::ExecutionSettings &exec_settings,
                                         VectorProjection *vector_projection, uint32_t col_idx, const Val &val,
@@ -60,8 +72,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are strictly greater than the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectGreaterThanVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                    uint32_t col_idx, const GenericValue &val, TupleIdList *tid_list);
@@ -69,8 +84,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are strictly greater than the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectGreaterThanVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                    uint32_t col_idx, const Val &val, TupleIdList *tid_list);
@@ -78,8 +96,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are less than or equal to the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectLessThanEqualVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                      uint32_t col_idx, const GenericValue &val, TupleIdList *tid_list);
@@ -87,8 +108,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are less than or equal to the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectLessThanEqualVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                      uint32_t col_idx, const Val &val, TupleIdList *tid_list);
@@ -96,8 +120,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are strictly less than the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectLessThanVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                 uint32_t col_idx, const GenericValue &val, TupleIdList *tid_list);
@@ -105,8 +132,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are strictly less than the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectLessThanVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                 uint32_t col_idx, const Val &val, TupleIdList *tid_list);
@@ -114,8 +144,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are not equal to the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectNotEqualVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                 uint32_t col_idx, const GenericValue &val, TupleIdList *tid_list);
@@ -123,8 +156,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are not equal to the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param col_idx The index of the column to compare with.
    * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectNotEqualVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                 uint32_t col_idx, const Val &val, TupleIdList *tid_list);
@@ -132,8 +168,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples whose values in the left (first) column are equal to the values in the right
    * (second) column.
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param left_col_idx The index of the left column to compare with.
    * @param right_col_idx The index of the right column to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectEqual(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                           uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
@@ -141,8 +180,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples whose values in the left (first) column are greater than or equal to the values
    * in the right (second) column.
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param left_col_idx The index of the left column to compare with.
    * @param right_col_idx The index of the right column to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectGreaterThanEqual(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                      uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
@@ -150,8 +192,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples whose values in the left (first) column are greater than the values in the right
    * (second) column.
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param left_col_idx The index of the left column to compare with.
    * @param right_col_idx The index of the right column to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectGreaterThan(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                 uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
@@ -159,8 +204,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples whose values in the left (first) column are less than or equal to the values in
    * the right (second) column.
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param left_col_idx The index of the left column to compare with.
    * @param right_col_idx The index of the right column to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectLessThanEqual(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                   uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
@@ -168,8 +216,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples whose values in the left (first) column are less than the values in the right
    * (second) column.
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param left_col_idx The index of the left column to compare with.
    * @param right_col_idx The index of the right column to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectLessThan(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                              uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
@@ -177,8 +228,11 @@ class VectorFilterExecutor : public common::AllStatic {
   /**
    * Select tuples whose values in the left (first) column are not equal to the values in the right
    * (second) column.
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
    * @param left_col_idx The index of the left column to compare with.
    * @param right_col_idx The index of the right column to compare with.
+   * @param tid_list The tuple ID list to use.
    */
   static void SelectNotEqual(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                              uint32_t col_idx, uint32_t right_col_idx, TupleIdList *tid_list);

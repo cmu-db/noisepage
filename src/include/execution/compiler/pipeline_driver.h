@@ -28,6 +28,7 @@ class PipelineDriver {
 
   /**
    * This is called to launch the provided worker function in parallel across a set of threads.
+   * @param function The function being built.
    * @param work_func_name The name of the work function that implements the pipeline logic.
    */
   virtual void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const = 0;

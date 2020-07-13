@@ -52,13 +52,15 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
 
   /**
    * Initialize the thread-local aggregation hash table, if needed.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline Current pipeline.
+   * @param function The pipeline generating function.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Tear-down and destroy the thread-local aggregation hash table, if needed.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline Current pipeline.
+   * @param function The pipeline generating function.
    */
   void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
@@ -67,6 +69,7 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
    * hash table. Otherwise, we'll perform a scan over the resulting aggregates in the aggregation
    * hash table.
    * @param context The context.
+   * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
@@ -74,7 +77,8 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
    * If the provided context is for the build pipeline and we're performing a parallel aggregation,
    * then we'll need to move thread-local aggregation hash table partitions into the main
    * aggregation hash table.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline Current pipeline.
+   * @param function The pipeline generating function.
    */
   void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
@@ -88,6 +92,7 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   /**
    * If the aggregation is parallelized, we'll launch ara parallel partitioned scan over the
    * aggregation hash table.
+   * @param function The pipeline generating function.
    * @param work_func_name The name of the worker function to invoke.
    */
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override;

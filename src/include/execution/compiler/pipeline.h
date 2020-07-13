@@ -67,7 +67,6 @@ class Pipeline {
   /**
    * Register an operator in this pipeline with a customized parallelism configuration.
    * @param op The operator to add to the pipeline.
-   * @param parallelism The operator's requested parallelism.
    */
   void RegisterStep(OperatorTranslator *op);
 
@@ -127,7 +126,7 @@ class Pipeline {
 
   /**
    * Generate all functions to execute this pipeline in the provided container.
-   * @param codegen The code generator instance.
+   * @param builder The builder for the executable query container.
    */
   void GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const;
 

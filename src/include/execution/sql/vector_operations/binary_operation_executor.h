@@ -9,6 +9,7 @@
 
 namespace terrier::execution::sql {
 
+/** Static class for operating binary operations. */
 class BinaryOperationExecutor : public common::AllStatic {
  public:
   /**

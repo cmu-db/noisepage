@@ -11,6 +11,7 @@ namespace terrier::execution::compiler {
 
 class FunctionBuilder;
 
+/** Translates CSV scan plans. */
 class CSVScanTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**

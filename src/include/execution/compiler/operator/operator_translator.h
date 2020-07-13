@@ -87,6 +87,7 @@ class OperatorTranslator : public ColumnValueProvider {
    * @param plan The plan node this translator will generate code for.
    * @param compilation_context The context this compilation is occurring in.
    * @param pipeline The pipeline this translator is a part of.
+   * @param feature_type Minirunner execution operating unit type for this operator.
    */
   OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline,
                      brain::ExecutionOperatingUnitType feature_type);
@@ -117,12 +118,13 @@ class OperatorTranslator : public ColumnValueProvider {
 
   /**
    * Initialize all query state.
-   * @param The builder for the query state initialization function.
+   * @param function The builder for the query state initialization function.
    */
   virtual void InitializeQueryState(FunctionBuilder *function) const {}
 
   /**
    * Tear down all query state.
+   * @param function The builder for the query state teardown function.
    */
   virtual void TearDownQueryState(FunctionBuilder *function) const {}
 
@@ -201,39 +203,42 @@ class OperatorTranslator : public ColumnValueProvider {
   /** @return The plan node as a generic node. */
   const planner::AbstractPlanNode *Op() const { return &plan_; }
 
+  /** @return The address of the current tuple slot, if any. */
   virtual ast::Expr *GetSlotAddress() const { UNREACHABLE("This translator does not deal with tupleslots."); }
 
  protected:
-  // Get the code generator instance.
+  /** Get the code generator instance. */
   CodeGen *GetCodeGen() const;
 
-  // Get a pointer to the query state.
+  /** Get a pointer to the query state. */
   ast::Expr *GetQueryStatePtr() const;
 
-  // Get the execution context pointer in the current function.
+  /** Get the execution context pointer in the current function. */
   ast::Expr *GetExecutionContext() const;
 
-  // Get the thread state container pointer from the execution context stored in the query state.
+  /** Get the thread state container pointer from the execution context stored in the query state. */
   ast::Expr *GetThreadStateContainer() const;
 
-  // Get the memory pool pointer from the execution context stored in the query state.
+  /** Get the memory pool pointer from the execution context stored in the query state. */
   ast::Expr *GetMemoryPool() const;
 
-  // The pipeline this translator is a part of.
+  /** The pipeline this translator is a part of. */
   Pipeline *GetPipeline() const { return pipeline_; }
 
-  // The plan node for this translator as its concrete type.
+  /** The plan node for this translator as its concrete type. */
   template <typename T>
   const T &GetPlanAs() const {
     static_assert(std::is_base_of_v<planner::AbstractPlanNode, T>, "Template is not a plan node");
     return static_cast<const T &>(plan_);
   }
 
-  // Used by operators when they need to generate a struct containing a child's
-  // output. Also used by the output layer to materialize the output.
-  // The child index refers to which specific child to inspect.
-  // The prefix is added to each field/attribute of the child.
-  // The fields vector collects the resulting field declarations.
+  /**
+   * Used by operators when they need to generate a struct containing a child's output.
+   * Also used by the output layer to materialize the output.
+   * @param child_index The child index refers to which specific child to inspect.
+   * @param field_name_prefix The prefix is added to each field/attribute of the child.
+   * @param fields The fields vector collects the resulting field declarations.
+   */
   void GetAllChildOutputFields(uint32_t child_index, const std::string &field_name_prefix,
                                util::RegionVector<ast::FieldDecl *> *fields) const;
 

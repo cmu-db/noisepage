@@ -40,9 +40,9 @@ class ColumnVectorIterator;
  * projection contains a set of column vectors that reference data stored externally. An owning
  * vector projection allocates and owns a chunk of data that it partitions and assigns to all child
  * vectors. By default, it will allocate enough data for each child to have a capacity determined by
- * the global constant ::tpl::kDefaultVectorSize, usually 2048 elements. After construction, and
+ * the global constant DEFAULT_VECTOR_SIZE, usually 2048 elements. After construction, and
  * owning vector projection has a <b>zero</b> size (though it's capacity is
- * ::tpl::kDefaultVectorSize). Thus, users must explicitly set the size through
+ * DEFAULT_VECTOR_SIZE). Thus, users must explicitly set the size through
  * VectorProjection::Resize() before interacting with the projection. Resizing sets up all contained
  * column vectors.
  *
@@ -277,6 +277,7 @@ class EXPORT VectorProjection {
   /**
    * Reset the count of each child vector to @em num_tuples and reset the data pointer of each child
    * vector to point to their data chunk in this projection, if it owns any.
+   * @param num_tuples The number of tuples that each child vector should now contain.
    */
   void Reset(uint64_t num_tuples);
 

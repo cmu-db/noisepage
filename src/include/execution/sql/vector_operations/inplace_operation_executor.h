@@ -30,6 +30,7 @@ inline void CheckInplaceOperation(const Vector *result, const Vector &input) {
   }
 }
 
+/** Static class for executing in-place operations. */
 class InPlaceOperationExecutor : public common::AllStatic {
  public:
   /**

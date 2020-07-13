@@ -19,8 +19,9 @@ class InsertTranslator : public OperatorTranslator {
  public:
   /**
    * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * @param plan The plan node
+   * @param compilation_context The compilation context
+   * @param pipeline The pipeline
    */
   InsertTranslator(const planner::InsertPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
@@ -32,12 +33,15 @@ class InsertTranslator : public OperatorTranslator {
 
   /**
    * Initialize the FilterManager if required.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
 
   /**
    * Generate the scan.
    * @param context The context of the work.
+   * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 

@@ -53,20 +53,20 @@ class ExpressionTranslator {
   const parser::AbstractExpression &GetExpression() const { return expr_; }
 
  protected:
-  // The expression for this translator as its concrete type.
+  /** The expression for this translator as its concrete type. */
   template <typename T>
   const T &GetExpressionAs() const {
     static_assert(std::is_base_of_v<parser::AbstractExpression, T>, "Template type is not an expression");
     return static_cast<const T &>(expr_);
   }
 
-  // Return the code generation instance.
+  /** Return the code generation instance. */
   CodeGen *GetCodeGen() const;
 
  private:
-  // The expression that's to be translated.
+  /** The expression that's to be translated. */
   const parser::AbstractExpression &expr_;
-  // The context the translation is a part of.
+  /** The context the translation is a part of. */
   CompilationContext *compilation_context_;
 };
 

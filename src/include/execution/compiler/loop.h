@@ -24,7 +24,7 @@ class Loop {
  public:
   /**
    * Create a full loop.
-   * @param codegen The code generator.
+   * @param function The pipeline generating function.
    * @param init The initialization statements.
    * @param condition The loop condition.
    * @param next The next statements.
@@ -33,14 +33,14 @@ class Loop {
 
   /**
    * Create a while-loop.
-   * @param codegen The code generator instance.
+   * @param function The pipeline generating function.
    * @param condition The loop condition.
    */
   explicit Loop(FunctionBuilder *function, ast::Expr *condition);
 
   /**
    * Create an infinite loop.
-   * @param codegen The code generator instance.
+   * @param function The pipeline generating function.
    */
   explicit Loop(FunctionBuilder *function);
 

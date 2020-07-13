@@ -14,25 +14,23 @@ namespace terrier::execution::sql {
 //
 // The functors here are sorted alphabetically for convenience.
 
-/**
- * Return the value of the mathematical constant PI.
- */
+/** Return the value of the mathematical constant PI. */
 struct Pi {
   constexpr double operator()() const { return M_PI; }
 };
 
-/**
- * Return the value of the mathematical constant E.
- */
+/** Return the value of the mathematical constant E. */
 struct E {
   constexpr double operator()() const { return M_E; }
 };
 
+/** Compute the function Abs. */
 template <typename T>
 struct Abs {
   constexpr T operator()(T input) const { return input < 0 ? -input : input; }
 };
 
+/** Compute the function Acos. */
 template <typename T>
 struct Acos {
   constexpr double operator()(T input) const {
@@ -43,6 +41,7 @@ struct Acos {
   }
 };
 
+/** Compute the function Asin. */
 template <typename T>
 struct Asin {
   constexpr double operator()(T input) const {
@@ -53,91 +52,109 @@ struct Asin {
   }
 };
 
+/** Compute the function Atan. */
 template <typename T>
 struct Atan {
   constexpr double operator()(T input) const { return std::atan(input); }
 };
 
+/** Compute the function Atan2. */
 template <typename T>
 struct Atan2 {
   constexpr double operator()(T a, T b) const { return std::atan2(a, b); }
 };
 
+/** Compute the function Cbrt. */
 template <typename T>
 struct Cbrt {
   constexpr double operator()(T input) const { return std::cbrt(input); }
 };
 
+/** Compute the function Ceil. */
 template <typename T>
 struct Ceil {
   constexpr T operator()(T input) const { return std::ceil(input); }
 };
 
+/** Compute the function Cos. */
 template <typename T>
 struct Cos {
   constexpr double operator()(T input) const { return std::cos(input); }
 };
 
+/** Compute the function Cosh. */
 template <typename T>
 struct Cosh {
   constexpr double operator()(T input) const { return std::cosh(input); }
 };
 
+/** Compute the function Cot. */
 template <typename T>
 struct Cot {
   constexpr double operator()(T input) const { return (1.0 / std::tan(input)); }
 };
 
+/** Compute the function Degrees. */
 template <typename T>
 struct Degrees {
   constexpr double operator()(T input) const { return input * 180.0 / M_PI; }
 };
 
+/** Compute the function Exp. */
 template <typename T>
 struct Exp {
   constexpr double operator()(T input) const { return std::exp(input); }
 };
 
+/** Compute the function Floor. */
 template <typename T>
 struct Floor {
   constexpr T operator()(T input) const { return std::floor(input); }
 };
 
+/** Compute the function Ln. */
 template <typename T>
 struct Ln {
   constexpr T operator()(T input) const { return std::log(input); }
 };
 
+/** Compute the function Log. */
 template <typename T>
 struct Log {
   constexpr T operator()(T input, T base) const { return std::log(input) / std::log(base); }
 };
 
+/** Compute the function Log2. */
 template <typename T>
 struct Log2 {
   constexpr T operator()(T input) const { return std::log2(input); }
 };
 
+/** Compute the function Log10. */
 template <typename T>
 struct Log10 {
   constexpr T operator()(T input) const { return std::log10(input); }
 };
 
+/** Compute the function Pow. */
 template <typename T, typename U>
 struct Pow {
   constexpr double operator()(T a, U b) { return std::pow(a, b); }
 };
 
+/** Compute the function Radians. */
 template <typename T>
 struct Radians {
   constexpr double operator()(T input) const { return input * M_PI / 180.0; }
 };
 
+/** Compute the function Round. */
 template <typename T>
 struct Round {
   constexpr T operator()(T input) const { return input + ((input < 0) ? -0.5 : 0.5); }
 };
 
+/** Compute the function RoundUpTo. */
 template <typename T, typename U>
 struct RoundUpTo {
   constexpr T operator()(T input, U scale) const {
@@ -149,6 +166,7 @@ struct RoundUpTo {
   }
 };
 
+/** Compute the function RoundUpTo. */
 template <>
 struct RoundUpTo<void, void> {
   template <typename T, typename U>
@@ -157,36 +175,43 @@ struct RoundUpTo<void, void> {
   }
 };
 
+/** Compute the function Sign. */
 template <typename T>
 struct Sign {
   constexpr T operator()(T input) const { return (input > 0) ? 1 : ((input < 0) ? -1.0 : 0); }
 };
 
+/** Compute the function Sin. */
 template <typename T>
 struct Sin {
   constexpr double operator()(T input) const { return std::sin(input); }
 };
 
+/** Compute the function Sinh. */
 template <typename T>
 struct Sinh {
   constexpr double operator()(T input) const { return std::sinh(input); }
 };
 
+/** Compute the function Sqrt. */
 template <typename T>
 struct Sqrt {
   constexpr T operator()(T input) const { return std::sqrt(input); }
 };
 
+/** Compute the function Tan. */
 template <typename T>
 struct Tan {
   constexpr double operator()(T input) const { return std::tan(input); }
 };
 
+/** Compute the function Tanh. */
 template <typename T>
 struct Tanh {
   constexpr double operator()(T input) const { return std::tanh(input); }
 };
 
+/** Compute the function Truncate. */
 template <typename T>
 struct Truncate {
   constexpr T operator()(T input) const { return std::trunc(input); }

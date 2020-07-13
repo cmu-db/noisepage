@@ -8,6 +8,7 @@
 
 namespace terrier::execution::util {
 
+/** Timer that supports multiple stages. */
 template <typename ResolutionRatio = std::milli>
 class StageTimer {
  public:

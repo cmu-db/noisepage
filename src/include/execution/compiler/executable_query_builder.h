@@ -79,6 +79,10 @@ class ExecutableQueryFragmentBuilder {
    */
   std::unique_ptr<ExecutableQuery::Fragment> Compile();
 
+  /**
+   * Add the teardown function to the query.
+   * @param teardown_fn The teardown function to be added.
+   */
   void AddTeardownFn(ast::FunctionDecl *teardown_fn) { teardown_fn_.push_back(teardown_fn); }
 
  private:

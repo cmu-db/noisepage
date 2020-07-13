@@ -89,6 +89,7 @@ class CodeGen {
   /**
    * Create a code generator that generates code for the provided container.
    * @param context The context used to create all expressions.
+   * @param accessor The catalog accessor for all catalog lookups.
    */
   explicit CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor);
 
@@ -452,35 +453,35 @@ class CodeGen {
   // ---------------------------------------------------------------------------
 
   /**
-   * Call @boolToSql(). Convert a boolean into a SQL boolean.
+   * Call \@boolToSql(). Convert a boolean into a SQL boolean.
    * @param b The constant bool.
    * @return The SQL bool.
    */
   [[nodiscard]] ast::Expr *BoolToSql(bool b) const;
 
   /**
-   * Call @intToSql(). Convert a 64-bit integer into a SQL integer.
+   * Call \@intToSql(). Convert a 64-bit integer into a SQL integer.
    * @param num The number to convert.
    * @return The SQL integer.
    */
   [[nodiscard]] ast::Expr *IntToSql(int64_t num) const;
 
   /**
-   * Call @floatToSql(). Convert a 64-bit floating point number into a SQL real.
+   * Call \@floatToSql(). Convert a 64-bit floating point number into a SQL real.
    * @param num The number to convert.
    * @return The SQL real.
    */
   [[nodiscard]] ast::Expr *FloatToSql(double num) const;
 
   /**
-   * Call @dateToSql(). Convert a date into a SQL date.
+   * Call \@dateToSql(). Convert a date into a SQL date.
    * @param date The date.
    * @return The SQL date.
    */
   [[nodiscard]] ast::Expr *DateToSql(sql::Date date) const;
 
   /**
-   * Call @dateToSql(). Convert a date into a SQL date.
+   * Call \@dateToSql(). Convert a date into a SQL date.
    * @param year The number to convert.
    * @param month The number to convert.
    * @param day The number to convert.
@@ -489,21 +490,21 @@ class CodeGen {
   [[nodiscard]] ast::Expr *DateToSql(int32_t year, int32_t month, int32_t day) const;
 
   /**
-   * Call @timestampToSql(). Create a timestamp value.
+   * Call \@timestampToSql(). Create a timestamp value.
    * @param timestamp The timestamp
    * @return The generated sql Timestamp.
    */
   [[nodiscard]] ast::Expr *TimestampToSql(sql::Timestamp timestamp) const;
 
   /**
-   * Call @timestampToSql(). Create a timestamp value.
+   * Call \@timestampToSql(). Create a timestamp value.
    * @param julian_usec The number of microseconds in Julian time.
    * @return The generated sql Timestamp.
    */
   [[nodiscard]] ast::Expr *TimestampToSql(uint64_t julian_usec) const;
 
   /**
-   * Call @timestampToSql(). Create a timestamp value.
+   * Call \@timestampToSql(). Create a timestamp value.
    * @param year Years.
    * @param month Months.
    * @param day Days.
@@ -518,7 +519,7 @@ class CodeGen {
                                           int32_t ms, int32_t us) const;
 
   /**
-   * Call @stringToSql(). Convert a string literal into a SQL string.
+   * Call \@stringToSql(). Convert a string literal into a SQL string.
    * @param str The string.
    * @return The SQL varlen.
    */
@@ -536,8 +537,8 @@ class CodeGen {
   [[nodiscard]] catalog::CatalogAccessor *GetCatalogAccessor() const;
 
   /**
-   * Call @tableIterInit(). Initializes a TableVectorIterator instance with a table ID.
-   * @param tvi The table iterator variable.
+   * Call \@tableIterInit(). Initializes a TableVectorIterator instance with a table ID.
+   * @param table_iter The table iterator variable.
    * @param exec_ctx The execution context that the TableVectorIterator runs with.
    * @param table_oid The OID of the table to scan.
    * @param col_oids The column OIDs from the table that should be scanned.
@@ -547,29 +548,29 @@ class CodeGen {
                                          ast::Identifier col_oids);
 
   /**
-   * Call @tableIterAdvance(). Attempt to advance the iterator, returning true if successful and
+   * Call \@tableIterAdvance(). Attempt to advance the iterator, returning true if successful and
    * false otherwise.
-   * @param tvi The table vector iterator.
+   * @param table_iter The table vector iterator.
    * @return The call expression.
    */
   [[nodiscard]] ast::Expr *TableIterAdvance(ast::Expr *table_iter);
 
   /**
-   * Call @tableIterGetVPI(). Retrieve the vector projection iterator from a table vector iterator.
-   * @param tvi The table vector iterator.
+   * Call \@tableIterGetVPI(). Retrieve the vector projection iterator from a table vector iterator.
+   * @param table_iter The table vector iterator.
    * @return The call expression.
    */
   [[nodiscard]] ast::Expr *TableIterGetVPI(ast::Expr *table_iter);
 
   /**
-   * Call @tableIterClose(). Close and destroy a table vector iterator.
-   * @param tvi The table vector iterator.
+   * Call \@tableIterClose(). Close and destroy a table vector iterator.
+   * @param table_iter The table vector iterator.
    * @return The call expression.
    */
   [[nodiscard]] ast::Expr *TableIterClose(ast::Expr *table_iter);
 
   /**
-   * Call @iterateTableParallel(). Performs a parallel scan over the table with the provided name,
+   * Call \@iterateTableParallel(). Performs a parallel scan over the table with the provided name,
    * using the provided query state and thread-state container and calling the provided scan
    * function.
    * @param exec_ctx The execution context that we are running in.
@@ -584,11 +585,17 @@ class CodeGen {
                                                 ast::Identifier col_oids, ast::Expr *query_state, ast::Expr *tls,
                                                 ast::Identifier worker_name);
 
+  /**
+   * Call \@abortTxn().
+   * @param exec_ctx The execution context that we are running in.
+   * @return The call.
+   */
   ast::Expr *AbortTxn(ast::Expr *exec_ctx);
 
   /**
    * Call indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
    * @param iter The identifier of the index iterator.
+   * @param exec_ctx_var The execution context variable.
    * @param num_attrs Number of attributes
    * @param table_oid The oid of the index's table.
    * @param index_oid The oid the index.
@@ -614,14 +621,14 @@ class CodeGen {
   // -------------------------------------------------------
 
   /**
-   * Call @vpiIsFiltered(). Determines if the provided vector projection iterator is filtered.
+   * Call \@vpiIsFiltered(). Determines if the provided vector projection iterator is filtered.
    * @param vpi The vector projection iterator.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *VPIIsFiltered(ast::Expr *vpi);
 
   /**
-   * Call @vpiHasNext() or @vpiHasNextFiltered(). Check if the provided unfiltered (or filtered) VPI
+   * Call \@vpiHasNext() or \@vpiHasNextFiltered(). Check if the provided unfiltered (or filtered) VPI
    * has more tuple data to iterate over.
    * @param vpi The vector projection iterator.
    * @param filtered Flag indicating if the VPI is filtered.
@@ -630,7 +637,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *VPIHasNext(ast::Expr *vpi, bool filtered);
 
   /**
-   * Call @vpiAdvance() or @vpiAdvanceFiltered(). Advance the provided unfiltered (or filtered) VPI
+   * Call \@vpiAdvance() or \@vpiAdvanceFiltered(). Advance the provided unfiltered (or filtered) VPI
    * to the next valid tuple.
    * @param vpi The vector projection iterator.
    * @param filtered Flag indicating if the VPI is filtered.
@@ -639,7 +646,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *VPIAdvance(ast::Expr *vpi, bool filtered);
 
   /**
-   * Call @vpiInit(). Initialize a new VPI using the provided vector projection. The last TID list
+   * Call \@vpiInit(). Initialize a new VPI using the provided vector projection. The last TID list
    * argument is optional and can be NULL.
    * @param vpi The vector projection iterator.
    * @param vp The vector projection.
@@ -649,7 +656,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *VPIInit(ast::Expr *vpi, ast::Expr *vp, ast::Expr *tids);
 
   /**
-   * Call @vpiMatch(). Mark the current tuple the provided vector projection iterator is positioned
+   * Call \@vpiMatch(). Mark the current tuple the provided vector projection iterator is positioned
    * at as valid or invalid depending on the value of the provided condition.
    * @param vpi The vector projection iterator.
    * @param cond The boolean condition setting the current tuples filtration state.
@@ -658,7 +665,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *VPIMatch(ast::Expr *vpi, ast::Expr *cond);
 
   /**
-   * Call @vpiGet[Type][Nullable](). Reads a value from the provided vector projection iterator of
+   * Call \@vpiGet[Type][Nullable](). Reads a value from the provided vector projection iterator of
    * the given type and NULL-ability flag, and at the provided column index.
    * @param vpi The vector projection iterator.
    * @param type_id The SQL type of the column value to read.
@@ -668,29 +675,29 @@ class CodeGen {
   [[nodiscard]] ast::Expr *VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, uint32_t idx);
 
   /**
-   * Call @filter[Comparison](). Invokes the vectorized filter on the provided vector projection
+   * Call \@filter[Comparison](). Invokes the vectorized filter on the provided vector projection
    * and column index, populating the results in the provided tuple ID list.
    * @param exec_ctx The execution context that we are running in.
    * @param vp The vector projection.
    * @param comp_type The comparison type.
    * @param col_idx The index of the column in the vector projection to apply the filter on.
    * @param filter_val The filtering value.
-   * @param The TID list.
+   * @param tids The TID list.
    */
-  ast::Expr *VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::ExpressionType comp_type, uint32_t col_idx,
-                       ast::Expr *filter_val, ast::Expr *tids);
+  [[nodiscard]] ast::Expr *VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::ExpressionType comp_type,
+                                     uint32_t col_idx, ast::Expr *filter_val, ast::Expr *tids);
   /**
-   * Call @prGet(pr, attr_idx).
+   * Call \@prGet(pr, attr_idx).
    * @param pr The projected row being accessed.
    * @param type The type of the column being accessed.
    * @param nullable Whether the column being accessed is nullable.
    * @param attr_idx Index of the column being accessed.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *PRGet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
+  [[nodiscard]] ast::Expr *PRGet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
 
   /**
-   * Call @prSet(pr, attr_idx, val, [own]).
+   * Call \@prSet(pr, attr_idx, val, [own]).
    * @param pr The projected row being accessed.
    * @param type The type of the column being accessed.
    * @param nullable Whether the column being accessed is nullable.
@@ -699,8 +706,8 @@ class CodeGen {
    * @param own When inserting varchars, whether the VarlenEntry should own its content.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                   bool own = false);
+  [[nodiscard]] ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                                 bool own = false);
 
   // -------------------------------------------------------
   //
@@ -709,50 +716,51 @@ class CodeGen {
   // -------------------------------------------------------
 
   /**
-   * Call @filterManagerInit(). Initialize the provided filter manager instance.
-   * @param fm The filter manager pointer.
+   * Call \@filterManagerInit(). Initialize the provided filter manager instance.
+   * @param filter_manager The filter manager pointer.
    * @param exec_ctx The execution context variable.
    */
   [[nodiscard]] ast::Expr *FilterManagerInit(ast::Expr *filter_manager, ast::Expr *exec_ctx);
 
   /**
-   * Call @filterManagerFree(). Destroy and clean up the provided filter manager instance.
-   * @param fm The filter manager pointer.
+   * Call \@filterManagerFree(). Destroy and clean up the provided filter manager instance.
+   * @param filter_manager The filter manager pointer.
    */
   [[nodiscard]] ast::Expr *FilterManagerFree(ast::Expr *filter_manager);
 
   /**
-   * Call @filterManagerInsert(). Insert a list of clauses.
-   * @param fm The filter manager pointer.
+   * Call \@filterManagerInsert(). Insert a list of clauses.
+   * @param filter_manager The filter manager pointer.
+   * @param clause_fn_names A vector containing the identifiers of the clauses.
    */
   [[nodiscard]] ast::Expr *FilterManagerInsert(ast::Expr *filter_manager,
                                                const std::vector<ast::Identifier> &clause_fn_names);
 
   /**
-   * Call @filterManagerRun(). Runs all filters on the input vector projection iterator.
-   * @param fm The filter manager pointer.
+   * Call \@filterManagerRun(). Runs all filters on the input vector projection iterator.
+   * @param filter_manager The filter manager pointer.
    * @param vpi The input vector projection iterator.
    * @param exec_ctx The execution context.
    */
   [[nodiscard]] ast::Expr *FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr *vpi, ast::Expr *exec_ctx);
 
   /**
-   * Call @execCtxGetMemPool(). Return the memory pool within an execution context.
+   * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.
    * @param exec_ctx The execution context variable.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *ExecCtxGetMemoryPool(ast::Expr *exec_ctx);
 
   /**
-   * Call @execCtxGetTLS(). Return the thread state container within an execution context.
+   * Call \@execCtxGetTLS(). Return the thread state container within an execution context.
    * @param exec_ctx The name of the execution context variable.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *ExecCtxGetTLS(ast::Expr *exec_ctx);
 
   /**
-   * Call @tlsGetCurrentThreadState(). Retrieves the current threads state in the state container.
-   * It's assumed a previous call to @tlsReset() was made to specify the state parameters.
+   * Call \@tlsGetCurrentThreadState(). Retrieves the current threads state in the state container.
+   * It's assumed a previous call to \@tlsReset() was made to specify the state parameters.
    * @param tls The state container pointer.
    * @param state_type_name The name of the expected state type to cast the result to.
    * @return The call.
@@ -760,7 +768,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *TLSAccessCurrentThreadState(ast::Expr *tls, ast::Identifier state_type_name);
 
   /**
-   * Call @tlsIterate(). Invokes the provided callback function for all thread-local state objects.
+   * Call \@tlsIterate(). Invokes the provided callback function for all thread-local state objects.
    * The context is provided as the first argument, and the thread-local state as the second.
    * @param tls A pointer to the thread state container.
    * @param context An opaque context object.
@@ -770,7 +778,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *TLSIterate(ast::Expr *tls, ast::Expr *context, ast::Identifier func);
 
   /**
-   * Call @tlsReset(). Reset the thread state container to a new state type with its own
+   * Call \@tlsReset(). Reset the thread state container to a new state type with its own
    * initialization and tear-down functions.
    * @param tls The name of the thread state container variable.
    * @param tls_state_name The name of the thread state struct type.
@@ -783,7 +791,7 @@ class CodeGen {
                                     ast::Identifier tear_down_fn, ast::Expr *context);
 
   /**
-   * Call @tlsClear(). Clears all thread-local states.
+   * Call \@tlsClear(). Clears all thread-local states.
    * @param tls The name of the thread state container variable.
    * @return The call.
    */
@@ -796,7 +804,7 @@ class CodeGen {
   // -------------------------------------------------------
 
   /**
-   * Invoke @hash(). Hashes all input arguments and combines them into a single hash value.
+   * Invoke \@hash(). Hashes all input arguments and combines them into a single hash value.
    * @param values The values to hash.
    * @return The result of the hash.
    */
@@ -809,7 +817,7 @@ class CodeGen {
   // -------------------------------------------------------
 
   /**
-   * Call @joinHTInit(). Initialize the provided join hash table using a memory pool and storing
+   * Call \@joinHTInit(). Initialize the provided join hash table using a memory pool and storing
    * the build-row structures with the provided name.
    * @param join_hash_table The join hash table.
    * @param exec_ctx The execution context.
@@ -821,7 +829,7 @@ class CodeGen {
                                              ast::Identifier build_row_type_name);
 
   /**
-   * Call @joinHTInsert(). Allocates a new tuple in the join hash table with the given hash value.
+   * Call \@joinHTInsert(). Allocates a new tuple in the join hash table with the given hash value.
    * The returned value is a pointer to an element with the given type.
    * @param join_hash_table The join hash table.
    * @param hash_val The hash value of the tuple that's to be inserted.
@@ -832,7 +840,7 @@ class CodeGen {
                                                ast::Identifier tuple_type_name);
 
   /**
-   * Call @joinHTBuild(). Performs the hash table build step of a hash join. Called on the provided
+   * Call \@joinHTBuild(). Performs the hash table build step of a hash join. Called on the provided
    * join hash table expected to be a *JoinHashTable.
    * @param join_hash_table The pointer to the join hash table.
    * @return The call.
@@ -840,7 +848,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *JoinHashTableBuild(ast::Expr *join_hash_table);
 
   /**
-   * Call @joinHTBuildParallel(). Performs the parallel hash table build step of a hash join. Called
+   * Call \@joinHTBuildParallel(). Performs the parallel hash table build step of a hash join. Called
    * on the provided global join hash table (expected to be a *JoinHashTable), and a pointer to the
    * thread state container where thread-local join hash tables are stored at the given offset.
    * @param join_hash_table The global join hash table.
@@ -852,7 +860,7 @@ class CodeGen {
                                                       ast::Expr *offset);
 
   /**
-   * Call @joinHTLookup(). Performs a single lookup into the hash table with a tuple with the
+   * Call \@joinHTLookup(). Performs a single lookup into the hash table with a tuple with the
    * provided hash value. The provided iterator will provide tuples in the hash table that match the
    * provided hash, but may not match on key (i.e., it may offer false positives). It is the
    * responsibility of the user to resolve such hash collisions.
@@ -864,21 +872,21 @@ class CodeGen {
   [[nodiscard]] ast::Expr *JoinHashTableLookup(ast::Expr *join_hash_table, ast::Expr *entry_iter, ast::Expr *hash_val);
 
   /**
-   * Call @joinHTFree(). Cleanup and destroy the provided join hash table instance.
+   * Call \@joinHTFree(). Cleanup and destroy the provided join hash table instance.
    * @param join_hash_table The join hash table.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *JoinHashTableFree(ast::Expr *join_hash_table);
 
   /**
-   * Call @htEntryIterHasNext(). Determine if the provided iterator has more entries. Entries
+   * Call \@htEntryIterHasNext(). Determine if the provided iterator has more entries. Entries
    * @param iter The iterator.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *HTEntryIterHasNext(ast::Expr *iter);
 
   /**
-   * Call @htEntryIterGetRow(). Retrieves a pointer to the current row the iterator is positioned at
+   * Call \@htEntryIterGetRow(). Retrieves a pointer to the current row the iterator is positioned at
    * casted to the provided row type.
    * @param iter The iterator.
    * @param row_type The name of the struct type the row is expected to be.
@@ -893,7 +901,7 @@ class CodeGen {
   // -------------------------------------------------------
 
   /**
-   * Call @aggHTInit(). Initializes an aggregation hash table.
+   * Call \@aggHTInit(). Initializes an aggregation hash table.
    * @param agg_ht A pointer to the aggregation hash table.
    * @param exec_ctx The execution context.
    * @param mem_pool A pointer to the memory pool.
@@ -904,7 +912,7 @@ class CodeGen {
                                             ast::Identifier agg_payload_type);
 
   /**
-   * Call @aggHTLookup(). Performs a single key lookup in an aggregation hash table. The hash value
+   * Call \@aggHTLookup(). Performs a single key lookup in an aggregation hash table. The hash value
    * is provided, as is a key check function to resolve hash collisions. The result of the lookup
    * is casted to the provided type.
    * @param agg_ht A pointer to the aggregation hash table.
@@ -918,7 +926,7 @@ class CodeGen {
                                               ast::Expr *input, ast::Identifier agg_payload_type);
 
   /**
-   * Call @aggHTInsert(). Inserts a new entry into the aggregation hash table. The result of the
+   * Call \@aggHTInsert(). Inserts a new entry into the aggregation hash table. The result of the
    * insertion is casted to the provided type.
    * @param agg_ht A pointer to the aggregation hash table.
    * @param hash_val The hash value of the key.
@@ -930,16 +938,15 @@ class CodeGen {
                                               ast::Identifier agg_payload_type);
 
   /**
-   * Call @aggHTLink(). Directly inserts a new partial aggregate into the provided aggregation hash
-   * table.
+   * Call \@aggHTLink(). Directly inserts a new partial aggregate into the provided aggregation hash table.
    * @param agg_ht A pointer to the aggregation hash table.
    * @param entry A pointer to the hash table entry storing the partial aggregate data.
-   * @retur The call.
+   * @return The call.
    */
   [[nodiscard]] ast::Expr *AggHashTableLinkEntry(ast::Expr *agg_ht, ast::Expr *entry);
 
   /**
-   * Call @aggHTMoveParts(). Move all overflow partitions stored in thread-local aggregation hash
+   * Call \@aggHTMoveParts(). Move all overflow partitions stored in thread-local aggregation hash
    * tables at the given offset inside the provided thread state container into the global hash
    * table.
    * @param agg_ht A pointer to the global aggregation hash table.
@@ -954,7 +961,7 @@ class CodeGen {
                                                       ast::Identifier merge_partitions_fn_name);
 
   /**
-   * Call @aggHTParallelPartScan(). Performs a parallel partitioned scan over an aggregation hash
+   * Call \@aggHTParallelPartScan(). Performs a parallel partitioned scan over an aggregation hash
    * table, using the provided worker function as a callback.
    * @param agg_ht A pointer to the global hash table.
    * @param query_state A pointer to the query state.
@@ -966,14 +973,14 @@ class CodeGen {
                                                     ast::Expr *thread_state_container, ast::Identifier worker_fn);
 
   /**
-   * Call @aggHTFree(). Cleans up and destroys the provided aggregation hash table.
+   * Call \@aggHTFree(). Cleans up and destroys the provided aggregation hash table.
    * @param agg_ht A pointer to the aggregation hash table.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggHashTableFree(ast::Expr *agg_ht);
 
   /**
-   * Call @aggHTPartIterHasNext(). Determines if the provided overflow partition iterator has more
+   * Call \@aggHTPartIterHasNext(). Determines if the provided overflow partition iterator has more
    * data.
    * @param iter A pointer to the overflow partition iterator.
    * @return The call.
@@ -981,14 +988,14 @@ class CodeGen {
   [[nodiscard]] ast::Expr *AggPartitionIteratorHasNext(ast::Expr *iter);
 
   /**
-   * Call @aggHTPartIterNext(). Advanced the iterator by one element.
+   * Call \@aggHTPartIterNext(). Advanced the iterator by one element.
    * @param iter A pointer to the overflow partition iterator.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggPartitionIteratorNext(ast::Expr *iter);
 
   /**
-   * Call @aggHTPartIterGetHash(). Returns the hash value of the entry the iterator is currently
+   * Call \@aggHTPartIterGetHash(). Returns the hash value of the entry the iterator is currently
    * positioned at.
    * @param iter A pointer to the overflow partition iterator.
    * @return The call.
@@ -996,7 +1003,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *AggPartitionIteratorGetHash(ast::Expr *iter);
 
   /**
-   * Call @aggHTPartIterGetRow(). Returns a pointer to the aggregate payload struct of the entry the
+   * Call \@aggHTPartIterGetRow(). Returns a pointer to the aggregate payload struct of the entry the
    * iterator is currently positioned at.
    * @param iter A pointer to the overflow partition iterator.
    * @param agg_payload_type The type of aggregate payload.
@@ -1005,14 +1012,14 @@ class CodeGen {
   [[nodiscard]] ast::Expr *AggPartitionIteratorGetRow(ast::Expr *iter, ast::Identifier agg_payload_type);
 
   /**
-   * Call @aggHTPartIterGetRowEntry(). Returns a pointer to the current hash table entry.
+   * Call \@aggHTPartIterGetRowEntry(). Returns a pointer to the current hash table entry.
    * @param iter A pointer to the overflow partition iterator.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggPartitionIteratorGetRowEntry(ast::Expr *iter);
 
   /**
-   * Call @aggHTIterInit(). Initializes an aggregation hash table iterator.
+   * Call \@aggHTIterInit(). Initializes an aggregation hash table iterator.
    * @param iter A pointer to the iterator.
    * @param agg_ht A pointer to the hash table to iterate over.
    * @return The call.
@@ -1020,43 +1027,43 @@ class CodeGen {
   [[nodiscard]] ast::Expr *AggHashTableIteratorInit(ast::Expr *iter, ast::Expr *agg_ht);
 
   /**
-   * Call @aggHTIterHasNExt(). Determines if the given iterator has more data.
+   * Call \@aggHTIterHasNExt(). Determines if the given iterator has more data.
    * @param iter A pointer to the iterator.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggHashTableIteratorHasNext(ast::Expr *iter);
 
   /**
-   * Call @aggHTIterNext(). Advances the iterator by one element.
+   * Call \@aggHTIterNext(). Advances the iterator by one element.
    * @param iter A pointer to the iterator.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggHashTableIteratorNext(ast::Expr *iter);
 
   /**
-   * Call @aggHTIterGetRow(). Returns a pointer to the aggregate payload the iterator is currently
-   * positioned at.
+   * Call \@aggHTIterGetRow(). Returns a pointer to the aggregate payload the iterator is currently positioned at.
    * @param iter A pointer to the iterator.
+   * @param agg_payload_type The name of the aggregate payload's type.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggHashTableIteratorGetRow(ast::Expr *iter, ast::Identifier agg_payload_type);
 
   /**
-   * Call @aggHTIterClose(). Cleans up and destroys the given iterator.
+   * Call \@aggHTIterClose(). Cleans up and destroys the given iterator.
    * @param iter A pointer to the iterator.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggHashTableIteratorClose(ast::Expr *iter);
 
   /**
-   * Call @aggInit(). Initializes and aggregator.
+   * Call \@aggInit(). Initializes and aggregator.
    * @param agg A pointer to the aggregator.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *AggregatorInit(ast::Expr *agg);
 
   /**
-   * Call @aggAdvance(). Advanced an aggregator with the provided input value.
+   * Call \@aggAdvance(). Advanced an aggregator with the provided input value.
    * @param agg A pointer to the aggregator.
    * @param val The input value.
    * @return The call.
@@ -1064,7 +1071,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *AggregatorAdvance(ast::Expr *agg, ast::Expr *val);
 
   /**
-   * Call @aggMerge(). Merges two aggregators storing the result in the first argument.
+   * Call \@aggMerge(). Merges two aggregators storing the result in the first argument.
    * @param agg1 A pointer to the aggregator.
    * @param agg2 A pointer to the aggregator.
    * @return The call.
@@ -1072,7 +1079,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *AggregatorMerge(ast::Expr *agg1, ast::Expr *agg2);
 
   /**
-   * Call @aggResult(). Finalizes and returns the result of the aggregation.
+   * Call \@aggResult(). Finalizes and returns the result of the aggregation.
    * @param agg A pointer to the aggregator.
    * @return The call.
    */
@@ -1085,7 +1092,7 @@ class CodeGen {
   // -------------------------------------------------------
 
   /**
-   * Call @sorterInit(). Initialize the provided sorter instance using a memory pool, comparison
+   * Call \@sorterInit(). Initialize the provided sorter instance using a memory pool, comparison
    * function and the struct that will be materialized into the sorter instance.
    * @param sorter The sorter instance.
    * @param mem_pool The memory pool instance.
@@ -1097,7 +1104,7 @@ class CodeGen {
                                       ast::Identifier sort_row_type_name);
 
   /**
-   * Call @sorterInsert(). Prepare an insert into the provided sorter whose type is the given type.
+   * Call \@sorterInsert(). Prepare an insert into the provided sorter whose type is the given type.
    * @param sorter The sorter instance.
    * @param sort_row_type_name The name of the TPL type that will be stored in the sorter.
    * @return The call.
@@ -1105,7 +1112,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *SorterInsert(ast::Expr *sorter, ast::Identifier sort_row_type_name);
 
   /**
-   * Call @sorterInsertTopK(). Prepare a top-k insert into the provided sorter whose type is the
+   * Call \@sorterInsertTopK(). Prepare a top-k insert into the provided sorter whose type is the
    * given type.
    * @param sorter The sorter instance.
    * @param sort_row_type_name The name of the TPL type that will be stored in the sorter.
@@ -1115,7 +1122,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *SorterInsertTopK(ast::Expr *sorter, ast::Identifier sort_row_type_name, uint64_t top_k);
 
   /**
-   * Call @sorterInsertTopK(). Complete a previous top-k insert into the provided sorter.
+   * Call \@sorterInsertTopK(). Complete a previous top-k insert into the provided sorter.
    * @param sorter The sorter instance.
    * @param top_k The top-k value.
    * @return The call.
@@ -1123,14 +1130,14 @@ class CodeGen {
   [[nodiscard]] ast::Expr *SorterInsertTopKFinish(ast::Expr *sorter, uint64_t top_k);
 
   /**
-   * Call @sorterSort().  Sort the provided sorter instance.
+   * Call \@sorterSort().  Sort the provided sorter instance.
    * @param sorter The sorter instance.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *SorterSort(ast::Expr *sorter);
 
   /**
-   * Call @sorterSortParallel(). Perform a parallel sort of all sorter instances contained in the
+   * Call \@sorterSortParallel(). Perform a parallel sort of all sorter instances contained in the
    * provided thread-state  container at the given offset, merging sorter results into a central
    * sorter instance.
    * @param sorter The central sorter instance that will contain the results of the sort.
@@ -1141,7 +1148,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *SortParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset);
 
   /**
-   * Call @sorterSortTopKParallel(). Perform a parallel top-k sort of all sorter instances contained
+   * Call \@sorterSortTopKParallel(). Perform a parallel top-k sort of all sorter instances contained
    * in the provided thread-local container at the given offset.
    * @param sorter The central sorter instance that will contain the results of the sort.
    * @param tls The thread-state container.
@@ -1152,14 +1159,14 @@ class CodeGen {
   [[nodiscard]] ast::Expr *SortTopKParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset, std::size_t top_k);
 
   /**
-   * Call @sorterFree(). Destroy the provided sorter instance.
+   * Call \@sorterFree(). Destroy the provided sorter instance.
    * @param sorter The sorter instance.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *SorterFree(ast::Expr *sorter);
 
   /**
-   * Call @sorterIterInit(). Initialize the provided sorter iterator over the given sorter.
+   * Call \@sorterIterInit(). Initialize the provided sorter iterator over the given sorter.
    * @param iter The sorter iterator.
    * @param sorter The sorter instance to iterate.
    * @return The call expression.
@@ -1167,21 +1174,21 @@ class CodeGen {
   [[nodiscard]] ast::Expr *SorterIterInit(ast::Expr *iter, ast::Expr *sorter);
 
   /**
-   * Call @sorterIterHasNext(). Check if the sorter iterator has more data.
+   * Call \@sorterIterHasNext(). Check if the sorter iterator has more data.
    * @param iter The iterator.
    * @return The call expression.
    */
   [[nodiscard]] ast::Expr *SorterIterHasNext(ast::Expr *iter);
 
   /**
-   * Call @sorterIterNext(). Advances the sorter iterator one tuple.
+   * Call \@sorterIterNext(). Advances the sorter iterator one tuple.
    * @param iter The iterator.
    * @return The call expression.
    */
   [[nodiscard]] ast::Expr *SorterIterNext(ast::Expr *iter);
 
   /**
-   * Call @sorterIterSkipRows(). Skips N rows in the provided sorter iterator.
+   * Call \@sorterIterSkipRows(). Skips N rows in the provided sorter iterator.
    * @param iter The iterator.
    * @param n The number of rows to skip.
    * @return The call expression.
@@ -1189,7 +1196,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *SorterIterSkipRows(ast::Expr *iter, uint32_t n);
 
   /**
-   * Call @sorterIterGetRow(). Retrieves a pointer to the current iterator row casted to the
+   * Call \@sorterIterGetRow(). Retrieves a pointer to the current iterator row casted to the
    * provided row type.
    * @param iter The iterator.
    * @param row_type_name The name of the TPL type that will be stored in the sorter.
@@ -1198,14 +1205,14 @@ class CodeGen {
   [[nodiscard]] ast::Expr *SorterIterGetRow(ast::Expr *iter, ast::Identifier row_type_name);
 
   /**
-   * Call @sorterIterClose(). Destroy and cleanup the provided sorter iterator instance.
+   * Call \@sorterIterClose(). Destroy and cleanup the provided sorter iterator instance.
    * @param iter The sorter iterator.
    * @return The call expression.
    */
   [[nodiscard]] ast::Expr *SorterIterClose(ast::Expr *iter);
 
   /**
-   * Call @like(). Implements the SQL LIKE() operation.
+   * Call \@like(). Implements the SQL LIKE() operation.
    * @param str The input string.
    * @param pattern The input pattern.
    * @return The call.
@@ -1213,7 +1220,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *Like(ast::Expr *str, ast::Expr *pattern);
 
   /**
-   * Invoke !@like(). Implements the SQL NOT LIKE() operation.
+   * Invoke !\@like(). Implements the SQL NOT LIKE() operation.
    * @param str The input string.
    * @param pattern The input pattern.
    * @return The call.
@@ -1221,7 +1228,7 @@ class CodeGen {
   [[nodiscard]] ast::Expr *NotLike(ast::Expr *str, ast::Expr *pattern);
 
   /**
-   * Call @csvReaderInit(). Initialize a CSV reader for the given file name.
+   * Call \@csvReaderInit(). Initialize a CSV reader for the given file name.
    * @param reader The reader.
    * @param file_name The filename.
    * @return The call.
@@ -1229,14 +1236,14 @@ class CodeGen {
   [[nodiscard]] ast::Expr *CSVReaderInit(ast::Expr *reader, std::string_view file_name);
 
   /**
-   * Call @csvReaderAdvance(). Advance the reader one row.
+   * Call \@csvReaderAdvance(). Advance the reader one row.
    * @param reader The reader.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *CSVReaderAdvance(ast::Expr *reader);
 
   /**
-   * Call @csvReaderGetField(). Read the field at the given index in the current row.
+   * Call \@csvReaderGetField(). Read the field at the given index in the current row.
    * @param reader The reader.
    * @param field_index The index of the field in the row to read.
    * @param result Where the result is written to.
@@ -1245,19 +1252,28 @@ class CodeGen {
   [[nodiscard]] ast::Expr *CSVReaderGetField(ast::Expr *reader, uint32_t field_index, ast::Expr *result);
 
   /**
-   * Call @csvReaderGetRecordNumber(). Get the current record number.
+   * Call \@csvReaderGetRecordNumber(). Get the current record number.
    * @param reader The reader.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *CSVReaderGetRecordNumber(ast::Expr *reader);
 
   /**
-   * Call @csvReaderClose(). Destroy a CSV reader.
+   * Call \@csvReaderClose(). Destroy a CSV reader.
    * @param reader The reader.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *CSVReaderClose(ast::Expr *reader);
 
+  /**
+   * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)
+   * @param si The storage interface to initialize
+   * @param exec_ctx The execution context that we are running in.
+   * @param table_oid The oid of the table being accessed.
+   * @param col_oids The identifier of the array of column oids to access.
+   * @param need_indexes Whether the storage interface will need to use indexes
+   * @return The expression corresponding to the builtin call.
+   */
   ast::Expr *StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid, ast::Identifier col_oids,
                                   bool need_indexes);
 

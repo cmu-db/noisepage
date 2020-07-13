@@ -55,6 +55,7 @@ struct Cast {
 //
 //===----------------------------------------------------------------------===//
 
+/** True if the cast from input type to output type succeeds. */
 template <typename T>
 struct TryCast<T, T> {
   bool operator()(const T input, T *output) const noexcept {
@@ -88,7 +89,7 @@ struct IsNumberType : std::integral_constant<bool, IS_INTEGER_TYPE_V<T> || std::
 template <typename T>
 constexpr bool IS_NUMBER_TYPE_V = IsNumberType<T>::value;
 
-// Is the cast from the given input and output types a downward cast?
+/** Is the cast from the given input and output types a downward cast? */
 template <typename InType, typename OutType>
 struct IsNumberDowncast {
   static constexpr bool VALUE =
@@ -105,8 +106,7 @@ struct IsNumberDowncast {
 template <typename InType, typename OutType>
 constexpr bool IS_NUMBER_DOWNCAST_V = IsNumberDowncast<InType, OutType>::VALUE;
 
-// Is the cast from the given input type to the output type a cast from a signed
-// to an unsigned integer type?
+/** True if it is a cast from a integral signed to integral unsigned. */
 template <typename InType, typename OutType>
 struct IsIntegralSignedToUnsigned {
   static constexpr bool VALUE =
@@ -119,6 +119,7 @@ struct IsIntegralSignedToUnsigned {
 template <typename InType, typename OutType>
 constexpr bool IS_INTEGRAL_SIGNED_TO_UNSIGNED_V = IsIntegralSignedToUnsigned<InType, OutType>::VALUE;
 
+/** True if it is a cast from integral unsigned to integral signed. */
 template <typename InType, typename OutType>
 struct IsIntegralUnsignedToSigned {
   static constexpr bool VALUE = IS_INTEGER_TYPE_V<InType> && IS_INTEGER_TYPE_V<OutType> && std::is_unsigned_v<InType> &&
@@ -128,6 +129,7 @@ struct IsIntegralUnsignedToSigned {
 template <typename InType, typename OutType>
 constexpr bool IS_INTEGRAL_UNSIGNED_TO_SIGNED_V = IsIntegralUnsignedToSigned<InType, OutType>::VALUE;
 
+/** True if it is a safe numeric cast. */
 template <typename InType, typename OutType>
 struct IsSafeNumericCast {
   static constexpr bool VALUE =
@@ -146,6 +148,7 @@ struct IsSafeNumericCast {
 template <typename InType, typename OutType>
 constexpr bool IS_SAFE_NUMERIC_CAST_V = IsSafeNumericCast<InType, OutType>::VALUE;
 
+/** True if it is a float truncation. */
 template <typename InType, typename OutType>
 struct IsFloatTruncate {
   static constexpr bool VALUE =

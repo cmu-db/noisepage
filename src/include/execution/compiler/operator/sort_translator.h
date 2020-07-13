@@ -68,6 +68,7 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
    * Implement either the build-side or scan-side of the sort depending on the pipeline this context
    * contains.
    * @param ctx The context of the work.
+   * @param The pipeline function generator.
    */
   void PerformPipelineWork(WorkContext *ctx, FunctionBuilder *function) const override;
 

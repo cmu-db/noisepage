@@ -15,7 +15,7 @@ const char *Bytecodes::bytecode_names[] = {
 
 // static
 uint32_t Bytecodes::bytecode_operand_counts[] = {
-#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::kOperandCount,
+#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::OPERAND_COUNT,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
 };

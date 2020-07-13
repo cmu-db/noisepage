@@ -5,10 +5,16 @@
 
 namespace terrier::execution::vm {
 
+/**
+ * Properties of a generic operand type
+ */
 template <OperandType>
 struct OperandTypeTraits {
+  /** Whether the operand is signed or unsigned. */
   static constexpr bool IS_SIGNED = false;
+  /** Size of the operand. */
   static constexpr OperandSize OPERAND_SIZE = OperandSize::None;
+  /** Also the size of the operand, but as a raw uint32_t. */
   static constexpr uint32_t SIZE = static_cast<uint32_t>(OPERAND_SIZE);
 };
 
@@ -22,13 +28,22 @@ struct OperandTypeTraits {
 OPERAND_TYPE_LIST(DECLARE_OPERAND_TYPE)
 #undef DECLARE_OPERAND_TYPE
 
+/**
+ * Properties of a bytecode.
+ * @tparam operands of the bytecode.
+ */
 template <OperandType... operands>
 struct BytecodeTraits {
-  static constexpr const uint32_t kOperandCount = sizeof...(operands);
-  static constexpr const uint32_t kOperandsSize = (0u + ... + OperandTypeTraits<operands>::SIZE);
+  /** Number of operands. */
+  static constexpr const uint32_t OPERAND_COUNT = sizeof...(operands);
+  /** Total size of the operand size. */
+  static constexpr const uint32_t OPERANDS_SIZE = (0u + ... + OperandTypeTraits<operands>::SIZE);
+  /** List of operand types. */
   static constexpr const OperandType operand_types[] = {operands...};
+  /** List of operand sizes. */
   static constexpr const OperandSize operand_sizes[] = {OperandTypeTraits<operands>::OPERAND_SIZE...};
-  static constexpr const uint32_t SIZE = sizeof(std::underlying_type_t<Bytecode>) + kOperandsSize;
+  /** Total size of bytecode + operands. */
+  static constexpr const uint32_t SIZE = sizeof(std::underlying_type_t<Bytecode>) + OPERANDS_SIZE;
 };
 
 }  // namespace terrier::execution::vm

@@ -16,8 +16,9 @@ class UpdateTranslator : public OperatorTranslator {
  public:
   /**
    * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * @param plan The plan node
+   * @param compilation_context The compilation context
+   * @param pipeline The pipeline
    */
   UpdateTranslator(const planner::UpdatePlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 

@@ -53,6 +53,7 @@ class ExecutableQuery {
     /**
      * Construct a fragment composed of the given functions from the given module.
      * @param functions The name of the functions to execute, in order.
+     * @param teardown_fns The name of the teardown functions in the module, in order.
      * @param module The module that contains the functions.
      */
     Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,

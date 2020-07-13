@@ -58,14 +58,16 @@ class HashJoinTranslator : public OperatorTranslator {
   /**
    * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
    * need to initialize the thread-local join hash table we've declared.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
    * need to clean up and destroy the thread-local join hash table we've declared.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
   void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
@@ -74,13 +76,15 @@ class HashJoinTranslator : public OperatorTranslator {
    * are materialized into the join hash table. If the context is coming from the right pipeline,
    * the input tuples are probed in the join hash table.
    * @param ctx The context of the work.
+   * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *ctx, FunctionBuilder *function) const override;
 
   /**
    * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
    * issue a parallel join hash table construction at this point.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
   void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 

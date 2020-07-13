@@ -48,6 +48,7 @@ class CompilationContext {
    * Compile the given plan into an executable query.
    * @param plan The plan to compile.
    * @param exec_settings The execution settings to be used for compilation.
+   * @param accessor The catalog accessor to use for compilation.
    * @param mode The compilation mode.
    */
   static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,

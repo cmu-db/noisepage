@@ -6,6 +6,7 @@ namespace terrier::execution::compiler {
 
 class WorkContext;
 
+/** ColumnValueProvider is a base class for translators that can return expressions representing column values. */
 class ColumnValueProvider {
  public:
   /**

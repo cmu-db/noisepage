@@ -15,8 +15,9 @@ class DeleteTranslator : public OperatorTranslator {
  public:
   /**
    * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * @param plan The plan node
+   * @param compilation_context The compilation context
+   * @param pipeline The pipeline
    */
   DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
@@ -34,6 +35,7 @@ class DeleteTranslator : public OperatorTranslator {
   /**
    * Generate the scan.
    * @param context The context of the work.
+   * @param function The pipeline function generator.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
