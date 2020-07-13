@@ -22,7 +22,10 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
       tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
       vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
-      slot_var_(GetCodeGen()->MakeFreshIdentifier("slot")) {
+      slot_var_(GetCodeGen()->MakeFreshIdentifier("slot")),
+      col_oids_(MakeInputOids(
+          GetCodeGen()->GetCatalogAccessor()->GetSchema(GetPlanAs<planner::SeqScanPlanNode>().GetTableOid()),
+          GetPlanAs<planner::SeqScanPlanNode>())) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
   // If there's a predicate, prepare the expression and register a filter manager.
   if (HasPredicate()) {
@@ -305,7 +308,8 @@ ast::Expr *SeqScanTranslator::GetVPI() const { return GetCodeGen()->MakeExpr(vpi
 
 void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-  const auto &col_oids = GetPlanAs<planner::SeqScanPlanNode>().GetColumnOids();
+  const auto &col_oids = col_oids_;
+
   // var col_oids: [num_cols]uint32
   ast::Expr *arr_type = codegen->ArrayType(col_oids.size(), ast::BuiltinType::Kind::Uint32);
   function->Append(codegen->DeclareVarNoInit(col_oids_var_, arr_type));
@@ -320,13 +324,21 @@ void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {
 
 uint32_t SeqScanTranslator::GetColOidIndex(catalog::col_oid_t col_oid) const {
   // TODO(WAN): this is sad code. How can we avoid doing this?
-  const auto &col_oids = GetPlanAs<planner::SeqScanPlanNode>().GetColumnOids();
+  const auto &col_oids = col_oids_;
   for (uint32_t i = 0; i < col_oids.size(); ++i) {
     if (col_oids[i] == col_oid) {
       return i;
     }
   }
   throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", !col_oid));
+}
+
+std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(const catalog::Schema &schema,
+                                                                 const planner::SeqScanPlanNode &op) {
+  if (op.GetColumnOids().empty()) {
+    return {schema.GetColumn(0).Oid()};
+  }
+  return op.GetColumnOids();
 }
 
 }  // namespace terrier::execution::compiler

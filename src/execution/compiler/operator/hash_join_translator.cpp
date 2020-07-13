@@ -62,7 +62,7 @@ void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl 
 }
 
 void HashJoinTranslator::InitializeJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {
-  function->Append(GetCodeGen()->JoinHashTableInit(jht_ptr, GetMemoryPool(), build_row_type_));
+  function->Append(GetCodeGen()->JoinHashTableInit(jht_ptr, GetExecutionContext(), GetMemoryPool(), build_row_type_));
 }
 
 void HashJoinTranslator::TearDownJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {

@@ -478,7 +478,8 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return CallBuiltin(builtin, {pr, idx_expr});
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val, bool own) {
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                          bool own) {
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::BOOLEAN:
@@ -774,10 +775,10 @@ ast::Expr *CodeGen::Hash(const std::vector<ast::Expr *> &values) {
 // Joins
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *mem_pool,
+ast::Expr *CodeGen::JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx, ast::Expr *mem_pool,
                                       ast::Identifier build_row_type_name) {
   ast::Expr *call =
-      CallBuiltin(ast::Builtin::JoinHashTableInit, {join_hash_table, mem_pool, SizeOf(build_row_type_name)});
+      CallBuiltin(ast::Builtin::JoinHashTableInit, {join_hash_table, exec_ctx, mem_pool, SizeOf(build_row_type_name)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -831,8 +832,9 @@ ast::Expr *CodeGen::HTEntryIterGetRow(ast::Expr *iter, ast::Identifier row_type)
 // Hash aggregations
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::AggHashTableInit(ast::Expr *agg_ht, ast::Expr *mem_pool, ast::Identifier agg_payload_type) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableInit, {agg_ht, mem_pool, SizeOf(agg_payload_type)});
+ast::Expr *CodeGen::AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *mem_pool,
+                                     ast::Identifier agg_payload_type) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableInit, {agg_ht, exec_ctx, mem_pool, SizeOf(agg_payload_type)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

@@ -780,7 +780,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
     GetEmitter()->EmitVPIGet(Bytecode##Null, result, vpi, col_idx);                  \
     break;                                                                           \
   }                                                                                  \
-      // clang-format off
+    // clang-format off
     GEN_CASE(VPIGetBool, Bytecode::VPIGetBool);
     GEN_CASE(VPIGetTinyInt, Bytecode::VPIGetTinyInt);
     GEN_CASE(VPIGetSmallInt, Bytecode::VPIGetSmallInt);
@@ -1791,7 +1791,8 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
       break;
     }
     case ast::Builtin::PRGetBool: {
-      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar val =
+          GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       GetEmitter()->EmitPRGet(Bytecode::PRGetBool, val, pr, col_idx);
       break;
@@ -1857,7 +1858,8 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
       break;
     }
     case ast::Builtin::PRGetBoolNull: {
-      LocalVar val = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar val =
+          GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       GetEmitter()->EmitPRGet(Bytecode::PRGetBoolNull, val, pr, col_idx);
       break;

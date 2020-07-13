@@ -236,7 +236,7 @@ void HashAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::Fu
 }
 
 void HashAggregationTranslator::InitializeAggregationHashTable(FunctionBuilder *function, ast::Expr *agg_ht) const {
-  function->Append(GetCodeGen()->AggHashTableInit(agg_ht, GetMemoryPool(), agg_payload_type_));
+  function->Append(GetCodeGen()->AggHashTableInit(agg_ht, GetExecutionContext(), GetMemoryPool(), agg_payload_type_));
 }
 
 void HashAggregationTranslator::TearDownAggregationHashTable(FunctionBuilder *function, ast::Expr *agg_ht) const {
@@ -451,7 +451,6 @@ void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, Fun
 
 ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx,
                                                      uint32_t attr_idx) const {
-  TERRIER_ASSERT(child_idx == 0, "Aggregations can only have a single child.");
   if (IsProducePipeline(context->GetPipeline())) {
     if (child_idx == 0) {
       return GetGroupByTerm(agg_row_var_, attr_idx);

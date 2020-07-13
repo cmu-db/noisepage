@@ -8,6 +8,10 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
 
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
+
 namespace terrier::parser {
 class AbstractExpression;
 }  // namespace terrier::parser
@@ -107,6 +111,14 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   void ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast::Expr *vpi) const;
 
  private:
+  // When the plan's oid list is empty (like in "SELECT COUNT(*)"), then we just read the first column of the table.
+  // Otherwise we just read the plan's oid list.
+  // This is because the storage layer needs to read at least one column.
+  // TODO(Amadou): Create a special code path for COUNT(*).
+  // This requires a new table iterator that doesn't materialize tuples as well as a few builtins.
+  static std::vector<catalog::col_oid_t> MakeInputOids(const catalog::Schema &schema,
+                                                       const planner::SeqScanPlanNode &op);
+
   /** @return The index of the given column OID inside the col_oids that the plan is scanning over. */
   uint32_t GetColOidIndex(catalog::col_oid_t col_oid) const;
 
@@ -124,6 +136,9 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   // The list of filter manager clauses. Populated during helper function
   // definition, but only if there's a predicate.
   std::vector<std::vector<ast::Identifier>> filters_;
+
+  // The version of col_oids that we use for translation. See MakeInputOids for justification.
+  std::vector<catalog::col_oid_t> col_oids_;
 };
 
 }  // namespace terrier::execution::compiler
