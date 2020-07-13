@@ -139,7 +139,7 @@ inline ALWAYS_INLINE T Peek(const uint8_t **ip) {
 
 }  // namespace
 
-void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-function-size)
+void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   static void *kDispatchTable[] = {
 #define ENTRY(name, ...) &&op_##name,
       BYTECODE_LIST(ENTRY)
@@ -160,20 +160,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
   // TODO(pmenon): Should these READ/PEEK macros take in a vm::OperandType so
   // that we can infer primitive types using traits? This minimizes number of
   // changes if the underlying offset/bytecode/register sizes changes?
-#define PEEK_JMP_OFFSET() Peek<int32_t>(&ip)                  /* NOLINT(modernize-use-auto) */
-#define READ_IMM1() Read<int8_t>(&ip)                         /* NOLINT(modernize-use-auto) */
-#define READ_IMM2() Read<int16_t>(&ip)                        /* NOLINT(modernize-use-auto) */
-#define READ_IMM4() Read<int32_t>(&ip)                        /* NOLINT(modernize-use-auto) */
-#define READ_IMM8() Read<int64_t>(&ip)                        /* NOLINT(modernize-use-auto) */
-#define READ_IMM4F() Read<float>(&ip)                         /* NOLINT(modernize-use-auto) */
-#define READ_IMM8F() Read<double>(&ip)                        /* NOLINT(modernize-use-auto) */
-#define READ_UIMM2() Read<uint16_t>(&ip)                      /* NOLINT(modernize-use-auto) */
-#define READ_UIMM4() Read<uint32_t>(&ip)                      /* NOLINT(modernize-use-auto) */
-#define READ_JMP_OFFSET() READ_IMM4()                         /* NOLINT(modernize-use-auto) */
-#define READ_LOCAL_ID() Read<uint32_t>(&ip)                   /* NOLINT(modernize-use-auto) */
-#define READ_STATIC_LOCAL_ID() Read<uint32_t>(&ip)            /* NOLINT(modernize-use-auto) */
-#define READ_OP() Read<std::underlying_type_t<Bytecode>>(&ip) /* NOLINT(modernize-use-auto) */
-#define READ_FUNC_ID() READ_UIMM2()                           /* NOLINT(modernize-use-auto) */
+#define PEEK_JMP_OFFSET() Peek<int32_t>(&ip)                  /* NOLINT */
+#define READ_IMM1() Read<int8_t>(&ip)                         /* NOLINT */
+#define READ_IMM2() Read<int16_t>(&ip)                        /* NOLINT */
+#define READ_IMM4() Read<int32_t>(&ip)                        /* NOLINT */
+#define READ_IMM8() Read<int64_t>(&ip)                        /* NOLINT */
+#define READ_IMM4F() Read<float>(&ip)                         /* NOLINT */
+#define READ_IMM8F() Read<double>(&ip)                        /* NOLINT */
+#define READ_UIMM2() Read<uint16_t>(&ip)                      /* NOLINT */
+#define READ_UIMM4() Read<uint32_t>(&ip)                      /* NOLINT */
+#define READ_JMP_OFFSET() READ_IMM4()                         /* NOLINT */
+#define READ_LOCAL_ID() Read<uint32_t>(&ip)                   /* NOLINT */
+#define READ_STATIC_LOCAL_ID() Read<uint32_t>(&ip)            /* NOLINT */
+#define READ_OP() Read<std::underlying_type_t<Bytecode>>(&ip) /* NOLINT */
+#define READ_FUNC_ID() READ_UIMM2()                           /* NOLINT */
 
 #define OP(name) op_##name
 #define DISPATCH_NEXT()           \
@@ -660,14 +660,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT(readability-fun
     DISPATCH_NEXT();
   }
 
-
   OP(VPIGetSlot) : {
-  auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-  auto *vpi = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
-  OpVPIGetSlot(slot, vpi);
-  DISPATCH_NEXT();
-}
-
+    auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *vpi = frame->LocalAt<sql::VectorProjectionIterator *>(READ_LOCAL_ID());
+    OpVPIGetSlot(slot, vpi);
+    DISPATCH_NEXT();
+  }
 
   // -------------------------------------------------------
   // VPI element access

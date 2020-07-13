@@ -4,7 +4,6 @@
 
 #include "catalog/schema.h"
 #include "execution/compiler/ast_fwd.h"
-#include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
 
 namespace terrier::planner {

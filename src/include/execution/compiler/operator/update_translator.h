@@ -4,7 +4,6 @@
 
 #include <vector>
 
-#include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/update_plan_node.h"
 

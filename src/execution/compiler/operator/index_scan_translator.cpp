@@ -185,7 +185,7 @@ void IndexScanTranslator::FillKey(
     type::TypeId attr_type = index_schema_.GetColumn(!key.first - 1).Type();
     bool nullable = index_schema_.GetColumn(!key.first - 1).Nullable();
     auto *set_key_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(pr), attr_type, nullable, attr_offset,
-                                            context->DeriveValue(*key.second.Get(), this), true);
+                                             context->DeriveValue(*key.second.Get(), this), true);
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));
   }
 }

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "execution/util/barrier.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/execution_common.h"
@@ -18,7 +21,7 @@ class TplTest : public terrier::TerrierTest {
 };
 
 template <typename F>
-static inline double Bench(uint32_t repeat, const F &f) {
+static double Bench(uint32_t repeat, const F &f) {
   if (repeat > 4) {
     // Warmup
     f();
@@ -37,7 +40,7 @@ static inline double Bench(uint32_t repeat, const F &f) {
 }
 
 template <typename F>
-static inline void LaunchParallel(uint32_t num_threads, const F &f) {
+static void LaunchParallel(uint32_t num_threads, const F &f) {
   util::Barrier barrier(num_threads + 1);
 
   std::vector<std::thread> thread_group;

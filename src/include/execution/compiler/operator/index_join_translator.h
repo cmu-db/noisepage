@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/schema.h"
 #include "catalog/index_schema.h"
+#include "catalog/schema.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/index_join_plan_node.h"
 

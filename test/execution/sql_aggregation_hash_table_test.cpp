@@ -55,7 +55,7 @@ struct AggTuple {
 
 // The function to determine whether an aggregate stored in the hash table and
 // an input have equivalent keys.
-static inline bool AggTupleKeyEq(const void *table_tuple, const void *probe_tuple) {
+static bool AggTupleKeyEq(const void *table_tuple, const void *probe_tuple) {
   auto *lhs = reinterpret_cast<const AggTuple *>(table_tuple);
   auto *rhs = reinterpret_cast<const InputTuple *>(probe_tuple);
   return lhs->key == rhs->key;
@@ -63,7 +63,7 @@ static inline bool AggTupleKeyEq(const void *table_tuple, const void *probe_tupl
 
 // The function to determine whether two aggregates stored in overflow
 // partitions or hash tables have equivalent keys.
-static inline bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2) {
+static bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2) {
   auto *lhs = reinterpret_cast<const AggTuple *>(agg_tuple_1);
   auto *rhs = reinterpret_cast<const AggTuple *>(agg_tuple_2);
   return lhs->key == rhs->key;
@@ -247,8 +247,7 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
             agg->count3 += count3_scale;
           });
         },
-        false  // Partitioned?
-    );
+        false /* Partitioned? */);
   }
 
   EXPECT_EQ(num_groups - 1, AggTable()->GetTupleCount());

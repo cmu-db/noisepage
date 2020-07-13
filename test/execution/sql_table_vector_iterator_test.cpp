@@ -92,18 +92,16 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   MemoryPool memory(nullptr);
   ExecutionContext ctx(&memory);
   ThreadStateContainer thread_state_container(ctx.GetMemoryPool());
-  thread_state_container.Reset(sizeof(Counter),  // The type of each thread state structure
-                               init_count,       // The thread state initialization function
-                               nullptr,          // The thread state destruction function
-                               nullptr           // Context passed to init/destroy functions
-  );
+  thread_state_container.Reset(sizeof(Counter), /* The type of each thread state structure */
+                               init_count,      /* The thread state initialization function */
+                               nullptr,         /* The thread state destruction function */
+                               nullptr /* Context passed to init/destroy functions */);
 
   const auto table_id = TableIdToNum(TableId::Test1);
-  TableVectorIterator::ParallelScan(table_id,                 // ID of table to scan
-                                    nullptr,                  // Query state to pass to scan threads
-                                    &thread_state_container,  // Container for thread states
-                                    scanner                   // Scan function
-  );
+  TableVectorIterator::ParallelScan(table_id,                /* ID of table to scan */
+                                    nullptr,                 /* Query state to pass to scan threads */
+                                    &thread_state_container, /* Container for thread states */
+                                    scanner /* Scan function */);
 
   // Count total aggregate tuple count seen by all threads
   uint32_t aggregate_tuple_count = 0;

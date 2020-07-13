@@ -216,7 +216,7 @@ inline void ChainingHashTableBase::InsertUntagged(HashTableEntry *const entry, c
     do {
       entry->next_ = old_entry;
     } while (!COMPARE_EXCHANGE_WEAK(&entries_[pos], &old_entry, entry));
-  } else {  // NOLINT(readability-misleading-indentation)
+  } else {  // NOLINT
     entry->next_ = entries_[pos];
     entries_[pos] = entry;
   }

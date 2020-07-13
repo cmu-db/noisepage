@@ -22,7 +22,7 @@
 
 namespace tpl::sql::codegen {
 
-using namespace std::chrono_literals;
+using namespace std::chrono_literals;  // NOLINT
 
 class NestedLoopJoinTranslatorTest : public SqlBasedTest {
  protected:

@@ -1,4 +1,4 @@
-#include <chrono>
+#include <chrono>  // NOLINT
 #include <vector>
 
 #include "common/settings.h"

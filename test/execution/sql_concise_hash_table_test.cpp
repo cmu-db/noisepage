@@ -14,7 +14,7 @@ struct Tuple {
 };
 
 /// The function to determine whether two tuples have equivalent keys
-UNUSED_ATTRIBUTE static inline bool TupleKeyEq(UNUSED_ATTRIBUTE void *_, void *probe_tuple, void *table_tuple) {
+UNUSED_ATTRIBUTE static bool TupleKeyEq(UNUSED_ATTRIBUTE void *_, void *probe_tuple, void *table_tuple) {
   auto *lhs = reinterpret_cast<const Tuple *>(probe_tuple);
   auto *rhs = reinterpret_cast<const Tuple *>(table_tuple);
   return lhs->a == rhs->a;

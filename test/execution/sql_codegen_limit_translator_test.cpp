@@ -1,8 +1,4 @@
-#include "util/sql_test_harness.h"
-
 #include <memory>
-
-#include "tbb/tbb.h"
 
 #include "sql/catalog.h"
 #include "sql/codegen/compilation_context.h"
@@ -12,6 +8,8 @@
 #include "sql/printing_consumer.h"
 #include "sql/schema.h"
 #include "sql/table.h"
+#include "tbb/tbb.h"
+#include "util/sql_test_harness.h"
 #include "vm/llvm_engine.h"
 
 // Tests
@@ -21,7 +19,7 @@
 
 namespace tpl::sql::codegen {
 
-using namespace std::chrono_literals;
+using namespace std::chrono_literals;  // NOLINT
 
 class LimitTranslatorTest : public SqlBasedTest {
  protected:

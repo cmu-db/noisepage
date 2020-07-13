@@ -77,7 +77,8 @@ class VectorProjectionIterator {
     SelectionVector ret{};
     for (sel_t i = 0; i < common::Constants::K_DEFAULT_VECTOR_SIZE; i++) ret[i] = i;
     return ret;
-  }();
+  }
+  ();
 
  public:
   /**
@@ -412,8 +413,8 @@ inline void VectorProjectionIterator::SynchronizedForEach(std::initializer_list<
 
   // Either all provided iterators are filtered or non are.
   TERRIER_ASSERT(std::all_of(iters.begin(), iters.end(), [](auto vpi) { return vpi->IsFiltered(); }) ||
-                 std::none_of(iters.begin(), iters.end(), [](auto vpi) { return vpi->IsFiltered(); }),
-             "All iterators must have the same filtration status");
+                     std::none_of(iters.begin(), iters.end(), [](auto vpi) { return vpi->IsFiltered(); }),
+                 "All iterators must have the same filtration status");
 
   // No-op if list is empty.
   if (iters.size() == 0) {

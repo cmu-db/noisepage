@@ -51,7 +51,7 @@ namespace {
 struct TestCase {
   const std::string source;
   std::vector<Token::Type> expected_tokens;
-  std::function<void(Scanner &scanner, uint32_t token_idx)> check;
+  std::function<void(Scanner *scanner, uint32_t token_idx)> check;
 };
 
 }  // namespace
@@ -80,7 +80,7 @@ void RunTests(const std::vector<TestCase> &tests) {
       actual.push_back(token);
 
       if (test.check != nullptr) {
-        test.check(scanner, token_idx);
+        test.check(&scanner, token_idx);
       }
     }
 
@@ -94,11 +94,11 @@ TEST_F(ScannerTest, VariableSyntaxTest) {
       // Variable with no type
       {"var x = 10",
        {Token::Type::VAR, Token::Type::IDENTIFIER, Token::Type::EQUAL, Token::Type::INTEGER},
-       [](Scanner &scanner, uint32_t token_idx) {
+       [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 1) {
-           EXPECT_EQ("x", scanner.CurrentLiteral());
+           EXPECT_EQ("x", scanner->CurrentLiteral());
          } else if (token_idx == 3) {
-           EXPECT_EQ("10", scanner.CurrentLiteral());
+           EXPECT_EQ("10", scanner->CurrentLiteral());
          }
        }},
 
@@ -106,9 +106,9 @@ TEST_F(ScannerTest, VariableSyntaxTest) {
       {"var x:int32_t = 10",
        {Token::Type::VAR, Token::Type::IDENTIFIER, Token::Type::COLON, Token::Type::IDENTIFIER, Token::Type::EQUAL,
         Token::Type::INTEGER},
-       [](Scanner &scanner, uint32_t token_idx) {
+       [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 3) {
-           EXPECT_EQ("int32_t", scanner.CurrentLiteral());
+           EXPECT_EQ("int32_t", scanner->CurrentLiteral());
          }
        }},
       // Variable with float number
@@ -139,11 +139,11 @@ TEST_F(ScannerTest, ForSyntaxTest) {
       {"for (i < 10) {}",
        {Token::Type::FOR, Token::Type::LEFT_PAREN, Token::Type::IDENTIFIER, Token::Type::LESS, Token::Type::INTEGER,
         Token::Type::RIGHT_PAREN, Token::Type::LEFT_BRACE, Token::Type::RIGHT_BRACE},
-       [](Scanner &scanner, uint32_t token_idx) {
+       [](Scanner *scanner, uint32_t token_idx) {
          // Check that the fourth token is the number "10"
          if (token_idx == 4) {
-           EXPECT_EQ(Token::Type::INTEGER, scanner.CurrentToken());
-           EXPECT_EQ("10", scanner.CurrentLiteral());
+           EXPECT_EQ(Token::Type::INTEGER, scanner->CurrentToken());
+           EXPECT_EQ("10", scanner->CurrentLiteral());
          }
        }},
 
@@ -152,11 +152,11 @@ TEST_F(ScannerTest, ForSyntaxTest) {
        {Token::Type::FOR, Token::Type::LEFT_PAREN, Token::Type::IDENTIFIER, Token::Type::LESS, Token::Type::INTEGER,
         Token::Type::RIGHT_PAREN, Token::Type::LEFT_BRACE, Token::Type::IDENTIFIER, Token::Type::LEFT_PAREN,
         Token::Type::STRING, Token::Type::RIGHT_PAREN, Token::Type::RIGHT_BRACE},
-       [](Scanner &scanner, uint32_t token_idx) {
+       [](Scanner *scanner, uint32_t token_idx) {
          // Check that the fourth token is the number "10"
          if (token_idx == 9) {
-           EXPECT_EQ(Token::Type::STRING, scanner.CurrentToken());
-           EXPECT_EQ("hi", scanner.CurrentLiteral());
+           EXPECT_EQ(Token::Type::STRING, scanner->CurrentToken());
+           EXPECT_EQ("hi", scanner->CurrentLiteral());
          }
        }},
 
@@ -178,9 +178,9 @@ TEST_F(ScannerTest, FunctionSyntaxTest) {
       {"fun test(){}",
        {Token::Type::FUN, Token::Type::IDENTIFIER, Token::Type::LEFT_PAREN, Token::Type::RIGHT_PAREN,
         Token::Type::LEFT_BRACE, Token::Type::RIGHT_BRACE},
-       [](Scanner &scanner, uint32_t token_idx) {
+       [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 1) {
-           EXPECT_EQ("test", scanner.CurrentLiteral());
+           EXPECT_EQ("test", scanner->CurrentLiteral());
          }
        }},
 
@@ -188,9 +188,9 @@ TEST_F(ScannerTest, FunctionSyntaxTest) {
       {"fun test(a:int32_t){}",
        {Token::Type::FUN, Token::Type::IDENTIFIER, Token::Type::LEFT_PAREN, Token::Type::IDENTIFIER, Token::Type::COLON,
         Token::Type::IDENTIFIER, Token::Type::RIGHT_PAREN, Token::Type::LEFT_BRACE, Token::Type::RIGHT_BRACE},
-       [](Scanner &scanner, uint32_t token_idx) {
+       [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 3) {
-           EXPECT_EQ("a", scanner.CurrentLiteral());
+           EXPECT_EQ("a", scanner->CurrentLiteral());
          }
        }}};
 

@@ -198,7 +198,7 @@ TEST_F(TupleIdListTest, Iterate) {
   for (uint32_t i = 0; i < list.GetCapacity(); i++) {
     list.Enable(i, i % 2 == 0);
   }
-  list.ForEach([](auto tid) { EXPECT_TRUE(tid % 2 == 0); });
+  list.ForEach([](auto tid) { EXPECT_EQ(tid % 2, 0); });
 }
 
 TEST_F(TupleIdListTest, IterateRange) {

@@ -29,8 +29,7 @@ class Callbacks : public compiler::Compiler::Callbacks {
   void OnError(compiler::Compiler::Phase phase, compiler::Compiler *compiler) override {
     // TODO(WAN): how should we report errors? Probably refactor pretty print dump to serialize to string.
     EXECUTION_LOG_ERROR(fmt::format("ERROR: {}", compiler->GetErrorReporter()->SerializeErrors()));
-    std::cerr << ast::AstDump::Dump(compiler->GetAST());
-    ast::AstPrettyPrint::Dump(std::cerr, compiler->GetAST());
+    ast::AstPrettyPrint::Dump(std::cerr, compiler->GetAST());  // NOLINT
   }
 
   void TakeOwnership(std::unique_ptr<vm::Module> module) override { module_ = std::move(module); }

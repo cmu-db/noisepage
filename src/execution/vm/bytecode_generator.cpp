@@ -780,7 +780,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
     GetEmitter()->EmitVPIGet(Bytecode##Null, result, vpi, col_idx);                  \
     break;                                                                           \
   }                                                                                  \
-    // clang-format off
+      // clang-format off
     GEN_CASE(VPIGetBool, Bytecode::VPIGetBool);
     GEN_CASE(VPIGetTinyInt, Bytecode::VPIGetTinyInt);
     GEN_CASE(VPIGetSmallInt, Bytecode::VPIGetSmallInt);

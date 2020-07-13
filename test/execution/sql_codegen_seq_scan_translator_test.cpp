@@ -23,7 +23,7 @@
 
 namespace tpl::sql::codegen {
 
-using namespace std::chrono_literals;
+using namespace std::chrono_literals;  // NOLINT
 
 class SeqScanTranslatorTest : public SqlBasedTest {
  protected:

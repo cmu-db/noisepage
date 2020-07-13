@@ -36,7 +36,7 @@ TEST_F(BloomFilterTest, Simple) {
   EXPECT_EQ(2u, bf.GetNumAdditions());
 }
 
-void GenerateRandom32(std::vector<uint32_t> &vals, uint32_t n) {
+void GenerateRandom32(std::vector<uint32_t> &vals, uint32_t n) {  // NOLINT
   vals.resize(n);
   std::random_device rd;
   std::generate(vals.begin(), vals.end(), [&]() { return rd(); });
@@ -44,7 +44,7 @@ void GenerateRandom32(std::vector<uint32_t> &vals, uint32_t n) {
 
 // Mix in elements from source into the target vector with probability p
 template <typename T>
-void Mix(std::vector<T> &target, const std::vector<T> &source, double p) {
+void Mix(std::vector<T> &target, const std::vector<T> &source, double p) {  // NOLINT
   TERRIER_ASSERT(target.size() > source.size(), "Bad sizes!");
   std::random_device random;
   std::mt19937 g(random());
