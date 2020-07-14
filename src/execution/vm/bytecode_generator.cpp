@@ -502,8 +502,19 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::IntToSql: {
-      auto input = VisitExpressionForRValue(call->Arguments()[0]);
-      GetEmitter()->Emit(Bytecode::InitInteger, dest, input);
+      const auto &arg = call->Arguments()[0];
+      Bytecode bytecode = Bytecode::InitInteger;
+
+      if (arg->IsIntegerLiteral()) {
+        int64_t input_val = arg->As<ast::LitExpr>()->Int64Val();
+        bool fits_in_int = static_cast<int64_t>(std::numeric_limits<int>::lowest()) <= input_val &&
+                           input_val <= static_cast<int64_t>(std::numeric_limits<int>::max());
+        if (!fits_in_int) {
+          bytecode = Bytecode::InitInteger64;
+        }
+      }
+      auto input = VisitExpressionForRValue(arg);
+      GetEmitter()->Emit(bytecode, dest, input);
       break;
     }
     case ast::Builtin::FloatToSql: {

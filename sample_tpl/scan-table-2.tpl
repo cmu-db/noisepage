@@ -1,6 +1,5 @@
-// TODO(WAN): figure out expected output
-// Expected output: ???
-// SQL: SELECT colA, colB FROM test_1 WHERE (colA >= 50 AND colB < 10000000)
+// Expected output: 9950
+// SQL: SELECT colA, colB FROM test_1 WHERE (colA >= 50 AND colB < 10000)
 
 fun main(execCtx: *ExecutionContext) -> int {
     var ret = 0
@@ -14,7 +13,7 @@ fun main(execCtx: *ExecutionContext) -> int {
         for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
             var cola = @vpiGetInt(vpi, 0)
             var colb = @vpiGetInt(vpi, 1)
-            if (cola >= 50 and colb < 10000000) {
+            if (cola >= 50 and colb < 10000) {
                 ret = ret + 1
             }
         }

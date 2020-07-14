@@ -1,4 +1,4 @@
-// Expected output:
+// Expected output: 0
 
 fun main() -> int {
   var present1 = @timestampToSqlYMDHMSMU(2019, 1, 2, 11, 22, 33, 120, 0)

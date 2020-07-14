@@ -44,14 +44,14 @@ struct-nested-2.tpl,false,10
 struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10
-#types/bigint.tpl,false,0                   Not working in compiled?!
+types/bigint.tpl,false,0
 types/bools.tpl,false,6
 types/dates.tpl,false,0
 #types/int_aggregators.tpl,false,           port this
-#types/nulls.tpl,false,                     Re-add nulls
+types/nulls.tpl,false,0
 #types/real_aggregators.tpl,false,          port this
 types/strings.tpl,false,0
-#types/timestamps.tpl,false,                Re-add timestamps
+types/timestamps.tpl,false,0
 
 ################################################################################
 # TPL SQL tests
@@ -76,8 +76,8 @@ scan-alltypes.tpl,true,500
 #scan-index-2                       to port
 #scan-index-3                       to port
 scan-table.tpl,true,500
-scan-table-2.tpl,true,1999950
-scan-table-3.tpl,true,2000000
+scan-table-2.tpl,true,9950
+scan-table-3.tpl,true,10000
 #scan-table-4.tpl,                  Why do we have nondeterministic tests?
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
