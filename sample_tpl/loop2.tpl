@@ -1,4 +1,4 @@
-// Expected output: 2195224853
+// Expected output: -2099742443
 
 fun main() -> int32 {
     var x = 0

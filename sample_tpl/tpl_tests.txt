@@ -17,7 +17,7 @@ if-2.tpl,false,1
 if-3.tpl,false,100
 if-4.tpl,false,2
 loop.tpl,false,45
-loop2.tpl,false,2195224853
+loop2.tpl,false,-2099742443
 loop3.tpl,false,0
 loop4.tpl,false,166167000
 #map.tpl,false,10                           Not working on tpl either
@@ -33,8 +33,8 @@ return-expr.tpl,false,15
 #scope-2.tpl,false,42                       Scoping doesn't work in TPL
 simple.tpl,false,1
 short-circuit.tpl,false,1
-sql-date.tpl,false,0
 sql-conversions.tpl,false,0
+sql-date.tpl,false,0
 struct.tpl,false,10
 struct-debug.tpl,false,100000
 struct-empty.tpl,false,0
