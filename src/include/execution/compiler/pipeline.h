@@ -203,7 +203,7 @@ class Pipeline {
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
   /** @return The unique ID of this pipeline. */
-  const pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
+  pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
  private:
   // A unique pipeline ID.

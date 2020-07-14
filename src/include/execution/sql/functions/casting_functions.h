@@ -17,28 +17,46 @@ namespace terrier::execution::sql {
  */
 class CastingFunctions : public common::AllStatic {
  public:
+  /** Cast the input Integer to a BoolVal. */
   static void CastToBoolVal(BoolVal *result, const Integer &v);
+  /** Cast the input Real to a BoolVal. */
   static void CastToBoolVal(BoolVal *result, const Real &v);
+  /** Cast the input StringVal to a BoolVal. */
   static void CastToBoolVal(BoolVal *result, const StringVal &v);
 
+  /** Cast the input BoolVal to a Integer. */
   static void CastToInteger(Integer *result, const BoolVal &v);
+  /** Cast the input Real to a Integer. */
   static void CastToInteger(Integer *result, const Real &v);
+  /** Cast the input StringVal to a Integer. */
   static void CastToInteger(Integer *result, const StringVal &v);
 
+  /** Cast the input BoolVal to a Real. */
   static void CastToReal(Real *result, const BoolVal &v);
+  /** Cast the input Integer to a Real. */
   static void CastToReal(Real *result, const Integer &v);
+  /** Cast the input StringVal to a Real. */
   static void CastToReal(Real *result, const StringVal &v);
 
+  /** Cast the input TimestampVal to a DateVal. */
   static void CastToDateVal(DateVal *result, const TimestampVal &v);
+  /** Cast the input StringVal to a DateVal. */
   static void CastToDateVal(DateVal *result, const StringVal &v);
 
+  /** Cast the input DateVal to a TimestampVal. */
   static void CastToTimestampVal(TimestampVal *result, const DateVal &v);
+  /** Cast the input StringVal to a TimestampVal. */
   static void CastToTimestampVal(TimestampVal *result, const StringVal &v);
 
+  /** Cast the input BoolVal to a StringVal. */
   static void CastToStringVal(StringVal *result, exec::ExecutionContext *ctx, const BoolVal &v);
+  /** Cast the input Integer to a StringVal. */
   static void CastToStringVal(StringVal *result, exec::ExecutionContext *ctx, const Integer &v);
+  /** Cast the input Real to a StringVal. */
   static void CastToStringVal(StringVal *result, exec::ExecutionContext *ctx, const Real &v);
+  /** Cast the input DateVal to a StringVal. */
   static void CastToStringVal(StringVal *result, exec::ExecutionContext *ctx, const DateVal &v);
+  /** Cast the input TimestampVal to a StringVal. */
   static void CastToStringVal(StringVal *result, exec::ExecutionContext *ctx, const TimestampVal &v);
 };
 

@@ -76,6 +76,7 @@ class OperandTypes {
    */
   static constexpr bool IsLocalCount(OperandType operand_type) { return operand_type == OperandType::LocalCount; }
 
+  /** @return The maximum jump offset. */
   static int32_t MaxJumpOffset();
 };
 

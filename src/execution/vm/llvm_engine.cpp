@@ -88,7 +88,7 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
 // TPL Type to LLVM Type
 // ---------------------------------------------------------
 
-/// A handy class that maps TPL types to LLVM types
+/** A handy class that maps TPL types to LLVM types. */
 class LLVMEngine::TypeMap {
  public:
   explicit TypeMap(llvm::Module *module) : module_(module) {
@@ -110,7 +110,7 @@ class LLVMEngine::TypeMap {
     type_map_["string"] = llvm::Type::getInt8PtrTy(ctx);
   }
 
-  /// No copying or moving this class
+  /** No copying or moving this class. */
   DISALLOW_COPY_AND_MOVE(TypeMap);
 
   llvm::Type *VoidType() { return type_map_["nil"]; }
@@ -280,7 +280,7 @@ llvm::FunctionType *LLVMEngine::TypeMap::GetLLVMFunctionType(const ast::Function
 // Function Locals Map
 // ---------------------------------------------------------
 
-/// This class provides access to a function's local variables
+/** This class provides access to a function's local variables. */
 class LLVMEngine::FunctionLocalsMap {
  public:
   FunctionLocalsMap(const FunctionInfo &func_info, llvm::Function *func, TypeMap *type_map,
@@ -350,8 +350,7 @@ llvm::Value *LLVMEngine::FunctionLocalsMap::GetArgumentById(LocalVar var) {
 // Compiled Module Builder
 // ---------------------------------------------------------
 
-/// A builder for compiled modules. We need this because compiled modules are
-/// immutable after creation.
+/** A builder for compiled modules. We need this because compiled modules are immutable after creation. */
 class LLVMEngine::CompiledModuleBuilder {
  public:
   CompiledModuleBuilder(const CompilerOptions &options, const BytecodeModule &tpl_module);

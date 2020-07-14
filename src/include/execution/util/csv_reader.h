@@ -19,11 +19,12 @@ namespace terrier::execution::util {
 /**
  * Base class interface for anything producing CSV data.
  *
- * IMPORTANT: All sources must provide CSVSource::kNumExtraPaddingChars (32) characters of tail
+ * IMPORTANT: All sources must provide CSVSource::NUM_EXTRA_PADDING_CHARS characters of tail
  *            padding to ensure fast processing!
  */
 class CSVSource {
  public:
+  /** The number of extra padding characters. */
   static constexpr uint32_t NUM_EXTRA_PADDING_CHARS = 16;
 
   /**
@@ -109,10 +110,15 @@ class CSVFile : public CSVSource {
   bool Fill() override;
 
  protected:
+  /** The file to read. */
   util::File file_;
+  /** The buffer for the raeder. */
   std::unique_ptr<char[]> buffer_;
+  /** The current read position in the buffer. */
   std::size_t read_pos_;
+  /** The current end position in the buffer. */
   std::size_t end_pos_;
+  /** The size of the allocated buffer.*/
   std::size_t buffer_alloc_size_;
 };
 
@@ -204,13 +210,13 @@ class CSVReader {
    * A cell in a row in the CSV.
    */
   struct CSVCell {
-    // Pointer to the cell's data
+    /** Pointer to the cell's data. */
     const char *ptr_;
-    // Length of the data in bytes
+    /** Length of the data in bytes. */
     std::size_t len_;
-    // Does this cell contain escaped data?
+    /** True if this cell contains escaped data. */
     bool escaped_;
-    // The escaping character
+    /** The escaping character. */
     char escape_char_;
 
     /**
@@ -256,9 +262,9 @@ class CSVReader {
    * A row in the CSV.
    */
   struct CSVRow {
-    // The cells/attributes in this row.
+    /** The cells/attributes in this row. */
     std::vector<CSVCell> cells_;
-    // The number of active cells
+    /** The number of active cells. */
     uint32_t count_;
   };
 
@@ -266,11 +272,11 @@ class CSVReader {
    * This structure tracks various statistics while we scan the CSV
    */
   struct Stats {
-    // The number of times we requested the source to refill.
+    /** The number of times we requested the source to refill. */
     uint32_t num_fills_ = 0;
-    // The total bytes read.
+    /** The total bytes read. */
     uint32_t bytes_read_ = 0;
-    // The number of lines in the CSV
+    /** The number of lines in the CSV. */
     uint32_t num_lines_ = 0;
   };
 

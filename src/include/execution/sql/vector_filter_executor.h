@@ -235,7 +235,7 @@ class VectorFilterExecutor : public common::AllStatic {
    * @param tid_list The tuple ID list to use.
    */
   static void SelectNotEqual(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
-                             uint32_t col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
+                             uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
 };
 
 // ---------------------------------------------------------

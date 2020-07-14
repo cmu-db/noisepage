@@ -24,6 +24,7 @@ class ColumnSegment;
  */
 class ColumnVectorIterator {
  public:
+  /** Construct a column vector iterator over a column with the specified attribute size. */
   explicit ColumnVectorIterator(uint32_t column_attr_size) noexcept;
 
   /**

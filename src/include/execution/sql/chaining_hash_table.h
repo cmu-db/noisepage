@@ -45,19 +45,19 @@ namespace terrier::execution::sql {
  */
 class ChainingHashTableBase {
  private:
-  // X86_64 has 48-bit VM address space, leaving 16 for us to re-purpose.
+  /** X86_64 has 48-bit VM address space, leaving 16 for us to re-purpose. */
   static constexpr uint32_t NUM_TAG_BITS = 16;
-  // The number of bits to use for the physical pointer.
+  /** The number of bits to use for the physical pointer. */
   static constexpr uint32_t NUM_POINTER_BITS = (sizeof(void *) * common::Constants::K_BITS_PER_BYTE) - NUM_TAG_BITS;
-  // The mask to use to retrieve the physical pointer from a tagged pointer.
+  /** The mask to use to retrieve the physical pointer from a tagged pointer. */
   static constexpr uint64_t MASK_POINTER = (~0ull) >> NUM_TAG_BITS;
-  // The mask to use to retrieve the tag from a tagged pointer.
+  /** The mask to use to retrieve the tag from a tagged pointer. */
   static constexpr uint64_t MASK_TAG = (~0ull) << NUM_POINTER_BITS;
-  // The minimum table size.
+  /** The minimum table size. */
   static constexpr uint64_t MIN_TABLE_SIZE = 8;
 
  public:
-  // The default load factor to use.
+  /** The default load factor to use. */
   static constexpr float DEFAULT_LOAD_FACTOR = 0.7;
 
   /**
@@ -141,24 +141,23 @@ class ChainingHashTableBase {
   float GetLoadFactor() const { return load_factor_; }
 
  protected:
-  // Create an empty hash table. Constructor is protected to ensure base class
-  // cannot be instantiated.
+  /** Create an empty hash table. Constructor is protected to ensure base class cannot be instantiated. */
   explicit ChainingHashTableBase(float load_factor) noexcept;
 
-  // Return the position of the bucket the given hash value lands into
+  /** Return the position of the bucket the given hash value lands into. */
   uint64_t BucketPosition(const hash_t hash) const { return hash & mask_; }
 
   // -------------------------------------------------------
   // Tag-related operations
   // -------------------------------------------------------
 
-  // Given a tagged HashTableEntry pointer, strip out the tag bits and return an
-  // untagged HashTableEntry pointer
+  /** Given a tagged HashTableEntry pointer, strip out the tag bits and return an untagged HashTableEntry pointer. */
   static HashTableEntry *UntagPointer(const HashTableEntry *const entry) {
     auto ptr = reinterpret_cast<uintptr_t>(entry);
     return reinterpret_cast<HashTableEntry *>(ptr & MASK_POINTER);
   }
 
+  /** Update the tagged HashTableEntry pointer with the new entry. */
   static HashTableEntry *UpdateTag(const HashTableEntry *const tagged_old_entry,
                                    const HashTableEntry *const untagged_new_entry) {
     auto old_tagged_ptr = reinterpret_cast<uintptr_t>(tagged_old_entry);
@@ -168,6 +167,7 @@ class ChainingHashTableBase {
     return reinterpret_cast<HashTableEntry *>(new_tagged_ptr);
   }
 
+  /** Create a tag for the specified hash. */
   static uint64_t TagHash(const hash_t hash) {
     // We use the given hash value to obtain a bit position in the tag to set.
     // We need to extract a signature from the hash value in the range
@@ -179,13 +179,13 @@ class ChainingHashTableBase {
   }
 
  protected:
-  // Main directory of hash table entry buckets.
+  /** Main directory of hash table entry buckets. */
   HashTableEntry **entries_;
-  // The mask to use to compute the bucket position of an entry.
+  /** The mask to use to compute the bucket position of an entry. */
   uint64_t mask_;
-  // The capacity of the directory.
+  /** The capacity of the directory. */
   uint64_t capacity_;
-  // The configured load-factor.
+  /** The configured load-factor. */
   float load_factor_;
 };
 

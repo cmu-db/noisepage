@@ -42,7 +42,7 @@ class EXPORT VectorOps : public common::AllStatic {
   /**
    * Cast all elements in the source vector @em source into elements of the type the target vector
    * @em target supports, and write them into the target vector.
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param source The vector to cast from.
    * @param target The vector to cast and write into.
    */
@@ -51,7 +51,7 @@ class EXPORT VectorOps : public common::AllStatic {
   /**
    * Cast all elements in the source vector @em source whose SQL type is @em source_type into the
    * target SQL type @em target_type and write the results into the target vector @em target.
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param source The vector to read from.
    * @param target The vector to write into.
    * @param source_type The SQL type of elements in the source vector.
@@ -156,7 +156,7 @@ class EXPORT VectorOps : public common::AllStatic {
    *
    * left += right
    *
-   * @param the execution context that is used in this query
+   * @param exec_settings The execution settings.
    * @param[in,out] left The left input into the addition.
    * @param right The right input into the addition.
    */
@@ -167,7 +167,7 @@ class EXPORT VectorOps : public common::AllStatic {
    *
    * left &= right
    *
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param[in,out] left The left input into the bitwise operation.
    * @param right The right input into the bitwise operation.
    */
@@ -182,7 +182,7 @@ class EXPORT VectorOps : public common::AllStatic {
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are equal to elements in
    * @em right.
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
@@ -193,7 +193,7 @@ class EXPORT VectorOps : public common::AllStatic {
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are strictly greater than
    * elements in @em right.
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
@@ -204,7 +204,7 @@ class EXPORT VectorOps : public common::AllStatic {
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are greater than or equal
    * to elements @em right.
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
@@ -215,7 +215,7 @@ class EXPORT VectorOps : public common::AllStatic {
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are strictly less than
    * elements in @em right.
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
@@ -226,7 +226,7 @@ class EXPORT VectorOps : public common::AllStatic {
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are less than or equal to
    * elements in @em right.
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.
@@ -237,7 +237,7 @@ class EXPORT VectorOps : public common::AllStatic {
   /**
    * Filter the TID list @em tid_list with all elements in @em left that are not equal to elements
    * in @em right.
-   * @param exec_settings The execution settings
+   * @param exec_settings The execution settings.
    * @param left The left input into the selection.
    * @param right The right input into the selection
    * @param[in,out] tid_list The list of TIDs to read and update.

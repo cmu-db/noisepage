@@ -69,9 +69,10 @@ class Module {
    * an interpreted version and a compiled version.
    * @tparam Ret Ret The C/C++ return type of the function
    * @tparam ArgTypes ArgTypes The C/C++ argument types to the function
-   * @param name The name of the function the caller wants
-   * @param[out] func The function wrapper we use to wrap the TPL function
-   * @return True if the function was found and the output parameter was set
+   * @param name The name of the function the caller wants.
+   * @param exec_mode The mode of the function that the caller wants.
+   * @param[out] func The function wrapper we use to wrap the TPL function.
+   * @return True if the function was found and the output parameter was set.
    */
   template <typename Ret, typename... ArgTypes>
   bool GetFunction(const std::string &name, ExecutionMode exec_mode, std::function<Ret(ArgTypes...)> *func);

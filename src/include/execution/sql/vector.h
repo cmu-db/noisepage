@@ -25,7 +25,7 @@ namespace terrier::execution::sql {
  * within another vector, or a constant value.
  *
  * All Vectors have a maximum capacity (see Vector::GetCapacity()) determined by the global constant
- * ::tpl::kDefaultVectorSize usually set to 2048 elements. Vectors also have a <b>size</b> (see
+ * DEFAULT_VECTOR_SIZE usually set to 2048 elements. Vectors also have a <b>size</b> (see
  * Vector::GetSize()) that reflects the number of physically contiguous elements <b>currently</b> in
  * the vector. A vector's size can fluctuate through its life, but will always be less than its
  * capacity. Finally, a vector has an <b>active count</b> (see Vector::GetCount()) that represents
@@ -98,6 +98,7 @@ class EXPORT Vector {
   friend class VectorProjectionIterator;
 
  public:
+  /** The null mask for the vector indicates which entries are NULL. */
   using NullMask = util::BitVector<uint64_t>;
 
   /**
@@ -106,19 +107,26 @@ class EXPORT Vector {
    */
   class TempFilterScope {
    public:
+    /**
+     * Create a new temporary filter scope.
+     * @param vector The vector to be filtered.
+     * @param tid_list The filtered tuple ID list for the vector.
+     * @param count The number of active elements.
+     */
     TempFilterScope(Vector *vector, const TupleIdList *tid_list, const uint64_t count)
         : vector_(vector), prev_tid_list_(vector->GetFilteredTupleIdList()), prev_count_(vector->GetCount()) {
       vector_->SetFilteredTupleIdList(tid_list, count);
     }
 
+    /** Restore the previous state of the vector prior to filtering. */
     ~TempFilterScope() { vector_->SetFilteredTupleIdList(prev_tid_list_, prev_count_); }
 
    private:
-    // The vector to filter.
+    /** The vector to filter. */
     Vector *vector_;
-    // The previous filter in the vector. Can be NULL.
+    /** The previous filter in the vector. Can be NULL. */
     const TupleIdList *prev_tid_list_;
-    // The previous count of the vector.
+    /** The previous count of the vector. */
     uint64_t prev_count_;
   };
 

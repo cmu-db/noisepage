@@ -24,6 +24,7 @@ class CodeGen;
  */
 class StateDescriptor {
  public:
+  /** An instance of this state descriptor. */
   using InstanceProvider = std::function<ast::Expr *(CodeGen *)>;
 
   /**
@@ -85,6 +86,7 @@ class StateDescriptor {
 
   /**
    * Declare a state entry with the provided name and type in the execution runtime query state.
+   * @param codegen The code generation instance.
    * @param name The name of the element.
    * @param type_repr The TPL type representation of the element.
    * @return The slot where the inserted state exists.

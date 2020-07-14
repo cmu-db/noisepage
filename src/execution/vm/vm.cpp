@@ -40,7 +40,7 @@ class VM::Frame {
    * @return The value of the variable. Note that this is copied!
    */
   template <typename T>
-  T LocalAt(uint32_t index) const {
+  T LocalAt(uint32_t index) const {  // NOLINT (clang tidy doesn't like const unsigned long instantiation)
     LocalVar local = LocalVar::Decode(index);
     const auto val = reinterpret_cast<uintptr_t>(PtrToLocalAt(local));
     if (local.GetAddressMode() == LocalVar::AddressMode::Value) {
@@ -2208,8 +2208,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
 const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   // Read the function ID and the argument count to the function first
-  const uint16_t func_id = READ_FUNC_ID();
-  const uint16_t num_params = READ_UIMM2();
+  const uint16_t func_id = READ_FUNC_ID();   // NOLINT (something wrong with clang tidy)
+  const uint16_t num_params = READ_UIMM2();  // NOLINT (something wrong with clang tidy)
 
   // Lookup the function
   const FunctionInfo *func_info = module_->GetFuncInfoById(func_id);

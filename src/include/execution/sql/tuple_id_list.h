@@ -14,7 +14,7 @@ namespace terrier::execution::sql {
 /**
  * TupleIdList is an ordered set of tuple IDs (TID) used during query execution to efficiently
  * represent valid tuples in a vector projection. TupleIdLists have a maximum capacity, usually 1024
- * or 2048 TIDs sourced from ::tpl::kDefaultVectorSize, and a size reflecting the number of tuples
+ * or 2048 TIDs sourced from DEFAULT_VECTOR_SIZE, and a size reflecting the number of tuples
  * in the list. A TupleIdList with capacity C can store all TIDs in the range [0,C) in sorted order.
  *
  * Basic Operations:
@@ -71,6 +71,7 @@ namespace terrier::execution::sql {
  */
 class TupleIdList {
  public:
+  /** The underlying bit vector for this TupleIdList. */
   using BitVectorType = util::BitVector<uint64_t>;
 
   /**

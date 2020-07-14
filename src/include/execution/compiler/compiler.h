@@ -218,6 +218,10 @@ class Compiler {
  */
 class TimePasses : public Compiler::Callbacks {
  public:
+  /**
+   * Create a new timer instance.
+   * @param wrapped_callbacks The callbacks to be wrapped that are being timed.
+   */
   explicit TimePasses(Compiler::Callbacks *wrapped_callbacks)
       : wrapped_callbacks_(wrapped_callbacks), phase_timings_{0.0} {}
 
@@ -238,14 +242,18 @@ class TimePasses : public Compiler::Callbacks {
     wrapped_callbacks_->TakeOwnership(std::move(module));
   }
 
+  /** @return Time taken for parsing. */
   double GetParseTimeMs() const { return phase_timings_[static_cast<uint32_t>(Compiler::Phase::Parsing)]; }
 
+  /** @return Time taken for semantic analysis. */
   double GetSemaTimeMs() const { return phase_timings_[static_cast<uint32_t>(Compiler::Phase::SemanticAnalysis)]; }
 
+  /** @return Time taken for bytecode generation. */
   double GetBytecodeGenTimeMs() const {
     return phase_timings_[static_cast<uint32_t>(Compiler::Phase::BytecodeGeneration)];
   }
 
+  /** @return Time taken for module generation. */
   double GetModuleGenTimeMs() const { return phase_timings_[static_cast<uint32_t>(Compiler::Phase::ModuleGeneration)]; }
 
  private:

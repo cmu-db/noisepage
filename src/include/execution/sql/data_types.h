@@ -16,66 +16,88 @@ class SqlType {
  public:
   virtual ~SqlType() = default;
 
+  /** @return ID of this SQL type. */
   SqlTypeId GetId() const { return id_; }
 
+  /** @return True if this SQL type is nullable. */
   bool IsNullable() const { return nullable_; }
 
+  /** @return Non-nullable version of this SQL type. */
   virtual const SqlType &GetNonNullableVersion() const = 0;
 
+  /** @return Nullable version of this SQL type. */
   virtual const SqlType &GetNullableVersion() const = 0;
 
+  /** @return Primitive type ID for this SQL type. */
   virtual TypeId GetPrimitiveTypeId() const = 0;
 
+  /** @return Name of this SQL type. */
   virtual std::string GetName() const = 0;
 
+  /** @return True if this SQL type is an integer type. */
   virtual bool IsIntegral() const = 0;
 
+  /** @return True if this SQL type is a floating-point type. */
   virtual bool IsFloatingPoint() const = 0;
 
+  /** @return True if this SQL type is a type that supports arithmetic. */
   virtual bool IsArithmetic() const = 0;
 
+  /** @return True if this SQL type equals that SQL type. */
   virtual bool Equals(const SqlType &that) const = 0;
 
+  /** @return True if this SQL type == that SQL type. */
   bool operator==(const SqlType &that) const noexcept { return Equals(that); }
 
+  /** @return True if this SQL type != that SQL type. */
   bool operator!=(const SqlType &that) const noexcept { return !(*this == that); }
 
   // -------------------------------------------------------
   // Type-checking
   // -------------------------------------------------------
 
+  /** @return True if this SQL type is the specified templated type. */
   template <typename T>
   bool Is() const {
     return llvm::isa<T>(this);
   }
 
+  /** @return This SQL type casted to the specified templated type. */
   template <typename T>
   T *As() {
     return llvm::cast<T>(this);
   }
 
+  /** @return This SQL type casted to the specified const templated type. */
   template <typename T>
   const T *As() const {
     return llvm::cast<const T>(this);
   }
 
+  /** @return True if this SQL type can be casted to the specified templated type. */
   template <typename T>
   T *SafeAs() {
     return llvm::dyn_cast<T>(this);
   }
 
+  /** @return True if this SQL type can be const casted to the specified templated type. */
   template <typename T>
   const T *SafeAs() const {
     return llvm::dyn_cast<const T>(this);
   }
 
  protected:
+  /**
+   * Construct the specified SQL type.
+   * @param sql_type_id The type ID of the SQL type to be constructed.
+   * @param nullable True if the specified SQL type is nullable, false otherwise.
+   */
   explicit SqlType(SqlTypeId sql_type_id, bool nullable) : id_(sql_type_id), nullable_(nullable) {}
 
  private:
-  // The SQL type ID
+  /** The SQL type ID. */
   SqlTypeId id_;
-  // Flag indicating if the type is nullable
+  /** Flag indicating if the type is nullable. */
   bool nullable_;
 };
 
@@ -84,10 +106,13 @@ class SqlType {
  */
 class BooleanType : public SqlType {
  public:
+  /** @return A non-nullable version of the boolean type. */
   static const BooleanType &InstanceNonNullable();
 
+  /** @return A nullable version of the boolean type. */
   static const BooleanType &InstanceNullable();
 
+  /** @return The boolean type with the requested nullability. */
   static const BooleanType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
   const SqlType &GetNonNullableVersion() const override { return InstanceNonNullable(); }
@@ -106,6 +131,7 @@ class BooleanType : public SqlType {
 
   bool Equals(const SqlType &that) const override;
 
+  /** @return True if the input type is a Boolean type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Boolean; }  // NOLINT
 
  private:
@@ -121,15 +147,20 @@ class BooleanType : public SqlType {
 template <typename CppType>
 class NumberBaseType : public SqlType {
  public:
+  /** @return Primitive type ID for this type. */
   TypeId GetPrimitiveTypeId() const override { return GetTypeId<CppType>(); }
 
+  /** @return True if this type is an integer type. */
   bool IsIntegral() const override { return std::is_integral_v<CppType>; }
 
+  /** @return True if this type is a floating-point type. */
   bool IsFloatingPoint() const override { return std::is_floating_point_v<CppType>; }
 
+  /** @return True if this type is a type that supports arithmetic. */
   bool IsArithmetic() const override { return true; }
 
  protected:
+  /** Construct the number type with the specified type ID and nullability. */
   NumberBaseType(SqlTypeId type_id, bool nullable) : SqlType(type_id, nullable) {}
 };
 
@@ -138,10 +169,13 @@ class NumberBaseType : public SqlType {
  */
 class TinyIntType : public NumberBaseType<int8_t> {
  public:
+  /** @return A non-nullable version of the tiny integer type. */
   static const TinyIntType &InstanceNonNullable();
 
+  /** @return A nullable version of the tiny integer type. */
   static const TinyIntType &InstanceNullable();
 
+  /** @return The tiny integer type with the requested nullability. */
   static const TinyIntType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
   const SqlType &GetNonNullableVersion() const override { return InstanceNonNullable(); }
@@ -152,6 +186,7 @@ class TinyIntType : public NumberBaseType<int8_t> {
 
   bool Equals(const SqlType &that) const override;
 
+  /** @return True if the input type is a TinyInt type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::TinyInt; }  // NOLINT
 
  private:
@@ -163,10 +198,13 @@ class TinyIntType : public NumberBaseType<int8_t> {
  */
 class SmallIntType : public NumberBaseType<int16_t> {
  public:
+  /** @return A non-nullable version of the small integer type. */
   static const SmallIntType &InstanceNonNullable();
 
+  /** @return A nullable version of the small integer type. */
   static const SmallIntType &InstanceNullable();
 
+  /** @return The small integer type with the requested nullability. */
   static const SmallIntType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
   const SqlType &GetNonNullableVersion() const override { return InstanceNonNullable(); }
@@ -177,6 +215,7 @@ class SmallIntType : public NumberBaseType<int16_t> {
 
   bool Equals(const SqlType &that) const override;
 
+  /** @return True if the input type is a SmallInt type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::SmallInt; }  // NOLINT
 
  private:
@@ -188,10 +227,13 @@ class SmallIntType : public NumberBaseType<int16_t> {
  */
 class IntegerType : public NumberBaseType<int32_t> {
  public:
+  /** @return A non-nullable version of the integer type. */
   static const IntegerType &InstanceNonNullable();
 
+  /** @return A nullable version of the integer type. */
   static const IntegerType &InstanceNullable();
 
+  /** @return The integer type with the requested nullability. */
   static const IntegerType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
   const SqlType &GetNonNullableVersion() const override { return InstanceNonNullable(); }
@@ -202,6 +244,7 @@ class IntegerType : public NumberBaseType<int32_t> {
 
   bool Equals(const SqlType &that) const override;
 
+  /** @return True if the input type is a Integer type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Integer; }  // NOLINT
 
  private:
@@ -213,10 +256,13 @@ class IntegerType : public NumberBaseType<int32_t> {
  */
 class BigIntType : public NumberBaseType<int64_t> {
  public:
+  /** @return A non-nullable version of the big integer type. */
   static const BigIntType &InstanceNonNullable();
 
+  /** @return A nullable version of the big integer type. */
   static const BigIntType &InstanceNullable();
 
+  /** @return The big integer type with the requested nullability. */
   static const BigIntType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
   const SqlType &GetNonNullableVersion() const override { return InstanceNonNullable(); }
@@ -227,6 +273,7 @@ class BigIntType : public NumberBaseType<int64_t> {
 
   bool Equals(const SqlType &that) const override;
 
+  /** @return True if the input type is a BigInt type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::BigInt; }  // NOLINT
 
  private:
@@ -238,10 +285,13 @@ class BigIntType : public NumberBaseType<int64_t> {
  */
 class RealType : public NumberBaseType<float> {
  public:
+  /** @return A non-nullable version of the real type. */
   static const RealType &InstanceNonNullable();
 
+  /** @return A nullable version of the real type. */
   static const RealType &InstanceNullable();
 
+  /** @return The real type with the requested nullability. */
   static const RealType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
   const SqlType &GetNonNullableVersion() const override { return InstanceNonNullable(); }
@@ -252,6 +302,7 @@ class RealType : public NumberBaseType<float> {
 
   bool Equals(const SqlType &that) const override;
 
+  /** @return True if the input type is a Real type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Real; }  // NOLINT
 
  private:
@@ -263,10 +314,13 @@ class RealType : public NumberBaseType<float> {
  */
 class DoubleType : public NumberBaseType<double> {
  public:
+  /** @return A non-nullable version of the double type. */
   static const DoubleType &InstanceNonNullable();
 
+  /** @return A nullable version of the double type. */
   static const DoubleType &InstanceNullable();
 
+  /** @return The double type with the requested nullability. */
   static const DoubleType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
   const SqlType &GetNonNullableVersion() const override { return InstanceNonNullable(); }
@@ -277,6 +331,7 @@ class DoubleType : public NumberBaseType<double> {
 
   bool Equals(const SqlType &that) const override;
 
+  /** @return True if the input type is a Double type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Double; }  // NOLINT
 
  private:
@@ -288,10 +343,13 @@ class DoubleType : public NumberBaseType<double> {
  */
 class DecimalType : public SqlType {
  public:
+  /** @return A non-nullable version of the decimal type. */
   static const DecimalType &InstanceNonNullable(uint32_t precision, uint32_t scale);
 
+  /** @return A nullable version of the decimal type. */
   static const DecimalType &InstanceNullable(uint32_t precision, uint32_t scale);
 
+  /** @return The decimal type with the requested nullability, precision, and scale. */
   static const DecimalType &Instance(bool nullable, uint32_t precision, uint32_t scale) {
     return (nullable ? InstanceNullable(precision, scale) : InstanceNonNullable(precision, scale));
   }
@@ -312,10 +370,13 @@ class DecimalType : public SqlType {
 
   bool IsArithmetic() const override;
 
+  /** @return The precision of this decimal type. */
   uint32_t Precision() const;
 
+  /** @return The scale of this decimal type. */
   uint32_t Scale() const;
 
+  /** @return True if the input type is a Decimal type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Decimal; }  // NOLINT
 
  private:
@@ -334,10 +395,13 @@ class DecimalType : public SqlType {
  */
 class DateType : public SqlType {
  public:
+  /** @return A non-nullable version of the date type. */
   static const DateType &InstanceNonNullable();
 
+  /** @return A nullable version of the date type. */
   static const DateType &InstanceNullable();
 
+  /** @return The date type with the requested nullability. */
   static const DateType &Instance(bool nullable) { return (nullable ? InstanceNullable() : InstanceNonNullable()); }
 
   const SqlType &GetNonNullableVersion() const override { return InstanceNonNullable(); }
@@ -356,6 +420,7 @@ class DateType : public SqlType {
 
   bool IsArithmetic() const override { return false; }
 
+  /** @return True if the input type is a Date type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Date; }  // NOLINT
 
  private:
@@ -367,10 +432,13 @@ class DateType : public SqlType {
  */
 class TimestampType : public SqlType {
  public:
+  /** @return A non-nullable version of the timestamp type. */
   static const TimestampType &InstanceNonNullable();
 
+  /** @return A nullable version of the timestamp type. */
   static const TimestampType &InstanceNullable();
 
+  /** @return The timestamp type with the requested nullability. */
   static const TimestampType &Instance(bool nullable) {
     return (nullable ? InstanceNullable() : InstanceNonNullable());
   }
@@ -391,7 +459,8 @@ class TimestampType : public SqlType {
 
   bool IsArithmetic() const override { return false; }
 
-  static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Date; }  // NOLINT
+  /** @return True if the input type is a Timestamp type. */
+  static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Timestamp; }  // NOLINT
 
  private:
   explicit TimestampType(bool nullable);
@@ -402,10 +471,13 @@ class TimestampType : public SqlType {
  */
 class CharType : public SqlType {
  public:
+  /** @return A non-nullable version of the char type. */
   static const CharType &InstanceNonNullable(uint32_t len);
 
+  /** @return A nullable version of the char type. */
   static const CharType &InstanceNullable(uint32_t len);
 
+  /** @return The char type with the requested nullability and length. */
   static const CharType &Instance(bool nullable, uint32_t len) {
     return (nullable ? InstanceNullable(len) : InstanceNonNullable(len));
   }
@@ -426,8 +498,10 @@ class CharType : public SqlType {
 
   bool IsArithmetic() const override { return false; }
 
+  /** @return The length of this char type. */
   uint32_t Length() const;
 
+  /** @return True if the input type is a Char type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Char; }  // NOLINT
 
  private:
@@ -445,10 +519,13 @@ class CharType : public SqlType {
  */
 class VarcharType : public SqlType {
  public:
+  /** @return A non-nullable version of the varchar type. */
   static const VarcharType &InstanceNonNullable(uint32_t max_len);
 
+  /** @return A nullable version of the varchar type. */
   static const VarcharType &InstanceNullable(uint32_t max_len);
 
+  /** @return The varchar type with the requested nullability. */
   static const VarcharType &Instance(bool nullable, uint32_t max_len) {
     return (nullable ? InstanceNullable(max_len) : InstanceNonNullable(max_len));
   }
@@ -469,8 +546,10 @@ class VarcharType : public SqlType {
 
   bool IsArithmetic() const override { return false; }
 
+  /** @return The maximum length of this varchar type. */
   uint32_t MaxLength() const;
 
+  /** @return True if the input type is a Varchar type. */
   static bool classof(const SqlType *type) { return type->GetId() == SqlTypeId::Varchar; }  // NOLINT
 
  private:

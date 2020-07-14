@@ -111,6 +111,7 @@ class BytecodeIterator {
    * Read the operand at @em operand_index for the current bytecode as a count of local variables,
    * and read each such local variable into the output vector @em locals.
    * @param operand_index The index of the operand to read.
+   * @param locals The output vector.
    * @return The number of operands.
    */
   uint16_t GetLocalCountOperand(uint32_t operand_index, std::vector<LocalVar> *locals) const;

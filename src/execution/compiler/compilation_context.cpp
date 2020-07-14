@@ -165,7 +165,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 
   // Compile and finish.
   fragments.emplace_back(main_builder.Compile());
-  query_->Setup(std::move(fragments), query_state_.GetSize(), std::move(codegen_.ReleasePipelineOperatingUnits()));
+  query_->Setup(std::move(fragments), query_state_.GetSize(), codegen_.ReleasePipelineOperatingUnits());
 }
 
 // static

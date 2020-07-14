@@ -12,9 +12,9 @@ class SemaDeclTest : public TplTest, public ast::test::TestAstBuilder {
 };
 
 struct TestCase {
-  bool has_errors;
-  std::string msg;
-  ast::AstNode *tree;
+  bool has_errors_;
+  std::string msg_;
+  ast::AstNode *tree_;
 };
 
 TEST_F(SemaDeclTest, DuplicateStructFields) {

@@ -160,6 +160,17 @@ class DataTable {
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             ProjectedColumns *out_buffer) const;
 
+  /**
+   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
+   * fit into the given buffer, as visible to the transaction given, according to the format described by the given
+   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * last slot scanned in the invocation.
+   *
+   * @param txn The calling transaction.
+   * @param start_pos Iterator to the starting location for the sequential scan.
+   * @param out_buffer Output buffer. This buffer is always cleared of old values.
+   */
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             execution::sql::VectorProjection *out_buffer) const;
 

@@ -27,7 +27,7 @@ class BloomFilter {
   static constexpr const uint32_t BITS_PER_ELEMENT = 8;
 
  public:
-  // A block in this filter (i.e., the sizes of the bloom filter partitions)
+  /** A block in this filter (i.e., the sizes of the bloom filter partitions). */
   using Block = uint32_t[8];
 
  public:

@@ -421,14 +421,14 @@ class VarlenEntry {
 
     // Compare the size and prefix in one fell swoop, ignoring the sign bit indicating reclaimability.
     if (std::memcmp(reinterpret_cast<const char *>(&left) + 1, reinterpret_cast<const char *>(&right) + 1,
-                    sizeof(left.size_) + left.PrefixSize() - 1) == 0) {
+                    sizeof(left.size_) + PrefixSize() - 1) == 0) {
       // Prefix and length are equal.
       if (left.IsInlined()) {
-        if (std::memcmp(left.prefix_, right.prefix_, left.PrefixSize()) == 0) {
+        if (std::memcmp(left.prefix_, right.prefix_, PrefixSize()) == 0) {
           return EqualityCheck ? true : false;
         }
       } else {
-        if (std::memcmp(left.content_, right.content_, left.Size() - left.PrefixSize()) == 0) {
+        if (std::memcmp(left.content_, right.content_, left.Size() - PrefixSize()) == 0) {
           return EqualityCheck ? true : false;
         }
       }

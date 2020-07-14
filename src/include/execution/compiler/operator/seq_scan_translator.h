@@ -56,13 +56,16 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   /**
    * Generate the scan.
    * @param context The context of the work.
+   * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
   /**
    * Tear-down the FilterManager if required.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
-  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *func) const override;
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * @return The pipeline work function parameters. Just the *TVI.
@@ -71,6 +74,7 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
 
   /**
    * Launch a parallel table scan.
+   * @param function The pipeline generating function.
    * @param work_func The worker function that'll be called during the parallel scan.
    */
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override;
@@ -83,6 +87,7 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
 
   ast::Expr *GetSlotAddress() const override;
 
+  /** @return The expression representing the current VPI. */
   ast::Expr *GetVPI() const;
 
  private:

@@ -159,6 +159,17 @@ class SqlTable {
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }
 
+  /**
+   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
+   * fit into the given buffer, as visible to the transaction given, according to the format described by the given
+   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot past the
+   * last slot scanned in the invocation.
+   *
+   * @param txn The calling transaction.
+   * @param start_pos Iterator to the starting location for the sequential scan.
+   * @param out_buffer Output buffer. This buffer is always cleared of old values.
+   */
   void Scan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *const start_pos,
             execution::sql::VectorProjection *const out_buffer) const {
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
@@ -169,6 +180,7 @@ class SqlTable {
    */
   DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
 
+  /** @return A blocked slot iterator over the [start, end) blocks. */
   DataTable::SlotIterator GetBlockedSlotIterator(uint32_t start_block, uint32_t end_block) const {
     return table_.data_table_->GetBlockedSlotIterator(start_block, end_block);
   }

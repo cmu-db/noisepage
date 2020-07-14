@@ -138,7 +138,7 @@ class ChunkedVector {
     using reference = byte *&;
 
     /** Empty constructor. */
-    Iterator() noexcept : chunks_iter_(), element_size_(0), curr_(nullptr) {}
+    Iterator() noexcept = default;
 
     /**
      * Constructor for existing vector
@@ -211,7 +211,7 @@ class ChunkedVector {
      * @param offset to add to the iterator
      * @return the new iterator with the added offset
      */
-    const Iterator operator+(const int64_t offset) const {
+    Iterator operator+(const int64_t offset) const {
       Iterator copy(*this);
       copy += offset;
       return copy;
@@ -222,7 +222,7 @@ class ChunkedVector {
      * @param offset to subtract from the iterator
      * @return the new iterator with the subtracted offset
      */
-    const Iterator operator-(const int64_t offset) const {
+    Iterator operator-(const int64_t offset) const {
       Iterator copy(*this);
       copy -= offset;
       return copy;
@@ -251,7 +251,7 @@ class ChunkedVector {
      * Post-increment
      * @return the new incremented iterator
      */
-    const Iterator operator++(int) noexcept {
+    Iterator operator++(int) noexcept {
       Iterator copy(*this);
       ++(*this);
       return copy;
@@ -280,7 +280,7 @@ class ChunkedVector {
      * Post-decrement
      * @return the new decremented operator
      */
-    const Iterator operator--(int) noexcept {
+    Iterator operator--(int) noexcept {
       Iterator copy(*this);
       ++(*this);
       return copy;
@@ -347,7 +347,7 @@ class ChunkedVector {
      */
     difference_type operator-(const Iterator &that) const noexcept {
       const int64_t chunk_size = ChunkAllocSize(element_size_);
-      const int64_t elem_size = static_cast<int64_t>(element_size_);
+      const auto elem_size = static_cast<int64_t>(element_size_);
 
       return ((chunks_iter_ - that.chunks_iter_) * chunk_size +
               ((curr_ - *chunks_iter_) - (that.curr_ - *that.chunks_iter_))) /
@@ -356,8 +356,8 @@ class ChunkedVector {
 
    private:
     std::vector<byte *>::const_iterator chunks_iter_;
-    std::size_t element_size_;
-    byte *curr_;
+    std::size_t element_size_{0};
+    byte *curr_{nullptr};
   };
 
   /**
@@ -516,7 +516,7 @@ class ChunkedVector {
   /**
    * Remove all elements from the vector.
    */
-  void clear() {
+  void clear() {  // NOLINT
     active_chunk_idx_ = 0;
     if (!chunks_.empty()) {
       position_ = chunks_[0];
@@ -533,7 +533,7 @@ class ChunkedVector {
   bool empty() const noexcept { return size() == 0; }  // NOLINT
 
   /**
-   * @reutrn The number of elements currently in the vector.
+   * @return The number of elements currently in the vector.
    */
   std::size_t size() const noexcept { return num_elements_; }  // NOLINT
 
@@ -542,14 +542,13 @@ class ChunkedVector {
    */
   std::size_t ElementSize() const noexcept { return element_size_; }
 
-  // Given the size (in bytes) of an individual element, compute the size of
-  // each chunk in the chunked vector
+  /** Given the size (in bytes) of an individual element, compute the size of each chunk in the chunked vector. */
   static constexpr std::size_t ChunkAllocSize(std::size_t element_size) {
     return K_NUM_ELEMENTS_PER_CHUNK * element_size;
   }
 
  private:
-  // Allocate a new chunk
+  /** Allocate a new chunk. */
   void AllocateChunk() {
     const std::size_t alloc_size = ChunkAllocSize(ElementSize());
     byte *new_chunk = static_cast<byte *>(allocator_.allocate(alloc_size));
@@ -689,14 +688,14 @@ class ChunkedVectorT {
      * @param offset to add to the iterator
      * @return the new iterator with the added offset
      */
-    const Iterator operator+(const int64_t &offset) const noexcept { return Iterator(iter_ + offset); }
+    Iterator operator+(const int64_t &offset) const noexcept { return Iterator(iter_ + offset); }
 
     /**
      * Subtraction
      * @param offset to subtract from the iterator
      * @return the new iterator with the subtracted offset
      */
-    const Iterator operator-(const int64_t &offset) const noexcept { return Iterator(iter_ - offset); }
+    Iterator operator-(const int64_t &offset) const noexcept { return Iterator(iter_ - offset); }
 
     /**
      * Pre-increment
@@ -711,7 +710,7 @@ class ChunkedVectorT {
      * Post-increment
      * @return the new incremented iterator
      */
-    const Iterator operator++(int) noexcept { return Iterator(iter_++); }
+    Iterator operator++(int) noexcept { return Iterator(iter_++); }
 
     /**
      * Pre-decrement
@@ -726,7 +725,7 @@ class ChunkedVectorT {
      * Post-decrement
      * @return the new decremented operator
      */
-    const Iterator operator--(int) noexcept { return Iterator(iter_--); }
+    Iterator operator--(int) noexcept { return Iterator(iter_--); }
 
     /**
      * Indexing

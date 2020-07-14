@@ -35,6 +35,7 @@ class WorkContext {
   /**
    * Derive the value of the given expression.
    * @param expr The expression.
+   * @param provider The provider from which column values can be obtained.
    * @return The TPL value of the expression.
    */
   ast::Expr *DeriveValue(const parser::AbstractExpression &expr, const ColumnValueProvider *provider);

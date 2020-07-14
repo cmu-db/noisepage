@@ -133,7 +133,7 @@ class EXPORT GenericValue {
 
   /**
    * Create a non-NULL pointer value.
-   * @param value The value.
+   * @param pointer The pointer value.
    * @return A pointer value.
    */
   template <typename T>
@@ -199,7 +199,7 @@ class EXPORT GenericValue {
 
   /**
    * Create a non-NULL varchar value.
-   * @param value The value.
+   * @param str The string view.
    * @return A Varchar value.
    */
   static GenericValue CreateVarchar(std::string_view str);
@@ -212,19 +212,19 @@ class EXPORT GenericValue {
    */
   static GenericValue CreateFromRuntimeValue(TypeId type_id, const Val &val);
 
-  // Output
+  /** Output to stream. */
   friend std::ostream &operator<<(std::ostream &out, const GenericValue &val);
 
  private:
-  // Private constructor to force usage of factory methods.
+  /** Private constructor to force usage of factory methods. */
   explicit GenericValue(TypeId type_id) : type_id_(type_id), is_null_(true), value_() {}
 
  private:
-  // The primitive type
+  /** The primitive type */
   TypeId type_id_;
-  // Is this value null?
+  /** Is this value null? */
   bool is_null_;
-  // The value of the object if it's a fixed-length type
+  /** The value of the object if it's a fixed-length type */
   union {
     bool boolean_;
     int8_t tinyint_;

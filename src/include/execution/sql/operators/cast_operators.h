@@ -38,6 +38,7 @@ struct TryCast {};
  */
 template <typename InType, typename OutType>
 struct Cast {
+  /** @return On a valid cast, the casted output value. Otherwise, throws an execution exception. */
   OutType operator()(InType input) const {
     OutType result;
     if (!TryCast<InType, OutType>{}(input, &result)) {
@@ -58,6 +59,7 @@ struct Cast {
 /** True if the cast from input type to output type succeeds. */
 template <typename T>
 struct TryCast<T, T> {
+  /** @return True if the cast was successful. */
   bool operator()(const T input, T *output) const noexcept {
     *output = input;
     return true;
@@ -92,6 +94,7 @@ constexpr bool IS_NUMBER_TYPE_V = IsNumberType<T>::value;
 /** Is the cast from the given input and output types a downward cast? */
 template <typename InType, typename OutType>
 struct IsNumberDowncast {
+  /** Is the cast from the given input and output types a downward cast? */
   static constexpr bool VALUE =
       // Both types are numbers.
       IS_NUMBER_TYPE_V<InType> && IS_NUMBER_TYPE_V<OutType> &&
@@ -109,6 +112,7 @@ constexpr bool IS_NUMBER_DOWNCAST_V = IsNumberDowncast<InType, OutType>::VALUE;
 /** True if it is a cast from a integral signed to integral unsigned. */
 template <typename InType, typename OutType>
 struct IsIntegralSignedToUnsigned {
+  /** True if it is a cast from a integral signed to integral unsigned. */
   static constexpr bool VALUE =
       // Both types are integers (non-bool and non-float).
       IS_INTEGER_TYPE_V<InType> && IS_INTEGER_TYPE_V<OutType> &&
@@ -122,6 +126,7 @@ constexpr bool IS_INTEGRAL_SIGNED_TO_UNSIGNED_V = IsIntegralSignedToUnsigned<InT
 /** True if it is a cast from integral unsigned to integral signed. */
 template <typename InType, typename OutType>
 struct IsIntegralUnsignedToSigned {
+  /** True if it is a cast from integral unsigned to integral signed. */
   static constexpr bool VALUE = IS_INTEGER_TYPE_V<InType> && IS_INTEGER_TYPE_V<OutType> && std::is_unsigned_v<InType> &&
                                 std::is_signed_v<OutType>;
 };
@@ -132,7 +137,9 @@ constexpr bool IS_INTEGRAL_UNSIGNED_TO_SIGNED_V = IsIntegralUnsignedToSigned<InT
 /** True if it is a safe numeric cast. */
 template <typename InType, typename OutType>
 struct IsSafeNumericCast {
+  /** True if it is a safe numeric cast. */
   static constexpr bool VALUE =
+      /// @cond DOXYGEN_IGNORE Doxygen gets confused and wants to document OutType as a variable.
       // Both inputs are numbers.
       IS_NUMBER_TYPE_V<InType> && IS_NUMBER_TYPE_V<OutType> &&
       // Both have the same signed-ness.
@@ -143,6 +150,7 @@ struct IsSafeNumericCast {
       sizeof(OutType) >= sizeof(InType) &&
       // They're different types.
       !std::is_same_v<InType, OutType>;
+  /// @endcond
 };
 
 template <typename InType, typename OutType>
@@ -151,6 +159,7 @@ constexpr bool IS_SAFE_NUMERIC_CAST_V = IsSafeNumericCast<InType, OutType>::VALU
 /** True if it is a float truncation. */
 template <typename InType, typename OutType>
 struct IsFloatTruncate {
+  /** True if it is a float truncation. */
   static constexpr bool VALUE =
       // The input is an integer and the output is a float.
       (IS_INTEGER_TYPE_V<InType> && IS_FLOATING_TYPE_V<OutType>) ||
@@ -175,6 +184,7 @@ constexpr bool IS_FLOAT_TRUNCATE_V = IsFloatTruncate<InType, OutType>::VALUE;
  */
 template <typename InType>
 struct TryCast<InType, bool, std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> && !std::is_same_v<InType, bool>>> {
+  /** @return True if the cast was successful. */
   bool operator()(const InType input, bool *output) noexcept {
     *output = static_cast<bool>(input);
     return true;
@@ -193,6 +203,7 @@ struct TryCast<InType, bool, std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> &
  */
 template <typename OutType>
 struct TryCast<bool, OutType, std::enable_if_t<detail::IS_NUMBER_TYPE_V<OutType>>> {
+  /** @return True if the cast was successful. */
   bool operator()(const bool input, OutType *output) const noexcept {
     *output = static_cast<OutType>(input);
     return true;
@@ -222,6 +233,7 @@ struct TryCast<
     std::enable_if_t<
         detail::IS_NUMBER_DOWNCAST_V<InType, OutType> || detail::IS_INTEGRAL_SIGNED_TO_UNSIGNED_V<InType, OutType> ||
         detail::IS_INTEGRAL_UNSIGNED_TO_SIGNED_V<InType, OutType> || detail::IS_FLOAT_TRUNCATE_V<InType, OutType>>> {
+  /** @return True if the cast was successful. */
   bool operator()(const InType input, OutType *output) const noexcept {
     constexpr OutType k_min = std::numeric_limits<OutType>::lowest();
     constexpr OutType k_max = std::numeric_limits<OutType>::max();
@@ -240,6 +252,7 @@ template <typename InType, typename OutType>
 struct TryCast<InType, OutType,
                std::enable_if_t<detail::IS_SAFE_NUMERIC_CAST_V<InType, OutType> &&
                                 !detail::IS_NUMBER_DOWNCAST_V<InType, OutType>>> {
+  /** @return True if the cast was successful. */
   bool operator()(const InType input, OutType *output) const noexcept {
     *output = static_cast<OutType>(input);
     return true;
@@ -252,6 +265,7 @@ struct TryCast<InType, OutType,
  */
 template <typename InType>
 struct TryCast<InType, Date, std::enable_if_t<detail::IS_INTEGER_TYPE_V<InType>>> {
+  /** @return True if the cast was successful. */
   bool operator()(const InType input, Date *output) const noexcept {
     *output = Date(input);
     return true;
@@ -265,6 +279,7 @@ struct TryCast<InType, Date, std::enable_if_t<detail::IS_INTEGER_TYPE_V<InType>>
 template <typename InType>
 struct TryCast<InType, std::string,
                std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> || std::is_same_v<InType, bool>>> {
+  /** @return True if the cast was successful. */
   bool operator()(const InType input, std::string *output) const noexcept {
     *output = std::to_string(input);
     return true;
@@ -284,6 +299,7 @@ struct TryCast<InType, std::string,
 template <typename InType>
 struct TryCast<InType, std::string,
                std::enable_if_t<std::is_same_v<InType, Date> || std::is_same_v<InType, Timestamp>>> {
+  /** @return True if the cast was successful. */
   bool operator()(const InType input, std::string *output) const noexcept {
     *output = input.ToString();
     return true;
@@ -295,6 +311,7 @@ struct TryCast<InType, std::string,
  */
 template <>
 struct TryCast<Date, Timestamp> {
+  /** @return True if the cast was successful. */
   bool operator()(const Date input, Timestamp *output) const noexcept {
     *output = input.ConvertToTimestamp();
     return true;
@@ -306,6 +323,7 @@ struct TryCast<Date, Timestamp> {
  */
 template <>
 struct TryCast<Timestamp, Date> {
+  /** @return True if the cast was successful. */
   bool operator()(const Timestamp input, Date *output) const noexcept {
     *output = input.ConvertToDate();
     return true;
@@ -324,6 +342,7 @@ struct TryCast<Timestamp, Date> {
  */
 template <>
 struct TryCast<storage::VarlenEntry, bool> {
+  /** @return True if the cast was successful. */
   bool operator()(const storage::VarlenEntry &input, bool *output) const {
     const auto buf = reinterpret_cast<const char *>(input.Content());
     if (input.Size() == 0) {
@@ -346,6 +365,7 @@ struct TryCast<storage::VarlenEntry, bool> {
  */
 template <typename OutType>
 struct TryCast<storage::VarlenEntry, OutType, std::enable_if_t<detail::IS_INTEGER_TYPE_V<OutType>>> {
+  /** @return True if the cast was successful. */
   bool operator()(const storage::VarlenEntry &input, OutType *output) const {
     const auto buf = reinterpret_cast<const char *>(input.Content());
     const auto len = input.Size();
@@ -359,6 +379,7 @@ struct TryCast<storage::VarlenEntry, OutType, std::enable_if_t<detail::IS_INTEGE
  */
 template <>
 struct TryCast<storage::VarlenEntry, float> {
+  /** @return True if the cast was successful. */
   bool operator()(const storage::VarlenEntry &input, float *output) const;
 };
 
@@ -367,6 +388,7 @@ struct TryCast<storage::VarlenEntry, float> {
  */
 template <>
 struct TryCast<storage::VarlenEntry, double> {
+  /** @return True if the cast was successful. */
   bool operator()(const storage::VarlenEntry &input, double *output) const;
 };
 
@@ -375,6 +397,7 @@ struct TryCast<storage::VarlenEntry, double> {
  */
 template <>
 struct TryCast<storage::VarlenEntry, Date> {
+  /** @return True if the cast was successful. */
   bool operator()(const storage::VarlenEntry &input, Date *output) const {
     *output = Date::FromString(input.StringView().data());
     return true;
@@ -386,8 +409,8 @@ struct TryCast<storage::VarlenEntry, Date> {
  */
 template <>
 struct TryCast<storage::VarlenEntry, Timestamp> {
+  /** @return True if the cast was successful. */
   bool operator()(const storage::VarlenEntry &input, Timestamp *output) const {
-    // TODO(WAN): deepayan's stuff
     try {
       *output = Timestamp::FromString(input.StringView());
       return true;

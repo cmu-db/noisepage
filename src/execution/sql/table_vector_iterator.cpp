@@ -19,7 +19,7 @@ TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint3
                                          uint32_t num_oids)
     : exec_ctx_(exec_ctx), table_oid_(table_oid), col_oids_(col_oids, col_oids + num_oids) {}
 
-TableVectorIterator::~TableVectorIterator() {}
+TableVectorIterator::~TableVectorIterator() = default;
 
 bool TableVectorIterator::Init() {
   // No-op if already initialized
@@ -58,6 +58,8 @@ bool TableVectorIterator::Init() {
 }
 
 bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
+  // TODO(WAN): code duplication. Though it does make it pretty clear.
+
   // No-op if already initialized
   if (IsInitialized()) {
     return true;

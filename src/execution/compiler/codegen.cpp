@@ -387,7 +387,7 @@ ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_
   ast::Expr *index_oid_expr = Const32(static_cast<int32_t>(index_oid));
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
   std::vector<ast::Expr *> args{iter_ptr, exec_ctx_var, num_attrs_expr, table_oid_expr, index_oid_expr, col_oids_expr};
-  return CallBuiltin(ast::Builtin::IndexIteratorInit, std::move(args));
+  return CallBuiltin(ast::Builtin::IndexIteratorInit, args);
 }
 
 ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit) {
@@ -436,7 +436,7 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
   if (asc_scan) args.push_back(Const64(static_cast<int64_t>(asc_type)));
   if (use_limit) args.push_back(Const32(limit));
 
-  return CallBuiltin(builtin, std::move(args));
+  return CallBuiltin(builtin, args);
 }
 
 ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx) {
@@ -516,7 +516,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   ast::Expr *idx_expr = GetFactory()->NewIntLiteral(position_, attr_idx);
   if (builtin == ast::Builtin::PRSetVarlenNull || builtin == ast::Builtin::PRSetVarlen) {
     return CallBuiltin(builtin, {pr, idx_expr, val, ConstBool(own)});
-  } else {
+  } else {  // NOLINT
     return CallBuiltin(builtin, {pr, idx_expr, val});
   }
 }

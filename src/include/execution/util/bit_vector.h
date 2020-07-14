@@ -52,7 +52,7 @@ class BitVector {
   static_assert(common::MathUtil::IsPowerOf2(WORD_SIZE_BITS), "Word size in bits expected to be a power of two");
 
  public:
-  // Used to indicate an invalid bit position
+  /** Used to indicate an invalid bit position. */
   static constexpr const uint32_t INVALID_POS = std::numeric_limits<uint32_t>::max();
 
   /**
@@ -133,6 +133,7 @@ class BitVector {
   /**
    * Create a new bit vector with the specified number of bits, all initially unset.
    * @param num_bits The number of bits in the vector.
+   * @param allocator The allocator to use.
    */
   explicit BitVector(const uint32_t num_bits, Allocator allocator = Allocator())
       : num_bits_(num_bits), words_(NumNeededWords(num_bits), WordType(0), allocator) {

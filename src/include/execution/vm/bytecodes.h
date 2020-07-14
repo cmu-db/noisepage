@@ -618,7 +618,7 @@ enum class Bytecode : uint32_t {
  */
 class Bytecodes {
  public:
-  // The total number of bytecode instructions
+  /** The total number of bytecode instructions. */
   static constexpr const uint32_t BYTECODE_COUNT = static_cast<uint32_t>(Bytecode::Last) + 1;
 
   /**

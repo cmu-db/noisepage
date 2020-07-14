@@ -36,6 +36,7 @@ class UpdateTranslator : public OperatorTranslator {
   /**
    * Generate the scan.
    * @param context The context of the work.
+   * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 

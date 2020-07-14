@@ -56,6 +56,7 @@ class UnaryOperationExecutor : public common::AllStatic {
    * @tparam Op The type of the unary functor.
    * @param exec_settings The execution settings for this query.
    * @param input The input vector to read values from.
+   * @param op The operation to perform.
    * @param[out] result The output vector where the results of the unary operation are written into.
    *                    The result vector will have the same set of NULLs, selection vector, and
    *                    count as the input vector.

@@ -11,6 +11,7 @@ namespace terrier::execution::sql {
  */
 class ConstantVector : public Vector {
  public:
+  /** Create a constant vector containing the single constant value provided. */
   explicit ConstantVector(GenericValue value) : Vector(value.GetTypeId()), value_(std::move(value)) {
     Reference(&value_);
   }

@@ -29,6 +29,8 @@ class MemPoolPtr {
    * Null pointer.
    */
   MemPoolPtr() : obj_(nullptr) {}
+
+  /** Construct a memory pool. */
   explicit MemPoolPtr(std::nullptr_t) : obj_(nullptr) {}
 
   /**
@@ -151,7 +153,7 @@ class EXPORT MemoryPool {
   /**
    * Allocate @em size bytes of memory from this pool. The returned memory is not initialized.
    * @param size The number of bytes to allocate.
-   * @param clear Whether to clear the bytes before returning.
+   * @param alignment The alignment of the bytes to be allocated.
    * @return A pointer to at least @em size bytes of uninitialized memory.
    */
   void *AllocateAligned(std::size_t size, std::size_t alignment) { return AllocateAligned(size, alignment, false); }

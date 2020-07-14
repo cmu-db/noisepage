@@ -99,7 +99,9 @@ class EXPORT AggregationHashTable {
    * Small class to capture various usage stats
    */
   struct Stats {
+    /** Number of times that the hash table has grown. */
     uint64_t num_growths_ = 0;
+    /** Number of times that the hash table has been flushed. */
     uint64_t num_flushes_ = 0;
   };
 
@@ -190,6 +192,7 @@ class EXPORT AggregationHashTable {
    *
    * @param thread_states Container for all thread-local tables.
    * @param agg_ht_offset The offset in the container to find the table.
+   * @param merge_partition_fn The function to use for merging partitions.
    */
   void TransferMemoryAndPartitions(ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
                                    MergePartitionFn merge_partition_fn);
@@ -489,6 +492,7 @@ class AHTIterator {
  */
 class AHTVectorIterator {
  public:
+  /** Function that converts row-oriented aggregate data to a column-oriented vector projection. */
   using TransposeFn = void (*)(const HashTableEntry *[], uint64_t, VectorProjectionIterator *);
 
   /**

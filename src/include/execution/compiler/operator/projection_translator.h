@@ -25,6 +25,7 @@ class ProjectionTranslator : public OperatorTranslator {
   /**
    * Push the context through this operator to the next in the pipeline.
    * @param context The context.
+   * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 

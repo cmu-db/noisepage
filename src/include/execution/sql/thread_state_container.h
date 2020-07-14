@@ -112,7 +112,6 @@ class EXPORT ThreadStateContainer {
 
   /**
    * Construct a container for all thread state using the given allocator.
-   * @param exec_settings The execution settings to run with.
    * @param memory The memory allocator to use to allocate thread states.
    */
   explicit ThreadStateContainer(MemoryPool *memory);

@@ -254,6 +254,7 @@ class EXPORT JoinHashTable {
 // JoinHashTable implementation
 // ---------------------------------------------------------
 
+/** Look up the specified hash, do not use the concise hash table. */
 template <>
 inline HashTableEntryIterator JoinHashTable::Lookup<false>(const hash_t hash) const {
   HashTableEntry *entry = chaining_hash_table_.FindChainHead(hash);
@@ -263,6 +264,7 @@ inline HashTableEntryIterator JoinHashTable::Lookup<false>(const hash_t hash) co
   return HashTableEntryIterator(entry, hash);
 }
 
+/** Look up the specified hash, use the concise hash table. */
 template <>
 inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) const {
   const auto [found, idx] = concise_hash_table_.Lookup(hash);

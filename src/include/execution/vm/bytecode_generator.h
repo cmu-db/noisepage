@@ -200,7 +200,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   BytecodeEmitter emitter_;
 
   // RAII struct to capture semantics of expression evaluation
-  ExpressionResultScope *execution_result_;
+  ExpressionResultScope *execution_result_{nullptr};
 };
 
 }  // namespace terrier::execution::vm

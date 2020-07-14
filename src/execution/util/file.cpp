@@ -87,17 +87,17 @@ void File::Initialize(const std::filesystem::path &path, uint32_t flags) {
 
   if (flags & FLAG_WRITE && flags & FLAG_READ) {  // NOLINT
     open_flags |= O_RDWR;
-  } else if (flags & FLAG_WRITE) {
+  } else if (flags & FLAG_WRITE) {  // NOLINT
     open_flags |= O_WRONLY;
-  } else if (flags & FLAG_READ) {
+  } else if (flags & FLAG_READ) {  // NOLINT
     open_flags |= O_RDONLY;
-  } else if (!(flags & FLAG_READ) && !(flags & FLAG_APPEND) && !(flags & FLAG_OPEN_ALWAYS)) {
+  } else if (!(flags & FLAG_READ) && !(flags & FLAG_APPEND) && !(flags & FLAG_OPEN_ALWAYS)) {  // NOLINT
     TERRIER_ASSERT(false, "Flags must include one of Read, Append, or OpenAlways");
   }
 
   if (flags & FLAG_APPEND && flags & FLAG_READ) {  // NOLINT
     open_flags |= O_APPEND | O_RDWR;
-  } else if (flags & FLAG_APPEND) {
+  } else if (flags & FLAG_APPEND) {  // NOLINT
     open_flags |= O_APPEND | O_WRONLY;
   }
 

@@ -4,7 +4,6 @@
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector_operations/vector_operations.h"
-#include "execution/util/settings.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::sql {

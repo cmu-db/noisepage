@@ -11,7 +11,7 @@ namespace terrier::execution::sql {
  * A static data whose type is known at compile-time and whose vector data is directly inlined into
  * the class's memory, thus avoiding an allocation. This is appropriate for stack-allocations.
  * Upon construction, the capacity, size, and count of the vector is equal to default vector size
- * sourced from ::common::Constants::K_DEFAULT_VECTOR_SIZE, usually 2048 elements.
+ * sourced from DEFAULT_VECTOR_SIZE, usually 2048 elements.
  * @tparam T The primitive type of the vector.
  */
 template <typename T>

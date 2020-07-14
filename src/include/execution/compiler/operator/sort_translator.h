@@ -53,14 +53,16 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   /**
    * If the given pipeline is for the build-size and is parallel, initialize the thread-local sorter
    * instance we declared inside.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline The current pipeline..
+   * @param function The pipeline generating function.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * If the given pipeline is for the build-size and is parallel, destroy the thread-local sorter
    * instance we declared inside.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
   void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
@@ -68,7 +70,7 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
    * Implement either the build-side or scan-side of the sort depending on the pipeline this context
    * contains.
    * @param ctx The context of the work.
-   * @param The pipeline function generator.
+   * @param function The pipeline function generator.
    */
   void PerformPipelineWork(WorkContext *ctx, FunctionBuilder *function) const override;
 
@@ -76,7 +78,8 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
    * If the given pipeline is for the build-side, we'll need to issue a sort. If the pipeline is
    * parallel, we'll issue a parallel sort. If the sort is only for a top-k, we'll also only issue
    * a top-k sort.
-   * @param pipeline_context The pipeline context.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
   void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 

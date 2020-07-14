@@ -544,7 +544,7 @@ class ExpressionUtil {
   }
 
   /**
-   * @return True if the given expression is of the form: col <op> const_val. False otherwise.
+   * @return True if the given expression is of the form: col op const_val. False otherwise.
    */
   static bool IsColumnCompareWithConst(const parser::AbstractExpression &expr) {
     if (expr.GetChildrenSize() != 2) {
@@ -556,7 +556,7 @@ class ExpressionUtil {
   }
 
   /**
-   * @return True if the given expression is of the form: col <op> param_val. False otherwise.
+   * @return True if the given expression is of the form: col op param_val. False otherwise.
    */
   static bool IsColumnCompareWithParam(const parser::AbstractExpression &expr) {
     if (expr.GetChildrenSize() != 2) {
@@ -568,7 +568,7 @@ class ExpressionUtil {
   }
 
   /**
-   * @return True if the given expression is of the form: const <op> col. False otherwise.
+   * @return True if the given expression is of the form: const op col. False otherwise.
    */
   static bool IsConstCompareWithColumn(const parser::AbstractExpression &expr) {
     if (expr.GetChildrenSize() != 2) {

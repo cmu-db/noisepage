@@ -467,14 +467,17 @@ class FastDoubleParser {
   }
 
  public:
+  /** @return True if the parse was successful. */
   really_inline static bool ParseNumber(const char *p, double *outDouble) {
     return ParseNumberBase<'.', ','>(p, outDouble);
   }
 
+  /** @return True if the parse was successful. */
   really_inline static bool ParseNumberDecimalSeparatorDot(const char *p, double *outDouble) {
     return ParseNumberBase<'.'>(p, outDouble);
   }
 
+  /** @return True if the parse was successful. */
   really_inline static bool ParseNumberDecimalSeparatorComma(const char *p, double *outDouble) {
     return ParseNumberBase<','>(p, outDouble);
   }

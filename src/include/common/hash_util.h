@@ -26,9 +26,10 @@ using hash_t = uint64_t;
  * for longer buffers (strings, c-strings, and opaque buffers).
  */
 class EXPORT HashUtil : public common::AllStatic {
- public:
+ private:
   static const hash_t PRIME_FACTOR = 10000019;
 
+ public:
   /**
    * Hashes length number of bytes.
    * Source:

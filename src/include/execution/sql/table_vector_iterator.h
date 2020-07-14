@@ -55,6 +55,12 @@ class EXPORT TableVectorIterator {
    */
   bool Init();
 
+  /**
+   * Initialize the iterator over a chunk of blocks [start, end), returning true if the iteration succeeded.
+   * @param block_start The starting block to iterate at.
+   * @param block_end The ending block to stop iterating at, non-inclusive.
+   * @return True if the initialization succeeded; false otherwise.
+   */
   bool Init(uint32_t block_start, uint32_t block_end);
 
   /**
@@ -75,10 +81,12 @@ class EXPORT TableVectorIterator {
 
   /**
    * Scan function callback used to scan a partition of the table.
-   * Convention: First argument is the opaque query state, second argument is the thread state,
-   *             third argument is the table vector iterator configured to iterate a sub-range of
-   *             the table, fourth argument is the execution context. The first two arguments are void because their
-   * types are only known at runtime (i.e., defined in generated code).
+   * Convention: First argument is the opaque query state,
+   *             second argument is the thread state,
+   *             third argument is the table vector iterator configured to iterate a sub-range of the table,
+   *             fourth argument is the execution context.
+   *             The first two arguments are void because their types are only known at runtime
+   *             (i.e., defined in generated code).
    */
   using ScanFn = void (*)(void *, void *, TableVectorIterator *iter, exec::ExecutionContext *);
 
@@ -87,7 +95,7 @@ class EXPORT TableVectorIterator {
    * @em scanner on each input vector projection from the source table. This call is blocking,
    * meaning that it only returns after the whole table has been scanned. Iteration order is
    * non-deterministic.
-   * @param table_id The ID of the table to scan.
+   * @param table_oid The ID of the table to scan.
    * @param col_oids The column OIDs of the table to scan.
    * @param num_oids The number of column OIDs provided in col_oids.
    * @param query_state An opaque pointer to some query-specific state. Passed to scan functions.
@@ -95,8 +103,6 @@ class EXPORT TableVectorIterator {
    *                 ThreadStateContainer for all thread states, where it is assumed that the
    *                 container has been configured for size, construction, and destruction
    *                 before this invocation.
-   * @param thread_states Container for all thread states. It's assumed that the container has been
-   *                      configured for size, construction, and destruction before this invocation.
    * @param scan_fn The callback function invoked for vectors of table input.
    * @param min_grain_size The minimum number of blocks to give a scan task.
    */

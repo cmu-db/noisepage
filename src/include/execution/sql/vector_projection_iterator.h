@@ -230,6 +230,7 @@ class VectorProjectionIterator {
   /**
    * Run a functor simultaneously over all active tuples in all provided input iterators.
    * @tparam F Functor whose signature is equivalent to: <code>void f();</code>
+   * @param iters The iterators to run the functor over.
    * @param f A callback functor.
    */
   template <typename F>
@@ -277,27 +278,33 @@ class VectorProjectionIterator {
   }
 
  public:
-  // The vector projection we're iterating over.
+  /** The vector projection we're iterating over. */
   VectorProjection *vector_projection_{nullptr};
 
-  // The list of TIDs to iterate over in the projection. This list is also
-  // updated when iteration is filtered.
+  /**
+   * The list of TIDs to iterate over in the projection.
+   * This list is also updated when iteration is filtered.
+   */
   TupleIdList *tid_list_{nullptr};
 
-  // The selection vector used to filter the vector projection. This is a
-  // materialized copy of the vector projection's tuple ID list! Because it's a
-  // cached copy, VPI ensures the two are kept in sync.
+  /**
+   * The selection vector used to filter the vector projection.
+   * This is a materialized copy of the vector projection's tuple ID list!
+   * Because it's a cached copy, VPI ensures the two are kept in sync.
+   */
   SelectionVector sel_vector_{0};
 
-  // The number of elements in the projection. If filtered, size is the number
-  // of elements in the selection vector. Otherwise, it is the total number of
-  // elements in the vector projection.
+  /**
+   * The number of elements in the projection.
+   * If filtered, size is the number of elements in the selection vector.
+   * Otherwise, it is the total number of elements in the vector projection.
+   */
   sel_t size_{0};
 
-  // The next slot in the selection vector to read from.
+  /** The next slot in the selection vector to read from. */
   sel_t sel_vector_read_idx_{0};
 
-  // The next slot in the selection vector to write into.
+  /** The next slot in the selection vector to write into. */
   sel_t sel_vector_write_idx_{0};
 };
 
@@ -323,7 +330,7 @@ inline const T *VectorProjectionIterator::GetValue(uint32_t col_idx, bool *null)
   // The current position in the projection.
   const sel_t curr_idx = GetPosition();
 
-  if constexpr (Nullable) {
+  if constexpr (Nullable) {  // NOLINT
     TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
     *null = col_vector->null_mask_[curr_idx];
   }
@@ -349,7 +356,7 @@ inline void VectorProjectionIterator::SetValue(uint32_t col_idx, const T val, bo
     if (!null) {
       reinterpret_cast<T *>(col_vector->data_)[curr_idx] = val;
     }
-  } else {
+  } else {  // NOLINT
     reinterpret_cast<T *>(col_vector->data_)[curr_idx] = val;
   }
 }

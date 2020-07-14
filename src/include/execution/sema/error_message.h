@@ -98,13 +98,16 @@ enum class ErrorMessageId : uint16_t {
 #undef F
 };
 
-/// A templated struct that captures the ID of an error message and the C++
-/// argument types that must be supplied when the error is reported. The
-/// template arguments allow us to ensure not only that all arguments to the
-/// given error messages are provided, but also that they have the expected
-/// types
+/**
+ * A templated struct that captures the ID of an error message and
+ * the C++ argument types that must be supplied when the error is reported.
+ * The template arguments allow us to ensure not only that all arguments to
+ * the given error messages are provided, but also that they have the
+ * expected types.
+ */
 template <typename... ArgTypes>
 struct ErrorMessage {
+  /** The ID of the error message. */
   const ErrorMessageId id_;
 };
 

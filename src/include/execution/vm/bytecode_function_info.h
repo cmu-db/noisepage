@@ -237,7 +237,7 @@ class FunctionInfo {
   /**
    * Lookup the information for a local variable in this function by the variable's offset in the
    * function's execution frame.
-   * @param local The offset in bytes of the local.
+   * @param offset The offset in bytes of the local.
    * @return A possible nullptr to the local's information.
    */
   const LocalInfo *LookupLocalInfoByOffset(uint32_t offset) const;

@@ -24,6 +24,7 @@ template <typename> struct NotEqual;
  */
 template <typename T>
 struct Equal {
+  /** The symmetric operation for equality is itself. */
   using SymmetricOp = Equal<T>;
 
   /**
@@ -37,6 +38,7 @@ struct Equal {
  */
 template <typename T>
 struct GreaterThan {
+  /** The symmetric operation for greater than is less than. */
   using SymmetricOp = LessThan<T>;
 
   /**
@@ -50,6 +52,7 @@ struct GreaterThan {
  */
 template <typename T>
 struct GreaterThanEqual {
+  /** The symmetric operation for greater than equal is less than equal. */
   using SymmetricOp = LessThanEqual<T>;
 
   /**
@@ -63,6 +66,7 @@ struct GreaterThanEqual {
  */
 template <typename T>
 struct LessThan {
+  /** The symmetric operation for less than is greater than. */
   using SymmetricOp = GreaterThan<T>;
 
   /**
@@ -76,6 +80,7 @@ struct LessThan {
  */
 template <typename T>
 struct LessThanEqual {
+  /** The symmetric operation for less than equal is greater than equal. */
   using SymmetricOp = GreaterThanEqual<T>;
 
   /**
@@ -89,6 +94,7 @@ struct LessThanEqual {
  */
 template <typename T>
 struct NotEqual {
+  /** The symmetric operation for not equal is not equal. */
   using SymmetricOp = NotEqual<T>;
 
   /**

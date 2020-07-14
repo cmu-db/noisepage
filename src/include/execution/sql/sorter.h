@@ -40,7 +40,7 @@ class VectorProjectionIterator;
  *
  * Sorters also support efficient Top-K. To use the Top-K functionality, users should use pairs of
  * Sorter::AllocInputTupleTopK() and Sorter::AllocInputTupleTopKFinish() before and after
- * </b>each</b> insertion, providing the size of K in each invocation. After all insertions
+ * <b>each</b> insertion, providing the size of K in each invocation. After all insertions
  * complete, the results of Sorter::Sort() will contain only Top-K elements.
  *
  * @code
@@ -277,6 +277,7 @@ class SorterIterator {
  */
 class SorterVectorIterator {
  public:
+  /** Function that converts row-oriented aggregate data to a column-oriented vector projection. */
   using TransposeFn = void (*)(const byte **, uint64_t, VectorProjectionIterator *);
 
   /**
