@@ -273,6 +273,12 @@ namespace terrier::execution::vm {
   F(GreaterThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(EqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(NotEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(LessThanEqualTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                               \
+  F(GreaterThanTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(GreaterThanEqualTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(EqualTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(NotEqualTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
                                                                                                                       \
   /* SQL value unary operations */                                                                                    \
   F(AbsInteger, OperandType::Local, OperandType::Local)                                                               \

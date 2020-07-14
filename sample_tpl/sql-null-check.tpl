@@ -14,7 +14,7 @@ fun main(execCtx: *ExecutionContext) -> int {
         var vpi = @tableIterGetVPI(&tvi)
         for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
             var cola = @vpiGetInt(vpi, 0)
-            if (@isSqlNull(cola)) {
+            if (@isValNull(cola)) {
                 ret = ret + 1
             }
         }

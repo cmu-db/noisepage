@@ -2820,6 +2820,9 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
     case ast::BuiltinType::Kind::Date:                                  \
       CODE_RESULT = Bytecode::COMPARISON_TYPE##Date;                    \
       break;                                                            \
+    case ast::BuiltinType::Kind::Timestamp:                             \
+      CODE_RESULT = Bytecode::COMPARISON_TYPE##Timestamp;               \
+      break;                                                            \
     case ast::BuiltinType::Kind::StringVal:                             \
       CODE_RESULT = Bytecode::COMPARISON_TYPE##String;                  \
       break;                                                            \
