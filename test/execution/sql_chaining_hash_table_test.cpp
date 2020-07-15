@@ -3,9 +3,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "execution/sql/chaining_hash_table.h"
 #include "execution/tpl_test.h"
-#include "execution/util/hash.h"
 
 namespace terrier::execution::sql::test {
 
@@ -20,7 +20,7 @@ struct TestEntry : public HashTableEntry {
 
   TestEntry(uint32_t key, uint32_t value) : HashTableEntry(), key(key), value(value) { hash_ = Hash(); }
 
-  hash_t Hash() { return util::Hasher::Hash(key); }
+  hash_t Hash() { return common::HashUtil::Hash(key); }
 
   bool Eq(const TestEntry &that) const { return hash_ == that.hash_ && key == that.key && value == that.value; }
 

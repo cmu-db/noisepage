@@ -1,3 +1,4 @@
+#if 0
 #include "execution/sql/column_vector_iterator.h"
 #include "execution/sql_test.h"
 
@@ -77,3 +78,4 @@ TEST_F(ColumnIteratorTest, IntegerIterationTest) {
 }
 
 }  // namespace terrier::execution::sql::test
+#endif

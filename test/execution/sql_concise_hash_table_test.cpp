@@ -1,10 +1,10 @@
 #include <random>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/macros.h"
 #include "execution/sql/concise_hash_table.h"
 #include "execution/tpl_test.h"
-#include "execution/util/hash.h"
 
 namespace terrier::execution::sql::test {
 

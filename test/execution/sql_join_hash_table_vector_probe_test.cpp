@@ -1,6 +1,7 @@
 #include <random>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/join_hash_table_vector_probe.h"
@@ -8,7 +9,6 @@
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/tpl_test.h"
-#include "execution/util/hash.h"
 
 namespace terrier::execution::sql::test {
 
@@ -20,7 +20,7 @@ struct BuildRow {
   BuildRow(uint64_t key, uint64_t val_1, uint64_t val_2, uint64_t val_3)
       : key(key), val1(val_1), val2(val_2), val3(val_3) {}
   // Hash.
-  hash_t Hash() const { return util::Hasher::HashCrc(key); }
+  hash_t Hash() const { return common::HashUtil::HashCrc(key); }
 };
 
 // Build a join hash table over the given input data.
@@ -44,7 +44,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
 
 TEST_F(JoinHashTableVectorProbeTest, EmptyJoinProbe) {
   exec::ExecutionSettings exec_settings{};
-  JoinHashTable table(&exec_settings, Memory(), sizeof(BuildRow));
+  JoinHashTable table(exec_settings, Memory(), sizeof(BuildRow));
   BuildJHT(&table, {});
 
   // The input to the probe.
@@ -92,7 +92,7 @@ TEST_F(JoinHashTableVectorProbeTest, SimpleJoinProbe) {
   for (uint32_t i = 0; i < num_44_dups - 1; i++) rows.emplace_back(44);
 
   // Build table.
-  JoinHashTable table(&exec_settings, Memory(), sizeof(BuildRow));
+  JoinHashTable table(exec_settings, Memory(), sizeof(BuildRow));
   BuildJHT(&table, rows);
 
   // The input to the probe.

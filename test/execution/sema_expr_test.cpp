@@ -10,7 +10,7 @@ namespace terrier::execution::sema::test {
 
 class SemaExprTest : public TplTest, public ast::test::TestAstBuilder {
  public:
-  void ResetErrorReporter() { error_reporter()->Reset(); }
+  void ResetErrorReporter() { ErrorReporter()->Reset(); }
 };
 
 struct TestCase {
@@ -41,7 +41,7 @@ TEST_F(SemaExprTest, LogicalOperationTest) {
   };
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
+    Sema sema(Ctx());
     bool has_errors = sema.Run(test.tree);
     EXPECT_EQ(test.has_errors, has_errors) << test.msg;
     ResetErrorReporter();
@@ -81,7 +81,7 @@ TEST_F(SemaExprTest, ComparisonOperationWithImplicitCastTest) {
   // clang-format on
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
+    Sema sema(Ctx());
     bool has_errors = sema.Run(test.tree);
     EXPECT_EQ(test.has_errors, has_errors) << test.msg;
     ResetErrorReporter();
@@ -130,7 +130,7 @@ TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
   // clang-format on
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
+    Sema sema(Ctx());
     bool has_errors = sema.Run(test.tree);
     EXPECT_EQ(test.has_errors, has_errors) << test.msg;
     ResetErrorReporter();
@@ -178,7 +178,7 @@ TEST_F(SemaExprTest, ArrayIndexTest) {
   // clang-format on
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
+    Sema sema(Ctx());
     bool has_errors = sema.Run(test.tree);
     EXPECT_EQ(test.has_errors, has_errors) << test.msg;
     ResetErrorReporter();

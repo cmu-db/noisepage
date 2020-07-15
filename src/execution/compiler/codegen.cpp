@@ -429,7 +429,6 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
 
   if (!use_limit && !asc_scan) return CallBuiltin(builtin, {AddressOf(iter)});
 
-  //  ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *iter_ptr = AddressOf(iter);
   std::vector<ast::Expr *> args{iter_ptr};
 
@@ -516,9 +515,8 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   ast::Expr *idx_expr = GetFactory()->NewIntLiteral(position_, attr_idx);
   if (builtin == ast::Builtin::PRSetVarlenNull || builtin == ast::Builtin::PRSetVarlen) {
     return CallBuiltin(builtin, {pr, idx_expr, val, ConstBool(own)});
-  } else {  // NOLINT
-    return CallBuiltin(builtin, {pr, idx_expr, val});
   }
+  return CallBuiltin(builtin, {pr, idx_expr, val});
 }
 
 // ---------------------------------------------------------

@@ -1,11 +1,11 @@
 #include <random>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/tpl_test.h"
-#include "execution/util/hash.h"
 #include "tbb/tbb.h"
 
 // TODO(WAN): can't FRIEND_TEST unless in the same namespace
@@ -15,7 +15,7 @@ namespace terrier::execution::sql {
 struct Tuple {
   uint64_t a, b, c, d;
 
-  hash_t Hash() const { return util::Hasher::Hash(a); }
+  hash_t Hash() const { return common::HashUtil::Hash(a); }
 };
 
 class JoinHashTableTest : public TplTest {
@@ -47,7 +47,7 @@ TEST_F(JoinHashTableTest, LazyInsertionTest) {
     }
   }
 
-  JoinHashTable join_hash_table(&exec_settings, memory(), sizeof(Tuple));
+  JoinHashTable join_hash_table(exec_settings, memory(), sizeof(Tuple));
 
   // The table
   for (const auto &tuple : tuples) {
@@ -92,7 +92,7 @@ void BuildAndProbeTest(uint32_t num_tuples, uint32_t dup_scale_factor) {
   //
 
   MemoryPool memory(nullptr);
-  JoinHashTable join_hash_table(&exec_settings, &memory, sizeof(Tuple), UseCHT);
+  JoinHashTable join_hash_table(exec_settings, &memory, sizeof(Tuple), UseCHT);
 
   //
   // Populate
@@ -155,15 +155,22 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
   const uint32_t num_thread_local_tables = 4;
 
   MemoryPool memory(nullptr);
-  ThreadStateContainer container(&exec_settings, &memory);
+  ThreadStateContainer container(&memory);
+
+  struct Context {
+    MemoryPool *memory_;
+    exec::ExecutionSettings *settings_;
+  };
+
+  Context ctx{&memory, &exec_settings};
 
   container.Reset(
       sizeof(JoinHashTable),
-      [](auto *exec_settings, auto *ctx, auto *s) {
-        new (s) JoinHashTable(*reinterpret_cast<exec::ExecutionSettings *>(exec_settings),
-                              reinterpret_cast<MemoryPool *>(ctx), sizeof(Tuple), use_concise_ht);
+      [](auto *ctx, auto *s) {
+        auto context = reinterpret_cast<Context *>(ctx);
+        new (s) JoinHashTable(*context->settings_, context->memory_, sizeof(Tuple), use_concise_ht);
       },
-      [](auto *ctx, auto *s) { reinterpret_cast<JoinHashTable *>(s)->~JoinHashTable(); }, &memory);
+      [](auto *ctx, auto *s) { reinterpret_cast<JoinHashTable *>(s)->~JoinHashTable(); }, &ctx);
 
   // Parallel populate each of the thread-local hash tables
   LaunchParallel(num_thread_local_tables, [&](auto tid) {
@@ -171,7 +178,7 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
     PopulateJoinHashTable(jht, num_tuples, 1);
   });
 
-  JoinHashTable main_jht(&exec_settings, &memory, sizeof(Tuple), false);
+  JoinHashTable main_jht(exec_settings, &memory, sizeof(Tuple), false);
   main_jht.MergeParallel(&container, 0);
 
   // Each of the thread-local tables inserted the same data, i.e., tuples whose
@@ -211,7 +218,7 @@ TEST_F(JoinHashTableTest, PerfTest) {
     for (uint32_t i = 0; i < num_tuples; i++) {
       auto key = random();
       auto *tuple = reinterpret_cast<Tuple *>(
-          join_hash_table.AllocInputTuple(util::Hasher::Hash(key)));
+          join_hash_table.AllocInputTuple(common::HashUtil::Hash(key)));
 
       tuple->a = key;
       tuple->b = i + 1;

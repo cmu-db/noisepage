@@ -21,16 +21,16 @@ using namespace std::chrono_literals;  // NOLINT
 TEST_F(FilterManagerTest, ConjunctionTest) {
   auto exec_ctx = MakeExecCtx();
   // Create a filter that implements: colA < 500 AND colB < 9
-  FilterManager filter{*exec_ctx->GetExecutionSettings()};
+  FilterManager filter{exec_ctx->GetExecutionSettings()};
   filter.StartNewClause();
   filter.InsertClauseTerms({[](auto exec_ctx, auto vp, auto tids, auto ctx) {
                               VectorFilterExecutor::SelectLessThanVal(
-                                  *reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp,
+                                  reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp,
                                   Col::A, GenericValue::CreateInteger(500), tids);
                             },
                             [](auto exec_ctx, auto vp, auto tids, auto ctx) {
                               VectorFilterExecutor::SelectLessThanVal(
-                                  *reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp,
+                                  reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp,
                                   Col::B, GenericValue::CreateInteger(9), tids);
                             }});
 
@@ -58,17 +58,17 @@ TEST_F(FilterManagerTest, ConjunctionTest) {
 TEST_F(FilterManagerTest, DisjunctionTest) {
   auto exec_ctx = MakeExecCtx();
   // Create a filter that implements: colA < 500 OR colB < 9
-  FilterManager filter{*exec_ctx->GetExecutionSettings()};
+  FilterManager filter{exec_ctx->GetExecutionSettings()};
   filter.StartNewClause();
   filter.InsertClauseTerm([](auto exec_ctx, auto vp, auto tids, auto ctx) {
     VectorFilterExecutor::SelectLessThanVal(
-        *reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::A,
+        reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::A,
         GenericValue::CreateInteger(500), tids);
   });
   filter.StartNewClause();
   filter.InsertClauseTerm([](auto exec_ctx, auto vp, auto tids, auto ctx) {
     VectorFilterExecutor::SelectLessThanVal(
-        *reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::B,
+        reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::B,
         GenericValue::CreateInteger(9), tids);
   });
 
@@ -98,11 +98,11 @@ TEST_F(FilterManagerTest, MixedTaatVaatFilterTest) {
   // Create a filter that implements: colA < 500 AND colB < 9
   // The filter on column colB is implemented using a tuple-at-a-time filter.
   // Thus, the filter is a mixed VaaT and TaaT filter.
-  FilterManager filter{*exec_ctx->GetExecutionSettings()};
+  FilterManager filter{exec_ctx->GetExecutionSettings()};
   filter.StartNewClause();
   filter.InsertClauseTerms({[](auto exec_ctx, auto vp, auto tids, auto ctx) {
                               VectorFilterExecutor::SelectLessThanVal(
-                                  *reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp,
+                                  reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp,
                                   Col::A, GenericValue::CreateInteger(500), tids);
                             },
                             [](auto exec_ctx, auto vp, auto tids, auto ctx) {
@@ -136,7 +136,7 @@ TEST_F(FilterManagerTest, AdaptiveCheckTest) {
   uint32_t iter = 0;
 
   // Create a filter that implements: colA < 500 AND colB < 9
-  FilterManager filter(*exec_ctx->GetExecutionSettings(), true, &iter);
+  FilterManager filter(exec_ctx->GetExecutionSettings(), true, &iter);
   filter.StartNewClause();
   filter.InsertClauseTerms(
       {[](auto exec_ctx, auto vp, auto tids, auto ctx) {
@@ -144,14 +144,14 @@ TEST_F(FilterManagerTest, AdaptiveCheckTest) {
          if (*r < 100) std::this_thread::sleep_for(1us);  // Fake a sleep.
          const auto val = GenericValue::CreateInteger(500);
          VectorFilterExecutor::SelectLessThanVal(
-             *reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::A, val, tids);
+             reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::A, val, tids);
        },
        [](auto exec_ctx, auto vp, auto tids, auto ctx) {
          auto *r = reinterpret_cast<uint32_t *>(ctx);
          if (*r > 100) std::this_thread::sleep_for(1us);  // Fake a sleep.
          const auto val = GenericValue::CreateInteger(9);
          VectorFilterExecutor::SelectLessThanVal(
-             *reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::B, val, tids);
+             reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::B, val, tids);
        }});
 
   // Create some random data.

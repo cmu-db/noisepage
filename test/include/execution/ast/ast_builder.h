@@ -13,16 +13,13 @@ namespace terrier::execution::ast::test {
 
 class TestAstBuilder {
  public:
-  /** Constructor. */
   TestAstBuilder() : region_("test_ast_builder"), error_reporter_(&region_), ctx_(&region_, &error_reporter_) {}
 
-  /** @return The AST context. */
-  Context *ctx() { return &ctx_; }
+  Context *Ctx() { return &ctx_; }
 
-  /** */
-  sema::ErrorReporter *error_reporter() { return &error_reporter_; }
+  sema::ErrorReporter *ErrorReporter() { return &error_reporter_; }
 
-  Identifier Ident(const std::string &s) { return ctx()->GetIdentifier(s); }
+  Identifier Ident(const std::string &s) { return Ctx()->GetIdentifier(s); }
 
   Expr *IdentExpr(Identifier ident) { return node_factory()->NewIdentifierExpr(empty_, ident); }
 
@@ -62,7 +59,7 @@ class TestAstBuilder {
   }
 
   StructDecl *DeclStruct(Identifier name, std::initializer_list<ast::FieldDecl *> fields) {
-    util::RegionVector<FieldDecl *> f(fields.begin(), fields.end(), ctx()->GetRegion());
+    util::RegionVector<FieldDecl *> f(fields.begin(), fields.end(), Ctx()->GetRegion());
     ast::StructTypeRepr *type = node_factory()->NewStructType(empty_, std::move(f));
     return node_factory()->NewStructDecl(empty_, name, type);
   }
@@ -72,7 +69,7 @@ class TestAstBuilder {
   Stmt *DeclStmt(Decl *decl) { return node_factory()->NewDeclStmt(decl); }
 
   Stmt *Block(std::initializer_list<Stmt *> stmts) {
-    util::RegionVector<Stmt *> region_stmts(stmts.begin(), stmts.end(), ctx()->GetRegion());
+    util::RegionVector<Stmt *> region_stmts(stmts.begin(), stmts.end(), Ctx()->GetRegion());
     return node_factory()->NewBlockStmt(empty_, empty_, std::move(region_stmts));
   }
 
@@ -82,7 +79,7 @@ class TestAstBuilder {
 
   template <BuiltinType::Kind BUILTIN>
   Expr *BuiltinTypeRepr() {
-    return IdentExpr(BuiltinType::Get(ctx(), BUILTIN)->GetTplName());
+    return IdentExpr(BuiltinType::Get(Ctx(), BUILTIN)->GetTplName());
   }
 
   Expr *PrimIntTypeRepr() { return BuiltinTypeRepr<BuiltinType::Int32>(); }
@@ -100,17 +97,17 @@ class TestAstBuilder {
   template <Builtin BUILTIN, typename... Args>
   CallExpr *Call(Args... args) {
     auto fn = IdentExpr(Builtins::GetFunctionName(BUILTIN));
-    auto call_args = util::RegionVector<Expr *>({std::forward<Args>(args)...}, ctx()->GetRegion());
+    auto call_args = util::RegionVector<Expr *>({std::forward<Args>(args)...}, Ctx()->GetRegion());
     return node_factory()->NewBuiltinCallExpr(fn, std::move(call_args));
   }
 
   File *GenFile(std::initializer_list<ast::Decl *> decls) {
-    util::RegionVector<Decl *> d(decls.begin(), decls.end(), ctx()->GetRegion());
+    util::RegionVector<Decl *> d(decls.begin(), decls.end(), Ctx()->GetRegion());
     return node_factory()->NewFile(empty_, std::move(d));
   }
 
  private:
-  AstNodeFactory *node_factory() { return ctx()->GetNodeFactory(); }
+  AstNodeFactory *node_factory() { return Ctx()->GetNodeFactory(); }
 
  private:
   util::Region region_;

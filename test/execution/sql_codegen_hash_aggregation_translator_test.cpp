@@ -1,8 +1,5 @@
-#include "util/sql_test_harness.h"
-
+#if 0
 #include <memory>
-
-#include "tbb/tbb.h"
 
 #include "sql/catalog.h"
 #include "sql/codegen/compilation_context.h"
@@ -13,7 +10,8 @@
 #include "sql/printing_consumer.h"
 #include "sql/schema.h"
 #include "sql/table.h"
-
+#include "tbb/tbb.h"
+#include "util/sql_test_harness.h"
 #include "vm/llvm_engine.h"
 
 // Tests
@@ -103,3 +101,4 @@ TEST_F(HashAggregationTranslatorTest, SimpleAggregateTest) {
 }
 
 }  // namespace tpl::sql::codegen
+#endif

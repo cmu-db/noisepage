@@ -318,7 +318,6 @@ if (${CLANG_TIDY_FOUND})
             ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
             -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
             -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
-            -j 2
             )
     if (TERRIER_BUILD_BENCHMARKS)
         add_dependencies(check-clang-tidy benchmark gtest gflags)               # clang-tidy needs their headers to exist

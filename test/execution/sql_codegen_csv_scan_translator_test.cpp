@@ -1,48 +1,43 @@
-#include "util/sql_test_harness.h"
-
+#if 0
 #include <memory>
 
+#include "catalog/schema.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/expression_maker.h"
+#include "execution/compiler/output_checker.h"
+#include "execution/compiler/output_schema_util.h"
+#include "execution/exec/execution_context.h"
+#include "execution/sql_test.h"
+#include "execution/vm/llvm_engine.h"
+#include "planner/plannodes/csv_scan_plan_node.h"
 #include "tbb/tbb.h"
 
-#include "sql/codegen/compilation_context.h"
-#include "sql/execution_context.h"
-#include "sql/planner/plannodes/csv_scan_plan_node.h"
-#include "sql/printing_consumer.h"
-#include "sql/schema.h"
-
-#include "vm/llvm_engine.h"
-
-// Tests
-#include "sql/codegen/output_checker.h"
-#include "sql/planner/expression_maker.h"
-#include "sql/planner/output_schema_util.h"
-
-namespace tpl::sql::codegen {
+namespace terrier::execution::sql::codegen::test {
 
 using namespace std::chrono_literals;  // NOLINT
 
 class CSVScanTranslatorTest : public SqlBasedTest {
  protected:
   void SetUp() override { SqlBasedTest::SetUp(); }
-  static void SetUpTestSuite() { tpl::vm::LLVMEngine::Initialize(); }
-  static void TearDownTestSuite() { tpl::vm::LLVMEngine::Shutdown(); }
+  static void SetUpTestSuite() { terrier::execution::vm::LLVMEngine::Initialize(); }
+  static void TearDownTestSuite() { terrier::execution::vm::LLVMEngine::Shutdown(); }
 
  private:
   tbb::task_scheduler_init anonymous_;
 };
 
 TEST_F(CSVScanTranslatorTest, ManyTypesTest) {
-  planner::ExpressionMaker expr_maker;
+  compiler::test::ExpressionMaker expr_maker;
 
   std::unique_ptr<planner::AbstractPlanNode> csv_scan;
-  planner::OutputSchemaHelper seq_scan_out(&expr_maker, 0);
+  compiler::test::OutputSchemaHelper seq_scan_out(0, &expr_maker);
   {
-    auto col1 = expr_maker.CVE(0, sql::TypeId::TinyInt);
-    auto col2 = expr_maker.CVE(1, sql::TypeId::SmallInt);
-    auto col3 = expr_maker.CVE(2, sql::TypeId::Integer);
-    auto col4 = expr_maker.CVE(3, sql::TypeId::BigInt);
-    auto col5 = expr_maker.CVE(4, sql::TypeId::Float);
-    auto col6 = expr_maker.CVE(5, sql::TypeId::Varchar);
+    auto col1 = expr_maker.CVE(catalog::col_oid_t(0), type::TypeId::TINYINT);
+    auto col2 = expr_maker.CVE(catalog::col_oid_t(1), type::TypeId::SMALLINT);
+    auto col3 = expr_maker.CVE(catalog::col_oid_t(2), type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(catalog::col_oid_t(3), type::TypeId::BIGINT);
+    auto col5 = expr_maker.CVE(catalog::col_oid_t(4), type::TypeId::DECIMAL);
+    auto col6 = expr_maker.CVE(catalog::col_oid_t(5), type::TypeId::VARCHAR);
 
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
@@ -64,7 +59,7 @@ TEST_F(CSVScanTranslatorTest, ManyTypesTest) {
   // 1. There should be only one output.
   // 2. The count should be size of the table.
   // 3. The sum should be sum from [1,N] where N=num_tuples.
-  MultiChecker multi_checker({});
+  compiler::test::MultiChecker multi_checker({});
 
   // Compile and Run
   OutputCollectorAndChecker store(&multi_checker, csv_scan->GetOutputSchema());
@@ -80,4 +75,5 @@ TEST_F(CSVScanTranslatorTest, ManyTypesTest) {
   multi_checker.CheckCorrectness();
 }
 
-}  // namespace tpl::sql::codegen
+}  // namespace terrier::execution::sql::codegen::test
+#endif

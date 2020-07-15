@@ -420,15 +420,20 @@ class VarlenEntry {
     TERRIER_ASSERT(right.Size() >= 0, "Right VarlenEntry has negative size?");
 
     // Compare the size and prefix in one fell swoop, ignoring the sign bit indicating reclaimability.
-    if (std::memcmp(reinterpret_cast<const char *>(&left) + 1, reinterpret_cast<const char *>(&right) + 1,
-                    sizeof(left.size_) + PrefixSize() - 1) == 0) {
+    uint8_t left_first = *reinterpret_cast<const uint8_t *>(&left);
+    uint8_t right_first = *reinterpret_cast<const uint8_t *>(&right);
+    bool first_byte_same = (left_first << 1) == (right_first << 1);
+    bool following_bytes_same =
+        0 == std::memcmp(reinterpret_cast<const char *>(&left) + 1, reinterpret_cast<const char *>(&right) + 1,
+                         sizeof(left.size_) + PrefixSize() - 1);
+    if (first_byte_same && following_bytes_same) {
       // Prefix and length are equal.
       if (left.IsInlined()) {
         if (std::memcmp(left.prefix_, right.prefix_, PrefixSize()) == 0) {
           return EqualityCheck ? true : false;
         }
       } else {
-        if (std::memcmp(left.content_, right.content_, left.Size() - PrefixSize()) == 0) {
+        if (std::memcmp(left.content_, right.content_, left.Size()) == 0) {
           return EqualityCheck ? true : false;
         }
       }

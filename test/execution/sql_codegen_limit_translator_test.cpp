@@ -1,3 +1,4 @@
+#if 0
 #include <memory>
 
 #include "sql/catalog.h"
@@ -122,3 +123,4 @@ TEST_F(LimitTranslatorTest, LimitAndOffsetTest) {
 }
 
 }  // namespace tpl::sql::codegen
+#endif

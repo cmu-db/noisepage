@@ -1,12 +1,12 @@
 #include <random>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/join_manager.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql_test.h"
-#include "execution/util/hash.h"
 
 namespace terrier::execution::sql::test {
 
@@ -31,7 +31,7 @@ void BuildHT(JoinHashTable *jht, bool is_a_key, uint32_t a_max, uint32_t b_max) 
   for (uint32_t i = 0; i < bound; i++) {
     auto cola = i % a_max;
     auto colb = i % b_max;
-    auto hash_val = util::Hasher::Hash(is_a_key ? cola : colb);
+    auto hash_val = common::HashUtil::Hash(is_a_key ? cola : colb);
     auto join_row = reinterpret_cast<JoinRow *>(jht->AllocInputTuple(hash_val));
     join_row->key = is_a_key ? cola : colb;
     join_row->val = colb;
@@ -48,7 +48,7 @@ TEST_F(JoinManagerTest, TwoWayJoin) {
 
   query_state.jht1 = std::make_unique<JoinHashTable>(exec_settings, &mem_pool, sizeof(JoinRow), false);
   query_state.jht2 = std::make_unique<JoinHashTable>(exec_settings, &mem_pool, sizeof(JoinRow), false);
-  query_state.jm = std::make_unique<JoinManager>(*exec_settings, &query_state);
+  query_state.jm = std::make_unique<JoinManager>(exec_settings, &query_state);
   // The first join.
   query_state.jm->InsertJoinStep(*query_state.jht1, {0}, [](auto exec_ctx, auto vp, auto tids, auto ctx) {
     auto *query_state = reinterpret_cast<QueryState *>(ctx);

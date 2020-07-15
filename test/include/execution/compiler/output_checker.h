@@ -13,7 +13,7 @@
 // TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary
 // expressions, but this is no simple task. We would basically need an expression evaluator on output rows.
 
-namespace terrier::execution::compiler {
+namespace terrier::execution::compiler::test {
 /**
  * Helper class to check if the output of a query is corrected.
  */
@@ -339,4 +339,4 @@ class OutputStore {
   // checker to run
   OutputChecker *checker_;
 };
-}  // namespace terrier::execution::compiler
+}  // namespace terrier::execution::compiler::test

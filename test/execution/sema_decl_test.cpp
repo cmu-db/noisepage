@@ -8,7 +8,7 @@ namespace terrier::execution::sema::test {
 
 class SemaDeclTest : public TplTest, public ast::test::TestAstBuilder {
  public:
-  void ResetErrorReporter() { error_reporter()->Reset(); }
+  void ResetErrorReporter() { ErrorReporter()->Reset(); }
 };
 
 struct TestCase {
@@ -55,9 +55,9 @@ TEST_F(SemaDeclTest, DuplicateStructFields) {
   };
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    Sema sema(Ctx());
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }

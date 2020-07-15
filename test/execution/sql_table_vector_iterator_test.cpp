@@ -1,113 +1,167 @@
-#include <tuple>
+#include <array>
+#include <memory>
 #include <vector>
 
-#include "catalog/schema.h"
-#include "execution/exec/execution_context.h"
-#include "execution/sql/filter_manager.h"
+#include "catalog/catalog_defs.h"
 #include "execution/sql/table_vector_iterator.h"
-#include "execution/sql/thread_state_container.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
 namespace terrier::execution::sql::test {
 
-class TableVectorIteratorTest : public SqlBasedTest {};
-
-TEST_F(TableVectorIteratorTest, InvalidBlockRangeIteratorTest) {
-  auto table_id = TableIdToNum(TableId::Test1);
-  auto *table = Catalog::Instance()->LookupTableById(table_id);
-
-  const std::tuple<uint32_t, uint32_t, bool> test_cases[] = {
-      {0, 10, true},
-      {10, 0, false},
-      {-10, 2, false},
-      {0, table->GetBlockCount(), true},
-      {10, table->GetBlockCount(), true},
-      {10, table->GetBlockCount() + 1, false},
-  };
-
-  for (auto [start_idx, end_idx, valid] : test_cases) {
-    TableVectorIterator iter(table_id, start_idx, end_idx);
-    EXPECT_EQ(valid, iter.Init());
+class TableVectorIteratorTest : public SqlBasedTest {
+  void SetUp() override {
+    // Create the test tables
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
+    GenerateTestTables(exec_ctx_.get());
   }
-}
 
+ public:
+  parser::ConstantValueExpression DummyExpr() {
+    return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
+  }
+
+ protected:
+  /**
+   * Execution context to use for the test
+   */
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
+};
+
+// NOLINTNEXTLINE
 TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   //
   // Check to see that iteration doesn't begin without an input block
   //
-
-  TableVectorIterator iter(TableIdToNum(TableId::EmptyTable));
-
-  EXPECT_TRUE(iter.Init());
-
-  while (iter.Advance()) {
-    FAIL() << "Empty table should have no tuples";
-  }
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "empty_table");
+  std::array<uint32_t, 1> col_oids{1};
+  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  iter.Init();
+  ASSERT_FALSE(iter.Advance());
 }
 
+// NOLINTNEXTLINE
 TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   //
   // Simple test to ensure we iterate over the whole table
   //
 
-  TableVectorIterator iter(TableIdToNum(TableId::Test1));
-
-  EXPECT_TRUE(iter.Init());
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  std::array<uint32_t, 1> col_oids{1};
+  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  iter.Init();
+  VectorProjectionIterator *vpi = iter.GetVectorProjectionIterator();
 
   uint32_t num_tuples = 0;
+  int32_t prev_val{0};
   while (iter.Advance()) {
-    VectorProjectionIterator *vpi = iter.GetVectorProjectionIterator();
     for (; vpi->HasNext(); vpi->Advance()) {
+      const auto *val = vpi->GetValue<int32_t, false>(0, nullptr);
+      if (num_tuples > 0) {
+        ASSERT_EQ(*val, prev_val + 1);
+      }
+      prev_val = *val;
       num_tuples++;
     }
     vpi->Reset();
   }
-
-  EXPECT_EQ(iter.GetTable()->GetTupleCount(), num_tuples);
+  EXPECT_EQ(sql::TEST1_SIZE, num_tuples);
 }
 
+// NOLINTNEXTLINE
+TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
+  //
+  // Ensure we iterate over the whole table even the types of the columns are
+  // different
+  //
+
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_2");
+  std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
+  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  iter.Init();
+  VectorProjectionIterator *vpi = iter.GetVectorProjectionIterator();
+
+  uint32_t num_tuples = 0;
+  int16_t prev_val{0};
+  while (iter.Advance()) {
+    for (vpi = iter.GetVectorProjectionIterator(); vpi->HasNext(); vpi->Advance()) {
+      // The serial column is the first one
+      const auto *val = vpi->GetValue<int16_t, false>(0, nullptr);
+      if (num_tuples > 0) {
+        ASSERT_EQ(*val, prev_val + 1);
+      }
+      prev_val = *val;
+      num_tuples++;
+    }
+  }
+  EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
+  //
+  // Ensure we only iterate over specified columns
+  //
+
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_2");
+  std::array<uint32_t, 1> col_oids{1};
+  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  iter.Init();
+  VectorProjectionIterator *vpi = iter.GetVectorProjectionIterator();
+
+  uint32_t num_tuples = 0;
+  int16_t prev_val{0};
+  while (iter.Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
+      // Because we only specified one column, its index is 0 instead of three
+      auto *val = vpi->GetValue<int16_t, false>(0, nullptr);
+      if (num_tuples > 0) {
+        ASSERT_EQ(*val, prev_val + 1);
+      }
+      prev_val = *val;
+      num_tuples++;
+    }
+    vpi->Reset();
+  }
+  EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
+}
+
+// NOLINTNEXTLINE
 TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   //
   // Simple test to ensure we iterate over the whole table in parallel
   //
 
   struct Counter {
-    uint32_t c;
+    uint32_t c_;
   };
 
-  auto init_count = [](UNUSED void *ctx, void *tls) { reinterpret_cast<Counter *>(tls)->c = 0; };
+  auto init_count = [](UNUSED_ATTRIBUTE void *ctx, void *tls) { reinterpret_cast<Counter *>(tls)->c_ = 0; };
 
   // Scan function just counts all tuples it sees
-  auto scanner = [](UNUSED void *state, void *tls, TableVectorIterator *tvi) {
+  auto scanner = [](UNUSED_ATTRIBUTE void *state, void *tls, TableVectorIterator *tvi,
+                    exec::ExecutionContext *exec_ctx) {
     auto *counter = reinterpret_cast<Counter *>(tls);
     while (tvi->Advance()) {
       for (auto *vpi = tvi->GetVectorProjectionIterator(); vpi->HasNext(); vpi->Advance()) {
-        counter->c++;
+        counter->c_++;
       }
     }
   };
 
   // Setup thread states
-  MemoryPool memory(nullptr);
-  ExecutionContext ctx(&memory);
-  ThreadStateContainer thread_state_container(ctx.GetMemoryPool());
-  thread_state_container.Reset(sizeof(Counter), /* The type of each thread state structure */
-                               init_count,      /* The thread state initialization function */
-                               nullptr,         /* The thread state destruction function */
-                               nullptr /* Context passed to init/destroy functions */);
+  exec_ctx_->GetThreadStateContainer()->Reset(sizeof(Counter), init_count, nullptr, nullptr);
 
-  const auto table_id = TableIdToNum(TableId::Test1);
-  TableVectorIterator::ParallelScan(table_id,                /* ID of table to scan */
-                                    nullptr,                 /* Query state to pass to scan threads */
-                                    &thread_state_container, /* Container for thread states */
-                                    scanner /* Scan function */);
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
+  TableVectorIterator::ParallelScan(!table_oid, col_oids.data(), col_oids.size(), nullptr, exec_ctx_.get(), scanner);
 
   // Count total aggregate tuple count seen by all threads
   uint32_t aggregate_tuple_count = 0;
-  thread_state_container.ForEach<Counter>([&](Counter *counter) { aggregate_tuple_count += counter->c; });
-
-  EXPECT_EQ(Catalog::Instance()->LookupTableById(table_id)->GetTupleCount(), aggregate_tuple_count);
+  exec_ctx_->GetThreadStateContainer()->ForEach<Counter>(
+      [&](Counter *counter) { aggregate_tuple_count += counter->c_; });
+  EXPECT_EQ(sql::TEST1_SIZE, aggregate_tuple_count);
 }
 
 }  // namespace terrier::execution::sql::test

@@ -183,7 +183,8 @@ constexpr bool IS_FLOAT_TRUNCATE_V = IsFloatTruncate<InType, OutType>::VALUE;
  * @tparam InType The numeric input type.
  */
 template <typename InType>
-struct EXPORT TryCast<InType, bool, std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> && !std::is_same_v<InType, bool>>> {
+struct EXPORT
+    TryCast<InType, bool, std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> && !std::is_same_v<InType, bool>>> {
   /** @return True if the cast was successful. */
   bool operator()(const InType input, bool *output) noexcept {
     *output = static_cast<bool>(input);
@@ -250,8 +251,8 @@ struct EXPORT TryCast<
  */
 template <typename InType, typename OutType>
 struct EXPORT TryCast<InType, OutType,
-               std::enable_if_t<detail::IS_SAFE_NUMERIC_CAST_V<InType, OutType> &&
-                                !detail::IS_NUMBER_DOWNCAST_V<InType, OutType>>> {
+                      std::enable_if_t<detail::IS_SAFE_NUMERIC_CAST_V<InType, OutType> &&
+                                       !detail::IS_NUMBER_DOWNCAST_V<InType, OutType>>> {
   /** @return True if the cast was successful. */
   bool operator()(const InType input, OutType *output) const noexcept {
     *output = static_cast<OutType>(input);
@@ -277,8 +278,8 @@ struct EXPORT TryCast<InType, Date, std::enable_if_t<detail::IS_INTEGER_TYPE_V<I
  * @tparam InType The input type. Either a number or a boolean.
  */
 template <typename InType>
-struct EXPORT TryCast<InType, std::string,
-               std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> || std::is_same_v<InType, bool>>> {
+struct EXPORT
+    TryCast<InType, std::string, std::enable_if_t<detail::IS_NUMBER_TYPE_V<InType> || std::is_same_v<InType, bool>>> {
   /** @return True if the cast was successful. */
   bool operator()(const InType input, std::string *output) const noexcept {
     *output = std::to_string(input);
@@ -297,8 +298,8 @@ struct EXPORT TryCast<InType, std::string,
  * @tparam InType The type of the input, either a Date or Timestamp.
  */
 template <typename InType>
-struct EXPORT TryCast<InType, std::string,
-               std::enable_if_t<std::is_same_v<InType, Date> || std::is_same_v<InType, Timestamp>>> {
+struct EXPORT
+    TryCast<InType, std::string, std::enable_if_t<std::is_same_v<InType, Date> || std::is_same_v<InType, Timestamp>>> {
   /** @return True if the cast was successful. */
   bool operator()(const InType input, std::string *output) const noexcept {
     *output = input.ToString();

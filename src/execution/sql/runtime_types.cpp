@@ -379,7 +379,8 @@ std::string Timestamp::ToString() const {
   int32_t year, month, day, hour, min, sec, millisec, microsec;
   ExtractComponents(&year, &month, &day, &hour, &min, &sec, &millisec, &microsec);
 
-  return fmt::format("{}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}", year, month, day, hour, min, sec, millisec + microsec);
+  return fmt::format("{}-{:02}-{:02} {:02}:{:02}:{:02}.{:06}", year, month, day, hour, min, sec,
+                     millisec * 1000 + microsec);
 }
 
 Timestamp Timestamp::FromString(const char *str, std::size_t len) {

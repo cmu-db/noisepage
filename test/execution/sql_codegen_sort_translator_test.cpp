@@ -1,3 +1,4 @@
+#if 0
 #include "util/sql_test_harness.h"
 
 #include <memory>
@@ -278,3 +279,4 @@ TEST_F(SortTranslatorTest, SortWithLimitAndOffsetTest) {
 }
 
 }  // namespace tpl::sql::codegen
+#endif

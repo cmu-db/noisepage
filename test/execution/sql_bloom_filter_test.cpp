@@ -2,9 +2,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "execution/sql/bloom_filter.h"
 #include "execution/tpl_test.h"
-#include "execution/util/hash.h"
 
 namespace terrier::execution::sql::test {
 
@@ -17,7 +17,7 @@ class BloomFilterTest : public TplTest {
  protected:
   template <typename T>
   auto Hash(const T val) -> std::enable_if_t<std::is_fundamental_v<T>, hash_t> {
-    return util::Hasher::Hash(val);
+    return common::HashUtil::Hash(val);
   }
 
  private:

@@ -1,3 +1,4 @@
+#if 0
 #include "util/sql_test_harness.h"
 
 #include <memory>
@@ -224,3 +225,4 @@ TEST_F(SeqScanTranslatorTest, SeqScanWithProjection) {
 }
 
 }  // namespace tpl::sql::codegen
+#endif

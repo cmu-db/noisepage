@@ -5,13 +5,13 @@
 #include <vector>
 
 #include "catalog/schema.h"
+#include "common/hash_util.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql_test.h"
-#include "execution/util/hash.h"
 #include "tbb/tbb.h"
 
 namespace terrier::execution::sql {
@@ -24,7 +24,7 @@ struct InputTuple {
 
   explicit InputTuple(uint64_t key, uint64_t col_a) : key(key), col_a(col_a) {}
 
-  hash_t Hash() const noexcept { return util::Hasher::Hash(key); }
+  hash_t Hash() const noexcept { return common::HashUtil::Hash(key); }
 };
 
 /**
@@ -357,7 +357,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
 
   QueryState query_state{0};
   MemoryPool memory(nullptr);
-  ThreadStateContainer container(exec_ctx->GetExecutionSettings(), &memory);
+  ThreadStateContainer container(&memory);
 
   // -------------------------------------------------------
   // Step 1: thread-local container contains only an aggregation hash table.
@@ -396,7 +396,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
 
   // -------------------------------------------------------
   // Step 2: Transfer thread-local memory into global/main hash table.
-  AggregationHashTable main_table(*exec_ctx->GetExecutionSettings(), &memory, sizeof(AggTuple));
+  AggregationHashTable main_table(exec_ctx->GetExecutionSettings(), &memory, sizeof(AggTuple));
   main_table.TransferMemoryAndPartitions(
       &container, 0,
       // Merging function merges a set of overflow partitions into the provided

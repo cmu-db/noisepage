@@ -4,12 +4,12 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/vector_filter_executor.h"
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql_test.h"
-#include "execution/util/hash.h"
 
 namespace terrier::execution::sql::test {
 
@@ -21,7 +21,7 @@ struct InputTuple {
 
   InputTuple(uint64_t key, uint64_t col_a) : key(key), col_a(col_a) {}
 
-  hash_t Hash() const noexcept { return util::Hasher::Hash(key); }
+  hash_t Hash() const noexcept { return common::HashUtil::Hash(key); }
 };
 
 /**
@@ -103,7 +103,7 @@ class AggregationHashTableVectorIteratorTest : public SqlBasedTest {
 TEST_F(AggregationHashTableVectorIteratorTest, IterateEmptyAggregation) {
   auto exec_ctx = MakeExecCtx();
   // Empty table
-  AggregationHashTable agg_ht(*exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
+  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
 
   // Iterate
   AHTVectorIterator iter(agg_ht, OutputSchema(), Transpose);
@@ -127,7 +127,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, IterateSmallAggregation) {
   // 1. After transposition, we receive exactly 'num_aggs' unique aggregates.
   // 2. For each aggregate, the associated count/sums is correct.
 
-  AggregationHashTable agg_ht(*exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
+  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
 
   // Populate
   PopulateAggHT(&agg_ht, num_aggs, num_tuples, 1 /* cola */);
@@ -175,7 +175,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, FilterPostAggregation) {
   // Apply a filter to the output of the iterator looking for a unique key.
   // There should only be one match since keys are unique.
 
-  AggregationHashTable agg_ht(*exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
+  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
 
   PopulateAggHT(&agg_ht, num_aggs, num_tuples, 1 /* cola */);
 
@@ -200,7 +200,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, DISABLED_Perf) {
 
   for (uint32_t size : {10, 100, 1000, 10000, 100000, 1000000, 10000000}) {
     // The table
-    AggregationHashTable agg_ht(*exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
+    AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
 
     // Populate
     PopulateAggHT(&agg_ht, size, size * 10, 1 /* cola */);
@@ -215,7 +215,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, DISABLED_Perf) {
         auto *vector_projection = iter.GetVectorProjectionIterator()->GetVectorProjection();
         tids.Resize(vector_projection->GetTotalTupleCount());
         tids.AddAll();
-        VectorFilterExecutor::SelectLessThanVal(*exec_ctx->GetExecutionSettings(), vector_projection, 0,
+        VectorFilterExecutor::SelectLessThanVal(exec_ctx->GetExecutionSettings(), vector_projection, 0,
                                                 GenericValue::CreateBigInt(filter_val), &tids);
         vector_projection->SetFilteredSelections(tids);
       }

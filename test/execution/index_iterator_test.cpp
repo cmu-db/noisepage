@@ -45,7 +45,7 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   // Iterate through the table.
   while (table_iter.Advance()) {
     for (; vpi->HasNext(); vpi->Advance()) {
-      auto *key = vpi->Get<int32_t, false>(0, nullptr);
+      auto *key = vpi->GetValue<int32_t, false>(0, nullptr);
       // Check that the key can be recovered through the index
       auto *const index_pr(index_iter.PR());
       index_pr->Set<int32_t, false>(0, *key, false);

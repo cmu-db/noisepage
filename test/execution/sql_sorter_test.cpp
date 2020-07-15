@@ -177,14 +177,14 @@ void TestParallelSort(exec::ExecutionContext *exec_ctx, const std::vector<uint32
   };
 
   // Initialization and destruction function
-  const auto init_sorter = [](void *exec_settings, void *ctx, void *s) {
+  const auto init_sorter = [](void *ctx, void *s) {
     new (s) Sorter(reinterpret_cast<exec::ExecutionContext *>(ctx)->GetMemoryPool(), cmp_fn, sizeof(TestTuple<N>));
   };
   const auto destroy_sorter = [](UNUSED_ATTRIBUTE void *ctx, void *s) { reinterpret_cast<Sorter *>(s)->~Sorter(); };
 
   // Create container
   MemoryPool memory(nullptr);
-  ThreadStateContainer container(exec_ctx->GetExecutionSettings(), &memory);
+  ThreadStateContainer container(&memory);
 
   container.Reset(sizeof(Sorter), init_sorter, destroy_sorter, &exec_ctx);
 

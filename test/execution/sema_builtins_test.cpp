@@ -9,11 +9,11 @@ namespace terrier::execution::sema::test {
 class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
  public:
   bool Check(ast::AstNode *node) {
-    sema::Sema sema(ctx());
+    sema::Sema sema(Ctx());
     return sema.Run(node);
   }
 
-  void ResetErrorReporter() { error_reporter()->Reset(); }
+  void ResetErrorReporter() { ErrorReporter()->Reset(); }
 };
 
 TEST_F(SemaBuiltinTest, CheckSqlConversions) {

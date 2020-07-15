@@ -116,6 +116,5 @@ MAKE_VEC_TYPE(Varchar, std::string_view)
 MAKE_VEC_TYPE(Pointer, uintptr_t);
 
 #undef MAKE_VEC_TYPE
-#undef MAKE_VEC_TYPE_IMPL
 
 }  // namespace terrier::execution

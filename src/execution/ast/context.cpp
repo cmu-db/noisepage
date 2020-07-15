@@ -58,27 +58,27 @@ struct StructTypeKeyInfo {
     bool operator!=(const KeyTy &that) const { return !this->operator==(that); }
   };
 
-  // NOLINTNEXTLINE
+  // NOLINTNEXTLINE (LLVM DenseMap expects these names)
   static inline StructType *getEmptyKey() { return llvm::DenseMapInfo<StructType *>::getEmptyKey(); }
 
-  // NOLINTNEXTLINE
+  // NOLINTNEXTLINE (LLVM DenseMap expects these names)
   static inline StructType *getTombstoneKey() { return llvm::DenseMapInfo<StructType *>::getTombstoneKey(); }
 
-  // NOLINTNEXTLINE
+  // NOLINTNEXTLINE (LLVM DenseMap expects these names)
   static std::size_t getHashValue(const KeyTy &key) {
     return llvm::hash_combine_range(key.elements_.begin(), key.elements_.end());
   }
 
-  // NOLINTNEXTLINE
+  // NOLINTNEXTLINE (LLVM DenseMap expects these names)
   static std::size_t getHashValue(const StructType *struct_type) { return getHashValue(KeyTy(struct_type)); }
 
-  // NOLINTNEXTLINE
+  // NOLINTNEXTLINE (LLVM DenseMap expects these names)
   static bool isEqual(const KeyTy &lhs, const StructType *rhs) {
     if (rhs == getEmptyKey() || rhs == getTombstoneKey()) return false;
     return lhs == KeyTy(rhs);
   }
 
-  // NOLINTNEXTLINE
+  // NOLINTNEXTLINE (LLVM DenseMap expects these names)
   static bool isEqual(const StructType *lhs, const StructType *rhs) { return lhs == rhs; }
 };
 
