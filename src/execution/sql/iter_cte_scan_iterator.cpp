@@ -10,13 +10,15 @@
 
 namespace terrier::execution::sql {
 
-IterCteScanIterator::IterCteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx,
+IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx,
                                          uint32_t *schema_cols_type, uint32_t num_schema_cols)
-    : cte_scan_1_{exec_ctx, schema_cols_type, num_schema_cols},
+    : exec_ctx_{exec_ctx},
+      cte_scan_1_{exec_ctx, schema_cols_type, num_schema_cols},
       cte_scan_2_{exec_ctx, schema_cols_type, num_schema_cols},
       cte_scan_read_{&cte_scan_1_},
       cte_scan_write_{&cte_scan_2_},
-      written_{false} {}
+      written_{false},
+      num_schema_cols_{num_schema_cols} {}
 
 storage::SqlTable *IterCteScanIterator::GetWriteTable() { return cte_scan_write_->GetTable(); }
 
@@ -36,9 +38,11 @@ storage::TupleSlot IterCteScanIterator::TableInsert() {
 bool IterCteScanIterator::Accumulate() {
   if (written_) {
     // swap the tables
-    auto temp_table = cte_scan_write_;
-    cte_scan_write_ = cte_scan_read_;
-    cte_scan_read_ = temp_table;
+//    auto temp_table = cte_scan_write_;
+//    cte_scan_write_ = cte_scan_read_;
+//    cte_scan_read_ = temp_table;
+
+    auto raw_write_table = cte_scan_write_->GetTable();
 
     // clear new write table
     cte_scan_write_->GetTable()->Reset();
