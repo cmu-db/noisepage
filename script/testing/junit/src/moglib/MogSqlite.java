@@ -34,6 +34,7 @@ public class MogSqlite {
     public ArrayList<String> queryResults = new ArrayList<>();
     public int lineCounter = 0;
     public int lineNum;
+    public String status;
 
     public MogSqlite(File sqliteTestFile) throws FileNotFoundException {
         this.br = new BufferedReader(new FileReader(sqliteTestFile));
@@ -66,6 +67,7 @@ public class MogSqlite {
                 continue;
             } else if (line.startsWith("statement ok") || line.startsWith("statement error")) {
                 /* Statement record. */
+                status = line.split(" ")[1];
                 lineCounter++;
                 readRecordStatement(line);
                 break;

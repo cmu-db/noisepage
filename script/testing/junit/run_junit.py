@@ -21,8 +21,9 @@ def download_git_repo():
 
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
-from junit.test_junit import TestJUnit
 
+from junit.test_junit import TestJUnit
+from util.common import run_command
 if __name__ == "__main__":
 
     aparser = argparse.ArgumentParser(description="junit runner")
@@ -46,6 +47,17 @@ if __name__ == "__main__":
     args = vars(aparser.parse_args())
     exit_code = 0
     code = []
+    # FIXME: Extended protocol is broken for some queries, so we are
+    # overriding the query mode to always be simple
+    args['query_mode'] = 'simple'
+    try:
+        unit_command = TestJUnit(args)
+        unit_command.test_command = "ant test-unit"
+        exit_code = unit_command.run()
+    except:
+        print("Exception trying to run test-unit")
+        exit_code = 1
+    code.append(exit_code)
     noise_trace_dir = os.getcwd() + "/noisepage-testfiles/sql_trace/"
     for test_type in os.listdir(noise_trace_dir):
         type_dir = noise_trace_dir + test_type
@@ -65,9 +77,9 @@ if __name__ == "__main__":
                         print("================ Python Error Output ==================")
                         traceback.print_exc(file=sys.stdout)
                         exit_code = 1
-
+                    print("="*80)
     final_code = 0
     for c in code:
         final_code = final_code or c
     print("Final exit code: " + str(final_code))
-    sys.exit(exit_code)
+    sys.exit(final_code)

@@ -33,7 +33,6 @@
 </path>
 <target name="test-all">
   <antcall target="test-trace"/>
-  <antcall target="test-unit"/>
 </target>
 <target name="generate-trace" depends="compile">
   <java classname="GenerateTrace" fork="yes">

@@ -1,3 +1,4 @@
+import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.function.Executable;
 import java.io.*;
@@ -33,10 +34,19 @@ public class TracefileTest {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         conn = TestUtility.makeDefaultConnection();
         String path = System.getenv("path");
+        System.out.println("File name: " + path);
         file = new File(path);
         mog = new MogSqlite(file);
-//        List<String> tab = getAllExistingTableName(mog);
-//        removeExistingTable(tab);
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        List<String> tab = getAllExistingTableName(mog);
+        removeExistingTable(tab);
     }
 
 
@@ -51,29 +61,52 @@ public class TracefileTest {
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
-        List<Integer> queryLine = getQueryLineNum(file);
+        List<Integer> queryLine = null;
+        queryLine = getQueryLineNum(file);
 
         // loop through every sql statement
         while (mog.next()) {
             // case for create and insert statements
+            lineCounter++;
+            int num = queryLine.get(lineCounter);
             if (mog.queryResults.size() == 0) {
-                Statement statement = conn.createStatement();
-                statement.execute(mog.sql);
+                Statement statement = null;
+                String testName = "Line:" + num + " | Expected " + mog.status;
+                try {
+                    statement = conn.createStatement();
+                    statement.execute(mog.sql);
+                    Executable exec = () -> assertEquals(true, true);
+                    DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
+                    dTest.add(cur);
+                }
+                catch (Throwable e) {
+                    Executable exec = () -> check2(e.getMessage());
+                    DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
+                    dTest.add(cur);
+                }
             } else{
                 // case for query statements
                 if(mog.queryResults.get(0).contains("values")){
-                    lineCounter++;
                     // parse the line from test file to get the hash
                     String[] sentence = mog.queryResults.get(0).split(" ");
                     String hash = sentence[sentence.length-1];
                     // execute sql query to get result from database
-                    Statement statement = conn.createStatement();
-                    statement.execute(mog.sql);
-                    ResultSet rs = statement.getResultSet();
-                    List<String> res = mog.processResults(rs);
+                    Statement statement = null;
+                    List<String> res = new ArrayList<>();
+                    try {
+                        statement = conn.createStatement();
+                        statement.execute(mog.sql);
+                        ResultSet rs = statement.getResultSet();
+                        res = mog.processResults(rs);
+
+                    } catch (SQLException throwables) {
+                        System.out.println(mog.queryResults);
+                        System.out.println("Line " + num + ": " + mog.sql);
+                    }
                     // create an executable for the query
-                    Executable exec = () -> assertEquals(getHashFromDb(res), hash);
-                    String testName = "Line:" + queryLine.get(lineCounter)+" | Hash:"+hash;
+                    String hash2 = getHashFromDb(res);
+                    Executable exec = () -> check(hash, hash2, num);
+                    String testName = "Line:" + num +" | Hash:"+hash;
                     // create the DynamicTest object
                     DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
                     dTest.add(cur);
@@ -83,6 +116,18 @@ public class TracefileTest {
         }
         return dTest;
 
+    }
+
+    public static void check(String hash1, String hash2, int n) throws Exception {
+        try {
+            assertEquals(hash1, hash2);
+        }
+        catch (AssertionError e) {
+            throw new Exception("Line " + n + ": " + e.getMessage());
+        }
+    }
+    public static void check2(String mes) throws Exception {
+        throw new Exception(mes);
     }
 
     /**
@@ -117,7 +162,7 @@ public class TracefileTest {
         int counter = 0;
         while (null != (line = bf.readLine())){
             counter++;
-            if(line.startsWith("query")){
+            if(line.startsWith("query") || line.startsWith("statement")){
                 res.add(counter);
             }
         }
