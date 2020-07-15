@@ -6,6 +6,7 @@ namespace terrier::execution::sql::test {
 
 class VectorFillTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorFillTest, SimpleNonNull) {
   // Fill a vector with the given type with the given value of that type
 #define CHECK_SIMPLE_FILL(TYPE, FILL_VALUE)                             \
@@ -30,6 +31,7 @@ TEST_F(VectorFillTest, SimpleNonNull) {
 #undef CHECK_SIMPLE_FILL
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorFillTest, NullValue) {
   // Fill with a NULL value, ensure the whole vector is filled with NULLs
   auto vec = MakeIntegerVector(10);
@@ -40,6 +42,7 @@ TEST_F(VectorFillTest, NullValue) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorFillTest, ExplicitNull) {
   // Fill a vector with the given type with the given value of that type
 #define CHECK_SIMPLE_FILL(TYPE)                     \

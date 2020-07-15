@@ -111,6 +111,7 @@ class SorterVectorIteratorTest : public TplTest {
   catalog::Schema schema_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(SorterVectorIteratorTest, EmptyIterator) {
   const auto compare = [](const void *lhs, const void *rhs) {
     return CompareTuple(*reinterpret_cast<const Tuple *>(lhs), *reinterpret_cast<const Tuple *>(rhs));
@@ -122,6 +123,7 @@ TEST_F(SorterVectorIteratorTest, EmptyIterator) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterVectorIteratorTest, Iterate) {
   // To ensure at least two vector's worth of data
   const uint32_t num_elems = common::Constants::K_DEFAULT_VECTOR_SIZE + 29;

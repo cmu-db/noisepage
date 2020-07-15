@@ -15,6 +15,7 @@ class ArithmeticFunctionsTests : public TplTest {
   static double cotan(const double arg) { return Cot<double>{}(arg); }
 };
 
+// NOLINTNEXTLINE
 TEST_F(ArithmeticFunctionsTests, IntegerValue) {
   // Nulls
   {
@@ -95,6 +96,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ArithmeticFunctionsTests, RealValue) {
   // Nulls
   {
@@ -144,6 +146,7 @@ TEST_F(ArithmeticFunctionsTests, RealValue) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ArithmeticFunctionsTests, PiAndE) {
   {
     Real pi(0.0);
@@ -160,6 +163,7 @@ TEST_F(ArithmeticFunctionsTests, PiAndE) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
   std::vector<double> inputs, arc_inputs;
 
@@ -213,6 +217,7 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
 #undef CHECK_HANDLES_NULL
 }
 
+// NOLINTNEXTLINE
 TEST_F(ArithmeticFunctionsTests, MathFuncs) {
 #define CHECK_HANDLES_NULL(TPL_FUNC, C_FUNC)  \
   {                                           \
@@ -266,6 +271,7 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
 #undef CHECK_HANDLES_NULL
 }
 
+// NOLINTNEXTLINE
 TEST_F(ArithmeticFunctionsTests, Sign) {
   // Sign
   Real input = Real::Null(), result = Real::Null();

@@ -9,6 +9,7 @@ class CSVReaderTest : public TplTest {
   std::unique_ptr<CSVString> MakeSource(const std::string &s) { return std::make_unique<CSVString>(s); }
 };
 
+// NOLINTNEXTLINE
 TEST_F(CSVReaderTest, CheckEscaping) {
   {
     CSVReader reader(MakeSource("10,\"BLAHBLAH\",\"Special \"\"AF\"\" string\",1000\n"));
@@ -39,6 +40,7 @@ TEST_F(CSVReaderTest, CheckEscaping) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(CSVReaderTest, Emptycells_AndRows) {
   CSVReader reader(
       MakeSource("1,two,three\n"
@@ -68,6 +70,7 @@ TEST_F(CSVReaderTest, Emptycells_AndRows) {
   EXPECT_EQ("six", reader.GetRow()->cells_[2].AsString());
 }
 
+// NOLINTNEXTLINE
 TEST_F(CSVReaderTest, CheckUnquoted) {
   CSVReader reader(
       MakeSource("1,PA,498960,30.102261,-81.711777,Residential,Masonry,1\n"

@@ -8,6 +8,7 @@ namespace terrier::execution::sql::test {
 
 class VectorGenerateTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorGenerateTest, Simple) {
   const uint32_t num_elems = 50;
 

@@ -31,6 +31,7 @@ class ConciseHashTableTest : public TplTest {
   HashTableEntry entry_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, InsertTest) {
   const uint32_t num_tuples = 10;
   const uint32_t probe_length = 1;
@@ -57,6 +58,7 @@ TEST_F(ConciseHashTableTest, InsertTest) {
   EXPECT_EQ(2u, entry_2->cht_slot_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, InsertOverflowTest) {
   const uint32_t num_tuples = 20;
   const uint32_t probe_length = 1;
@@ -91,6 +93,7 @@ TEST_F(ConciseHashTableTest, InsertOverflowTest) {
   EXPECT_EQ(35u, entry_34->cht_slot_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, MultiGroupInsertTest) {
   const uint32_t num_tuples = 100;
   const uint32_t probe_length = 1;
@@ -141,6 +144,7 @@ TEST_F(ConciseHashTableTest, MultiGroupInsertTest) {
   EXPECT_EQ(34u, entry_33_v3->cht_slot_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, CornerCaseTest) {
   const uint32_t num_tuples = 20;
   const uint32_t probe_length = 4;
@@ -173,6 +177,7 @@ TEST_F(ConciseHashTableTest, CornerCaseTest) {
   EXPECT_EQ(63u, entry_62_v2->cht_slot_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, BuildTest) {
   const uint32_t num_tuples = 20;
   const uint32_t probe_length = 2;
@@ -201,6 +206,7 @@ TEST_F(ConciseHashTableTest, BuildTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, MultiGroupBuildTest) {
   const uint32_t num_tuples = 40;
   const uint32_t probe_length = 2;

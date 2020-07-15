@@ -28,6 +28,7 @@ class JoinHashTableTest : public TplTest {
   MemoryPool memory_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, LazyInsertionTest) {
   exec::ExecutionSettings exec_settings{};
   // Test data
@@ -138,14 +139,19 @@ void BuildAndProbeTest(uint32_t num_tuples, uint32_t dup_scale_factor) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, UniqueKeyLookupTest) { BuildAndProbeTest<false>(400, 1); }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, DuplicateKeyLookupTest) { BuildAndProbeTest<false>(400, 5); }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, UniqueKeyConciseTableTest) { BuildAndProbeTest<true>(400, 1); }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, DuplicateKeyLookupConciseTableTest) { BuildAndProbeTest<true>(400, 5); }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, ParallelBuildTest) {
   exec::ExecutionSettings exec_settings{};
   tbb::task_scheduler_init sched;
@@ -204,6 +210,7 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
 }
 
 #if 0
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, PerfTest) {
   const uint32_t num_tuples = 10000000;
 

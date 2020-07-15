@@ -10,6 +10,7 @@ namespace terrier::execution::sql::test {
 
 class VectorCastTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorCastTest, Cast) {
   exec::ExecutionSettings exec_settings{};
 
@@ -53,6 +54,7 @@ TEST_F(VectorCastTest, Cast) {
   EXPECT_THROW(vec->Cast(exec_settings, TypeId::TinyInt), ExecutionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorCastTest, CastWithNulls) {
   exec::ExecutionSettings exec_settings{};
 
@@ -82,6 +84,7 @@ TEST_F(VectorCastTest, CastWithNulls) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorCastTest, NumericDowncast) {
   exec::ExecutionSettings exec_settings{};
 
@@ -132,6 +135,7 @@ TEST_F(VectorCastTest, NumericDowncast) {
 #undef CHECK_CAST
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorCastTest, DateCast) {
   exec::ExecutionSettings exec_settings{};
 
@@ -157,6 +161,7 @@ TEST_F(VectorCastTest, DateCast) {
   EXPECT_EQ(GenericValue::CreateVarchar("2015-08-01"), a->GetValue(5));
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorCastTest, CastStringToFloat) {
   exec::ExecutionSettings exec_settings{};
 

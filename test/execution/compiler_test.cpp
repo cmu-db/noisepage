@@ -70,6 +70,7 @@ class CompilerTest : public SqlBasedTest {
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 };
 
+// NOLINTNEXTLINE
 TEST_F(CompilerTest, CompileFromSource) {
   util::Region region{"compiler_test"};
   sema::ErrorReporter error_reporter{&region};
@@ -95,6 +96,7 @@ TEST_F(CompilerTest, CompileFromSource) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(CompilerTest, CompileToAst) {
   util::Region region{"compiler_test"};
   sema::ErrorReporter error_reporter{&region};

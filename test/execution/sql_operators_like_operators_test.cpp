@@ -7,6 +7,7 @@ namespace terrier::execution::sql::test {
 
 class LikeOperatorsTests : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(LikeOperatorsTests, ShortString) {
   // 'abc' LIKE 'a' = false
   std::string s = "abc";
@@ -29,6 +30,7 @@ TEST_F(LikeOperatorsTests, ShortString) {
   EXPECT_TRUE(Like{}(storage::VarlenEntry::Create(s), storage::VarlenEntry::Create(p)));  // NOLINT
 }
 
+// NOLINTNEXTLINE
 TEST_F(LikeOperatorsTests, SingleCharacter_Wildcard) {
   // Character after single-character wildcard doesn't match
   std::string s = "forbes \\avenue";
@@ -55,6 +57,7 @@ TEST_F(LikeOperatorsTests, SingleCharacter_Wildcard) {
   EXPECT_TRUE(Like{}(storage::VarlenEntry::Create(s), storage::VarlenEntry::Create(p)));  // NOLINT
 }
 
+// NOLINTNEXTLINE
 TEST_F(LikeOperatorsTests, MultiCharacter_Wildcard) {
   // Must consume all '%'
   std::string s = "Money In The Bank";

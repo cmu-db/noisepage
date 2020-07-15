@@ -42,6 +42,7 @@ class JoinHashTableVectorProbeTest : public TplTest {
   MemoryPool memory_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableVectorProbeTest, EmptyJoinProbe) {
   exec::ExecutionSettings exec_settings{};
   JoinHashTable table(exec_settings, Memory(), sizeof(BuildRow));
@@ -79,6 +80,7 @@ TEST_F(JoinHashTableVectorProbeTest, EmptyJoinProbe) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(JoinHashTableVectorProbeTest, SimpleJoinProbe) {
   exec::ExecutionSettings exec_settings{};
   const uint32_t num_44_dups = 10;

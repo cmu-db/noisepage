@@ -34,6 +34,7 @@ class HashTest : public TplTest {};
     CHECK_HASH_METHOD_ON_INPUT(HashMethod::xxHash3, INPUT); \
   }
 
+// NOLINTNEXTLINE
 TEST_F(HashTest, IntegerHash) {
   std::random_device random_seed;
 
@@ -47,6 +48,7 @@ TEST_F(HashTest, IntegerHash) {
   CHECK_HASH_ON_INPUT(uint64_t{444});
 }
 
+// NOLINTNEXTLINE
 TEST_F(HashTest, FloatingPointHash) {
   std::random_device random_seed;
 
@@ -60,6 +62,7 @@ TEST_F(HashTest, FloatingPointHash) {
 #undef CHECK_HASH_ON_INPUT
 #undef CHECK_HASH_METHOD_ON_INPUT
 
+// NOLINTNEXTLINE
 TEST_F(HashTest, StringHash) {
   const auto small_input = "This is a kinda long string";
   auto large_input = std::string();

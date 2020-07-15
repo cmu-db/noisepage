@@ -100,6 +100,7 @@ class AggregationHashTableVectorIteratorTest : public SqlBasedTest {
   std::unique_ptr<catalog::Schema> schema_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableVectorIteratorTest, IterateEmptyAggregation) {
   auto exec_ctx = MakeExecCtx();
   // Empty table
@@ -112,6 +113,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, IterateEmptyAggregation) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableVectorIteratorTest, IterateSmallAggregation) {
   auto exec_ctx = MakeExecCtx();
   constexpr uint32_t num_aggs = 400;
@@ -159,6 +161,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, IterateSmallAggregation) {
   EXPECT_EQ(num_aggs, reference.size());
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableVectorIteratorTest, FilterPostAggregation) {
   auto exec_ctx = MakeExecCtx();
   constexpr uint32_t num_aggs = 4000;
@@ -194,6 +197,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, FilterPostAggregation) {
   EXPECT_EQ(1u, num_needle_matches);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableVectorIteratorTest, DISABLED_Perf) {
   auto exec_ctx = MakeExecCtx();
   uint64_t taat_ret = 0, vaat_ret = 0;

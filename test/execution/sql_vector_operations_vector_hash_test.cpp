@@ -10,6 +10,7 @@ namespace terrier::execution::sql::test {
 
 class VectorHashTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorHashTest, NumericHashes) {
 #define GEN_HASH_TEST(TYPE_ID, CPP_TYPE)                                                                            \
   {                                                                                                                 \
@@ -42,6 +43,7 @@ TEST_F(VectorHashTest, NumericHashes) {
 #undef GEN_HASH_TEST
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorHashTest, HashWithNullInput) {
   // input = [2001-01-01, 2002-01-01, NULL, 2004-01-01, NULL]
   auto input = MakeDateVector({Date::FromYMD(2001, 01, 01), Date::FromYMD(2002, 01, 01), Date::FromYMD(2003, 01, 01),
@@ -66,6 +68,7 @@ TEST_F(VectorHashTest, HashWithNullInput) {
   EXPECT_EQ(hash_t{0}, raw_hash[4]);  // The last element is NULL, so hash=0.
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorHashTest, StringHash) {
   // input = [s, NULL, s, s]
   const char *refs[] = {"short", "medium sized", "quite long indeed, but why, so?",

@@ -5,6 +5,7 @@ namespace terrier::execution::sql::test {
 
 class TupleIdListTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Add) {
   constexpr uint32_t num_tids = 10;
 
@@ -19,6 +20,7 @@ TEST_F(TupleIdListTest, Add) {
   EXPECT_TRUE(list.Contains(3));
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, AddAll) {
   constexpr uint32_t num_tids = 10;
 
@@ -30,6 +32,7 @@ TEST_F(TupleIdListTest, AddAll) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, AddRange) {
   constexpr uint32_t num_tids = 10;
 
@@ -40,6 +43,7 @@ TEST_F(TupleIdListTest, AddRange) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Enable) {
   constexpr uint32_t num_tids = 10;
 
@@ -54,6 +58,7 @@ TEST_F(TupleIdListTest, Enable) {
   EXPECT_FALSE(list.Contains(4));
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Remove) {
   constexpr uint32_t num_tids = 10;
 
@@ -75,6 +80,7 @@ TEST_F(TupleIdListTest, Remove) {
   EXPECT_FALSE(list.Contains(9));
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Clear) {
   constexpr uint32_t num_tids = 10;
 
@@ -86,6 +92,7 @@ TEST_F(TupleIdListTest, Clear) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, IsFull) {
   TupleIdList list(10);
   EXPECT_FALSE(list.IsFull());
@@ -97,6 +104,7 @@ TEST_F(TupleIdListTest, IsFull) {
   EXPECT_TRUE(list.IsFull());
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Empty) {
   TupleIdList list(10);
   EXPECT_TRUE(list.IsEmpty());
@@ -111,6 +119,7 @@ TEST_F(TupleIdListTest, Empty) {
   EXPECT_FALSE(list.IsEmpty());
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Intersection) {
   TupleIdList list1(10), list2(10);
 
@@ -134,6 +143,7 @@ TEST_F(TupleIdListTest, Intersection) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Union) {
   TupleIdList list1(10), list2(10);
 
@@ -156,6 +166,7 @@ TEST_F(TupleIdListTest, Union) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, UnsetFrom) {
   TupleIdList list1(10), list2(10);
 
@@ -178,6 +189,7 @@ TEST_F(TupleIdListTest, UnsetFrom) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Selectivity) {
   TupleIdList list(10);
 
@@ -193,6 +205,7 @@ TEST_F(TupleIdListTest, Selectivity) {
   EXPECT_FLOAT_EQ(1.0, list.ComputeSelectivity());
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, Iterate) {
   TupleIdList list(10);
   for (uint32_t i = 0; i < list.GetCapacity(); i++) {
@@ -201,6 +214,7 @@ TEST_F(TupleIdListTest, Iterate) {
   list.ForEach([](auto tid) { EXPECT_EQ(tid % 2, 0); });
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, IterateRange) {
   // list = []
   TupleIdList list(10);
@@ -221,6 +235,7 @@ TEST_F(TupleIdListTest, IterateRange) {
   EXPECT_EQ(6, output[2]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, ConvertToSelectionVector) {
   uint16_t sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
 
@@ -237,6 +252,7 @@ TEST_F(TupleIdListTest, ConvertToSelectionVector) {
   EXPECT_EQ(6u, sel[4]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(TupleIdListTest, BuildFromSelectionVector) {
   TupleIdList list(10);
 

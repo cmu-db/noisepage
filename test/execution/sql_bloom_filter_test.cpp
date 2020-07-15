@@ -24,6 +24,7 @@ class BloomFilterTest : public TplTest {
   MemoryPool memory_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(BloomFilterTest, Simple) {
   BloomFilter bf(memory(), 10);
 
@@ -56,6 +57,7 @@ void Mix(std::vector<T> &target, const std::vector<T> &source, double p) {  // N
   std::shuffle(target.begin(), target.end(), g);
 }
 
+// NOLINTNEXTLINE
 TEST_F(BloomFilterTest, Comprehensive) {
   const uint32_t num_filter_elems = 10000;
   const uint32_t lookup_scale_factor = 100;

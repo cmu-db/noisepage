@@ -27,6 +27,7 @@ class StringFunctionsTests : public SqlBasedTest {
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Concat) {
   // Nulls
   {
@@ -52,6 +53,7 @@ TEST_F(StringFunctionsTests, Concat) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Substring) {
   // Nulls
   {
@@ -105,6 +107,7 @@ TEST_F(StringFunctionsTests, Substring) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, SplitPart) {
   // Nulls
   {
@@ -170,6 +173,7 @@ TEST_F(StringFunctionsTests, SplitPart) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Repeat) {
   // Nulls
   {
@@ -218,6 +222,7 @@ TEST_F(StringFunctionsTests, Repeat) {
   EXPECT_TRUE(StringVal(s.c_str()) == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Lpad) {
   // Nulls
   {
@@ -261,6 +266,7 @@ TEST_F(StringFunctionsTests, Lpad) {
   EXPECT_TRUE(StringVal("xyxhi") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Rpad) {
   // Nulls
   {
@@ -304,6 +310,7 @@ TEST_F(StringFunctionsTests, Rpad) {
   EXPECT_TRUE(StringVal("hixyx") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Lower) {
   // Nulls
   {
@@ -320,6 +327,7 @@ TEST_F(StringFunctionsTests, Lower) {
   EXPECT_TRUE(StringVal("test") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Upper) {
   // Nulls
   {
@@ -336,6 +344,7 @@ TEST_F(StringFunctionsTests, Upper) {
   EXPECT_TRUE(StringVal("TEST") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Reverse) {
   // Nulls
   {
@@ -361,6 +370,7 @@ TEST_F(StringFunctionsTests, Reverse) {
   EXPECT_TRUE(StringVal("tset") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Left) {
   // Nulls
   {
@@ -395,6 +405,7 @@ TEST_F(StringFunctionsTests, Left) {
   EXPECT_TRUE(StringVal("") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Right) {
   // Nulls
   {
@@ -429,6 +440,7 @@ TEST_F(StringFunctionsTests, Right) {
   EXPECT_TRUE(StringVal("") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Ltrim) {
   // Nulls
   {
@@ -459,6 +471,7 @@ TEST_F(StringFunctionsTests, Ltrim) {
   EXPECT_TRUE(StringVal("test") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Rtrim) {
   // Nulls
   {
@@ -489,6 +502,7 @@ TEST_F(StringFunctionsTests, Rtrim) {
   EXPECT_TRUE(StringVal("test") == result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Trim) {
   // Nulls
   {

@@ -17,6 +17,7 @@ struct TestCase {
   ast::AstNode *tree_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(SemaDeclTest, DuplicateStructFields) {
   TestCase tests[] = {
       // Test case 1 should fail.

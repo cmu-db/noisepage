@@ -9,6 +9,7 @@ namespace terrier::execution::sql::test {
 
 class VectorArithmeticTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorArithmeticTest, InvalidVectorShapes) {
   exec::ExecutionSettings exec_settings{};
 
@@ -26,6 +27,7 @@ TEST_F(VectorArithmeticTest, InvalidVectorShapes) {
   EXPECT_THROW(VectorOps::Add(exec_settings, *a, *b, &result), ExecutionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorArithmeticTest, Addition) {
   exec::ExecutionSettings exec_settings{};
 
@@ -86,6 +88,7 @@ TEST_F(VectorArithmeticTest, Addition) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorArithmeticTest, DivMod) {
   exec::ExecutionSettings exec_settings{};
 
@@ -122,6 +125,7 @@ TEST_F(VectorArithmeticTest, DivMod) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorArithmeticTest, InPlaceAdditionInvalid) {
   exec::ExecutionSettings exec_settings{};
 
@@ -136,6 +140,7 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionInvalid) {
   EXPECT_ANY_THROW(VectorOps::AddInPlace(exec_settings, a.get(), *c));
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorArithmeticTest, InPlaceAdditionNull) {
   exec::ExecutionSettings exec_settings{};
 
@@ -149,6 +154,7 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionNull) {
   EXPECT_TRUE(a->GetNullMask().All());
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorArithmeticTest, InPlaceAdditionSimple) {
   exec::ExecutionSettings exec_settings{};
 
@@ -183,6 +189,7 @@ TEST_F(VectorArithmeticTest, InPlaceAdditionSimple) {
 #undef GEN_CASE
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorArithmeticTest, InPlaceAdditionFilteredWithNulls) {
   exec::ExecutionSettings exec_settings{};
 

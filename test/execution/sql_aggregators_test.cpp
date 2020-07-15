@@ -6,6 +6,7 @@ namespace terrier::execution::sql::test {
 
 class AggregatorsTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, Count) {
   //
   // Count on empty input
@@ -31,6 +32,7 @@ TEST_F(AggregatorsTest, Count) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, CountMerge) {
   // Even inputs are NULL
   CountAggregate count_1, count_2;
@@ -52,6 +54,7 @@ TEST_F(AggregatorsTest, CountMerge) {
   EXPECT_EQ(merged, count_1.GetCountResult().val_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, SumInteger) {
   //
   // SUM on empty input is null
@@ -95,6 +98,7 @@ TEST_F(AggregatorsTest, SumInteger) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MergeSumIntegers) {
   IntegerSumAggregate sum1;
   EXPECT_TRUE(sum1.GetResultSum().is_null_);
@@ -126,6 +130,7 @@ TEST_F(AggregatorsTest, MergeSumIntegers) {
   EXPECT_EQ(0, sum1.GetResultSum().val_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, SumReal) {
   // SUM on empty input is null
   {
@@ -173,6 +178,7 @@ TEST_F(AggregatorsTest, SumReal) {
   EXPECT_DOUBLE_EQ(70.0, sum.GetResultSum().val_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MaxInteger) {
   // NULL check and merging NULL check
   {
@@ -235,6 +241,7 @@ TEST_F(AggregatorsTest, MaxInteger) {
   EXPECT_EQ(43, max1.GetResultMax().val_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MinInteger) {
   // NULL check and merging NULL check
   {
@@ -297,6 +304,7 @@ TEST_F(AggregatorsTest, MinInteger) {
   EXPECT_EQ(-44, min.GetResultMin().val_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MaxReal) {
   // NULL check and merging NULL check
   {
@@ -359,6 +367,7 @@ TEST_F(AggregatorsTest, MaxReal) {
   EXPECT_DOUBLE_EQ(43.0, max1.GetResultMax().val_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MinReal) {
   // NULL check and merging NULL check
   {
@@ -421,6 +430,7 @@ TEST_F(AggregatorsTest, MinReal) {
   EXPECT_DOUBLE_EQ(-44.0, min.GetResultMin().val_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregatorsTest, Avg) {
   // NULL check and merging NULL check
   {

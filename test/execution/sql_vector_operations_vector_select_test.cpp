@@ -11,6 +11,7 @@ namespace terrier::execution::sql::test {
 
 class VectorSelectTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorSelectTest, MismatchedInputTypes) {
   exec::ExecutionSettings exec_settings{};
   auto a = MakeTinyIntVector(2);
@@ -20,6 +21,7 @@ TEST_F(VectorSelectTest, MismatchedInputTypes) {
   EXPECT_THROW(VectorOps::SelectEqual(exec_settings, *a, *b, &result), ExecutionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSelectTest, MismatchedSizes) {
   exec::ExecutionSettings exec_settings{};
   auto a = MakeTinyIntVector(54);
@@ -29,6 +31,7 @@ TEST_F(VectorSelectTest, MismatchedSizes) {
   EXPECT_THROW(VectorOps::SelectEqual(exec_settings, *a, *b, &result), ExecutionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSelectTest, MismatchedCounts) {
   exec::ExecutionSettings exec_settings{};
   auto a = MakeTinyIntVector(10);
@@ -49,6 +52,7 @@ TEST_F(VectorSelectTest, MismatchedCounts) {
   EXPECT_THROW(VectorOps::SelectEqual(exec_settings, *a, *b, &result), ExecutionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSelectTest, InvalidTIDListSize) {
   exec::ExecutionSettings exec_settings{};
   auto a = MakeTinyIntVector(10);
@@ -60,6 +64,7 @@ TEST_F(VectorSelectTest, InvalidTIDListSize) {
   EXPECT_THROW(VectorOps::SelectEqual(exec_settings, *a, *b, &result), ExecutionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSelectTest, BasicSelect) {
   exec::ExecutionSettings exec_settings{};
   // a = [NULL, 1, 6, NULL, 4, 5]
@@ -144,6 +149,7 @@ TEST_F(VectorSelectTest, BasicSelect) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSelectTest, SelectNullConstant) {
   exec::ExecutionSettings exec_settings{};
   // a = [0, 1, NULL, NULL, 4, 5]
@@ -176,6 +182,7 @@ TEST_F(VectorSelectTest, SelectNullConstant) {
 #undef NULL_TEST
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSelectTest, StringSelection) {
   exec::ExecutionSettings exec_settings{};
 
@@ -214,6 +221,7 @@ TEST_F(VectorSelectTest, StringSelection) {
   EXPECT_EQ(4u, tid_list[2]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSelectTest, IsNullAndIsNotNull) {
   auto vec = MakeFloatVector({1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0}, {false, true, false, true, true, false, false});
   auto tid_list = TupleIdList(vec->GetSize());

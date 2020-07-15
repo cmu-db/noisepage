@@ -110,6 +110,7 @@ void TestLimitAndOrOffset(uint64_t off, uint64_t lim) {
 
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST_F(LimitTranslatorTest, LimitAndOffsetTest) {
   // We don't test zero-limits because those should've been optimized out before
   // ever getting to query execution.

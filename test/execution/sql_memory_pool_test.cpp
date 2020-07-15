@@ -18,6 +18,7 @@ struct ComplexObj {
   ~ComplexObj() { memory->DeleteObject(std::move(nested)); }
 };
 
+// NOLINTNEXTLINE
 TEST_F(MemoryPoolTest, PoolPointers) {
   MemoryPool pool(nullptr);
 
@@ -41,6 +42,7 @@ TEST_F(MemoryPoolTest, PoolPointers) {
   pool.DeleteObject(std::move(obj1));
 }
 
+// NOLINTNEXTLINE
 TEST_F(MemoryPoolTest, ComplexPointers) {
   MemoryPool pool(nullptr);
 

@@ -10,6 +10,7 @@ namespace terrier::execution::sql::test {
 
 class VectorLikeTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorLikeTest, InputVerification) {
   // Left input is invalid type
   {
@@ -36,6 +37,7 @@ TEST_F(VectorLikeTest, InputVerification) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorLikeTest, LikeConstant) {
   auto strings =
       MakeVarcharVector({"first", "second", "third", "fourth", "fifth"}, {false, false, false, false, false});
@@ -79,6 +81,7 @@ TEST_F(VectorLikeTest, LikeConstant) {
   EXPECT_EQ(0u, tid_list.GetTupleCount());
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorLikeTest, LikeVectorOfPatterns) {
   auto strings =
       MakeVarcharVector({"first", "second", "third", "fourth", "fifth"}, {false, false, false, false, false});

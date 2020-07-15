@@ -21,6 +21,7 @@ class DataTypesTests : public TplTest {};
   EXPECT_FALSE(INSTANCE.Equals(OTHER_TYPE::Instance(true, __VA_ARGS__))); \
   EXPECT_FALSE(INSTANCE.Equals(OTHER_TYPE::Instance(false, __VA_ARGS__)));
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, BooleanType) {
   CHECK_TYPE_PROPERTIES(BooleanType, SqlTypeId::Boolean, false);
   CHECK_NOT_EQUAL(type, SmallIntType);
@@ -32,6 +33,7 @@ TEST_F(DataTypesTests, BooleanType) {
   CHECK_NOT_EQUAL(type, DoubleType);
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, TinyIntType) {
   CHECK_TYPE_PROPERTIES(TinyIntType, SqlTypeId::TinyInt, true);
   CHECK_NOT_EQUAL(type, BooleanType);
@@ -43,6 +45,7 @@ TEST_F(DataTypesTests, TinyIntType) {
   CHECK_NOT_EQUAL(type, DoubleType);
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, SmallIntType) {
   CHECK_TYPE_PROPERTIES(SmallIntType, SqlTypeId::SmallInt, true);
   CHECK_NOT_EQUAL(type, BooleanType);
@@ -54,6 +57,7 @@ TEST_F(DataTypesTests, SmallIntType) {
   CHECK_NOT_EQUAL(type, DoubleType);
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, IntegerType) {
   CHECK_TYPE_PROPERTIES(IntegerType, SqlTypeId::Integer, true);
   CHECK_NOT_EQUAL(type, BooleanType);
@@ -65,6 +69,7 @@ TEST_F(DataTypesTests, IntegerType) {
   CHECK_NOT_EQUAL(type, DoubleType);
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, BigIntType) {
   CHECK_TYPE_PROPERTIES(BigIntType, SqlTypeId::BigInt, true);
   CHECK_NOT_EQUAL(type, BooleanType);
@@ -76,6 +81,7 @@ TEST_F(DataTypesTests, BigIntType) {
   CHECK_NOT_EQUAL(type, DoubleType);
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, RealType) {
   CHECK_TYPE_PROPERTIES(RealType, SqlTypeId::Real, true);
   CHECK_NOT_EQUAL(type, BooleanType);
@@ -86,6 +92,7 @@ TEST_F(DataTypesTests, RealType) {
   CHECK_NOT_EQUAL(type, DoubleType);
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, DoubleType) {
   CHECK_TYPE_PROPERTIES(DoubleType, SqlTypeId::Double, true);
   CHECK_NOT_EQUAL(type, BooleanType);
@@ -96,6 +103,7 @@ TEST_F(DataTypesTests, DoubleType) {
   CHECK_NOT_EQUAL(type, RealType);
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, DateType) {
   CHECK_TYPE_PROPERTIES(DateType, SqlTypeId::Date, false);
   CHECK_NOT_EQUAL(type, BooleanType);
@@ -105,6 +113,7 @@ TEST_F(DataTypesTests, DateType) {
   CHECK_NOT_EQUAL(type, RealType);
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, DecimalType) {
   const auto &type1 = DecimalType::InstanceNullable(5, 2);
   EXPECT_TRUE(type1.IsNullable());
@@ -126,6 +135,7 @@ TEST_F(DataTypesTests, DecimalType) {
   EXPECT_TRUE(type1.Equals(DecimalType::InstanceNullable(5, 2)));
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, CharType) {
   const auto &type1 = CharType::InstanceNullable(100);
   EXPECT_TRUE(type1.IsNullable());
@@ -148,6 +158,7 @@ TEST_F(DataTypesTests, CharType) {
   EXPECT_TRUE(type1.Equals(CharType::InstanceNullable(100)));
 }
 
+// NOLINTNEXTLINE
 TEST_F(DataTypesTests, VarcharType) {
   const auto &type1 = VarcharType::InstanceNullable(100);
   EXPECT_TRUE(type1.IsNullable());

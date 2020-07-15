@@ -134,6 +134,7 @@ class VectorProjectionIteratorTest : public TplTest {
   std::vector<ColData> data_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionIteratorTest, EmptyIteratorTest) {
   //
   // Test: check to see that iteration doesn't begin without an input block
@@ -148,6 +149,7 @@ TEST_F(VectorProjectionIteratorTest, EmptyIteratorTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionIteratorTest, SimpleIteratorTest) {
   //
   // Test: check to see that iteration iterates over all tuples in the
@@ -199,6 +201,7 @@ TEST_F(VectorProjectionIteratorTest, SimpleIteratorTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionIteratorTest, ReadNullableColumnsTest) {
   //
   // Test: check to see that we can correctly count all NULL values in NULLable
@@ -222,6 +225,7 @@ TEST_F(VectorProjectionIteratorTest, ReadNullableColumnsTest) {
   EXPECT_EQ(ColumnData(ColId::col_b).num_nulls, num_nulls);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionIteratorTest, ManualFilterTest) {
   //
   // Test: check to see that we can correctly manually apply a single filter on
@@ -307,6 +311,7 @@ TEST_F(VectorProjectionIteratorTest, ManualFilterTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionIteratorTest, ManagedFilterTest) {
   //
   // Test: check to see that we can correctly apply a single filter on a single

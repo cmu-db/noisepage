@@ -10,6 +10,7 @@ namespace terrier::execution::sql::test {
 
 class VarlenEntryTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VarlenEntryTest, Basic) {
   std::default_random_engine gen(std::random_device{}());  // NOLINT
   std::uniform_int_distribution<uint8_t> dist(0, std::numeric_limits<uint8_t>::max());
@@ -35,6 +36,7 @@ TEST_F(VarlenEntryTest, Basic) {
   EXPECT_NE(small_buf, entry.Content());
 }
 
+// NOLINTNEXTLINE
 TEST_F(VarlenEntryTest, Comparison) {
   // Small/Small
   {

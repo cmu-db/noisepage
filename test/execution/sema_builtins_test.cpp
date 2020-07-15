@@ -16,6 +16,7 @@ class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
   void ResetErrorReporter() { ErrorReporter()->Reset(); }
 };
 
+// NOLINTNEXTLINE
 TEST_F(SemaBuiltinTest, CheckSqlConversions) {
   //
   // Primitive integer to SQL integer
@@ -96,6 +97,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SemaBuiltinTest, CheckTrigBuiltins) {
 #define CHECK_TRIG(BUILTIN)                                                                         \
   {                                                                                                 \

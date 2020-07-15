@@ -8,6 +8,7 @@ namespace terrier::execution::sql::test {
 
 class VectorBitwiseTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorBitwiseTest, InPlaceBitwiseAND) {
   exec::ExecutionSettings exec_settings{};
 

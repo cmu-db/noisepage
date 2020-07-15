@@ -18,6 +18,7 @@ enum Col : uint8_t { A = 0, B = 1, C = 2, D = 3 };
 
 using namespace std::chrono_literals;  // NOLINT
 
+// NOLINTNEXTLINE
 TEST_F(FilterManagerTest, ConjunctionTest) {
   auto exec_ctx = MakeExecCtx();
   // Create a filter that implements: colA < 500 AND colB < 9
@@ -55,6 +56,7 @@ TEST_F(FilterManagerTest, ConjunctionTest) {
   });
 }
 
+// NOLINTNEXTLINE
 TEST_F(FilterManagerTest, DisjunctionTest) {
   auto exec_ctx = MakeExecCtx();
   // Create a filter that implements: colA < 500 OR colB < 9
@@ -93,6 +95,7 @@ TEST_F(FilterManagerTest, DisjunctionTest) {
   });
 }
 
+// NOLINTNEXTLINE
 TEST_F(FilterManagerTest, MixedTaatVaatFilterTest) {
   auto exec_ctx = MakeExecCtx();
   // Create a filter that implements: colA < 500 AND colB < 9
@@ -131,6 +134,7 @@ TEST_F(FilterManagerTest, MixedTaatVaatFilterTest) {
   });
 }
 
+// NOLINTNEXTLINE
 TEST_F(FilterManagerTest, AdaptiveCheckTest) {
   auto exec_ctx = MakeExecCtx();
   uint32_t iter = 0;

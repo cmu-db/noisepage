@@ -26,6 +26,7 @@ class CSVScanTranslatorTest : public SqlBasedTest {
   tbb::task_scheduler_init anonymous_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(CSVScanTranslatorTest, ManyTypesTest) {
   compiler::test::ExpressionMaker expr_maker;
 

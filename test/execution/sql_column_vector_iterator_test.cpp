@@ -6,6 +6,7 @@ namespace terrier::execution::sql::test {
 
 class ColumnIteratorTest : public SqlBasedTest {};
 
+// NOLINTNEXTLINE
 TEST_F(ColumnIteratorTest, EmptyIteratorTest) {
   auto *table = sql::Catalog::Instance()->LookupTableById(TableIdToNum(TableId::Test1));
 
@@ -42,6 +43,7 @@ TEST_F(ColumnIteratorTest, EmptyIteratorTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ColumnIteratorTest, IntegerIterationTest) {
   auto *table = sql::Catalog::Instance()->LookupTableById(TableIdToNum(TableId::Test1));
 

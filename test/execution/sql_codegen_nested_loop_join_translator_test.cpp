@@ -32,6 +32,7 @@ class NestedLoopJoinTranslatorTest : public SqlBasedTest {
   tbb::task_scheduler_init anonymous_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(NestedLoopJoinTranslatorTest, SimpleNestedLoopJoinTest) {
   // Self join:
   // SELECT t1.col1, t1.col2, t2.col2, t1.col1 + t2.col2

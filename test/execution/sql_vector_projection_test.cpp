@@ -12,6 +12,7 @@ class VectorProjectionTest : public TplTest {};
 
 class VectorProjectionDeathTest : public VectorProjectionTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionTest, Empty) {
   VectorProjection vector_projection;
 
@@ -22,6 +23,7 @@ TEST_F(VectorProjectionTest, Empty) {
   vector_projection.CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionTest, InitializeEmpty) {
   VectorProjection vector_projection;
   vector_projection.InitializeEmpty({TypeId::SmallInt, TypeId::Double});
@@ -41,6 +43,7 @@ TEST_F(VectorProjectionTest, InitializeEmpty) {
   vector_projection.CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionTest, Initialize) {
   VectorProjection vector_projection;
   vector_projection.Initialize({TypeId::Float, TypeId::Integer, TypeId::Date});
@@ -61,6 +64,7 @@ TEST_F(VectorProjectionTest, Initialize) {
   vector_projection.CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionTest, Reinitialize) {
   VectorProjection vector_projection;
 
@@ -86,6 +90,7 @@ TEST_F(VectorProjectionTest, Reinitialize) {
   vector_projection.CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionTest, Selection) {
   VectorProjection vector_projection;
   vector_projection.Initialize({TypeId::BigInt, TypeId::Double});
@@ -131,6 +136,7 @@ TEST_F(VectorProjectionTest, Selection) {
   vector_projection.CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionDeathTest, InvalidFilter) {
   ::testing::FLAGS_gtest_death_test_style = "threadsafe";
 
@@ -151,6 +157,7 @@ TEST_F(VectorProjectionDeathTest, InvalidFilter) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionDeathTest, InvalidShape) {
   ::testing::FLAGS_gtest_death_test_style = "threadsafe";
 
@@ -167,6 +174,7 @@ TEST_F(VectorProjectionDeathTest, InvalidShape) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionTest, Reset) {
   VectorProjection vector_projection;
   vector_projection.Initialize({TypeId::TinyInt});
@@ -205,6 +213,7 @@ TEST_F(VectorProjectionTest, Reset) {
   vector_projection.CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionTest, Pack) {
   VectorProjection vector_projection;
   vector_projection.Initialize({TypeId::TinyInt, TypeId::SmallInt, TypeId::Float});
@@ -249,6 +258,7 @@ TEST_F(VectorProjectionTest, Pack) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorProjectionTest, ProjectColumns) {
   // Create a vector projection with [tiny_int, small_int, integer] columns.
   // col0 = [0,1,2,3,4,5,6,7,8,9]

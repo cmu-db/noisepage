@@ -33,6 +33,7 @@ class HashAggregationTranslatorTest : public SqlBasedTest {
   tbb::task_scheduler_init anonymous_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(HashAggregationTranslatorTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
   // Get accessor

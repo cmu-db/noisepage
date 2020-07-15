@@ -10,6 +10,7 @@ namespace terrier::execution::sql::test {
 
 class GenericValueTests : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(GenericValueTests, Boolean) {
   {
     auto value = GenericValue::CreateBoolean(true);
@@ -24,36 +25,42 @@ TEST_F(GenericValueTests, Boolean) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericValueTests, TinyInt) {
   auto value = GenericValue::CreateTinyInt(1);
   EXPECT_FALSE(value.IsNull());
   EXPECT_EQ(TypeId::TinyInt, value.GetTypeId());
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericValueTests, SmallInt) {
   auto value = GenericValue::CreateSmallInt(10);
   EXPECT_FALSE(value.IsNull());
   EXPECT_EQ(TypeId::SmallInt, value.GetTypeId());
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericValueTests, Int) {
   auto value = GenericValue::CreateInteger(100);
   EXPECT_FALSE(value.IsNull());
   EXPECT_EQ(TypeId::Integer, value.GetTypeId());
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericValueTests, BigInt) {
   auto value = GenericValue::CreateBigInt(1000);
   EXPECT_FALSE(value.IsNull());
   EXPECT_EQ(TypeId::BigInt, value.GetTypeId());
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericValueTests, Hash) {
   auto value = GenericValue::CreateHash(hash_t{10000});
   EXPECT_FALSE(value.IsNull());
   EXPECT_EQ(TypeId::Hash, value.GetTypeId());
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericValueTests, Pointer) {
   int32_t x = 10;
   auto value = GenericValue::CreatePointer(&x);
@@ -61,6 +68,7 @@ TEST_F(GenericValueTests, Pointer) {
   EXPECT_EQ(TypeId::Pointer, value.GetTypeId());
 }
 
+// NOLINTNEXTLINE
 TEST_F(GenericValueTests, Equality) {
   auto bigint_val = GenericValue::CreateBigInt(19);
   EXPECT_EQ(bigint_val, GenericValue::CreateBigInt(19));

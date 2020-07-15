@@ -10,6 +10,7 @@ namespace terrier::execution::sql::test {
 
 class VectorTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, CheckEmpty) {
   // Creating an empty vector should have zero count, zero size, no selection vector, and should
   // clean itself up upon destruction.
@@ -20,6 +21,7 @@ TEST_F(VectorTest, CheckEmpty) {
   vec1->CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, Clear) {
   auto vec = MakeTinyIntVector(10);
 
@@ -33,6 +35,7 @@ TEST_F(VectorTest, Clear) {
   vec->CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, InitFromArray) {
   const uint32_t num_elems = 5;
 
@@ -73,6 +76,7 @@ TEST_F(VectorTest, InitFromArray) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, GetAndSet) {
   auto vec = MakeBooleanVector(1);
 
@@ -91,6 +95,7 @@ TEST_F(VectorTest, GetAndSet) {
   vec->CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, GetAndSetNumeric) {
 #define GEN_TEST(TYPE)                                          \
   {                                                             \
@@ -115,6 +120,7 @@ TEST_F(VectorTest, GetAndSetNumeric) {
 #undef GEN_TEST
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, GetAndSetString) {
   auto vec = MakeVarcharVector(1);
   vec->SetValue(0, GenericValue::CreateVarchar("hello"));
@@ -125,6 +131,7 @@ TEST_F(VectorTest, GetAndSetString) {
   vec->CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, SetSelectionVector) {
   // vec = [0, 1, 2, 3, NULL, 5, 6, 7, 8, 9]
   auto vec = MakeTinyIntVector(10);
@@ -154,6 +161,7 @@ TEST_F(VectorTest, SetSelectionVector) {
   vec->CheckIntegrity();
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, Reference) {
   // vec = [0, 1, NULL, 3, 4, 5, 6, 7, 8, 9]
   auto vec = MakeIntegerVector(10);
@@ -180,6 +188,7 @@ TEST_F(VectorTest, Reference) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, Move) {
   // vec = [0, 1, 2, 3, NULL, 5, 6, 7, 8, 9]
   auto vec = MakeIntegerVector(10);
@@ -220,6 +229,7 @@ TEST_F(VectorTest, Move) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, Copy) {
   constexpr uint32_t num_elems = 10;
   exec::ExecutionSettings exec_settings{};
@@ -252,6 +262,7 @@ TEST_F(VectorTest, Copy) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, CopyWithOffset) {
   // vec = [0, 1, 2, 3, NULL, 5, 6, 7, NULL, 9]
   auto vec = MakeIntegerVector(10);
@@ -282,6 +293,7 @@ TEST_F(VectorTest, CopyWithOffset) {
   EXPECT_TRUE(target->IsNull(2));
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, CopyStringVector) {
   // vec = ['val-0','val-1','val-2','val-3','val-4','val-5','val-6','val-7','val-8','val-9']
   auto vec = MakeVarcharVector(10);
@@ -313,6 +325,7 @@ TEST_F(VectorTest, CopyStringVector) {
   EXPECT_EQ(GenericValue::CreateVarchar("val-8"), target->GetValue(4));
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, Append) {
   // vec1 = [1.0, NULL, 3.0]
   auto vec1 = MakeDoubleVector(3);
@@ -339,6 +352,7 @@ TEST_F(VectorTest, Append) {
   EXPECT_EQ(GenericValue::CreateDouble(3.0), vec2->GetValue(4));
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, AppendWithSelectionVector) {
   // vec1 = [1.0, NULL, 3.0]
   auto vec1 = MakeFloatVector(3);
@@ -369,6 +383,7 @@ TEST_F(VectorTest, AppendWithSelectionVector) {
   EXPECT_EQ(GenericValue::CreateFloat(3.0), vec2->GetValue(3));
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, Pack) {
   // vec = [NULL,1,2,3,4,5,6,7,8,NULL]
   auto vec = MakeSmallIntVector({0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
@@ -402,6 +417,7 @@ TEST_F(VectorTest, Pack) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, GetNonNullSelections) {
   // vec1 = [1,2,3,4,5,6,7,8,9,10,11,12]
   auto vec1 = MakeFloatVector({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
@@ -451,6 +467,7 @@ TEST_F(VectorTest, GetNonNullSelections) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorTest, Print) {
   {
     auto vec = MakeBooleanVector({false, true, true, false}, {false, false, false, false});

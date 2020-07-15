@@ -6,6 +6,7 @@ namespace terrier::execution::sql::test {
 
 class IsNullPredicateTests : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNull) {
 #define CHECK_NULL_FOR_TYPE(NullVal, NonNullVal)                                  \
   {                                                                               \

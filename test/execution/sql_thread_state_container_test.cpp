@@ -18,6 +18,7 @@ class ThreadStateContainerTest : public TplTest {
   }
 };
 
+// NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, EmptyStateTest) {
   MemoryPool memory(nullptr);
   ThreadStateContainer container(&memory);
@@ -26,6 +27,7 @@ TEST_F(ThreadStateContainerTest, EmptyStateTest) {
   container.Clear();
 }
 
+// NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   struct Object {
     uint64_t x{0};
@@ -58,6 +60,7 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   EXECUTION_LOG_INFO("{} thread states", container.GetThreadStateCount());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   // The container
   MemoryPool memory(nullptr);
@@ -93,6 +96,7 @@ TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   EXPECT_EQ(init_num, count);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   //
   // Test: Iterate a vector of elements, incrementing a count for each element.

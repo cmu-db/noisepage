@@ -6,6 +6,7 @@ namespace terrier::execution::util::test {
 
 class FileTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(FileTest, CreateTemporaryFile) {
   // Create a temporary file and write a string into it
   auto f = File();
@@ -28,6 +29,7 @@ TEST_F(FileTest, CreateTemporaryFile) {
   ASSERT_EQ(std::string(r, s.length()), s);
 }
 
+// NOLINTNEXTLINE
 TEST_F(FileTest, Create) {
   auto path = std::filesystem::path("/tmp/tpl.TEMP." + std::to_string(FastRand().Next()));
 
@@ -88,6 +90,7 @@ TEST_F(FileTest, Create) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(FileTest, ReadAndWrite) {
   auto path = std::filesystem::path("/tmp/tpl.TEMP." + std::to_string(FastRand().Next()));
 
@@ -108,6 +111,7 @@ TEST_F(FileTest, ReadAndWrite) {
   EXPECT_EQ(std::string(text_back, text_back + chars_read), text);
 }
 
+// NOLINTNEXTLINE
 TEST_F(FileTest, Write) {
   auto path = std::filesystem::path("/tmp/tpl.TEMP." + std::to_string(FastRand().Next()));
 
@@ -134,6 +138,7 @@ TEST_F(FileTest, Write) {
   EXPECT_EQ(std::string(text_back, text_back + chars_read), text);
 }
 
+// NOLINTNEXTLINE
 TEST_F(FileTest, Seek) {
   auto path = std::filesystem::path("/tmp/tpl.TEMP." + std::to_string(FastRand().Next()));
 

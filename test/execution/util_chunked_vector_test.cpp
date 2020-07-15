@@ -13,6 +13,7 @@ namespace terrier::execution::util::test {
 
 class ChunkedVectorTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, InsertAndIndexTest) {
   const uint32_t num_elems = 10;
 
@@ -28,6 +29,7 @@ TEST_F(ChunkedVectorTest, InsertAndIndexTest) {
   EXPECT_EQ(num_elems, vec.size());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomLookupTest) {
   const uint32_t num_elems = 1000;
 
@@ -47,6 +49,7 @@ TEST_F(ChunkedVectorTest, RandomLookupTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, IterationTest) {
   ChunkedVectorT<uint32_t> vec;
 
@@ -62,6 +65,7 @@ TEST_F(ChunkedVectorTest, IterationTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, PopBackTest) {
   ChunkedVectorT<uint32_t> vec;
 
@@ -80,6 +84,7 @@ TEST_F(ChunkedVectorTest, PopBackTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, FrontBackTest) {
   ChunkedVectorT<uint32_t> vec;
 
@@ -100,6 +105,7 @@ TEST_F(ChunkedVectorTest, FrontBackTest) {
   EXPECT_EQ(8u, vec.back());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, ChunkReuseTest) {
   util::Region tmp("tmp");
   ChunkedVectorT<uint32_t, StlRegionAllocator<uint32_t>> vec{StlRegionAllocator<uint32_t>(&tmp)};
@@ -150,6 +156,7 @@ class Simple {
 
 uint32_t Simple::count = 0;
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, ClearTest) {
   ChunkedVectorT<Simple> v;
   v.emplace_back(1);
@@ -175,6 +182,7 @@ TEST_F(ChunkedVectorTest, ClearTest) {
   EXPECT_EQ(12u, v[2].id());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, ElementConstructDestructTest) {
   util::Region tmp("tmp");
   ChunkedVectorT<Simple> vec;
@@ -193,6 +201,7 @@ TEST_F(ChunkedVectorTest, ElementConstructDestructTest) {
   EXPECT_EQ(0u, Simple::count);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, MoveConstructorTest) {
   const uint32_t num_elems = 1000;
 
@@ -206,6 +215,7 @@ TEST_F(ChunkedVectorTest, MoveConstructorTest) {
   EXPECT_EQ(num_elems, vec2.size());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, AssignmentMoveTest) {
   const uint32_t num_elems = 1000;
 
@@ -224,6 +234,7 @@ TEST_F(ChunkedVectorTest, AssignmentMoveTest) {
 }
 
 // Check that adding random integers to the iterator works.
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorAdditionTest) {
   const uint32_t num_elems = 1000;
   const uint32_t num_rolls = 1000000;  // Number of additions to make
@@ -245,6 +256,7 @@ TEST_F(ChunkedVectorTest, RandomIteratorAdditionTest) {
 }
 
 // Check that subtracting random integers from the iterator works.
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorSubtractionTest) {
   const uint32_t num_elems = 1000;
   const uint32_t num_rolls = 1000000;  // number of subtractions to make
@@ -267,6 +279,7 @@ TEST_F(ChunkedVectorTest, RandomIteratorSubtractionTest) {
 
 // Check that all binary operators are working.
 // <, <=, >, >=, ==, !=, -.
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorBinaryOpsTest) {
   const uint32_t num_elems = 1000;
   const uint32_t num_rolls = 1000000;  // Number of checks to make
@@ -295,6 +308,7 @@ TEST_F(ChunkedVectorTest, RandomIteratorBinaryOpsTest) {
 }
 
 // Check that pre-incrementing works.
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorPreIncrementTest) {
   const uint32_t num_elems = 512;
 
@@ -322,6 +336,7 @@ TEST_F(ChunkedVectorTest, RandomIteratorPreIncrementTest) {
 }
 
 // Check that pre-decrementing works.
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, RandomIteratorPreDecrementTest) {
   const uint32_t num_elems = 512;
 
@@ -348,6 +363,7 @@ TEST_F(ChunkedVectorTest, RandomIteratorPreDecrementTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChunkedVectorTest, SortTest) {
   const uint32_t num_elems = 1000;
   util::Region tmp("tmp");

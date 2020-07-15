@@ -34,6 +34,7 @@ class SortTranslatorTest : public SqlBasedTest {
   tbb::task_scheduler_init anonymous_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(SortTranslatorTest, SimpleSortTest) {
   // SELECT col1, col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC
 
@@ -96,6 +97,7 @@ TEST_F(SortTranslatorTest, SimpleSortTest) {
   multi_checker.CheckCorrectness();
 }
 
+// NOLINTNEXTLINE
 TEST_F(SortTranslatorTest, TwoColumnSortTest) {
   // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC
 
@@ -269,6 +271,7 @@ void TestSortWithLimitAndOrOffset(uint64_t off, uint64_t lim) {
 
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST_F(SortTranslatorTest, SortWithLimitAndOffsetTest) {
   TestSortWithLimitAndOrOffset(0, 1);
   TestSortWithLimitAndOrOffset(0, 10);

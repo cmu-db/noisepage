@@ -36,6 +36,7 @@ class StaticAggregationTranslatorTest : public SqlBasedTest {
   tbb::task_scheduler_init anonymous_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(StaticAggregationTranslatorTest, SimpleTest) {
   // SELECT COUNT(*), SUM(cola) FROM test_1;
 
@@ -104,6 +105,7 @@ TEST_F(StaticAggregationTranslatorTest, SimpleTest) {
   multi_checker.CheckCorrectness();
 }
 
+// NOLINTNEXTLINE
 TEST_F(StaticAggregationTranslatorTest, StaticAggregateWithHavingTest) {
   // SELECT COUNT(*) FROM test_1 HAVING COUNT(*) < 0;
 

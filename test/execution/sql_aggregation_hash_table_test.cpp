@@ -83,6 +83,7 @@ class AggregationHashTableTest : public SqlBasedTest {
   AggregationHashTable agg_table_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, SimpleRandomInsertionTest) {
   const uint32_t num_tuples = 10000;
 
@@ -115,6 +116,7 @@ TEST_F(AggregationHashTableTest, SimpleRandomInsertionTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, IterationTest) {
   //
   // SELECT key, SUM(cola), SUM(cola*2), SUM(cola*10) FROM table GROUP BY key
@@ -164,6 +166,7 @@ TEST_F(AggregationHashTableTest, IterationTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, SimplePartitionedInsertionTest) {
   const uint32_t num_tuples = 10000;
 
@@ -184,6 +187,7 @@ TEST_F(AggregationHashTableTest, SimplePartitionedInsertionTest) {
   EXPECT_GT(AggTable()->GetStatistics()->num_flushes_, 0);
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, BatchProcessTest) {
   constexpr uint32_t num_groups = 512;
   constexpr uint32_t num_group_updates_per_batch = common::Constants::K_DEFAULT_VECTOR_SIZE / num_groups;
@@ -259,6 +263,7 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, OverflowPartitonIteratorTest) {
   struct Data {
     uint32_t key{5};
@@ -346,6 +351,7 @@ TEST_F(AggregationHashTableTest, OverflowPartitonIteratorTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   auto exec_ctx = MakeExecCtx();
   tbb::task_scheduler_init sched;

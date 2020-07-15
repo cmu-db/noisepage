@@ -36,6 +36,7 @@ class SeqScanTranslatorTest : public SqlBasedTest {
   tbb::task_scheduler_init anonymous_;
 };
 
+// NOLINTNEXTLINE
 TEST_F(SeqScanTranslatorTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 5;
   auto accessor = sql::Catalog::Instance();
@@ -85,6 +86,7 @@ TEST_F(SeqScanTranslatorTest, SimpleSeqScanTest) {
   multi_checker.CheckCorrectness();
 }
 
+// NOLINTNEXTLINE
 TEST_F(SeqScanTranslatorTest, NonVecFilterTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1
   // WHERE (col1 < 500 AND col2 >= 5) OR (500 <= col1 <= 1000 AND (col2 = 3 OR col2 = 7));
@@ -152,6 +154,7 @@ TEST_F(SeqScanTranslatorTest, NonVecFilterTest) {
   checker.CheckCorrectness();
 }
 
+// NOLINTNEXTLINE
 TEST_F(SeqScanTranslatorTest, SeqScanWithProjection) {
   // SELECT col1, col2, col1 * col1, col1 >= 100*col2 FROM test_1 WHERE col1 < 500;
   // This test first selects col1 and col2, and then constructs the 4 output columns.

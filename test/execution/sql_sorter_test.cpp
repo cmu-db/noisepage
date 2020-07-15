@@ -141,12 +141,14 @@ void TestTopKRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems,
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, SortTest) {
   const uint32_t num_iters = 5;
   const uint32_t max_elems = 10000;
   TestAllIntegral(TestSortRandomTupleSize, num_iters, max_elems, &generator_);
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, TopKTest) {
   const uint32_t num_iters = 5;
   const uint32_t max_elems = 10000;
@@ -222,6 +224,7 @@ void TestParallelSort(exec::ExecutionContext *exec_ctx, const std::vector<uint32
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, BalancedParallelSortTest) {
   auto exec_ctx = MakeExecCtx();
   TestParallelSort<2>(exec_ctx.get(), {1000});
@@ -232,6 +235,7 @@ TEST_F(SorterTest, BalancedParallelSortTest) {
   TestParallelSort<2>(exec_ctx.get(), {1000, 1000, 1000, 1000, 1000, 1000});
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, SingleThreadLocalParallelSortTest) {
   auto exec_ctx = MakeExecCtx();
   // Single thread-local sorter
@@ -242,6 +246,7 @@ TEST_F(SorterTest, SingleThreadLocalParallelSortTest) {
   TestParallelSort<2>(exec_ctx.get(), {1000});
 }
 
+// NOLINTNEXTLINE
 TEST_F(SorterTest, UnbalancedParallelSortTest) {
   auto exec_ctx = MakeExecCtx();
   // All imbalance permutations

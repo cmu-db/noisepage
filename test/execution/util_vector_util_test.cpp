@@ -17,6 +17,7 @@ namespace terrier::execution::util {
 
 class VectorUtilTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, Access) {
   {
     simd::Vec8 in(44);
@@ -34,6 +35,7 @@ TEST_F(VectorUtilTest, Access) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, Arithmetic) {
   // Addition
   {
@@ -81,6 +83,7 @@ TEST_F(VectorUtilTest, Arithmetic) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, BitwiseOperations) {
   // Left shift
   {
@@ -113,6 +116,7 @@ TEST_F(VectorUtilTest, BitwiseOperations) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, Comparisons) {
   // Equality
   {
@@ -205,6 +209,7 @@ TEST_F(VectorUtilTest, Comparisons) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, MaskToPosition) {
   simd::Vec8 vec(3, 0, 4, 1, 5, 2, 6, 2);
   simd::Vec8 val(2);
@@ -222,6 +227,7 @@ TEST_F(VectorUtilTest, MaskToPosition) {
   EXPECT_EQ(6u, positions[3]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, ByteToSelectionVector) {
   constexpr uint32_t n = 14;
   uint8_t bytes[n] = {0xFF, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00};
@@ -239,6 +245,7 @@ TEST_F(VectorUtilTest, ByteToSelectionVector) {
   EXPECT_EQ(12u, sel[7]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, BitToByteVector) {
   // Large enough to run through both vector-loop and scalar tail
   constexpr uint32_t num_bits = 97;
@@ -262,6 +269,7 @@ TEST_F(VectorUtilTest, BitToByteVector) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, BitToSelectionVector) {
   // 126-bit vector and the output selection vector
   constexpr uint32_t num_bits = 126;
@@ -285,6 +293,7 @@ TEST_F(VectorUtilTest, BitToSelectionVector) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, BitToSelectionVector_Sparse_vs_Dense) {
   for (uint32_t density : {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}) {
     // Create a bit vector with specific density
@@ -307,6 +316,7 @@ TEST_F(VectorUtilTest, BitToSelectionVector_Sparse_vs_Dense) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, DiffSelected) {
   sel_t input[common::Constants::K_DEFAULT_VECTOR_SIZE] = {0, 2, 3, 5, 7, 9};
   sel_t output[common::Constants::K_DEFAULT_VECTOR_SIZE];
@@ -318,6 +328,7 @@ TEST_F(VectorUtilTest, DiffSelected) {
   EXPECT_EQ(8u, output[3]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, DiffSelectedWithScratchPad) {
   sel_t input[common::Constants::K_DEFAULT_VECTOR_SIZE] = {2, 3, 5, 7, 9};
   sel_t output[common::Constants::K_DEFAULT_VECTOR_SIZE];
@@ -332,6 +343,7 @@ TEST_F(VectorUtilTest, DiffSelectedWithScratchPad) {
   EXPECT_EQ(8u, output[4]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorUtilTest, IntersectSelectionVectors) {
   sel_t a[] = {2, 3, 5, 7, 9};
   sel_t b[] = {1, 2, 4, 7, 8, 9, 10, 11};

@@ -11,6 +11,7 @@ namespace terrier::execution::sql::test {
 
 class VectorSortTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(VectorSortTest, NoNullsNoFilter) {
   // All elements selected
   auto vec = MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
@@ -24,6 +25,7 @@ TEST_F(VectorSortTest, NoNullsNoFilter) {
       std::is_sorted(sorted, sorted + vec->GetSize(), [&](auto idx1, auto idx2) { return data[idx1] <= data[idx2]; }));
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSortTest, NoNullsWithFilter) {
   // Simple vector
   auto vec = MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
@@ -45,6 +47,7 @@ TEST_F(VectorSortTest, NoNullsWithFilter) {
   EXPECT_EQ(10u, data[sorted[2]]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSortTest, NullsNoFilter) {
   // vec = [NULL,10,2,9,NULL,8,NULL,NULL,NULL,6]
   auto vec = MakeIntegerVector({1, 10, 2, 9, 3, 8, 4, 7, 5, 6},
@@ -71,6 +74,7 @@ TEST_F(VectorSortTest, NullsNoFilter) {
   EXPECT_EQ(1u, sorted[9]);
 }
 
+// NOLINTNEXTLINE
 TEST_F(VectorSortTest, NullsAndFilter) {
   // vec = [-1.2,NULL,NULL,3.45,NULL,-67.89,NULL,NULL,NULL,123.45]
   auto vec = MakeFloatVector({-1.2F, 0, 0, 3.45, 0, -67.89F, 0, 0, 0, 123.45F},

@@ -6,6 +6,7 @@ namespace terrier::execution::sql::test {
 
 class RuntimeTypesTest : public TplTest {};
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, ExtractDateParts) {
   // Valid date
   Date d;
@@ -30,6 +31,7 @@ TEST_F(RuntimeTypesTest, ExtractDateParts) {
   EXPECT_THROW({ d = Date::FromYMD(-50000000, 921873, 21938); }, ConversionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DateFromString) {
   // Valid date
   Date d;
@@ -59,6 +61,7 @@ TEST_F(RuntimeTypesTest, DateFromString) {
   EXPECT_THROW({ d = Date::FromString("-1-1-23"); }, ConversionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DateComparisons) {
   Date d1 = Date::FromString("2000-01-01");
   Date d2 = Date::FromString("2016-02-19");
@@ -77,6 +80,7 @@ TEST_F(RuntimeTypesTest, DateComparisons) {
   EXPECT_LT(d1, d2);
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DateToString) {
   Date d1 = Date::FromString("2016-01-27");
   EXPECT_EQ("2016-01-27", d1.ToString());
@@ -86,6 +90,7 @@ TEST_F(RuntimeTypesTest, DateToString) {
   EXPECT_EQ("2000-01-01", d1.ToString());
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, DateYMDStringEqualityTest) {
   auto ymd_res = Date::FromYMD(2020, 1, 1);
   auto res = Date::FromString("2020-01-01");
@@ -94,6 +99,7 @@ TEST_F(RuntimeTypesTest, DateYMDStringEqualityTest) {
   EXPECT_EQ(ymd_res.ToString(), "2020-01-01");
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
   // Valid timestamp.
   Timestamp t;
@@ -126,6 +132,7 @@ TEST_F(RuntimeTypesTest, ExtractTimestampParts) {
   EXPECT_THROW({ t = Timestamp::FromYMDHMS(50000000, 92187, 1, 13, 59, 60); }, ConversionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, TimestampFromString) {
   Timestamp res;
   EXPECT_NO_THROW({ res = Timestamp::FromString("2020-01-11 11:22:33.123456"); });
@@ -190,6 +197,7 @@ TEST_F(RuntimeTypesTest, TimestampFromString) {
   EXPECT_THROW({ res = Timestamp::FromString("2020-01-11 24:00:00.000000::times"); }, ConversionException);
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, TimeZoneFromString) {
   Timestamp res;
   EXPECT_NO_THROW({ res = Timestamp::FromString("2020-12-31 23:22:33.123456-05"); });
@@ -215,6 +223,7 @@ TEST_F(RuntimeTypesTest, TimeZoneFromString) {
   EXPECT_EQ(res.ToString(), "2019-12-31 20:22:33.123456");
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, TimestampComparisons) {
   Timestamp t1 = Timestamp::FromYMDHMS(2000, 1, 1, 12, 0, 0);
   Timestamp t2 = Timestamp::FromYMDHMS(2000, 1, 1, 16, 0, 0);
@@ -234,6 +243,7 @@ TEST_F(RuntimeTypesTest, TimestampComparisons) {
   EXPECT_LT(t1, t2);
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, TSYMDHMSMUStringEqualityTest) {
   auto ymdhmsmu_res = Timestamp::FromYMDHMSMU(2020, 1, 11, 10, 12, 13, 123, 432);
   auto res = Timestamp::FromString("2020-01-11 10:12:13.123432::timestamp");
@@ -242,6 +252,7 @@ TEST_F(RuntimeTypesTest, TSYMDHMSMUStringEqualityTest) {
   EXPECT_EQ(ymdhmsmu_res.ToString(), "2020-01-11 10:12:13.123432");
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, TSYMDHMStringEqualityTest) {
   auto ymdhms_res = Timestamp::FromYMDHMS(2020, 1, 11, 10, 12, 13);
   auto res = Timestamp::FromString("2020-01-11 10:12:13::timestamp");
@@ -250,6 +261,7 @@ TEST_F(RuntimeTypesTest, TSYMDHMStringEqualityTest) {
   EXPECT_EQ(ymdhms_res.ToString(), "2020-01-11 10:12:13.000000");
 }
 
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, VarlenComparisons) {
   // Short strings first.
   {

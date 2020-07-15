@@ -39,6 +39,7 @@ void BuildHT(JoinHashTable *jht, bool is_a_key, uint32_t a_max, uint32_t b_max) 
   jht->Build();
 }
 
+// NOLINTNEXTLINE
 TEST_F(JoinManagerTest, TwoWayJoin) {
   MemoryPool mem_pool(nullptr);
   QueryState query_state;

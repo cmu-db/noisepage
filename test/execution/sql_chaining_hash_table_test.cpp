@@ -28,6 +28,7 @@ struct TestEntry : public HashTableEntry {
   bool operator!=(const TestEntry &that) const { return !(*this == that); }
 };
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, UntaggedInsertion) {
   UntaggedChainingHashTable table;
   table.SetSize(10);
@@ -70,6 +71,7 @@ TEST_F(ChainingHashTableTest, UntaggedInsertion) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, TaggedInsertion) {
   TaggedChainingHashTable table;
   table.SetSize(10);
@@ -92,6 +94,7 @@ TEST_F(ChainingHashTableTest, TaggedInsertion) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, ConcurrentInsertion) {
   constexpr uint32_t num_entries = 5000;
   constexpr uint32_t num_threads = 4;
@@ -151,6 +154,7 @@ TEST_F(ChainingHashTableTest, ConcurrentInsertion) {
   EXPECT_EQ(num_threads * num_entries, found_entries);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, Flushing) {
   std::vector<TestEntry> entries = {
       {0, 1},
@@ -181,6 +185,7 @@ TEST_F(ChainingHashTableTest, Flushing) {
   EXPECT_EQ(entries.size(), keys.size());
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, EmptyIterator) {
   UntaggedChainingHashTable table;
 
@@ -226,6 +231,7 @@ TEST_F(ChainingHashTableTest, EmptyIterator) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, SimpleIteration) {
   //
   // Test: insert a bunch of entries into the hash table, ensure iteration finds
@@ -299,6 +305,7 @@ TEST_F(ChainingHashTableTest, SimpleIteration) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, LongChainIteration) {
   //
   // Test: insert a bunch of identifier entries into the hash table to form a
@@ -360,6 +367,7 @@ TEST_F(ChainingHashTableTest, LongChainIteration) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, ChainStats) {
   TaggedChainingHashTable table;
   table.SetSize(100);
@@ -391,6 +399,7 @@ TEST_F(ChainingHashTableTest, ChainStats) {
   EXPECT_EQ(bucket_len, max);
 }
 
+// NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
   const uint32_t num_inserts = 5000000;
 
