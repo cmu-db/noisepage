@@ -12,7 +12,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
   timestamp_t start_time;
   TransactionContext *result;
 
-  bool txn_metrics_enabled =
+  const bool txn_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::TRANSACTION);
 
@@ -78,7 +78,7 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
   timestamp_t result;
-  bool txn_metrics_enabled =
+  const bool txn_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::TRANSACTION);
 
