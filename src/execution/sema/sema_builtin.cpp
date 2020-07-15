@@ -36,8 +36,7 @@ bool AreAllFunctions(const ArgTypes... type) {
 }  // namespace
 
 void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
-  // Handle this builtin because it's API is different than the other builtins; we expect three
-  // 32-bit integer arguments.
+  // Handle the builtins whose API is different from the other builtins.
   if (builtin == ast::Builtin::DateToSql) {
     if (!CheckArgCount(call, 3)) {
       return;
@@ -120,6 +119,7 @@ void Sema::CheckSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
+  // Handle all the one-argument builtins.
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -2890,8 +2890,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     default:
-      // TODO(WAN): PORT BACK OLD FUNCTIONALITY
-      UNREACHABLE("PORT INCOMPLETE");
+      UNREACHABLE("Unhandled builtin!");
   }
 }
 
