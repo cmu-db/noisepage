@@ -2165,8 +2165,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
         ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
         return;
       }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::FillTablePR: {
@@ -2179,7 +2178,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
         ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
         return;
       }
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
     case ast::Builtin::StorageInterfaceFree: {

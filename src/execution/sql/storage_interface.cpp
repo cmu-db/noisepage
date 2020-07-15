@@ -96,42 +96,19 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 
-storage::ProjectedRow *StorageInterface::InitTablePR(catalog::index_oid_t index_oid) {
-  // Stash variables
-  index_schema_ =
-      common::ManagedPointer<const catalog::IndexSchema>(&exec_ctx_->GetAccessor()->GetIndexSchema(index_oid));
-  indexed_attributes_ = index_schema_->GetIndexedColOids();
-  pr_map_ = table_->ProjectionMapForOids(indexed_attributes_);
-  num_index_cols_ = index_schema_->GetColumns().size();
-  TERRIER_ASSERT(num_index_cols_ == indexed_attributes_.size(), "Only support index keys that are a single column oid");
-  // Init table pr
-  const auto table_pr_initializer = table_->InitializerForProjectedRow(indexed_attributes_);
-  table_pr_size_ = table_pr_initializer.ProjectedRowSize();
+void StorageInterface::InitTablePR(catalog::index_oid_t index_oid) {
+  table_pr_size_ = pri_.ProjectedRowSize();
   table_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pr_size_, alignof(uint64_t), false);
-  table_pr_ = table_pr_initializer.InitializeRow(table_pr_buffer_);
+  table_pr_ = pri_.InitializeRow(table_pr_buffer_);
   has_table_pr_ = true;
 
-  return table_pr_;
 }
 
-void StorageInterface::FillTablePR(storage::TupleSlot table_tuple_slot) {
+storage::ProjectedRow *StorageInterface::FillTablePR(storage::TupleSlot table_tuple_slot) {
   table_tuple_slot_ = table_tuple_slot;
   auto result UNUSED_ATTRIBUTE = table_->Select(exec_ctx_->GetTxn(), table_tuple_slot, table_pr_);
   TERRIER_ASSERT(result, "Select should not fail");
-
-  for (uint32_t col_idx = 0; col_idx < num_index_cols_; col_idx++) {
-    const auto &col = index_schema_->GetColumn(col_idx);
-    auto index_col_oid = col.Oid();
-    const catalog::col_oid_t &table_col_oid = indexed_attributes_[col_idx];
-    if (table_pr_->IsNull(pr_map_[table_col_oid])) {
-      index_pr_->SetNull(curr_index_->GetKeyOidToOffsetMap().at(index_col_oid));
-    } else {
-      // TODO(Wuwen): This may not be thread safe
-      auto size = storage::AttrSizeBytes(col.AttrSize());
-      std::memcpy(index_pr_->AccessForceNotNull(curr_index_->GetKeyOidToOffsetMap().at(index_col_oid)),
-                  table_pr_->AccessWithNullCheck(pr_map_[table_col_oid]), size);
-    }
-  }
+  return table_pr_;
 }
 
 }  // namespace terrier::execution::sql

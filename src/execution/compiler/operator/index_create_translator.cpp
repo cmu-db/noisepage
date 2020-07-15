@@ -28,7 +28,7 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
       index_oid_(),
       all_oids_(storage::StorageUtil::AllColOids(table_schema_)),
       table_pm_(codegen_->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
-      pr_filler_(codegen_, table_schema_, table_pm_, index_inserter_) {}
+      pr_filler_(codegen_, table_schema_, table_pm_, table_pr_) {}
 
 void CreateIndexTranslator::Produce(FunctionBuilder *builder) {
   // Generate col oids
@@ -100,18 +100,23 @@ void CreateIndexTranslator::GenGetTablePR(FunctionBuilder *builder) {
   // var table_pr = @InitTablePR()
   std::vector<ast::Expr *> pr_call_args{codegen_->PointerTo(index_inserter_), codegen_->IntLiteral(!index_oid_)};
   auto init_table_pr_call = codegen_->BuiltinCall(ast::Builtin::InitTablePR, std::move(pr_call_args));
-  builder->Append(codegen_->DeclareVariable(table_pr_, nullptr, init_table_pr_call));
+  builder->Append(codegen_->MakeStmt(init_table_pr_call));
 }
 
 void CreateIndexTranslator::GenFillTablePR(FunctionBuilder *builder) {
   std::vector<ast::Expr *> insert_args{codegen_->PointerTo(index_inserter_), codegen_->PointerTo(slot_)};
   auto fill_pr_call = codegen_->BuiltinCall(ast::Builtin::FillTablePR, std::move(insert_args));
-  builder->Append(codegen_->MakeStmt(fill_pr_call));
+  builder->Append(codegen_->DeclareVariable(table_pr_, nullptr, fill_pr_call));
 }
 
 // TODO(Wuwen): find out if GenFiller could work in this case
 void CreateIndexTranslator::GenIndexInsert(FunctionBuilder *builder) {
+  // Fill up the index pr
+  auto index = codegen_->Accessor()->GetIndex(index_oid_);
+  const auto &index_pm = index->GetKeyOidToOffsetMap();
   const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid_);
+
+  pr_filler_.GenFiller(index_pm, index_schema, codegen_->MakeExpr(index_pr_), builder);
 
   auto index_insert_call = codegen_->OneArgCall(
       index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert, index_inserter_, true);

@@ -420,8 +420,8 @@ namespace terrier::execution::vm {
   /* StorageInterface */                                                                                              \
   F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,             \
     OperandType::UImm4, OperandType::Local)                                                                           \
-  F(StorageInterfaceInitTablePR, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
-  F(StorageInterfaceFillTablePR, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceInitTablePR, OperandType::Local, OperandType::UImm4)                                              \
+  F(StorageInterfaceFillTablePR, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceGetTablePR, OperandType::Local, OperandType::Local)                                               \
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
