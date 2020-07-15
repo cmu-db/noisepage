@@ -282,5 +282,7 @@ class SqlTable {
    * @return col oid for the provided col id
    */
   catalog::col_oid_t OidForColId(col_id_t col_id) const;
+  void CopyTable(const common::ManagedPointer<transaction::TransactionContext> txn,
+                 const common::ManagedPointer<DataTable> src);
 };
 }  // namespace terrier::storage
