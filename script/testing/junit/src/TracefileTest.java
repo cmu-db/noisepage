@@ -45,8 +45,8 @@ public class TracefileTest {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        List<String> tab = getAllExistingTableName(mog);
-        removeExistingTable(tab);
+//        List<String> tab = getAllExistingTableName(mog);
+//        removeExistingTable(tab);
     }
 
 
@@ -57,7 +57,7 @@ public class TracefileTest {
      * @throws SQLException
      */
     @TestFactory
-    public Collection<DynamicTest> generateTest() throws IOException, SQLException {
+    public Collection<DynamicTest> generateTest() throws IOException {
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
