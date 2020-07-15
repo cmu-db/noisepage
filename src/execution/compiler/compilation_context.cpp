@@ -13,7 +13,6 @@
 #include "execution/compiler/executable_query_builder.h"
 #include "execution/compiler/expression//derived_value_translator.h"
 #include "execution/compiler/expression/arithmetic_translator.h"
-#include "execution/compiler/expression/builtin_function_translator.h"
 #include "execution/compiler/expression/column_value_translator.h"
 #include "execution/compiler/expression/comparison_translator.h"
 #include "execution/compiler/expression/conjunction_translator.h"

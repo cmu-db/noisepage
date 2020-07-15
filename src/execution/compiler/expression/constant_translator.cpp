@@ -18,7 +18,7 @@ ast::Expr *ConstantTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
   const auto type_id = sql::GetTypeId(val.GetReturnValueType());
 
   if (val.IsNull()) {
-    // NullToSql(&expr) produces a NULL of expr's type.
+    // initSqlNull(&expr) produces a NULL of expr's type.
     ast::Expr *dummy_expr;
     switch (val.GetReturnValueType()) {
       case type::TypeId::BOOLEAN:
