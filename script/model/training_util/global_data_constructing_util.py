@@ -196,8 +196,14 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     :param mini_model_map: The trained mini models
     :param model_results_path: file path to log the prediction results
     """
+    # TODO: Needs a better encapsulation
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
+    query_prediction_path = "{}/grouped_query_prediction.csv".format(model_results_path)
+    io_util.create_csv_file(query_prediction_path, ["Query", "", "Actual", "", "Predicted", "", "Ratio Error"])
+    current_query_id = None
+    query_y = None
+    query_y_pred = None
 
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}
@@ -240,7 +246,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                 pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
                 if pred_mem <= buffer_size:
                     logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
-                            .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+                                    .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
                 # Poorly encapsulated, but memory scaling factor is located as the 2nd last of feature
                 # slightly inaccurate since ignores load factors for hash tables
@@ -258,7 +264,24 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         ratio_error = abs(y - pipeline_y_pred) / (y + 1)
         logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
 
-        io_util.write_csv_result(prediction_path, data.name, [""] + list(y) + [""] + list(pipeline_y_pred) + [""] +
-                                 list(ratio_error))
+        io_util.write_csv_result(prediction_path, "{} {}".format(data.name, data.opunit_features), [""] + list(y) +
+                                 [""] + list(pipeline_y_pred) + [""] + list(ratio_error))
+
+        # Grouping if we're predicting queries
+        if "tpch" in data.name:
+            query_id = data.name[5:data.name.rfind("_p")]
+            if query_id != current_query_id:
+                if current_query_id is not None:
+                    io_util.write_csv_result(query_prediction_path, current_query_id, [""] + list(query_y) + [""] +
+                                             list(query_y_pred) + [""] +
+                                             list(abs(query_y - query_y_pred) / (query_y + 1)))
+
+                current_query_id = query_id
+                query_y = y
+                query_y_pred = pipeline_y_pred
+            else:
+                query_y += y
+                query_y_pred += pipeline_y_pred
+
 
         logging.debug("")

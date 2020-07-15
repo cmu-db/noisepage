@@ -13,7 +13,7 @@ _Q1_P2 = [(OpUnit.AGG_ITERATE, [4, 92, 10, 4]),
           ]
 
 _Q1_Q3 = [(OpUnit.SORT_ITERATE, [4, 92, 10, 4]),
-          (OpUnit.OUTPUT, [4, 92, 10, 4]),
+          (OpUnit.OUTPUT, [4, 92, 10, 0]),
           ]
 
 _Q4_P1 = [(OpUnit.SEQ_SCAN, [1500000, 24, 3, 1500000]),
@@ -33,7 +33,7 @@ _Q4_P3 = [(OpUnit.AGG_ITERATE, [5, 20, 2,  5]),
           ]
 
 _Q4_P4 = [(OpUnit.SORT_ITERATE, [5, 20, 2, 5]),
-          (OpUnit.OUTPUT, [5, 20, 2, 5]),
+          (OpUnit.OUTPUT, [5, 20, 2, 0]),
           ]
 
 _Q5_P1 = [(OpUnit.SEQ_SCAN, [5, 16, 2, 5]),
@@ -74,7 +74,7 @@ _Q5_P7 = [(OpUnit.AGG_ITERATE, [5, 20, 2, 5]),
           ]
 
 _Q5_P8 = [(OpUnit.SORT_ITERATE, [5, 20, 2, 5]),
-          (OpUnit.OUTPUT, [5, 20, 2, 5]),
+          (OpUnit.OUTPUT, [5, 20, 2, 0]),
           ]
 
 _Q6_P1 = [(OpUnit.SEQ_SCAN, [6000000, 24, 4, 6000000]),
@@ -82,7 +82,7 @@ _Q6_P1 = [(OpUnit.SEQ_SCAN, [6000000, 24, 4, 6000000]),
           (OpUnit.OP_INTEGER_COMPARE, [12000000, 4, 1, 12000000]),
           (OpUnit.OP_DECIMAL_MULTIPLY, [42850, 4, 1, 42850]),
           (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [42850, 4, 1, 42850]),
-          (OpUnit.OUTPUT, [1, 8, 1, 1]),
+          (OpUnit.OUTPUT, [1, 8, 1, 0]),
           ]
 
 _Q7_P1 = [(OpUnit.SEQ_SCAN, [25, 20, 2, 25]),
@@ -120,7 +120,7 @@ _Q7_P6 = [(OpUnit.AGG_ITERATE, [4, 44, 4, 4]),
           ]
 
 _Q7_P7 = [(OpUnit.SORT_ITERATE, [4, 44, 4, 4]),
-          (OpUnit.OUTPUT, [4, 44, 4, 4]),
+          (OpUnit.OUTPUT, [4, 44, 4, 0]),
           ]
 
 
@@ -154,16 +154,16 @@ _Q11_P5 = [(OpUnit.AGG_ITERATE, [30000, 12, 2, 30000]),
            ]
 
 _Q11_P6 = [(OpUnit.SORT_ITERATE, [2000, 12, 2, 2000]),
-           (OpUnit.OUTPUT, [2000, 12, 2, 2000]),
+           (OpUnit.OUTPUT, [2000, 12, 2, 0]),
            ]
 
 
 _SCAN_LINEITEM_P1 = [(OpUnit.SEQ_SCAN, [6000000, 64, 10, 6000000]),
-                     (OpUnit.OUTPUT, [6000000, 64, 10, 6000000])
+                     (OpUnit.OUTPUT, [6000000, 64, 10, 0])
                      ]
 
 _SCAN_ORDERS_P1 = [(OpUnit.SEQ_SCAN, [1500000, 4, 1, 1500000]),
-                   (OpUnit.OUTPUT, [1500000, 4, 1, 1500000])
+                   (OpUnit.OUTPUT, [1500000, 4, 1, 0])
                    ]
 
 # Map from the query pipeline identifier to the their opunit features
