@@ -38,7 +38,7 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
   pipeline->RegisterSource(
       this, build_pipeline_.IsParallel() ? Pipeline::Parallelism::Parallel : Pipeline::Parallelism::Serial);
 
-  // Prepare all grouping and aggregte expressions.
+  // Prepare all grouping and aggregate expressions.
   for (const auto group_by_term : plan.GetGroupByTerms()) {
     compilation_context->Prepare(*group_by_term);
   }

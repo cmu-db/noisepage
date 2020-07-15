@@ -92,8 +92,8 @@ class EXPORT ThreadStateContainer {
  public:
   /**
    * Function used to initialize a thread's local state upon first use.
-   * TODO(WAN): this currently is forced to be an execution context because we want to extract the execution settings
-   * Arguments: pointer to opaque context (execution context), pointer to a thread-local state.
+   * The opaque context must contain the execution settings.
+   * Arguments: pointer to opaque context, pointer to a thread-local state.
    */
   using InitFn = void (*)(void *, void *);
 

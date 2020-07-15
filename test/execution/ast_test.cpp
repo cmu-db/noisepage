@@ -20,7 +20,7 @@ class AstTest : public TplTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(AstTest, HierechyTest) {
+TEST_F(AstTest, HierarchyTest) {
   AstNodeFactory factory(Region());
 
 #define CHECK_NODE_IS_NOT_KIND(n) EXPECT_FALSE(node->Is<n>()) << "Node " << node->KindName() << " is not " << #n;

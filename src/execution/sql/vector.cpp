@@ -38,7 +38,7 @@ void Vector::Initialize(const TypeId new_type, const bool clear) {
   varlen_heap_.Destroy();
   type_ = new_type;
 
-  // By default, we always allocate ::tpl::common::Constants::K_DEFAULT_VECTOR_SIZE since a vector
+  // By default, we always allocate common::Constants::K_DEFAULT_VECTOR_SIZE since a vector
   // can never exceed this capacity during query processing.
   const std::size_t num_bytes = common::Constants::K_DEFAULT_VECTOR_SIZE * GetTypeIdSize(type_);
   owned_data_ = std::unique_ptr<byte[]>(new byte[num_bytes]);

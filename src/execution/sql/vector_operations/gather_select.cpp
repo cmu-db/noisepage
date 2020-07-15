@@ -129,9 +129,9 @@ void GatherAndSelectOperation(const Vector &input, const Vector &pointers, const
     case TypeId::Varchar:
       TemplatedGatherAndSelectOperation<storage::VarlenEntry, Op>(input, pointers, offset, tid_list);
       break;
-      //    case TypeId::Varbinary:
-      //      TemplatedGatherAndSelectOperation<Blob, Op>(input, pointers, offset, tid_list);
-      //      break;
+    case TypeId::Varbinary:
+      TemplatedGatherAndSelectOperation<Blob, Op>(input, pointers, offset, tid_list);
+      break;
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("Gather+select on type {}.", TypeIdToString(input.GetTypeId())));
   }
