@@ -13,7 +13,7 @@ namespace terrier::execution::sema {
 namespace {
 #define F(id, str, arg_types) str,
 // NOLINTNEXTLINE
-constexpr const char *kErrorStrings[] = {MESSAGE_LIST(F)};
+constexpr const char *error_strings[] = {MESSAGE_LIST(F)};
 #undef F
 
 // Helper template class for MessageArgument::FormatMessageArgument().
@@ -55,7 +55,7 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
   msg.append("Line: ").append(std::to_string(Position().line_)).append(", ");
   msg.append("Col: ").append(std::to_string(Position().column_)).append(" => ");
 
-  const char *fmt = kErrorStrings[msg_idx];
+  const char *fmt = error_strings[msg_idx];
   if (args_.empty()) {
     msg.append(fmt);
     return msg;
