@@ -126,11 +126,7 @@ bool IndexUtil::CheckPredicates(
           if (lexpr->GetTableOid() == tbl_oid &&
               (rexpr->GetTableOid() != tbl_oid || lexpr->GetTableName() == tbl_alias)) {
             tv_expr = lexpr;
-            if(lexpr->GetTableOid() == rexpr->GetTableOid()){
-              idx_expr = expr->GetChild(0);
-            } else {
-              idx_expr = expr->GetChild(1);
-            }
+            idx_expr = expr->GetChild(1);
           } else {
             tv_expr = rexpr;
             idx_expr = expr->GetChild(0);

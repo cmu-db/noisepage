@@ -68,13 +68,11 @@ class EXPORT IterCteScanIterator {
   DISALLOW_COPY_AND_MOVE(IterCteScanIterator);
 
  private:
-//  exec::ExecutionContext *exec_ctx_;
   CteScanIterator cte_scan_1_;
   CteScanIterator cte_scan_2_;
   CteScanIterator *cte_scan_read_;
   CteScanIterator *cte_scan_write_;
   bool written_;
-//  uint32_t num_schema_cols_;
 };
 
 }  // namespace terrier::execution::sql
