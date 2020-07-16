@@ -236,7 +236,8 @@ void OpStorageInterfaceInitTablePR(terrier::execution::sql::StorageInterface *st
   storage_interface->InitTablePR(terrier::catalog::index_oid_t(index_oid));
 }
 
-void OpStorageInterfaceFillTablePR(terrier::storage::ProjectedRow **pr_result, terrier::execution::sql::StorageInterface *storage_interface,
+void OpStorageInterfaceFillTablePR(terrier::storage::ProjectedRow **pr_result,
+                                   terrier::execution::sql::StorageInterface *storage_interface,
                                    terrier::storage::TupleSlot *tuple_slot) {
   *pr_result = storage_interface->FillTablePR(*tuple_slot);
 }

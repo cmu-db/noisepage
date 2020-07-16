@@ -22,11 +22,11 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
       pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
       has_predicate_(op_->GetScanPredicate() != nullptr),
       is_vectorizable_{IsVectorizable(op_->GetScanPredicate().Get())},
-      tvi_(codegen->NewIdentifier("tvi")),
       col_oids_(codegen->NewIdentifier("col_oids")),
       pci_(codegen->NewIdentifier("pci")),
       slot_(codegen->NewIdentifier("slot")),
-      pci_type_{codegen->Context()->GetIdentifier("ProjectedColumnsIterator")} {}
+      pci_type_{codegen->Context()->GetIdentifier("ProjectedColumnsIterator")},
+      seq_scanner_(codegen_) {}
 
 void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   SetOids(builder);
@@ -104,12 +104,8 @@ ast::Expr *SeqScanTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) 
 
 void SeqScanTranslator::DeclareTVI(FunctionBuilder *builder) {
   // var tvi: TableVectorIterator
-  ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::Kind::TableVectorIterator);
-  builder->Append(codegen_->DeclareVariable(tvi_, iter_type, nullptr));
-
   // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
-  ast::Expr *init_call = codegen_->TableIterInit(tvi_, !op_->GetTableOid(), col_oids_);
-  builder->Append(codegen_->MakeStmt(init_call));
+  seq_scanner_.DeclareTVI(builder, !op_->GetTableOid(), col_oids_);
 }
 
 void SeqScanTranslator::SetOids(FunctionBuilder *builder) {
@@ -128,35 +124,23 @@ void SeqScanTranslator::SetOids(FunctionBuilder *builder) {
 // Generate for(@tableIterAdvance(&tvi)) {...}
 void SeqScanTranslator::GenTVILoop(FunctionBuilder *builder) {
   // The advance call
-  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::TableIterAdvance, tvi_, true);
-  builder->StartForStmt(nullptr, advance_call, nullptr);
+  seq_scanner_.TVILoop(builder);
 }
 
 void SeqScanTranslator::DeclarePCI(FunctionBuilder *builder) {
   // Assign var pci = @tableIterGetPCI(&tvi)
-  ast::Expr *get_pci_call = codegen_->OneArgCall(ast::Builtin::TableIterGetPCI, tvi_, true);
-  builder->Append(codegen_->DeclareVariable(pci_, nullptr, get_pci_call));
+  seq_scanner_.DeclarePCI(builder);
+  pci_ = seq_scanner_.GetPCI();
 }
 
 void SeqScanTranslator::DeclareSlot(FunctionBuilder *builder) {
   // Get var slot = @pciGetSlot(pci)
-  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::PCIGetSlot, pci_, false);
-  builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
+  slot_ = seq_scanner_.DeclareSlot(builder);
 }
 
 void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
   // Generate for(; @pciHasNext(pci); @pciAdvance(pci)) {...} or the Filtered version
-  // The HasNext call
-  ast::Builtin has_next_fn =
-      (is_vectorizable_ && has_predicate_) ? ast::Builtin::PCIHasNextFiltered : ast::Builtin::PCIHasNext;
-  ast::Expr *has_next_call = codegen_->OneArgCall(has_next_fn, pci_, false);
-  // The Advance call
-  ast::Builtin advance_fn =
-      (is_vectorizable_ && has_predicate_) ? ast::Builtin::PCIAdvanceFiltered : ast::Builtin::PCIAdvance;
-  ast::Expr *advance_call = codegen_->OneArgCall(advance_fn, pci_, false);
-  ast::Stmt *loop_advance = codegen_->MakeStmt(advance_call);
-  // Make the for loop.
-  builder->StartForStmt(nullptr, has_next_call, loop_advance);
+  seq_scanner_.PCILoopCondition(builder, is_vectorizable_, has_predicate_);
 }
 
 void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
@@ -169,14 +153,12 @@ void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
 
 void SeqScanTranslator::GenTVIClose(execution::compiler::FunctionBuilder *builder) {
   // Close iterator
-  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, tvi_, true);
-  builder->Append(codegen_->MakeStmt(close_call));
+  seq_scanner_.TVIClose(builder);
 }
 
 void SeqScanTranslator::GenTVIReset(execution::compiler::FunctionBuilder *builder) {
   // Reset iterator
-  ast::Expr *reset_call = codegen_->OneArgCall(ast::Builtin::TableIterReset, tvi_, true);
-  builder->Append(codegen_->MakeStmt(reset_call));
+  seq_scanner_.TVIReset(builder);
 }
 
 bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression *predicate) {

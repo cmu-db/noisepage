@@ -75,6 +75,6 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 # Terrier executable
 ###############################################
-add_executable(terrier main/terrier.cpp)
+add_executable(terrier main/terrier.cpp execution/compiler/expression/seq_scanner.cpp include/execution/compiler/expression/seq_scanner.h)
 set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
 target_link_libraries(terrier terrier_static ${TERRIER_LINK_LIBS})

@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <vector>
+#include "execution/compiler/expression/seq_scanner.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
@@ -126,11 +127,11 @@ class SeqScanTranslator : public OperatorTranslator {
   bool is_vectorizable_;
 
   // Structs, functions and locals
-  ast::Identifier tvi_;
   ast::Identifier col_oids_;
   ast::Identifier pci_;
   ast::Identifier slot_;
   ast::Identifier pci_type_;
+  SeqScanner seq_scanner_;
 };
 
 }  // namespace terrier::execution::compiler

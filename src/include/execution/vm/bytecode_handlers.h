@@ -1701,7 +1701,8 @@ VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterfa
 VM_OP void OpStorageInterfaceInitTablePR(terrier::execution::sql::StorageInterface *storage_interface,
                                          uint32_t index_oid);
 
-VM_OP void OpStorageInterfaceFillTablePR(terrier::storage::ProjectedRow **pr_result, terrier::execution::sql::StorageInterface *storage_interface,
+VM_OP void OpStorageInterfaceFillTablePR(terrier::storage::ProjectedRow **pr_result,
+                                         terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);

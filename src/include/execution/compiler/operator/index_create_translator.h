@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "execution/compiler/expression/pr_filler.h"
+#include "execution/compiler/expression/seq_scanner.h"
 #include "execution/compiler/operator/operator_translator.h"
 
 namespace terrier::planner {
@@ -91,14 +92,13 @@ class CreateIndexTranslator : public OperatorTranslator {
   ast::Identifier index_pr_;
   ast::Identifier table_pr_;
   ast::Identifier col_oids_;
-  ast::Identifier tvi_;
-  ast::Identifier pci_;
   ast::Identifier slot_;
   const catalog::Schema &table_schema_;
   catalog::index_oid_t index_oid_;
   std::vector<catalog::col_oid_t> all_oids_;
   storage::ProjectionMap table_pm_;
   PRFiller pr_filler_;
+  SeqScanner seq_scanner_;
 };
 
 }  // namespace terrier::execution::compiler

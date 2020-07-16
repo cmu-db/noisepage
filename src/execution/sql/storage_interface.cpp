@@ -101,7 +101,6 @@ void StorageInterface::InitTablePR(catalog::index_oid_t index_oid) {
   table_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pr_size_, alignof(uint64_t), false);
   table_pr_ = pri_.InitializeRow(table_pr_buffer_);
   has_table_pr_ = true;
-
 }
 
 storage::ProjectedRow *StorageInterface::FillTablePR(storage::TupleSlot table_tuple_slot) {

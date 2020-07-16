@@ -2001,8 +2001,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
 
     case ast::Builtin::InitTablePR: {
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitAll(Bytecode::StorageInterfaceInitTablePR, storage_interface,
-                                                index_oid);
+      Emitter()->EmitAll(Bytecode::StorageInterfaceInitTablePR, storage_interface, index_oid);
       break;
     }
     case ast::Builtin::FillTablePR: {

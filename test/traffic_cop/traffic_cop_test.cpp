@@ -23,13 +23,8 @@ namespace terrier::trafficcop {
 
 class TrafficCopTests : public TerrierTest {
  protected:
-  void SetUp() override {
-
-  }
-
-
+  void SetUp() override {}
 };
-
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, BasicTest) {

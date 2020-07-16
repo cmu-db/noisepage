@@ -21,14 +21,13 @@ CreateIndexTranslator::CreateIndexTranslator(const terrier::planner::CreateIndex
       index_pr_(codegen_->NewIdentifier("index_pr")),
       table_pr_(codegen_->NewIdentifier("table_pr")),
       col_oids_(codegen_->NewIdentifier("col_oids")),
-      tvi_(codegen_->NewIdentifier("tvi")),
-      pci_(codegen_->NewIdentifier("pci")),
       slot_(codegen_->NewIdentifier("slot")),
       table_schema_(codegen_->Accessor()->GetSchema(op_->GetTableOid())),
       index_oid_(),
       all_oids_(storage::StorageUtil::AllColOids(table_schema_)),
       table_pm_(codegen_->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
-      pr_filler_(codegen_, table_schema_, table_pm_, table_pr_) {}
+      pr_filler_(codegen_, table_schema_, table_pm_, table_pr_),
+      seq_scanner_(codegen_) {}
 
 void CreateIndexTranslator::Produce(FunctionBuilder *builder) {
   // Generate col oids
@@ -109,7 +108,6 @@ void CreateIndexTranslator::GenFillTablePR(FunctionBuilder *builder) {
   builder->Append(codegen_->DeclareVariable(table_pr_, nullptr, fill_pr_call));
 }
 
-// TODO(Wuwen): find out if GenFiller could work in this case
 void CreateIndexTranslator::GenIndexInsert(FunctionBuilder *builder) {
   // Fill up the index pr
   auto index = codegen_->Accessor()->GetIndex(index_oid_);
@@ -127,48 +125,33 @@ void CreateIndexTranslator::GenIndexInsert(FunctionBuilder *builder) {
 }
 
 void CreateIndexTranslator::DeclareTVI(FunctionBuilder *builder) {
-  // Declare local var table_iter
-  ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::TableVectorIterator);
-  builder->Append(codegen_->DeclareVariable(tvi_, iter_type, nullptr));
-
-  // // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
-  ast::Expr *init_call = codegen_->TableIterInit(tvi_, !op_->GetTableOid(), col_oids_);
-  builder->Append(codegen_->MakeStmt(init_call));
+  // Create TableVectorIterator and init
+  seq_scanner_.DeclareTVI(builder, !op_->GetTableOid(), col_oids_);
 }
 
 void CreateIndexTranslator::GenTVILoop(FunctionBuilder *builder) {
-  // The advance call
-  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::TableIterAdvance, tvi_, true);
-  builder->StartForStmt(nullptr, advance_call, nullptr);
+  // The advance call of TVI
+  seq_scanner_.TVILoop(builder);
 }
 
 void CreateIndexTranslator::DeclarePCI(FunctionBuilder *builder) {
-  // Assign var pci = @tableIterGetPCI(&tvi)
-  ast::Expr *get_pci_call = codegen_->OneArgCall(ast::Builtin::TableIterGetPCI, tvi_, true);
-  builder->Append(codegen_->DeclareVariable(pci_, nullptr, get_pci_call));
+  // Create ProjectedColumnIterator and init
+  seq_scanner_.DeclarePCI(builder);
 }
 
 void CreateIndexTranslator::DeclareSlot(FunctionBuilder *builder) {
-  // Get var slot = @pciGetSlot(pci)
-  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::PCIGetSlot, pci_, false);
-  builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
+  // Get tuple slot
+  slot_ = seq_scanner_.DeclareSlot(builder);
 }
 
 void CreateIndexTranslator::GenPCILoop(FunctionBuilder *builder) {
-  // Generate for(; @pciHasNext(pci); @pciAdvance(pci)) {...} or the Filtered version
-  // The HasNext call
-  ast::Expr *has_next_call = codegen_->OneArgCall(ast::Builtin::PCIHasNext, pci_, false);
-  // The Advance call
-  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::PCIAdvance, pci_, false);
-  ast::Stmt *loop_advance = codegen_->MakeStmt(advance_call);
-  // Make the for loop.
-  builder->StartForStmt(nullptr, has_next_call, loop_advance);
+  // The advance call of PCI
+  seq_scanner_.PCILoop(builder);
 }
 
 void CreateIndexTranslator::GenTVIClose(FunctionBuilder *builder) {
-  // Close iterator
-  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, tvi_, true);
-  builder->Append(codegen_->MakeStmt(close_call));
+  // Close Iterator
+  seq_scanner_.TVIClose(builder);
 }
 
 void CreateIndexTranslator::GenIndexInserterFree(FunctionBuilder *builder) {
