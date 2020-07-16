@@ -33,7 +33,10 @@ public class TracefileTest {
     public void setUp() throws FileNotFoundException, SQLException {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         conn = TestUtility.makeDefaultConnection();
-        String path = System.getenv("path");
+        String path = System.getenv("NOISEPAGE_TRACE_FILE");
+        if (path == null || path.isEmpty()) {
+            throw new RuntimeException("No 'trace-path' environment variable was specified");
+        }
         System.out.println("File name: " + path);
         file = new File(path);
         mog = new MogSqlite(file);
