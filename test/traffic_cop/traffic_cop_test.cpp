@@ -28,17 +28,17 @@ class TrafficCopTests : public TerrierTest {
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
     db_main_ = terrier::DBMain::Builder()
-                   .SetSettingsParameterMap(std::move(param_map))
-                   .SetUseSettingsManager(true)
-                   .SetUseGC(true)
-                   .SetUseCatalog(true)
-                   .SetUseGCThread(true)
-                   .SetUseTrafficCop(true)
-                   .SetUseStatsStorage(true)
-                   .SetUseLogging(true)
-                   .SetUseNetwork(true)
-                   .SetUseExecution(true)
-                   .Build();
+        .SetSettingsParameterMap(std::move(param_map))
+        .SetUseSettingsManager(true)
+        .SetUseGC(true)
+        .SetUseCatalog(true)
+        .SetUseGCThread(true)
+        .SetUseTrafficCop(true)
+        .SetUseStatsStorage(true)
+        .SetUseLogging(true)
+        .SetUseNetwork(true)
+        .SetUseExecution(true)
+        .Build();
 
     db_main_->GetNetworkLayer()->GetServer()->RunServer();
 
@@ -104,7 +104,8 @@ TEST_F(TrafficCopTests, BadParseTest) {
     txn1.commit();
   } catch (const std::exception &e) {
     std::string error(e.what());
-    std::string expect("ERROR:  syntax error\n");
+    std::string expect(
+        "ERROR:  syntax error at or near \"INSTERT\"\nLINE 1: INSTERT INTO FOO VALUES (1,1);\n        ^\n");
     EXPECT_EQ(error, expect);
   }
 }
