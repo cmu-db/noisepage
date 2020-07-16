@@ -48,22 +48,23 @@ class MiniTrainer:
         methods = self.ml_models
 
         # Test the prediction with/without the target transformer
-        transformers = [None, data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]]
+        y_transformers = [None, data_transforming_util.OPUNIT_Y_TRANSFORMER_MAP[data.opunit]]
         # modeling_transformer = data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]
         # if modeling_transformer is not None:
         #    transformers.append(modeling_transformer)
+        x_transformer = data_transforming_util.OPUNIT_X_TRANSFORMER_MAP[data.opunit]
 
         error_bias = 1
         min_percentage_error = 2
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
-        for i, transformer in enumerate(transformers):
+        for i, y_transformer in enumerate(y_transformers):
             for method in methods:
                 # Train the model
                 label = method if i == 0 else method + " transform"
                 logging.info("{} {}".format(data.opunit.name, label))
-                regressor = model.Model(method, modeling_transformer=transformer)
+                regressor = model.Model(method, y_transformer=y_transformer, x_transformer=x_transformer)
                 regressor.train(x_train, y_train)
 
                 # Evaluate on both the training and test set
@@ -93,7 +94,7 @@ class MiniTrainer:
                     # important prediction)
                     # Only use linear regression for the arithmetic operating units
                     if (j == 1 and percentage_error[elapsed_us_index] < min_percentage_error
-                            and transformer == transformers[-1]
+                            and y_transformer == y_transformers[-1]
                             and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
                         min_percentage_error = percentage_error[elapsed_us_index]
                         self.model_map[data.opunit] = regressor
@@ -141,7 +142,7 @@ class MiniTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--input_path', default='mini_runner_input_nogen',
+    aparser.add_argument('--input_path', default='mini_runner_input',
                          help='Input file path for the mini runners')
     aparser.add_argument('--model_results_path', default='mini_runner_model_results',
                          help='Prediction results of the mini models')
