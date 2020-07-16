@@ -10,14 +10,14 @@ namespace terrier::execution::sql::test {
 
 /// This is the tuple we insert into the hash table
 struct Tuple {
-  uint64_t a, b, c, d;
+  uint64_t a_, b_, c_, d_;
 };
 
 /// The function to determine whether two tuples have equivalent keys
 UNUSED_ATTRIBUTE static bool TupleKeyEq(UNUSED_ATTRIBUTE void *_, void *probe_tuple, void *table_tuple) {
   auto *lhs = reinterpret_cast<const Tuple *>(probe_tuple);
   auto *rhs = reinterpret_cast<const Tuple *>(table_tuple);
-  return lhs->a == rhs->a;
+  return lhs->a_ == rhs->a_;
 }
 
 class ConciseHashTableTest : public TplTest {

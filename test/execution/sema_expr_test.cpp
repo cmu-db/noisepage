@@ -14,9 +14,9 @@ class SemaExprTest : public TplTest, public ast::test::TestAstBuilder {
 };
 
 struct TestCase {
-  bool has_errors;
-  std::string msg;
-  ast::AstNode *tree;
+  bool has_errors_;
+  std::string msg_;
+  ast::AstNode *tree_;
 };
 
 // NOLINTNEXTLINE
@@ -43,8 +43,8 @@ TEST_F(SemaExprTest, LogicalOperationTest) {
 
   for (const auto &test : tests) {
     Sema sema(Ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }
@@ -84,8 +84,8 @@ TEST_F(SemaExprTest, ComparisonOperationWithImplicitCastTest) {
 
   for (const auto &test : tests) {
     Sema sema(Ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }
@@ -134,8 +134,8 @@ TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
 
   for (const auto &test : tests) {
     Sema sema(Ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }
@@ -183,8 +183,8 @@ TEST_F(SemaExprTest, ArrayIndexTest) {
 
   for (const auto &test : tests) {
     Sema sema(Ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }
