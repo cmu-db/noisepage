@@ -14,7 +14,7 @@ import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
-def get_data(input_path, mini_model_map, model_results_path):
+def get_data(input_path, mini_model_map, model_results_path, warmup_period):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
@@ -22,6 +22,7 @@ def get_data(input_path, mini_model_map, model_results_path):
     :param input_path: input data file path
     :param mini_model_map: mini models used for prediction
     :param model_results_path: directory path to log the result information
+    :param warmup_period: warmup period for pipeline data
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
@@ -29,7 +30,7 @@ def get_data(input_path, mini_model_map, model_results_path):
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list = pickle.load(pickle_file)
     else:
-        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path)
+        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
@@ -38,15 +39,16 @@ def get_data(input_path, mini_model_map, model_results_path):
     return resource_data_list, impact_data_list
 
 
-def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path):
+def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
     :param mini_model_map: mini models used for prediction
     :param model_results_path: directory path to log the result information
+    :param warmup_period: warmup period for pipeline data
     :return: The list of the GroupedOpUnitData objects
     """
-    data_list = _get_data_list(input_path)
+    data_list = _get_data_list(input_path, warmup_period)
     _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
@@ -172,17 +174,18 @@ def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
     return min(end_timel, end_timer) - max(start_timel, start_timer) + 1
 
 
-def _get_data_list(input_path):
+def _get_data_list(input_path, warmup_period):
     """Get the list of all the operating units (or groups of operating units) stored in GlobalData objects
 
     :param input_path: input data file path
+    :param warmup_period: warmup period for pipeline data
     :return: the list of all the operating units (or groups of operating units) stored in GlobalData objects
     """
     data_list = []
 
     # First get the data for all mini runners
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
-        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename)
+        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period)
         logging.info("Loaded file: {}".format(filename))
 
     return data_list
@@ -261,7 +264,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                 y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
 
             # Hack to adjust the recorded metrics of q30
-            if 'q28 p0' in data.name:
+            if 'q34 p0' in data.name:
                 if opunit_feature[0] == OpUnit.IDX_SCAN and x[0][2] == 2:
                     # Inner index loop will execute 200 times, so scale the prediction
                     # by 200 times to account for 200 separate index scans
@@ -272,6 +275,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
 
         # Record the predicted
         data.y_pred = pipeline_y_pred
+        logging.debug("{} pipeline prediction: {}".format(data.name, pipeline_y_pred))
         logging.debug("{} pipeline predicted time: {}".format(data.name, pipeline_y_pred[-1]))
         ratio_error = abs(y - pipeline_y_pred) / (y + 1)
         logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
