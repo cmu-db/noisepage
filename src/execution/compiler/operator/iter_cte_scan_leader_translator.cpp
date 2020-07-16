@@ -137,6 +137,7 @@ void IterCteScanLeaderTranslator::Consume(FunctionBuilder *builder) {
   GenTableInsert(builder);
 }
 
+// gets state.cte
 ast::Expr *IterCteScanLeaderTranslator::GetReadCteScanIterator() {
   return codegen_->GetStateMember(codegen_->GetIdentifier(op_->GetCTETableName()));
 }
