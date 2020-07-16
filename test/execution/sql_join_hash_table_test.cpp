@@ -13,9 +13,9 @@ namespace terrier::execution::sql {
 
 /// This is the tuple we insert into the hash table
 struct Tuple {
-  uint64_t a, b, c, d;
+  uint64_t a_, b_, c_, d_;
 
-  hash_t Hash() const { return common::HashUtil::Hash(a); }
+  hash_t Hash() const { return common::HashUtil::Hash(a_); }
 };
 
 class JoinHashTableTest : public TplTest {
@@ -41,10 +41,10 @@ TEST_F(JoinHashTableTest, LazyInsertionTest) {
     std::uniform_int_distribution<uint64_t> distribution;
 
     for (uint32_t i = 0; i < num_tuples; i++) {
-      tuples[i].a = distribution(generator);
-      tuples[i].b = distribution(generator);
-      tuples[i].c = distribution(generator);
-      tuples[i].d = distribution(generator);
+      tuples[i].a_ = distribution(generator);
+      tuples[i].b_ = distribution(generator);
+      tuples[i].c_ = distribution(generator);
+      tuples[i].d_ = distribution(generator);
     }
   }
 
@@ -118,7 +118,7 @@ void BuildAndProbeTest(uint32_t num_tuples, uint32_t dup_scale_factor) {
     uint32_t count = 0;
     for (auto iter = join_hash_table.Lookup<UseCHT>(probe_tuple.Hash()); iter.HasNext();) {
       auto *matched = reinterpret_cast<const Tuple *>(iter.GetMatchPayload());
-      if (matched->a == probe_tuple.a) {
+      if (matched->a_ == probe_tuple.a_) {
         count++;
       }
     }
@@ -201,7 +201,7 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
     uint32_t count = 0;
     for (auto iter = main_jht.Lookup<use_concise_ht>(probe.Hash()); iter.HasNext();) {
       auto *matched = reinterpret_cast<const Tuple *>(iter.GetMatchPayload());
-      if (matched->a == probe.a) {
+      if (matched->a_ == probe.a_) {
         count++;
       }
     }

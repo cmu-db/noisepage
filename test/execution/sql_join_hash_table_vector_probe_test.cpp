@@ -13,14 +13,14 @@
 namespace terrier::execution::sql::test {
 
 struct BuildRow {
-  uint64_t key, val1, val2, val3;
+  uint64_t key_, val1_, val2_, val3_;
   // Constructor.
   explicit BuildRow(uint64_t key) : BuildRow(key, 0, 0, 0) {}
   // Constructor.
   BuildRow(uint64_t key, uint64_t val_1, uint64_t val_2, uint64_t val_3)
-      : key(key), val1(val_1), val2(val_2), val3(val_3) {}
+      : key_(key), val1_(val_1), val2_(val_2), val3_(val_3) {}
   // Hash.
-  hash_t Hash() const { return common::HashUtil::HashCrc(key); }
+  hash_t Hash() const { return common::HashUtil::HashCrc(key_); }
 };
 
 // Build a join hash table over the given input data.
@@ -116,7 +116,7 @@ TEST_F(JoinHashTableVectorProbeTest, SimpleJoinProbe) {
       // Check matching keys.
       match_filter->ForEach([&](uint64_t i) {
         auto probe_key = reinterpret_cast<uint64_t *>(probe_keys->GetData())[i];
-        auto build_key = reinterpret_cast<HashTableEntry **>(matches->GetData())[i]->PayloadAs<BuildRow>()->key;
+        auto build_key = reinterpret_cast<HashTableEntry **>(matches->GetData())[i]->PayloadAs<BuildRow>()->key_;
         EXPECT_EQ(probe_key, build_key);
       });
     }
