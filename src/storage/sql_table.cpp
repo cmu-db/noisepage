@@ -90,8 +90,8 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
 void SqlTable::Reset() { table_.data_table_->Reset(); }
 
 void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionContext> txn,
-                         const common::ManagedPointer<DataTable> src){
-  uint32_t filled = 0;
+                         const common::ManagedPointer<SqlTable> src){
+//  uint32_t filled = 0;
   auto it = src->begin();
   std::vector<catalog::col_oid_t> col_oids;
   for(auto &cols : table_.column_map_){
