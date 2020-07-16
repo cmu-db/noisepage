@@ -37,16 +37,6 @@ public class TracefileTest {
         System.out.println("File name: " + path);
         file = new File(path);
         mog = new MogSqlite(file);
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                System.out.println(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-//        List<String> tab = getAllExistingTableName(mog);
-//        removeExistingTable(tab);
     }
 
 
@@ -99,7 +89,7 @@ public class TracefileTest {
                         ResultSet rs = statement.getResultSet();
                         res = mog.processResults(rs);
                     } catch (SQLException throwables) {
-                        System.out.println("Line " + num + ": " + throwables.getMessage());
+                        System.out.println("Line " + num + ": " + mog.sql);
                     }
                     // create an executable for the query
                     String hash2 = getHashFromDb(res);
