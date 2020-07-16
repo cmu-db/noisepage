@@ -134,7 +134,7 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
         // The "build" side is a pipeline breaker. It belongs to a new pipeline.
         auto next_pipeline = std::make_unique<Pipeline>(codegen_);
 
-        if(cte_scan_plan_node->IsIterative()){
+        if(cte_scan_plan_node->GetIsInductive()){
           MakePipelines(*op.GetChild(0), next_pipeline.get());
           auto base_translator = TranslatorFactory::IterCteScanLeaderNodeTranslator(&op, codegen_, nullptr, 0);
           auto ind_translator = TranslatorFactory::IterCteScanLeaderNodeTranslator(&op, codegen_, base_translator.get(), 1);

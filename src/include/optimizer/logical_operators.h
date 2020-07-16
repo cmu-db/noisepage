@@ -2039,7 +2039,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
 
   static Operator Make(std::string table_alias,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       bool is_iterative, std::vector<AnnotatedExpression> &&scan_predicate);
+                       parser::CTEType cte_type, std::vector<AnnotatedExpression> &&scan_predicate);
 
   /**
    * Copy
@@ -2064,7 +2064,13 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
     return child_expressions_;
   }
 
-  bool GetIsIterative() const { return is_iterative_; }
+  parser::CTEType GetCTEType() const { return cte_type_; }
+
+  bool GetIsIterative() const { return cte_type_ == parser::CTEType::ITERATIVE; }
+
+  bool GetIsRecursive() const { return cte_type_ == parser::CTEType::RECURSIVE; }
+
+  bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
   std::vector<AnnotatedExpression> GetScanPredicate() const {
     return scan_predicate_;
@@ -2076,7 +2082,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    */
   std::string table_alias_;
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
-  bool is_iterative_;
+  parser::CTEType cte_type_;
   std::vector<AnnotatedExpression> scan_predicate_;
 };
 
