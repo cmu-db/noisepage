@@ -81,7 +81,6 @@ class UpdateTranslator : public OperatorTranslator {
   const catalog::Schema &table_schema_;
   std::vector<catalog::col_oid_t> all_oids_;
   storage::ProjectionMap table_pm_;
-  //  PRFiller pr_filler_;
 };
 
 }  // namespace terrier::execution::compiler

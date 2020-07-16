@@ -46,7 +46,7 @@ int64_t BytecodeIterator::GetImmediateIntegerOperand(uint32_t operand_index) con
 
 double BytecodeIterator::GetImmediateFloatOperand(uint32_t operand_index) const {
   OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
-  TERRIER_ASSERT(OperandTypes::IsFloatImmediate(operand_type), "Operand type is not a signed immediate");
+  TERRIER_ASSERT(OperandTypes::IsFloatImmediate(operand_type), "Operand type is not a float immediate");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);

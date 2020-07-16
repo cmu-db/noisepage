@@ -20,7 +20,7 @@ void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *ite
 }
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) {
-  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to close");
+  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to init");
   iter->Init();
 }
 
