@@ -20,7 +20,7 @@ def download_git_repo():
     if not os.path.isdir(noise_path):
         os.mkdir(noise_path)
     if not is_git_repo(noise_path):
-        repo = Repo.clone_from("https://github.com/dniu16/noisepage-testfiles.git", noise_path)
+        repo = Repo.clone_from("https://github.com/cmu-db/noisepage-testfiles.git", noise_path)
 
 if __name__ == "__main__":
 
