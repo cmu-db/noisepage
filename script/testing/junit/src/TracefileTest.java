@@ -88,8 +88,8 @@ public class TracefileTest {
                         statement.execute(mog.sql);
                         ResultSet rs = statement.getResultSet();
                         res = mog.processResults(rs);
-                    } catch (SQLException throwables) {
-                        System.out.println("Line " + num + ": " + mog.sql);
+                    } catch (Throwable e) {
+                        System.out.println("Failure at Line " + num + ": " + e.getMessage() + "\n" + mog.sql + "\n");
                     }
                     // create an executable for the query
                     String hash2 = getHashFromDb(res);
