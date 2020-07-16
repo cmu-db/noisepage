@@ -123,11 +123,7 @@ bool IndexUtil::CheckPredicates(
           auto rexpr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
           if (lexpr->GetTableOid() == tbl_oid) {
             tv_expr = lexpr;
-            if(lexpr->GetTableOid() == rexpr->GetTableOid()){
-              idx_expr = expr->GetChild(0);
-            } else {
-              idx_expr = expr->GetChild(1);
-            }
+            idx_expr = expr->GetChild(1);
           } else {
             tv_expr = rexpr;
             idx_expr = expr->GetChild(0);
