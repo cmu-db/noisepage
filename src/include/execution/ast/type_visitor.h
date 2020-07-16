@@ -24,7 +24,7 @@ namespace terrier::execution::ast {
 template <typename Subclass, typename RetType = void>
 class TypeVisitor {
  public:
-#define DISPATCH(Type) return this->Impl()->Visit##Type(static_cast<const Type *>(type));  // NOLINT
+#define DISPATCH(Type) return this->Impl()->Visit##Type(static_cast<const Type *>(type));
 
   /**
    * Begin type traversal at the given type node.

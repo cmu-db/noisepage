@@ -157,9 +157,6 @@ class ExecutableQuery {
   // The query state size.
   std::size_t query_state_size_;
 
-  // TODO(tanujnay112) unnecessary string creation?
-  std::string teardown_fn_;
-
   // The pipeline operating units that were generated as part of this query.
   std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 };
