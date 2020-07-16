@@ -64,3 +64,6 @@ RECORD_FEATURES_END = 6
 
 # Start index of metrics
 RECORD_METRICS_START = MINI_MODEL_TARGET_NUM
+
+# Interval for opunits that wake up periodically (us)
+PERIODIC_OPUNIT_INTERVAL = 1000000

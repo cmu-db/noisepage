@@ -1,14 +1,26 @@
-#!/usr/bin/python3
-
 import os
 import sys
 import argparse
 import traceback
-
+import git
+from git import Repo
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
-
 from junit.test_junit import TestJUnit
+
+def is_git_repo(path):
+    try:
+        _ = git.Repo(path).git_dir
+        return True
+    except git.exc.InvalidGitRepositoryError:
+        return False
+
+def download_git_repo():
+    noise_path = os.getcwd()+"/noisepage-testfiles"
+    if not os.path.isdir(noise_path):
+        os.mkdir(noise_path)
+    if not is_git_repo(noise_path):
+        repo = Repo.clone_from("https://github.com/cmu-db/noisepage-testfiles.git", noise_path)
 
 if __name__ == "__main__":
 
@@ -29,15 +41,40 @@ if __name__ == "__main__":
                          type=int,
                          help="Threshold under the 'extened' query mode")
 
+    download_git_repo()
     args = vars(aparser.parse_args())
-
+    exit_code = 0
+    code = []
     try:
-        junit = TestJUnit(args)
-        exit_code = junit.run()
+        unit_command = TestJUnit(args)
+        unit_command.test_command = "ant test-unit"
+        exit_code = unit_command.run()
     except:
-        print("Exception trying to run junit tests")
-        print("================ Python Error Output ==================")
-        traceback.print_exc(file=sys.stdout)
+        print("Exception trying to run test-unit")
         exit_code = 1
+    code.append(exit_code)
+    noise_trace_dir = os.getcwd() + "/noisepage-testfiles/sql_trace/"
+    for test_type in os.listdir(noise_trace_dir):
+        type_dir = noise_trace_dir + test_type
+        if os.path.isdir(type_dir):
+            for file in os.listdir(type_dir):
+                if "output" in file:
+                    path = type_dir + "/" + file
+                    os.environ["path"] = path
+                    try:
+                        print(os.environ["path"])
+                        junit = TestJUnit(args)
+                        exit_code = junit.run()
+                        code.append(exit_code)
 
-    sys.exit(exit_code)
+                    except:
+                        print("Exception trying to run junit tests")
+                        print("================ Python Error Output ==================")
+                        traceback.print_exc(file=sys.stdout)
+                        exit_code = 1
+                    print("="*80)
+    final_code = 0
+    for c in code:
+        final_code = final_code or c
+    print("Final exit code: " + str(final_code))
+    sys.exit(final_code)

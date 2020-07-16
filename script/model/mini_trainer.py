@@ -35,7 +35,7 @@ class MiniTrainer:
         self.model_map = {}
         self.stats_map = {}
 
-    def _train_data(self, data):
+    def _train_data(self, data, summary_file):
         x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
                                                                             test_size=self.test_ratio,
                                                                             random_state=0)
@@ -46,25 +46,23 @@ class MiniTrainer:
         result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
 
         methods = self.ml_models
-        # Only use linear regression for the arithmetic operating units
-        if data.opunit in data_info.ARITHMETIC_OPUNITS:
-            methods = ["lr"]
 
-        # Also test the prediction with the target transformer (if specified for the operating unit)
-        transformers = [None]
-        modeling_transformer = data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]
-        if modeling_transformer is not None:
-            transformers.append(modeling_transformer)
+        # Test the prediction with/without the target transformer
+        transformers = [None, data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]]
+        # modeling_transformer = data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]
+        # if modeling_transformer is not None:
+        #    transformers.append(modeling_transformer)
 
         error_bias = 1
-        min_percentage_error = 1
+        min_percentage_error = 2
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
-        for transformer in transformers:
+        for i, transformer in enumerate(transformers):
             for method in methods:
                 # Train the model
-                logging.info("{} {}".format(data.opunit.name, method))
+                label = method if i == 0 else method + " transform"
+                logging.info("{} {}".format(data.opunit.name, label))
                 regressor = model.Model(method, modeling_transformer=transformer)
                 regressor.train(x_train, y_train)
 
@@ -72,7 +70,7 @@ class MiniTrainer:
                 results = []
                 evaluate_data = [(x_train, y_train), (x_test, y_test)]
                 train_test_label = ["Train", "Test"]
-                for i, d in enumerate(evaluate_data):
+                for j, d in enumerate(evaluate_data):
                     evaluate_x = d[0]
                     evaluate_y = d[1]
 
@@ -87,21 +85,23 @@ class MiniTrainer:
                     percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1 + error_bias), axis=0)
                     results += list(percentage_error) + [""]
 
-                    logging.info('{} Percentage Error: {}'.format(train_test_label[i], percentage_error))
+                    logging.info('{} Percentage Error: {}'.format(train_test_label[j], percentage_error))
 
                     # Record the model with the lowest elapsed time prediction (since that might be the most
                     # important prediction)
-                    if (i == 1 and percentage_error[elapsed_us_index] < min_percentage_error and
-                        transformer == transformers[-1]):
+                    # Only use linear regression for the arithmetic operating units
+                    if (j == 1 and percentage_error[elapsed_us_index] < min_percentage_error
+                            and transformer == transformers[-1]
+                            and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
                         min_percentage_error = percentage_error[elapsed_us_index]
                         self.model_map[data.opunit] = regressor
                         pred_results = (evaluate_x, y_pred, evaluate_y)
 
+                    if j == 1:
+                        io_util.write_csv_result(summary_file, data.opunit.name, [label] + list(percentage_error))
+
                 # Dump the prediction results
-                transform = " "
-                if transformer is not None:
-                    transform = " transform"
-                io_util.write_csv_result(metrics_path, method + transform, results)
+                io_util.write_csv_result(metrics_path, label, results)
 
                 logging.info("")
 
@@ -118,12 +118,18 @@ class MiniTrainer:
 
         self.model_map = {}
 
+        # Create the results files for the paper
+        header = ["OpUnit", "Method"] + [target.name for target in data_info.MINI_MODEL_TARGET_LIST]
+        summary_file = "{}/mini_runner.csv".format(self.model_metrics_path)
+        io_util.create_csv_file(summary_file, header)
+
         # First get the data for all mini runners
         for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
-            data_list = opunit_data.get_mini_runner_data(filename, self.model_map, self.stats_map)
+            data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.model_map,
+                                                         self.stats_map)
             for data in data_list:
-                self._train_data(data)
+                self._train_data(data, summary_file)
 
         return self.model_map
 
@@ -133,11 +139,13 @@ class MiniTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--input_path', default='mini_runner_input', help='Input file path for the mini runners')
+    aparser.add_argument('--input_path', default='mini_runner_input_nogen',
+                         help='Input file path for the mini runners')
     aparser.add_argument('--model_results_path', default='mini_runner_model_results',
                          help='Prediction results of the mini models')
-    aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
-    aparser.add_argument('--ml_models', nargs='*', type=str, default=["lr", "rf", "nn"],
+    aparser.add_argument('--save_path', default='trained_nogen_model', help='Path to save the mini models')
+    aparser.add_argument('--ml_models', nargs='*', type=str,
+                         default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--log', default='info', help='The logging level')
