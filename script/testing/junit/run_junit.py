@@ -45,9 +45,6 @@ if __name__ == "__main__":
     args = vars(aparser.parse_args())
     exit_code = 0
     code = []
-    # FIXME: Extended protocol is broken for some queries, so we are
-    # overriding the query mode to always be simple
-    args['query_mode'] = 'simple'
     try:
         unit_command = TestJUnit(args)
         unit_command.test_command = "ant test-unit"
