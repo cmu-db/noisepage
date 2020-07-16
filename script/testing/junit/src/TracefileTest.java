@@ -98,10 +98,8 @@ public class TracefileTest {
                         statement.execute(mog.sql);
                         ResultSet rs = statement.getResultSet();
                         res = mog.processResults(rs);
-
                     } catch (SQLException throwables) {
-                        System.out.println(mog.queryResults);
-                        System.out.println("Line " + num + ": " + mog.sql);
+                        System.out.println("Line " + num + ": " + throwables.getMessage());
                     }
                     // create an executable for the query
                     String hash2 = getHashFromDb(res);
@@ -118,6 +116,13 @@ public class TracefileTest {
 
     }
 
+    /**
+     * compare hash, print line number and error if hash don't match
+     * @param hash1 hash
+     * @param hash2 hash
+     * @param n line number
+     * @throws Exception
+     */
     public static void check(String hash1, String hash2, int n) throws Exception {
         try {
             assertEquals(hash1, hash2);
@@ -126,6 +131,13 @@ public class TracefileTest {
             throw new Exception("Line " + n + ": " + e.getMessage());
         }
     }
+
+    /**
+     * wrapper for throwing message for the case that non-select
+     * sql statements fail
+     * @param mes message to print out
+     * @throws Exception
+     */
     public static void check2(String mes) throws Exception {
         throw new Exception(mes);
     }
@@ -140,7 +152,7 @@ public class TracefileTest {
         try {
             md = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("no Alg", e);
+            throw new RuntimeException(e);
         }
         String resultString = String.join("\n", res) + "\n";
         md.update(resultString.getBytes());
@@ -169,31 +181,4 @@ public class TracefileTest {
         return res;
     }
 
-    /**
-     * Remove existing table from database
-     * @param tab list of strings containing existing table names
-     * @throws SQLException
-     */
-    public static void removeExistingTable(List<String> tab) throws SQLException {
-        for(String i:tab){
-            Statement st = conn.createStatement();
-            String sql = "DROP TABLE IF EXISTS " + i + " CASCADE";
-            st.execute(sql);
-        }
-    }
-
-    /**
-     * Get existing table names
-     * @param mog MogSqlite obj
-     * @return list of strings containing existing table names
-     * @throws SQLException
-     */
-    public static List<String> getAllExistingTableName(MogSqlite mog) throws SQLException {
-        Statement st = conn.createStatement();
-        String terrier_table = "SELECT relname FROM pg_class WHERE relkind = 114 AND relnamespace = 15;";
-        st.execute(terrier_table);
-        ResultSet rs = st.getResultSet();
-        List<String> res = mog.processResults(rs);
-        return res;
-    }
 }

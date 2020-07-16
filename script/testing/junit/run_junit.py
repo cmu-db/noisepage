@@ -4,6 +4,9 @@ import argparse
 import traceback
 import git
 from git import Repo
+base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, base_path)
+from junit.test_junit import TestJUnit
 
 def is_git_repo(path):
     try:
@@ -19,11 +22,6 @@ def download_git_repo():
     if not is_git_repo(noise_path):
         repo = Repo.clone_from("https://github.com/dniu16/noisepage-testfiles.git", noise_path)
 
-base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.insert(0, base_path)
-
-from junit.test_junit import TestJUnit
-from util.common import run_command
 if __name__ == "__main__":
 
     aparser = argparse.ArgumentParser(description="junit runner")
