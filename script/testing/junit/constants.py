@@ -16,7 +16,7 @@ JUNIT_OPTION_XML = os.path.join(JUNIT_OPTION_DIR, "options.xml")
 
 TESTFILES_REPO = 'noisepage-testfiles'
 TESTFILES_REPO_URL = "https://github.com/cmu-db/%s.git" % (TESTFILES_REPO)
-TESTFILES_REPO_TRACE_DIR = "sql_trace"
-TESTFILES_PREFIX = "_output.test"
+TESTFILES_REPO_TRACE_DIR = "sql"
+TESTFILES_PREFIX = ".test"
 
 DEFAULT_PREPARE_THRESHOLD = 5
