@@ -2048,8 +2048,15 @@ std::unique_ptr<TableRef> PostgresParser::WithTransform(ParseResult *parse_resul
           colnames.emplace_back(column);
         }
       }
-
-      result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), root->iterative_);
+      CTEType cte_type = CTEType::SIMPLE;
+      if(root->recursive_){
+        cte_type = CTEType::RECURSIVE;
+      }else{
+        if(root->iterative_){
+          cte_type = CTEType::ITERATIVE;
+        }
+      }
+      result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
       return result;
     }
     default: {

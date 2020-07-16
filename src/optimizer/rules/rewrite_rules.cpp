@@ -399,7 +399,8 @@ void RewriteEmbedFilterIntoChildlessCteScan::Transform(common::ManagedPointer<Ab
     c.push_back(child->Copy());
   }
   auto output =
-      std::make_unique<OperatorNode>(LogicalCteScan::Make(get->GetTableAlias(), get->GetExpressions(), get->GetIsIterative(),
+      std::make_unique<OperatorNode>(LogicalCteScan::Make(get->GetTableAlias(), get->GetExpressions(),
+                                                          get->GetCTEType(),
                                                           std::move(predicates))
                                          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                      std::move(c), context->GetOptimizerContext()->GetTxn());
@@ -437,7 +438,7 @@ void RewriteEmbedFilterIntoCteScan::Transform(common::ManagedPointer<AbstractOpt
     c.push_back(child->Copy());
   }
   auto output =
-      std::make_unique<OperatorNode>(LogicalCteScan::Make(get->GetTableAlias(), get->GetExpressions(), get->GetIsIterative(),
+      std::make_unique<OperatorNode>(LogicalCteScan::Make(get->GetTableAlias(), get->GetExpressions(), get->GetCTEType(),
                                                          std::move(predicates))
                                          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                      std::move(c), context->GetOptimizerContext()->GetTxn());
@@ -518,7 +519,7 @@ RulePromise RewriteUnionWithRecursiveCTE::Promise(GroupExpression *group_expr) c
 bool RewriteUnionWithRecursiveCTE::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
                                          OptimizationContext *context) const {
   auto cte_scan = plan->Contents()->GetContentsAs<LogicalCteScan>();
-  return cte_scan->GetIsIterative();
+  return cte_scan->GetIsInductive();
 }
 
 void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
@@ -553,7 +554,8 @@ void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOpti
   children.push_back(std::move(new_derived));
   children.push_back(right_node->Copy());
   auto new_root =
-      std::make_unique<OperatorNode>(LogicalCteScan::Make(cte_scan->GetTableAlias(), cte_scan->GetExpressions(), true,
+      std::make_unique<OperatorNode>(LogicalCteScan::Make(cte_scan->GetTableAlias(), cte_scan->GetExpressions(),
+                                                          cte_scan->GetCTEType(),
                                                           cte_scan->GetScanPredicate())
                                          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                      std::move(children), context->GetOptimizerContext()->GetTxn());

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common/json.h>
+#include <parser/parser_defs.h>
 
 #include <memory>
 #include <string>
@@ -48,8 +49,8 @@ class CteScanPlanNode : public AbstractPlanNode {
       return *this;
     }
 
-    Builder &SetIsIterative(bool is_iterative) {
-      is_iterative_ = is_iterative;
+    Builder &SetCTEType(parser::CTEType cte_type) {
+      cte_type_ = cte_type;
       return *this;
     }
 
@@ -69,14 +70,14 @@ class CteScanPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<CteScanPlanNode> Build() {
       return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(cte_table_name_),
-          std::move(children_), std::move(output_schema_), is_leader_, std::move(table_output_schema_), is_iterative_,
+          std::move(children_), std::move(output_schema_), is_leader_, std::move(table_output_schema_), cte_type_,
                                                                   scan_predicate_));
     }
 
    private:
     std::string cte_table_name_;
     bool is_leader_ = false;
-    bool is_iterative_ = false;
+    parser::CTEType cte_type_ = parser::CTEType::SIMPLE;
     std::unique_ptr<OutputSchema> table_output_schema_;
     common::ManagedPointer<parser::AbstractExpression> scan_predicate_{nullptr};
   };
@@ -88,12 +89,12 @@ class CteScanPlanNode : public AbstractPlanNode {
    */
   CteScanPlanNode(std::string &&cte_table_name, std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, bool is_leader,
-                  std::unique_ptr<OutputSchema> table_output_schema, bool is_iterative,
+                  std::unique_ptr<OutputSchema> table_output_schema, parser::CTEType cte_type,
                   common::ManagedPointer<parser::AbstractExpression> scan_predicate)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
-        is_iterative_(is_iterative),
+        cte_type_(cte_type),
         table_output_schema_(std::move(table_output_schema)),
         scan_predicate_(scan_predicate) {}
 
@@ -130,15 +131,18 @@ class CteScanPlanNode : public AbstractPlanNode {
    */
   void SetLeader() { is_leader_ = true; }
 
-  /**
-   * @return True is this node is for a recursive CTE table
-   */
-  bool IsIterative() const { return is_iterative_; }
+  parser::CTEType GetCTEType() const { return cte_type_; }
+
+  bool GetIsIterative() const { return cte_type_ == parser::CTEType::ITERATIVE; }
+
+  bool GetIsRecursive() const { return cte_type_ == parser::CTEType::RECURSIVE; }
+
+  bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
   /**
    * Assigns a boolean for whether this node is for a recursive tabl
    */
-  void SetIterative() { is_iterative_ = true; }
+  void SetCTEType(parser::CTEType cte_type) { cte_type_ = cte_type; }
 
   /**
    * @return table output schema for the node. The output schema contains information on columns of the output of the
@@ -177,7 +181,7 @@ class CteScanPlanNode : public AbstractPlanNode {
   std::string cte_table_name_;
   // Boolean to indicate whether this plan node is leader or not
   bool is_leader_;
-  bool is_iterative_;
+  parser::CTEType cte_type_;
   // Output table schema for CTE scan
   std::unique_ptr<OutputSchema> table_output_schema_;
 

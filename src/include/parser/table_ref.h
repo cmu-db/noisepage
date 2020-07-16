@@ -145,12 +145,12 @@ class TableRef {
    * @param cte_col_aliases aliases for the columns
    */
   TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<std::string> cte_col_aliases,
-           bool cte_recursive)
+           parser::CTEType cte_type)
       : type_(TableReferenceType::SELECT),
         alias_(std::move(alias)),
         select_(std::move(select)),
         cte_col_aliases_(std::move(cte_col_aliases)),
-        cte_recursive_(cte_recursive) {}
+        cte_type_(cte_type) {}
 
   /**
    * @param list table refs to use in creation
@@ -190,8 +190,8 @@ class TableRef {
    */
   static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select,
                                                              std::vector<std::string> cte_col_aliases,
-                                                             bool cte_recursive) {
-    return std::make_unique<TableRef>(std::move(alias), std::move(select), std::move(cte_col_aliases), cte_recursive);
+                                                             parser::CTEType cte_type) {
+    return std::make_unique<TableRef>(std::move(alias), std::move(select), std::move(cte_col_aliases), cte_type);
   }
 
   /**
@@ -228,7 +228,7 @@ class TableRef {
   std::vector<std::string> GetCteColumnAliases() { return cte_col_aliases_; }
 
   /** @return cte recursive flag */
-  bool GetCteRecursive() { return cte_recursive_; }
+  parser::CTEType GetCteType() { return cte_type_; }
 
   /** @return table name */
   const std::string &GetTableName() { return table_info_->GetTableName(); }
@@ -290,7 +290,7 @@ class TableRef {
   std::unique_ptr<SelectStatement> select_;
 
   std::vector<std::string> cte_col_aliases_;
-  bool cte_recursive_{false};
+  parser::CTEType cte_type_{CTEType::INVALID};
 
   std::vector<std::unique_ptr<TableRef>> list_;
   std::unique_ptr<JoinDefinition> join_;

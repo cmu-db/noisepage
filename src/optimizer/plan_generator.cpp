@@ -1054,7 +1054,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
       output_plan_ = planner::CteScanPlanNode::Builder()
                          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
                          .SetTableOutputSchema(std::move(cte_scan_out))
-                         .SetIsIterative(cte_scan->GetIsIterative())
+                         .SetCTEType(cte_scan->GetCTEType())
                          .AddChild(std::move(output_plan_))
                          .AddChild(std::move(children_plans_[1]))
                          .SetCTETableName(std::string(cte_scan->GetTableAlias()))
@@ -1064,7 +1064,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
       output_plan_ = planner::CteScanPlanNode::Builder()
                          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
                          .SetTableOutputSchema(std::move(cte_scan_out))
-                         .SetIsIterative(cte_scan->GetIsIterative())
+                         .SetCTEType(cte_scan->GetCTEType())
                          .AddChild(std::move(output_plan_))
                          .SetCTETableName(std::string(cte_scan->GetTableAlias()))
                          .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
@@ -1083,7 +1083,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
 
     output_plan_ = planner::CteScanPlanNode::Builder()
                        .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
-                       .SetIsIterative(cte_scan->GetIsIterative())
+                       .SetCTEType(cte_scan->GetCTEType())
                        .SetCTETableName(std::string(cte_scan->GetTableAlias()))
                        .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
                        .Build();

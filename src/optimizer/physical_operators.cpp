@@ -1300,12 +1300,12 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *CteScan::Copy() const { return new CteScan(*this); }
 
 Operator CteScan::Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       std::string table_alias, bool is_iterative,
+                       std::string table_alias, parser::CTEType cte_type,
                        std::vector<AnnotatedExpression> &&scan_predicate) {
   auto *cte_scan_op = new CteScan();
   cte_scan_op->child_expressions_ = std::move(child_expressions);
   cte_scan_op->table_alias_ = std::move(table_alias);
-  cte_scan_op->is_iterative_ = is_iterative;
+  cte_scan_op->cte_type_ = cte_type;
   cte_scan_op->scan_predicate_ = std::move(scan_predicate);
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(cte_scan_op));
 }
@@ -1318,7 +1318,7 @@ bool CteScan::operator==(const BaseOperatorNodeContents &r) {
 
 common::hash_t CteScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
-  hash = common::HashUtil::CombineHashes(hash, is_iterative_);
+  hash = common::HashUtil::CombineHashes(hash, static_cast<uint32_t>(cte_type_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashInRange(hash, scan_predicate_.begin(), scan_predicate_.end());
   return hash;
