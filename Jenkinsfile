@@ -318,7 +318,7 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) terrier'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --scale-factor=0.01 --loader-threads=4'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --scale-factor=0.01 --loader-threads=4'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --scale-factor=0.01 --loader-threads=4'
@@ -343,7 +343,7 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
                         sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --scale-factor=0.01 --loader-threads=4'
                         sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --scale-factor=0.01 --loader-threads=4'
                         sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --scale-factor=0.01 --loader-threads=4'
@@ -365,7 +365,7 @@ pipeline {
                 sh 'echo $NODE_NAME'
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
-                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) terrier'
+                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) terrier'
                 sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --query-mode=extended \
                     --loader-threads=4 --client-time=60 --terminals=8"
             }
