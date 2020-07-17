@@ -33,6 +33,13 @@
 namespace terrier::runner {
 
 /**
+ * Should start small-row only scans
+ */
+bool rerun_start = false;
+int64_t rerun_iterations = 5;
+int64_t rerun_counter = 0;
+
+/**
  * Port
  */
 uint16_t port = 15721;
@@ -1098,6 +1105,8 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   int num_iters = 1;
   if (row <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
+  } else if (rerun_start) {
+    return;
   }
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
@@ -1143,7 +1152,7 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ1_1_SeqScanRunners)
     ->Apply(GenScanMixedArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ1_2_IndexScanRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ2_IndexScanRunners)(benchmark::State &state) {
   auto type = static_cast<type::TypeId>(state.range(0));
   auto key_num = state.range(1);
   auto num_rows = state.range(2);
@@ -1152,6 +1161,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_2_IndexScanRunners)(benchmark::State &state
   int num_iters = 1;
   if (lookup_size <= warmup_rows_limit) {
     num_iters += warmup_iterations_num_idx;
+  } else if (rerun_start) {
+    return;
   }
 
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
@@ -1199,7 +1210,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_2_IndexScanRunners)(benchmark::State &state
   state.SetItemsProcessed(state.range(2));
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ1_2_IndexScanRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ2_IndexScanRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenIdxScanArguments);
@@ -1209,6 +1220,9 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   auto num_decimals = state->range(1);
   auto num_cols = state->range(2);
   auto num_rows = state->range(3);
+
+  if (rerun_start)
+    return;
 
   // Create temporary table schema
   std::vector<catalog::Schema::Column> cols;
@@ -1295,17 +1309,17 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ6_0_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ6_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_InsertRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ6_0_InsertRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenInsertArguments);
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_InsertRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenInsertMixedArguments);
@@ -1328,6 +1342,8 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   int num_iters = 1;
   if (((is_idx != 0) ? car : row) <= warmup_rows_limit) {
     num_iters += warmup_iterations_num_crud;
+  } else if (rerun_start) {
+    return;
   }
 
   std::string tbl;
@@ -1415,29 +1431,29 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 }
 
 // NOLINTNEXTLINE
-// BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
+// BENCHMARK_DEFINE_F(MiniRunners, SEQ7_0_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
 
 // NOLINTNEXTLINE
-// BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
+// BENCHMARK_DEFINE_F(MiniRunners, SEQ7_1_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_2_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ7_2_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
 
 /*
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_UpdateRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ7_0_UpdateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenUpdateDeleteArguments);
 */
 
 /*
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_UpdateRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ7_1_UpdateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenUpdateDeleteMixedArguments);
 */
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_2_UpdateRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ7_2_UpdateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenUpdateDeleteIndexArguments);
@@ -1460,6 +1476,8 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   int num_iters = 1;
   if (((is_idx != 0) ? car : row) <= warmup_rows_limit) {
     num_iters += warmup_iterations_num_crud;
+  } else if (rerun_start) {
+    return;
   }
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
@@ -1518,35 +1536,35 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 }
 
 // NOLINTNEXTLINE
-// BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
+// BENCHMARK_DEFINE_F(MiniRunners, SEQ8_0_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
 
 // NOLINTNEXTLINE
-// BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
+// BENCHMARK_DEFINE_F(MiniRunners, SEQ8_1_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ5_2_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
+BENCHMARK_DEFINE_F(MiniRunners, SEQ8_2_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
 
 /*
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_DeleteRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ8_0_DeleteRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenUpdateDeleteArguments);
 */
 
 /*
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_DeleteRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ8_1_DeleteRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenUpdateDeleteMixedArguments);
 */
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_2_DeleteRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ8_2_DeleteRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenUpdateDeleteIndexArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ2_SortRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_decimals = state.range(1);
   auto tbl_ints = state.range(2);
@@ -1557,6 +1575,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_SortRunners)(benchmark::State &state) {
   int num_iters = 1;
   if (row <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
+  } else if (rerun_start) {
+    return;
   }
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
@@ -1583,13 +1603,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_SortRunners)(benchmark::State &state) {
   state.SetItemsProcessed(row);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ2_SortRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ3_SortRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenSortArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_bigints = state.range(1);
   auto tbl_ints = state.range(2);
@@ -1627,13 +1647,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &stat
   state.SetItemsProcessed(row);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinSelfRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinSelfRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenJoinSelfArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_bigints = state.range(1);
   auto tbl_ints = state.range(2);
@@ -1679,13 +1699,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &s
   state.SetItemsProcessed(matched_car);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenJoinNonSelfArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ4_0_AggregateRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto num_bigints = state.range(1);
   auto tbl_ints = state.range(2);
@@ -1696,6 +1716,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_0_AggregateRunners)(benchmark::State &state
   int num_iters = 1;
   if (row <= warmup_rows_limit && car <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
+  } else if (rerun_start) {
+    return;
   }
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
@@ -1725,13 +1747,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_0_AggregateRunners)(benchmark::State &state
   state.SetItemsProcessed(row);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ4_0_AggregateRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_AggregateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenAggregateArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ4_1_AggregateRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
   auto tbl_ints = state.range(1);
   auto row = state.range(2);
@@ -1740,6 +1762,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_1_AggregateRunners)(benchmark::State &state
   int num_iters = 1;
   if (row <= warmup_rows_limit && car <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
+  } else if (rerun_start) {
+    return;
   }
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
@@ -1778,7 +1802,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_1_AggregateRunners)(benchmark::State &state
   state.SetItemsProcessed(row);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ4_1_AggregateRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenAggregateKeylessArguments);
@@ -1820,6 +1844,10 @@ void InitializeRunnersState() {
   table_gen.GenerateMiniRunnerIndexes();
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  auto network_layer = terrier::runner::db_main->GetNetworkLayer();
+  auto server = network_layer->GetServer();
+  server->RunServer();
 }
 
 void EndRunnersState() {
@@ -1889,10 +1917,6 @@ void RunNetworkSequence() {
   terrier::runner::db_main->GetMetricsManager()->ToCSV();
   terrier::runner::InvokeGC();
 
-  auto network_layer = terrier::runner::db_main->GetNetworkLayer();
-  auto server = network_layer->GetServer();
-  server->RunServer();
-
   auto thread = std::thread([] { RunNetworkQueries(); });
 
   {
@@ -1908,7 +1932,7 @@ void RunNetworkSequence() {
 
   // Concat pipeline.csv into execution_seq0.csv
   std::string csv_line;
-  std::ofstream of("execution_SEQ0.csv", std::ios_base::binary | std::ios_base::app);
+  std::ofstream of("execution_NETWORK.csv", std::ios_base::binary | std::ios_base::app);
   std::ifstream is("pipeline.csv", std::ios_base::binary);
   std::getline(is, csv_line);
 
@@ -1916,9 +1940,11 @@ void RunNetworkSequence() {
   of.seekp(0, std::ios_base::end);
   of << is.rdbuf();
 
-  terrier::runner::db_main->ForceShutdown();
   thread.join();
+}
 
+void Shutdown() {
+  terrier::runner::db_main->ForceShutdown();
   delete terrier::runner::db_main;
 }
 
@@ -1927,16 +1953,16 @@ void RunBenchmarkSequence() {
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters
   // from the composite to get an approximation for the target feature.
-  //
-  // As such: the following sequence is utilized
-  // SEQ0: ArithmeticRunners
-  // SEQ1: SeqScan, IdxScan
-  // SEQ2: Sort
-  // SEQ3: HashJoin
-  // SEQ4: Aggregate
-  // SEQ5: Insert, Update, Delete
-  std::vector<std::vector<std::string>> filters = {{"SEQ0"}, {"SEQ1_0", "SEQ1_1", "SEQ1_2"}, {"SEQ2"}, {"SEQ3"},
-                                                   {"SEQ4_0", "SEQ4_1"}, {"SEQ5_0", "SEQ5_1", "SEQ5_2"}};
+  std::vector<std::vector<std::string>> filters = {{"SEQ0"},
+                                                   {"SEQ1_0", "SEQ1_1"},
+                                                   {"SEQ2"},
+                                                   {"SEQ3"},
+                                                   {"SEQ4"},
+                                                   {"SEQ5_0", "SEQ5_1"},
+                                                   {"SEQ6_0", "SEQ6_1"},
+                                                   {"SEQ7_0", "SEQ7_1", "SEQ7_2"},
+                                                   {"SEQ8_0", "SEQ8_1", "SEQ8_2"}};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS", "IDX_SCANS", "SORTS", "HJ", "AGGS", "INSERT", "UPDATE", "DELETE"};
 
   char buffer[32];
   const char *argv[2];
@@ -1944,7 +1970,7 @@ void RunBenchmarkSequence() {
   argv[1] = buffer;
 
   auto vm_modes = {terrier::execution::vm::ExecutionMode::Interpret, terrier::execution::vm::ExecutionMode::Compiled};
-  for (size_t i = 0; i < 6; i++) {
+  for (size_t i = 0; i < filters.size(); i++) {
     for (auto &filter : filters[i]) {
       for (auto mode : vm_modes) {
         terrier::runner::MiniRunners::mode = mode;
@@ -1962,7 +1988,12 @@ void RunBenchmarkSequence() {
     terrier::runner::db_main->GetMetricsManager()->Aggregate();
     terrier::runner::db_main->GetMetricsManager()->ToCSV();
 
-    snprintf(buffer, sizeof(buffer), "execution_SEQ%lu.csv", i);
+    if (!terrier::runner::rerun_start) {
+      snprintf(buffer, sizeof(buffer), "execution_%s.csv", titles[i].c_str());
+    } else {
+      snprintf(buffer, sizeof(buffer), "execution_%s_%ld.csv", titles[i].c_str(), terrier::runner::rerun_counter);
+    }
+
     std::rename("pipeline.csv", buffer);
   }
 }
@@ -2039,6 +2070,40 @@ int main(int argc, char **argv) {
   } else {
     RunBenchmarkSequence();
     RunNetworkSequence();
+
+    terrier::runner::rerun_start = true;
+    for (int i = 0; i < terrier::runner::rerun_iterations; i++) {
+      terrier::runner::rerun_counter++;
+      RunBenchmarkSequence();
+      RunNetworkSequence();
+    }
+
+    Shutdown();
+
+    // Do post-processing
+    std::vector<std::string> titles = {"OUTPUT", "SCANS", "IDX_SCANS", "SORTS", "HJ", "AGGS", "INSERT", "UPDATE", "DELETE", "NETWORK"};
+    for (auto title : titles) {
+      char target[64];
+      if (title == "NETWORK") {
+        snprintf(target, sizeof(target), "execution_OUTPUT.csv");
+      } else {
+        snprintf(target, sizeof(target), "execution_%s.csv", title.c_str());
+      }
+
+      for (int i = 1; i <= terrier::runner::rerun_iterations; i++) {
+        char source[64];
+        snprintf(source, sizeof(target), "execution_%s_%d.csv", title.c_str(), i);
+
+        std::string csv_line;
+        std::ofstream of(target, std::ios_base::binary | std::ios_base::app);
+        std::ifstream is(source, std::ios_base::binary);
+        std::getline(is, csv_line);
+
+        // Concat rest of data file
+        of.seekp(0, std::ios_base::end);
+        of << is.rdbuf();
+      }
+    }
   }
 
   terrier::LoggersUtil::ShutDown();
