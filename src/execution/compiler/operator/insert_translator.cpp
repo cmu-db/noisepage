@@ -60,7 +60,6 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     const auto &table_oid = GetPlanAs<planner::InsertPlanNode>().GetTableOid();
     const auto &index_oids = GetCodeGen()->GetCatalogAccessor()->GetIndexOids(table_oid);
     for (const auto &index_oid : index_oids) {
-      //
       GenIndexInsert(context, function, index_oid);
     }
   }
