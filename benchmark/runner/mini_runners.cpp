@@ -30,6 +30,36 @@
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
+struct IndexLookup {
+  int64_t idx_key_size;
+  int64_t row_num;
+  int64_t lookup;
+};
+
+namespace std {
+
+template <>
+struct hash<IndexLookup>
+{
+  size_t operator()(struct IndexLookup const & il) const
+  {
+    terrier::common::hash_t hash = terrier::common::HashUtil::Hash(il.idx_key_size);
+    hash = terrier::common::HashUtil::CombineHashes(hash, terrier::common::HashUtil::Hash(il.row_num));
+    hash = terrier::common::HashUtil::CombineHashes(hash, terrier::common::HashUtil::Hash(il.lookup));
+    return hash;
+  }
+};
+
+template <>
+struct equal_to<IndexLookup>
+{
+  size_t operator()(struct IndexLookup const &left, struct IndexLookup const&right) const {
+    return left.idx_key_size == right.idx_key_size && left.row_num == right.row_num && left.lookup == right.lookup;
+  }
+};
+
+};
+
 namespace terrier::runner {
 
 /**
@@ -599,6 +629,7 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
   std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
   std::vector<uint32_t> row_nums = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::unordered_set<struct IndexLookup> dedup;
 
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
@@ -611,6 +642,12 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
         }
 
         for (auto lookup : lookups) {
+          struct IndexLookup il{idx_key_size, row_num, lookup};
+          if (dedup.find(il) != dedup.end()) {
+            continue;
+          }
+
+          dedup.insert(il);
           if (type == type::TypeId::INTEGER) b->Args({idx_key_size, 0, 15, 0, row_num, lookup, 1});
           else if (type == type::TypeId::BIGINT) b->Args({0, idx_key_size, 0, 15, row_num, lookup, 1});
         }
@@ -1617,6 +1654,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
   auto row = state.range(4);
   auto car = state.range(5);
 
+  if (rerun_start) {
+    return;
+  }
+
   // Size of the scan tuple
   // Size of hash key size, probe key size
   // Size of output since only output 1 side
@@ -1663,6 +1704,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
   auto probe_row = state.range(6);
   auto probe_car = state.range(7);
   auto matched_car = state.range(8);
+
+  if (rerun_start) {
+    return;
+  }
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
   auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
