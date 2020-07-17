@@ -12,6 +12,8 @@
 #include "loggers/metrics_logger.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
+#include "metrics/bind_command_metric.h"
+#include "metrics/execute_command_metric.h"
 #include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
@@ -37,63 +39,56 @@ class MetricsStore {
    * Record metrics from the LogSerializerTask
    * @param num_bytes first entry of metrics datapoint
    * @param num_records second entry of metrics datapoint
-   * @param resource_metrics third entry of metrics datapoint
+   * @param num_txns third entry of metrics datapoint
+   * @param interval fourth entry of metrics datapoint
+   * @param resource_metrics fifth entry of metrics datapoint
    */
-  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records,
-                            const common::ResourceTracker::Metrics &resource_metrics) {
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
+                            const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics) {
     if (!ComponentEnabled(MetricsComponent::LOGGING))
       METRICS_LOG_WARN(
           "RecordSerializerData() called without logging metrics enabled. Was it recently disabled and the component "
           "is just lagging?");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
-    logging_metric_->RecordSerializerData(num_bytes, num_records, resource_metrics);
+    logging_metric_->RecordSerializerData(num_bytes, num_records, num_txns, interval, resource_metrics);
   }
 
   /**
    * Record metrics from the LogConsumerTask
    * @param num_bytes first entry of metrics datapoint
    * @param num_records second entry of metrics datapoint
+   * @param interval third entry of metrics datapoint
    * @param resource_metrics third entry of metrics datapoint
    */
-  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_records,
+  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     if (!ComponentEnabled(MetricsComponent::LOGGING))
       METRICS_LOG_WARN(
           "RecordConsumerData() called without logging metrics enabled. Was it recently disabled and the component is "
           "just lagging?");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
-    logging_metric_->RecordConsumerData(num_bytes, num_records, resource_metrics);
+    logging_metric_->RecordConsumerData(num_bytes, num_records, interval, resource_metrics);
   }
 
   /**
-   * Record metrics from the GC deallocation
-   * @param num_processed first entry of metrics datapoint
-   * @param resource_metrics second entry of metrics datapoint
+   * Record metrics from GC
+   * @param txns_deallocated first entry of metrics datapoint
+   * @param txns_unlinked second entry of metrics datapoint
+   * @param buffer_unlinked third entry of metrics datapoint
+   * @param readonly_unlinked fourth entry of metrics datapoint
+   * @param interval fifth entry of metrics datapoint
+   * @param resource_metrics sixth entry of metrics datapoint
    */
-  void RecordDeallocateData(const uint64_t num_processed, const common::ResourceTracker::Metrics &resource_metrics) {
-    if (!ComponentEnabled(MetricsComponent::GARBAGECOLLECTION))
-      METRICS_LOG_WARN(
-          "RecordDeallocateData() called without GC metrics enabled. Was it recently disabled and the component is "
-          "just lagging?");
-    TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordDeallocateData(num_processed, resource_metrics);
-  }
-
-  /**
-   * Record metrics from the GC deallocation
-   * @param num_processed first entry of metrics datapoint
-   * @param num_buffers second entry of metrics datapoint
-   * @param num_readonly third entry of metrics datapoint
-   * @param resource_metrics forth entry of metrics datapoint
-   */
-  void RecordUnlinkData(const uint64_t num_processed, const uint64_t num_buffers, const uint64_t num_readonly,
-                        const common::ResourceTracker::Metrics &resource_metrics) {
+  void RecordGCData(uint64_t txns_deallocated, uint64_t txns_unlinked, uint64_t buffer_unlinked,
+                    uint64_t readonly_unlinked, uint64_t interval,
+                    const common::ResourceTracker::Metrics &resource_metrics) {
     if (!ComponentEnabled(MetricsComponent::GARBAGECOLLECTION))
       METRICS_LOG_WARN(
           "RecordUnlinkData() called without GC metrics enabled. Was it recently disabled and the component is just "
           "lagging?");
     TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordUnlinkData(num_processed, num_buffers, num_readonly, resource_metrics);
+    gc_metric_->RecordGCData(txns_deallocated, txns_unlinked, buffer_unlinked, readonly_unlinked, interval,
+                             resource_metrics);
   }
 
   /**
@@ -156,6 +151,31 @@ class MetricsStore {
   }
 
   /**
+   * Record metrics for the bind command
+   * @param param_num the number of bind parameters
+   * @param query_text_size the size of the query text
+   * @param resource_metrics Metrics
+   */
+  void RecordBindCommandData(uint64_t param_num, uint64_t query_text_size,
+                             const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::BIND_COMMAND), "BindCommandMetric not enabled.");
+    TERRIER_ASSERT(bind_command_metric_ != nullptr, "BindCommandMetric not allocated. Check MetricsStore constructor.");
+    bind_command_metric_->RecordBindCommandData(param_num, query_text_size, resource_metrics);
+  }
+
+  /**
+   * Record metrics for the execute command
+   * @param portal_name_size the size of the portal name
+   * @param resource_metrics Metrics
+   */
+  void RecordExecuteCommandData(uint64_t portal_name_size, const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTE_COMMAND), "ExecuteCommandMetric not enabled.");
+    TERRIER_ASSERT(execute_command_metric_ != nullptr,
+                   "ExecuteCommandMetric not allocated. Check MetricsStore constructor.");
+    execute_command_metric_->RecordExecuteCommandData(portal_name_size, resource_metrics);
+  }
+
+  /**
    * @param component metrics component to test
    * @return true if metrics enabled for this component, false otherwise
    */
@@ -199,6 +219,8 @@ class MetricsStore {
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
   std::unique_ptr<ExecutionMetric> execution_metric_;
   std::unique_ptr<PipelineMetric> pipeline_metric_;
+  std::unique_ptr<BindCommandMetric> bind_command_metric_;
+  std::unique_ptr<ExecuteCommandMetric> execute_command_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
   const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;

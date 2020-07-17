@@ -5,6 +5,7 @@ import subprocess
 import json
 import traceback
 import shutil
+import time
 from util.constants import ErrorCode
 from util.constants import LOG
 from util.common import run_command
@@ -42,14 +43,10 @@ class TestOLTPBench(TestServer):
         self.xml_template = os.path.join(constants.OLTP_DIR_CONFIG,
                                          "sample_{}".format(xml_file))
 
-        # for different testing results files, please use the unified filename
-        # when there are new attributes, please update the suffix
-        self.filename_suffix = "{BENCHMARK}_w{WEIGHTS}_s{SCALEFACTOR}_t{TERMINALS}_l{LOADERTHREAD}".format(
+        # for different testing, oltpbench needs different folder to put testing results 
+        self.filename_suffix = "{BENCHMARK}_{STARTTIME}".format(
             BENCHMARK=self.benchmark,
-            WEIGHTS=self.weights.replace(",", "_"),
-            SCALEFACTOR=str(self.scalefactor),
-            TERMINALS=self.terminals,
-            LOADERTHREAD=self.loader_threads)
+            STARTTIME=time.strftime("%Y%m%d-%H%M%S"))
 
         # base directory for the result files, default is in the 'oltp_result' folder under the current directory
         self.test_result_base_dir = self.args.get("test_result_dir")
