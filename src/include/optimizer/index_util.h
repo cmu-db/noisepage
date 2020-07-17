@@ -68,6 +68,7 @@ class IndexUtil {
    * Checks whether a set of predicates can be satisfied with an index
    * @param accessor CatalogAccessor
    * @param tbl_oid OID of the table
+   * @param tbl_alias Name of the table
    * @param index_oid OID of an index to check
    * @param predicates List of predicates
    * @param allow_cves Allow CVEs
@@ -86,6 +87,7 @@ class IndexUtil {
    * Check whether predicate can take part in index computation
    * @param schema Index Schema
    * @param tbl_oid Table OID
+   * @param tbl_alias Table name
    * @param lookup map from col_oid_t to indexkeycol_oid_t
    * @param mapped_cols col_oid_t from index schema's indexkeycol_oid_t
    * @param predicates Set of predicates to attempt to satisfy
