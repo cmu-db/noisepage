@@ -70,7 +70,7 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   }
 
   // @indexIteratorScanKey(&index_iter)
-  ast::Expr *scan_call = GetCodeGen()->IndexIteratorScan(index_iter_, op.GetScanType(), op.ScanLimit());
+  ast::Expr *scan_call = GetCodeGen()->IndexIteratorScan(index_iter_, op.GetScanType(), op.GetScanLimit());
   ast::Stmt *loop_init = GetCodeGen()->MakeStmt(scan_call);
   // @indexIteratorAdvance(&index_iter)
   ast::Expr *advance_call =
