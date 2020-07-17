@@ -2051,6 +2051,7 @@ int main(int argc, char **argv) {
   std::pair<bool, int> warm_num{false, -1};
   std::pair<bool, int> warm_num_idx{false, -1};
   std::pair<bool, int> warm_num_crud{false, -1};
+  std::pair<bool, int> rerun{false, -1};
   for (int i = 0; i < argc; i++) {
     if (strstr(argv[i], "--port=") != NULL)
       port_info = std::make_pair(true, i);
@@ -2062,6 +2063,8 @@ int main(int argc, char **argv) {
       warm_num_idx = std::make_pair(true, i);
     else if (strstr(argv[i], "--warm_num_crud=") != NULL)
       warm_num_crud = std::make_pair(true, i);
+    else if (strstr(argv[i], "--rerun=") != NULL)
+      rerun = std::make_pair(true, i);
   }
 
   if (port_info.first) {
@@ -2092,6 +2095,14 @@ int main(int argc, char **argv) {
     auto val = atoi(equal_sign);
     terrier::runner::warmup_iterations_num_crud = val;
     std::cout << "warm_num_crud = " << val << "\n";
+  }
+
+  if (rerun.first) {
+    char *arg = argv[rerun.second];
+    char *equal_sign = strstr(arg, "=") + 1;
+    auto val = atoi(equal_sign);
+    terrier::runner::rerun_iterations = val;
+    std::cout << "rerun = " << val << "\n";
   }
 
   terrier::LoggersUtil::Initialize();
