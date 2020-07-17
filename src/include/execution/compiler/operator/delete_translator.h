@@ -23,13 +23,13 @@ class DeleteTranslator : public OperatorTranslator {
   DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
   /**
-   * Does nothing
+   * Does nothing.
    * @param decls The top-level declarations.
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Does nothing
+   * Does nothing.
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
@@ -37,41 +37,40 @@ class DeleteTranslator : public OperatorTranslator {
 
   /**
    * Implement deletion logic where it fills in the delete PR obtained from the StorageInterface struct
-   * with values from the child and then deletes using this from the table and all concerned indexes
+   * with values from the child and then deletes using this from the table and all concerned indexes.
    * @param context The context of the work.
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
   /**
-   * Unreachable
-   * @param col_oid column oid to return a value for
-   * @return an expression representing the value of the column with the given OID.
+   * Unreachable.
+   * @param col_oid Column oid to return a value for.
+   * @return An expression representing the value of the column with the given OID.
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override { UNREACHABLE("Delete doesn't provide values"); }
 
  private:
-
-  // Declare the deleter storageinterface
+  // Declare the deleter storage interface.
   void DeclareDeleter(FunctionBuilder *builder) const;
 
-  // free the delete storageinterface
+  // Free the delete storage interface.
   void GenDeleterFree(FunctionBuilder *builder) const;
 
-  // sets the oids we are inserting on using schema from the delete plan node
+  // Sets the oids that we are inserting, using the schema from the delete plan node.
   void SetOids(FunctionBuilder *builder) const;
 
-  // generates code to delete from the table
+  // Generates code to delete from the table.
   void GenTableDelete(FunctionBuilder *builder) const;
 
-  // generates code to delete from the indexes
+  // Generates code to delete from the indexes.
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
 
  private:
-  // deleter storageinterface struct
+  // Deleter storage interface struct.
   ast::Identifier deleter_;
 
-  // column oid's of the table we are deleting from
+  // Column oids of the table we are deleting from.
   ast::Identifier col_oids_;
 };
 

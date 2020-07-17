@@ -24,13 +24,13 @@ class UpdateTranslator : public OperatorTranslator {
   UpdateTranslator(const planner::UpdatePlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
   /**
-   * Does nothing
+   * Does nothing.
    * @param decls The top-level declarations.
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Does nothing
+   * Does nothing.
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
@@ -38,8 +38,8 @@ class UpdateTranslator : public OperatorTranslator {
 
   /**
    * Implement update logic where it fills in the update PR obtained from the StorageInterface struct
-   * with values from the child and then updates using this the table and all concerned indexes
-   * If this is an indexed update, we first do a delete then insert
+   * with values from the child and then updates using this the table and all concerned indexes.
+   * If this is an indexed update, we do a delete followed by an insert.
    * @param context The context of the work.
    * @param function The pipeline generating function.
    */
@@ -52,7 +52,7 @@ class UpdateTranslator : public OperatorTranslator {
   ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override;
 
   /**
-   * @return an expression representing the value of the column with the given OID.
+   * @return An expression representing the value of the column with the given OID.
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
@@ -60,34 +60,34 @@ class UpdateTranslator : public OperatorTranslator {
   // Generates the update on the table.
   void GenTableUpdate(FunctionBuilder *builder) const;
 
-  // declares the storageinterface struct used to update
+  // Declares the storage interface struct used to update.
   void DeclareUpdater(FunctionBuilder *builder) const;
 
-  // frees the storageinterface struct used to update
+  // Frees the storage interface struct used to update.
   void GenUpdaterFree(FunctionBuilder *builder) const;
 
-  // sets the columns oids that we are updating on
+  // Sets the columns oids that we are updating on.
   void SetOids(FunctionBuilder *builder) const;
 
-  // declares the projected row that we will be filling in and updating with
+  // Declares the projected row that we will be filling in and updating with.
   void DeclareUpdatePR(FunctionBuilder *builder) const;
 
-  // gets the projected row from the storageinterface that we will be updating with
+  // Gets the projected row from the storage interface that we will be updating with.
   void GetUpdatePR(FunctionBuilder *builder) const;
 
-  // sets the values in the projected row we are using to update
+  // Sets the values in the projected row that we are using to update.
   void GenSetTablePR(FunctionBuilder *builder, WorkContext *context) const;
 
-  // inserts this projected row into the table (used for indexed updates)
+  // Inserts this projected row into the table (used for indexed updates).
   void GenTableInsert(FunctionBuilder *builder) const;
 
-  // inserts into all indexes
+  // Inserts into all indexes.
   void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
 
-  // deletes from the table (used for indexed updates)
+  // Deletes from the table (used for indexed updates).
   void GenTableDelete(FunctionBuilder *builder) const;
 
-  // deletes from all indexes
+  // Deletes from all indexes.
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
 
   static std::vector<catalog::col_oid_t> CollectOids(const planner::UpdatePlanNode &node) {
@@ -99,23 +99,23 @@ class UpdateTranslator : public OperatorTranslator {
   }
 
  private:
-  // storageinterface struct that we are updating with
+  // Storage interface struct that we are updating with.
   ast::Identifier updater_;
 
-  // projected row that we use to update
+  // Projected row that we use to update.
   ast::Identifier update_pr_;
 
-  // column oids that we are updating on (array)
+  // Column oids that we are updating on (array).
   ast::Identifier col_oids_;
 
-  // schema of the table we are updating
+  // Schema of the table we are updating.
   const catalog::Schema &table_schema_;
 
-  // all the column oids of the table we ae updating
+  // All the column oids of the table we ae updating.
   std::vector<catalog::col_oid_t> all_oids_;
 
-  // projection map of the table we are updating mapping, coloid to offsets in a
-  // projected row
+  // Projection map of the table that we are updating.
+  // This maps column oids to offsets in a projected row.
   storage::ProjectionMap table_pm_;
 };
 

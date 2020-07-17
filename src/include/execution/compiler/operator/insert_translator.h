@@ -27,13 +27,13 @@ class InsertTranslator : public OperatorTranslator {
   InsertTranslator(const planner::InsertPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
   /**
-   * Does nothing
+   * Does nothing.
    * @param decls The top-level declarations.
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Does nothing
+   * Does nothing.
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
@@ -41,49 +41,48 @@ class InsertTranslator : public OperatorTranslator {
 
   /**
    * Implement insertion logic where it fills in the insert PR obtained from the StorageInterface struct
-   * with values from the child
+   * with values from the child.
    * @param context The context of the work.
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
   /**
-   * @return thfe child's output at the given index
+   * @return The child's output at the given index.
    */
   ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override;
 
   /**
-   * @return an expression representing the value of the column with the given OID.
+   * @return An expression representing the value of the column with the given OID.
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
  private:
-
-  // Declare storageinterface
+  // Declare storage interface.
   void DeclareInserter(FunctionBuilder *builder) const;
 
-  // free the storageinterface
+  // Free the storage interface.
   void GenInserterFree(FunctionBuilder *builder) const;
 
-  // sets the oids we are inserting on using schema from the insert plan node
+  // Sets the oids that we are inserting on, using the schema from the insert plan node.
   void SetOids(FunctionBuilder *builder) const;
 
-  // declares the projected row that we will be using the insert values with
+  // Declares the projected row that we will be using the insert values with.
   void DeclareInsertPR(FunctionBuilder *builder) const;
 
-  // gets the projected row pointer that we will fill in with values to insert
+  // Gets the projected row pointer that we will fill in with values to insert.
   void GetInsertPR(FunctionBuilder *builder) const;
 
-  // sets the values in the projected row we will use to insert into the table
+  // Sets the values in the projected row which we will use to insert into the table.
   void GenSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const;
 
-  // insert into the table
+  // Insert into the table.
   void GenTableInsert(FunctionBuilder *builder) const;
 
-  // insert into all indexes of this table
+  // Insert into an index of this table.
   void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
 
-  // gets all the column oids in a schema
+  // Gets all the column oids in a schema.
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
     std::vector<catalog::col_oid_t> oids;
     for (const auto &col : table_schema_.GetColumns()) {
@@ -92,23 +91,23 @@ class InsertTranslator : public OperatorTranslator {
     return oids;
   }
 
-  // storageinterface inserter struct we use to insert
+  // Storage interface inserter struct which we use to insert.
   ast::Identifier inserter_;
 
-  // projected row that the inserter spits out for us to insert with
+  // Projected row that the inserter spits out for us to insert with.
   ast::Identifier insert_pr_;
 
-  // column oid's we are inserting on
+  // Column oids that we are inserting on.
   ast::Identifier col_oids_;
 
-  // schema of the table we are inserting on
+  // Schema of the table that we are inserting on.
   const catalog::Schema &table_schema_;
 
-  // all oid's we are inserting on
+  // All the oids that we are inserting on.
   std::vector<catalog::col_oid_t> all_oids_;
 
-  // projected map to tell us the offsets of columns in a row in our table we are
-  // inserting on
+  // Projection map of the table that we are inserting into.
+  // This maps column oids to offsets in a projected row.
   storage::ProjectionMap table_pm_;
 };
 
