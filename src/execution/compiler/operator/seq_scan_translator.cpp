@@ -73,9 +73,9 @@ void SeqScanTranslator::GenerateGenericTerm(FunctionBuilder *function,
   };
 
   If check_filtered(function, codegen->VPIIsFiltered(vpi));
-  gen_body(true);
+  { gen_body(true); }
   check_filtered.Else();
-  gen_body(false);
+  { gen_body(false); }
   check_filtered.EndIf();
 }
 
