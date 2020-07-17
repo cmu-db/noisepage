@@ -2028,7 +2028,7 @@ std::unique_ptr<TableRef> PostgresParser::WithTransform(ParseResult *parse_resul
   switch (cte_query->type) {
     case T_SelectStmt: {
       auto cte_select_query = reinterpret_cast<SelectStmt *>(cte_query);
-      if (root->iterative_) {
+      if (root->iterative_ || root->recursive_) {
         auto tmp = cte_select_query->larg_;
         cte_select_query->larg_ = cte_select_query->rarg_;
         cte_select_query->rarg_ = tmp;

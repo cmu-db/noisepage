@@ -519,6 +519,7 @@ RulePromise RewriteUnionWithRecursiveCTE::Promise(GroupExpression *group_expr) c
 bool RewriteUnionWithRecursiveCTE::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
                                          OptimizationContext *context) const {
   auto cte_scan = plan->Contents()->GetContentsAs<LogicalCteScan>();
+  TERRIER_ASSERT(cte_scan->GetIsInductive(), "should be inductive");
   return cte_scan->GetIsInductive();
 }
 

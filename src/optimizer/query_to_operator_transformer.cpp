@@ -74,7 +74,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     // SELECT statement has CTE, register CTE table name
     cte_table_name_ = op->GetSelectWith()->GetAlias();
     auto cte_scan_expr = std::make_unique<OperatorNode>(
-        LogicalCteScan::Make(cte_table_name_, {}, op->GetSelectWith()->GetCteRecursive(), {}),
+        LogicalCteScan::Make(cte_table_name_, {}, op->GetSelectWith()->GetCteType(), {}),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     cte_scan_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(cte_scan_expr);
@@ -336,9 +336,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
 
     if (node->GetTableName() == cte_table_name_) {
       // CTE table referred
-      auto is_recursive = node->GetCteRecursive();
+      auto cte_type = node->GetCteType();
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_expressions_, is_recursive, {}).RegisterWithTxnContext(txn_context),
+          LogicalCteScan::Make(node->GetAlias(), cte_expressions_, cte_type, {}).RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {
