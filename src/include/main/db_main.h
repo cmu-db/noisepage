@@ -9,6 +9,8 @@
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
 #include "metrics/metrics_thread.h"
+#include "network/postgres/postgres_command_factory.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
