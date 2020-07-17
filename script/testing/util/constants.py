@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os
 from datetime import datetime
+import logging
 
 # absolute paths
 DIR_UTIL = os.path.dirname(os.path.realpath(__file__))
@@ -31,3 +32,12 @@ DB_CONNECT_SLEEP = 0.2 # seconds
 class ErrorCode:
     SUCCESS = 0
     ERROR = 1
+
+# Logging settings
+LOG = logging.getLogger(__name__)
+LOG_handler = logging.StreamHandler()
+LOG_formatter = logging.Formatter(fmt='%(asctime)s,%(msecs)03d [%(pathname)s:%(lineno)d] %(levelname)-5s: %(message)s',
+                                  datefmt='%m-%d-%Y %H:%M:%S')
+LOG_handler.setFormatter(LOG_formatter)
+LOG.addHandler(LOG_handler)
+LOG.setLevel(logging.INFO)
