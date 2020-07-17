@@ -82,7 +82,7 @@ if __name__ == "__main__":
         # Look for all of the .test files in the each directory
         for file in glob.glob(os.path.join(type_dir, "*" + constants.TESTFILES_PREFIX)):
             os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(type_dir, file)
-            print(os.environ["NOISEPAGE_TRACE_FILE"])
+            LOG.info(os.environ["NOISEPAGE_TRACE_FILE"])
             
             exit_code = 0
             try:
@@ -93,13 +93,13 @@ if __name__ == "__main__":
                 exit_code = 1
                 raise
             except:
-                print("Exception trying to run '%s'" % constants.JUNIT_TEST_CMD_TRACE)
-                print("================ Python Error Output ==================")
+                LOG.error("Exception trying to run '%s'" % constants.JUNIT_TEST_CMD_TRACE)
+                LOG.error("================ Python Error Output ==================")
                 traceback.print_exc(file=sys.stdout)
                 exit_code = 1
             finally:
                 all_exit_codes.append(exit_code)
-            print("="*80)
+            LOG.info("="*80)
         ## FOR (files)
     ## FOR (dirs)
     
