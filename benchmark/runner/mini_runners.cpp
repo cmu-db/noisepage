@@ -30,36 +30,6 @@
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
-struct IndexLookup {
-  int64_t idx_key_size;
-  int64_t row_num;
-  int64_t lookup;
-};
-
-namespace std {
-
-template <>
-struct hash<IndexLookup>
-{
-  size_t operator()(struct IndexLookup const & il) const
-  {
-    terrier::common::hash_t hash = terrier::common::HashUtil::Hash(il.idx_key_size);
-    hash = terrier::common::HashUtil::CombineHashes(hash, terrier::common::HashUtil::Hash(il.row_num));
-    hash = terrier::common::HashUtil::CombineHashes(hash, terrier::common::HashUtil::Hash(il.lookup));
-    return hash;
-  }
-};
-
-template <>
-struct equal_to<IndexLookup>
-{
-  size_t operator()(struct IndexLookup const &left, struct IndexLookup const&right) const {
-    return left.idx_key_size == right.idx_key_size && left.row_num == right.row_num && left.lookup == right.lookup;
-  }
-};
-
-};
-
 namespace terrier::runner {
 
 /**
@@ -68,6 +38,11 @@ namespace terrier::runner {
 bool rerun_start = false;
 int64_t rerun_iterations = 5;
 int64_t rerun_counter = 0;
+
+/**
+ * Update/Delete Index Scan Limit
+ */
+int64_t updel_limit = 1000;
 
 /**
  * Port
@@ -629,25 +604,21 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
   std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
   std::vector<uint32_t> row_nums = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-  std::unordered_set<struct IndexLookup> dedup;
 
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
       for (auto row_num : row_nums) {
+        if (row_num > updel_limit)
+          continue;
+
         int64_t lookup_size = 1;
         std::vector<int64_t> lookups;
-        while (lookup_size <= row_num && lookup_size < 1024) {
+        while (lookup_size <= row_num) {
           lookups.push_back(lookup_size);
           lookup_size *= 2;
         }
 
         for (auto lookup : lookups) {
-          struct IndexLookup il{idx_key_size, row_num, lookup};
-          if (dedup.find(il) != dedup.end()) {
-            continue;
-          }
-
-          dedup.insert(il);
           if (type == type::TypeId::INTEGER) b->Args({idx_key_size, 0, 15, 0, row_num, lookup, 1});
           else if (type == type::TypeId::BIGINT) b->Args({0, idx_key_size, 0, 15, row_num, lookup, 1});
         }
@@ -2052,6 +2023,7 @@ int main(int argc, char **argv) {
   std::pair<bool, int> warm_num_idx{false, -1};
   std::pair<bool, int> warm_num_crud{false, -1};
   std::pair<bool, int> rerun{false, -1};
+  std::pair<bool, int> updel_limit{false, -1};
   for (int i = 0; i < argc; i++) {
     if (strstr(argv[i], "--port=") != NULL)
       port_info = std::make_pair(true, i);
@@ -2065,6 +2037,8 @@ int main(int argc, char **argv) {
       warm_num_crud = std::make_pair(true, i);
     else if (strstr(argv[i], "--rerun=") != NULL)
       rerun = std::make_pair(true, i);
+    else if (strstr(argv[i], "--updel_limit=") != NULL)
+      updel_limit = std::make_pair(true, i);
   }
 
   if (port_info.first) {
@@ -2103,6 +2077,14 @@ int main(int argc, char **argv) {
     auto val = atoi(equal_sign);
     terrier::runner::rerun_iterations = val;
     std::cout << "rerun = " << val << "\n";
+  }
+
+  if (updel_limit.first) {
+    char *arg = argv[updel_limit.second];
+    char *equal_sign = strstr(arg, "=") + 1;
+    auto val = atoi(equal_sign);
+    terrier::runner::updel_limit = val;
+    std::cout << "updel_limit = " << val << "\n";
   }
 
   terrier::LoggersUtil::Initialize();
