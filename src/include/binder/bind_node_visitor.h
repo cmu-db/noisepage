@@ -127,7 +127,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
       if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
         auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
         type::TypeId type = constant_value_expression->GetReturnValueType();
-        int64_t column_id = -1;
+        int64_t column_id = 0;
         if (type == type::TypeId::INTEGER) {
           column_id = constant_value_expression->GetInteger().val_;
         } else if (type == type::TypeId::DECIMAL) {
@@ -137,7 +137,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
           exprs[idx] = select_items[column_id - 1];
         } else {
           exprs[idx] = common::ManagedPointer<parser::AbstractExpression>(new parser::ColumnValueExpression(
-              catalog::INVALID_DATABASE_OID, catalog::INVALID_TABLE_OID, static_cast<catalog::col_oid_t>(column_id)));
+              catalog::INVALID_TABLE_OID, catalog::INVALID_COLUMN_OID, type::TypeId::INVALID));
         }
       }
     }
