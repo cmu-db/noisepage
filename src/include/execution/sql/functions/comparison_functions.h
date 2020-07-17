@@ -217,6 +217,14 @@ class EXPORT ComparisonFunctions {
     return int32_t(len1) - int32_t(len2);
   }
 
+  /**
+   * Logical negation for SQL booleans
+   */
+  static void NotBoolVal(BoolVal *result, const BoolVal &input) {
+    result->is_null_ = input.is_null_;
+    result->val_ = !input.val_;
+  }
+
  private:
   /**
    * Compare two strings. Returns

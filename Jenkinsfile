@@ -98,7 +98,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -126,7 +127,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -156,7 +158,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
@@ -200,7 +203,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -226,7 +230,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
@@ -253,7 +258,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
@@ -284,7 +290,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
@@ -311,13 +318,13 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) terrier'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --scale-factor=0.01 --loader-threads=4'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --scale-factor=0.01 --loader-threads=4'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --scale-factor=0.01 --loader-threads=4'
-                        sh 'cd build && gtimeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=debug'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && gtimeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=debug --query-mode=simple'
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
-                        // sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --scale-factor=0.01 --loader-threads=4'
+                        // sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
                     }
                     post {
                         cleanup {
@@ -336,13 +343,13 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
-                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --scale-factor=0.01 --loader-threads=4'
-                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --scale-factor=0.01 --loader-threads=4'
-                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --scale-factor=0.01 --loader-threads=4'
-                        sh 'cd build && timeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=debug'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
+                        sh 'cd build && timeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=debug --query-mode=simple'
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
-                        // sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --scale-factor=0.01 --loader-threads=4'
+                        // sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
                     }
                     post {
                         cleanup {
@@ -352,7 +359,17 @@ pipeline {
                 }
             }
         }
-
+        stage('End-to-End Performance') {
+            agent { label 'benchmark' }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh all'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) terrier'
+                sh "cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --query-mode=extended \
+                    --loader-threads=4 --client-time=60 --terminals=8"
+            }
+        }
         stage('Microbenchmark') {
             agent { label 'benchmark' }
             steps {

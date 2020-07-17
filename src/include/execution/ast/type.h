@@ -275,6 +275,11 @@ class Type : public util::RegionObject {
   bool IsSqlValueType() const;
 
   /**
+   * @return True if this is a builtin SQL boolean type; false otherwise.
+   */
+  bool IsSqlBooleanType() const;
+
+  /**
    * @return True if this is a builtin SQL aggregate type; false otherwise.
    */
   bool IsSqlAggregatorType() const;
@@ -755,6 +760,8 @@ inline bool Type::IsSqlValueType() const {
   }
   return false;
 }
+
+inline bool Type::IsSqlBooleanType() const { return IsSpecificBuiltin(BuiltinType::Boolean); }
 
 inline bool Type::IsSqlAggregatorType() const {
   if (auto *builtin_type = SafeAs<BuiltinType>()) {
