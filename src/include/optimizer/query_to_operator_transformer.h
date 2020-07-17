@@ -1,5 +1,7 @@
 #pragma once
 
+#include <parser/parser_defs.h>
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -171,6 +173,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   const catalog::db_oid_t db_oid_;
   std::string cte_table_name_;
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> cte_expressions_;
+  parser::CTEType cte_type_{parser::CTEType::INVALID};
 
   /**
    * A set of predicates the current operator generated, we use them to generate filter operator
