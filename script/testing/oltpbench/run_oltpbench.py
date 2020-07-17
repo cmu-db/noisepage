@@ -9,6 +9,7 @@ base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
 from oltpbench.test_oltpbench import TestOLTPBench
+from util.constants import LOG
 
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(description="Timeseries")
@@ -42,7 +43,7 @@ if __name__ == "__main__":
         oltpbench = TestOLTPBench(args)
         exit_code = oltpbench.run()
     except:
-        print("Exception trying to run OLTP Bench tests")
+        LOG.error("Exception trying to run OLTP Bench tests")
         traceback.print_exc(file=sys.stdout)
         exit_code = 1
 
