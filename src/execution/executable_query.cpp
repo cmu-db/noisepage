@@ -25,7 +25,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   compiler::CodeGen codegen(exec_ctx.Get());
   compiler::Compiler compiler(query_id_, &codegen, physical_plan.Get());
   auto root = compiler.Compile();
-    terrier::execution::ast::AstPrettyPrint::Dump(std::cout, root);
+  terrier::execution::ast::AstPrettyPrint::Dump(std::cout, root);
 //    std::cout << terrier::execution::ast::AstDump::Dump(root);
 
   if (codegen.Reporter()->HasErrors()) {

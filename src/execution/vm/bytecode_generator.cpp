@@ -2994,7 +2994,7 @@ void BytecodeGenerator::VisitExpressionForRValue(ast::Expr *expr, LocalVar dest)
 void BytecodeGenerator::VisitExpressionForTest(ast::Expr *expr, BytecodeLabel *then_label, BytecodeLabel *else_label,
                                                TestFallthrough fallthrough) {
   // Evaluate the expression
-  LocalVar cond = VisitExpressionForRValue(expr);
+  LocalVar cond = VisitExpressionForRValue(expr).ValueOf();
 
   switch (fallthrough) {
     case TestFallthrough::Then: {

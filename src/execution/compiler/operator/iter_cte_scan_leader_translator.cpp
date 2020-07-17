@@ -236,12 +236,14 @@ void IterCteScanLeaderTranslator::DeclareAccumulateChecker(FunctionBuilder *buil
 
 void IterCteScanLeaderTranslator::GenInductiveLoop(FunctionBuilder *builder) {
   // for(var accumulated = true;accumlated;accumulated = @iterCteScanAccumulate(&iter_cte_scan_iterator)
-  auto decl = codegen_->DeclareVariable(accumulate_checker_, codegen_->BuiltinType(ast::BuiltinType::Kind::Bool),
-                                        codegen_->BoolLiteral(true));
-  auto accumulate_stmt = codegen_->Assign(codegen_->MakeExpr(accumulate_checker_),
-                                          codegen_->OneArgCall(ast::Builtin::IterCteScanAccumulate,
-                                                               GetIterCteScanIterator()));
-  builder->StartForStmt(decl, codegen_->MakeExpr(accumulate_checker_), accumulate_stmt);
+//  auto decl = codegen_->DeclareVariable(accumulate_checker_, codegen_->BuiltinType(ast::BuiltinType::Kind::Bool),
+//                                        codegen_->BoolLiteral(true));
+//  auto accumulate_stmt = codegen_->Assign(codegen_->MakeExpr(accumulate_checker_),
+//                                          codegen_->OneArgCall(ast::Builtin::IterCteScanAccumulate,
+//                                                               GetIterCteScanIterator()));
+  builder->StartForStmt(nullptr, codegen_->OneArgCall(ast::Builtin::IterCteScanAccumulate,
+                                                     GetIterCteScanIterator()),
+                        nullptr);
   PopulateReadCteScanIterator(builder);
   child_translator_->Produce(builder);
   builder->FinishBlockStmt();
