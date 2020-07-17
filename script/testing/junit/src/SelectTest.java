@@ -260,22 +260,4 @@ public class SelectTest extends TestUtility {
       checkIntRow(rs, new String [] {"?column?"}, new int [] {5});
       assertNoMoreRows(rs);
     }
-
-    /**
-     * SELECT with ORDER BY clause.
-     */
-    @Test
-    public void testSelectWithOrderBy() throws SQLException {
-      String insert_SQL1 = "INSERT INTO tbl VALUES (11, 21, 33);";
-      String insert_SQL2 = "INSERT INTO tbl VALUES (12, 22, 32);";
-      String insert_SQL3 = "INSERT INTO tbl VALUES (13, 23, 31);";
-      String select_SQL2 = "SELECT * FROM tbl ORDER BY 3";
-      Statement stmt = conn.createStatement();
-      stmt.execute(insert_SQL1);
-      stmt.execute(insert_SQL2);
-      stmt.execute(insert_SQL3);
-      rs = stmt.executeQuery(select_SQL2);
-      rs.next();
-      checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int[] {13, 23, 31});
-    }
 }
