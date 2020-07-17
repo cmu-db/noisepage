@@ -27,13 +27,16 @@ class MiniTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio):
+    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, record_values, anomaly_clearance, subtract_style):
         self.input_path = input_path
         self.model_metrics_path = model_metrics_path
         self.ml_models = ml_models
         self.test_ratio = test_ratio
         self.model_map = {}
         self.stats_map = {}
+        self.record_values = record_values
+        self.anomaly_clearance = anomaly_clearance
+        self.subtract_style = subtract_style
 
     def _train_data(self, data, summary_file):
         x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
@@ -57,6 +60,7 @@ class MiniTrainer:
         min_percentage_error = 2
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
+        anomaly_keys = {}
 
         for i, transformer in enumerate(transformers):
             for method in methods:
@@ -74,10 +78,17 @@ class MiniTrainer:
                     evaluate_x = d[0]
                     evaluate_y = d[1]
 
-                    for x, y in zip(evaluate_x, evaluate_y):
-                        stat_vec = [data.opunit]
-                        stat_vec.extend(x)
-                        self.stats_map[tuple(stat_vec)] = y
+                    if i == 0 and method == methods[0]:
+                        for x, y in zip(evaluate_x, evaluate_y):
+                            stat_vec = [data.opunit]
+                            stat_vec.extend(x)
+
+                            if tuple(stat_vec) not in self.stats_map:
+                                self.stats_map[tuple(stat_vec)] = []
+
+                            self.stats_map[tuple(stat_vec)].append(y)
+                            if tuple(stat_vec) not in anomaly_keys and self.anomaly_clearance > 0 and self.record_values != "all":
+                                anomaly_keys[tuple(stat_vec)] = 1
 
                     y_pred = regressor.predict(evaluate_x)
                     logging.debug("x shape: {}".format(evaluate_x.shape))
@@ -110,6 +121,21 @@ class MiniTrainer:
         # Record the best prediction results on the test data
         result_writing_util.record_predictions(pred_results, prediction_path)
 
+        # Anomaly clearance
+        for anomaly in anomaly_keys:
+            num = len(self.stats_map[anomaly])
+            if num <= self.anomaly_clearance:
+                continue
+
+            purge = 0
+            if num > self.anomaly_clearance * 2:
+                purge = self.anomaly_clearance
+            else:
+                purge = self.anomaly_clearance / 2
+
+            self.stats_map[anomaly] = self.stats_map[anomaly][purge:num-purge]
+            assert len(self.stats_map[anomaly]) > 0
+
     def train(self):
         """Train the mini-models
 
@@ -127,7 +153,7 @@ class MiniTrainer:
         for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
             data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.model_map,
-                                                         self.stats_map)
+                                                         self.stats_map, self.subtract_style)
             for data in data_list:
                 self._train_data(data, summary_file)
 
@@ -145,15 +171,19 @@ if __name__ == '__main__':
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_nogen_model', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
-                         default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
+                         default=["lr", "rf", "gbm"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
+    aparser.add_argument('--record_values', default='all', type=str, help='Data Values to use, either "all" or "avg"')
+    aparser.add_argument('--anomaly_clearance', default=1, type=int, help='Number of values to wipe if record_values=avg from top/bottom')
+    aparser.add_argument('--subtract_style', default='manual', type=str, help='Style to use for subtraction, either "manual" or "model"')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
     logging_util.init_logging(args.log)
 
-    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio)
+    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
+                          args.record_values, args.anomaly_clearance, args.subtract_style)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
         pickle.dump(trained_model_map, file)
