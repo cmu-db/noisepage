@@ -58,6 +58,7 @@ class ResourceTracker {
    * Start the timer and resource monitors
    */
   void Start() {
+    running_ = true;
     perf_monitor_.Start();
     rusage_monitor_.Start();
     metrics_.memory_b_ = 0;
@@ -74,6 +75,7 @@ class ResourceTracker {
     metrics_.counters_ = perf_monitor_.Counters();
     metrics_.rusage_ = rusage_monitor_.Usage();
     metrics_.cpu_id_ = execution::CpuInfo::GetCpuId();
+    running_ = false;
   }
 
   /**
@@ -81,6 +83,11 @@ class ResourceTracker {
    * @return the resource metrics for the tracked event
    */
   const Metrics &GetMetrics() { return metrics_; }
+
+  /**
+   * @return whether the tracker is running
+   */
+  bool IsRunning() const { return running_; }
 
  private:
   friend class execution::exec::ExecutionContext;
@@ -98,6 +105,8 @@ class ResourceTracker {
 
   // The struct to hold all the tracked resource metrics
   Metrics metrics_;
+
+  bool running_ = false;
 };
 
 }  // namespace terrier::common

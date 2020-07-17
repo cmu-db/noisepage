@@ -201,10 +201,11 @@ public class SelectTest extends TestUtility {
         String insertSQL1 = "INSERT INTO xxx (c1, c2) VALUES (1, '" + ts1 + "');";
         String insertSQL2 = "INSERT INTO xxx (c1, c2) VALUES (2, '" + ts2 + "');";
         String selectSQL = "SELECT * FROM xxx WHERE c2 = '" + ts2 + "';";
-        String dropSQL = "DROP TABLE xxx;";
+        String dropSQL = "DROP TABLE IF EXISTS xxx;";
 
         conn.setAutoCommit(false);
         Statement stmt = conn.createStatement();
+        stmt.addBatch(dropSQL);
         stmt.addBatch(createSQL);
         stmt.addBatch(insertSQL1);
         stmt.addBatch(insertSQL2);
@@ -217,6 +218,41 @@ public class SelectTest extends TestUtility {
         rs.next();
         assertEquals(2, rs.getInt("c1"));
         assertEquals("2020-01-02 16:22:33.721", rs.getTimestamp("c2").toString());
+        assertNoMoreRows(rs);
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+    }
+
+    /**
+     * Test for selecting with with a NOT.
+     * Fix #997: writing a expression with NOT is not supported
+     */
+    @Test
+    public void testSelectNot() throws SQLException {
+        String createSQL = "CREATE TABLE xxx (id INT PRIMARY KEY, val INT);";
+        String insertSQL = "INSERT INTO xxx VALUES (1,1),(2,2),(3,3),(4,4);";
+        String selectSQL = "SELECT * FROM xxx WHERE NOT(id = 2);";
+        String dropSQL = "DROP TABLE IF EXISTS xxx;";
+
+        Statement stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+        stmt = conn.createStatement();
+        stmt.execute(createSQL);
+        stmt = conn.createStatement();
+        stmt.execute(insertSQL);
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+
+        rs.next();
+        assertEquals(1, rs.getInt(1));
+        assertEquals(1, rs.getInt(2));
+        rs.next();
+        assertEquals(3, rs.getInt(1));
+        assertEquals(3, rs.getInt(2));
+        rs.next();
+        assertEquals(4, rs.getInt(1));
+        assertEquals(4, rs.getInt(2));
         assertNoMoreRows(rs);
 
         stmt = conn.createStatement();
