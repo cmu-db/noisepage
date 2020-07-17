@@ -206,6 +206,8 @@ class SqlTable {
    */
   void Reset();
 
+  void CopyTable(const common::ManagedPointer<transaction::TransactionContext> txn,
+                 const common::ManagedPointer<SqlTable> src);
   /**
    * @return a coarse estimation on the number of tuples in this table
    */
@@ -237,7 +239,5 @@ class SqlTable {
    * @return col oid for the provided col id
    */
   catalog::col_oid_t OidForColId(col_id_t col_id) const;
-  void CopyTable(const common::ManagedPointer<transaction::TransactionContext> txn,
-                 const common::ManagedPointer<SqlTable> src);
 };
 }  // namespace terrier::storage

@@ -656,17 +656,17 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     OpIterCteScanGetResult(result, iter);
     DISPATCH_NEXT();
   }
-  OP(IterCteScanGetReadTable) : {
-    auto *table = frame->LocalAt<storage::SqlTable **>(READ_LOCAL_ID());
+  OP(IterCteScanGetReadCte) : {
+    auto *table = frame->LocalAt<sql::CteScanIterator **>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanGetReadTable(table, iter);
+    OpIterCteScanGetReadCte(table, iter);
     DISPATCH_NEXT();
   }
 
-  OP(IterCteScanGetWriteTable) : {
-    auto *table = frame->LocalAt<storage::SqlTable **>(READ_LOCAL_ID());
+  OP(IterCteScanGetWriteCte) : {
+    auto *table = frame->LocalAt<sql::CteScanIterator **>(READ_LOCAL_ID());
     auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanGetWriteTable(table, iter);
+    OpIterCteScanGetWriteCte(table, iter);
     DISPATCH_NEXT();
   }
   OP(IterCteScanGetReadTableOid) : {
