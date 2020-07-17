@@ -937,6 +937,10 @@ execution::vm::ExecutionMode MiniRunners::mode = execution::vm::ExecutionMode::I
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_ArithmeticRunners)(benchmark::State &state) {
+  if (rerun_start) {
+    return;
+  }
+
   metrics_manager_->RegisterThread();
 
   // state.range(0) is the OperatingUnitType
@@ -1017,6 +1021,10 @@ void NetworkQueries_OutputRunners(pqxx::work *txn) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
+  if (rerun_start) {
+    return;
+  }
+
   auto num_integers = state.range(0);
   auto num_decimals = state.range(1);
   auto row_num = state.range(2);
