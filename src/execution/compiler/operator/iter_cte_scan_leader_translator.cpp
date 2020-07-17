@@ -149,14 +149,14 @@ ast::Expr *IterCteScanLeaderTranslator::GetIterCteScanIterator() {
 void IterCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *builder) {
 
   ast::Expr *cte_scan_iterator_setup =
-      codegen_->OneArgCall(ast::Builtin::IterCteScanGetResult, GetIterCteScanIterator());
+      codegen_->OneArgCall(ast::Builtin::IterCteScanGetReadCte, GetIterCteScanIterator());
   ast::Stmt *assign = codegen_->Assign(GetReadCteScanIterator(), cte_scan_iterator_setup);
   builder->Append(assign);
 }
 
 void IterCteScanLeaderTranslator::FinalizeReadCteScanIterator(FunctionBuilder *builder) {
   ast::Expr *cte_scan_iterator_setup =
-      codegen_->OneArgCall(ast::Builtin::IterCteScanGetReadCte, GetIterCteScanIterator());
+      codegen_->OneArgCall(ast::Builtin::IterCteScanGetResult, GetIterCteScanIterator());
   ast::Stmt *assign = codegen_->Assign(GetReadCteScanIterator(), cte_scan_iterator_setup);
   builder->Append(assign);
 }

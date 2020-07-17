@@ -100,10 +100,10 @@ void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionCo
   auto pr_init = InitializerForProjectedRow(col_oids);
   void *buffer = alloca(pr_init.ProjectedRowSize());
   auto *projected_row = pr_init.InitializeRow(buffer);
-  while (it != end()) {
+  while (it != src->end()) {
     const TupleSlot slot = *it;
     // Only fill the buffer with valid, visible tuples
-    if(!Select(txn, slot, projected_row)){
+    if(!src->Select(txn, slot, projected_row)){
       it++;
       continue;
     }
@@ -115,7 +115,7 @@ void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionCo
     for(auto &cols : table_.column_map_){
       auto offset = pr_map[cols.first];
       auto new_pr_ptr = new_pr->AccessForceNotNull(offset);
-      auto src_ptr = new_pr->AccessWithNullCheck(offset);
+      auto src_ptr = projected_row->AccessWithNullCheck(offset);
       if(src_ptr == nullptr){
         new_pr->SetNull(offset);
         continue;

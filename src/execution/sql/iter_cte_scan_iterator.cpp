@@ -39,10 +39,9 @@ storage::TupleSlot IterCteScanIterator::TableInsert() {
 
 bool IterCteScanIterator::Accumulate() {
   // Dump contents from read table into table_1, and then swap read and write
+  // dump read table into table_1
+  cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
   if (written_) {
-    // dump read table into table_1
-    cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
-
     // swap the table
     auto temp_table = cte_scan_write_;
     cte_scan_write_ = cte_scan_read_;
