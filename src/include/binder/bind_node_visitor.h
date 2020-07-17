@@ -12,6 +12,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/select_statement.h"
+#include "type/type_id.h"
 
 namespace terrier {
 
@@ -125,7 +126,13 @@ class BindNodeVisitor : public SqlNodeVisitor {
     for (size_t idx = 0; idx < size; idx++) {
       if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
         auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
-        int64_t column_id = constant_value_expression->GetInteger().val_;
+        type::TypeId type = constant_value_expression->GetReturnValueType();
+        int64_t column_id = -1;
+        if (type == type::TypeId::INTEGER) {
+          column_id = constant_value_expression->GetInteger().val_;
+        } else if (type == type::TypeId::DECIMAL) {
+          column_id = constant_value_expression->GetReal().val_;
+        }
         if (column_id > 0 && static_cast<size_t>(column_id) <= select_items.size()) {
           exprs[idx] = select_items[column_id - 1];
         } else {
