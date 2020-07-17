@@ -596,8 +596,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
         throw BINDER_EXCEPTION(fmt::format("column \"{}\" does not exist", col_name),
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
-      if (expr->GetColumnOid() == catalog::INVALID_COLUMN_OID &&
-                 expr->GetReturnValueType() == type::TypeId::INVALID) {
+      if (expr->GetColumnOid() == catalog::INVALID_COLUMN_OID && expr->GetReturnValueType() == type::TypeId::INVALID) {
         throw BINDER_EXCEPTION("non-integer constant in ORDER BY", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
       }
     } else {
