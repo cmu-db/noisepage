@@ -66,6 +66,7 @@ LINUX_TEST_PACKAGES=(\
 PYTHON_PACKAGES=(\
   "pyarrow" \
   "pandas" \
+  "gitpython" \
 )
 
 
