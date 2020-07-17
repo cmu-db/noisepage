@@ -15,18 +15,20 @@ IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx,
     :
       cte_scan_1_{exec_ctx, schema_cols_type, num_schema_cols},
       cte_scan_2_{exec_ctx, schema_cols_type, num_schema_cols},
-      cte_scan_read_{&cte_scan_1_},
-      cte_scan_write_{&cte_scan_2_},
+      cte_scan_3_{exec_ctx, schema_cols_type, num_schema_cols},
+      cte_scan_read_{&cte_scan_2_},
+      cte_scan_write_{&cte_scan_3_},
+      txn_{exec_ctx->GetTxn()},
       written_{false}
 {}
 
-storage::SqlTable *IterCteScanIterator::GetWriteTable() { return cte_scan_write_->GetTable(); }
+CteScanIterator *IterCteScanIterator::GetWriteCte() { return cte_scan_write_; }
 
-storage::SqlTable *IterCteScanIterator::GetReadTable() { return cte_scan_read_->GetTable(); }
+CteScanIterator *IterCteScanIterator::GetReadCte() { return cte_scan_read_; }
 
-CteScanIterator *IterCteScanIterator::GetResultCTE() { return cte_scan_read_; }
+CteScanIterator *IterCteScanIterator::GetResultCTE() { return &cte_scan_1_; }
 
-catalog::table_oid_t IterCteScanIterator::GetReadTableOid() { return cte_scan_write_->GetTableOid(); }
+catalog::table_oid_t IterCteScanIterator::GetReadTableOid() { return cte_scan_read_->GetTableOid(); }
 
 storage::ProjectedRow *IterCteScanIterator::GetInsertTempTablePR() { return cte_scan_write_->GetInsertTempTablePR(); }
 
@@ -36,10 +38,12 @@ storage::TupleSlot IterCteScanIterator::TableInsert() {
 }
 
 bool IterCteScanIterator::Accumulate() {
-  // what i want to do is dump table 2 to 1 then swap 3 with 2
-  //if im recursive then f
+  // Dump contents from read table into table_1, and then swap read and write
   if (written_) {
-    // swap the tables
+    // dump read table into table_1
+    cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
+
+    // swap the table
     auto temp_table = cte_scan_write_;
     cte_scan_write_ = cte_scan_read_;
     cte_scan_read_ = temp_table;

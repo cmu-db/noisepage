@@ -18,7 +18,7 @@ void IterCteScanLeaderTranslator::Produce(FunctionBuilder *builder) {
 //  DeclareAccumulateChecker(builder);
   GenInductiveLoop(builder);
 
-  PopulateReadCteScanIterator(builder);
+  FinalizeReadCteScanIterator(builder);
 }
 
 parser::ConstantValueExpression IterCteScanLeaderTranslator::DummyLeaderCVE() {
@@ -150,6 +150,13 @@ void IterCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *b
 
   ast::Expr *cte_scan_iterator_setup =
       codegen_->OneArgCall(ast::Builtin::IterCteScanGetResult, GetIterCteScanIterator());
+  ast::Stmt *assign = codegen_->Assign(GetReadCteScanIterator(), cte_scan_iterator_setup);
+  builder->Append(assign);
+}
+
+void IterCteScanLeaderTranslator::FinalizeReadCteScanIterator(FunctionBuilder *builder) {
+  ast::Expr *cte_scan_iterator_setup =
+      codegen_->OneArgCall(ast::Builtin::IterCteScanGetReadCte, GetIterCteScanIterator());
   ast::Stmt *assign = codegen_->Assign(GetReadCteScanIterator(), cte_scan_iterator_setup);
   builder->Append(assign);
 }

@@ -21,12 +21,12 @@ class EXPORT IterCteScanIterator {
   /**
    * Returns the temporary table that the cte has made
    */
-  storage::SqlTable *GetWriteTable();
+  CteScanIterator *GetWriteCte();
 
   /**
    * Returns the temporary table that the cte has made
    */
-  storage::SqlTable *GetReadTable();
+  CteScanIterator *GetReadCte();
 
   /**
    * Returns the oid of the temporary table that the cte has made
@@ -70,8 +70,10 @@ class EXPORT IterCteScanIterator {
  private:
   CteScanIterator cte_scan_1_;
   CteScanIterator cte_scan_2_;
+  CteScanIterator cte_scan_3_;
   CteScanIterator *cte_scan_read_;
   CteScanIterator *cte_scan_write_;
+  common::ManagedPointer<transaction::TransactionContext> txn_;
   bool written_;
 };
 

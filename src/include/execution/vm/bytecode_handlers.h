@@ -311,10 +311,10 @@ VM_OP void OpIterCteScanInit(terrier::execution::sql::IterCteScanIterator *iter,
                              terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
                              uint32_t num_schema_cols);
 
-VM_OP void OpIterCteScanGetReadTable(terrier::storage::SqlTable **sql_table,
+VM_OP void OpIterCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
                                      terrier::execution::sql::IterCteScanIterator *iter);
 
-VM_OP void OpIterCteScanGetWriteTable(terrier::storage::SqlTable **sql_table,
+VM_OP void OpIterCteScanGetWriteCte(terrier::execution::sql::CteScanIterator **sql_table,
                                       terrier::execution::sql::IterCteScanIterator *iter);
 
 VM_OP void OpIterCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid,

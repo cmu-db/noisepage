@@ -88,6 +88,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
 
   ast::Expr *GetReadCteScanIterator();
   void PopulateReadCteScanIterator(FunctionBuilder *builder);
+  void FinalizeReadCteScanIterator(FunctionBuilder *builder);
   // Declare Cte Scan Itarator
   void DeclareIterCteScanIterator(FunctionBuilder *builder);
   // Set Column Types for insertion

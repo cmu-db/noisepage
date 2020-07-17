@@ -2190,8 +2190,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::CteScanFree:
     case ast::Builtin::IterCteScanInit:
     case ast::Builtin::IterCteScanGetResult:
-    case ast::Builtin::IterCteScanGetReadTable:
-    case ast::Builtin::IterCteScanGetWriteTable:
+    case ast::Builtin::IterCteScanGetReadCte:
+    case ast::Builtin::IterCteScanGetWriteCte:
     case ast::Builtin::IterCteScanGetReadTableOid:
     case ast::Builtin::IterCteScanAccumulate:
     case ast::Builtin::IterCteScanGetInsertTempTablePR:
@@ -3338,14 +3338,14 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       Emitter()->Emit(Bytecode::IterCteScanGetResult, result, iterator);
       break;
     }
-    case ast::Builtin::IterCteScanGetReadTable: {
+    case ast::Builtin::IterCteScanGetReadCte: {
       LocalVar read = ExecutionResult()->GetOrCreateDestination(call->GetType());
-      Emitter()->Emit(Bytecode::IterCteScanGetReadTable, read, iterator);
+      Emitter()->Emit(Bytecode::IterCteScanGetReadCte, read, iterator);
       break;
     }
-    case ast::Builtin::IterCteScanGetWriteTable: {
+    case ast::Builtin::IterCteScanGetWriteCte: {
       LocalVar write = ExecutionResult()->GetOrCreateDestination(call->GetType());
-      Emitter()->Emit(Bytecode::IterCteScanGetWriteTable, write, iterator);
+      Emitter()->Emit(Bytecode::IterCteScanGetWriteCte, write, iterator);
       break;
     }
     case ast::Builtin::IterCteScanGetReadTableOid: {

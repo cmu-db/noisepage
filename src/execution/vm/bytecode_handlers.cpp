@@ -84,14 +84,14 @@ void OpIterCteScanInit(terrier::execution::sql::IterCteScanIterator *iter,
   new (iter) terrier::execution::sql::IterCteScanIterator(exec_ctx, schema_cols_type, num_schema_cols);
 }
 
-void OpIterCteScanGetReadTable(terrier::storage::SqlTable **sql_table,
+void OpIterCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
                                terrier::execution::sql::IterCteScanIterator *iter) {
-  *sql_table = iter->GetReadTable();
+  *sql_table = iter->GetReadCte();
 }
 
-void OpIterCteScanGetWriteTable(terrier::storage::SqlTable **sql_table,
+void OpIterCteScanGetWriteCte(terrier::execution::sql::CteScanIterator **sql_table,
                                 terrier::execution::sql::IterCteScanIterator *iter) {
-  *sql_table = iter->GetWriteTable();
+  *sql_table = iter->GetWriteCte();
 }
 
 void OpIterCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid,

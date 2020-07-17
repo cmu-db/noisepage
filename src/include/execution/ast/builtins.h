@@ -63,8 +63,8 @@ namespace terrier::execution::ast {
 /*Iterative Cte Scans*/                                                 \
   F(IterCteScanInit, iterCteScanInit)                                   \
   F(IterCteScanGetResult, iterCteScanGetResult)                         \
-  F(IterCteScanGetReadTable, iterCteScanGetReadTable)                   \
-  F(IterCteScanGetWriteTable, iterCteScanGetWriteTable)                 \
+  F(IterCteScanGetReadCte, iterCteScanGetReadCte)                       \
+  F(IterCteScanGetWriteCte, iterCteScanGetWriteCte)                     \
   F(IterCteScanGetReadTableOid, iterCteScanGetReadTableOid)             \
   F(IterCteScanAccumulate, iterCteScanAccumulate)                       \
   F(IterCteScanGetInsertTempTablePR, iterCteScanGetInsertTempTablePR)   \
