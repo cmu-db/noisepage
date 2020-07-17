@@ -23,14 +23,13 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
         io_util.write_csv_result(output_path, key, value)
 
 
-def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cache={}, subtract_style="manual"):
+def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cache={}, ):
     """Get the training data from the mini runner
 
     :param filename: the input data file
     :param model_results_path: results log directory
     :param model_map: the map from OpUnit to the mini model
     :param predict_cache: cache for the mini model prediction
-    :param subtract_style: subtraction style for eliminating units
     :return: the list of Data for execution operating units
     """
 
@@ -39,7 +38,7 @@ def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cac
         return []
     if "execution" in filename:
         # Handle the execution data
-        return _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract_style)
+        return _execution_get_mini_runner_data(filename, model_map, predict_cache)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_mini_runner_data(filename, model_results_path)
@@ -92,7 +91,7 @@ def _interval_get_mini_runner_data(filename, model_results_path):
 
     return [OpUnitData(OpUnit[file_name.upper()], np.array(x_list), np.array(y_list))]
 
-def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract_style):
+def _execution_get_mini_runner_data(filename, model_map, predict_cache):
     # Get the mini runner data for the execution engine
     data_map = {}
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
@@ -117,13 +116,11 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
                 if opunit in model_map:
                     key = [opunit] + x_loc
-                    if tuple(key) not in predict_cache or subtract_style == "model":
-                        predict = model_map[opunit].predict(np.array(x_loc).reshape(1, -1))[0]
-                        predict_cache[tuple(key)] = [predict] # only 1 prediction
-                        y_merged = y_merged - predict
+                    if tuple(key) in predict_cache:
+                        y_merged = y_merged - predict_cache[tuple(key)]
                     else:
-                        predict = np.average(predict_cache[tuple(key)], axis=0)[0]
-                        predict = np.clip(predict, 0, None)
+                        predict = model_map[opunit].predict(np.array(x_loc).reshape(1, -1))[0]
+                        predict_cache[tuple(key)] = predict
                         y_merged = y_merged - predict
 
                     y_merged = np.clip(y_merged, 0, None)
@@ -132,6 +129,9 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract
 
             if len(opunits) > 1:
                 raise Exception('Unmodelled OperatingUnits detected: {}'.format(opunits))
+
+            # record real result
+            predict_cache[tuple([opunits[0][0]] + opunits[0][1])] = list(y_merged)
 
             # opunits[0][0] is the opunit
             # opunits[0][1] is input feature
