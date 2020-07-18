@@ -596,9 +596,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
         throw BINDER_EXCEPTION(fmt::format("column \"{}\" does not exist", col_name),
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
-      if (expr->GetColumnOid() == catalog::INVALID_COLUMN_OID && expr->GetReturnValueType() == type::TypeId::INVALID) {
-        throw BINDER_EXCEPTION("non-integer constant in ORDER BY", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
-      }
     } else {
       // Table name is present
       if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, common::ManagedPointer(&tuple))) {
@@ -778,4 +775,36 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
   }
 }
 
+std::vector<common::ManagedPointer<parser::AbstractExpression>> BindNodeVisitor::UnifyOrderByExpression(
+    common::ManagedPointer<parser::OrderByDescription> order_by_description,
+    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
+  auto exprs = order_by_description->GetOrderByExpressions();
+  auto size = order_by_description->GetOrderByExpressionsSize();
+  for (size_t idx = 0; idx < size; idx++) {
+    if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
+      auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
+      type::TypeId type = constant_value_expression->GetReturnValueType();
+      int64_t column_id = 0;
+      switch (type) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT:
+          column_id = constant_value_expression->GetInteger().val_;
+          break;
+        case type::TypeId::DECIMAL:
+          column_id = constant_value_expression->GetReal().val_;
+          break;
+        default:
+          throw BINDER_EXCEPTION("non-integer constant in ORDER BY", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+      }
+      if (column_id < 1 || column_id > static_cast<int64_t>(select_items.size())) {
+        throw BINDER_EXCEPTION(fmt::format("ORDER BY position \"{}\" is not in select list", std::to_string(column_id)),
+                               common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
+      }
+      exprs[idx] = select_items[column_id - 1];
+    }
+  }
+  return exprs;
+}
 }  // namespace terrier::binder

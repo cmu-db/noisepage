@@ -106,6 +106,16 @@ class BindNodeVisitor : public SqlNodeVisitor {
     if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
   }
 
+  /**
+   * Change the type of exprs_ of order_by_description from ConstantValueExpression to ColumnValueExpression.
+   * @param order_by_description OrderByDescription
+   * @param select_items select columns
+   * @return exprs of OrderByDescription in SelectStatement
+   */
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> UnifyOrderByExpression(
+      common::ManagedPointer<parser::OrderByDescription> order_by_description,
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
+
   void ValidateDatabaseName(const std::string &db_name) {
     if (!(db_name.empty())) {
       const auto db_oid = catalog_accessor_->GetDatabaseOid(db_name);
@@ -116,32 +126,6 @@ class BindNodeVisitor : public SqlNodeVisitor {
         throw BINDER_EXCEPTION("cross-database references are not implemented: ",
                                common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
     }
-  }
-
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> UnifyOrderByExpression(
-      common::ManagedPointer<parser::OrderByDescription> order_by_description,
-      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
-    auto exprs = order_by_description->GetOrderByExpressions();
-    auto size = order_by_description->GetOrderByExpressionsSize();
-    for (size_t idx = 0; idx < size; idx++) {
-      if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
-        auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
-        type::TypeId type = constant_value_expression->GetReturnValueType();
-        int64_t column_id = 0;
-        if (type == type::TypeId::INTEGER) {
-          column_id = constant_value_expression->GetInteger().val_;
-        } else if (type == type::TypeId::DECIMAL) {
-          column_id = constant_value_expression->GetReal().val_;
-        }
-        if (column_id > 0 && static_cast<size_t>(column_id) <= select_items.size()) {
-          exprs[idx] = select_items[column_id - 1];
-        } else {
-          exprs[idx] = common::ManagedPointer<parser::AbstractExpression>(new parser::ColumnValueExpression(
-              catalog::INVALID_TABLE_OID, catalog::INVALID_COLUMN_OID, type::TypeId::INVALID));
-        }
-      }
-    }
-    return exprs;
   }
 };
 
