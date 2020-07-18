@@ -71,17 +71,17 @@ class VectorProjectionIteratorTest : public TplTest {
   enum ColId : uint8_t { col_a = 0, col_b = 1, col_c = 2, col_d = 3, col_e = 4, col_f = 5 };
 
   struct ColData {
-    std::unique_ptr<byte[]> data;
-    std::unique_ptr<uint32_t[]> nulls;
-    uint32_t num_nulls;
-    uint32_t num_tuples;
+    std::unique_ptr<byte[]> data_;
+    std::unique_ptr<uint32_t[]> nulls_;
+    uint32_t num_nulls_;
+    uint32_t num_tuples_;
 
     ColData(std::unique_ptr<byte[]> data, std::unique_ptr<uint32_t[]> nulls, uint32_t num_nulls, uint32_t num_tuples)
-        : data(std::move(data)), nulls(std::move(nulls)), num_nulls(num_nulls), num_tuples(num_tuples) {}
+        : data_(std::move(data)), nulls_(std::move(nulls)), num_nulls_(num_nulls), num_tuples_(num_tuples) {}
   };
 
  public:
-  VectorProjectionIteratorTest() : num_tuples_(10) {
+  VectorProjectionIteratorTest() {
     vector_projection_ = std::make_unique<VectorProjection>();
     vector_projection_->Initialize({
         TypeId::SmallInt,  // col a
@@ -128,7 +128,7 @@ class VectorProjectionIteratorTest : public TplTest {
   const ColData &ColumnData(uint32_t col_idx) const { return data_[col_idx]; }
 
  private:
-  uint32_t num_tuples_;
+  uint32_t num_tuples_{10};
   std::unique_ptr<catalog::Schema> schema_;
   std::unique_ptr<VectorProjection> vector_projection_;
   std::vector<ColData> data_;
@@ -222,7 +222,7 @@ TEST_F(VectorProjectionIteratorTest, ReadNullableColumnsTest) {
   }
 
   EXPECT_FALSE(iter.IsFiltered());
-  EXPECT_EQ(ColumnData(ColId::col_b).num_nulls, num_nulls);
+  EXPECT_EQ(ColumnData(ColId::col_b).num_nulls_, num_nulls);
 }
 
 // NOLINTNEXTLINE
@@ -258,7 +258,7 @@ TEST_F(VectorProjectionIteratorTest, ManualFilterTest) {
     iter.ResetFiltered();
 
     const auto &col_data = ColumnData(ColId::col_b);
-    uint32_t actual_non_null = col_data.num_tuples - col_data.num_nulls;
+    uint32_t actual_non_null = col_data.num_tuples_ - col_data.num_nulls_;
     EXPECT_EQ(actual_non_null, num_non_null);
     EXPECT_EQ(actual_non_null, iter.GetSelectedTupleCount());
   }
@@ -329,7 +329,7 @@ TEST_F(VectorProjectionIteratorTest, ManagedFilterTest) {
   EXPECT_TRUE(iter.IsFiltered());
 
   const auto &col_data = ColumnData(ColId::col_b);
-  uint32_t actual_non_null = col_data.num_tuples - col_data.num_nulls;
+  uint32_t actual_non_null = col_data.num_tuples_ - col_data.num_nulls_;
   EXPECT_EQ(actual_non_null, iter.GetSelectedTupleCount());
 
   //

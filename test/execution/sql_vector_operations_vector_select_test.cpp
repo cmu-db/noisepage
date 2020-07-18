@@ -71,26 +71,26 @@ TEST_F(VectorSelectTest, BasicSelect) {
   // b = [0, NULL, 4, NULL, 5, 5]
   auto a = MakeTinyIntVector({0, 1, 6, 3, 4, 5}, {true, false, false, true, false, false});
   auto b = MakeTinyIntVector({0, 1, 4, 3, 5, 5}, {false, true, false, true, false, false});
-  auto _2 = ConstantVector(GenericValue::CreateTinyInt(2));
+  auto cv_2 = ConstantVector(GenericValue::CreateTinyInt(2));
 
   for (auto type_id :
        {TypeId::TinyInt, TypeId::SmallInt, TypeId::Integer, TypeId::BigInt, TypeId::Float, TypeId::Double}) {
     a->Cast(exec_settings, type_id);
     b->Cast(exec_settings, type_id);
-    _2.Cast(exec_settings, type_id);
+    cv_2.Cast(exec_settings, type_id);
 
     TupleIdList input_list(a->GetSize());
     input_list.AddAll();
 
     // a < 2
-    VectorOps::SelectLessThan(exec_settings, *a, _2, &input_list);
+    VectorOps::SelectLessThan(exec_settings, *a, cv_2, &input_list);
     EXPECT_EQ(1u, input_list.GetTupleCount());
     EXPECT_EQ(1u, input_list[0]);
 
     input_list.AddAll();
 
     // 2 < a
-    VectorOps::SelectLessThan(exec_settings, _2, *a, &input_list);
+    VectorOps::SelectLessThan(exec_settings, cv_2, *a, &input_list);
     EXPECT_EQ(3u, input_list.GetTupleCount());
     EXPECT_EQ(2u, input_list[0]);
     EXPECT_EQ(4u, input_list[1]);
@@ -99,7 +99,7 @@ TEST_F(VectorSelectTest, BasicSelect) {
     input_list.AddAll();
 
     // 2 == a
-    VectorOps::SelectEqual(exec_settings, _2, *a, &input_list);
+    VectorOps::SelectEqual(exec_settings, cv_2, *a, &input_list);
     EXPECT_TRUE(input_list.IsEmpty());
 
     input_list.AddAll();

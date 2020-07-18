@@ -17,11 +17,11 @@ namespace terrier::execution::sql::test {
  * An input tuple, this is what we use to probe and update aggregates
  */
 struct InputTuple {
-  int64_t key, col_a;
+  int64_t key_, col_a_;
 
-  InputTuple(uint64_t key, uint64_t col_a) : key(key), col_a(col_a) {}
+  InputTuple(uint64_t key, uint64_t col_a) : key_(key), col_a_(col_a) {}
 
-  hash_t Hash() const noexcept { return common::HashUtil::Hash(key); }
+  hash_t Hash() const noexcept { return common::HashUtil::Hash(key_); }
 };
 
 /**
@@ -30,14 +30,14 @@ struct InputTuple {
  * SELECT key, SUM(col_a), SUM(col_a*2), SUM(col_a*10) ...
  */
 struct AggTuple {
-  int64_t key, count1, count2, count3;
+  int64_t key_, count1_, count2_, count3_;
 
-  explicit AggTuple(const InputTuple &input) : key(input.key), count1(0), count2(0), count3(0) { Advance(input); }
+  explicit AggTuple(const InputTuple &input) : key_(input.key_), count1_(0), count2_(0), count3_(0) { Advance(input); }
 
   void Advance(const InputTuple &input) {
-    count1++;
-    count2 += input.col_a * 2;
-    count3 += input.col_a * 10;
+    count1_++;
+    count2_ += input.col_a_ * 2;
+    count3_ += input.col_a_ * 10;
   }
 };
 
@@ -46,16 +46,16 @@ struct AggTuple {
 static bool AggTupleKeyEq(const void *table_tuple, const void *probe_tuple) {
   auto *lhs = reinterpret_cast<const AggTuple *>(table_tuple);
   auto *rhs = reinterpret_cast<const InputTuple *>(probe_tuple);
-  return lhs->key == rhs->key;
+  return lhs->key_ == rhs->key_;
 }
 
 static void Transpose(const HashTableEntry *agg_entries[], const uint64_t size, VectorProjectionIterator *const vpi) {
   for (uint32_t i = 0; i < size; i++, vpi->Advance()) {
     const auto *agg = agg_entries[i]->PayloadAs<AggTuple>();
-    vpi->SetValue<int64_t, false>(0, agg->key, false);
-    vpi->SetValue<int64_t, false>(1, agg->count1, false);
-    vpi->SetValue<int64_t, false>(2, agg->count2, false);
-    vpi->SetValue<int64_t, false>(3, agg->count3, false);
+    vpi->SetValue<int64_t, false>(0, agg->key_, false);
+    vpi->SetValue<int64_t, false>(1, agg->count1_, false);
+    vpi->SetValue<int64_t, false>(2, agg->count2_, false);
+    vpi->SetValue<int64_t, false>(3, agg->count3_, false);
   }
 }
 
@@ -230,7 +230,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, DISABLED_Perf) {
       AHTIterator iter(agg_ht);
       for (; iter.HasNext(); iter.Next()) {
         auto *agg_row = reinterpret_cast<const AggTuple *>(iter.GetCurrentAggregateRow());
-        if (agg_row->key < filter_val) {
+        if (agg_row->key_ < filter_val) {
           taat_ret++;
         }
       }

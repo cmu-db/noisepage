@@ -12,7 +12,7 @@ class BloomFilterTest : public TplTest {
  public:
   BloomFilterTest() : memory_(nullptr) {}
 
-  MemoryPool *memory() { return &memory_; }
+  MemoryPool *Memory() { return &memory_; }
 
  protected:
   template <typename T>
@@ -26,7 +26,7 @@ class BloomFilterTest : public TplTest {
 
 // NOLINTNEXTLINE
 TEST_F(BloomFilterTest, Simple) {
-  BloomFilter bf(memory(), 10);
+  BloomFilter bf(Memory(), 10);
 
   bf.Add(Hash(10));
   EXPECT_TRUE(bf.Contains(Hash(10)));

@@ -391,8 +391,8 @@ TEST(BitVectorTest, SetFromBytes) {
     alignas(16) uint8_t bytes[vec_size] = {0};
     uint32_t num_set = 0;
     for (auto &byte : bytes) {
-      byte = -(r() % 4 == 0);
-      num_set += (byte == 0xff);
+      byte = -static_cast<int>(r() % 4 == 0);
+      num_set += static_cast<unsigned int>(byte == 0xff);
     }
 
     // Check only even indexes set

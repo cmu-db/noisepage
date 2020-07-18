@@ -104,11 +104,11 @@ TEST_F(CompilerTest, CompileToAst) {
 
   // Check compilation only to AST.
   struct CompileToAstCallback : public Compiler::Callbacks {
-    ast::AstNode *root;
+    ast::AstNode *root_;
     bool BeginPhase(Compiler::Phase phase, Compiler *compiler) override { return phase == Compiler::Phase::Parsing; }
     void EndPhase(Compiler::Phase phase, Compiler *compiler) override {
       if (phase == Compiler::Phase::Parsing) {
-        root = compiler->GetAST();
+        root_ = compiler->GetAST();
       }
     }
     void OnError(Compiler::Phase phase, Compiler *compiler) override { FAIL(); }
@@ -120,10 +120,10 @@ TEST_F(CompilerTest, CompileToAst) {
   auto callback = CompileToAstCallback();
   Compiler::RunCompilation(input, &callback);
 
-  EXPECT_NE(nullptr, callback.root);
-  EXPECT_TRUE(callback.root->IsFile());
-  EXPECT_TRUE(callback.root->As<ast::File>()->Declarations()[0]->IsFunctionDecl());
-  auto *decl = callback.root->As<ast::File>()->Declarations()[0]->As<ast::FunctionDecl>();
+  EXPECT_NE(nullptr, callback.root_);
+  EXPECT_TRUE(callback.root_->IsFile());
+  EXPECT_TRUE(callback.root_->As<ast::File>()->Declarations()[0]->IsFunctionDecl());
+  auto *decl = callback.root_->As<ast::File>()->Declarations()[0]->As<ast::FunctionDecl>();
 
   // Check name
   EXPECT_EQ(context.GetIdentifier("BLAH"), decl->Name());
@@ -463,11 +463,11 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
     ASSERT_LE(curr_col1, col1->val_);
     curr_col1 = col1->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Create the execution context
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
@@ -542,11 +542,11 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
     ASSERT_LE(curr_col1, col1->val_);
     curr_col1 = col1->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Create the execution context
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
@@ -621,11 +621,11 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
     ASSERT_GE(curr_col1, col1->val_);
     curr_col1 = col1->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Create the execution context
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
@@ -700,11 +700,11 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
     ASSERT_GE(curr_col1, col1->val_);
     curr_col1 = col1->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Create the execution context
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
@@ -1203,8 +1203,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     // Check sum_col1 < 50000
     ASSERT_LT(sum_col1->val_, 50000);
   };
-  CorrectnessFn correcteness_fn;
-  GenericChecker checker(row_checker, correcteness_fn);
+  CorrectnessFn correctness_fn;
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Compile and Run
   OutputStore store{&checker, agg->GetOutputSchema().Get()};
@@ -1404,11 +1404,11 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   OutputStore store{&checker, hash_join->GetOutputSchema().Get()};
   exec::OutputPrinter printer(hash_join->GetOutputSchema().Get());
@@ -1585,11 +1585,11 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   OutputStore store{&checker, hash_join2->GetOutputSchema().Get()};
   exec::OutputPrinter printer(hash_join2->GetOutputSchema().Get());
@@ -1705,10 +1705,10 @@ TEST_F(CompilerTest, SimpleSortTest) {
     curr_col1 = col1->val_;
     curr_col2 = col2->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Create exec ctx
   OutputStore store{&checker, order_by->GetOutputSchema().Get()};
@@ -1820,10 +1820,10 @@ TEST_F(CompilerTest, SortWithLimitTest) {
     curr_col1 = col1->val_;
     curr_col2 = col2->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Create exec ctx
   OutputStore store{&checker, order_by->GetOutputSchema().Get()};
@@ -1909,10 +1909,10 @@ TEST_F(CompilerTest, SortWithLimitAndOffsetTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Create exec ctx
   OutputStore store{&checker, order_by->GetOutputSchema().Get()};
@@ -1992,10 +1992,10 @@ TEST_F(CompilerTest, LimitAndOffsetTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Create exec ctx
   OutputStore store{&checker, limit->GetOutputSchema().Get()};
@@ -2118,10 +2118,10 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
   OutputStore store{&checker, nl_join->GetOutputSchema().Get()};
@@ -2239,10 +2239,10 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
   OutputStore store{&checker, index_join->GetOutputSchema().Get()};
@@ -2356,8 +2356,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     num_output_rows++;
     ASSERT_LT(num_output_rows, max_output_rows);
   };
-  CorrectnessFn correcteness_fn;
-  GenericChecker checker(row_checker, correcteness_fn);
+  CorrectnessFn correctness_fn;
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
   OutputStore store{&checker, index_join->GetOutputSchema().Get()};
@@ -2804,13 +2804,13 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
   // Execute Table Scan
   {
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
@@ -2857,7 +2857,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   // Execute index scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
@@ -3001,14 +3001,14 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
   // Execute Table Scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
@@ -3054,7 +3054,7 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
   // Execute index scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
@@ -3279,13 +3279,13 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
   // Execute Table Scan
   {
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
@@ -3346,7 +3346,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   // Execute index scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
@@ -3483,9 +3483,9 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   }
   // Compile and Run
   // TODO(How to auto check this test?)
-  CorrectnessFn correcteness_fn;
+  CorrectnessFn correctness_fn;
   RowChecker row_checker;
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Make Exec Ctx
   OutputStore store{&checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());

@@ -15,7 +15,6 @@ class ComparisonFunctionsTests : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(ComparisonFunctionsTests, NullComparison) {
-  exec::ExecutionSettings exec_settings{};
 // Nulls
 #define CHECK_NULL(TYPE, OP, INITIAL)             \
   {                                               \

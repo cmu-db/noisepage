@@ -8,14 +8,14 @@ namespace terrier::execution::sql::test {
 class MemoryPoolTest : public TplTest {};
 
 struct SimpleObj {
-  uint32_t a, b, c, d;
+  uint32_t a_, b_, c_, d_;
 };
 
 struct ComplexObj {
-  MemoryPool *memory;
-  MemPoolPtr<SimpleObj> nested;
-  ComplexObj(MemoryPool *m, MemPoolPtr<SimpleObj> n) : memory(m), nested(std::move(n)) {}
-  ~ComplexObj() { memory->DeleteObject(std::move(nested)); }
+  MemoryPool *memory_;
+  MemPoolPtr<SimpleObj> nested_;
+  ComplexObj(MemoryPool *m, MemPoolPtr<SimpleObj> n) : memory_(m), nested_(std::move(n)) {}
+  ~ComplexObj() { memory_->DeleteObject(std::move(nested_)); }
 };
 
 // NOLINTNEXTLINE
@@ -36,8 +36,8 @@ TEST_F(MemoryPoolTest, PoolPointers) {
   EXPECT_NE(obj1, nullptr);
   EXPECT_NE(nullptr, obj1.Get());
 
-  obj1->a = 10;
-  EXPECT_EQ(10u, obj1->a);
+  obj1->a_ = 10;
+  EXPECT_EQ(10u, obj1->a_);
 
   pool.DeleteObject(std::move(obj1));
 }
@@ -53,8 +53,8 @@ TEST_F(MemoryPoolTest, ComplexPointers) {
   EXPECT_NE(nullptr, obj1);
   EXPECT_NE(obj1, nullptr);
 
-  obj1->nested->a = 1;
-  EXPECT_EQ(1u, obj1->nested->a);
+  obj1->nested_->a_ = 1;
+  EXPECT_EQ(1u, obj1->nested_->a_);
 
   pool.DeleteObject(std::move(obj1));
 }

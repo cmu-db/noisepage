@@ -13,16 +13,16 @@ class ChainingHashTableTest : public TplTest {};
 
 // A test entry IS A hash table entry. It can directly be inserted into hash tables.
 struct TestEntry : public HashTableEntry {
-  uint32_t key;
-  uint32_t value;
+  uint32_t key_{0};
+  uint32_t value_{0};
 
-  TestEntry() : HashTableEntry(), key(0), value(0) { hash_ = Hash(); }
+  TestEntry() : HashTableEntry() { hash_ = Hash(); }
 
-  TestEntry(uint32_t key, uint32_t value) : HashTableEntry(), key(key), value(value) { hash_ = Hash(); }
+  TestEntry(uint32_t key, uint32_t value) : HashTableEntry(), key_(key), value_(value) { hash_ = Hash(); }
 
-  hash_t Hash() { return common::HashUtil::Hash(key); }
+  hash_t Hash() { return common::HashUtil::Hash(key_); }
 
-  bool Eq(const TestEntry &that) const { return hash_ == that.hash_ && key == that.key && value == that.value; }
+  bool Eq(const TestEntry &that) const { return hash_ == that.hash_ && key_ == that.key_ && value_ == that.value_; }
 
   bool operator==(const TestEntry &that) const { return this->Eq(that); }
   bool operator!=(const TestEntry &that) const { return !(*this == that); }
@@ -143,8 +143,8 @@ TEST_F(ChainingHashTableTest, ConcurrentInsertion) {
     found_entries++;
 
     auto *entry = reinterpret_cast<const TestEntry *>(iter.GetCurrentEntry());
-    const auto key = entry->key;
-    const auto thread_id = entry->value;
+    const auto key = entry->key_;
+    const auto thread_id = entry->value_;
 
     // Each thread should see a unique set of keys
     EXPECT_EQ(0u, thread_local_entries[thread_id].count(key));
@@ -174,8 +174,8 @@ TEST_F(ChainingHashTableTest, Flushing) {
   ht.FlushEntries([&](auto *entry) {
     ASSERT_NE(nullptr, entry);
     auto *test_entry = reinterpret_cast<TestEntry *>(entry);
-    EXPECT_EQ(0u, keys.count(test_entry->key));
-    keys.insert(test_entry->key);
+    EXPECT_EQ(0u, keys.count(test_entry->key_));
+    keys.insert(test_entry->key_);
   });
 
   // Ensure table is actually empty
@@ -252,7 +252,7 @@ TEST_F(ChainingHashTableTest, SimpleIteration) {
     TestEntry entry(random(), 20);
     entry.hash_ = entry.Hash();
 
-    reference[entry.key] = entry;
+    reference[entry.key_] = entry;
     entries.emplace_back(entry);
   }
 
@@ -273,10 +273,10 @@ TEST_F(ChainingHashTableTest, SimpleIteration) {
     for (; iter.HasNext(); iter.Next()) {
       auto *row = reinterpret_cast<const TestEntry *>(iter.GetCurrentEntry());
       EXPECT_TRUE(row != nullptr);
-      auto ref_iter = reference.find(row->key);
+      auto ref_iter = reference.find(row->key_);
       ASSERT_NE(ref_iter, reference.end());
-      EXPECT_EQ(ref_iter->second.key, row->key);
-      EXPECT_EQ(ref_iter->second.value, row->value);
+      EXPECT_EQ(ref_iter->second.key_, row->key_);
+      EXPECT_EQ(ref_iter->second.value_, row->value_);
       found_entries++;
     }
     EXPECT_EQ(num_inserts, found_entries);
@@ -293,10 +293,10 @@ TEST_F(ChainingHashTableTest, SimpleIteration) {
       for (uint32_t i = 0; i < size; i++) {
         auto *row = reinterpret_cast<const TestEntry *>(batch[i]);
         EXPECT_TRUE(row != nullptr);
-        auto ref_iter = reference.find(row->key);
+        auto ref_iter = reference.find(row->key_);
         ASSERT_NE(ref_iter, reference.end());
-        EXPECT_EQ(ref_iter->second.key, row->key);
-        EXPECT_EQ(ref_iter->second.value, row->value);
+        EXPECT_EQ(ref_iter->second.key_, row->key_);
+        EXPECT_EQ(ref_iter->second.value_, row->value_);
         found_entries++;
       }
     }
@@ -341,8 +341,8 @@ TEST_F(ChainingHashTableTest, LongChainIteration) {
     for (; iter.HasNext(); iter.Next()) {
       auto *row = reinterpret_cast<const TestEntry *>(iter.GetCurrentEntry());
       ASSERT_TRUE(row != nullptr);
-      EXPECT_EQ(key, row->key);
-      EXPECT_EQ(value, row->value);
+      EXPECT_EQ(key, row->key_);
+      EXPECT_EQ(value, row->value_);
       found_entries++;
     }
     EXPECT_EQ(num_inserts, found_entries);
@@ -358,8 +358,8 @@ TEST_F(ChainingHashTableTest, LongChainIteration) {
       for (uint32_t i = 0; i < size; i++) {
         auto *row = reinterpret_cast<const TestEntry *>(batch[i]);
         ASSERT_TRUE(row != nullptr);
-        EXPECT_EQ(key, row->key);
-        EXPECT_EQ(value, row->value);
+        EXPECT_EQ(key, row->key_);
+        EXPECT_EQ(value, row->value_);
         found_entries++;
       }
     }
@@ -374,11 +374,11 @@ TEST_F(ChainingHashTableTest, ChainStats) {
 
   constexpr uint32_t unique_keys = 4;
   constexpr uint32_t bucket_len = 20;
-  constexpr uint32_t N = unique_keys * bucket_len;
+  constexpr uint32_t n = unique_keys * bucket_len;
 
-  // Pre-generate N entries
+  // Pre-generate n entries
   std::vector<TestEntry> entries;
-  for (uint32_t idx = 0; idx < N; idx++) {
+  for (uint32_t idx = 0; idx < n; idx++) {
     TestEntry entry(idx % unique_keys, idx);
     entry.hash_ = entry.Hash();
     entries.emplace_back(entry);
@@ -430,7 +430,7 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
     ChainingHashTableIterator<false> iter(table);
     for (; iter.HasNext(); iter.Next()) {
       auto *row = reinterpret_cast<const TestEntry *>(iter.GetCurrentEntry());
-      sum1 += row->value;
+      sum1 += row->value_;
     }
   });
 
@@ -441,7 +441,7 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
       auto [size, batch] = iter.GetCurrentBatch();
       for (uint32_t i = 0; i < size; i++) {
         auto *row = reinterpret_cast<const TestEntry *>(batch[i]);
-        sum2 += row->value;
+        sum2 += row->value_;
       }
     }
   });

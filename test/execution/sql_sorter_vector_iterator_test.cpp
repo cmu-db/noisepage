@@ -17,8 +17,8 @@ namespace {
  * The input tuples. All sorter instances use this tuple as input and output.
  */
 struct Tuple {
-  int64_t key;
-  int64_t attributes;
+  int64_t key_;
+  int64_t attributes_;
 };
 
 /**
@@ -30,8 +30,8 @@ void PopulateSorter(Sorter *sorter, uint32_t num_tuples = common::Constants::K_D
   std::random_device r;
   for (uint32_t i = 0; i < num_tuples; i++) {
     auto tuple = reinterpret_cast<Tuple *>(sorter->AllocInputTuple());
-    tuple->key = r() % num_tuples;
-    tuple->attributes = r() % 10;
+    tuple->key_ = r() % num_tuples;
+    tuple->attributes_ = r() % 10;
   }
 }
 
@@ -41,7 +41,7 @@ void PopulateSorter(Sorter *sorter, uint32_t num_tuples = common::Constants::K_D
  * @param rhs The second tuple.
  * @return < 0 if lhs < rhs, 0 if lhs = rhs, > 0 if lhs > rhs.
  */
-int32_t CompareTuple(const Tuple &lhs, const Tuple &rhs) { return lhs.key - rhs.key; }
+int32_t CompareTuple(const Tuple &lhs, const Tuple &rhs) { return lhs.key_ - rhs.key_; }
 
 /**
  * Convert row-oriented data in the rows vector to columnar format in the given
@@ -53,8 +53,8 @@ int32_t CompareTuple(const Tuple &lhs, const Tuple &rhs) { return lhs.key - rhs.
 void Transpose(const byte *rows[], uint64_t num_rows, VectorProjectionIterator *iter) {
   for (uint64_t i = 0; i < num_rows; i++) {
     auto tuple = reinterpret_cast<const Tuple *>(rows[i]);
-    iter->SetValue<int64_t, false>(0, tuple->key, false);
-    iter->SetValue<int64_t, false>(1, tuple->attributes, false);
+    iter->SetValue<int64_t, false>(0, tuple->key_, false);
+    iter->SetValue<int64_t, false>(1, tuple->attributes_, false);
     iter->Advance();
   }
 }
@@ -96,7 +96,7 @@ class SorterVectorIteratorTest : public TplTest {
         }) {}
 
  protected:
-  MemoryPool *memory() { return &memory_; }
+  MemoryPool *Memory() { return &memory_; }
 
   std::vector<const catalog::Schema::Column *> RowMeta() const {
     std::vector<const catalog::Schema::Column *> cols;
@@ -116,7 +116,7 @@ TEST_F(SorterVectorIteratorTest, EmptyIterator) {
   const auto compare = [](const void *lhs, const void *rhs) {
     return CompareTuple(*reinterpret_cast<const Tuple *>(lhs), *reinterpret_cast<const Tuple *>(rhs));
   };
-  Sorter sorter(memory(), compare, sizeof(Tuple));
+  Sorter sorter(Memory(), compare, sizeof(Tuple));
 
   for (SorterVectorIterator iter(sorter, RowMeta(), Transpose); iter.HasNext(); iter.Next(Transpose)) {
     FAIL() << "Iteration should not occur on empty sorter instance";
@@ -131,7 +131,7 @@ TEST_F(SorterVectorIteratorTest, Iterate) {
   const auto compare = [](const void *lhs, const void *rhs) {
     return CompareTuple(*reinterpret_cast<const Tuple *>(lhs), *reinterpret_cast<const Tuple *>(rhs));
   };
-  Sorter sorter(memory(), compare, sizeof(Tuple));
+  Sorter sorter(Memory(), compare, sizeof(Tuple));
   PopulateSorter(&sorter, num_elems);
   sorter.Sort();
 
@@ -152,7 +152,7 @@ TEST_F(SorterVectorIteratorTest, Iterate) {
 
     // Verify sorted
     const auto *key_vector = vpi->GetVectorProjection()->GetColumn(0);
-    const auto *key_data = reinterpret_cast<const decltype(Tuple::key) *>(key_vector->GetData());
+    const auto *key_data = reinterpret_cast<const decltype(Tuple::key_) *>(key_vector->GetData());
     EXPECT_TRUE(std::is_sorted(key_data, key_data + key_vector->GetCount()));
 
     // Count

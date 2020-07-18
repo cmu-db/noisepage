@@ -13,14 +13,14 @@ namespace terrier::execution::sql::test {
 enum Col : uint8_t { A = 0, B = 1, C = 2, D = 3 };
 
 struct JoinRow {
-  int32_t key;
-  int32_t val;
+  int32_t key_;
+  int32_t val_;
 };
 
 struct QueryState {
-  std::unique_ptr<JoinManager> jm;
-  std::unique_ptr<JoinHashTable> jht1;
-  std::unique_ptr<JoinHashTable> jht2;
+  std::unique_ptr<JoinManager> jm_;
+  std::unique_ptr<JoinHashTable> jht1_;
+  std::unique_ptr<JoinHashTable> jht2_;
 };
 
 class JoinManagerTest : public SqlBasedTest {};
@@ -33,8 +33,8 @@ void BuildHT(JoinHashTable *jht, bool is_a_key, uint32_t a_max, uint32_t b_max) 
     auto colb = i % b_max;
     auto hash_val = common::HashUtil::Hash(is_a_key ? cola : colb);
     auto join_row = reinterpret_cast<JoinRow *>(jht->AllocInputTuple(hash_val));
-    join_row->key = is_a_key ? cola : colb;
-    join_row->val = colb;
+    join_row->key_ = is_a_key ? cola : colb;
+    join_row->val_ = colb;
   }
   jht->Build();
 }
@@ -47,23 +47,23 @@ TEST_F(JoinManagerTest, TwoWayJoin) {
   auto exec_ctx = MakeExecCtx();
   auto exec_settings = exec_ctx->GetExecutionSettings();
 
-  query_state.jht1 = std::make_unique<JoinHashTable>(exec_settings, &mem_pool, sizeof(JoinRow), false);
-  query_state.jht2 = std::make_unique<JoinHashTable>(exec_settings, &mem_pool, sizeof(JoinRow), false);
-  query_state.jm = std::make_unique<JoinManager>(exec_settings, &query_state);
+  query_state.jht1_ = std::make_unique<JoinHashTable>(exec_settings, &mem_pool, sizeof(JoinRow), false);
+  query_state.jht2_ = std::make_unique<JoinHashTable>(exec_settings, &mem_pool, sizeof(JoinRow), false);
+  query_state.jm_ = std::make_unique<JoinManager>(exec_settings, &query_state);
   // The first join.
-  query_state.jm->InsertJoinStep(*query_state.jht1, {0}, [](auto exec_ctx, auto vp, auto tids, auto ctx) {
+  query_state.jm_->InsertJoinStep(*query_state.jht1_, {0}, [](auto exec_ctx, auto vp, auto tids, auto ctx) {
     auto *query_state = reinterpret_cast<QueryState *>(ctx);
-    query_state->jm->PrepareSingleJoin(vp, tids, 0);
+    query_state->jm_->PrepareSingleJoin(vp, tids, 0);
   });
   // The second join.
-  query_state.jm->InsertJoinStep(*query_state.jht2, {1}, [](auto exec_ctx, auto vp, auto tids, auto ctx) {
+  query_state.jm_->InsertJoinStep(*query_state.jht2_, {1}, [](auto exec_ctx, auto vp, auto tids, auto ctx) {
     auto *query_state = reinterpret_cast<QueryState *>(ctx);
-    query_state->jm->PrepareSingleJoin(vp, tids, 1);
+    query_state->jm_->PrepareSingleJoin(vp, tids, 1);
   });
 
   // Build table.
-  BuildHT(query_state.jht1.get(), true, 1000, 10);
-  BuildHT(query_state.jht2.get(), false, 10, 10);
+  BuildHT(query_state.jht1_.get(), true, 1000, 10);
+  BuildHT(query_state.jht2_.get(), false, 10, 10);
 
   // Input to probe.
   VectorProjection vec_proj;
@@ -76,19 +76,19 @@ TEST_F(JoinManagerTest, TwoWayJoin) {
     // Run join.
     vec_proj.Reset(common::Constants::K_DEFAULT_VECTOR_SIZE);
     VectorProjectionIterator vpi(&vec_proj);
-    query_state.jm->SetInputBatch(exec_ctx.get(), &vpi);
+    query_state.jm_->SetInputBatch(exec_ctx.get(), &vpi);
 
     uint32_t count = 0;
 #if 1
-    while (query_state.jm->Next()) {
+    while (query_state.jm_->Next()) {
       const HashTableEntry **matches[2];
-      query_state.jm->GetOutputBatch(matches);
+      query_state.jm_->GetOutputBatch(matches);
       count += vpi.GetSelectedTupleCount();
     }
 #else
     vpi.ForEach([&]() {
       const HashTableEntry *matches[2] = {nullptr};
-      query_state.jm->GetOutputBatch(&vpi, matches);
+      query_state.jm_->GetOutputBatch(&vpi, matches);
       for (auto iter1 = matches[0]; iter1 != nullptr; iter1 = iter1->next) {
         auto *jr1 = iter1->PayloadAs<JoinRow>();
         if (jr1->cola == *vpi.GetValue<int32_t, false>(0, nullptr)) {

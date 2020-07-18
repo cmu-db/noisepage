@@ -20,36 +20,36 @@ namespace terrier::execution::sql {
  * An input tuple, this is what we use to probe and update aggregates
  */
 struct InputTuple {
-  int64_t key, col_a;
+  int64_t key_, col_a_;
 
-  explicit InputTuple(uint64_t key, uint64_t col_a) : key(key), col_a(col_a) {}
+  explicit InputTuple(uint64_t key, uint64_t col_a) : key_(key), col_a_(col_a) {}
 
-  hash_t Hash() const noexcept { return common::HashUtil::Hash(key); }
+  hash_t Hash() const noexcept { return common::HashUtil::Hash(key_); }
 };
 
 /**
  * This is the tuple tracking aggregate values
  */
 struct AggTuple {
-  int64_t key;
-  uint64_t count1, count2, count3;
+  int64_t key_;
+  uint64_t count1_, count2_, count3_;
 
-  explicit AggTuple(const InputTuple &input) : key(input.key), count1(0), count2(0), count3(0) { Advance(input); }
+  explicit AggTuple(const InputTuple &input) : key_(input.key_), count1_(0), count2_(0), count3_(0) { Advance(input); }
 
   void Advance(const InputTuple &input) {
-    count1 += input.col_a;
-    count2 += input.col_a * 2;
-    count3 += input.col_a * 10;
+    count1_ += input.col_a_;
+    count2_ += input.col_a_ * 2;
+    count3_ += input.col_a_ * 10;
   }
 
   void Merge(const AggTuple &input) {
-    count1 += input.count1;
-    count2 += input.count2;
-    count3 += input.count3;
+    count1_ += input.count1_;
+    count2_ += input.count2_;
+    count3_ += input.count3_;
   }
 
   bool operator==(const AggTuple &other) {
-    return key == other.key && count1 == other.count1 && count2 == other.count2 && count3 == other.count3;
+    return key_ == other.key_ && count1_ == other.count1_ && count2_ == other.count2_ && count3_ == other.count3_;
   }
 };
 
@@ -58,7 +58,7 @@ struct AggTuple {
 static bool AggTupleKeyEq(const void *table_tuple, const void *probe_tuple) {
   auto *lhs = reinterpret_cast<const AggTuple *>(table_tuple);
   auto *rhs = reinterpret_cast<const InputTuple *>(probe_tuple);
-  return lhs->key == rhs->key;
+  return lhs->key_ == rhs->key_;
 }
 
 // The function to determine whether two aggregates stored in overflow
@@ -66,7 +66,7 @@ static bool AggTupleKeyEq(const void *table_tuple, const void *probe_tuple) {
 static bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2) {
   auto *lhs = reinterpret_cast<const AggTuple *>(agg_tuple_1);
   auto *rhs = reinterpret_cast<const AggTuple *>(agg_tuple_2);
-  return lhs->key == rhs->key;
+  return lhs->key_ == rhs->key_;
 }
 
 class AggregationHashTableTest : public SqlBasedTest {
@@ -102,16 +102,16 @@ TEST_F(AggregationHashTableTest, SimpleRandomInsertionTest) {
 
     if (existing != nullptr) {
       // The reference table should have an equivalent aggregate tuple
-      auto ref_iter = ref_agg_table.find(input.key);
+      auto ref_iter = ref_agg_table.find(input.key_);
       EXPECT_TRUE(ref_iter != ref_agg_table.end());
       EXPECT_TRUE(*ref_iter->second == *existing);
       existing->Advance(input);
       ref_iter->second->Advance(input);
     } else {
       // The reference table shouldn't have the aggregate
-      EXPECT_EQ(ref_agg_table.find(input.key), ref_agg_table.end());
+      EXPECT_EQ(ref_agg_table.find(input.key_), ref_agg_table.end());
       new (AggTable()->AllocInputTuple(hash_val)) AggTuple(input);
-      ref_agg_table.emplace(input.key, std::make_unique<AggTuple>(input));
+      ref_agg_table.emplace(input.key_, std::make_unique<AggTuple>(input));
     }
   }
 }
@@ -156,9 +156,9 @@ TEST_F(AggregationHashTableTest, IterationTest) {
     uint32_t group_count = 0;
     for (AHTIterator iter(*AggTable()); iter.HasNext(); iter.Next()) {
       auto *agg_tuple = reinterpret_cast<const AggTuple *>(iter.GetCurrentAggregateRow());
-      EXPECT_EQ(tuples_per_group, agg_tuple->count1);
-      EXPECT_EQ(tuples_per_group * 2, agg_tuple->count2);
-      EXPECT_EQ(tuples_per_group * 10, agg_tuple->count3);
+      EXPECT_EQ(tuples_per_group, agg_tuple->count1_);
+      EXPECT_EQ(tuples_per_group * 2, agg_tuple->count2_);
+      EXPECT_EQ(tuples_per_group * 10, agg_tuple->count3_);
       group_count++;
     }
 
@@ -237,8 +237,8 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
           VectorProjectionIterator::SynchronizedForEach({new_aggs, input}, [&]() {
             auto *e = *new_aggs->GetValue<sql::HashTableEntry *, false>(1, nullptr);
             auto agg = const_cast<AggTuple *>(e->PayloadAs<AggTuple>());
-            agg->key = *input->GetValue<uint32_t, false>(0, nullptr);
-            agg->count1 = agg->count2 = agg->count3 = 0;
+            agg->key_ = *input->GetValue<uint32_t, false>(0, nullptr);
+            agg->count1_ = agg->count2_ = agg->count3_ = 0;
           });
         },
         // Aggregate update function
@@ -246,9 +246,9 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
           VectorProjectionIterator::SynchronizedForEach({aggs, input}, [&]() {
             auto *e = *aggs->GetValue<sql::HashTableEntry *, false>(1, nullptr);
             auto agg = const_cast<AggTuple *>(e->PayloadAs<AggTuple>());
-            agg->count1 += count1_scale;
-            agg->count2 += count2_scale;
-            agg->count3 += count3_scale;
+            agg->count1_ += count1_scale;
+            agg->count2_ += count2_scale;
+            agg->count3_ += count3_scale;
           });
         },
         false /* Partitioned? */);
@@ -257,23 +257,23 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
   EXPECT_EQ(num_groups - 1, AggTable()->GetTupleCount());
   for (auto iter = AHTIterator(*AggTable()); iter.HasNext(); iter.Next()) {
     auto agg = reinterpret_cast<const AggTuple *>(iter.GetCurrentAggregateRow());
-    EXPECT_EQ(num_group_updates_per_batch * num_batches * count1_scale, agg->count1);
-    EXPECT_EQ(num_group_updates_per_batch * num_batches * count2_scale, agg->count2);
-    EXPECT_EQ(num_group_updates_per_batch * num_batches * count3_scale, agg->count3);
+    EXPECT_EQ(num_group_updates_per_batch * num_batches * count1_scale, agg->count1_);
+    EXPECT_EQ(num_group_updates_per_batch * num_batches * count2_scale, agg->count2_);
+    EXPECT_EQ(num_group_updates_per_batch * num_batches * count3_scale, agg->count3_);
   }
 }
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, OverflowPartitonIteratorTest) {
   struct Data {
-    uint32_t key{5};
-    uint32_t val{10};
+    uint32_t key_{5};
+    uint32_t val_{10};
   };
 
   struct TestEntry : public HashTableEntry {
-    Data data;
-    TestEntry() : HashTableEntry(), data{} {}
-    TestEntry(uint32_t key, uint32_t val) : HashTableEntry(), data{key, val} {}
+    Data data_;
+    TestEntry() : HashTableEntry(), data_{} {}
+    TestEntry(uint32_t key, uint32_t val) : HashTableEntry(), data_{key, val} {}
   };
 
   constexpr uint32_t nparts = 50;
@@ -309,8 +309,8 @@ TEST_F(AggregationHashTableTest, OverflowPartitonIteratorTest) {
     uint32_t count = 0;
     AHTOverflowPartitionIterator iter(partitions.begin(), partitions.end());
     for (; iter.HasNext(); iter.Next()) {
-      EXPECT_EQ(100u, iter.GetRowAs<Data>()->key);
-      EXPECT_EQ(200u, iter.GetRowAs<Data>()->val);
+      EXPECT_EQ(100u, iter.GetRowAs<Data>()->key_);
+      EXPECT_EQ(200u, iter.GetRowAs<Data>()->val_);
       count++;
     }
     EXPECT_EQ(1u, count);
@@ -358,7 +358,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
 
   // The whole-query state.
   struct QueryState {
-    std::atomic<uint32_t> row_count;
+    std::atomic<uint32_t> row_count_;
   };
 
   QueryState query_state{0};
@@ -427,11 +427,11 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   main_table.ExecuteParallelPartitionedScan(
       &query_state, &container, [](void *query_state, void *thread_state, const AggregationHashTable *agg_table) {
         auto *qs = reinterpret_cast<QueryState *>(query_state);
-        qs->row_count += agg_table->GetTupleCount();
+        qs->row_count_ += agg_table->GetTupleCount();
       });
 
   // Check
-  EXPECT_EQ(num_aggs, query_state.row_count.load(std::memory_order_seq_cst));
+  EXPECT_EQ(num_aggs, query_state.row_count_.load(std::memory_order_seq_cst));
 }
 
 }  // namespace terrier::execution::sql
