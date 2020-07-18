@@ -51,7 +51,6 @@ bool IterCteScanIterator::Accumulate() {
     // dump read table into table_1
     cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
   }
-
   if (written_) {
     // swap the table
     auto temp_table = cte_scan_write_;
