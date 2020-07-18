@@ -200,6 +200,90 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleSeqScanNonVecFilterTest) {
+  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1
+  // WHERE (col1 < 500 AND col2 >= 5) OR (500 <= col1 <= 1000 AND (col2 = 3 OR col2 = 7));
+  // The filter is not in DNF form and can't be vectorized.
+  auto accessor = MakeAccessor();
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  ExpressionMaker expr_maker;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    // Make New Column
+    auto col3 = expr_maker.OpMul(col1, col2);
+    auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
+    seq_scan_out.AddOutput("col1", common::ManagedPointer(col1));
+    seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
+    seq_scan_out.AddOutput("col3", common::ManagedPointer(col3));
+    seq_scan_out.AddOutput("col4", common::ManagedPointer(col4));
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
+    auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(5));
+    auto clause1 = expr_maker.ConjunctionAnd(comp1, comp2);
+    auto comp3 = expr_maker.ComparisonGe(col1, expr_maker.Constant(500));
+    auto comp4 = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
+    auto comp5 = expr_maker.ComparisonEq(col2, expr_maker.Constant(3));
+    auto comp6 = expr_maker.ComparisonEq(col2, expr_maker.Constant(7));
+    auto clause2 =
+        expr_maker.ConjunctionAnd(expr_maker.ConjunctionAnd(comp3, comp4), expr_maker.ConjunctionOr(comp5, comp6));
+    auto predicate = expr_maker.ConjunctionOr(clause1, clause2);
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the output checkers
+  std::function<void(const std::vector<sql::Val *> &)> row_checker = [](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<const sql::Integer *>(vals[0]);
+    auto col2 = static_cast<const sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    // Check predicate
+    ASSERT_TRUE((col1->val_ < 500 && col2->val_ >= 5) ||
+                (col1->val_ >= 500 && col1->val_ < 1000 && (col2->val_ == 7 || col2->val_ == 3)));
+  };
+  GenericChecker checker(row_checker, {});
+
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&checker}};
+
+  // Create the execution context
+  OutputStore store{&multi_checker, seq_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
+
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
+}
+
+// NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500;
   // This test first selects col1 and col2, and then constructs the 4 output columns.
