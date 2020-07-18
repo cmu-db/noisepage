@@ -2014,57 +2014,62 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
 }
 
 // Postgres.SelectStmt.withClause -> terrier.TableRef
-std::unique_ptr<TableRef> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
+std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
   // Postgres parses 'SELECT;' to nullptr
+  std::vector<std::unique_ptr<TableRef>> ctes;
   if (root == nullptr) {
-    return nullptr;
+    return ctes;
   }
 
   // TODO(Rohan, Preetansh, Gautam): - HANDLE CASE WHEN LENGTH OF ROOT > 1
   std::unique_ptr<TableRef> result = nullptr;
-  auto node = reinterpret_cast<Node *>(root->ctes_->head->data.ptr_value);
-  auto common_table_expr = reinterpret_cast<CommonTableExpr *>(node);
-  auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery_);
-  switch (cte_query->type) {
-    case T_SelectStmt: {
-      auto cte_select_query = reinterpret_cast<SelectStmt *>(cte_query);
-      if (root->iterative_ || root->recursive_) {
-        auto tmp = cte_select_query->larg_;
-        cte_select_query->larg_ = cte_select_query->rarg_;
-        cte_select_query->rarg_ = tmp;
-      }
-      auto select = SelectTransform(parse_result, cte_select_query);
-      if (select == nullptr) {
-        return nullptr;
-      }
-      auto alias = common_table_expr->ctename_;
+  ListCell *current = root->ctes_->head;
+  while (current != nullptr) {
+    auto node = reinterpret_cast<Node *>(current->data.ptr_value);
+    auto common_table_expr = reinterpret_cast<CommonTableExpr *>(node);
+    auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery_);
+    switch (cte_query->type) {
+      case T_SelectStmt: {
+        auto cte_select_query = reinterpret_cast<SelectStmt *>(cte_query);
+        if (root->iterative_ || root->recursive_) {
+          auto tmp = cte_select_query->larg_;
+          cte_select_query->larg_ = cte_select_query->rarg_;
+          cte_select_query->rarg_ = tmp;
+        }
+        auto select = SelectTransform(parse_result, cte_select_query);
+        if (select == nullptr) {
+          current = current->next;
+          continue;
+        }
+        auto alias = common_table_expr->ctename_;
 
-      std::vector<std::string> colnames;
-      auto col_names_root = common_table_expr->aliascolnames_;
-      if (col_names_root != nullptr) {
-        for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
-          auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
-          auto column = target->val_.str_;
-          colnames.emplace_back(column);
+        std::vector<std::string> colnames;
+        auto col_names_root = common_table_expr->aliascolnames_;
+        if (col_names_root != nullptr) {
+          for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
+            auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
+            auto column = target->val_.str_;
+            colnames.emplace_back(column);
+          }
         }
-      }
-      CTEType cte_type = CTEType::SIMPLE;
-      if(root->recursive_){
-        cte_type = CTEType::RECURSIVE;
-      }else{
-        if(root->iterative_){
-          cte_type = CTEType::ITERATIVE;
+        CTEType cte_type = CTEType::SIMPLE;
+        if (root->recursive_) {
+          cte_type = CTEType::RECURSIVE;
+        } else {
+          if (root->iterative_) {
+            cte_type = CTEType::ITERATIVE;
+          }
         }
+        result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
+        ctes.push_back(std::move(result));
+        current = current->next;
+        continue;
       }
-      result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
-      return result;
-    }
-    default: {
-      PARSER_LOG_AND_THROW("WithTransform", "WithType", node->type);
+      default: {
+        PARSER_LOG_AND_THROW("WithTransform", "WithType", node->type);
+      }
     }
   }
-
-  return result;
+    return ctes;
 }
-
-}  // namespace terrier::parser
+}// namespace terrier::parser

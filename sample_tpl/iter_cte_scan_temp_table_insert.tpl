@@ -10,7 +10,7 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
   col_types[0] = 4
 
   var cte_scan: IterCteScanIterator
-  @iterCteScanInit(&cte_scan, exec_ctx, col_types)
+  @iterCteScanInit(&cte_scan, exec_ctx, col_types, false)
 
   // Iterate from 1 -> 20
   var index_iter: IndexIterator
