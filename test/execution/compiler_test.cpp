@@ -103,7 +103,6 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -164,7 +163,6 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -251,7 +249,6 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -316,7 +313,6 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
                      .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddIndexColumn(catalog::indexkeycol_oid_t(1), const_500)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Exact)
                      .SetScanLimit(0)
@@ -373,7 +369,6 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)
@@ -453,7 +448,6 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(5)
@@ -532,7 +526,6 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
                      .SetScanLimit(0)
@@ -611,7 +604,6 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::DescendingLimit)
                      .SetScanLimit(5)
@@ -692,7 +684,6 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -782,7 +773,6 @@ TEST_F(CompilerTest, AggregateWithDistinctAndGroupByTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -864,7 +854,6 @@ TEST_F(CompilerTest, CountStarTest) {
                    .SetColumnOids({cola_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -926,7 +915,6 @@ TEST_F(CompilerTest, StaticAggregateTest) {
                    .SetColumnOids({})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -996,7 +984,6 @@ TEST_F(CompilerTest, StaticDistinctAggregateTest) {
                    .SetColumnOids({colb_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -1094,7 +1081,6 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -1187,7 +1173,6 @@ TEST_F(CompilerTest, StaticAggregateHavingTest) {
                    .SetColumnOids({})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -1262,7 +1247,6 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
                     .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -1286,7 +1270,6 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
                     .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid2)
                     .Build();
   }
@@ -1405,7 +1388,6 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
                     .SetColumnOids({cola_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -1426,7 +1408,6 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
                     .SetColumnOids({cola_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid2)
                     .Build();
   }
@@ -1447,7 +1428,6 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
                     .SetColumnOids({cola_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -1591,7 +1571,6 @@ TEST_F(CompilerTest, SimpleSortTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -1705,7 +1684,6 @@ TEST_F(CompilerTest, SortWithLimitTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -1803,7 +1781,6 @@ TEST_F(CompilerTest, SortWithLimitAndOffsetTest) {
                    .SetColumnOids({cola_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -1892,7 +1869,6 @@ TEST_F(CompilerTest, LimitAndOffsetTest) {
                    .SetColumnOids({cola_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -2929,7 +2905,6 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
                     .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -2953,7 +2928,6 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
                     .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid2)
                     .Build();
   }
@@ -3068,7 +3042,6 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid2)
                    .Build();
   }
@@ -3185,7 +3158,6 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -3299,7 +3271,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
                     .SetColumnOids({table_schema1.GetColumn("colA").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -3349,7 +3320,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
                    .SetColumnOids({cola_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -3381,7 +3351,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)
@@ -3436,7 +3405,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                                     table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -3506,7 +3474,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -3565,7 +3532,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
                      .SetScanLimit(0)
@@ -3619,7 +3585,6 @@ TEST_F(CompilerTest, SimpleInsertTest) {
                  .SetIndexOids({index_oid1})
                  .AddValues(std::move(values1))
                  .AddValues(std::move(values2))
-                 .SetNamespaceOid(NSOid())
                  .SetTableOid(table_oid1)
                  .Build();
   }
@@ -3667,7 +3632,6 @@ TEST_F(CompilerTest, SimpleInsertTest) {
                    .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -3733,7 +3697,6 @@ TEST_F(CompilerTest, SimpleInsertTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
                      .SetScanLimit(0)
@@ -3792,7 +3755,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
                                     table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -3806,7 +3768,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
                  .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
                  .SetIndexOids({index_oid1})
-                 .SetNamespaceOid(NSOid())
                  .SetTableOid(table_oid1)
                  .AddChild(std::move(seq_scan1))
                  .Build();
@@ -3862,7 +3823,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
                    .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -3926,7 +3886,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
                      .SetScanLimit(0)
@@ -4022,7 +3981,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
                  .SetIndexOids({index_oid1})
                  .AddValues(std::move(values1))
                  .AddValues(std::move(values2))
-                 .SetNamespaceOid(NSOid())
                  .SetTableOid(table_oid1)
                  .Build();
   }
@@ -4104,7 +4062,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
                    .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -4214,7 +4171,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)

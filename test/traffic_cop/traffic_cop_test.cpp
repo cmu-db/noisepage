@@ -104,7 +104,8 @@ TEST_F(TrafficCopTests, BadParseTest) {
     txn1.commit();
   } catch (const std::exception &e) {
     std::string error(e.what());
-    std::string expect("ERROR:  syntax error\n");
+    std::string expect(
+        "ERROR:  syntax error at or near \"INSTERT\"\nLINE 1: INSTERT INTO FOO VALUES (1,1);\n        ^\n");
     EXPECT_EQ(error, expect);
   }
 }
@@ -161,7 +162,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
       auto txn = txn_manager_->BeginTransaction();
       auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
       EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-      auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+      auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
       EXPECT_NE(db_accessor, nullptr);
       new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
       txn_manager_->Abort(txn);

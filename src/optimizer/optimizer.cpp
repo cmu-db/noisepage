@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/scoped_timer.h"
 #include "optimizer/binding.h"
 #include "optimizer/input_column_deriver.h"
@@ -112,8 +112,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   Group *group = context_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
-  OPTIMIZER_LOG_TRACE("Choosing best plan for group {0} with op {1}", gexpr->GetGroupID(),
-                      gexpr->Contents()->GetName().c_str());
+  OPTIMIZER_LOG_TRACE("Choosing best plan for group " + std::to_string(!gexpr->GetGroupID()) + " with op " +
+                      gexpr->Contents()->GetName());
 
   std::vector<group_id_t> child_groups = gexpr->GetChildGroupIDs();
 
@@ -152,7 +152,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   PlanGenerator generator;
   auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
                                       std::move(children_plans), std::move(children_expr_map));
-  OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group {0}", id);
+  OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group " + std::to_string(!id));
 
   if (op->Contents()->GetOpType() == OpType::CTESCAN && !child_groups.empty()) {
     TERRIER_ASSERT(child_groups.size() <= 2, "CTE should not have more than 1 child.");

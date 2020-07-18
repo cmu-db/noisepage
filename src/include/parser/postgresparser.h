@@ -6,8 +6,16 @@
 #include <vector>
 
 #include "libpg_query/pg_query.h"
+#include "parser/create_statement.h"
 #include "parser/parsenodes.h"
-#include "parser/statements.h"
+
+namespace terrier::parser {
+struct FuncParameter;
+struct ReturnType;
+class SQLStatement;
+class UpdateClause;
+class UpdateStatement;
+}  // namespace terrier::parser
 
 namespace terrier::parser {
 

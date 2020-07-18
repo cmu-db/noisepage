@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "common/json.h"
-#include "storage/data_table.h"
 
 namespace terrier::planner {
 

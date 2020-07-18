@@ -246,6 +246,31 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7, operand_8);
 }
 
+void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3,
+                           LocalVar operand_4, LocalVar operand_5, LocalVar operand_6, LocalVar operand_7,
+                           LocalVar operand_8, LocalVar operand_9) {
+  TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 9, "Incorrect operand count for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
+                 "Incorrect operand type at index 0 for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
+                 "Incorrect operand type at index 1 for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
+                 "Incorrect operand type at index 2 for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
+                 "Incorrect operand type at index 3 for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
+                 "Incorrect operand type at index 4 for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 5) == OperandType::Local,
+                 "Incorrect operand type at index 5 for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 6) == OperandType::Local,
+                 "Incorrect operand type at index 6 for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 7) == OperandType::Local,
+                 "Incorrect operand type at index 7 for bytecode");
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 8) == OperandType::Local,
+                 "Incorrect operand type at index 8 for bytecode");
+  EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7, operand_8, operand_9);
+}
+
 void BytecodeEmitter::EmitThreadStateContainerIterate(LocalVar tls, LocalVar ctx, FunctionId iterate_fn) {
   EmitAll(Bytecode::ThreadStateContainerIterate, tls, ctx, iterate_fn);
 }

@@ -1,2 +1,10 @@
 # Don't send any build context to Docker.
-**
+apidoc/
+sample_tpl/
+.gitattributes
+.gitignore
+Dockerfile
+Jenkinsfile
+Jenkinsfile-nightly
+LICENSE
+README.md

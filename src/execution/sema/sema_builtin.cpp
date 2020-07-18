@@ -106,48 +106,50 @@ void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin built
     return;
   }
 
-  // SQL Timestamp, HMSu.
-  if (builtin == ast::Builtin::TimestampToSqlHMSu) {
-    if (!CheckArgCountAtLeast(call, 7)) {
+  // SQL Timestamp, YMDHMSMU.
+  if (builtin == ast::Builtin::TimestampToSqlYMDHMSMU) {
+    if (!CheckArgCountAtLeast(call, 8)) {
       return;
     }
     auto int32_t_kind = ast::BuiltinType::Int32;
-    auto uint8_t_kind = ast::BuiltinType::Uint8;
-    auto uint32_t_kind = ast::BuiltinType::Uint32;
-    auto uint64_t_kind = ast::BuiltinType::Uint64;
     // First argument (year) is a int32_t
     if (!call->Arguments()[0]->GetType()->IsIntegerType()) {
       ReportIncorrectCallArg(call, 0, GetBuiltinType(int32_t_kind));
       return;
     }
-    // Second argument (month) is a uint32_t
+    // Second argument (month) is a int32_t
     if (!call->Arguments()[1]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 1, GetBuiltinType(uint32_t_kind));
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_t_kind));
       return;
     }
-    // Third argument (day) is a uint32_t
+    // Third argument (day) is a int32_t
     if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 2, GetBuiltinType(uint32_t_kind));
+      ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_t_kind));
       return;
     }
-    // Fourth argument (hour) is a uint8_t
+    // Fourth argument (hour) is a int32_t
     if (!call->Arguments()[3]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 3, GetBuiltinType(uint8_t_kind));
+      ReportIncorrectCallArg(call, 3, GetBuiltinType(int32_t_kind));
       return;
     }
-    // Fifth argument (minute) is a uint8_t
+    // Fifth argument (minute) is a int32_t
     if (!call->Arguments()[4]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 4, GetBuiltinType(uint8_t_kind));
+      ReportIncorrectCallArg(call, 4, GetBuiltinType(int32_t_kind));
       return;
     }
-    // Sixth argument (second) is a uint8_t
+    // Sixth argument (second) is a int32_t
     if (!call->Arguments()[5]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 5, GetBuiltinType(uint8_t_kind));
+      ReportIncorrectCallArg(call, 5, GetBuiltinType(int32_t_kind));
       return;
     }
-    // Seventh argument (microsecond) is a uint64_t
+    // Seventh argument (millisecond) is a int32_t
     if (!call->Arguments()[6]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 6, GetBuiltinType(uint64_t_kind));
+      ReportIncorrectCallArg(call, 6, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Eighth argument (microsecond) is a int32_t
+    if (!call->Arguments()[7]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 7, GetBuiltinType(int32_t_kind));
       return;
     }
     call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
@@ -2508,6 +2510,23 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::StringVal;
       break;
     }
+    case ast::Builtin::Version: {
+      // check to make sure this function has one arguments
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string call!!");
   }
@@ -2550,7 +2569,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::VarlenToSql:
     case ast::Builtin::DateToSql:
     case ast::Builtin::TimestampToSql:
-    case ast::Builtin::TimestampToSqlHMSu:
+    case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::SqlToBool: {
       CheckBuiltinSqlConversionCall(call, builtin);
       break;
@@ -2874,7 +2893,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinParamCall(call, builtin);
       break;
     }
-    case ast::Builtin::Lower: {
+    case ast::Builtin::Lower:
+    case ast::Builtin::Version: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }

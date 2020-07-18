@@ -356,8 +356,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     } else {
       // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
       output_expr_ = std::make_unique<OperatorNode>(
-          LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
-                           node->GetAlias(), false)
+          LogicalGet::Make(db_oid_, accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), false)
               .RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     }
@@ -478,12 +477,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
   auto target_table = op->GetInsertionTable();
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
   auto target_db_id = db_oid_;
-  auto target_ns_id = accessor_->GetDefaultNamespace();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
   if (op->GetInsertType() == parser::InsertType::SELECT) {
     auto insert_expr = std::make_unique<OperatorNode>(
-        LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id).RegisterWithTxnContext(txn_context),
+        LogicalInsertSelect::Make(target_db_id, target_table_id).RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     op->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
@@ -554,7 +552,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
   }
 
   auto insert_expr = std::make_unique<OperatorNode>(
-      LogicalInsert::Make(target_db_id, target_ns_id, target_table_id, std::move(col_ids), op->GetValues())
+      LogicalInsert::Make(target_db_id, target_table_id, std::move(col_ids), op->GetValues())
           .RegisterWithTxnContext(txn_context),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   output_expr_ = std::move(insert_expr);
@@ -565,14 +563,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
   auto target_table = op->GetDeletionTable();
   auto target_db_id = db_oid_;
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
-  auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto delete_expr = std::make_unique<OperatorNode>(
-      LogicalDelete::Make(target_db_id, target_ns_id, target_table_alias, target_table_id)
-          .RegisterWithTxnContext(txn_context),
+      LogicalDelete::Make(target_db_id, target_table_alias, target_table_id).RegisterWithTxnContext(txn_context),
       std::move(c), txn_context);
 
   std::unique_ptr<OperatorNode> table_scan;
@@ -580,14 +576,14 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
     std::vector<AnnotatedExpression> predicates;
     QueryToOperatorTransformer::ExtractPredicates(op->GetDeleteCondition(), &predicates);
     table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true)
+        LogicalGet::Make(target_db_id, target_table_id, predicates, target_table_alias, true)
             .RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   } else {
-    table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true)
-            .RegisterWithTxnContext(txn_context),
-        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    table_scan =
+        std::make_unique<OperatorNode>(LogicalGet::Make(target_db_id, target_table_id, {}, target_table_alias, true)
+                                           .RegisterWithTxnContext(txn_context),
+                                       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   }
   delete_expr->PushChild(std::move(table_scan));
 
@@ -647,7 +643,6 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
   auto target_table = op->GetUpdateTable();
   auto target_db_id = db_oid_;
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
-  auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
@@ -655,7 +650,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto update_expr = std::make_unique<OperatorNode>(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_alias, target_table_id, op->GetUpdateClauses())
+      LogicalUpdate::Make(target_db_id, target_table_alias, target_table_id, op->GetUpdateClauses())
           .RegisterWithTxnContext(txn_context),
       std::move(c), txn_context);
 
@@ -663,14 +658,14 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
     std::vector<AnnotatedExpression> predicates;
     QueryToOperatorTransformer::ExtractPredicates(op->GetUpdateCondition(), &predicates);
     table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true)
+        LogicalGet::Make(target_db_id, target_table_id, predicates, target_table_alias, true)
             .RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   } else {
-    table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true)
-            .RegisterWithTxnContext(txn_context),
-        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    table_scan =
+        std::make_unique<OperatorNode>(LogicalGet::Make(target_db_id, target_table_id, {}, target_table_alias, true)
+                                           .RegisterWithTxnContext(txn_context),
+                                       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   }
   update_expr->PushChild(std::move(table_scan));
 
@@ -696,11 +691,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
 
     auto target_table = op->GetCopyTable();
 
-    auto insert_op =
-        std::make_unique<OperatorNode>(LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),
-                                                                 accessor_->GetTableOid(target_table->GetTableName()))
-                                           .RegisterWithTxnContext(txn_context),
-                                       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    auto insert_op = std::make_unique<OperatorNode>(
+        LogicalInsertSelect::Make(db_oid_, accessor_->GetTableOid(target_table->GetTableName()))
+            .RegisterWithTxnContext(txn_context),
+        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     insert_op->PushChild(std::move(get_op));
     output_expr_ = std::move(insert_op);
 

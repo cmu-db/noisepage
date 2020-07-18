@@ -6,12 +6,16 @@ import subprocess
 import re
 import signal
 import errno
+from util.constants import LOG
 
 def run_command(command,
                 error_msg="",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=None):
+    """
+    General purpose wrapper for running a subprocess
+    """
     p = subprocess.Popen(shlex.split(command),
                          stdout=stdout,
                          stderr=stderr,
@@ -21,10 +25,11 @@ def run_command(command,
         if stdout == subprocess.PIPE:
             out = p.stdout.readline()
             if out:
-                print(out.decode("utf-8").rstrip("\n"))
+                LOG.info(out.decode("utf-8").rstrip("\n"))
 
     rc = p.poll()
     return rc, p.stdout, p.stderr
+
 
 def check_port(port):
     """Get the list of PIDs (if any) listening on the target port"""
@@ -42,6 +47,7 @@ def check_port(port):
                 yield int(pid)
             except:
                 pass
+
 
 def check_pid(pid):
     """Check whether pid exists in the current process table."""

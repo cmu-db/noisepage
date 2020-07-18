@@ -66,6 +66,7 @@ namespace terrier::execution::vm {
   CREATE_FOR_ALL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   /* Boolean complement */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
+  F(NotSql, OperandType::Local, OperandType::Local)                                                                   \
                                                                                                                       \
   /* Branching */                                                                                                     \
   F(Jump, OperandType::JumpOffset)                                                                                    \
@@ -204,8 +205,8 @@ namespace terrier::execution::vm {
   F(IntegerToReal, OperandType::Local, OperandType::Local)                                                            \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
-  F(InitTimestampHMSu, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                \
-    OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,            \
+    OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)               \
   F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                             \
   F(InitVarlen, OperandType::Local, OperandType::Local)                                                               \
   F(LessThanBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
@@ -500,6 +501,7 @@ namespace terrier::execution::vm {
     OperandType::Local)                                                                                               \
   F(NpRunnersDummyInt, OperandType::Local)                                                                            \
   F(NpRunnersDummyReal, OperandType::Local)                                                                           \
+  F(Version, OperandType::Local, OperandType::Local)                                                                  \
                                                                                                                       \
   /* String functions */                                                                                              \
   F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \

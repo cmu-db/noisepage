@@ -8,6 +8,8 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/index_join_plan_node.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 
@@ -162,7 +164,7 @@ void IndexScanTranslator::FillKey(
 void IndexScanTranslator::GenForLoop(FunctionBuilder *builder) {
   // for (@indexIteratorScanKey(&index_iter); @indexIteratorAdvance(&index_iter);)
   // Loop Initialization
-  ast::Expr *scan_call = codegen_->IndexIteratorScan(index_iter_, op_->GetScanType(), op_->ScanLimit());
+  ast::Expr *scan_call = codegen_->IndexIteratorScan(index_iter_, op_->GetScanType(), op_->GetScanLimit());
 
   ast::Stmt *loop_init = codegen_->MakeStmt(scan_call);
   // Loop condition

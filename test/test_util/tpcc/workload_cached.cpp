@@ -65,7 +65,7 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
       const auto parse_result = parser::PostgresParser::BuildParseTree(query);
       transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
 
-      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
       binder::BindNodeVisitor visitor(common::ManagedPointer(accessor.get()), db_oid_);
       visitor.BindNameToNode(common::ManagedPointer<parser::ParseResult>(parse_result), nullptr, nullptr);
 
@@ -103,7 +103,8 @@ void WorkloadCached::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per
   for (uint32_t i = 0; i < num_precomputed_txns_per_worker; i++) {
     // Executing all the queries on by one in round robin
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
+    auto accessor =
+        catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
     for (execution::ExecutableQuery &query : queries_.find(txn_names_[index[counter]])->second) {
       execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
                                                  nullptr, nullptr,  // FIXME: Get the correct output later

@@ -10,6 +10,7 @@
 #include "execution/compiler/translator_factory.h"
 #include "parser/expression/constant_value_expression.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::compiler {
 

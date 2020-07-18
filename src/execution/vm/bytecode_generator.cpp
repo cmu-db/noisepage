@@ -405,9 +405,16 @@ void BytecodeGenerator::VisitArithmeticUnaryExpr(ast::UnaryOpExpr *op) {
 
 void BytecodeGenerator::VisitLogicalNotExpr(ast::UnaryOpExpr *op) {
   LocalVar dest = ExecutionResult()->GetOrCreateDestination(op->GetType());
-  LocalVar input = VisitExpressionForRValue(op->Expression());
-  Emitter()->EmitUnaryOp(Bytecode::Not, dest, input);
-  ExecutionResult()->SetDestination(dest.ValueOf());
+  LocalVar input;
+  if (op->GetType()->IsBoolType()) {
+    input = VisitExpressionForRValue(op->Expression());
+    Emitter()->EmitUnaryOp(Bytecode::Not, dest, input);
+    ExecutionResult()->SetDestination(dest.ValueOf());
+  } else if (op->GetType()->IsSqlBooleanType()) {
+    input = VisitExpressionForLValue(op->Expression());
+    Emitter()->EmitUnaryOp(Bytecode::NotSql, dest, input);
+    ExecutionResult()->SetDestination(dest);
+  }
 }
 
 void BytecodeGenerator::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
@@ -538,7 +545,7 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       Emitter()->Emit(Bytecode::InitTimestamp, dest, usec);
       break;
     }
-    case ast::Builtin::TimestampToSqlHMSu: {
+    case ast::Builtin::TimestampToSqlYMDHMSMU: {
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Timestamp));
       auto year = VisitExpressionForRValue(call->Arguments()[0]);
       auto month = VisitExpressionForRValue(call->Arguments()[1]);
@@ -546,8 +553,9 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       auto h = VisitExpressionForRValue(call->Arguments()[3]);
       auto m = VisitExpressionForRValue(call->Arguments()[4]);
       auto s = VisitExpressionForRValue(call->Arguments()[5]);
-      auto us = VisitExpressionForRValue(call->Arguments()[6]);
-      Emitter()->Emit(Bytecode::InitTimestampHMSu, dest, year, month, day, h, m, s, us);
+      auto ms = VisitExpressionForRValue(call->Arguments()[6]);
+      auto us = VisitExpressionForRValue(call->Arguments()[7]);
+      Emitter()->Emit(Bytecode::InitTimestampYMDHMSMU, dest, year, month, day, h, m, s, ms, us);
       break;
     }
     default: {
@@ -2054,11 +2062,15 @@ void BytecodeGenerator::VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin 
 
 void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
-  LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
   LocalVar ret = ExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
     case ast::Builtin::Lower: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       Emitter()->Emit(Bytecode::Lower, exec_ctx, ret, input_string);
+      break;
+    }
+    case ast::Builtin::Version: {
+      Emitter()->Emit(Bytecode::Version, exec_ctx, ret);
       break;
     }
     default:
@@ -2084,7 +2096,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::FloatToSql:
     case ast::Builtin::DateToSql:
     case ast::Builtin::TimestampToSql:
-    case ast::Builtin::TimestampToSqlHMSu:
+    case ast::Builtin::TimestampToSqlYMDHMSMU:
     case ast::Builtin::VarlenToSql:
     case ast::Builtin::StringToSql:
     case ast::Builtin::SqlToBool: {
@@ -2368,7 +2380,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
 
-    case ast::Builtin::Lower: {
+    case ast::Builtin::Lower:
+    case ast::Builtin::Version: {
       VisitBuiltinStringCall(call, builtin);
       break;
     }

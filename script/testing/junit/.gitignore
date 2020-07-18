@@ -1,4 +1,7 @@
-
-!Makefile
+# keep the jar files
 !lib/*.jar
-!out/
+noisepage-testfiles/
+out/
+trace/
+src/sel.test
+src/ins_output.test

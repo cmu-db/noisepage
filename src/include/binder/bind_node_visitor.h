@@ -5,17 +5,15 @@
 #include <utility>
 #include <vector>
 
-#include "binder/binder_context.h"
 #include "binder/binder_sherpa.h"
 #include "binder/sql_node_visitor.h"
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "parser/postgresparser.h"
-#include "parser/statements.h"
 
 namespace terrier {
 
 namespace parser {
-class SQLStatement;
 class AggregateExpression;
 class CaseExpression;
 class ConstantValueExpression;
@@ -23,6 +21,7 @@ class ColumnValueExpression;
 class OperatorExpression;
 class SubqueryExpression;
 class StarExpression;
+class SQLStatement;
 }  // namespace parser
 
 namespace catalog {
@@ -30,8 +29,7 @@ class CatalogAccessor;
 }  // namespace catalog
 
 namespace binder {
-
-class BinderSherpa;
+class BinderContext;
 
 /**
  * Interface to be notified of the composition of a bind node.
@@ -109,8 +107,12 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void ValidateDatabaseName(const std::string &db_name) {
     if (!(db_name.empty())) {
       const auto db_oid = catalog_accessor_->GetDatabaseOid(db_name);
-      if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-      if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
+      if (db_oid == catalog::INVALID_DATABASE_OID)
+        throw BINDER_EXCEPTION(fmt::format("Database \"{}\" does not exist", db_name),
+                               common::ErrorCode::ERRCODE_UNDEFINED_DATABASE);
+      if (db_oid != db_oid_)
+        throw BINDER_EXCEPTION("cross-database references are not implemented: ",
+                               common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
     }
   }
 };

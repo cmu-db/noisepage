@@ -9,6 +9,7 @@ base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
 from oltpbench.test_oltpbench import TestOLTPBench
+from util.constants import LOG
 
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(description="Timeseries")
@@ -32,13 +33,17 @@ if __name__ == "__main__":
                          default="debug",
                          choices=["debug", "release", "relwithdebinfo"],
                          help="Build type (default: %(default)s")
+    aparser.add_argument("--query-mode",
+                         default="simple",
+                         choices=["simple", "extended"],
+                         help="Query protocol mode")
     args = vars(aparser.parse_args())
 
     try:
         oltpbench = TestOLTPBench(args)
         exit_code = oltpbench.run()
     except:
-        print("Exception trying to run OLTP Bench tests")
+        LOG.error("Exception trying to run OLTP Bench tests")
         traceback.print_exc(file=sys.stdout)
         exit_code = 1
 

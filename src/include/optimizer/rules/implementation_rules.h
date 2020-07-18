@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "catalog/index_schema.h"
 #include "optimizer/rule.h"
 
 namespace terrier::optimizer {

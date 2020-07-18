@@ -9,8 +9,10 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/selectivity.h"
 #include "optimizer/statistics/stats_storage.h"

@@ -8,10 +8,9 @@
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
-#include "common/stat_registry.h"
-#include "common/worker_pool.h"
-#include "execution/execution_util.h"
 #include "metrics/metrics_thread.h"
+#include "network/postgres/postgres_command_factory.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
@@ -262,8 +261,8 @@ class DBMain {
    */
   class ExecutionLayer {
    public:
-    ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
-    ~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
+    ExecutionLayer();
+    ~ExecutionLayer();
   };
 
   /**
@@ -284,7 +283,7 @@ class DBMain {
           use_settings_manager_ ? BootstrapSettingsManager(common::ManagedPointer(db_main)) : DISABLED;
 
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
-      if (use_metrics_) metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (use_metrics_) metrics_manager = BootstrapMetricsManager();
 
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {
@@ -626,6 +625,12 @@ class DBMain {
     bool use_metrics_ = false;
     uint32_t metrics_interval_ = 10000;
     bool use_metrics_thread_ = false;
+    bool metrics_pipeline_ = false;
+    bool metrics_transaction_ = false;
+    bool metrics_logging_ = false;
+    bool metrics_gc_ = false;
+    bool metrics_bind_command_ = false;
+    bool metrics_execute_command_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
     std::string log_file_path_ = "wal.log";
@@ -687,7 +692,30 @@ class DBMain {
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
       use_query_cache_ = settings_manager->GetBool(settings::Param::use_query_cache);
 
+      metrics_pipeline_ = settings_manager->GetBool(settings::Param::metrics_pipeline);
+      metrics_transaction_ = settings_manager->GetBool(settings::Param::metrics_transaction);
+      metrics_logging_ = settings_manager->GetBool(settings::Param::metrics_logging);
+      metrics_gc_ = settings_manager->GetBool(settings::Param::metrics_gc);
+      metrics_bind_command_ = settings_manager->GetBool(settings::Param::metrics_bind_command);
+      metrics_execute_command_ = settings_manager->GetBool(settings::Param::metrics_execute_command);
+
       return settings_manager;
+    }
+
+    /**
+     * Instantiate the MetricsManager and enable metrics for components arrocding to the Builder's settings.
+     * @return
+     */
+    std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
+      std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (metrics_pipeline_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+      if (metrics_transaction_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
+      if (metrics_logging_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+      if (metrics_gc_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+      if (metrics_bind_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND, 0);
+      if (metrics_execute_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND, 0);
+
+      return metrics_manager;
     }
   };
 

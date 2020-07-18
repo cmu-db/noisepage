@@ -4,6 +4,8 @@
 #include <string_view>
 #include <variant>
 
+#include "common/error/error_data.h"
+
 namespace terrier::trafficcop {
 
 /**
@@ -25,7 +27,7 @@ struct TrafficCopResult {
    * The number is envisioned for operations that return a number (INSERT, UPDATE, DELETE) or the string can be used to
    * return error messages.
    */
-  std::variant<uint32_t, std::string> extra_;
+  std::variant<uint32_t, common::ErrorData> extra_;
 };
 
 }  // namespace terrier::trafficcop
