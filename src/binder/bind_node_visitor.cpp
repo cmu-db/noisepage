@@ -468,7 +468,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       if (num_aliases > num_columns) {
         throw BINDER_EXCEPTION(("WITH query " + cte_table_name_.back() + " has " + std::to_string(num_columns) +
                                 " columns available but " + std::to_string(num_aliases) + " specified")
-                                   .c_str());
+                                   .c_str(), common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
       }
       for (unsigned long i = 0; i < num_aliases; i++) {
         columns[i]->SetAlias(column_aliases[i]);
@@ -533,11 +533,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
     auto &union_cols = node->GetUnionSelect()->GetSelectColumns();
     if (new_select_list.size() != union_cols.size()) {
-      BINDER_EXCEPTION("Mismatched schemas in union");
+      BINDER_EXCEPTION("Mismatched schemas in union", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
     }
     for (uint32_t ind = 0; ind < new_select_list.size(); ind++) {
       if (new_select_list[ind]->GetExpressionType() != union_cols[ind]->GetExpressionType()) {
-        BINDER_EXCEPTION("Mismatched schemas in union");
+        BINDER_EXCEPTION("Mismatched schemas in union", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
       }
     }
   }

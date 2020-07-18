@@ -26,6 +26,7 @@ class Update;
 class HashGroupBy;
 class SortGroupBy;
 class Aggregate;
+class CteScan;
 class ExportExternalFile;
 class CreateDatabase;
 class CreateFunction;
@@ -54,6 +55,7 @@ class LogicalLeftJoin;
 class LogicalRightJoin;
 class LogicalOuterJoin;
 class LogicalSemiJoin;
+class LogicalUnion;
 class LogicalAggregateAndGroupBy;
 class LogicalInsert;
 class LogicalInsertSelect;
@@ -75,6 +77,7 @@ class LogicalDropNamespace;
 class LogicalDropTrigger;
 class LogicalDropView;
 class LogicalAnalyze;
+class LogicalCteScan;
 
 /**
  * Utility class for visitor pattern
