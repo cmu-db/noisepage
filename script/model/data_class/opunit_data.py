@@ -23,7 +23,9 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
         io_util.write_csv_result(output_path, key, value)
 
 
-def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cache={}, subtract_style="manual"):
+def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cache={},
+                         subtract_style="manual", record_values="all", anomaly_clearance=0,
+                         visibility="all"):
     """Get the training data from the mini runner
 
     :param filename: the input data file
@@ -31,6 +33,9 @@ def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cac
     :param model_map: the map from OpUnit to the mini model
     :param predict_cache: cache for the mini model prediction
     :param subtract_style: subtraction style for eliminating units
+    :param record_values: either "all" or "avg" for whether all points should be recorded
+    :param anomaly_clearance: number too high/too low anomalies to prune if record_values != "all"
+    :param visibility: whether all points should be seen by model
     :return: the list of Data for execution operating units
     """
 
@@ -39,7 +44,7 @@ def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cac
         return []
     if "execution" in filename:
         # Handle the execution data
-        return _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract_style)
+        return _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract_style, record_values, anomaly_clearance, visibility)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_mini_runner_data(filename, model_results_path)
@@ -92,9 +97,23 @@ def _interval_get_mini_runner_data(filename, model_results_path):
 
     return [OpUnitData(OpUnit[file_name.upper()], np.array(x_list), np.array(y_list))]
 
-def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract_style):
+def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract_style, record_values, anomaly_clearance, visibility):
+    """Get the training data from the mini runner
+
+    :param filename: the input data file
+    :param model_map: the map from OpUnit to the mini model
+    :param predict_cache: cache for the mini model prediction
+    :param subtract_style: subtraction style for eliminating units
+    :param record_values: either "all" or "avg" for whether all points should be recorded
+    :param anomaly_clearance: number too high/too low anomalies to prune if record_values != "all"
+    :param visibility: whether all points should be seen by model
+    :return: the list of Data for execution operating units
+    """
+
     # Get the mini runner data for the execution engine
     data_map = {}
+    anomaly_map = {}
+    anomaly_keys = {}
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
 
@@ -122,12 +141,10 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract
                         predict_cache[tuple(key)] = [predict]
                         y_merged = y_merged - predict
                     else:
-                        if len(predict_cache[tuple(key)]) != 1:
-                            print("{}: {}".format(tuple(key), predict_cache[tuple(key)]))
-
                         assert len(predict_cache[tuple(key)]) == 1
                         predict = np.average(predict_cache[tuple(key)], axis=0)
 
+                        # Sanity check
                         assert len(predict) == len(y_merged)
                         y_merged = y_merged - predict
 
@@ -138,12 +155,45 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract
             if len(opunits) > 1:
                 raise Exception('Unmodelled OperatingUnits detected: {}'.format(opunits))
 
-            # opunits[0][0] is the opunit
-            # opunits[0][1] is input feature
-            # y_merged should be post-subtraction
-            if opunits[0][0] not in data_map:
-                data_map[opunits[0][0]] = []
-            data_map[opunits[0][0]].append(opunits[0][1] + list(y_merged))
+            # Record into predict_cache
+            key = tuple([opunits[0][0]] + opunits[0][1])
+            if key not in predict_cache:
+                predict_cache[key] = []
+            predict_cache[key].append(y_merged)
+            anomaly_map[key] = 1
+
+    # Postprocess the anomaly_map -> data_map
+    # We need to do this here since we need to have seen all the data
+    # before we can start pruning. This step is done here so dropped
+    # data don't actually become a part of the model.
+    for anomaly in anomaly_map:
+        key = anomaly
+        len_vec = len(predict_cache[key])
+        if record_values == "avg" and len_vec > anomaly_clearance:
+            purge = 0
+            predict_cache[key].sort(key=lambda x: x[-1])
+
+            if len_vec > anomaly_clearance * 2:
+                purge = anomaly_clearance
+            else:
+                purge = anomaly_clearance / 2
+
+            purge = int(purge)
+            predict_cache[key] = predict_cache[key][purge:len_vec-purge]
+            assert len(predict_cache[key]) > 0
+
+        opunit = anomaly[0]
+        if opunit not in data_map:
+            data_map[opunit] = []
+
+        if visibility == "all":
+            for data in predict_cache[key]:
+                data_vec = list(anomaly[1:]) + list(data)
+                data_map[opunit].append(data_vec)
+        else:
+            predict = np.average(predict_cache[key], axis=0)
+            predict_cache[key] = [predict]
+            data_map[opunit].append(list(anomaly[1:]) + list(predict))
 
     data_list = []
     for opunit, values in data_map.items():
