@@ -333,7 +333,7 @@ class SelectStatement : public SQLStatement {
   SelectStatement(std::vector<common::ManagedPointer<AbstractExpression>> select, bool select_distinct,
                   std::unique_ptr<TableRef> from, common::ManagedPointer<AbstractExpression> where,
                   std::unique_ptr<GroupByDescription> group_by, std::unique_ptr<OrderByDescription> order_by,
-                  std::unique_ptr<LimitDescription> limit, std::unique_ptr<TableRef> with = nullptr)
+                  std::unique_ptr<LimitDescription> limit, std::vector<std::unique_ptr<TableRef>> &&with)
       : SQLStatement(StatementType::SELECT),
         select_(std::move(select)),
         select_distinct_(select_distinct),
@@ -375,7 +375,13 @@ class SelectStatement : public SQLStatement {
   common::ManagedPointer<LimitDescription> GetSelectLimit() { return common::ManagedPointer(limit_); }
 
   /** @return select with */
-  common::ManagedPointer<TableRef> GetSelectWith() { return common::ManagedPointer(with_table_); }
+  std::vector<common::ManagedPointer<TableRef>> GetSelectWith() {
+    std::vector<common::ManagedPointer<TableRef>> ret;
+    for(auto &ref : with_table_){
+      ret.push_back(common::ManagedPointer<TableRef>(ref));
+    }
+    return ret;
+  }
 
   /** @return depth of the select statement */
   int GetDepth() { return depth_; }
@@ -426,7 +432,7 @@ class SelectStatement : public SQLStatement {
   std::unique_ptr<LimitDescription> limit_;
   std::unique_ptr<SelectStatement> union_select_;
   int depth_ = -1;
-  std::unique_ptr<TableRef> with_table_;
+  std::vector<std::unique_ptr<TableRef>> with_table_;
 
   /** @param select List of select columns */
   void SetSelectColumns(std::vector<common::ManagedPointer<AbstractExpression>> select) { select_ = std::move(select); }

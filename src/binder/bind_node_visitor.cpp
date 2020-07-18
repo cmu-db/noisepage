@@ -44,7 +44,7 @@ namespace terrier::binder {
 
 BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
                                  const catalog::db_oid_t db_oid)
-    : catalog_accessor_(catalog_accessor), db_oid_(db_oid), cte_table_name_("") {}
+    : catalog_accessor_(catalog_accessor), db_oid_(db_oid) {}
 
 void BindNodeVisitor::BindNameToNode(
     common::ManagedPointer<parser::ParseResult> parse_result,
@@ -439,20 +439,19 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BinderContext context(context_);
   context_ = common::ManagedPointer(&context);
 
-  if (node->GetSelectWith() != nullptr) {
+  for(auto &ref : node->GetSelectWith()){
     // Store CTE table name
-    TERRIER_ASSERT(cte_table_name_.empty(), "cte table name should not be set.");
-    cte_table_name_ = node->GetSelectWith()->GetAlias();
+    cte_table_name_.push_back(ref->GetAlias());
 
-    if (node->GetSelectWith()->GetSelect() != nullptr) {
-      auto column_aliases = node->GetSelectWith()->GetCteColumnAliases();     // Get aliases from TableRef
-      auto columns = node->GetSelectWith()->GetSelect()->GetSelectColumns();  // AbstractExpressions in select
+    if (ref->GetSelect() != nullptr) {
+      auto column_aliases = ref->GetCteColumnAliases();     // Get aliases from TableRef
+      auto columns = ref->GetSelect()->GetSelectColumns();  // AbstractExpressions in select
 
       auto num_aliases = column_aliases.size();
       auto num_columns = columns.size();
 
       if (num_aliases > num_columns) {
-        throw BINDER_EXCEPTION(("WITH query " + cte_table_name_ + " has " + std::to_string(num_columns) +
+        throw BINDER_EXCEPTION(("WITH query " + cte_table_name_.back() + " has " + std::to_string(num_columns) +
                                 " columns available but " + std::to_string(num_aliases) + " specified")
                                    .c_str());
       }
@@ -460,20 +459,20 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
         columns[i]->SetAlias(column_aliases[i]);
       }
 
-      if ((node->GetSelectWith()->GetCteType() == parser::CTEType::ITERATIVE) ||
-          (node->GetSelectWith()->GetCteType() == parser::CTEType::RECURSIVE)) {
+      if ((ref->GetCteType() == parser::CTEType::ITERATIVE) ||
+          (ref->GetCteType() == parser::CTEType::RECURSIVE)) {
         // get schema
-        auto union_larg = node->GetSelectWith()->GetSelect();
+        auto union_larg = ref->GetSelect();
         auto base_case = union_larg->GetUnionSelect();
         if (base_case != nullptr) {
           base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
         }
         auto &sel_cols = base_case->GetSelectColumns();
-        context.AddNestedTable(cte_table_name_, sel_cols, column_aliases);
+        context.AddNestedTable(cte_table_name_.back(), sel_cols, column_aliases);
       }
     }
 
-    node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
 
   if (node->GetSelectTable() != nullptr)
@@ -796,7 +795,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     // Single table
     if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
       // table not in catalog, check if table referred is the cte table
-      if (node->GetTableName() == cte_table_name_) {
+      if (std::find(cte_table_name_.begin(), cte_table_name_.end(), node->GetTableName()) != cte_table_name_.end()) {
         // copy cte table's schema for this alias
         context_->AddCTETable(node->GetTableName(), node->GetAlias());
       } else {

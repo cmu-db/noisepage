@@ -28,7 +28,7 @@ namespace terrier::optimizer {
 
 QueryToOperatorTransformer::QueryToOperatorTransformer(
     const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, const catalog::db_oid_t db_oid)
-    : accessor_(catalog_accessor), db_oid_(db_oid), cte_table_name_("") {
+    : accessor_(catalog_accessor), db_oid_(db_oid) {
   output_expr_ = nullptr;
 }
 
@@ -41,18 +41,20 @@ std::unique_ptr<AbstractOptimizerNode> QueryToOperatorTransformer::ConvertToOpEx
   return std::move(output_expr_);
 }
 
-bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<AbstractOptimizerNode> child_expr) {
+bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<AbstractOptimizerNode> child_expr,
+                                                      const std::string &cte_table_name) {
   bool is_added = false;
 
   // TODO(preetang): Replace explicit string usage for operator name with reference to constant string
-  if (child_expr->Contents()->GetName() == "LogicalCteScan") {
+  if (child_expr->Contents()->GetOpType() == OpType::LOGICALCTESCAN
+      && (child_expr->Contents()->GetContentsAs<LogicalCteScan>()->GetTableAlias() == cte_table_name)) {
     // Leftmost LogicalCteScan found in tree
     child_expr->PushChild(std::move(output_expr_));
     is_added = true;
   } else {
     auto children = child_expr->GetChildren();
     for (auto &i : children) {
-      is_added = FindFirstCTEScanNode(i);
+      is_added = FindFirstCTEScanNode(i, cte_table_name);
       if (is_added) break;
     }
   }
@@ -69,29 +71,33 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   predicates_ = {};
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
-  if (op->GetSelectWith() != nullptr) {
-    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-    // SELECT statement has CTE, register CTE table name
-    cte_table_name_ = op->GetSelectWith()->GetAlias();
-    cte_type_ = op->GetSelectWith()->GetCteType();
-    auto cte_scan_expr = std::make_unique<OperatorNode>(
-        LogicalCteScan::Make(cte_table_name_, {}, cte_type_, {}),
-        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
-    cte_scan_expr->PushChild(std::move(output_expr_));
-    output_expr_ = std::move(cte_scan_expr);
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
-    for (auto &elem : op->GetSelectWith()->GetSelect()->GetSelectColumns()) {
-      expressions.push_back(elem);
-    }
-    cte_expressions_.push_back(std::move(expressions));
-
-    if (op->GetSelectWith()->GetSelect()->GetUnionSelect() != nullptr) {
-      std::vector<common::ManagedPointer<parser::AbstractExpression>> second_expressions;
-      auto &second_columns = op->GetSelectWith()->GetSelect()->GetUnionSelect()->GetSelectColumns();
-      for (auto &elems : second_columns) {
-        second_expressions.push_back(elems);
+  if (!op->GetSelectWith().empty()) {
+    for (auto with : op->GetSelectWith()) {
+      with->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+      // SELECT statement has CTE, register CTE table name
+      cte_table_name_.push_back(with->GetAlias());
+      cte_type_.push_back(with->GetCteType());
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> master_expressions;
+      auto cte_scan_expr = std::make_unique<OperatorNode>(
+          LogicalCteScan::Make(with->GetAlias(), {}, with->GetCteType(), {}),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+      cte_scan_expr->PushChild(std::move(output_expr_));
+      output_expr_ = std::move(cte_scan_expr);
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
+      for (auto &elem : with->GetSelect()->GetSelectColumns()) {
+        expressions.push_back(elem);
       }
-      cte_expressions_.push_back(std::move(second_expressions));
+      master_expressions.push_back(std::move(expressions));
+
+      if (with->GetSelect()->GetUnionSelect() != nullptr) {
+        std::vector<common::ManagedPointer<parser::AbstractExpression>> second_expressions;
+        auto &second_columns = with->GetSelect()->GetUnionSelect()->GetSelectColumns();
+        for (auto &elems : second_columns) {
+          second_expressions.push_back(elems);
+        }
+        master_expressions.push_back(std::move(second_expressions));
+      }
+      cte_expressions_.push_back(master_expressions);
     }
   }
 
@@ -194,15 +200,19 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     output_expr_ = std::move(limit_expr);
   }
 
-  if (op->GetSelectWith() != nullptr) {
+  if (!op->GetSelectWith().empty()) {
     // Store the current logical tree in another expression
     auto child_expr = std::move(output_expr_);
 
-    // Get the logical tree for the query which is used to compute the CTE table
-    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    for (auto with : op->GetSelectWith()) {
+      // Get the logical tree for the query which is used to compute the CTE table
+      with->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
-    // Add CTE table query to first LogicalCteScan found in tree
-    FindFirstCTEScanNode(common::ManagedPointer(child_expr).CastManagedPointerTo<AbstractOptimizerNode>());
+      // Add CTE table query to first LogicalCteScan found in tree
+      // TODO(tanujnay112) think about this more, there might be a better way
+      FindFirstCTEScanNode(common::ManagedPointer(child_expr).CastManagedPointerTo<AbstractOptimizerNode>(),
+          with->GetAlias());
+    }
 
     // Replace the complete logical tree back
     output_expr_ = std::move(child_expr);
@@ -335,10 +345,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     // Single table
     if (node->GetList().size() == 1) node = node->GetList().at(0).Get();
 
-    if (node->GetTableName() == cte_table_name_) {
+    auto it = std::find(cte_table_name_.begin(), cte_table_name_.end(), node->GetTableName());
+    if (it != cte_table_name_.end()) {
       // CTE table referred
+      auto index = std::distance(cte_table_name_.begin(), it);
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_expressions_, cte_type_, {}).RegisterWithTxnContext(txn_context),
+          LogicalCteScan::Make(node->GetAlias(), cte_expressions_[index], cte_type_[index], {}).RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {
