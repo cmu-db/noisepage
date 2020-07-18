@@ -20,6 +20,10 @@ namespace catalog {
 class CatalogAccessor;
 }
 
+namespace planner {
+class OutputSchema;
+}
+
 namespace optimizer {
 
 class OptimizerTaskPool;

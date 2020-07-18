@@ -125,7 +125,8 @@ void BinderContext::AddCTETable(const std::string &cte_table_name, const std::st
 
   if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
       nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
-    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
+    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str(),
+                           common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
   // Find schema for CTE table in nested_table_map in this context or previous contexts
@@ -141,7 +142,8 @@ void BinderContext::AddCTETable(const std::string &cte_table_name, const std::st
   }
 
   if (nested_table_alias_map_.find(table_alias) == nested_table_alias_map_.end()) {
-    throw BINDER_EXCEPTION(("CTE table not in nested alias map " + cte_table_name).c_str());
+    throw BINDER_EXCEPTION(("CTE table not in nested alias map " + cte_table_name).c_str(),
+                           common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
   }
 }
 
