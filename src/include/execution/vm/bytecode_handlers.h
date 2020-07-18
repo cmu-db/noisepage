@@ -292,7 +292,7 @@ VM_OP void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter);
 
 VM_OP void OpIterCteScanInit(terrier::execution::sql::IterCteScanIterator *iter,
                              terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
-                             uint32_t num_schema_cols);
+                             uint32_t num_schema_cols, bool is_recursive);
 
 VM_OP void OpIterCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
                                      terrier::execution::sql::IterCteScanIterator *iter);

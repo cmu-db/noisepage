@@ -123,8 +123,8 @@ void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter) { iter->~CteS
 
 void OpIterCteScanInit(terrier::execution::sql::IterCteScanIterator *iter,
                        terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
-                       uint32_t num_schema_cols) {
-  new (iter) terrier::execution::sql::IterCteScanIterator(exec_ctx, schema_cols_type, num_schema_cols);
+                       uint32_t num_schema_cols, bool is_recursive) {
+  new (iter) terrier::execution::sql::IterCteScanIterator(exec_ctx, schema_cols_type, num_schema_cols, is_recursive);
 }
 
 void OpIterCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,

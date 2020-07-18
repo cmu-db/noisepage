@@ -129,10 +129,11 @@ namespace terrier::execution::vm {
   F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
   F(CteScanFree, OperandType::Local)                                                                                  \
                                                                                                                       \
-  F(IterCteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)                  \
+  F(IterCteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4,                  \
+    OperandType::Local)                                                                                               \
   F(IterCteScanGetResult, OperandType::Local, OperandType::Local)                                                     \
-  F(IterCteScanGetReadCte, OperandType::Local, OperandType::Local)                                                  \
-  F(IterCteScanGetWriteCte, OperandType::Local, OperandType::Local)                                                 \
+  F(IterCteScanGetReadCte, OperandType::Local, OperandType::Local)                                                    \
+  F(IterCteScanGetWriteCte, OperandType::Local, OperandType::Local)                                                   \
   F(IterCteScanGetReadTableOid, OperandType::Local, OperandType::Local)                                               \
   F(IterCteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                          \
   F(IterCteScanAccumulate, OperandType::Local, OperandType::Local)                                                    \

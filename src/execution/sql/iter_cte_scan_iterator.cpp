@@ -11,7 +11,8 @@
 namespace terrier::execution::sql {
 
 IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx,
-                                         uint32_t *schema_cols_type, uint32_t num_schema_cols)
+                                         uint32_t *schema_cols_type, uint32_t num_schema_cols,
+                                         bool is_recursive)
     :
       cte_scan_1_{exec_ctx, schema_cols_type, num_schema_cols},
       cte_scan_2_{exec_ctx, schema_cols_type, num_schema_cols},
@@ -19,14 +20,22 @@ IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx,
       cte_scan_read_{&cte_scan_2_},
       cte_scan_write_{&cte_scan_3_},
       txn_{exec_ctx->GetTxn()},
-      written_{false}
+      written_{false},
+      is_recursive_{is_recursive}
 {}
 
 CteScanIterator *IterCteScanIterator::GetWriteCte() { return cte_scan_write_; }
 
 CteScanIterator *IterCteScanIterator::GetReadCte() { return cte_scan_read_; }
 
-CteScanIterator *IterCteScanIterator::GetResultCTE() { return &cte_scan_1_; }
+CteScanIterator *IterCteScanIterator::GetResultCTE() {
+  if (is_recursive_) {
+    return &cte_scan_1_;
+  }
+  else {
+    return cte_scan_read_;
+  }
+}
 
 catalog::table_oid_t IterCteScanIterator::GetReadTableOid() { return cte_scan_read_->GetTableOid(); }
 
@@ -38,8 +47,11 @@ storage::TupleSlot IterCteScanIterator::TableInsert() {
 }
 
 bool IterCteScanIterator::Accumulate() {
-  // dump read table into table_1
-  cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
+  if (is_recursive_) {
+    // dump read table into table_1
+    cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
+  }
+
   if (written_) {
     // swap the table
     auto temp_table = cte_scan_write_;
