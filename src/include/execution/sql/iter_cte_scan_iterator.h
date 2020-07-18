@@ -16,7 +16,7 @@ class EXPORT IterCteScanIterator {
    */
 
   IterCteScanIterator(exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
-                      uint32_t num_schema_cols);
+                      uint32_t num_schema_cols, bool is_recursive);
 
   /**
    * Returns the temporary table that the cte has made
@@ -75,6 +75,7 @@ class EXPORT IterCteScanIterator {
   CteScanIterator *cte_scan_write_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
   bool written_;
+  bool is_recursive_;
 };
 
 }  // namespace terrier::execution::sql

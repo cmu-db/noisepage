@@ -3328,9 +3328,10 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
       auto *arr_type = call->Arguments()[2]->GetType()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
+      bool is_recursive = call->Arguments()[3]->As<ast::LitExpr>()->BoolVal();
       // Emit the initialization codes
-      Emitter()->EmitCteScanIteratorInit(Bytecode::IterCteScanInit, iterator, exec_ctx, col_oids,
-                                         static_cast<uint32_t>(arr_type->Length()));
+      Emitter()->EmitIterCteScanIteratorInit(Bytecode::IterCteScanInit, iterator, exec_ctx, col_oids,
+                                         static_cast<uint32_t>(arr_type->Length()), is_recursive);
       break;
     }
     case ast::Builtin::IterCteScanGetResult: {

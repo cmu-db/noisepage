@@ -650,7 +650,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    OpIterCteScanInit(iter, exec_ctx, schema_cols_type, num_oids);
+    auto is_recursive = static_cast<bool>(READ_IMM1());
+    OpIterCteScanInit(iter, exec_ctx, schema_cols_type, num_oids, is_recursive);
     DISPATCH_NEXT();
   }
 

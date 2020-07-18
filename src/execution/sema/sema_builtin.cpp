@@ -2139,7 +2139,7 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
     } break;
     case ast::Builtin::IterCteScanInit: {
-      if (!CheckArgCount(call, 3)) {
+      if (!CheckArgCount(call, 4)) {
         return;
       }
       const auto cte_scan_iterator_kind = ast::BuiltinType::IterCteScanIterator;
@@ -2162,6 +2162,12 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
       auto uint32_t_kind = ast::BuiltinType::Uint32;
       if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 2, "Third argument should be a fixed length uint32 array");
+      }
+      // The fourth argument is a boolean
+      auto bool_kind = ast::BuiltinType::Bool;
+      if (!call->Arguments()[3]->GetType()->IsSpecificBuiltin(bool_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(bool_kind));
+        return;
       }
 
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));

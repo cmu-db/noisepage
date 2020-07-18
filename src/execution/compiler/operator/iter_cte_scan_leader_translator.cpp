@@ -169,7 +169,8 @@ void IterCteScanLeaderTranslator::DeclareIterCteScanIterator(FunctionBuilder *bu
 //                                                 codegen_->BuiltinType(ast::BuiltinType::Kind::IterCteScanIterator),
 //                                                 nullptr);
 //  builder->Append(setup);
-  ast::Expr *cte_scan_iterator_setup = codegen_->IterCteScanIteratorInit(iter_cte_scan_, col_types_);
+  auto is_recursive = op_->GetIsRecursive();
+  ast::Expr *cte_scan_iterator_setup = codegen_->IterCteScanIteratorInit(iter_cte_scan_, col_types_, is_recursive);
   builder->Append(codegen_->MakeStmt(cte_scan_iterator_setup));
 
 //  declare = codegen_->DeclareVariable(GetReadCteScanIterator(),

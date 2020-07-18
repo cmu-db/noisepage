@@ -1187,13 +1187,14 @@ ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types) {
+ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types, bool is_recursive) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::IterCteScanInit);
   ast::Expr *si_ptr = GetStateMemberPtr(si);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
   ast::Expr *col_oids_expr = MakeExpr(col_types);
+  ast::Expr *is_recursive_expr = BoolLiteral(is_recursive);
 
-  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr}, Region()};
+  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr, is_recursive_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
