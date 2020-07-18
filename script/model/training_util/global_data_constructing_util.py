@@ -283,5 +283,4 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                 query_y += y
                 query_y_pred += pipeline_y_pred
 
-
         logging.debug("")

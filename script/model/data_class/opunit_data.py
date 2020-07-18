@@ -143,6 +143,7 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache):
 
     data_list = []
     for opunit, values in data_map.items():
+        np_value = np.array(values)
         x = np_value[:, :data_info.RECORD_FEATURES_END]
         y = np_value[:, -data_info.RECORD_METRICS_START:]
         data_list.append(OpUnitData(opunit, x, y))

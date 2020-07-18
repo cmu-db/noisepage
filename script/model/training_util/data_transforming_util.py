@@ -1,7 +1,7 @@
 import numpy as np
 
 from info import data_info
-from type import OpUnit
+from type import OpUnit, Target
 
 
 def _tuple_num_linear_train_transform(x, y):
@@ -18,6 +18,33 @@ def _tuple_num_linear_predict_transform(x, y):
 
 # Transform the target linearly according to the tuple num
 _tuple_num_linear_transformer = (_tuple_num_linear_train_transform, _tuple_num_linear_predict_transform)
+
+
+def _tuple_num_memory_cardinality_linear_train_transform(x, y):
+    # Linearly transform down the target according to the tuple num value in the input
+    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    new_y = y / tuple_num[:, np.newaxis]
+    # Transform the memory consumption based on the cardinality
+    cardinality = np.copy(x[:, data_info.CARDINALITY_INDEX])
+    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= tuple_num
+    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] /= cardinality + 1
+    return new_y
+
+
+def _tuple_num_memory_cardinality_linear_predict_transform(x, y):
+    # Linearly transform up the target according to the tuple num value in the input
+    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    new_y = y * tuple_num[:, np.newaxis]
+    # Transform the memory consumption based on the cardinality
+    cardinality = np.copy(x[:, data_info.CARDINALITY_INDEX])
+    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] /= tuple_num
+    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= cardinality + 1
+    return new_y
+
+
+# Transform the target linearly according to the tuple num
+_tuple_num_memory_cardinality_linear_transformer = (_tuple_num_memory_cardinality_linear_train_transform,
+                                                    _tuple_num_memory_cardinality_linear_predict_transform)
 
 
 def _tuple_num_linear_log_train_transform(x, y):
@@ -63,7 +90,6 @@ OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.SEQ_SCAN: _tuple_num_linear_transformer,
     OpUnit.HASHJOIN_BUILD: _tuple_num_linear_transformer,
     OpUnit.HASHJOIN_PROBE: _tuple_num_linear_transformer,
-    OpUnit.AGG_BUILD: _tuple_num_linear_transformer,
     OpUnit.AGG_ITERATE: _tuple_num_linear_transformer,
     OpUnit.SORT_ITERATE: _tuple_num_linear_transformer,
     OpUnit.INSERT: _tuple_num_linear_transformer,
@@ -81,6 +107,8 @@ OPUNIT_Y_TRANSFORMER_MAP = {
 
     OpUnit.IDX_SCAN: _tuple_num_log_transformer,
     OpUnit.SORT_BUILD: _tuple_num_linear_log_transformer,
+
+    OpUnit.AGG_BUILD: _tuple_num_memory_cardinality_linear_transformer,
 }
 
 
