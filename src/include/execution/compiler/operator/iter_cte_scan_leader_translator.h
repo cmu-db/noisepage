@@ -55,7 +55,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
 
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {
-    if(base_translator_ != nullptr){
+    if(base_translator_ == nullptr){
       return;
     }
     ast::Expr *cte_free_call =
@@ -107,30 +107,11 @@ class IterCteScanLeaderTranslator : public OperatorTranslator {
   ast::Identifier insert_pr_;
   std::vector<catalog::col_oid_t> col_oids_;
   storage::ProjectionMap projection_map_;
-  ast::Identifier read_col_oids_;
-  ast::Identifier read_tvi_;
-  ast::Identifier read_pci_;
-  ast::Identifier accumulate_checker_;
-
-//  OperatorTranslator *base_case_translator_{nullptr};
-//  OperatorTranslator *inductive_case_translator_{nullptr};
-  void SetReadOids(FunctionBuilder *builder);
-  void DeclareReadTVI(FunctionBuilder *builder);
-  void GenReadTVIClose(FunctionBuilder *builder);
-  void DoTableScan(FunctionBuilder *builder);
-
-  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
-  void GenTVILoop(FunctionBuilder *builder);
-
-  void DeclarePCI(FunctionBuilder *builder);
-  void DeclareSlot(FunctionBuilder *builder);
 
   // var pci = @tableIterGetPCI(&tvi)
   // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
-  void GenPCILoop(FunctionBuilder *builder);
-  void DeclareAccumulateChecker(FunctionBuilder *builder);
   void GenInductiveLoop(FunctionBuilder *builder);
-  int current_index_;
+//  int current_index_;
   parser::ConstantValueExpression DummyLeaderCVE();
   ast::Expr *GetIterCteScanIterator();
   IterCteScanLeaderTranslator *base_translator_{nullptr};

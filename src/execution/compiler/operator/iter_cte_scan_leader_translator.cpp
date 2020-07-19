@@ -14,8 +14,6 @@ void IterCteScanLeaderTranslator::Produce(FunctionBuilder *builder) {
     return;
   }
 
-
-//  DeclareAccumulateChecker(builder);
   GenInductiveLoop(builder);
 
   FinalizeReadCteScanIterator(builder);
@@ -31,31 +29,19 @@ IterCteScanLeaderTranslator::IterCteScanLeaderTranslator(const terrier::planner:
       op_(op),
       iter_cte_scan_(""),
       col_types_(""),
-      insert_pr_(""),
-      read_col_oids_(""),
-      read_tvi_(""),
-      read_pci_(""),
-      accumulate_checker_(""),
-      current_index_(index)
+      insert_pr_("")
 {
+  (void)index;
 //  inductive_case_translator_ = child_translator_;
   if(base_case == nullptr){
     iter_cte_scan_ = codegen->NewIdentifier("iter_cte_scan");
-    accumulate_checker_ = codegen_->NewIdentifier("accumlate_checker");
     col_types_ = codegen->NewIdentifier("col_types");
     insert_pr_ = codegen->NewIdentifier("insert_pr");
-    read_col_oids_ = codegen_->NewIdentifier("read_col_oids");
-    read_tvi_ = codegen_->NewIdentifier("temp_table_iterator");
-    read_pci_ = codegen_->NewIdentifier("read_pci");
   }else{
     base_translator_ = dynamic_cast<IterCteScanLeaderTranslator*>(base_case);
     iter_cte_scan_ = base_translator_->iter_cte_scan_;
-    accumulate_checker_ = base_translator_->accumulate_checker_;
-    col_types_ = base_translator_->col_types_;
-    insert_pr_ = base_translator_->insert_pr_;
-    read_col_oids_ = base_translator_->read_col_oids_;
-    read_tvi_ = base_translator_->read_tvi_;
-    read_pci_ = base_translator_->read_pci_;
+//    col_types_ = base_translator_->col_types_;
+    insert_pr_ = codegen->NewIdentifier("insert_pr");
   }
   // ToDo(Gautam,Preetansh): Send the complete schema in the plan node.
   auto &all_columns = op_->GetTableOutputSchema()->GetColumns();
@@ -165,18 +151,9 @@ void IterCteScanLeaderTranslator::DeclareIterCteScanIterator(FunctionBuilder *bu
   // Generate col types
   SetColumnTypes(builder);
   // Call @cteScanIteratorInit
-//  ast::Stmt *setup = codegen_->DeclareVariable(iter_cte_scan_,
-//                                                 codegen_->BuiltinType(ast::BuiltinType::Kind::IterCteScanIterator),
-//                                                 nullptr);
-//  builder->Append(setup);
   auto is_recursive = op_->GetIsRecursive();
   ast::Expr *cte_scan_iterator_setup = codegen_->IterCteScanIteratorInit(iter_cte_scan_, col_types_, is_recursive);
   builder->Append(codegen_->MakeStmt(cte_scan_iterator_setup));
-
-//  declare = codegen_->DeclareVariable(GetReadCteScanIterator(),
-//                                      codegen_->BuiltinType(ast::BuiltinType::CteScanIterator),
-//                                      nullptr);
-//  builder->Append(declare);
 }
 void IterCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) {
   // Declare: var col_types: [num_cols]uint32
@@ -191,7 +168,7 @@ void IterCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) {
   }
 }
 
-void IterCteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
+void IterCteScanLeaderTranslator::DeclareInsertPR(FunctionBuilder *builder) {
   // var insert_pr : *ProjectedRow
   auto pr_type = codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
   builder->Append(codegen_->DeclareVariable(insert_pr_, codegen_->PointerType(pr_type), nullptr));
@@ -228,27 +205,8 @@ void IterCteScanLeaderTranslator::FillPRFromChild(terrier::execution::compiler::
 }
 
 
-void IterCteScanLeaderTranslator::DeclareSlot(FunctionBuilder *builder) {
-  // Get var slot = @pciGetSlot(pci)
-  auto read_slot = codegen_->NewIdentifier("read_slot");
-  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::PCIGetSlot, read_pci_, false);
-  builder->Append(codegen_->DeclareVariable(read_slot, nullptr, get_slot_call));
-}
-
-void IterCteScanLeaderTranslator::DeclareAccumulateChecker(FunctionBuilder *builder) {
-  // var accumulated = true
-  auto decl = codegen_->DeclareVariable(accumulate_checker_, codegen_->BuiltinType(ast::BuiltinType::Kind::Bool),
-                            codegen_->BoolLiteral(true));
-  builder->Append(decl);
-}
 
 void IterCteScanLeaderTranslator::GenInductiveLoop(FunctionBuilder *builder) {
-  // for(var accumulated = true;accumlated;accumulated = @iterCteScanAccumulate(&iter_cte_scan_iterator)
-//  auto decl = codegen_->DeclareVariable(accumulate_checker_, codegen_->BuiltinType(ast::BuiltinType::Kind::Bool),
-//                                        codegen_->BoolLiteral(true));
-//  auto accumulate_stmt = codegen_->Assign(codegen_->MakeExpr(accumulate_checker_),
-//                                          codegen_->OneArgCall(ast::Builtin::IterCteScanAccumulate,
-//                                                               GetIterCteScanIterator()));
   builder->StartForStmt(nullptr, codegen_->OneArgCall(ast::Builtin::IterCteScanAccumulate,
                                                      GetIterCteScanIterator()),
                         nullptr);
