@@ -801,19 +801,18 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
     const uint32_t col_idx = call->Arguments()[1]->As<ast::LitExpr>()->Int64Val();   \
     GetEmitter()->EmitVPIGet(Bytecode##Null, result, vpi, col_idx);                  \
     break;                                                                           \
-  }                                                                                  \
-    // clang-format off
-    GEN_CASE(VPIGetBool, Bytecode::VPIGetBool);
-    GEN_CASE(VPIGetTinyInt, Bytecode::VPIGetTinyInt);
-    GEN_CASE(VPIGetSmallInt, Bytecode::VPIGetSmallInt);
-    GEN_CASE(VPIGetInt, Bytecode::VPIGetInteger);
-    GEN_CASE(VPIGetBigInt, Bytecode::VPIGetBigInt);
-    GEN_CASE(VPIGetReal, Bytecode::VPIGetReal);
-    GEN_CASE(VPIGetDouble, Bytecode::VPIGetDouble);
-    GEN_CASE(VPIGetDate, Bytecode::VPIGetDate);
-    GEN_CASE(VPIGetTimestamp, Bytecode::VPIGetTimestamp);
-    GEN_CASE(VPIGetString, Bytecode::VPIGetString);
-      // clang-format on
+  }
+
+      GEN_CASE(VPIGetBool, Bytecode::VPIGetBool);
+      GEN_CASE(VPIGetTinyInt, Bytecode::VPIGetTinyInt);
+      GEN_CASE(VPIGetSmallInt, Bytecode::VPIGetSmallInt);
+      GEN_CASE(VPIGetInt, Bytecode::VPIGetInteger);
+      GEN_CASE(VPIGetBigInt, Bytecode::VPIGetBigInt);
+      GEN_CASE(VPIGetReal, Bytecode::VPIGetReal);
+      GEN_CASE(VPIGetDouble, Bytecode::VPIGetDouble);
+      GEN_CASE(VPIGetDate, Bytecode::VPIGetDate);
+      GEN_CASE(VPIGetTimestamp, Bytecode::VPIGetTimestamp);
+      GEN_CASE(VPIGetString, Bytecode::VPIGetString);
 #undef GEN_CASE
 
 #define GEN_CASE(BuiltinName, Bytecode)                                  \
@@ -830,18 +829,16 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
     break;                                                               \
   }
 
-      // clang-format off
-    GEN_CASE(VPISetBool, Bytecode::VPISetBool);
-    GEN_CASE(VPISetTinyInt, Bytecode::VPISetTinyInt);
-    GEN_CASE(VPISetSmallInt, Bytecode::VPISetSmallInt);
-    GEN_CASE(VPISetInt, Bytecode::VPISetInteger);
-    GEN_CASE(VPISetBigInt, Bytecode::VPISetBigInt);
-    GEN_CASE(VPISetReal, Bytecode::VPISetReal);
-    GEN_CASE(VPISetDouble, Bytecode::VPISetDouble);
-    GEN_CASE(VPISetDate, Bytecode::VPISetDate);
-    GEN_CASE(VPISetTimestamp, Bytecode::VPISetTimestamp);
-    GEN_CASE(VPISetString, Bytecode::VPISetString);
-      // clang-format on
+      GEN_CASE(VPISetBool, Bytecode::VPISetBool);
+      GEN_CASE(VPISetTinyInt, Bytecode::VPISetTinyInt);
+      GEN_CASE(VPISetSmallInt, Bytecode::VPISetSmallInt);
+      GEN_CASE(VPISetInt, Bytecode::VPISetInteger);
+      GEN_CASE(VPISetBigInt, Bytecode::VPISetBigInt);
+      GEN_CASE(VPISetReal, Bytecode::VPISetReal);
+      GEN_CASE(VPISetDouble, Bytecode::VPISetDouble);
+      GEN_CASE(VPISetDate, Bytecode::VPISetDate);
+      GEN_CASE(VPISetTimestamp, Bytecode::VPISetTimestamp);
+      GEN_CASE(VPISetString, Bytecode::VPISetString);
 #undef GEN_CASE
 
     default: {
