@@ -27,7 +27,8 @@ def _tuple_num_memory_cardinality_linear_train_transform(x, y):
     # Transform the memory consumption based on the cardinality
     cardinality = np.copy(x[:, data_info.CARDINALITY_INDEX])
     new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= tuple_num
-    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] /= cardinality + 1
+    # Having a 250 offset since below roughly that the memory consumption is constant (while fixing other features)
+    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] /= cardinality + 250
     return new_y
 
 
@@ -38,7 +39,7 @@ def _tuple_num_memory_cardinality_linear_predict_transform(x, y):
     # Transform the memory consumption based on the cardinality
     cardinality = np.copy(x[:, data_info.CARDINALITY_INDEX])
     new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] /= tuple_num
-    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= cardinality + 1
+    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= cardinality + 250
     return new_y
 
 

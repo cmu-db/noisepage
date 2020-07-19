@@ -47,14 +47,14 @@ _Q5_P2 = [(OpUnit.SEQ_SCAN, [25, 24, 3, 25]),
           ]
 
 _Q5_P3 = [(OpUnit.SEQ_SCAN, [1500000, 8, 2, 1500000]),
-          (OpUnit.HASHJOIN_PROBE, [1500000, 4, 1, 3500000]),
-          (OpUnit.HASHJOIN_BUILD, [3500000, 4, 1, 3500000]),
+          (OpUnit.HASHJOIN_PROBE, [1500000, 4, 1, 300000]),
+          (OpUnit.HASHJOIN_BUILD, [300000, 4, 1, 300000]),
           ]
 
 _Q5_P4 = [(OpUnit.SEQ_SCAN, [15000000, 12, 3, 15000000]),
           (OpUnit.OP_INTEGER_COMPARE, [30000000, 4, 1, 30000000]),
-          (OpUnit.HASHJOIN_PROBE, [15000000, 4, 1, 6500000]),
-          (OpUnit.HASHJOIN_BUILD, [6500000, 4, 1, 6500000]),
+          (OpUnit.HASHJOIN_PROBE, [15000000, 4, 1, 3000000]),
+          (OpUnit.HASHJOIN_BUILD, [3000000, 4, 1, 3000000]),
           ]
 
 _Q5_P5 = [(OpUnit.SEQ_SCAN, [100000, 8, 2, 100000]),
@@ -63,10 +63,10 @@ _Q5_P5 = [(OpUnit.SEQ_SCAN, [100000, 8, 2, 100000]),
 
 _Q5_P6 = [(OpUnit.SEQ_SCAN, [60000000, 24, 4, 60000000]),
           (OpUnit.HASHJOIN_PROBE, [60000000, 4, 1, 12000000]),
-          (OpUnit.HASHJOIN_PROBE, [12000000, 4, 1, 4000000]),
-          (OpUnit.AGG_BUILD, [4000000, 16, 1, 5]),
-          (OpUnit.OP_DECIMAL_MULTIPLY, [4000000, 4, 1, 4000000]),
-          (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [8000000, 4, 1, 8000000]),
+          (OpUnit.HASHJOIN_PROBE, [12000000, 4, 1, 500000]),
+          (OpUnit.AGG_BUILD, [500000, 16, 1, 5]),
+          (OpUnit.OP_DECIMAL_MULTIPLY, [500000, 4, 1, 500000]),
+          (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [1000000, 4, 1, 1000000]),
           ]
 
 _Q5_P7 = [(OpUnit.AGG_ITERATE, [5, 20, 2, 5]),
@@ -150,11 +150,11 @@ _Q11_P4 = [(OpUnit.SEQ_SCAN, [8000000, 20, 4, 8000000]),
 _Q11_P5 = [(OpUnit.AGG_ITERATE, [300000, 12, 2, 300000]),
            (OpUnit.OP_DECIMAL_MULTIPLY, [300000, 4, 1, 300000]),
            (OpUnit.OP_DECIMAL_COMPARE, [300000, 4, 1, 300000]),
-           (OpUnit.SORT_BUILD, [20000, 8, 1, 20000]),
+           (OpUnit.SORT_BUILD, [1, 8, 1, 1]),
            ]
 
-_Q11_P6 = [(OpUnit.SORT_ITERATE, [20000, 12, 2, 20000]),
-           (OpUnit.OUTPUT, [20000, 12, 2, 0]),
+_Q11_P6 = [(OpUnit.SORT_ITERATE, [1, 12, 2, 1]),
+           (OpUnit.OUTPUT, [1, 12, 2, 0]),
            ]
 
 
