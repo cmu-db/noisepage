@@ -18,10 +18,10 @@ fun main(execCtx: *ExecutionContext) -> int {
   for (@tableIterAdvance(&tvi)) {
     var vpi = @tableIterGetVPI(&tvi)
     for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
-      if (@vpiGetSmallInt(vpi, 1) < 500) {
+      if (@vpiGetSmallInt(vpi, 0) < 500) {
         out = @ptrCast(*output_struct, @resultBufferAllocRow(execCtx))
-        out.col1 = @vpiGetSmallInt(vpi, 1)
-        out.col2 = @vpiGetInt(vpi, 0)
+        out.col1 = @vpiGetSmallInt(vpi, 0)
+        out.col2 = @vpiGetInt(vpi, 1)
         count = count + 1
       }
     }

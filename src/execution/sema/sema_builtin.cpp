@@ -1849,43 +1849,6 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
       }
       break;
     }
-    case ast::Builtin::IndexIteratorInitBind: {
-      if (!CheckArgCount(call, 6)) {
-        return;
-      }
-      // The second call argument must an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-      // The third argument is number of attributes set
-      if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Int32));
-        return;
-      }
-      // The fourth argument must be the table's name
-      if (!call->Arguments()[3]->GetType()->IsStringType()) {
-        ReportIncorrectCallArg(call, 3, ast::StringType::Get(GetContext()));
-        return;
-      }
-      // The fifth argument is the index's name
-      if (!call->Arguments()[4]->GetType()->IsStringType()) {
-        ReportIncorrectCallArg(call, 4, ast::StringType::Get(GetContext()));
-        return;
-      }
-      // The sixth argument is a uint32_t array
-      if (!call->Arguments()[5]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
-        return;
-      }
-      auto *arr_type = call->Arguments()[5]->GetType()->SafeAs<ast::ArrayType>();
-      auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
-        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
-      }
-      break;
-    }
     default:
       UNREACHABLE("Unreachable index iterator in builtin");
   }
@@ -2688,8 +2651,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckResultBufferCall(call, builtin);
       break;
     }
-    case ast::Builtin::IndexIteratorInit:
-    case ast::Builtin::IndexIteratorInitBind: {
+    case ast::Builtin::IndexIteratorInit: {
       CheckBuiltinIndexIteratorInit(call, builtin);
       break;
     }

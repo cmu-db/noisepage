@@ -5,7 +5,7 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   var count = 0 // output count
   // Init deleter
   var col_oids: [1]uint32
-  col_oids[0] = 1 // colA
+  col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
   var deleter: StorageInterface
 
   var test_1_id = @testCatalogLookup(execCtx, "test_1", "")

@@ -2308,7 +2308,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::IndexIteratorInit:
-    case ast::Builtin::IndexIteratorInitBind:
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending:

@@ -183,7 +183,6 @@ namespace terrier::execution::ast {
                                                                         \
   /* Index */                                                           \
   F(IndexIteratorInit, indexIteratorInit)                               \
-  F(IndexIteratorInitBind, indexIteratorInitBind)                       \
   F(IndexIteratorScanKey, indexIteratorScanKey)                         \
   F(IndexIteratorScanAscending, indexIteratorScanAscending)             \
   F(IndexIteratorScanDescending, indexIteratorScanDescending)           \

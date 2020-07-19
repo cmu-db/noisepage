@@ -67,18 +67,18 @@ agg.tpl,true,10
 delete.tpl,true,0
 #deleter-2                          to port
 distinct-agg.tpl,true,45
-#exec_params.tpl                    need to re-add params
+exec_params.tpl,true,37
 insert.tpl,true,11
 join.tpl,true,1000
 #join-index                         to port
-#output1.tpl,true,1000              Verify the output result.
+output1.tpl,true,500
 #parallel-agg.tpl,true,10           Doesn't work in TPL either
 parallel-join.tpl,true,500
 parallel-scan.tpl,true,500
 scan-alltypes.tpl,true,500
-#scan-index                         to port
-#scan-index-2                       to port
-#scan-index-3                       to port
+scan-index,true,1
+scan-index-2,true,1
+scan-index-3,true,32
 scan-table.tpl,true,500
 scan-table-2.tpl,true,9950
 scan-table-3.tpl,true,10000
