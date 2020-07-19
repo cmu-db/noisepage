@@ -470,8 +470,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
                                 " columns available but " + std::to_string(num_aliases) + " specified")
                                    .c_str(), common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
       }
-      for (unsigned long i = 0; i < num_aliases; i++) {
+      for (size_t i = 0; i < num_aliases; i++) {
         columns[i]->SetAlias(column_aliases[i]);
+      }
+      for (size_t i = num_aliases; i < num_columns; i++) {
+        columns[i]->SetAlias("?column?");
       }
 
       if ((ref->GetCteType() == parser::CTEType::ITERATIVE) ||
