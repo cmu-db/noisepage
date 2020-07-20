@@ -123,7 +123,8 @@ bool IndexUtil::CheckPredicates(
                    (ltype == parser::ExpressionType::COLUMN_VALUE && rtype == parser::ExpressionType::COLUMN_VALUE)) {
           auto lexpr = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
           auto rexpr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
-          if ((lexpr->GetTableOid() == tbl_oid) && (lexpr->GetTableName() == tbl_alias)) {
+          if (lexpr->GetTableOid() == tbl_oid &&
+                  (rexpr->GetTableOid() != tbl_oid || lexpr->GetTableName() == tbl_alias)) {
             tv_expr = lexpr;
             idx_expr = expr->GetChild(1);
           } else {
