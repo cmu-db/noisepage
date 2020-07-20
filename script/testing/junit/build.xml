@@ -31,7 +31,6 @@
   <path refid="lib.classpath"/>
   <pathelement location="${out.dir}" />
 </path>
-
 <target name="test-all">
   <antcall target="test-unit"/>
   <antcall target="test-trace"/>
@@ -49,7 +48,6 @@
     <arg value="${db-password}"></arg>
   </java>
 </target>
-
 <target name="test-trace" depends="compile">
   <!--
     IMPORTANT: You have to set the NOISEPAGE_TRACE_FILE environment variable

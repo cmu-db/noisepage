@@ -307,7 +307,8 @@ public class MogSqlite {
             this.br.mark(RECORD_READAHEAD_LIMIT);
             line = this.br.readLine();
 
-            if (null == line || line.startsWith("query") || line.startsWith("statement ok") || line.startsWith("statement error")) {
+            if (null == line || line.startsWith("query") || line.startsWith("statement ok")
+                    || line.startsWith("statement error") ||line.startsWith("#")) {
                 /* End of SQL query reached. */
                 this.br.reset();
                 this.sql = this.sb.toString();

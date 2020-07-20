@@ -1,4 +1,3 @@
-import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.function.Executable;
 import java.io.*;
@@ -73,6 +72,7 @@ public class TracefileTest {
                     dTest.add(cur);
                 }
                 catch (Throwable e) {
+                    System.out.println(mog.sql);
                     Executable exec = () -> check2(e.getMessage());
                     DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
                     dTest.add(cur);
