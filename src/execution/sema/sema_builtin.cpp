@@ -1435,6 +1435,7 @@ void Sema::CheckResultBufferCall(ast::CallExpr *call, ast::Builtin builtin) {
   }
 }
 
+/*
 void Sema::CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -1505,6 +1506,7 @@ void Sema::CheckCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin) {
       UNREACHABLE("Impossible math trig function call");
   }
 }
+ */
 
 void Sema::CheckBuiltinSizeOfCall(ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
@@ -2678,6 +2680,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinIndexIteratorFree(call);
       break;
     }
+      /*
     case ast::Builtin::CSVReaderInit:
     case ast::Builtin::CSVReaderAdvance:
     case ast::Builtin::CSVReaderGetField:
@@ -2686,6 +2689,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckCSVReaderCall(call, builtin);
       break;
     }
+       */
     case ast::Builtin::PRSetBool:
     case ast::Builtin::PRSetTinyInt:
     case ast::Builtin::PRSetSmallInt:

@@ -1,5 +1,5 @@
 #include "execution/tpl_test.h"
-#include "execution/util/csv_reader.h"
+// #include "execution/util/csv_reader.h" Fix later.
 #include "execution/util/file.h"
 
 namespace terrier::execution::util::test {

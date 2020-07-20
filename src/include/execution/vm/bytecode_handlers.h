@@ -23,7 +23,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_filter_executor.h"
-#include "execution/util/csv_reader.h"
+// #include "execution/util/csv_reader.h" Fix later.
 #include "parser/expression/constant_value_expression.h"
 
 // All VM bytecode op handlers must use this macro
@@ -1273,6 +1273,7 @@ VM_OP_WARM void OpResultBufferFinalize(terrier::execution::exec::ExecutionContex
 // CSV Reader
 // ---------------------------------------------------------
 
+#if 0
 VM_OP void OpCSVReaderInit(terrier::execution::util::CSVReader *reader, const uint8_t *file_name, uint32_t len);
 
 VM_OP void OpCSVReaderPerformInit(bool *result, terrier::execution::util::CSVReader *reader);
@@ -1293,6 +1294,7 @@ VM_OP_WARM void OpCSVReaderGetRecordNumber(uint32_t *result, terrier::execution:
 }
 
 VM_OP void OpCSVReaderClose(terrier::execution::util::CSVReader *reader);
+#endif
 
 // ---------------------------------------------------------
 // Trig functions

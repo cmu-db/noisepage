@@ -159,7 +159,7 @@ void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter) { iter-
 // ---------------------------------------------------------
 // CSV Reader
 // ---------------------------------------------------------
-
+#if 0
 void OpCSVReaderInit(terrier::execution::util::CSVReader *reader, const uint8_t *file_name, uint32_t len) {
   std::string_view fname(reinterpret_cast<const char *>(file_name), len);
   new (reader) terrier::execution::util::CSVReader(std::make_unique<terrier::execution::util::CSVFile>(fname));
@@ -170,7 +170,7 @@ void OpCSVReaderPerformInit(bool *result, terrier::execution::util::CSVReader *r
 }
 
 void OpCSVReaderClose(terrier::execution::util::CSVReader *reader) { std::destroy_at(reader); }
-
+#endif
 // -------------------------------------------------------------
 // StorageInterface Calls
 // -------------------------------------------------------------

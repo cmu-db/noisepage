@@ -466,12 +466,14 @@ namespace terrier::execution::vm {
   F(IndexIteratorGetSlot, OperandType::Local, OperandType::Local)                                                     \
                                                                                                                       \
   /* CSV Reader */                                                                                                    \
+  /*                                                                                                                  \
   F(CSVReaderInit, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4)                                  \
   F(CSVReaderPerformInit, OperandType::Local, OperandType::Local)                                                     \
   F(CSVReaderAdvance, OperandType::Local, OperandType::Local)                                                         \
   F(CSVReaderGetField, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(CSVReaderGetRecordNumber, OperandType::Local, OperandType::Local)                                                 \
   F(CSVReaderClose, OperandType::Local)                                                                               \
+  */                                                                                                                  \
                                                                                                                       \
   /* ProjectedRow */                                                                                                  \
   F(PRGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \

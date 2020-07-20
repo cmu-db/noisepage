@@ -1589,7 +1589,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // -------------------------------------------------------
   // CSV Reader
   // -------------------------------------------------------
-
+#if 0
   OP(CSVReaderInit) : {
     auto *reader = frame->LocalAt<util::CSVReader *>(READ_LOCAL_ID());
     auto *file_name = module_->GetBytecodeModule()->AccessStaticLocalDataRaw(LocalVar::Decode(READ_STATIC_LOCAL_ID()));
@@ -1632,7 +1632,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     OpCSVReaderClose(reader);
     DISPATCH_NEXT();
   }
-
+#endif
   // -------------------------------------------------------
   // Index Iterator
   // -------------------------------------------------------

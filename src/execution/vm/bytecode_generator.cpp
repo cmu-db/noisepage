@@ -1499,6 +1499,7 @@ void BytecodeGenerator::VisitResultBufferCall(ast::CallExpr *call, ast::Builtin 
   }
 }
 
+#if 0
 void BytecodeGenerator::VisitCSVReaderCall(ast::CallExpr *call, ast::Builtin builtin) {
   LocalVar reader = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
@@ -1538,6 +1539,7 @@ void BytecodeGenerator::VisitCSVReaderCall(ast::CallExpr *call, ast::Builtin bui
     }
   }
 }
+#endif
 
 void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Builtin builtin) {
   LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
@@ -2296,6 +2298,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitResultBufferCall(call, builtin);
       break;
     }
+#if 0
     case ast::Builtin::CSVReaderInit:
     case ast::Builtin::CSVReaderAdvance:
     case ast::Builtin::CSVReaderGetField:
@@ -2304,6 +2307,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitCSVReaderCall(call, builtin);
       break;
     }
+#endif
     case ast::Builtin::IndexIteratorInit:
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorScanAscending:

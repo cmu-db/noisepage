@@ -58,7 +58,7 @@ class Context;
   NON_PRIM(AHTIterator, terrier::execution::sql::AHTIterator)                                   \
   NON_PRIM(AHTVectorIterator, terrier::execution::sql::AHTVectorIterator)                       \
   NON_PRIM(AHTOverflowPartitionIterator, terrier::execution::sql::AHTOverflowPartitionIterator) \
-  NON_PRIM(CSVReader, terrier::execution::util::CSVReader)                                      \
+  /* NON_PRIM(CSVReader, terrier::execution::util::CSVReader)                                */ \
   NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                        \
   NON_PRIM(FilterManager, terrier::execution::sql::FilterManager)                               \
   NON_PRIM(HashTableEntry, terrier::execution::sql::HashTableEntry)                             \

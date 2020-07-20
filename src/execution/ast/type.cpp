@@ -17,7 +17,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 #include "execution/sql/vector_projection_iterator.h"
-#include "execution/util/csv_reader.h"
+// #include "execution/util/csv_reader.h" Fix later.
 
 namespace terrier::execution::ast {
 

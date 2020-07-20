@@ -55,6 +55,8 @@ ast::Expr *CSVScanTranslator::GetFieldPtr(uint32_t field_index) const {
 }
 
 void CSVScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
+  UNREACHABLE("CSV support disabled because <charconv> missing on CI.");
+#if 0
   auto *codegen = GetCodeGen();
   auto reader_var_base = codegen->MakeFreshIdentifier("csvReaderBase");
   auto reader_var = codegen->MakeFreshIdentifier("csvReader");
@@ -76,6 +78,7 @@ void CSVScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   }
   scan_loop.EndLoop();
   function->Append(codegen->CSVReaderClose(codegen->MakeExpr(reader_var)));
+#endif
 }
 
 ast::Expr *CSVScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

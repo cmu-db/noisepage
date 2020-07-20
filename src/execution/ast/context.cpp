@@ -23,7 +23,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
-#include "execution/util/csv_reader.h"
+// #include "execution/util/csv_reader.h" Fix later.
 #include "execution/util/execution_common.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"

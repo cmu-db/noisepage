@@ -350,7 +350,7 @@ class BytecodeEmitter {
   void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn, LocalVar tuple_size);
 
   /** Initialize a CSV reader. */
-  void EmitCSVReaderInit(LocalVar creader, LocalVar file_name, uint32_t file_name_len);
+  // void EmitCSVReaderInit(LocalVar creader, LocalVar file_name, uint32_t file_name_len);
 
   /** ONLY FOR TESTING! */
   void EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len,

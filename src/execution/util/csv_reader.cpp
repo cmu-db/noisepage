@@ -1,5 +1,5 @@
-#include "execution/util/csv_reader.h"
-
+// #include "execution/util/csv_reader.h" Fix later.
+#if 0
 #include <immintrin.h>
 
 #include <cstring>
@@ -249,3 +249,4 @@ bool CSVReader::Advance() {
 }
 
 }  // namespace terrier::execution::util
+#endif

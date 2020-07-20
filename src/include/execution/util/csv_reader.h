@@ -1,6 +1,7 @@
 #pragma once
 
-#include <charconv>
+#if 0
+#include <charconv>  // TODO(WAN): charconv missing on Ubuntu 18.04
 #include <memory>
 #include <string>
 #include <vector>
@@ -357,3 +358,4 @@ class CSVReader {
 };
 
 }  // namespace terrier::execution::util
+#endif

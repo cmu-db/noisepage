@@ -337,9 +337,11 @@ void BytecodeEmitter::EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVa
   EmitAll(bytecode, sorter, region, cmp_fn, tuple_size);
 }
 
+#if 0
 void BytecodeEmitter::EmitCSVReaderInit(LocalVar reader, LocalVar file_name, uint32_t file_name_len) {
   EmitAll(Bytecode::CSVReaderInit, reader, file_name, file_name_len);
 }
+#endif
 
 void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t num_attrs,
                                             LocalVar table_oid, LocalVar index_oid, LocalVar col_oids,
