@@ -117,18 +117,18 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
     return {left->GetType(), left, new_right};
   }
 
+  // SQL int <OP> SQL real
+  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) &&
+      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
+    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::SqlIntToSqlReal);
+    return {right->GetType(), new_left, right};
+  }
+
   // SQL real <OP> SQL int
   if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
       right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
     auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::SqlIntToSqlReal);
     return {left->GetType(), left, new_right};
-  }
-
-  // SQL int <OP> SQL real
-  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) &&
-      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
-    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::SqlIntToSqlReal);
-    return {left->GetType(), new_left, right};
   }
 
   // TODO(pmenon): Fix me to support other arithmetic types
