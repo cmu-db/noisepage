@@ -13,9 +13,11 @@ namespace terrier::execution::compiler {
 ProjectionTranslator::ProjectionTranslator(const planner::ProjectionPlanNode &plan,
                                            CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::PROJECTION) {
-  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Projections expected to have one child");
-  // Prepare children for codegen.
-  compilation_context->Prepare(*plan.GetChild(0), pipeline);
+  // Projections are expected to have one child, unless you have a SELECT 1; type of situation.
+  if (plan.GetChildrenSize() == 1) {
+    // Prepare children for codegen.
+    compilation_context->Prepare(*plan.GetChild(0), pipeline);
+  }
 }
 
 void ProjectionTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
