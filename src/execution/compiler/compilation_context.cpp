@@ -11,12 +11,13 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/executable_query_builder.h"
-#include "execution/compiler/expression//derived_value_translator.h"
 #include "execution/compiler/expression/arithmetic_translator.h"
 #include "execution/compiler/expression/column_value_translator.h"
 #include "execution/compiler/expression/comparison_translator.h"
 #include "execution/compiler/expression/conjunction_translator.h"
 #include "execution/compiler/expression/constant_translator.h"
+#include "execution/compiler/expression/derived_value_translator.h"
+#include "execution/compiler/expression/function_translator.h"
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/param_value_translator.h"
 #include "execution/compiler/expression/star_translator.h"
@@ -44,6 +45,7 @@
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/derived_value_expression.h"
+#include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
@@ -285,7 +287,7 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
 
   switch (expression.GetExpressionType()) {
     case parser::ExpressionType::COLUMN_VALUE: {
-      const auto &column_value = static_cast<const parser::ColumnValueExpression &>(expression);
+      const auto &column_value = dynamic_cast<const parser::ColumnValueExpression &>(expression);
       translator = std::make_unique<ColumnValueTranslator>(column_value, this);
       break;
     }
@@ -297,13 +299,13 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
     case parser::ExpressionType::COMPARE_LIKE:
     case parser::ExpressionType::COMPARE_NOT_LIKE: {
-      const auto &comparison = static_cast<const parser::ComparisonExpression &>(expression);
+      const auto &comparison = dynamic_cast<const parser::ComparisonExpression &>(expression);
       translator = std::make_unique<ComparisonTranslator>(comparison, this);
       break;
     }
     case parser::ExpressionType::CONJUNCTION_AND:
     case parser::ExpressionType::CONJUNCTION_OR: {
-      const auto &conjunction = static_cast<const parser::ConjunctionExpression &>(expression);
+      const auto &conjunction = dynamic_cast<const parser::ConjunctionExpression &>(expression);
       translator = std::make_unique<ConjunctionTranslator>(conjunction, this);
       break;
     }
@@ -312,40 +314,45 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
     case parser::ExpressionType::OPERATOR_MULTIPLY:
     case parser::ExpressionType::OPERATOR_DIVIDE:
     case parser::ExpressionType::OPERATOR_MOD: {
-      const auto &operator_expr = static_cast<const parser::OperatorExpression &>(expression);
+      const auto &operator_expr = dynamic_cast<const parser::OperatorExpression &>(expression);
       translator = std::make_unique<ArithmeticTranslator>(operator_expr, this);
       break;
     }
     case parser::ExpressionType::OPERATOR_NOT:
     case parser::ExpressionType::OPERATOR_UNARY_MINUS: {
-      const auto &operator_expr = static_cast<const parser::OperatorExpression &>(expression);
+      const auto &operator_expr = dynamic_cast<const parser::OperatorExpression &>(expression);
       translator = std::make_unique<UnaryTranslator>(operator_expr, this);
       break;
     }
     case parser::ExpressionType::OPERATOR_IS_NULL:
     case parser::ExpressionType::OPERATOR_IS_NOT_NULL: {
-      const auto &operator_expr = static_cast<const parser::OperatorExpression &>(expression);
+      const auto &operator_expr = dynamic_cast<const parser::OperatorExpression &>(expression);
       translator = std::make_unique<NullCheckTranslator>(operator_expr, this);
       break;
     }
     case parser::ExpressionType::VALUE_CONSTANT: {
-      const auto &constant = static_cast<const parser::ConstantValueExpression &>(expression);
+      const auto &constant = dynamic_cast<const parser::ConstantValueExpression &>(expression);
       translator = std::make_unique<ConstantTranslator>(constant, this);
       break;
     }
     case parser::ExpressionType::VALUE_TUPLE: {
-      const auto &derived_value = static_cast<const parser::DerivedValueExpression &>(expression);
+      const auto &derived_value = dynamic_cast<const parser::DerivedValueExpression &>(expression);
       translator = std::make_unique<DerivedValueTranslator>(derived_value, this);
       break;
     }
     case parser::ExpressionType::VALUE_PARAMETER: {
-      const auto &param = static_cast<const parser::ParameterValueExpression &>(expression);
+      const auto &param = dynamic_cast<const parser::ParameterValueExpression &>(expression);
       translator = std::make_unique<ParamValueTranslator>(param, this);
       break;
     }
     case parser::ExpressionType::STAR: {
-      const auto &star = static_cast<const parser::StarExpression &>(expression);
+      const auto &star = dynamic_cast<const parser::StarExpression &>(expression);
       translator = std::make_unique<StarTranslator>(star, this);
+      break;
+    }
+    case parser::ExpressionType::FUNCTION: {
+      const auto &fn = dynamic_cast<const parser::FunctionExpression &>(expression);
+      translator = std::make_unique<FunctionTranslator>(fn, this);
       break;
     }
     default: {

@@ -194,6 +194,7 @@ ast::Expr *CodeGen::TplType(sql::TypeId type) {
     case sql::TypeId::Float:
       return BuiltinType(ast::BuiltinType::Real);
     case sql::TypeId::Varchar:
+    case sql::TypeId::Varbinary:
       return BuiltinType(ast::BuiltinType::StringVal);
     default:
       UNREACHABLE("Cannot codegen unsupported type.");
@@ -643,6 +644,7 @@ ast::Expr *CodeGen::VPIGet(ast::Expr *vpi, sql::TypeId type_id, bool nullable, u
       ret_kind = ast::BuiltinType::Timestamp;
       break;
     case sql::TypeId::Varchar:
+    case sql::TypeId::Varbinary:
       builtin = nullable ? ast::Builtin::VPIGetStringNull : ast::Builtin::VPIGetString;
       ret_kind = ast::BuiltinType::StringVal;
       break;
