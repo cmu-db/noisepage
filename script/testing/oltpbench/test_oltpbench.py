@@ -7,6 +7,7 @@ import traceback
 import shutil
 import time
 from util.constants import ErrorCode
+from util.constants import LOG
 from util.common import run_command
 from util.test_server import TestServer
 from xml.etree import ElementTree
@@ -108,7 +109,7 @@ class TestOLTPBench(TestServer):
         rc, stdout, stderr = run_command(constants.OLTP_GIT_CLEAN_COMMAND,
                                          "Error: unable to clean OLTP repo")
         if rc != ErrorCode.SUCCESS:
-            print(stderr)
+            LOG.error(stderr)
             sys.exit(rc)
 
     def download_oltp(self):
@@ -116,7 +117,7 @@ class TestOLTPBench(TestServer):
             constants.OLTP_GIT_COMMAND,
             "Error: unable to git clone OLTP source code")
         if rc != ErrorCode.SUCCESS:
-            print(stderr)
+            LOG.error(stderr)
             sys.exit(rc)
 
     def build_oltp(self):
@@ -124,7 +125,7 @@ class TestOLTPBench(TestServer):
             error_msg = "Error: unable to run \"{}\"".format(command)
             rc, stdout, stderr = run_command(command, error_msg)
             if rc != ErrorCode.SUCCESS:
-                print(stderr)
+                LOG.error(stderr)
                 sys.exit(rc)
 
     def get_db_url(self):
@@ -176,12 +177,12 @@ class TestOLTPBench(TestServer):
         # If it's not there, we'll dump out the contents of the directory to make it
         # easier to determine whether or not we are crazy when running Jenkins.
         if not os.path.exists(self.test_histogram_path):
-            print("=" * 50)
-            print("Directory Contents: {}".format(
+            LOG.error("=" * 50)
+            LOG.error("Directory Contents: {}".format(
                 os.path.dirname(self.test_histogram_path)))
-            print("\n".join(
+            LOG.error("\n".join(
                 os.listdir(os.path.dirname(self.test_histogram_path))))
-            print("=" * 50)
+            LOG.error("=" * 50)
             msg = "Unable to find OLTP-Bench result file '{}'".format(
                 self.test_histogram_path)
             raise RuntimeError(msg)
@@ -192,7 +193,7 @@ class TestOLTPBench(TestServer):
         if unexpected_result and unexpected_result.keys():
             for test in unexpected_result.keys():
                 if (unexpected_result[test] != 0):
-                    print(str(unexpected_result))
+                    LOG.error(str(unexpected_result))
                     sys.exit(ErrorCode.ERROR)
         else:
             raise RuntimeError(str(unexpected_result))

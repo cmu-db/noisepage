@@ -6,6 +6,7 @@ import subprocess
 import re
 import signal
 import errno
+from util.constants import LOG
 
 def run_command(command,
                 error_msg="",
@@ -24,7 +25,7 @@ def run_command(command,
         if stdout == subprocess.PIPE:
             out = p.stdout.readline()
             if out:
-                print(out.decode("utf-8").rstrip("\n"))
+                LOG.info(out.decode("utf-8").rstrip("\n"))
 
     rc = p.poll()
     return rc, p.stdout, p.stderr
