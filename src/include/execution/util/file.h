@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <string>
 
 #include "common/macros.h"
@@ -69,7 +68,7 @@ class File {
    * @param path Path to file.
    * @param flags Flags to use.
    */
-  File(const std::filesystem::path &path, uint32_t flags);
+  File(const std::string_view &path, uint32_t flags);
 
   /**
    * File handles cannot be copied.
@@ -86,13 +85,13 @@ class File {
    * @param path The path to the file.
    * @param flags The access mode.
    */
-  void Open(const std::filesystem::path &path, uint32_t flags);
+  void Open(const std::string_view &path, uint32_t flags);
 
   /**
    * Create a file at the given path. If a file exists already, an exception is thrown.
    * @param path Path.
    */
-  void Create(const std::filesystem::path &path);
+  void Create(const std::string_view &path);
 
   /**
    * Create a temporary file.
@@ -216,7 +215,7 @@ class File {
 
  private:
   // Initialization logic.
-  void Initialize(const std::filesystem::path &path, uint32_t flags);
+  void Initialize(const std::string_view &path, uint32_t flags);
 
   // Convert an error number into a high level error
   static Error OsErrorToFileError(int saved_errno);
