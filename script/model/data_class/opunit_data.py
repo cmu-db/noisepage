@@ -6,6 +6,7 @@ import pandas as pd
 import os
 import logging
 import tqdm
+import math
 
 from data_class import data_util
 from info import data_info
@@ -34,7 +35,7 @@ def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cac
     :param predict_cache: cache for the mini model prediction
     :param subtract_style: subtraction style for eliminating units
     :param record_values: either "all" or "avg" for whether all points should be recorded
-    :param anomaly_clearance: number too high/too low anomalies to prune if record_values != "all"
+    :param anomaly_clearance: % of too high/too low anomalies to prune if record_values != "all"
     :param visibility: whether all points should be seen by model
     :return: the list of Data for execution operating units
     """
@@ -105,7 +106,7 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract
     :param predict_cache: cache for the mini model prediction
     :param subtract_style: subtraction style for eliminating units
     :param record_values: either "all" or "avg" for whether all points should be recorded
-    :param anomaly_clearance: number too high/too low anomalies to prune if record_values != "all"
+    :param anomaly_clearance: % of too high/too low anomalies to prune if record_values != "all"
     :param visibility: whether all points should be seen by model
     :return: the list of Data for execution operating units
     """
@@ -141,7 +142,7 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract
                         predict_cache[tuple(key)] = [predict]
                         y_merged = y_merged - predict
                     else:
-                        assert len(predict_cache[tuple(key)]) == 1
+                        assert anomaly_clearance > 0
                         predict = np.average(predict_cache[tuple(key)], axis=0)
 
                         # Sanity check
@@ -169,17 +170,16 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract
     for anomaly in anomaly_map:
         key = anomaly
         len_vec = len(predict_cache[key])
-        if record_values == "avg" and len_vec > anomaly_clearance:
-            purge = 0
-            predict_cache[key].sort(key=lambda x: x[-1])
-
-            if len_vec > anomaly_clearance * 2:
-                purge = anomaly_clearance
+        predict_cache[key].sort(key=lambda x: x[-1])
+        if record_values == "avg":
+            trim_side = (anomaly_clearance / 2) * len_vec
+            low = int(math.ceil(trim_side))
+            high = len_vec - low
+            if low >= high:
+                predict_cache[key] = [np.median(predict_cache[key], axis=0)]
             else:
-                purge = anomaly_clearance / 2
+                predict_cache[key] = predict_cache[key][low:high]
 
-            purge = int(purge)
-            predict_cache[key] = predict_cache[key][purge:len_vec-purge]
             assert len(predict_cache[key]) > 0
 
         opunit = anomaly[0]
@@ -191,6 +191,7 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, subtract
                 data_vec = list(anomaly[1:]) + list(data)
                 data_map[opunit].append(data_vec)
         else:
+            assert anomaly_clearance > 0
             predict = np.average(predict_cache[key], axis=0)
             predict_cache[key] = [predict]
             data_map[opunit].append(list(anomaly[1:]) + list(predict))

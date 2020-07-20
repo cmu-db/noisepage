@@ -149,7 +149,7 @@ if __name__ == '__main__':
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--record_values', default='all', type=str, help='Data Values to use, either "all" or "avg"')
-    aparser.add_argument('--anomaly_clearance', default=1, type=int, help='Number of values to wipe if record_values=avg from top/bottom')
+    aparser.add_argument('--anomaly_clearance', default=0.2, type=float, help='% of values from top and bottom to remove if record_values=av')
     aparser.add_argument('--subtract_style', default='manual', type=str, help='Style to use for subtraction, either "manual" or "model"')
     aparser.add_argument('--visibility', default='all', type=str, help='Whether model should see all or only 1 point')
     aparser.add_argument('--log', default='info', help='The logging level')
