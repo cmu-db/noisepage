@@ -64,7 +64,7 @@ TEST_F(CSVScanTranslatorTest, ManyTypesTest) {
 
   // Compile and Run
   OutputCollectorAndChecker store(&multi_checker, csv_scan->GetOutputSchema());
-  PrintingConsumer consumer(std::cout, csv_scan->GetOutputSchema());
+  PrintingConsumer consumer(std::cout, csv_scan->GetOutputSchema());  // NOLINT
   MultiOutputCallback callback({&store});
   sql::MemoryPool memory(nullptr);
   sql::ExecutionContext exec_ctx(&memory, csv_scan->GetOutputSchema(), &callback);
