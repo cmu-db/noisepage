@@ -110,7 +110,7 @@ void FilterManager::Clause::RunFilter(exec::ExecutionContext *exec_ctx, VectorPr
   }
 #else
   // Reorder the terms based on their updated ranking.
-  std::sort(terms_.begin(), terms_.end(), [](const auto &a, const auto &b) { return a->rank > b->rank; });
+  std::sort(terms_.begin(), terms_.end(), [](const auto &a, const auto &b) { return a->rank_ > b->rank_; });
 #endif
 
   // Update sample count.

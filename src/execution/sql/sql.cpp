@@ -260,6 +260,7 @@ TypeId GetTypeId(type::TypeId frontend_type) {
       break;
     case type::TypeId::PARAMETER_OFFSET:
     case type::TypeId::INVALID:
+    default:
       throw std::runtime_error("Cannot convert this frontend type to execution engine type.");
   }
   return execution_type_id;
