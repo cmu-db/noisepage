@@ -230,6 +230,10 @@ void Vector::Reference(GenericValue *value) {
       data_ = reinterpret_cast<byte *>(&value->value_.date_);
       break;
     }
+    case TypeId::Timestamp: {
+      data_ = reinterpret_cast<byte *>(&value->value_.timestamp_);
+      break;
+    }
     case TypeId::Hash: {
       data_ = reinterpret_cast<byte *>(&value->value_.hash_);
       break;
