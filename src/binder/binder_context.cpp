@@ -95,11 +95,11 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   }
 
   std::unordered_map<std::string, type::TypeId> column_alias_map;
-  unsigned long i = 0;
+  size_t i = 0;
   auto cols = col_aliases.size();
   for (auto &expr : select_list) {
     std::string alias;
-    if (cols > i) {
+    if (i < cols) {
       alias = col_aliases[i];
     } else if (!expr->GetAlias().empty()) {
       alias = expr->GetAlias();
