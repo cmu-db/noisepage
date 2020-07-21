@@ -278,5 +278,9 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES core mcjit nativecodegen native i
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${LLVM_LIBRARIES})
 
-#flatbuffers
+# flatbuffers
 include_directories(SYSTEM "${THIRDPARTY_DIR}/flatbuffers/include")
+
+# spdlog
+include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party/spdlog/include/)
+list(APPEND TERRIER_LINK_LIBS spdlog::spdlog)
