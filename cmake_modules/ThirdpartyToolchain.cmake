@@ -76,6 +76,12 @@ else ()
     set(GBENCHMARK_SOURCE_URL "https://github.com/google/benchmark/archive/v${GBENCHMARK_VERSION}.tar.gz")
 endif ()
 
+if (DEFINED ENV{TERRIER_SPDLOG_URL})
+    set(SPDLOG_SOURCE_URL "$ENV{TERRIER_SPDLOG_URL}")
+else ()
+    set(SPDLOG_SOURCE_URL "https://github.com/gabime/spdlog/archive/v${SPDLOG_VERSION}.tar.gz")
+endif ()
+
 # ----------------------------------------------------------------------
 # ExternalProject options
 
@@ -236,6 +242,24 @@ if (TERRIER_BUILD_BENCHMARKS)
     endif ()
 endif ()
 
+# spdlog
+if ("${SPDLOG_HOME}" STREQUAL "")
+    set(SPDLOG_CMAKE_CXX_FLAGS ${EP_CXX_FLAGS})
+
+    set(SPDLOG_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/spdlog-prefix/src/spdlog")
+
+    FetchContent_Declare(SPDLOG
+        URL ${SPDLOG_SOURCE_URL})
+
+    FetchContent_MakeAvailable(SPDLOG)
+
+    include_directories(SYSTEM "${spdlog_SOURCE_DIR}/include")
+    list(APPEND TERRIER_LINK_LIBS spdlog::spdlog)
+else ()
+    set(SPDLOG_VENDORED 0)
+    find_package(spdlog REQUIRED)
+endif ()
+
 #----------------------------------------------------------------------
 
 set(TERRIER_LINK_LIBS "")
@@ -280,7 +304,3 @@ list(APPEND TERRIER_LINK_LIBS ${LLVM_LIBRARIES})
 
 # flatbuffers
 include_directories(SYSTEM "${THIRDPARTY_DIR}/flatbuffers/include")
-
-# spdlog
-include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party/spdlog/include/)
-list(APPEND TERRIER_LINK_LIBS spdlog::spdlog)
