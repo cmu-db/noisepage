@@ -21,7 +21,7 @@ set(SUPPORTED_CLANGS "clang++-8" "clang++")
 
 # On macOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
 if (APPLE)
-    set(CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
+    set(CLANG "/usr/local/opt/llvm@8/bin/clang++")
 else ()
     find_program(CLANG NAMES ${SUPPORTED_CLANGS})
 endif ()

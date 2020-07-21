@@ -10,7 +10,7 @@ class TestJUnit(TestServer):
     """
     def __init__(self, args):
         TestServer.__init__(self, args)
-        self.test_command = constants.JUNIT_TEST_CMD_ALL
+        self.test_command = constants.JUNIT_TEST_COMMAND
         self.test_command_cwd = constants.JUNIT_TEST_DIR
         self.test_error_msg = constants.JUNIT_TEST_ERROR_MSG
         self.test_output_file = self.args.get("test_output_file")

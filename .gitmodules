@@ -1,3 +1,0 @@
-[submodule "script/testing/junit/noisepage-testfiles"]
-	path = script/testing/junit/noisepage-testfiles
-	url = https://github.com/cmu-db/noisepage-testfiles.git

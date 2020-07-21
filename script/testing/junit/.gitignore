@@ -1,7 +1,2 @@
 # keep the jar files
 !lib/*.jar
-noisepage-testfiles/
-out/
-trace/
-src/sel.test
-src/ins_output.test

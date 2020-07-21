@@ -25,9 +25,10 @@
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrapper.h"
 #include "network/network_types.h"
+#include "network/postgres/postgres_command_factory.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
 #include "traffic_cop/traffic_cop.h"
-
 namespace terrier::network {
 
 /**
