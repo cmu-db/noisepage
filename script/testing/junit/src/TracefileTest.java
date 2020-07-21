@@ -25,11 +25,10 @@ public class TracefileTest {
     /**
      * Set up connection to database
      * Clear previous existing table
-     * @throws FileNotFoundException
-     * @throws SQLException
+     * @throws Throwable
      */
     @BeforeEach
-    public void setUp() throws FileNotFoundException, SQLException {
+    public void setUp() throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         conn = TestUtility.makeDefaultConnection();
         String path = System.getenv("NOISEPAGE_TRACE_FILE");
@@ -45,11 +44,10 @@ public class TracefileTest {
     /**
      * Factory method to generate test
      * @return a collection of DynamicTest object constructed from executables
-     * @throws IOException
-     * @throws SQLException
+     * @throws Throwable
      */
     @TestFactory
-    public Collection<DynamicTest> generateTest() throws IOException {
+    public Collection<DynamicTest> generateTest() throws Throwable {
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
@@ -72,7 +70,6 @@ public class TracefileTest {
                     dTest.add(cur);
                 }
                 catch (Throwable e) {
-                    System.out.println(mog.sql);
                     Executable exec = () -> check2(e.getMessage());
                     DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
                     dTest.add(cur);

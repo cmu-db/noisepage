@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     # Step 2: Run the trace test for each file that we find
     # Each directory represents another set of SQL traces to test.
-    noise_trace_dir = os.path.join(base_path, constants.JUNIT_DIR, constants.REPO_TRACE_DIR)
+    noise_trace_dir = os.path.join(base_path, constants.REPO_TRACE_DIR)
     for item in os.listdir(noise_trace_dir):
         if item.endswith(constants.TESTFILES_PREFIX):
         # Look for all of the .test files in the each directory

@@ -26,7 +26,7 @@ public class GenerateTrace {
     public static final String DEST_DIR = "traces";
     public static final String DEST_NAME = "output.test";
 
-    public static void main(String[] args) throws IOException, SQLException {
+    public static void main(String[] args) throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         String path = args[0];
         File file = new File(path);
@@ -52,7 +52,7 @@ public class GenerateTrace {
                 statement = conn.createStatement();
                 statement.execute(line);
                 label = STATEMENT_OK;
-            } catch (SQLException e){
+            } catch (Throwable e){
                 label = STATEMENT_ERROR;
             }
 
