@@ -9,9 +9,6 @@ list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 # Third party sources
 ###############################################
 
-# spdlog
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/spdlog/ spdlog.a)
-
 # libpg_query
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/libpg_query/ libpg_query.a)
 
