@@ -40,7 +40,7 @@ class OptimizerContext {
    * @param cost_model Cost Model to be stored by OptimizerContext
    */
   explicit OptimizerContext(const common::ManagedPointer<AbstractCostModel> cost_model)
-      : cost_model_(cost_model), task_pool_(nullptr), cte_schema_(nullptr) {}
+      : cost_model_(cost_model), task_pool_(nullptr) {}
 
   /**
    * Destructor
@@ -77,7 +77,17 @@ class OptimizerContext {
    * Gets the CTE Schema
    * @returns CTE Schema
    */
-  common::ManagedPointer<planner::OutputSchema> GetCTESchema() { return cte_schema_; }
+  common::ManagedPointer<planner::OutputSchema> GetCTESchema(const std::string &cte_name) {
+    return cte_schemas_.find(cte_name)->second;
+  }
+
+  std::vector<std::string> GetCTETables() {
+    std::vector<std::string> keys;
+    for(auto &it : cte_schemas_){
+      keys.push_back(it.first);
+    }
+    return keys;
+  }
 
   /**
    * Gets the StatsStorage
@@ -125,7 +135,8 @@ class OptimizerContext {
    * Sets the CTE Schema
    * @param schema OutputSchema
    */
-  void SetCTESchema(common::ManagedPointer<planner::OutputSchema> schema) { cte_schema_ = schema; }
+  void SetCTESchema(const std::string &cte_name,
+                    common::ManagedPointer<planner::OutputSchema> schema) { cte_schemas_[cte_name] = schema; }
 
   /**
    * Sets the StatsStorage
@@ -214,7 +225,7 @@ class OptimizerContext {
   StatsStorage *stats_storage_{};
   transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
-  common::ManagedPointer<planner::OutputSchema> cte_schema_;
+  std::unordered_map<std::string, common::ManagedPointer<planner::OutputSchema>> cte_schemas_;
 };
 
 }  // namespace optimizer
