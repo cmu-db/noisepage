@@ -76,6 +76,8 @@ PYTHON_PACKAGES=(\
 main() {
   set -o errexit
 
+  git submodule update --init --recursive
+  
   INSTALL_TYPE="$1"
   if [ -z "$INSTALL_TYPE" ]; then
     INSTALL_TYPE="build"
