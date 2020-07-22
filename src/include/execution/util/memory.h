@@ -7,7 +7,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "common/all_static.h"
 #include "common/macros.h"
 #include "common/math_util.h"
 
@@ -21,8 +20,11 @@ namespace terrier::execution::util {
 /**
  * Container for common memory operations.
  */
-class Memory : public common::AllStatic {
+class Memory {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(Memory);
+
   /**
    * Allocate and return a pointer to a chunk of memory of @em size bytes. The returned pointer will
    * be a multiple of @em alignment, which must be a power of two and a multiple of sizeof(void *).

@@ -10,8 +10,11 @@
 namespace terrier::execution::sql {
 
 /** Static class for operating binary operations. */
-class BinaryOperationExecutor : public common::AllStatic {
+class BinaryOperationExecutor {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(BinaryOperationExecutor);
+
   /**
    * Execute a binary operation on all active elements contained in two input vectors, @em left and
    * @em right, and store the result into an output vector, @em result. An instance of the binary

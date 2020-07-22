@@ -2,7 +2,6 @@
 
 #include <string>
 
-#include "common/all_static.h"
 #include "execution/sql/operators/cast_operators.h"
 #include "execution/sql/value.h"
 
@@ -15,8 +14,11 @@ namespace terrier::execution::sql {
 /**
  * Utility class to handle various SQL casting functions.
  */
-class CastingFunctions : public common::AllStatic {
+class CastingFunctions {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(CastingFunctions);
+
   /** Cast the input Integer to a BoolVal. */
   static void CastToBoolVal(BoolVal *result, const Integer &v);
   /** Cast the input Real to a BoolVal. */

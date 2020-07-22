@@ -31,8 +31,11 @@ inline void CheckInplaceOperation(const Vector *result, const Vector &input) {
 }
 
 /** Static class for executing in-place operations. */
-class InPlaceOperationExecutor : public common::AllStatic {
+class InPlaceOperationExecutor {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(InPlaceOperationExecutor);
+
   /**
    * Execute an in-place operation on all active elements in two vectors, @em result and @em input,
    * and store the result into the first input/output vector, @em result.

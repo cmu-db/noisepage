@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "common/all_static.h"
 #include "common/constants.h"
 #include "execution/sql/generic_value.h"
 #include "execution/sql/vector.h"
@@ -18,8 +17,11 @@ class TupleIdList;
 /**
  * A utility class containing several core vectorized operations.
  */
-class EXPORT VectorOps : public common::AllStatic {
+class EXPORT VectorOps {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(VectorOps);
+
   /**
    * Copy @em element_count elements from @em source starting at offset @em offset into the (opaque)
    * array @em target.

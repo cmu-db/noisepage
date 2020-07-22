@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/all_static.h"
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 
@@ -9,8 +8,11 @@ namespace terrier::execution::util {
 /**
  * Utility class containing vectorized operations.
  */
-class VectorUtil : public common::AllStatic {
+class VectorUtil {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(VectorUtil);
+
   /**
    * Intersect the sorted selection vectors @em sel_vector_1 with @em sel_vector_2 with lengths @em sel_vector_1_len and
    * @em sel_vector_2_len, respectively. Store the result in @em out_sel_vector. The function returns the number of

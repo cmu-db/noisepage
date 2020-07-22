@@ -2,7 +2,6 @@
 
 #include <limits>
 
-#include "common/all_static.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
@@ -10,8 +9,11 @@ namespace terrier::execution::util {
 /**
  * Utility class to handle arithmetic operations that can overflow.
  */
-class ArithmeticOverflow : public common::AllStatic {
+class ArithmeticOverflow {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(ArithmeticOverflow);
+
   /**
    * Minimum int128_t value
    */
