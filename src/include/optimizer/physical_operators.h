@@ -148,7 +148,8 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                        std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
-                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
+                       bool limit_exists, uint32_t limit);
 
   /**
    * Copy
@@ -197,6 +198,16 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
     return bounds_;
   }
 
+  /**
+   * @return limit_exists_
+   */
+  const bool GetLimitExists() const { return limit_exists_; }
+
+  /**
+   * @return limit
+   */
+  const uint32_t GetLimit() const { return limit_; }
+
  private:
   /**
    * OID of the database
@@ -232,6 +243,16 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * Bounds
    */
   std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
+
+  /**
+   * Whether limit exists
+   */
+  bool limit_exists_;
+
+  /**
+    * Limit
+    */
+  uint32_t limit_;
 };
 
 /**

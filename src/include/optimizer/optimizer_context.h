@@ -100,6 +100,18 @@ class OptimizerContext {
   transaction::TransactionContext *GetTxn() { return txn_; }
 
   /**
+   * Gets whether the limit exists
+   * @returns limit exists
+   */
+  bool GetLimitExists() { return limit_exists_; }
+
+  /**
+   * Gets the limit
+   * @returns limit
+   */
+  uint32_t GetLimit() { return limit_; }
+
+  /**
    * Sets the transaction
    * @param txn TransactionContext
    */
@@ -126,6 +138,18 @@ class OptimizerContext {
     delete this->task_pool_;
     this->task_pool_ = task_pool;
   }
+
+  /**
+   * Sets whether the limit exists
+   * @param bool limit_exists
+   */
+  void SetLimitExists(bool limit_exists) { limit_exists_ = limit_exists; }
+
+  /**
+ * Sets the limit value
+ * @param uint32_t limit
+ */
+  void SetLimit(uint32_t limit) { limit_ = limit; }
 
   /**
    * Converts an AbstractOptimizerNode into a GroupExpression.
@@ -198,6 +222,8 @@ class OptimizerContext {
   StatsStorage *stats_storage_{};
   transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
+  bool limit_exists_;
+  uint32_t limit_;
 };
 
 }  // namespace optimizer

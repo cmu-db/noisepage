@@ -252,6 +252,12 @@ void PlanGenerator::Visit(const IndexScan *op) {
     }
   }
 
+  // TODO(dpatra): Discuss exactly when limit should be pushed down
+  // Check that the limit is set in the optimization context
+  if (op->GetLimitExists()) {
+    builder.SetScanLimit(op->GetLimit());
+  }
+
   output_plan_ = builder.Build();
 }
 

@@ -32,6 +32,7 @@ class IndexUtil {
    * This function does not determine whether an index CAN or CANNOT
    * be used. This function only verifies that the preconditions
    * are met before actually searching for a usable index.
+   * TODO(dpatra): once we add support for descending columns in the index fix this
    *
    * @param prop PropertySort to evaluate
    * @returns TRUE if should search for index

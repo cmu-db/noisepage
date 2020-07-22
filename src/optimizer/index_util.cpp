@@ -13,8 +13,8 @@
 namespace terrier::optimizer {
 
 bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
-                                       catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid) {
-  auto &index_schema = accessor->GetIndexSchema(idx_oid);
+                                       catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid) {
+  auto &index_schema = accessor->GetIndexSchema(index_oid);
   if (!SatisfiesBaseColumnRequirement(index_schema)) {
     return false;
   }
