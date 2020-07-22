@@ -15,7 +15,7 @@ from util.constants import LOG
 def section_header(title):
     border = "+++ " + "="*100 + " +++\n"
     middle = "+++ " + title.center(100) + " +++\n"
-    return "\n" + border + middle + border + "\n"
+    return "\n\n" + border + middle + border
 # DEF
 
 if __name__ == "__main__":
@@ -35,7 +35,7 @@ if __name__ == "__main__":
                          help="Query protocol mode")
     aparser.add_argument("--prepare-threshold",
                          type=int,
-                         help="Threshold under the 'extened' query mode")
+                         help="Threshold under the 'extended' query mode")
 
     args = vars(aparser.parse_args())
 
@@ -86,6 +86,6 @@ if __name__ == "__main__":
     final_code = 0
     for c in all_exit_codes:
         final_code = final_code or c
-
+    LOG.info("Final Status → {}".format("FAIL" if final_code else "SUCCESS"))
     sys.exit(final_code)
 # MAIN
