@@ -20,7 +20,7 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
       update_pr_(GetCodeGen()->MakeFreshIdentifier("update_pr")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
-      all_oids_(CollectOids(plan)),
+      all_oids_(CollectOids(table_schema_)),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(all_oids_)) {
   compilation_context->Prepare(*plan.GetChild(0), pipeline);
 

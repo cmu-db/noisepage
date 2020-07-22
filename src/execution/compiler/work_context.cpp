@@ -10,11 +10,11 @@ WorkContext::WorkContext(CompilationContext *compilation_context, const Pipeline
       pipeline_(pipeline),
       pipeline_iter_(pipeline_.Begin()),
       pipeline_end_(pipeline_.End()),
-      cache_enabled_(false) {}
+      cache_enabled_(true) {}
 
 ast::Expr *WorkContext::DeriveValue(const parser::AbstractExpression &expr, const ColumnValueProvider *provider) {
   if (cache_enabled_) {
-    if (auto iter = cache_.find(&expr); iter != cache_.end()) {
+    if (auto iter = cache_.find(CacheKey_t{&expr, provider}); iter != cache_.end()) {
       return iter->second;
     }
   }
@@ -23,7 +23,7 @@ ast::Expr *WorkContext::DeriveValue(const parser::AbstractExpression &expr, cons
     return nullptr;
   }
   auto result = translator->DeriveValue(this, provider);
-  if (cache_enabled_) cache_[&expr] = result;
+  if (cache_enabled_) cache_[CacheKey_t{&expr, provider}] = result;
   return result;
 }
 
