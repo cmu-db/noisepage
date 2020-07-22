@@ -344,9 +344,13 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         break;
       }
       case type::TypeId::BOOLEAN: {
+        // Don't allocate an actual string for a BOOLEAN, just wrap a std::string_view, write the value directly, and
+        // continue
         auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
-        string_value = (static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE);
-        break;
+        const auto str_view =
+            static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE;
+        AppendValue<int32_t>(static_cast<int32_t>(str_view.length())).AppendStringView(str_view, false);
+        return execution::sql::ValUtil::GetSqlSize(type);
       }
       case type::TypeId::DECIMAL: {
         auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
