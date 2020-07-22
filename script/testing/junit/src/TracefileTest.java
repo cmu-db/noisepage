@@ -1,3 +1,4 @@
+import org.junit.FixMethodOrder;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.function.Executable;
 import java.io.*;
@@ -17,10 +18,13 @@ import moglib.*;
  * Test class that dynamically generate test cases for each sql query
  * Get file path from environment variable
  */
+@FixMethodOrder()
 public class TracefileTest {
     private static File file;
     private static MogSqlite mog;
     private static Connection conn;
+    private static final String OK = "ok";
+    private static final String ERROR = "error";
 
     /**
      * Set up connection to database
@@ -41,6 +45,7 @@ public class TracefileTest {
     }
 
 
+
     /**
      * Factory method to generate test
      * @return a collection of DynamicTest object constructed from executables
@@ -58,50 +63,63 @@ public class TracefileTest {
         while (mog.next()) {
             // case for create and insert statements
             lineCounter++;
+            String cur_sql = mog.sql.trim();
             int num = queryLine.get(lineCounter);
             if (mog.queryResults.size() == 0) {
                 Statement statement = null;
+                Executable exec = null;
                 String testName = "Line:" + num + " | Expected " + mog.status;
                 try {
                     statement = conn.createStatement();
-                    statement.execute(mog.sql);
-                    Executable exec = () -> assertEquals(true, true);
-                    DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
-                    dTest.add(cur);
+                    statement.execute(cur_sql);
+                    if(mog.status.equals(ERROR)){
+                        String message = "Failure at Line " + num + ": Expected failure but success"  + "\n " + cur_sql;
+                        exec = () -> check2(message);
+                    }else{
+                        exec = () -> assertEquals(true, true);
+                    }
                 }
                 catch (Throwable e) {
-                    Executable exec = () -> check2(e.getMessage());
-                    DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
-                    dTest.add(cur);
+                    if(mog.status.equals(OK)){
+                        String message = "Failure at Line " + num + ": Expected success but failure"  + "\n " + cur_sql;
+                        exec = () -> check2(message);
+                    }else{
+                        exec = () -> assertEquals(true, true);
+                    }
                 }
+                DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
+                dTest.add(cur);
             } else{
                 // case for query statements
                 if(mog.queryResults.get(0).contains("values")){
                     // parse the line from test file to get the hash
                     String[] sentence = mog.queryResults.get(0).split(" ");
                     String hash = sentence[sentence.length-1];
+                    String testName = "Line:" + num +" | Hash:"+hash;
                     // execute sql query to get result from database
                     Statement statement = null;
                     List<String> res = new ArrayList<>();
+                    Executable exec = null;
                     try {
                         statement = conn.createStatement();
-                        statement.execute(mog.sql);
+                        statement.execute(cur_sql);
                         ResultSet rs = statement.getResultSet();
                         res = mog.processResults(rs);
+                        // create an executable for the query
+                        String hash2 = getHashFromDb(res);
+                        exec = () -> check(hash, hash2, num, cur_sql);
+                        // create the DynamicTest object
                     } catch (Throwable e) {
-                        System.out.println("Failure at Line " + num + ": " + e.getMessage() + "\n" + mog.sql.trim() + "\n");
+                        String message = "Failure at Line " + num + ": " + e.getMessage() + "\n" + cur_sql;
+                        exec = () -> check2(message);
                     }
-                    // create an executable for the query
-                    String hash2 = getHashFromDb(res);
-                    Executable exec = () -> check(hash, hash2, num);
-                    String testName = "Line:" + num +" | Hash:"+hash;
-                    // create the DynamicTest object
                     DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
                     dTest.add(cur);
                 }
             }
             mog.queryResults.clear();
         }
+        conn.close();
         return dTest;
 
     }
@@ -113,12 +131,12 @@ public class TracefileTest {
      * @param n line number
      * @throws Exception
      */
-    public static void check(String hash1, String hash2, int n) throws Exception {
+    public static void check(String hash1, String hash2, int n, String sql) throws Exception {
         try {
             assertEquals(hash1, hash2);
         }
         catch (AssertionError e) {
-            throw new Exception("Line " + n + ": " + e.getMessage());
+            throw new Exception("Failure at Line " + n + ": " + e.getMessage() + "\n" + sql);
         }
     }
 
