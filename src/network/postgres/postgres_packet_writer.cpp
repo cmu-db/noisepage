@@ -2,19 +2,8 @@
 
 #include "common/error/error_data.h"
 #include "execution/sql/value.h"
+#include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_protocol_util.h"
-
-namespace {
-/**
- * The string value to use for 'true' boolean values
- */
-constexpr char POSTGRES_BOOLEAN_STR_TRUE[] = "t";
-
-/**
- * The string value to use for 'false' boolean values
- */
-constexpr char POSTGRES_BOOLEAN_STR_FALSE[] = "f";
-}  // namespace
 
 namespace terrier::network {
 
