@@ -1965,7 +1965,7 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::PRSetBool:
     case ast::Builtin::PRSetBoolNull: {
       is_set_call = true;
-      sql_type = ast::BuiltinType::Bool;
+      sql_type = ast::BuiltinType::Boolean;
       break;
     }
     case ast::Builtin::PRSetTinyInt:

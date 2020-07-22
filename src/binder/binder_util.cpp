@@ -56,7 +56,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
         break;
       }
 
-        // DATE and TIMESTAMP conversion. String to numeric type conversion.
+        // DATE and TIMESTAMP conversion. String to boolean conversion. String to numeric type conversion.
       case type::TypeId::VARCHAR: {
         const auto str_view = value->Peek<std::string_view>();
 
@@ -70,6 +70,22 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
           case type::TypeId::TIMESTAMP: {
             auto parsed_timestamp = execution::sql::Timestamp::FromString(str_view);
             value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(parsed_timestamp));
+            break;
+          }
+          case type::TypeId::BOOLEAN: {
+            bool is_true = str_view == "t" || str_view == "true" || str_view == "yes" || str_view == "y" ||
+                           str_view == "on" || str_view == "1";
+            bool is_false = str_view == "f" || str_view == "false" || str_view == "no" || str_view == "n" ||
+                            str_view == "off" || str_view == "0";
+
+            if (is_true) {
+              value->SetValue(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+            } else if (is_false) {
+              value->SetValue(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+            } else {
+              throw BINDER_EXCEPTION(fmt::format("invalid input syntax for type boolean: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
             break;
           }
           case type::TypeId::TINYINT: {
