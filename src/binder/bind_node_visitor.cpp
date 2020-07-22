@@ -494,8 +494,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   node->SetDepth(context_->GetDepth());
 
   if (node->GetSelectOrderBy() != nullptr) {
-    auto order_by_expressions = UnifyOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
-    node->GetSelectOrderBy()->GetOrderByExpressions().swap(order_by_expressions);
+    UnifyOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
     node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
 
@@ -775,10 +774,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
   }
 }
 
-std::vector<common::ManagedPointer<parser::AbstractExpression>> BindNodeVisitor::UnifyOrderByExpression(
+void BindNodeVisitor::UnifyOrderByExpression(
     common::ManagedPointer<parser::OrderByDescription> order_by_description,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
-  auto exprs = order_by_description->GetOrderByExpressions();
+  auto &exprs = order_by_description->GetOrderByExpressions();
   auto size = order_by_description->GetOrderByExpressionsSize();
   for (size_t idx = 0; idx < size; idx++) {
     if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
@@ -805,6 +804,5 @@ std::vector<common::ManagedPointer<parser::AbstractExpression>> BindNodeVisitor:
       exprs[idx] = select_items[column_id - 1];
     }
   }
-  return exprs;
 }
 }  // namespace terrier::binder

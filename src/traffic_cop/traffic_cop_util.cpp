@@ -55,6 +55,7 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
         sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
                                                                        : optimizer::OrderByOrderingType::DESC);
       }
+
       auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
       property_set.AddProperty(sort_prop);
     }

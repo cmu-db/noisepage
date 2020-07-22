@@ -110,11 +110,9 @@ class BindNodeVisitor : public SqlNodeVisitor {
    * Change the type of exprs_ of order_by_description from ConstantValueExpression to ColumnValueExpression.
    * @param order_by_description OrderByDescription
    * @param select_items select columns
-   * @return exprs of OrderByDescription in SelectStatement
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> UnifyOrderByExpression(
-      common::ManagedPointer<parser::OrderByDescription> order_by_description,
-      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
+  void UnifyOrderByExpression(common::ManagedPointer<parser::OrderByDescription> order_by_description,
+                              const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
 
   void ValidateDatabaseName(const std::string &db_name) {
     if (!(db_name.empty())) {
