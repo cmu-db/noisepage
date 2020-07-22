@@ -173,11 +173,8 @@ class TestServer:
 
     def print_output(self, filename):
         """ Print out contents of a file """
-        fd = open(filename)
-        lines = fd.readlines()
-        for line in lines:
-            LOG.info(line.strip())
-        fd.close()
+        with open(filename, "r") as fd:
+            LOG.info("Output:\n" + "\n".join([line.strip() for line in fd.readlines()]))
         return
 
     def run_test(self):
