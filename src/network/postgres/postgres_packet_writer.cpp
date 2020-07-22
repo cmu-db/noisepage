@@ -250,6 +250,10 @@ void PostgresPacketWriter::WriteDataRow(const byte *const tuple,
   uint32_t curr_offset = 0;
   for (uint32_t i = 0; i < columns.size(); i++) {
     // Reinterpret to a base value type first and check if it's NULL
+    auto alignment = execution::sql::ValUtil::GetSqlAlignment(columns[i].GetType());
+    if (!common::MathUtil::IsAligned(curr_offset, alignment)) {
+      curr_offset = static_cast<uint32_t>(common::MathUtil::AlignTo(curr_offset, alignment));
+    }
     const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
 
     // Field formats can either be the size of the number of columns, or size 1 where they all use the same format

@@ -25,12 +25,10 @@ class Pipeline;
  */
 class WorkContext {
  public:
-
   /**
    * Key for expression translator cache
    */
-  using CacheKey_t = std::pair<const parser::AbstractExpression *,
-                               const ColumnValueProvider *>;
+  using CacheKey_t = std::pair<const parser::AbstractExpression *, const ColumnValueProvider *>;
 
   /**
    * Create a new context whose data flows along the provided pipeline.
@@ -86,8 +84,7 @@ class WorkContext {
   const Pipeline &pipeline_;
 
   struct hash_key {
-    size_t operator()(const CacheKey_t & p) const
-    {
+    size_t operator()(const CacheKey_t &p) const {
       auto hash1 = std::hash<CacheKey_t::first_type>{}(p.first);
       auto hash2 = std::hash<CacheKey_t::second_type>{}(p.second);
       return hash1 ^ hash2;

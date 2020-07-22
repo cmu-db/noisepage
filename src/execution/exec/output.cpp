@@ -22,6 +22,10 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
   for (uint32_t row = 0; row < num_tuples; row++) {
     uint32_t curr_offset = 0;
     for (uint16_t col = 0; col < schema_->GetColumns().size(); col++) {
+      auto alignment = execution::sql::ValUtil::GetSqlAlignment(schema_->GetColumns()[col].GetType());
+      if (!common::MathUtil::IsAligned(curr_offset, alignment)) {
+        curr_offset = static_cast<uint32_t>(common::MathUtil::AlignTo(curr_offset, alignment));
+      }
       // TODO(Amadou): Figure out to print other types.
       switch (schema_->GetColumns()[col].GetType()) {
         case type::TypeId::TINYINT:

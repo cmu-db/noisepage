@@ -285,6 +285,10 @@ class OutputStore {
       uint32_t curr_offset = 0;
       std::vector<sql::Val *> vals;
       for (const auto &col : schema_->GetColumns()) {
+        auto alignment = execution::sql::ValUtil::GetSqlAlignment(schema_->GetColumns()[col].GetType());
+        if (!common::MathUtil::IsAligned(curr_offset, alignment)) {
+          curr_offset = static_cast<uint32_t>(common::MathUtil::AlignTo(curr_offset, alignment));
+        }
         // TODO(Amadou): Figure out to print other types.
         switch (col.GetType()) {
           case terrier::type::TypeId::TINYINT:

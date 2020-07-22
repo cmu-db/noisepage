@@ -11,6 +11,10 @@ namespace terrier::execution::exec {
 uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {
+    auto alignment = sql::ValUtil::GetSqlAlignment(col.GetType());
+    if (!common::MathUtil::IsAligned(tuple_size, alignment)) {
+      tuple_size = static_cast<uint32_t>(common::MathUtil::AlignTo(tuple_size, alignment));
+    }
     tuple_size += sql::ValUtil::GetSqlSize(col.GetType());
   }
   return tuple_size;

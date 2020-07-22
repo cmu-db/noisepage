@@ -332,22 +332,35 @@ struct ValUtil {
       case type::TypeId::SMALLINT:
       case type::TypeId::INTEGER:
       case type::TypeId::BIGINT:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(Integer), 8));
+        return static_cast<uint32_t>(sizeof(Integer));
       case type::TypeId::BOOLEAN:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(BoolVal), 8));
+        return static_cast<uint32_t>(sizeof(BoolVal));
       case type::TypeId::DATE:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(DateVal), 8));
+        return static_cast<uint32_t>(sizeof(DateVal));
       case type::TypeId::TIMESTAMP:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(TimestampVal), 8));
+        return static_cast<uint32_t>(sizeof(TimestampVal));
       case type::TypeId::DECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
         // TODO(WAN): switching to DecimalVal, but we don't have a Real type?
         return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(DecimalVal), 8));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(StringVal), 8));
+        return static_cast<uint32_t>(sizeof(StringVal));
       default:
         return 0;
+    }
+  }
+
+  /**
+   * @param type a terrier type
+   * @return gets the alignment for this type in the execution engine
+   */
+  static uint32_t GetSqlAlignment(type::TypeId type) {
+    switch (type) {
+      case type::TypeId::BOOLEAN:
+        return 2;
+      default:
+        return 8;
     }
   }
 };

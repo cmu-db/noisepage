@@ -780,14 +780,13 @@ void PlanGenerator::Visit(const Update *op) {
   // TODO(WAN): I think Tanuj fixed this, but damn it breaks everything.
   auto indexes = accessor_->GetIndexes(op->GetTableOid());
   ExprSet cves;
-  for(auto index : indexes){
-    for(auto &column : index.second.GetColumns()){
+  for (auto index : indexes) {
+    for (auto &column : index.second.GetColumns()) {
       // TODO(tanujnay112) big cheating with the const_cast but as the todo in abstract_expression.h says
       // these are supposed to be immutable anyway. We need to either go around consting everything or document
       // this assumption better somewhere
-      parser::ExpressionUtil::GetTupleValueExprs(&cves,
-                                                 common::ManagedPointer(const_cast<parser::AbstractExpression*>
-                                                (column.StoredExpression().Get())));
+      parser::ExpressionUtil::GetTupleValueExprs(
+          &cves, common::ManagedPointer(const_cast<parser::AbstractExpression *>(column.StoredExpression().Get())));
     }
   }
 
@@ -813,9 +812,9 @@ void PlanGenerator::Visit(const Update *op) {
 
   // TODO(tanujnay112) can optimize if we stored updated column oids in the update nodes during binding
   // such that we didn't have to store string sets
-  for(auto &cve : cves){
-    if(update_column_names.find(cve.CastManagedPointerTo<parser::ColumnValueExpression>()
-        ->GetColumnName()) != update_column_names.end()) {
+  for (auto &cve : cves) {
+    if (update_column_names.find(cve.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName()) !=
+        update_column_names.end()) {
       indexed_update = true;
       break;
     }
