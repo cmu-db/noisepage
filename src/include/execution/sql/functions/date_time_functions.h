@@ -7,8 +7,11 @@ namespace terrier::execution::sql {
 /**
  * Date/timestamp functions.
  */
-class DateTimeFunctions : public common::AllStatic {
+class DateTimeFunctions {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(DateTimeFunctions);
+
   /**
    * Compute the century in which the input SQL timestamp @em time falls into.
    * @param[out] result Where the result is written to.

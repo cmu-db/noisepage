@@ -15,8 +15,11 @@ namespace terrier::execution::sql {
  * unary-operation template parameter to perform the logic of the unary operation. This is likely
  * the most common usage.
  */
-class UnaryOperationExecutor : public common::AllStatic {
+class UnaryOperationExecutor {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(UnaryOperationExecutor);
+
   /**
    * Execute a unary function on all active elements in an input vector and store the results into
    * the provided output vector. The unary function to execute is provided as a template parameter.

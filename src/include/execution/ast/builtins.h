@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "common/all_static.h"
+#include "common/macros.h"
 
 namespace terrier::execution::ast {
 
@@ -312,8 +312,11 @@ enum class Builtin : uint8_t {
 /**
  * Manages builtin functions.
  */
-class Builtins : public common::AllStatic {
+class Builtins {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(Builtins);
+
   /** The total number of builtin functions. */
   static const uint32_t BUILTINS_COUNT = static_cast<uint32_t>(Builtin::Last) + 1;
 

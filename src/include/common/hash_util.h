@@ -7,7 +7,6 @@
 #include <string>
 #include <type_traits>
 
-#include "common/all_static.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "execution/util/execution_common.h"
@@ -25,8 +24,11 @@ using hash_t = uint64_t;
  * overloaded specialized versions for arithmetic values (integers and floats), and generic versions
  * for longer buffers (strings, c-strings, and opaque buffers).
  */
-class EXPORT HashUtil : public common::AllStatic {
+class EXPORT HashUtil {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(HashUtil);
+
   /**
    * Hashes length number of bytes.
    * Source:

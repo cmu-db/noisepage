@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <numeric>
 
-#include "common/all_static.h"
 #include "common/macros.h"
 #include "llvm/Support/MathExtras.h"
 
@@ -13,8 +12,11 @@ namespace terrier::common {
 /**
  * Utility class containing various math/arithmetic functions
  */
-class MathUtil : public AllStatic {
+class MathUtil {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(MathUtil);
+
   /**
    * Perform a division taking the ceil of the result
    * @param numerator The numerator

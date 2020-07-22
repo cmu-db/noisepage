@@ -3,7 +3,6 @@
 #include <functional>
 #include <vector>
 
-#include "common/all_static.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/generic_value.h"
 #include "execution/sql/sql.h"
@@ -17,8 +16,11 @@ namespace terrier::execution::sql {
 /**
  * This is a helper class to execute filters over vector projections.
  */
-class VectorFilterExecutor : public common::AllStatic {
+class VectorFilterExecutor {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(VectorFilterExecutor);
+
   /**
    * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
    * that are equal to the provided constant value (@em val).

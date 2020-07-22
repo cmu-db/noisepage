@@ -3,7 +3,6 @@
 #include <memory>
 #include <utility>
 
-#include "common/all_static.h"
 #include "common/constants.h"
 #include "common/macros.h"
 #include "common/math_util.h"
@@ -13,8 +12,11 @@ namespace terrier::execution::util {
 /**
  * Utility class to deal with bit-level operations.
  */
-class BitUtil : public common::AllStatic {
+class BitUtil {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(BitUtil);
+
   /** The number of bits in one word. */
   static constexpr const uint32_t K_BIT_WORD_SIZE = sizeof(uint32_t) * common::Constants::K_BITS_PER_BYTE;
 

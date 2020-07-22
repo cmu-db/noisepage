@@ -3,7 +3,6 @@
 #include <limits>
 #include <string>
 
-#include "common/all_static.h"
 #include "execution/sql/value.h"
 
 namespace terrier::execution::exec {
@@ -15,8 +14,11 @@ namespace terrier::execution::sql {
 /**
  * Utility class to handle SQL string manipulations.
  */
-class StringFunctions : public common::AllStatic {
+class StringFunctions {
  public:
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(StringFunctions);
+
   /** Compute LENGTH(str). */
   static void CharLength(Integer *result, exec::ExecutionContext *ctx, const StringVal &str) {
     Length(result, ctx, str);
