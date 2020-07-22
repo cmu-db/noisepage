@@ -1,7 +1,9 @@
 #include "binder/binder_util.h"
 
+#include <algorithm>
 #include <limits>
 
+#include "network/postgres/postgres_defs.h"
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -73,14 +75,12 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
             break;
           }
           case type::TypeId::BOOLEAN: {
-            bool is_true = str_view == "t" || str_view == "true" || str_view == "yes" || str_view == "y" ||
-                           str_view == "on" || str_view == "1";
-            bool is_false = str_view == "f" || str_view == "false" || str_view == "no" || str_view == "n" ||
-                            str_view == "off" || str_view == "0";
-
-            if (is_true) {
+            if (std::find(network::POSTGRES_BOOLEAN_STR_TRUES.cbegin(), network::POSTGRES_BOOLEAN_STR_TRUES.cend(),
+                          str_view) != network::POSTGRES_BOOLEAN_STR_TRUES.cend()) {
               value->SetValue(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
-            } else if (is_false) {
+            } else if (std::find(network::POSTGRES_BOOLEAN_STR_FALSES.cbegin(),
+                                 network::POSTGRES_BOOLEAN_STR_FALSES.cend(),
+                                 str_view) != network::POSTGRES_BOOLEAN_STR_FALSES.cend()) {
               value->SetValue(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
             } else {
               throw BINDER_EXCEPTION(fmt::format("invalid input syntax for type boolean: \"{}\"", str_view),
