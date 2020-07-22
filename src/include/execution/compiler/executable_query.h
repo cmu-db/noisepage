@@ -8,13 +8,15 @@
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "execution/ast/ast_fwd.h"
+#include "execution/exec_defs.h"
 #include "execution/vm/vm_defs.h"
 
-namespace terrier::brain {
+namespace terrier {
+namespace brain {
 class PipelineOperatingUnits;
-}  // namespace terrier::brain
+}  // namespace brain
 
-namespace terrier::execution {
+namespace execution {
 namespace exec {
 class ExecutionContext;
 class ExecutionSettings;
@@ -31,11 +33,18 @@ class Region;
 namespace vm {
 class Module;
 }  // namespace vm
-}  // namespace terrier::execution
+}  // namespace execution
 
-namespace terrier::planner {
+namespace planner {
 class AbstractPlanNode;
-}  // namespace terrier::planner
+}  // namespace planner
+
+namespace runner {
+class MiniRunners;
+class MiniRunners_SEQ0_OutputRunners_Benchmark;
+}  // namespace runner
+
+}  // namespace terrier
 
 namespace terrier::execution::compiler {
 
@@ -144,7 +153,7 @@ class ExecutableQuery {
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
-  // The execution context used for code generation.
+  // The execution settings used for code generation.
   const exec::ExecutionSettings &exec_settings_;
   std::unique_ptr<util::Region> errors_region_;
   std::unique_ptr<util::Region> context_region_;
@@ -159,6 +168,24 @@ class ExecutableQuery {
 
   // The pipeline operating units that were generated as part of this query.
   std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
+
+  // For mini_runners.cpp
+
+  /** Legacy constructor that creates a hardcoded fragment with main(ExecutionContext*)->int32. */
+  ExecutableQuery(const std::string &contents, const common::ManagedPointer<exec::ExecutionContext> exec_ctx,
+                  bool is_file, const exec::ExecutionSettings &exec_settings);
+  /**
+   * Set Pipeline Operating Units for use by mini_runners
+   * @param units Pipeline Operating Units
+   */
+  void SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units);
+
+  std::string query_name_;
+  static std::atomic<query_id_t> query_identifier;
+
+  // MiniRunners needs to set query_identifier and pipeline_operating_units_.
+  friend class terrier::runner::MiniRunners;
+  friend class terrier::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
 };
 
 }  // namespace terrier::execution::compiler
