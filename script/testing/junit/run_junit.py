@@ -12,6 +12,12 @@ from junit import constants
 from junit.test_junit import TestJUnit
 from util.constants import LOG
 
+def section_header(title):
+    border = "+++ " + "="*100 + " +++\n"
+    middle = "+++ " + title.center(100) + " +++\n"
+    return "\n" + border + middle + border + "\n"
+# DEF
+
 if __name__ == "__main__":
 
     aparser = argparse.ArgumentParser(description="junit runner")
@@ -36,6 +42,7 @@ if __name__ == "__main__":
     all_exit_codes = []
     
     # Step 1: Run the regular JUnit tests. 
+    LOG.info(section_header("JUNIT TESTS"))
     exit_code = 0
     try:
         runner = TestJUnit(args)
@@ -53,10 +60,10 @@ if __name__ == "__main__":
     # Each directory represents another set of SQL traces to test.
     noise_trace_dir = os.path.join(base_path, constants.REPO_TRACE_DIR)
     for item in os.listdir(noise_trace_dir):
-        if item.endswith(constants.TESTFILES_PREFIX):
         # Look for all of the .test files in the each directory
+        if item.endswith(constants.TESTFILES_PREFIX):
             os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(noise_trace_dir, item)
-            LOG.info(os.environ["NOISEPAGE_TRACE_FILE"])
+            LOG.info(section_header("TRACEFILE TEST: " + os.environ["NOISEPAGE_TRACE_FILE"]))           
             exit_code = 0
             try:
                 runner = TestJUnit(args)
@@ -72,12 +79,10 @@ if __name__ == "__main__":
                 exit_code = 1
             finally:
                 all_exit_codes.append(exit_code)
-            LOG.info("="*80)
         ## FOR (files)
     ## FOR (dirs)
     
     # Compute final exit code. If any test failed, then the entire program has to fail
-
     final_code = 0
     for c in all_exit_codes:
         final_code = final_code or c
