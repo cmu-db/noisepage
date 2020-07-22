@@ -90,10 +90,10 @@ class UpdateTranslator : public OperatorTranslator {
   // Deletes from all indexes.
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
 
-  static std::vector<catalog::col_oid_t> CollectOids(const planner::UpdatePlanNode &node) {
+  static std::vector<catalog::col_oid_t> CollectOids(const catalog::Schema &schema) {
     std::vector<catalog::col_oid_t> oids;
-    for (const auto &clause : node.GetSetClauses()) {
-      oids.emplace_back(clause.first);
+    for (const auto &col : schema.GetColumns()) {
+      oids.emplace_back(col.Oid());
     }
     return oids;
   }
