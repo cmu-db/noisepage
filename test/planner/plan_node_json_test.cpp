@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "nlohmann/json.hpp"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
@@ -773,8 +774,8 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   parser::AbstractExpression *sortkey2 = new parser::DerivedValueExpression(type::TypeId::INTEGER, 0, 1);
 
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .AddSortKey(common::ManagedPointer(sortkey1), optimizer::OrderByOrderingType::ASC)
-                       .AddSortKey(common::ManagedPointer(sortkey2), optimizer::OrderByOrderingType::DESC)
+                       .AddSortKey(common::ManagedPointer(sortkey1), catalog::OrderByOrderingType::ASC)
+                       .AddSortKey(common::ManagedPointer(sortkey2), catalog::OrderByOrderingType::DESC)
                        .SetLimit(10)
                        .SetOffset(10)
                        .Build();

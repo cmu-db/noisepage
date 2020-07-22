@@ -246,7 +246,7 @@ BaseOperatorNodeContents *Limit::Copy() const { return new Limit(*this); }
 
 Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                     std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
+                     std::vector<catalog::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit();
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;

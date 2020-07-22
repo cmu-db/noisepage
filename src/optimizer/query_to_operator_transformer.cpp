@@ -126,7 +126,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
     OPTIMIZER_LOG_DEBUG("Handling order by/limit/offset in SelectStatement ...");
     std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
-    std::vector<optimizer::OrderByOrderingType> sort_direction;
+    std::vector<catalog::OrderByOrderingType> sort_direction;
 
     if (op->GetSelectOrderBy() != nullptr) {
       const auto &order_info = op->GetSelectOrderBy();
@@ -135,9 +135,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       }
       for (auto &type : order_info->GetOrderByTypes()) {
         if (type == parser::kOrderAsc)
-          sort_direction.push_back(optimizer::OrderByOrderingType::ASC);
+          sort_direction.push_back(catalog::OrderByOrderingType::ASC);
         else
-          sort_direction.push_back(optimizer::OrderByOrderingType::DESC);
+          sort_direction.push_back(catalog::OrderByOrderingType::DESC);
       }
     }
     auto limit_expr = std::make_unique<OperatorNode>(

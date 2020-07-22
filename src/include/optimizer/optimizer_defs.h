@@ -31,11 +31,6 @@ const group_id_t UNDEFINED_GROUP = group_id_t(-1);
 enum class ExternalFileFormat { CSV };
 
 /**
- * OrderBy ordering
- */
-enum class OrderByOrderingType { ASC, DESC };
-
-/**
  * Operator type
  */
 enum class OpType {

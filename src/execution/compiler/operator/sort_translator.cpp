@@ -1,7 +1,10 @@
 #include "execution/compiler/operator/sort_translator.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
+
+#include "catalog/catalog_defs.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/order_by_plan_node.h"
@@ -147,7 +150,7 @@ void SortBottomTranslator::GenComparisons(FunctionBuilder *builder) {
   int32_t ret_value;
   uint32_t attr_idx = 0;
   for (const auto &order : op_->GetSortKeys()) {
-    if (order.second == optimizer::OrderByOrderingType::ASC) {
+    if (order.second == catalog::OrderByOrderingType::ASC) {
       ret_value = -1;
     } else {
       ret_value = 1;

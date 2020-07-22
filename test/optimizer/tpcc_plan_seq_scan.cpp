@@ -1,6 +1,7 @@
 #include <memory>
 #include <string>
 
+#include "catalog/catalog_defs.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
@@ -90,7 +91,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     auto orderby = reinterpret_cast<const planner::OrderByPlanNode *>(planc);
     EXPECT_EQ(orderby->HasLimit(), false);
     EXPECT_EQ(orderby->GetSortKeys().size(), 1);
-    EXPECT_EQ(orderby->GetSortKeys()[0].second, optimizer::OrderByOrderingType::DESC);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, catalog::OrderByOrderingType::DESC);
     auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
     EXPECT_TRUE(sortkey != nullptr);
     EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
@@ -195,7 +196,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
     EXPECT_EQ(orderby->GetOffset(), sel_stmt->GetSelectLimit()->GetOffset());
     EXPECT_EQ(orderby->GetSortKeys().size(), 1);
-    EXPECT_EQ(orderby->GetSortKeys()[0].second, optimizer::OrderByOrderingType::DESC);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, catalog::OrderByOrderingType::DESC);
     auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
     EXPECT_TRUE(sortkey != nullptr);
     EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);

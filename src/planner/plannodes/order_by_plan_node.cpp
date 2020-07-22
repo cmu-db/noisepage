@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "common/json.h"
 
 namespace terrier::planner {
@@ -62,7 +63,7 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
 nlohmann::json OrderByPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
 
-  std::vector<std::pair<nlohmann::json, optimizer::OrderByOrderingType>> sort_keys;
+  std::vector<std::pair<nlohmann::json, catalog::OrderByOrderingType>> sort_keys;
   sort_keys.reserve(sort_keys_.size());
   for (const auto &key : sort_keys_) {
     sort_keys.emplace_back(key.first->ToJson(), key.second);
@@ -80,7 +81,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJs
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
 
   // Deserialize sort keys
-  auto sort_keys = j.at("sort_keys").get<std::vector<std::pair<nlohmann::json, optimizer::OrderByOrderingType>>>();
+  auto sort_keys = j.at("sort_keys").get<std::vector<std::pair<nlohmann::json, catalog::OrderByOrderingType>>>();
   for (const auto &key_json : sort_keys) {
     auto deserialized = parser::DeserializeExpression(key_json.first);
     sort_keys_.emplace_back(common::ManagedPointer(deserialized.result_), key_json.second);

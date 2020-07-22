@@ -9,6 +9,7 @@
 
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
@@ -116,7 +117,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
 
     // Property Sort
     auto property_set = new optimizer::PropertySet();
-    std::vector<optimizer::OrderByOrderingType> sort_dirs;
+    std::vector<catalog::OrderByOrderingType> sort_dirs;
     std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
     if (sel_stmt->GetSelectOrderBy()) {
       auto order_by = sel_stmt->GetSelectOrderBy();
@@ -124,8 +125,8 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
       auto exprs = order_by->GetOrderByExpressions();
       for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
         sort_exprs.emplace_back(exprs[idx]);
-        sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
-                                                                       : optimizer::OrderByOrderingType::DESC);
+        sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? catalog::OrderByOrderingType::ASC
+                                                                       : catalog::OrderByOrderingType::DESC);
       }
 
       auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);

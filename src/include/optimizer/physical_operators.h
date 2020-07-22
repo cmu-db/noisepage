@@ -415,7 +415,7 @@ class Limit : public OperatorNodeContents<Limit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
+                       std::vector<catalog::OrderByOrderingType> &&sort_directions);
 
   /**
    * Copy
@@ -446,7 +446,7 @@ class Limit : public OperatorNodeContents<Limit> {
   /**
    * @return sorting orders (if ascending)
    */
-  const std::vector<optimizer::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
+  const std::vector<catalog::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
 
  private:
   /**
@@ -474,7 +474,7 @@ class Limit : public OperatorNodeContents<Limit> {
   /**
    * Sorting order
    */
-  std::vector<optimizer::OrderByOrderingType> sort_directions_;
+  std::vector<catalog::OrderByOrderingType> sort_directions_;
 };
 
 /**

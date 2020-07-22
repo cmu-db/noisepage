@@ -1,6 +1,7 @@
 #include "traffic_cop/traffic_cop_util.h"
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/operator_node.h"
@@ -45,15 +46,15 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
 
     // PropertySort
     if (sel_stmt->GetSelectOrderBy()) {
-      std::vector<optimizer::OrderByOrderingType> sort_dirs;
+      std::vector<catalog::OrderByOrderingType> sort_dirs;
       std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
       auto order_by = sel_stmt->GetSelectOrderBy();
       auto types = order_by->GetOrderByTypes();
       auto exprs = order_by->GetOrderByExpressions();
       for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
         sort_exprs.emplace_back(exprs[idx]);
-        sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
-                                                                       : optimizer::OrderByOrderingType::DESC);
+        sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? catalog::OrderByOrderingType::ASC
+                                                                       : catalog::OrderByOrderingType::DESC);
       }
 
       auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
