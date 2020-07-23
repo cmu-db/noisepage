@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.List;
 import moglib.*;
 
+
 /**
  * class that convert sql statements to trace format
  * first, establish a local postgresql database
@@ -19,13 +20,17 @@ import moglib.*;
  */
 public class GenerateTrace {
     private static final String STATEMENT_OK = "statement ok";
+    private static final String STATEMENT_ERROR = "statement error";
     public static final String QUERY_I_NOSORT = "query I nosort";
     public static final String SEPARATION = "----";
+    public static final String DEST_DIR = "traces";
+    public static final String DEST_NAME = "output.test";
 
     public static void main(String[] args) throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         String path = args[0];
         File file = new File(path);
+        System.out.println("File path: " + path);
         MogSqlite mog = new MogSqlite(file);
         // open connection to postgresql database with jdbc
         MogDb db = new MogDb(args[1], args[2], args[3]);
@@ -35,14 +40,22 @@ public class GenerateTrace {
         removeExistingTable(tab,conn);
 
         String line;
+        String label;
+        Statement statement = null;
         BufferedReader br = new BufferedReader(new FileReader(file));
         // create output file
-        FileWriter writer = new FileWriter(new File("src","output.test"));
+        FileWriter writer = new FileWriter(new File(DEST_DIR, DEST_NAME));
         while (null != (line = br.readLine())) {
             line = line.trim();
             // execute sql statement
-            Statement statement = conn.createStatement();
-            statement.execute(line);
+            try{
+                statement = conn.createStatement();
+                statement.execute(line);
+                label = STATEMENT_OK;
+            } catch (Throwable e){
+                label = STATEMENT_ERROR;
+            }
+
             if(line.startsWith("SELECT")){
                 // SELECT statement, query from database to construct trace format
                 String[] lines = line.split(",");
@@ -66,9 +79,11 @@ public class GenerateTrace {
                 String queryResult = num + " values hashing to " + hash;
                 writeToFile(writer, queryResult);
                 writer.write('\n');
-            }else{
+            } else if(line.startsWith("#")){
+                writeToFile(writer, line);
+            } else{
                 // other sql statements
-                writeToFile(writer, STATEMENT_OK);
+                writeToFile(writer, label);
                 writeToFile(writer, line);
                 writer.write('\n');
             }
