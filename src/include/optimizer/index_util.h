@@ -60,6 +60,7 @@ class IndexUtil {
    * @param prop PropertySort to satisfy
    * @param tbl_oid OID of the table that the index is built on
    * @param idx_oid OID of index to use to satisfy
+   * @param bounds bounds for IndexScan
    * @returns TRUE if the specified index can fulfill sort property
    */
   static bool SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
