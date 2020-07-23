@@ -86,6 +86,6 @@ if __name__ == "__main__":
     final_code = 0
     for c in all_exit_codes:
         final_code = final_code or c
-    LOG.info("Final Status → {}".format("FAIL" if final_code else "SUCCESS"))
+    LOG.info("Final Status => {}".format("FAIL" if final_code else "SUCCESS"))
     sys.exit(final_code)
 # MAIN
