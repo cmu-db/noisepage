@@ -1,0 +1,103 @@
+# SELECT With Duplicate Columns Produces Zero Results
+# #720 fixed
+statement ok
+CREATE TABLE temp(c1 int NOT NULL PRIMARY KEY, c2 int, c3 int)
+
+statement ok
+INSERT INTO temp VALUES (1, 2, 3), (2, 3, 4)
+
+query I nosort
+SELECT c1,c1 FROM temp
+----
+4 values hashing to 361619205d8fd52692717ea4890ccf94
+
+statement ok
+DROP TABLE temp
+
+# SELECT With Alias
+# #795 fixed
+statement ok
+CREATE TABLE new(c1 int NOT NULL PRIMARY KEY, c2 int, c3 int)
+
+statement ok
+INSERT INTO new VALUES (1, 2, 3), (2, 3, 4)
+
+query I nosort
+SELECT c1 as new_name FROM new
+----
+2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
+
+query I nosort
+SELECT 1 as new_name FROM new
+----
+2 values hashing to f2160c8ffedf48068f2e1137e0a3a7e7
+
+query I nosort
+SELECT c1 as c2, c2 as c1 FROM new
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+query I nosort
+SELECT COUNT(*) AS cnt FROM new HAVING COUNT(*) > 10
+----
+0 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT c1 as c1, c2 as c2 FROM new
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+query I nosort
+SELECT c1, c2 as c1 FROM new
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+statement ok
+INSERT INTO new VALUES (3, 2, 10), (4, 3, 20)
+
+query I nosort
+SELECT COUNT(DISTINCT c2) AS STOCK_COUNT FROM new
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+statement ok
+DROP TABLE new
+
+# Test for selecting with a timestamp in the where clause.
+# Fix #782: selecting with timestamp in where clause will crash the system.
+statement ok
+CREATE TABLE now (c1 int, c2 timestamp)
+
+statement ok
+INSERT INTO now (c1, c2) VALUES (1, '2020-01-02 12:23:34.56789')
+
+statement ok
+INSERT INTO now (c1, c2) VALUES (2, '2020-01-02 11:22:33.721-05')
+
+query I nosort
+SELECT * FROM now WHERE c2 = '2020-01-02 11:22:33.721-05'
+----
+2 values hashing to a0e91b1aa8295dd1f1f29c33471fd5b9
+
+statement ok
+DROP TABLE now
+
+# SELECT with arithmetic on integer and reals
+statement ok
+CREATE TABLE temp2 (a int, b float)
+
+statement ok
+INSERT INTO temp2 VALUES (1, 1.37)
+
+query I nosort
+SELECT a + b AS AB FROM temp2
+----
+1 values hashing to 8ce0fad9de37990d53615a006836d77a
+
+query I nosort
+SELECT 2+3
+----
+1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+
+statement ok
+DROP TABLE temp2
