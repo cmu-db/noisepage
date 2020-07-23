@@ -119,33 +119,63 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
   auto limit_exists = context->GetOptimizerContext()->GetLimitExists();
   auto limit = context->GetOptimizerContext()->GetLimit();
+  auto indexes = accessor->GetIndexOids(get->GetTableOid());
 
   auto sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT);
   std::vector<catalog::col_oid_t> sort_col_ids;
   bool sort_exists = sort != nullptr && IndexUtil::CheckSortProperty(sort->As<PropertySort>());
+  auto sort_prop = sort_exists ? sort->As<PropertySort>() : nullptr;
   bool predicate_exists = !get->GetPredicates().empty();
 
-//  if (sort != nullptr) {
-//    // Check if can satisfy sort property with an index
-//    auto sort_prop = sort->As<PropertySort>();
-//    auto indexes = accessor->GetIndexOids(get->GetTableOid());
-//    for (auto index : indexes) {
-//      if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
-//        std::vector<AnnotatedExpression> preds = get->GetPredicates();
-//        auto op = std::make_unique<OperatorNode>(
-//            IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update,
-//                            planner::IndexScanType::AscendingOpenBoth, {}, limit_exists, limit)
-//                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-//            std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
-//        transformed->emplace_back(std::move(op));
-//      }
-//    }
-//  } else
-  if (sort_exists) {
-    // Check if can satisfy sort property with an index
-    auto sort_prop = sort->As<PropertySort>();
-    auto indexes = accessor->GetIndexOids(get->GetTableOid());
-    for (auto index : indexes) {
+
+  if (predicate_exists) {
+    // Apply predicates if they exist and attempt to use indexes that match at least one predicate
+    for (auto &index : indexes) {
+      // Check whether any index can fulfill predicate evaluation
+      // Find match index for the predicates
+      planner::IndexScanType scan_type;
+      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
+      std::vector<AnnotatedExpression> preds = get->GetPredicates();
+      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, allow_cves_, &scan_type,
+                                                 &bounds)) {
+        // There is an index that satisifed predicates for at least one column
+        if (sort_exists) {
+          if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index, &bounds)) {
+            // Index also satisfies sort properties so can push down limit
+            preds = get->GetPredicates();
+            auto op = std::make_unique<OperatorNode>(
+                IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update,
+                                scan_type, std::move(bounds), limit_exists, limit)
+                    .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
+            transformed->emplace_back(std::move(op));
+          } else {
+            // Index does not satisfy existing sort property so cannot push down limit
+            limit_exists = false;
+            preds = get->GetPredicates();
+            auto op = std::make_unique<OperatorNode>(
+                IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update,
+                                scan_type, std::move(bounds), limit_exists, limit)
+                    .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
+            transformed->emplace_back(std::move(op));
+          }
+        } else {
+          // Index does not have sort property so can push down limit
+          preds = get->GetPredicates();
+          auto op = std::make_unique<OperatorNode>(IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds),
+                                                                   is_update, scan_type, bounds, limit_exists,
+                                                                   limit)
+                                                       .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                                   std::vector<std::unique_ptr<AbstractOptimizerNode>>(),
+                                                   context->GetOptimizerContext()->GetTxn());
+          transformed->emplace_back(std::move(op));
+        }
+      }
+    }
+  } else if (sort_exists) {
+    // If no predicates exist, index itself must satisfy sort properties and can push down limit if such an index exists
+    for (auto &index : indexes) {
       if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
         std::vector<AnnotatedExpression> preds = get->GetPredicates();
         auto op = std::make_unique<OperatorNode>(
@@ -153,26 +183,6 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
                             planner::IndexScanType::AscendingOpenBoth, {}, limit_exists, limit)
                 .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
             std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
-        transformed->emplace_back(std::move(op));
-      }
-    }
-  }
-  if (predicate_exists) {
-    // Check whether any index can fulfill predicate evaluation
-    // Find match index for the predicates
-    auto indexes = accessor->GetIndexOids(get->GetTableOid());
-    for (auto &index : indexes) {
-      planner::IndexScanType scan_type;
-      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
-      std::vector<AnnotatedExpression> preds = get->GetPredicates();
-      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, allow_cves_, &scan_type,
-                                                 &bounds)) {
-        auto op = std::make_unique<OperatorNode>(IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds),
-                                                                 is_update, scan_type, std::move(bounds), limit_exists,
-                                                                 limit)
-                                                     .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                                 std::vector<std::unique_ptr<AbstractOptimizerNode>>(),
-                                                 context->GetOptimizerContext()->GetTxn());
         transformed->emplace_back(std::move(op));
       }
     }

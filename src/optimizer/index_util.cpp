@@ -13,7 +13,9 @@
 namespace terrier::optimizer {
 
 bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
-                                       catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid) {
+                                       catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid,
+                                       std::unordered_map<catalog::indexkeycol_oid_t,
+                                                          std::vector<planner::IndexExpression>> *bounds) {
   auto &index_schema = accessor->GetIndexSchema(idx_oid);
   if (!SatisfiesBaseColumnRequirement(index_schema)) {
     return false;
@@ -33,17 +35,26 @@ bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const
     return false;
   }
 
-  for (size_t idx = 0; idx < sort_col_size; idx++) {
+  size_t sort_ind = 0;
+  size_t idx_ind = 0;
+  while (sort_ind < sort_col_size && idx_ind < mapped_cols.size()) {
     // Compare col_oid_t directly due to "Base Column" requirement
-    auto tv_expr = prop->GetSortColumn(idx).CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto tv_expr = prop->GetSortColumn(sort_ind).CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto tv_col_oid = tv_expr->GetColumnOid();
 
-    // Sort(a,b,c) cannot be fulfilled by Index(a,c,b)
-    auto col_match = tv_expr->GetColumnOid() == mapped_cols[idx];
+    // Sort a,b can only be fulfilled on Index a,c,b if c is a bound
+    if (tv_col_oid == mapped_cols[idx_ind]) {
+      sort_ind++, idx_ind++;
+    } else if (bounds != nullptr && bounds->find(lookup[mapped_cols[idx_ind]]) != bounds->end()) {
+      idx_ind++;
+    } else {
+      return false;
+    }
 
     // TODO(wz2): need catalog flag for column sort direction
     // Sort(a ASC) cannot be fulfilled by Index(a DESC)
     auto dir_match = true;
-    if (!col_match || !dir_match) {
+    if (!dir_match) {
       return false;
     }
   }
@@ -105,8 +116,10 @@ bool IndexUtil::CheckPredicates(
         auto ltype = expr->GetChild(0)->GetExpressionType();
         auto rtype = expr->GetChild(1)->GetExpressionType();
 
+        // TODO(Deepayan): Add better documentation for what these do
         common::ManagedPointer<parser::ColumnValueExpression> tv_expr;
         common::ManagedPointer<parser::AbstractExpression> idx_expr;
+
         if (ltype == parser::ExpressionType::COLUMN_VALUE &&
             (rtype == parser::ExpressionType::VALUE_CONSTANT || rtype == parser::ExpressionType::VALUE_PARAMETER)) {
           tv_expr = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
