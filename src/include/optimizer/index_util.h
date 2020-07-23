@@ -103,16 +103,16 @@ class IndexUtil {
 
   /**
    * Retrieves the catalog::col_oid_t equivalent for the index
-   * @requires SatisfiesBaseColumnRequirement(schema)
+   * @requires SatisfiesBaseColumnRequirement(index_schema)
    * @param accessor CatalogAccessor to use
    * @param tbl_oid Table the index belongs to
-   * @param schema Schema
+   * @param index_schema Schema
    * @param key_map Mapping from col_oid_t to indexkeycol_oid_t
    * @param col_oids Vector to place col_oid_t translations
    * @returns TRUE if conversion successful
    */
   static bool ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
-                                         const catalog::IndexSchema &schema,
+                                         const catalog::IndexSchema &index_schema,
                                          std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> *key_map,
                                          std::vector<catalog::col_oid_t> *col_oids);
 

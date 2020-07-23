@@ -13,8 +13,8 @@
 namespace terrier::optimizer {
 
 bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
-                                       catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid) {
-  auto &index_schema = accessor->GetIndexSchema(index_oid);
+                                       catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid) {
+  auto &index_schema = accessor->GetIndexSchema(idx_oid);
   if (!SatisfiesBaseColumnRequirement(index_schema)) {
     return false;
   }
@@ -215,34 +215,34 @@ bool IndexUtil::CheckPredicates(
 }
 
 bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
-                                           const catalog::IndexSchema &schema,
+                                           const catalog::IndexSchema &index_schema,
                                            std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> *key_map,
                                            std::vector<catalog::col_oid_t> *col_oids) {
-  TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema), "GetIndexColOid() pre-cond not satisfied");
+  TERRIER_ASSERT(SatisfiesBaseColumnRequirement(index_schema), "GetIndexColOid() pre-cond not satisfied");
   auto &tbl_schema = accessor->GetSchema(tbl_oid);
-  if (tbl_schema.GetColumns().size() < schema.GetColumns().size()) {
+  if (tbl_schema.GetColumns().size() < index_schema.GetColumns().size()) {
     return false;
   }
 
-  std::unordered_map<std::string, catalog::col_oid_t> schema_col;
-  for (auto &column : tbl_schema.GetColumns()) {
-    schema_col[column.Name()] = column.Oid();
+  std::unordered_map<std::string, catalog::col_oid_t> tbl_col_to_oid_map;
+  for (auto &tbl_column : tbl_schema.GetColumns()) {
+    tbl_col_to_oid_map[tbl_column.Name()] = tbl_column.Oid();
   }
 
-  for (auto &column : schema.GetColumns()) {
-    if (column.StoredExpression()->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto tv_expr = column.StoredExpression().CastManagedPointerTo<const parser::ColumnValueExpression>();
+  for (auto &index_column : index_schema.GetColumns()) {
+    if (index_column.StoredExpression()->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      auto tv_expr = index_column.StoredExpression().CastManagedPointerTo<const parser::ColumnValueExpression>();
       if (tv_expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
         // IndexSchema's expression's col_oid is bound
         col_oids->push_back(tv_expr->GetColumnOid());
-        key_map->insert(std::make_pair(tv_expr->GetColumnOid(), column.Oid()));
+        key_map->insert(std::make_pair(tv_expr->GetColumnOid(), index_column.Oid()));
         continue;
       }
 
-      auto it = schema_col.find(tv_expr->GetColumnName());
-      TERRIER_ASSERT(it != schema_col.end(), "Inconsistency between IndexSchema and table schema");
+      auto it = tbl_col_to_oid_map.find(tv_expr->GetColumnName());
+      TERRIER_ASSERT(it != tbl_col_to_oid_map.end(), "Inconsistency between IndexSchema and table index_schema");
       col_oids->push_back(it->second);
-      key_map->insert(std::make_pair(it->second, column.Oid()));
+      key_map->insert(std::make_pair(it->second, index_column.Oid()));
     }
   }
 
