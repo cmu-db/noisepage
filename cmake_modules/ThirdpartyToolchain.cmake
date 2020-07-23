@@ -244,13 +244,8 @@ endif ()
 
 # spdlog
 if ("${SPDLOG_HOME}" STREQUAL "")
-    set(SPDLOG_CMAKE_CXX_FLAGS ${EP_CXX_FLAGS})
-
-    set(SPDLOG_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/spdlog-prefix/src/spdlog")
-
     FetchContent_Declare(SPDLOG
         URL ${SPDLOG_SOURCE_URL})
-
     FetchContent_MakeAvailable(SPDLOG)
 
     include_directories(SYSTEM "${spdlog_SOURCE_DIR}/include")
