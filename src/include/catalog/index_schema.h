@@ -410,7 +410,6 @@ class IndexSchema {
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
-  std::vector<catalog::OrderByOrderingType> sort_dirs_;
   storage::index::IndexType type_;
   std::vector<col_oid_t> indexed_oids_;
   bool is_unique_;
