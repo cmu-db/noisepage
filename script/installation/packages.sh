@@ -28,6 +28,7 @@ OSX_BUILD_PACKAGES=(\
 OSX_TEST_PACKAGES=(\
   "ant" \
   "postgresql" \
+  "lsof" \
 )
 
 # IMPORTANT: If you change anything listed below, you must 
@@ -65,7 +66,6 @@ LINUX_TEST_PACKAGES=(\
 PYTHON_PACKAGES=(\
   "pyarrow" \
   "pandas" \
-  "gitpython" \
   "cmake" \
 )
 
