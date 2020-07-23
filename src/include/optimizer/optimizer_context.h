@@ -146,9 +146,9 @@ class OptimizerContext {
   void SetLimitExists(bool limit_exists) { limit_exists_ = limit_exists; }
 
   /**
- * Sets the limit value
- * @param limit Value of the limit
- */
+   * Sets the limit value
+   * @param limit Value of the limit
+   */
   void SetLimit(uint32_t limit) { limit_ = limit; }
 
   /**

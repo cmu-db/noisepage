@@ -63,10 +63,10 @@ class IndexUtil {
    * @param bounds bounds for IndexScan
    * @returns TRUE if the specified index can fulfill sort property
    */
-  static bool SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
-                                     catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid,
-                                     std::unordered_map<catalog::indexkeycol_oid_t,
-                                                        std::vector<planner::IndexExpression>> *bounds = nullptr);
+  static bool SatisfiesSortWithIndex(
+      catalog::CatalogAccessor *accessor, const PropertySort *prop, catalog::table_oid_t tbl_oid,
+      catalog::index_oid_t idx_oid,
+      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds = nullptr);
 
   /**
    * Checks whether a set of predicates can be satisfied with an index

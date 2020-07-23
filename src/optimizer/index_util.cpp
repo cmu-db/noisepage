@@ -12,10 +12,10 @@
 
 namespace terrier::optimizer {
 
-bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
-                                       catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid,
-                                       std::unordered_map<catalog::indexkeycol_oid_t,
-                                                          std::vector<planner::IndexExpression>> *bounds) {
+bool IndexUtil::SatisfiesSortWithIndex(
+    catalog::CatalogAccessor *accessor, const PropertySort *prop, catalog::table_oid_t tbl_oid,
+    catalog::index_oid_t idx_oid,
+    std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
   auto &index_schema = accessor->GetIndexSchema(idx_oid);
   if (!SatisfiesBaseColumnRequirement(index_schema)) {
     return false;

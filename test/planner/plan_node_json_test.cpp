@@ -1,5 +1,3 @@
-#include <catalog/catalog_defs.h>
-
 #include <memory>
 #include <string>
 #include <tuple>

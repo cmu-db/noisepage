@@ -127,7 +127,6 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   auto sort_prop = sort_exists ? sort->As<PropertySort>() : nullptr;
   bool predicate_exists = !get->GetPredicates().empty();
 
-
   if (predicate_exists) {
     // Apply predicates if they exist and attempt to use indexes that match at least one predicate
     for (auto &index : indexes) {
@@ -144,8 +143,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
             // Index also satisfies sort properties so can push down limit
             preds = get->GetPredicates();
             auto op = std::make_unique<OperatorNode>(
-                IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update,
-                                scan_type, std::move(bounds), limit_exists, limit)
+                IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
+                                std::move(bounds), limit_exists, limit)
                     .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                 std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
             transformed->emplace_back(std::move(op));
@@ -163,12 +162,11 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
         } else {
           // Index does not have sort property so can push down limit
           preds = get->GetPredicates();
-          auto op = std::make_unique<OperatorNode>(IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds),
-                                                                   is_update, scan_type, std::move(bounds), limit_exists,
-                                                                   limit)
-                                                       .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                                   std::vector<std::unique_ptr<AbstractOptimizerNode>>(),
-                                                   context->GetOptimizerContext()->GetTxn());
+          auto op = std::make_unique<OperatorNode>(
+              IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
+                              std::move(bounds), limit_exists, limit)
+                  .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+              std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
           transformed->emplace_back(std::move(op));
         }
       }

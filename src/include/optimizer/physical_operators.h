@@ -252,8 +252,8 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
   bool limit_exists_;
 
   /**
-    * Limit
-    */
+   * Limit
+   */
   uint32_t limit_;
 };
 
