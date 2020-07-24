@@ -129,7 +129,6 @@ void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks 
   TERRIER_ASSERT(callbacks != nullptr, "Must provide callbacks");
   Compiler compiler(input);
   compiler.Run(callbacks);
-  ast::AstPrettyPrint::Dump(std::cout, compiler.GetAST());
 }
 
 namespace {

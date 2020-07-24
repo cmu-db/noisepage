@@ -3,7 +3,7 @@
 
 #include <cstdio>
 #include <functional>
-#include <pqxx/pqxx>
+#include <pqxx/pqxx>  // NOLINT
 #include <random>
 #include <utility>
 
