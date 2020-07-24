@@ -471,6 +471,28 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextStartResourceTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto cmp = static_cast<metrics::MetricsComponent>(frame->LocalAt<uint64_t>(READ_LOCAL_ID()));
+    OpExecutionContextStartResourceTracker(exec_ctx, cmp);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextEndResourceTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *name = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    OpExecutionContextEndResourceTracker(exec_ctx, *name);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextEndPipelineTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto query_id = execution::query_id_t{frame->LocalAt<uint64_t>(READ_LOCAL_ID())};
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint64_t>(READ_LOCAL_ID())};
+    OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id);
+    DISPATCH_NEXT();
+  }
+
   OP(ThreadStateContainerAccessCurrentThreadState) : {
     auto *state = frame->LocalAt<byte **>(READ_LOCAL_ID());
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());

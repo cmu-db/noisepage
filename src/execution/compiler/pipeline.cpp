@@ -13,6 +13,7 @@
 #include "execution/compiler/work_context.h"
 #include "execution/exec/execution_settings.h"
 #include "loggers/execution_logger.h"
+#include "metrics/metrics_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -187,7 +188,7 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction() const {
   return builder.Finish();
 }
 
-ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
+ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction(query_id_t query_id) const {
   auto params = PipelineParams();
 
   if (IsParallel()) {
@@ -197,11 +198,25 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
 
   FunctionBuilder builder(codegen_, GetWorkFunctionName(), std::move(params), codegen_->Nil());
   {
+    // Inject StartResourceTracker()
+    std::vector<ast::Expr *> args{
+        compilation_context_->GetExecutionContextPtrFromQueryState(),
+        codegen_->Const64(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
+    auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartResourceTracker, std::move(args));
+
+    builder.Append(codegen_->MakeStmt(start_call));
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope(codegen_);
     // Create the working context and push it through the pipeline.
     WorkContext context(compilation_context_, *this);
     (*Begin())->PerformPipelineWork(&context, &builder);
+
+    // Inject EndPipelineTracker();
+    args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
+    args.push_back(codegen_->Const64(!query_id));
+    args.push_back(codegen_->Const64(!GetPipelineId()));
+    auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, std::move(args));
+    builder.Append(codegen_->MakeStmt(end_call));
   }
   return builder.Finish();
 }
@@ -253,7 +268,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
   return builder.Finish();
 }
 
-void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
+void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id) const {
   // Declare the pipeline state.
   builder->DeclareStruct(state_.GetType());
 
@@ -262,7 +277,7 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
   builder->DeclareFunction(GenerateTearDownPipelineStateFunction());
 
   // Generate main pipeline logic.
-  builder->DeclareFunction(GeneratePipelineWorkFunction());
+  builder->DeclareFunction(GeneratePipelineWorkFunction(query_id));
 
   // Register the main init, run, tear-down functions as steps, in that order.
   builder->RegisterStep(GenerateInitPipelineFunction());

@@ -291,6 +291,10 @@ namespace terrier::execution::ast {
   F(NpRunnersDummyInt, NpRunnersDummyInt)                               \
   F(NpRunnersDummyReal, NpRunnersDummyReal)                             \
                                                                         \
+  F(ExecutionContextStartResourceTracker, execCtxStartResourceTracker)  \
+  F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
+  F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
+                                                                        \
   F(AbortTxn, abortTxn)                                                 \
                                                                         \
   /* FOR TESTING USE ONLY!!!!! */                                       \

@@ -1545,6 +1545,22 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
   LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
+    case ast::Builtin::ExecutionContextStartResourceTracker: {
+      LocalVar cmp = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, cmp);
+      break;
+    }
+    case ast::Builtin::ExecutionContextEndResourceTracker: {
+      LocalVar name = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextEndResourceTracker, exec_ctx, name);
+      break;
+    }
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
+      LocalVar query_id = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id);
+      break;
+    }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       GetEmitter()->Emit(Bytecode::ExecutionContextGetMemoryPool, result, exec_ctx);
       break;
@@ -2124,7 +2140,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool:
-    case ast::Builtin::ExecutionContextGetTLS: {
+    case ast::Builtin::ExecutionContextGetTLS:
+    case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextEndResourceTracker:
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
       VisitExecutionContextCall(call, builtin);
       break;
     }

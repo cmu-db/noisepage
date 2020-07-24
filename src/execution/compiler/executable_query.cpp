@@ -71,8 +71,6 @@ static std::string GetFileName(const std::string &path) {
 }
 }  // namespace
 
-std::atomic<query_id_t> ExecutableQuery::query_identifier{query_id_t{0}};
-
 void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units) {
   pipeline_operating_units_ = std::move(units);
 }

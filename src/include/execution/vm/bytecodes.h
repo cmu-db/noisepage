@@ -100,6 +100,9 @@ namespace terrier::execution::vm {
   /* Execution Context */                                                                                             \
   F(ExecutionContextGetMemoryPool, OperandType::Local, OperandType::Local)                                            \
   F(ExecutionContextGetTLS, OperandType::Local, OperandType::Local)                                                   \
+  F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
+  F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
+  F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
   F(ThreadStateContainerIterate, OperandType::Local, OperandType::Local, OperandType::FunctionId)                     \

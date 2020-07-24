@@ -127,8 +127,9 @@ class Pipeline {
   /**
    * Generate all functions to execute this pipeline in the provided container.
    * @param builder The builder for the executable query container.
+   * @param query_id The ID of the query that generates this pipeline.
    */
-  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const;
+  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id) const;
 
   /**
    * @return True if the pipeline is parallel; false otherwise.
@@ -188,7 +189,7 @@ class Pipeline {
   ast::FunctionDecl *GenerateInitPipelineFunction() const;
 
   // Generate the main pipeline work function.
-  ast::FunctionDecl *GeneratePipelineWorkFunction() const;
+  ast::FunctionDecl *GeneratePipelineWorkFunction(query_id_t query_id) const;
 
   // Generate the main pipeline logic.
   ast::FunctionDecl *GenerateRunPipelineFunction() const;
