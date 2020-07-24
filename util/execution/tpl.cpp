@@ -323,8 +323,8 @@ static void RunRepl() {
 
     // Run file?
     if (llvm::StringRef line_ref(line); line_ref.startswith_lower(".run")) {
-      auto [_, filename] = line_ref.split(' ');
-      RunFile(filename);
+      auto pair = line_ref.split(' ');
+      RunFile(pair.second);
       continue;
     }
 
