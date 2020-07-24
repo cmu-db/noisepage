@@ -369,8 +369,9 @@ template <typename OutType>
 struct EXPORT TryCast<storage::VarlenEntry, OutType, std::enable_if_t<detail::IS_INTEGER_TYPE_V<OutType>>> {
   /** @return True if the cast was successful. */
   bool operator()(const storage::VarlenEntry &input, OutType *output) const {
+    *output = std::stol(std::string(input.StringView()));
+    return true;
     // TODO(WAN): charconv support
-    UNREACHABLE("charconv support");
 #if 0
     const auto buf = reinterpret_cast<const char *>(input.Content());
     const auto len = input.Size();
