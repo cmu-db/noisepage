@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "binder/bind_node_visitor.h"
+#include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/exec/execution_context.h"
@@ -195,20 +196,37 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
       common::ManagedPointer(accessor), exec_settings);
 
   // Run & Check
-  auto executable = execution::compiler::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   // Pipeline Units
-  auto pipeline = executable.GetPipelineOperatingUnits();
+  auto pipeline = executable->GetPipelineOperatingUnits();
   EXPECT_EQ(pipeline->units_.size(), 2);
 
+  // TODO(WAN): Right now build_feature and iterate_feature are indistinguishable.
+
   bool build_feature = false, seq_feature = false, idx_feature = false;
-  auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
+  auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   for (auto &feature : pipe0_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT_BUILD:
+      case brain::ExecutionOperatingUnitType::SORT:
         build_feature = true;
+        break;
+      default:
+        break;
+    }
+  }
+
+  EXPECT_TRUE(build_feature);
+
+  bool iterate_feature = false;
+  auto pipe1_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+  for (auto &feature : pipe1_vec) {
+    switch (feature.GetExecutionOperatingUnitType()) {
+      case brain::ExecutionOperatingUnitType::SORT:
+        iterate_feature = true;
         break;
       case brain::ExecutionOperatingUnitType::SEQ_SCAN:
         seq_feature = true;
@@ -220,21 +238,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
         break;
     }
   }
-
-  EXPECT_TRUE(build_feature && seq_feature && idx_feature);
-
-  bool iterate_feature = false;
-  auto pipe1_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-  for (auto &feature : pipe1_vec) {
-    switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT_ITERATE:
-        iterate_feature = true;
-        break;
-      default:
-        break;
-    }
-  }
-  EXPECT_TRUE(iterate_feature);
+  EXPECT_TRUE(iterate_feature && seq_feature && idx_feature);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
@@ -312,8 +316,9 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
       common::ManagedPointer(accessor), exec_settings);
 
   // Run & Check
-  auto executable = execution::compiler::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -391,8 +396,9 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
       common::ManagedPointer(accessor), exec_settings);
 
   // Run & Check
-  auto executable = execution::compiler::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -456,8 +462,9 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
       common::ManagedPointer(accessor), exec_settings);
 
   // Run & Check
-  auto executable = execution::compiler::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -521,8 +528,9 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
       common::ManagedPointer(accessor), exec_settings);
 
   // Run & Check
-  auto executable = execution::compiler::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -599,8 +607,9 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
       common::ManagedPointer(accessor), exec_settings);
 
   // Run & Check
-  auto executable = execution::compiler::ExecutableQuery(*out_plan, exec_ctx->GetExecutionSettings());
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
