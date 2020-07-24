@@ -203,12 +203,12 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
   /**
    * @return limit_exists_
    */
-  const bool GetLimitExists() const { return limit_exists_; }
+  bool GetLimitExists() const { return limit_exists_; }
 
   /**
    * @return limit
    */
-  const uint32_t GetLimit() const { return limit_; }
+  uint32_t GetLimit() const { return limit_; }
 
  private:
   /**
