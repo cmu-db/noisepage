@@ -243,7 +243,7 @@ uint32_t VectorUtil::BitVectorToSelectionVectorDenseAVX512(const uint64_t *bit_v
 
   uint32_t k = 0;
 
-  const uint32_t num_words = MathUtil::DivRoundUp(num_bits, 64);
+  const uint32_t num_words = common::MathUtil::DivRoundUp(num_bits, 64);
   for (uint32_t i = 0; i < num_words; i++) {
     uint64_t word = bit_vector[i];
 
