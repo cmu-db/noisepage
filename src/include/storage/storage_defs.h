@@ -532,7 +532,7 @@ struct VarlenContentCompare {
    * @param rhs right hand side of comparison
    * @return whether lhs < rhs in lexicographic order
    */
-  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const { return VarlenEntry::Compare(lhs, rhs); }
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const { return VarlenEntry::Compare(lhs, rhs) < 0; }
 };
 
 }  // namespace terrier::storage
