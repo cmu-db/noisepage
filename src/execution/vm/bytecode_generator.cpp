@@ -1542,7 +1542,6 @@ void BytecodeGenerator::VisitCSVReaderCall(ast::CallExpr *call, ast::Builtin bui
 #endif
 
 void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
     case ast::Builtin::ExecutionContextStartResourceTracker: {
@@ -1562,18 +1561,21 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
+      LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       GetEmitter()->Emit(Bytecode::ExecutionContextGetMemoryPool, result, exec_ctx);
+      GetExecutionResult()->SetDestination(result.ValueOf());
       break;
     }
     case ast::Builtin::ExecutionContextGetTLS: {
+      LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       GetEmitter()->Emit(Bytecode::ExecutionContextGetTLS, result, exec_ctx);
+      GetExecutionResult()->SetDestination(result.ValueOf());
       break;
     }
     default: {
       UNREACHABLE("Impossible execution context call");
     }
   }
-  GetExecutionResult()->SetDestination(result.ValueOf());
 }
 
 void BytecodeGenerator::VisitBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin) {

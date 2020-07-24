@@ -2329,7 +2329,7 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::BuiltinType::Kind sql_type;
   switch (builtin) {
     case ast::Builtin::GetParamBool: {
-      sql_type = ast::BuiltinType::Bool;
+      sql_type = ast::BuiltinType::Boolean;
       break;
     }
     case ast::Builtin::GetParamTinyInt:
