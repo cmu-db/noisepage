@@ -89,6 +89,8 @@ pipeline {
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                        CXX="/usr/local/Cellar/llvm@8/8.0.1_1/bin/clang++"
+                        CC="/usr/local/Cellar/llvm@8/8.0.1_1/bin/clang"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -313,6 +315,8 @@ pipeline {
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                        CXX="/usr/local/Cellar/llvm@8/8.0.1_1/bin/clang++"
+                        CC="/usr/local/Cellar/llvm@8/8.0.1_1/bin/clang"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
