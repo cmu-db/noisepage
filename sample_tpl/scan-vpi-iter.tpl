@@ -29,10 +29,8 @@ fun main(execCtx: *ExecutionContext) -> int {
 
     var tvi: TableVectorIterator
     var table_oid = @testCatalogLookup(execCtx, "test_1", "")
-    var col_oids: [2]uint32
+    var col_oids: [1]uint32
     col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-    col_oids[1] = @testCatalogLookup(execCtx, "test_1", "colB")
-    col_oids[2] = @testCatalogLookup(execCtx, "test_1", "colC")
     for (@tableIterInit(&tvi, execCtx, table_oid, col_oids); @tableIterAdvance(&tvi); ) {
         var vpi = @tableIterGetVPI(&tvi)
         @filterManagerRunFilters(&filter, vpi, execCtx)
