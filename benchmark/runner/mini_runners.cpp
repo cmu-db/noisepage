@@ -471,7 +471,7 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   auto key_sizes = {1, 2, 4, 8, 15};
-  auto idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000};
+  auto idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   std::vector<int64_t> lookup_sizes = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
   for (auto type : types) {
     for (auto key_size : key_sizes) {
@@ -602,7 +602,7 @@ static void GenUpdateDeleteMixedArguments(benchmark::internal::Benchmark *b) {
 
 static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
   std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
-  std::vector<uint32_t> row_nums = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000};
+  std::vector<uint32_t> row_nums = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
 
   for (auto type : types) {
