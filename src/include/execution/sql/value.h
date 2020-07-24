@@ -340,7 +340,7 @@ struct ValUtil {
       case type::TypeId::DECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
         // TODO(WAN): switching to DecimalVal, but we don't have a Real type?
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(DecimalVal), 8));
+        return static_cast<uint32_t>(sizeof(DecimalVal));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:
         return static_cast<uint32_t>(sizeof(StringVal));
@@ -354,12 +354,27 @@ struct ValUtil {
    * @return The alignment for this type in the execution engine.
    */
   static uint32_t GetSqlAlignment(type::TypeId type) {
-    // In the BUILTIN_TYPE_LIST of type.h, the final alignment is the std::alignment_of_v<> of the C++ type.
     switch (type) {
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT:
+        return static_cast<uint32_t>(alignof(Integer));
       case type::TypeId::BOOLEAN:
-        return 1;
+        return static_cast<uint32_t>(alignof(BoolVal));
+      case type::TypeId::DATE:
+        return static_cast<uint32_t>(alignof(DateVal));
+      case type::TypeId::TIMESTAMP:
+        return static_cast<uint32_t>(alignof(TimestampVal));
+      case type::TypeId::DECIMAL:
+        // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
+        // TODO(WAN): switching to DecimalVal, but we don't have a Real type?
+        return static_cast<uint32_t>(alignof(DecimalVal));
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY:
+        return static_cast<uint32_t>(alignof(StringVal));
       default:
-        return 8;
+        return 0;
     }
   }
 };
