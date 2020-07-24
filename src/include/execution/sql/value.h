@@ -179,7 +179,7 @@ struct StringVal : public Val {
   std::string_view StringView() const {
     TERRIER_ASSERT(!is_null_,
                    "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
-    return std::string_view(GetContent(), GetLength());
+    return val_.StringView();
   }
 
   /**
@@ -194,11 +194,9 @@ struct StringVal : public Val {
    * @return A VarlenEntry with the contents of the StringVal.
    */
   static storage::VarlenEntry CreateVarlen(const StringVal &str, bool own) {
-    if (str.is_null_) {
-      return terrier::storage::VarlenEntry::CreateInline(static_cast<const terrier::byte *>(nullptr), 0);
-    }
     if (str.GetLength() > storage::VarlenEntry::InlineThreshold()) {
       if (own) {
+        // TODO(WAN): smarter allocation?
         byte *contents = common::AllocationUtil::AllocateAligned(str.GetLength());
         std::memcpy(contents, str.GetContent(), str.GetLength());
         return terrier::storage::VarlenEntry::Create(contents, str.GetLength(), true);
@@ -241,7 +239,7 @@ struct StringVal : public Val {
     if (is_null_) {
       return true;
     }
-    return storage::VarlenContentDeepEqual()(val_, that.val_);
+    return storage::VarlenEntry::CompareEqualOrNot<true>(val_, that.val_);
   }
 
   /**
@@ -352,13 +350,14 @@ struct ValUtil {
   }
 
   /**
-   * @param type a terrier type
-   * @return gets the alignment for this type in the execution engine
+   * @param type A terrier type.
+   * @return The alignment for this type in the execution engine.
    */
   static uint32_t GetSqlAlignment(type::TypeId type) {
+    // In the BUILTIN_TYPE_LIST of type.h, the final alignment is the std::alignment_of_v<> of the C++ type.
     switch (type) {
       case type::TypeId::BOOLEAN:
-        return 2;
+        return 1;
       default:
         return 8;
     }

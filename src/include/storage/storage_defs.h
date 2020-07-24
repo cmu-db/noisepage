@@ -409,10 +409,10 @@ class VarlenEntry {
 
   /**
    * Compare two strings ONLY for equality or inequality only.
-   * @tparam EqualCheck
+   * @tparam EqualCheck True for ==, false for !=.
    * @param left The first string.
    * @param right The second string.
-   * @return 0 if equal; any non-zero value otherwise.
+   * @return 0 if equal according to EqualCheck; any non-zero value otherwise.
    */
   template <bool EqualityCheck>
   static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
@@ -507,9 +507,7 @@ struct VarlenContentDeepEqual {
    * @return whether the two varlen entries hold the same underlying value
    */
   bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
-    if (lhs.Size() != rhs.Size()) return false;
-    // TODO(Tianyu): Can optimize using prefixes
-    return std::memcmp(lhs.Content(), rhs.Content(), lhs.Size()) == 0;
+    return VarlenEntry::CompareEqualOrNot<true>(lhs, rhs);
   }
 };
 
@@ -535,13 +533,7 @@ struct VarlenContentCompare {
    * @return whether lhs < rhs in lexicographic order
    */
   bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
-    // Compare up to the minimum of the two sizes
-    int res = std::memcmp(lhs.Content(), rhs.Content(), std::min(lhs.Size(), rhs.Size()));
-    if (res == 0) {
-      // Shorter wins. If the two are equal, also return false.
-      return lhs.Size() < rhs.Size();
-    }
-    return res < 0;
+    return VarlenEntry::Compare(lhs, rhs);
   }
 };
 
