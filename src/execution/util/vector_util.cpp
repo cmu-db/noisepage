@@ -235,8 +235,8 @@ uint32_t VectorUtil::BitVectorToSelectionVectorDenseAvX2(const uint64_t *bit_vec
 }
 
 #if __AVX512VBMI2__
-uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX512(const uint64_t *bit_vector, uint32_t num_bits,
-                                                             sel_t *sel_vector) {
+uint32_t VectorUtil::BitVectorToSelectionVectorDenseAVX512(const uint64_t *bit_vector, uint32_t num_bits,
+                                                           sel_t *sel_vector) {
   const __m512i _32 = _mm512_set1_epi16(32);
   __m512i indexes = _mm512_set_epi16(31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11,
                                      10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
@@ -270,7 +270,7 @@ uint32_t VectorUtil::BitVectorToSelectionVector_Dense_AVX512(const uint64_t *bit
 
 uint32_t VectorUtil::BitVectorToSelectionVectorDense(const uint64_t *bit_vector, uint32_t num_bits, sel_t *sel_vector) {
 #if __AVX512VBMI2__
-  return BitVectorToSelectionVector_Dense_AVX512(bit_vector, num_bits, sel_vector);
+  return BitVectorToSelectionVectorDenseAVX512(bit_vector, num_bits, sel_vector);
 #else
   return BitVectorToSelectionVectorDenseAvX2(bit_vector, num_bits, sel_vector);
 #endif
