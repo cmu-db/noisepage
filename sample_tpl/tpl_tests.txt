@@ -76,9 +76,9 @@ output1.tpl,true,500
 parallel-join.tpl,true,500
 parallel-scan.tpl,true,500
 scan-alltypes.tpl,true,500
-scan-index,true,1
-scan-index-2,true,1
-scan-index-3,true,32
+scan-index.tpl,true,1
+scan-index-2.tpl,true,1
+scan-index-3.tpl,true,32
 scan-table.tpl,true,500
 scan-table-2.tpl,true,9950
 scan-table-3.tpl,true,10000

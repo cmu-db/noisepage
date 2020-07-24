@@ -1,4 +1,4 @@
-// Expected output: 500 (number of output rows)
+// Expected output: 1 (number of output rows)
 // SQL: SELECT colA, colB from test_1 WHERE colA = 500;
 // Should be done with an index scan, and output "500, 9" to std out.
 // The 9 is non-deterministic.
