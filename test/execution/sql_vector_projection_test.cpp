@@ -138,6 +138,7 @@ TEST_F(VectorProjectionTest, Selection) {
 
 // NOLINTNEXTLINE
 TEST_F(VectorProjectionDeathTest, InvalidFilter) {
+#ifndef NDEBUG
   ::testing::FLAGS_gtest_death_test_style = "threadsafe";
 
   VectorProjection vector_projection;
@@ -155,10 +156,12 @@ TEST_F(VectorProjectionDeathTest, InvalidFilter) {
     auto tid_list = TupleIdList(vector_projection.GetTotalTupleCount() + 5);
     ASSERT_DEATH(vector_projection.SetFilteredSelections(tid_list), "capacity");
   }
+#endif
 }
 
 // NOLINTNEXTLINE
 TEST_F(VectorProjectionDeathTest, InvalidShape) {
+#ifndef NDEBUG
   ::testing::FLAGS_gtest_death_test_style = "threadsafe";
 
   VectorProjection vector_projection;
@@ -172,6 +175,7 @@ TEST_F(VectorProjectionDeathTest, InvalidShape) {
     vector_projection.GetColumn(1)->Resize(2);
     ASSERT_DEATH(vector_projection.CheckIntegrity(), "Vector size");
   }
+#endif
 }
 
 // NOLINTNEXTLINE
