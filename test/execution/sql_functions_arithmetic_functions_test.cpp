@@ -77,7 +77,8 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
   }
 
   {
-    const auto aval = std::numeric_limits<int64_t>::min() + 1, bval = 4l;
+    const auto aval = std::numeric_limits<int64_t>::min() + 1;
+    const auto bval = 4l;
     Integer a(aval), b(bval), result(0);
 
     bool overflow = false;
