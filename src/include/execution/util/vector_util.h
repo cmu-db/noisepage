@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 
