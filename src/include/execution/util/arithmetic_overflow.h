@@ -2,6 +2,7 @@
 
 #include <limits>
 
+#include "common/macros.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
