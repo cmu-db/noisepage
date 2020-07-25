@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/raw_ostream.h"
+#include <llvm/ADT/SmallString.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include "execution/ast/type_visitor.h"
 

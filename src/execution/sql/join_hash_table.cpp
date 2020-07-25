@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include <llvm/ADT/STLExtras.h>
+#include <tbb/parallel_for_each.h>
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector.h"
@@ -13,9 +15,7 @@
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
 #include "libcount/hll.h"
-#include "llvm/ADT/STLExtras.h"
 #include "loggers/execution_logger.h"
-#include "tbb/parallel_for_each.h"
 
 namespace terrier::execution::sql {
 

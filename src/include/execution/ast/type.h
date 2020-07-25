@@ -3,12 +3,12 @@
 #include <cstdint>
 #include <string>
 
+#include <llvm/Support/Casting.h>
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
-#include "llvm/Support/Casting.h"
 
 namespace terrier::execution::ast {
 

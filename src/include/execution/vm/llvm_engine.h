@@ -4,10 +4,10 @@
 #include <string>
 #include <unordered_map>
 
+#include <llvm/Support/MemoryBuffer.h>
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 #include "execution/vm/bytecodes.h"
-#include "llvm/Support/MemoryBuffer.h"
 
 namespace terrier::execution::ast {
 class Type;

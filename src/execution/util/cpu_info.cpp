@@ -17,9 +17,9 @@
 #include <string>
 #include <unordered_set>
 
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/StringRef.h>
 #include "common/macros.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution {

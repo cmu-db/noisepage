@@ -4,12 +4,12 @@
 #include <string>
 #include <vector>
 
+#include <llvm/ADT/StringRef.h>
 #include "execution/exec/execution_context.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/value.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
-#include "llvm/ADT/StringRef.h"
 
 namespace terrier::execution::sql::test {
 

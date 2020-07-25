@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include <llvm/ADT/StringMap.h>
 #include "brain/operating_unit.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
@@ -17,7 +18,6 @@
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sql.h"
 #include "execution/util/region_containers.h"
-#include "llvm/ADT/StringMap.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
 

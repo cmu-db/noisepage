@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include <tbb/parallel_for_each.h>
 #include "common/error/exception.h"
 #include "common/math_util.h"
 #include "execution/sql/constant_vector.h"
@@ -20,7 +21,6 @@
 #include "libcount/hll.h"
 #include "loggers/execution_logger.h"
 #include "spdlog/fmt/fmt.h"
-#include "tbb/parallel_for_each.h"
 
 namespace terrier::execution::sql {
 

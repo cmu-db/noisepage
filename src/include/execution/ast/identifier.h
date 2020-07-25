@@ -4,8 +4,8 @@
 #include <string>
 #include <string_view>
 
+#include <llvm/ADT/DenseMapInfo.h>
 #include "common/macros.h"
-#include "llvm/ADT/DenseMapInfo.h"
 
 namespace terrier::execution::ast {
 

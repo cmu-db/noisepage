@@ -4,8 +4,8 @@
 #include <cstdlib>
 #include <numeric>
 
+#include <llvm/Support/MathExtras.h>
 #include "common/macros.h"
-#include "llvm/Support/MathExtras.h"
 
 namespace terrier::common {
 

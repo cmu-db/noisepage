@@ -5,13 +5,13 @@
 #include <utility>
 #include <vector>
 
+#include <tbb/parallel_for.h>
+#include <tbb/task_scheduler_init.h>
 #include "execution/exec/execution_context.h"
 #include "execution/sql/column_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
-#include "tbb/parallel_for.h"
-#include "tbb/task_scheduler_init.h"
 
 namespace terrier::execution::sql {
 

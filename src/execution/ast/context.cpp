@@ -1,5 +1,9 @@
 #include "execution/ast/context.h"
 
+#include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/DenseSet.h>
+#include <llvm/ADT/StringMap.h>
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -25,9 +29,6 @@
 #include "execution/sql/value.h"
 // #include "execution/util/csv_reader.h" Fix later.
 #include "execution/util/execution_common.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/StringMap.h"
 
 namespace terrier::execution::ast {
 

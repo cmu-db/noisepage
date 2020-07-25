@@ -1,6 +1,7 @@
 #if 0
 #include <memory>
 
+#include <tbb/tbb.h>
 #include "catalog/schema.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/expression_maker.h"
@@ -10,7 +11,6 @@
 #include "execution/sql_test.h"
 #include "execution/vm/llvm_engine.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
-#include "tbb/tbb.h"
 
 namespace terrier::execution::sql::codegen::test {
 

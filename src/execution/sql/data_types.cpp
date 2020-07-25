@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-#include "llvm/ADT/DenseMap.h"
+#include <llvm/ADT/DenseMap.h>
 
 namespace terrier::execution::sql {
 

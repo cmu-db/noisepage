@@ -5,11 +5,11 @@
 #include <random>
 #include <vector>
 
+#include <tbb/tbb.h>
 #include "execution/sql/sorter.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql_test.h"
 #include "ips4o/ips4o.hpp"
-#include "tbb/tbb.h"
 
 #define TestAllSigned(FuncName, Args...) \
   FuncName<int8_t>(Args);                \
