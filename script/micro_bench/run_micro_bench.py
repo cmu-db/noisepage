@@ -116,7 +116,7 @@ class Config(object):
         # of sources. Stop if the history requirements are met.
         self.ref_data_sources = [
             {"project" : "terrier-nightly",
-             "min_build" : 363,
+             "min_build" : None, # 363,
             },
         ]
         return
@@ -329,6 +329,8 @@ class Build(object):
         # turn them into Artifact objects
         self.artifact_list = []
         for item in artifacts_lod:
+            # Make sure the filename ends with "_benchmark.json"
+            if not item["fileName"].endswith("_benchmark.json"): continue
             self.artifact_list.append(Artifact(build_url, item))
         return self.artifact_list
 
