@@ -87,7 +87,7 @@ ast::Expr *CodeGen::Const64(int64_t val) const {
 
 ast::Expr *CodeGen::ConstDouble(double val) const {
   ast::Expr *expr = context_->GetNodeFactory()->NewFloatLiteral(position_, val);
-  expr->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Float32));
+  expr->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Float64));
   return expr;
 }
 
