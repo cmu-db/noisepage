@@ -74,7 +74,7 @@ class OrderByDescription {
   /**
    * @return order by expression
    */
-  const std::vector<common::ManagedPointer<AbstractExpression>> &GetOrderByExpressions() const { return exprs_; }
+  std::vector<common::ManagedPointer<AbstractExpression>> &GetOrderByExpressions() { return exprs_; }
 
   /**
    * @return the hashed value of this Order by description

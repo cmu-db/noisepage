@@ -52,8 +52,9 @@ bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const
 }
 
 bool IndexUtil::SatisfiesPredicateWithIndex(
-    catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
-    const std::vector<AnnotatedExpression> &predicates, bool allow_cves, planner::IndexScanType *scan_type,
+    catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+    catalog::index_oid_t index_oid, const std::vector<AnnotatedExpression> &predicates, bool allow_cves,
+    planner::IndexScanType *scan_type,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
   auto &index_schema = accessor->GetIndexSchema(index_oid);
   if (!SatisfiesBaseColumnRequirement(index_schema)) {
@@ -71,11 +72,12 @@ bool IndexUtil::SatisfiesPredicateWithIndex(
   std::unordered_set<catalog::col_oid_t> mapped_set;
   for (auto col : mapped_cols) mapped_set.insert(col);
 
-  return CheckPredicates(index_schema, tbl_oid, lookup, mapped_set, predicates, allow_cves, scan_type, bounds);
+  return CheckPredicates(index_schema, tbl_oid, tbl_alias, lookup, mapped_set, predicates, allow_cves, scan_type,
+                         bounds);
 }
 
 bool IndexUtil::CheckPredicates(
-    const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid,
+    const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
     const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
     const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
     bool allow_cves, planner::IndexScanType *idx_scan_type,
@@ -121,7 +123,8 @@ bool IndexUtil::CheckPredicates(
                    (ltype == parser::ExpressionType::COLUMN_VALUE && rtype == parser::ExpressionType::COLUMN_VALUE)) {
           auto lexpr = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
           auto rexpr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
-          if (lexpr->GetTableOid() == tbl_oid) {
+          if (lexpr->GetTableOid() == tbl_oid &&
+              (rexpr->GetTableOid() != tbl_oid || lexpr->GetTableName() == tbl_alias)) {
             tv_expr = lexpr;
             idx_expr = expr->GetChild(1);
           } else {

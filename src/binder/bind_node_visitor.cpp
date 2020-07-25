@@ -462,8 +462,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     node->GetSelectCondition()->DeriveDepth();
     node->GetSelectCondition()->DeriveSubqueryFlag();
   }
-  if (node->GetSelectOrderBy() != nullptr)
-    node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
   if (node->GetSelectLimit() != nullptr)
     node->GetSelectLimit()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -494,6 +492,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   }
   node->SetSelectColumns(new_select_list);
   node->SetDepth(context_->GetDepth());
+
+  if (node->GetSelectOrderBy() != nullptr) {
+    UnifyOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
+    node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  }
 
   context_ = context_->GetUpperContext();
 }
@@ -569,6 +572,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
   SqlNodeVisitor::Visit(expr);
 
   sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
+
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //  That is, the object would not be initialized using ColumnValueExpression(database_oid, table_oid, column_oid)
   //  at this point
@@ -576,7 +580,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
     std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
     std::string table_name = expr->GetTableName();
     std::string col_name = expr->GetColumnName();
-
+    if (table_name.empty() && col_name.empty() && expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
+      throw BINDER_EXCEPTION(
+          fmt::format("ORDER BY position \"{}\" is not in select list", std::to_string(!expr->GetColumnOid())),
+          common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
+    }
     // Convert all the names to lower cases
     std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);
     std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
@@ -766,4 +774,35 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
   }
 }
 
+void BindNodeVisitor::UnifyOrderByExpression(
+    common::ManagedPointer<parser::OrderByDescription> order_by_description,
+    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
+  auto &exprs = order_by_description->GetOrderByExpressions();
+  auto size = order_by_description->GetOrderByExpressionsSize();
+  for (size_t idx = 0; idx < size; idx++) {
+    if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
+      auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
+      type::TypeId type = constant_value_expression->GetReturnValueType();
+      int64_t column_id = 0;
+      switch (type) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT:
+          column_id = constant_value_expression->GetInteger().val_;
+          break;
+        case type::TypeId::DECIMAL:
+          column_id = constant_value_expression->GetReal().val_;
+          break;
+        default:
+          throw BINDER_EXCEPTION("non-integer constant in ORDER BY", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+      }
+      if (column_id < 1 || column_id > static_cast<int64_t>(select_items.size())) {
+        throw BINDER_EXCEPTION(fmt::format("ORDER BY position \"{}\" is not in select list", std::to_string(column_id)),
+                               common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
+      }
+      exprs[idx] = select_items[column_id - 1];
+    }
+  }
+}
 }  // namespace terrier::binder

@@ -10,6 +10,7 @@
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "network/connection_handle_factory.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "spdlog/spdlog.h"
 #include "storage/garbage_collector.h"

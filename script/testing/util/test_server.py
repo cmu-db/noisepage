@@ -10,6 +10,7 @@ import errno
 
 from util import constants
 from util.common import *
+from util.constants import LOG
 
 
 class TestServer:
@@ -86,7 +87,7 @@ class TestServer:
         for attempt in range(constants.DB_START_ATTEMPTS):
             # Kill any other terrier processes that our listening on our target port
             for other_pid in check_port(self.db_port):
-                print(
+                LOG.info(
                     "Killing existing server instance listening on port {} [PID={}]"
                     .format(self.db_port, other_pid))
                 os.kill(other_pid, signal.SIGKILL)
@@ -101,8 +102,8 @@ class TestServer:
                 break
             except:
                 self.stop_db()
-                print("+" * 100)
-                print("DATABASE OUTPUT")
+                LOG.error("+" * 100)
+                LOG.error("DATABASE OUTPUT")
                 self.print_output(self.db_output_file)
                 if attempt + 1 == constants.DB_START_ATTEMPTS:
                     raise
@@ -131,13 +132,13 @@ class TestServer:
             try:
                 s.connect((self.db_host, int(self.db_port)))
                 s.close()
-                print("Connected to server in {} seconds [PID={}]".format(
+                LOG.info("Connected to server in {} seconds [PID={}]".format(
                     i * constants.DB_CONNECT_SLEEP, self.db_process.pid))
                 is_db_running = True
                 break
             except:
                 if i > 0 and i % 20 == 0:
-                    print("Failed to connect to DB server [Attempt #{}/{}]".
+                    LOG.error("Failed to connect to DB server [Attempt #{}/{}]".
                           format(i, constants.DB_CONNECT_ATTEMPTS))
                     # os.system('ps aux | grep terrier | grep {}'.format(self.db_process.pid))
                     # os.system('lsof -i :15721')
@@ -172,11 +173,8 @@ class TestServer:
 
     def print_output(self, filename):
         """ Print out contents of a file """
-        fd = open(filename)
-        lines = fd.readlines()
-        for line in lines:
-            print(line.strip())
-        fd.close()
+        with open(filename, "r") as fd:
+            LOG.info("Output:\n" + "\n".join([line.strip() for line in fd.readlines()]))
         return
 
     def run_test(self):

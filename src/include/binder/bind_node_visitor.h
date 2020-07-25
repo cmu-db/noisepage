@@ -9,7 +9,10 @@
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/postgresparser.h"
+#include "parser/select_statement.h"
+#include "type/type_id.h"
 
 namespace terrier {
 
@@ -102,6 +105,14 @@ class BindNodeVisitor : public SqlNodeVisitor {
   static void InitTableRef(const common::ManagedPointer<parser::TableRef> node) {
     if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
   }
+
+  /**
+   * Change the type of exprs_ of order_by_description from ConstantValueExpression to ColumnValueExpression.
+   * @param order_by_description OrderByDescription
+   * @param select_items select columns
+   */
+  void UnifyOrderByExpression(common::ManagedPointer<parser::OrderByDescription> order_by_description,
+                              const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
 
   void ValidateDatabaseName(const std::string &db_name) {
     if (!(db_name.empty())) {

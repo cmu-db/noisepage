@@ -147,8 +147,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
-      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, allow_cves_, &scan_type,
-                                                 &bounds)) {
+      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), get->GetTableAlias(), index, preds,
+                                                 allow_cves_, &scan_type, &bounds)) {
         auto op = std::make_unique<OperatorNode>(IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds),
                                                                  is_update, scan_type, std::move(bounds))
                                                      .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
