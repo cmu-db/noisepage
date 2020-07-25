@@ -256,7 +256,6 @@ if (UNIX)
             | grep --invert-match -e 'src/execution/vm/vm.cpp.*:.*inline\\b.*'
 
             # Description: Regions, memory pool chunks, and vm stacks are managed using malloc and free
-            | grep --invert-match -e 'src/include/execution/sql/column_segment.h:.*free\(.*'
             | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*malloc\(.*'
             | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*calloc\(.*'
             | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*free\(.*'

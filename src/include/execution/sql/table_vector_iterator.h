@@ -57,6 +57,10 @@ class EXPORT TableVectorIterator {
 
   /**
    * Initialize the iterator over a chunk of blocks [start, end), returning true if the iteration succeeded.
+   *
+   * If block_start == 0 and block_end == storage::DataTable::GetMaxBlocks(),
+   * then iteration begins at the start of the table and continues until the current last block.
+   *
    * @param block_start The starting block to iterate at.
    * @param block_end The ending block to stop iterating at, non-inclusive.
    * @return True if the initialization succeeded; false otherwise.
@@ -110,9 +114,6 @@ class EXPORT TableVectorIterator {
                            exec::ExecutionContext *exec_ctx, ScanFn scan_fn,
                            uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
-  /** When the column iterators receive new vectors of input, we need to refresh the projection with new data too. */
-  void RefreshVectorProjection();
-
  private:
   exec::ExecutionContext *exec_ctx_;
   const catalog::table_oid_t table_oid_;
@@ -120,9 +121,6 @@ class EXPORT TableVectorIterator {
 
   // The SqlTable to iterate over.
   common::ManagedPointer<storage::SqlTable> table_{nullptr};
-
-  // The vector-wise iterators over each column in the table.
-  std::vector<ColumnVectorIterator> column_iterators_;
 
   std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
 
