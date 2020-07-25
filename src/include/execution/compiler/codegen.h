@@ -1,5 +1,7 @@
 #pragma once
 
+#include <llvm/ADT/StringMap.h>
+
 #include <array>
 #include <initializer_list>
 #include <memory>
@@ -8,7 +10,6 @@
 #include <utility>
 #include <vector>
 
-#include <llvm/ADT/StringMap.h>
 #include "brain/operating_unit.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"

@@ -1,9 +1,10 @@
 #pragma once
 
+#include <llvm/Support/Casting.h>
+
 #include <string>
 #include <type_traits>
 
-#include <llvm/Support/Casting.h>
 #include "common/macros.h"
 #include "execution/sql/sql.h"
 

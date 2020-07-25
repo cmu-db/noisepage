@@ -1,9 +1,10 @@
 #pragma once
 
+#include <llvm/Support/Casting.h>
+
 #include <cstdint>
 #include <string>
 
-#include <llvm/Support/Casting.h>
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/sql/storage_interface.h"

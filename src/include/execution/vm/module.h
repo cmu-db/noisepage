@@ -1,12 +1,13 @@
 #pragma once
 
+#include <llvm/Support/Memory.h>
+
 #include <atomic>
 #include <memory>
 #include <mutex>  // NOLINT
 #include <string>
 #include <utility>
 
-#include <llvm/Support/Memory.h>
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"

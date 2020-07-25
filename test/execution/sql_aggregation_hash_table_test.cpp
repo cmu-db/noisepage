@@ -1,10 +1,11 @@
+#include <tbb/tbb.h>
+
 #include <atomic>
 #include <memory>
 #include <random>
 #include <unordered_map>
 #include <vector>
 
-#include <tbb/tbb.h>
 #include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "execution/exec/execution_context.h"

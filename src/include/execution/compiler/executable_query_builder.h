@@ -1,10 +1,11 @@
 #pragma once
 
+#include <llvm/ADT/SmallVector.h>
+
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <llvm/ADT/SmallVector.h>
 #include "common/macros.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/compiler/executable_query.h"

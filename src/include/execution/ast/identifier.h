@@ -1,10 +1,11 @@
 #pragma once
 
+#include <llvm/ADT/DenseMapInfo.h>
+
 #include <functional>
 #include <string>
 #include <string_view>
 
-#include <llvm/ADT/DenseMapInfo.h>
 #include "common/macros.h"
 
 namespace terrier::execution::ast {

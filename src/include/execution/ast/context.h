@@ -1,8 +1,9 @@
 #pragma once
 
+#include <llvm/ADT/StringRef.h>
+
 #include <memory>
 
-#include <llvm/ADT/StringRef.h>
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"
 #include "execution/ast/type.h"

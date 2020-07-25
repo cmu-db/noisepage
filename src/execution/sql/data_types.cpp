@@ -1,10 +1,10 @@
 #include "execution/sql/data_types.h"
 
+#include <llvm/ADT/DenseMap.h>
+
 #include <memory>
 #include <string>
 #include <utility>
-
-#include <llvm/ADT/DenseMap.h>
 
 namespace terrier::execution::sql {
 

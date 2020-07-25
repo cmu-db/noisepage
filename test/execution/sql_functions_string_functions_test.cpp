@@ -1,10 +1,11 @@
+#include <llvm/ADT/StringRef.h>
+
 #include <limits>
 #include <memory>
 #include <random>
 #include <string>
 #include <vector>
 
-#include <llvm/ADT/StringRef.h>
 #include "execution/exec/execution_context.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/value.h"

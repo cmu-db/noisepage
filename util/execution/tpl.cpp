@@ -1,5 +1,9 @@
 #include "execution/tpl.h"
 
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/Path.h>
+#include <tbb/task_scheduler_init.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -10,10 +14,6 @@
 #include <string>
 #include <utility>
 
-#include <llvm/Support/CommandLine.h>
-#include <llvm/Support/MemoryBuffer.h>
-#include <llvm/Support/Path.h>
-#include <tbb/task_scheduler_init.h>
 #include "execution/ast/ast_dump.h"
 #include "execution/ast/ast_pretty_print.h"
 #include "execution/exec/execution_context.h"

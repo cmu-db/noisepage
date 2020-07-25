@@ -1,12 +1,13 @@
 #include "execution/sql/join_hash_table.h"
 
+#include <llvm/ADT/STLExtras.h>
+#include <tbb/parallel_for_each.h>
+
 #include <algorithm>
 #include <limits>
 #include <utility>
 #include <vector>
 
-#include <llvm/ADT/STLExtras.h>
-#include <tbb/parallel_for_each.h>
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector.h"
@@ -511,8 +512,8 @@ void JoinHashTable::Build() {
 
 void JoinHashTable::LookupBatchInChainingHashTable(const Vector &hashes, Vector *results) const {
   UnaryOperationExecutor::Execute<hash_t, const HashTableEntry *>(
-      exec_settings_, hashes,
-      results, [&](const hash_t hash_val) noexcept { return chaining_hash_table_.FindChainHead(hash_val); });
+      exec_settings_, hashes, results,
+      [&](const hash_t hash_val) noexcept { return chaining_hash_table_.FindChainHead(hash_val); });
 }
 
 void JoinHashTable::LookupBatchInConciseHashTable(const Vector &hashes, Vector *results) const {

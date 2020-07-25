@@ -1,10 +1,11 @@
 #pragma once
 
+#include <llvm/Support/MathExtras.h>
+
 #include <cstdint>
 #include <cstdlib>
 #include <numeric>
 
-#include <llvm/Support/MathExtras.h>
 #include "common/macros.h"
 
 namespace terrier::common {

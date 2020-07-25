@@ -1,12 +1,13 @@
 #include "execution/sql/aggregation_hash_table.h"
 
+#include <tbb/parallel_for_each.h>
+
 #include <algorithm>
 #include <memory>
 #include <numeric>
 #include <utility>
 #include <vector>
 
-#include <tbb/parallel_for_each.h>
 #include "common/error/exception.h"
 #include "common/math_util.h"
 #include "execution/sql/constant_vector.h"
@@ -312,8 +313,8 @@ void AggregationHashTable::LookupInitial() {
   //               use SIMD gathers if hashes vector is full. For some reason it
   //               isn't. Investigate why.
   UnaryOperationExecutor::Execute<hash_t, const HashTableEntry *>(
-      exec_settings_, *batch_state_->Hashes(),
-      batch_state_->Entries(), [&](const hash_t hash) noexcept { return hash_table_.FindChainHead(hash); });
+      exec_settings_, *batch_state_->Hashes(), batch_state_->Entries(),
+      [&](const hash_t hash) noexcept { return hash_table_.FindChainHead(hash); });
 
   // Find non-null entries whose keys must be checked and place them in the
   // key-not-equal list which is used during key equality checking.

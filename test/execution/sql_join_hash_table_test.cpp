@@ -1,7 +1,8 @@
+#include <tbb/tbb.h>
+
 #include <random>
 #include <vector>
 
-#include <tbb/tbb.h>
 #include "common/hash_util.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/join_hash_table.h"

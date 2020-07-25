@@ -1,13 +1,14 @@
 #include "execution/sql/sorter.h"
 
+#include <llvm/ADT/STLExtras.h>
+#include <tbb/parallel_for_each.h>
+#include <tbb/task_scheduler_init.h>
+
 #include <algorithm>
 #include <queue>
 #include <utility>
 #include <vector>
 
-#include <llvm/ADT/STLExtras.h>
-#include <tbb/parallel_for_each.h>
-#include <tbb/task_scheduler_init.h>
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/stage_timer.h"
 #include "ips4o/ips4o.hpp"

@@ -1,10 +1,11 @@
 #pragma once
 
+#include <llvm/Support/Casting.h>
+
 #include <cstdint>
 #include <string>
 #include <utility>
 
-#include <llvm/Support/Casting.h>
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/parsing/token.h"

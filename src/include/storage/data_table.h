@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <limits>
 #include <unordered_map>
 #include <vector>
 

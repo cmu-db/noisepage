@@ -1,7 +1,8 @@
 #if 0
+#include <tbb/tbb.h>
+
 #include <memory>
 
-#include <tbb/tbb.h>
 #include "catalog/schema.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/expression_maker.h"
