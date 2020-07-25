@@ -52,6 +52,9 @@ class ExpressionTranslator {
    */
   const parser::AbstractExpression &GetExpression() const { return expr_; }
 
+  /** @return A pointer to the execution context. */
+  ast::Expr *GetExecutionContextPtr() const;
+
  protected:
   /** The expression for this translator as its concrete type. */
   template <typename T>

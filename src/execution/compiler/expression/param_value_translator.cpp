@@ -50,9 +50,7 @@ ast::Expr *ParamValueTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
       UNREACHABLE("Unsupported parameter type");
   }
 
-  return codegen->CallBuiltin(
-      builtin,
-      {ctx->CurrentOp()->GetCompilationContext()->GetExecutionContextPtrFromQueryState(), codegen->Const32(param_idx)});
+  return codegen->CallBuiltin(builtin, {GetExecutionContextPtr(), codegen->Const32(param_idx)});
 }
 
 }  // namespace terrier::execution::compiler

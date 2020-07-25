@@ -27,8 +27,7 @@ ast::Expr *FunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
 
   std::vector<ast::Expr *> params;
   if (func_context->IsExecCtxRequired()) {
-    auto *exec_ctx = ctx->CurrentOp()->GetCompilationContext()->GetExecutionContextPtrFromQueryState();
-    params.push_back(exec_ctx);
+    params.push_back(GetExecutionContextPtr());
   }
   for (auto child : func_expr.GetChildren()) {
     auto *derived_expr = ctx->DeriveValue(*child, provider);
