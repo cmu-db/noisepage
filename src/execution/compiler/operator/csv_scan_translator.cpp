@@ -83,7 +83,7 @@ void CSVScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
 
 ast::Expr *CSVScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   const auto output_schema = GetPlan().GetOutputSchema();
-  if ((!col_oid) > output_schema->NumColumns()) {
+  if (static_cast<uint32_t>(col_oid) > output_schema->NumColumns()) {
     throw EXECUTION_EXCEPTION(fmt::format("Codegen: out-of-bounds CSV column access @ idx={}", !col_oid));
   }
 
