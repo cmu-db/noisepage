@@ -10,7 +10,7 @@ base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
 from oltpbench.test_case_oltp import TestCaseOLTP
-from oltpbench.test_oltpbench_v2 import TestOLTPBenchV2
+from oltpbench.test_oltpbench import TestOLTPBench
 from oltpbench.utils import parse_command_line_args
 from oltpbench import constants
 from util.constants import LOG
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     test_suite = generate_test_suite(args)
 
     try:
-        oltpbench = TestOLTPBenchV2(args)
+        oltpbench = TestOLTPBench(args)
         exit_code = oltpbench.run(test_suite)
     except:
         LOG.error("Exception trying to run OLTP Bench tests")

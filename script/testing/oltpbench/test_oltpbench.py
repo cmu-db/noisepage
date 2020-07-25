@@ -8,16 +8,16 @@ import shutil
 from util.constants import ErrorCode
 from util.constants import LOG
 from util.common import run_command
-from util.test_server_v2 import TestServerV2
+from util.test_server import TestServer
 from xml.etree import ElementTree
 from oltpbench import constants
 
 
-class TestOLTPBenchV2(TestServerV2):
+class TestOLTPBench(TestServer):
     """ Class to run OLTP Bench tests """
 
     def __init__(self, args):
-        TestServerV2.__init__(self, args)
+        TestServer.__init__(self, args)
 
     def run_pre_suite(self):
         self.install_oltp()

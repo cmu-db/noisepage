@@ -13,7 +13,7 @@ from util.test_case import TestCase
 from util.common import *
 from util.constants import LOG
 
-class TestServerV2:
+class TestServer:
     """ Class to run general tests """
 
     def __init__(self, args):

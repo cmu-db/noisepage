@@ -54,7 +54,7 @@ if __name__ == "__main__":
                     args, test_command=test_command_tracefile)
                 exit_code = junit_test_runner.run(test_case_junit)
             except KeyboardInterrupt:
-                exit_code = ErrorCode.SUCCESS
+                exit_code = ErrorCode.ERROR
                 raise
             except:
                 LOG.error("Exception trying to run '%s'" %
@@ -62,7 +62,7 @@ if __name__ == "__main__":
                 LOG.error(
                     "================ Python Error Output ==================")
                 traceback.print_exc(file=sys.stdout)
-                exit_code = ErrorCode.SUCCESS
+                exit_code = ErrorCode.ERROR
             finally:
                 all_exit_codes.append(exit_code)
         ## FOR (files)

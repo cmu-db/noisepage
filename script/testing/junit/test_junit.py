@@ -1,16 +1,16 @@
 #!/usr/bin/python3
 import os
 from junit import constants
-from util.test_server_v2 import TestServerV2
+from util.test_server import TestServer
 
 
-class TestJUnit(TestServerV2):
+class TestJUnit(TestServer):
     """
     Class to run JUnit tests
     """
 
     def __init__(self, args):
-        TestServerV2.__init__(self, args)
+        TestServer.__init__(self, args)
 
         self.query_mode = args.get("query_mode", "simple")
         self.set_env_vars(self.query_mode)

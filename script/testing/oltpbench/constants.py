@@ -50,5 +50,5 @@ PERFORMANCE_STORAGE_SERVICE_API = {
     "none":"",
     "test":"http://incrudibles-testing.db.pdl.cmu.edu/performance-results",
     "staging":"http://incrudibles-staging.db.pdl.cmu.edu/performance-results",
-    "prod":"http://incrudibles-testing.db.pdl.cmu.edu/performance-results"
+    "prod":"http://incrudibles-production.db.pdl.cmu.edu/performance-results"
 }
