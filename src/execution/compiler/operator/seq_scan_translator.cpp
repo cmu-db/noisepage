@@ -114,17 +114,63 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
     ast::Expr *exec_ctx = builder.GetParameterByPosition(0);
     ast::Expr *vector_proj = builder.GetParameterByPosition(1);
     ast::Expr *tid_list = builder.GetParameterByPosition(2);
-    if (parser::ExpressionUtil::IsColumnCompareWithConst(*predicate) ||
-        parser::ExpressionUtil::IsColumnCompareWithParam(*predicate)) {
+    if (parser::ExpressionUtil::IsColumnCompareWithConst(*predicate)) {
       auto cve = predicate->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
       auto translator = GetCompilationContext()->LookupTranslator(*predicate->GetChild(1));
       auto col_index = GetColOidIndex(cve->GetColumnOid());
-      auto val = translator->DeriveValue(nullptr, nullptr);
+      auto const_val = translator->DeriveValue(nullptr, nullptr);
       builder.Append(codegen->VPIFilter(exec_ctx,                        // The execution context
                                         vector_proj,                     // The vector projection
                                         predicate->GetExpressionType(),  // Comparison type
                                         col_index,                       // Column index
-                                        val,                             // Constant value
+                                        const_val,                       // Constant value
+                                        tid_list));                      // TID list
+    } else if (parser::ExpressionUtil::IsColumnCompareWithParam(*predicate)) {
+      // TODO(WAN): temporary hacky implementation, poke Prashanth...
+      auto cve = predicate->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+      auto col_index = GetColOidIndex(cve->GetColumnOid());
+
+      auto param_val = predicate->GetChild(1).CastManagedPointerTo<parser::ParameterValueExpression>();
+      auto param_idx = param_val->GetValueIdx();
+      ast::Builtin builtin;
+      switch (param_val->GetReturnValueType()) {
+        case type::TypeId::BOOLEAN:
+          builtin = ast::Builtin::GetParamBool;
+          break;
+        case type::TypeId::TINYINT:
+          builtin = ast::Builtin::GetParamTinyInt;
+          break;
+        case type::TypeId::SMALLINT:
+          builtin = ast::Builtin::GetParamSmallInt;
+          break;
+        case type::TypeId::INTEGER:
+          builtin = ast::Builtin::GetParamInt;
+          break;
+        case type::TypeId::BIGINT:
+          builtin = ast::Builtin::GetParamBigInt;
+          break;
+        case type::TypeId::DECIMAL:
+          builtin = ast::Builtin::GetParamDouble;
+          break;
+        case type::TypeId::DATE:
+          builtin = ast::Builtin::GetParamDate;
+          break;
+        case type::TypeId::TIMESTAMP:
+          builtin = ast::Builtin::GetParamTimestamp;
+          break;
+        case type::TypeId::VARCHAR:
+          builtin = ast::Builtin::GetParamString;
+          break;
+        default:
+          UNREACHABLE("Unsupported parameter type");
+      }
+      auto const_val = codegen->CallBuiltin(
+          builtin, {codegen->MakeExpr(codegen->MakeIdentifier("execCtx")), codegen->Const32(param_idx)});
+      builder.Append(codegen->VPIFilter(exec_ctx,                        // The execution context
+                                        vector_proj,                     // The vector projection
+                                        predicate->GetExpressionType(),  // Comparison type
+                                        col_index,                       // Column index
+                                        const_val,                       // Constant value
                                         tid_list));                      // TID list
     } else if (parser::ExpressionUtil::IsConstCompareWithColumn(*predicate)) {
       throw NOT_IMPLEMENTED_EXCEPTION("const <op> col vector filter comparison not implemented");
