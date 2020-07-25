@@ -50,7 +50,7 @@ JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
 LOCAL_REPO_DIR = os.path.realpath("local")
 
 # How many historical values are "required" before enforcing the threshold check
-MIN_REF_VALUES = 30
+MIN_REF_VALUES = 20
 
 # Default failure threshold
 # The regression threshold determines how much the benchmark is allowed to get
