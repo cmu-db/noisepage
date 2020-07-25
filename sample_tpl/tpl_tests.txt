@@ -30,7 +30,6 @@ offsetof.tpl,false,54
 param.tpl,false,10
 point.tpl,false,-20
 pointer.tpl,false,10
-return-exp.tpl,false,2
 return-expr.tpl,false,15
 #return-val.tpl,false,44                    While it returns the right value, it throws some error. We weren't running with this before.
 #scope.tpl,false,3                          Scoping doesn't work in TPL
