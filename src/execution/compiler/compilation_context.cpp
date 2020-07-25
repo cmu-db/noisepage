@@ -68,10 +68,8 @@
 namespace terrier::execution::compiler {
 
 namespace {
-// A unique ID generator used to generate globally unique TPL function names.
+// A unique ID generator used to generate globally unique TPL function names and keep track of query ID for minirunners.
 std::atomic<uint64_t> unique_ids{0};
-// A unique ID generator used to keep track of query ID for minirunners.
-std::atomic<query_id_t> query_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
@@ -113,9 +111,6 @@ ast::FunctionDecl *CompilationContext::GenerateTearDownFunction() {
 }
 
 void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
-  // Generate a query id using std::atomic<>.fetch_add()
-  query_id_t query_id = query_ids++;
-
   exec_ctx_ =
       query_state_.DeclareStateEntry(GetCodeGen(), "execCtx", codegen_.PointerType(ast::BuiltinType::ExecutionContext));
 
@@ -153,7 +148,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   main_pipeline.CollectDependencies(&execution_order);
   for (auto *pipeline : execution_order) {
     pipeline->Prepare(query_->GetExecutionSettings());
-    pipeline->GeneratePipeline(&main_builder, query_id);
+    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
 
     // Extract and record the translators.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
