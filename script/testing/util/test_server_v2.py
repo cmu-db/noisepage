@@ -207,6 +207,7 @@ class TestServerV2:
 
     def run(self, test_suite):
         """ Orchestrate the overall test execution """
+        if type(test_suite) is not list: test_suite = [ test_suite ]
         ret_val_test_suite = None
         try:
             self.check_db_binary()

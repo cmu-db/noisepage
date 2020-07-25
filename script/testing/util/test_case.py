@@ -23,7 +23,7 @@ class TestCase:
         self.test_error_msg = "Unknown Error"
 
         # whether the DB should restart before the test begin
-        self.restart_db = True
+        self.db_restart = True
 
     def run_pre_test(self):
         pass
