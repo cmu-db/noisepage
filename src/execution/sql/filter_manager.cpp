@@ -9,8 +9,6 @@
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 
-#define COLLECT_OVERHEAD 0
-
 namespace terrier::execution::sql {
 
 //===----------------------------------------------------------------------===//
@@ -72,21 +70,6 @@ void FilterManager::Clause::RunFilter(exec::ExecutionContext *exec_ctx, VectorPr
   // as we apply the terms of the clause.
   input_copy_.AssignFrom(*tid_list);
 
-#if COLLECT_OVERHEAD == 1
-  util::Timer<std::micro> timer;
-  timer.Start();
-
-  for (const auto &term : terms_) {
-    term->fn(input_batch, tid_list, opaque_context_);
-    if (tid_list->IsEmpty()) break;
-  }
-  timer.Stop();
-  const double fast = timer.GetElapsed();
-
-  tid_list->AssignFrom(input_copy_);
-  timer.Start();
-#endif
-
   const auto tuple_count = tid_list->GetTupleCount();
   const auto input_selectivity = tid_list->ComputeSelectivity();
   for (const auto &term : terms_) {
@@ -115,12 +98,6 @@ void FilterManager::Clause::RunFilter(exec::ExecutionContext *exec_ctx, VectorPr
 
   // Update sample count.
   sample_count_++;
-
-#if COLLECT_OVERHEAD == 1
-  timer.Stop();
-  double slow = timer.GetElapsed();
-  overhead_micros_ += (slow - fast);
-#endif
 }
 
 std::vector<uint32_t> FilterManager::Clause::GetOptimalTermOrder() const {
