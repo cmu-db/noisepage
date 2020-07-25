@@ -318,6 +318,9 @@ enum class Builtin : uint8_t {
  */
 class Builtins {
  public:
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(Builtins);
+
   /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(Builtins);
 

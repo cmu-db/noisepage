@@ -105,6 +105,12 @@
 #define DISALLOW_COPY_AND_MOVE(cname) \
   DISALLOW_COPY(cname);               \
   DISALLOW_MOVE(cname);
+
+/** Disallow instantiation of the class. This should be used for classes that only have static functions. */
+#define DISALLOW_INSTANTIATION(cname) \
+  /* Prevent instantiation. */        \
+  cname() = delete;
+
 #endif
 
 /**

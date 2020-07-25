@@ -26,6 +26,8 @@ using hash_t = uint64_t;
  */
 class EXPORT HashUtil {
  public:
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(HashUtil);
   /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(HashUtil);
 

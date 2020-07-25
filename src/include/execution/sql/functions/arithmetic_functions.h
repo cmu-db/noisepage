@@ -16,8 +16,8 @@ namespace terrier::execution::sql {
  */
 class EXPORT ArithmeticFunctions {
  public:
-  // Delete to force only static functions
-  ArithmeticFunctions() = delete;
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(ArithmeticFunctions);
 
   /**
    * Integer addition

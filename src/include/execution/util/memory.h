@@ -22,6 +22,8 @@ namespace terrier::execution::util {
  */
 class Memory {
  public:
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(Memory);
   /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(Memory);
 

@@ -16,6 +16,8 @@ namespace terrier::execution::sql {
  */
 class CastingFunctions {
  public:
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(CastingFunctions);
   /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(CastingFunctions);
 

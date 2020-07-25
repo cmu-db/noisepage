@@ -12,6 +12,8 @@ namespace terrier::execution::util {
  */
 class ArithmeticOverflow {
  public:
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(ArithmeticOverflow);
   /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(ArithmeticOverflow);
 
@@ -23,9 +25,6 @@ class ArithmeticOverflow {
    * Maximum int128_t value
    */
   static constexpr int128_t K_MAX_INT128 = std::numeric_limits<int128_t>::max();
-
-  // Deleted to force only static functions
-  ArithmeticOverflow() = delete;
 
   // -------------------------------------------------------
   // Addition

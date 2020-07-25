@@ -12,8 +12,8 @@ namespace terrier::execution::sql {
  */
 class EXPORT ComparisonFunctions {
  public:
-  // Delete to force only static functions
-  ComparisonFunctions() = delete;
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(ComparisonFunctions);
 
   /**
    * Sets result = (v1 == v2)

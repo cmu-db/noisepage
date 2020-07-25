@@ -12,6 +12,8 @@ namespace terrier::execution::util {
  */
 class VectorUtil {
  public:
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(VectorUtil);
   /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(VectorUtil);
 

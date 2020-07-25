@@ -9,10 +9,8 @@ namespace terrier::execution::sql {
  */
 class EXPORT IsNullPredicate {
  public:
-  /**
-   * Delete to force only static functions
-   */
-  IsNullPredicate() = delete;
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(IsNullPredicate);
 
   /**
    * @return true iff val is null
