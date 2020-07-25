@@ -69,9 +69,12 @@ void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
   const auto &delete_slot = child->GetSlotAddress();
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), delete_slot};
   auto *delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, delete_args);
-  auto *cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, delete_call);
-  If check(builder, cond);
-  { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
+  auto *delete_failed = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, delete_call);
+  If check(builder, delete_failed);
+  {
+    // The delete was not successful; abort the transaction.
+    builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  }
   check.EndIf();
 }
 
