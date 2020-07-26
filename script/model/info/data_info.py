@@ -63,7 +63,7 @@ RAW_EXECUTION_MODE_INDEX = 2
 RAW_CPU_TIME_INDEX = 10
 
 # End index of model input feature vector
-RECORD_FEATURES_END = 6
+RECORD_FEATURES_END = 7
 
 # Start index of metrics
 RECORD_METRICS_START = MINI_MODEL_TARGET_NUM

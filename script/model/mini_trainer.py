@@ -27,17 +27,14 @@ class MiniTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, record_values, anomaly_clearance, subtract_style, visibility):
+    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim):
         self.input_path = input_path
         self.model_metrics_path = model_metrics_path
         self.ml_models = ml_models
         self.test_ratio = test_ratio
         self.model_map = {}
         self.stats_map = {}
-        self.record_values = record_values
-        self.anomaly_clearance = anomaly_clearance
-        self.subtract_style = subtract_style
-        self.visibility = visibility
+        self.trim = trim
 
     def _train_data(self, data, summary_file):
         x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
@@ -126,8 +123,7 @@ class MiniTrainer:
         for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
             data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.model_map,
-                                                         self.stats_map, self.subtract_style,
-                                                         self.record_values, self.anomaly_clearance, self.visibility)
+                                                         self.stats_map, self.trim)
             for data in data_list:
                 self._train_data(data, summary_file)
 
@@ -148,22 +144,12 @@ if __name__ == '__main__':
                          default=["lr", "rf", "gbm"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
-    aparser.add_argument('--record_values', default='all', type=str, help='Data Values to use, either "all" or "avg"')
-    aparser.add_argument('--anomaly_clearance', default=0.2, type=float, help='% of values from top and bottom to remove if record_values=av')
-    aparser.add_argument('--subtract_style', default='manual', type=str, help='Style to use for subtraction, either "manual" or "model"')
-    aparser.add_argument('--visibility', default='all', type=str, help='Whether model should see all or only 1 point')
+    aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
     logging_util.init_logging(args.log)
-    logging.info("Mini-Trainer running with parameters")
-    logging.info("record_values = {}".format(args.record_values))
-    logging.info("anomaly_clearance = {}".format(args.anomaly_clearance))
-    logging.info("subtract_style = {}".format(args.subtract_style))
-    logging.info("visibility = {}".format(args.visibility))
-
-    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
-                          args.record_values, args.anomaly_clearance, args.subtract_style, args.visibility)
+    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
         pickle.dump(trained_model_map, file)
