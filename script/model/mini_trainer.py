@@ -27,7 +27,7 @@ class MiniTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim):
+    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim, expose_all):
         self.input_path = input_path
         self.model_metrics_path = model_metrics_path
         self.ml_models = ml_models
@@ -35,6 +35,18 @@ class MiniTrainer:
         self.model_map = {}
         self.stats_map = {}
         self.trim = trim
+        self.expose_all = expose_all
+
+    def _train_specific_model(self, data, transformer_idx, method_idx):
+        methods = self.ml_models
+        method = methods[method_idx]
+        label = method if transformer_idx == 0 else method + " transform"
+        logging.info("Finalizing model {} {}".format(data.opunit.name, label))
+
+        transformers = [None, data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]]
+        regressor = model.Model(methods[method_idx], modeling_transformer=transformers[transformer_idx])
+        regressor.train(data.x, data.y)
+        self.model_map[data.opunit] = regressor
 
     def _train_data(self, data, summary_file):
         x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
@@ -59,8 +71,10 @@ class MiniTrainer:
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
+        best_transformer = -1
+        best_method = -1
         for i, transformer in enumerate(transformers):
-            for method in methods:
+            for m, method in enumerate(methods):
                 # Train the model
                 label = method if i == 0 else method + " transform"
                 logging.info("{} {}".format(data.opunit.name, label))
@@ -90,7 +104,11 @@ class MiniTrainer:
                             and transformer == transformers[-1]
                             and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
                         min_percentage_error = percentage_error[elapsed_us_index]
-                        self.model_map[data.opunit] = regressor
+                        if self.expose_all:
+                            best_transformer = i
+                            best_method = m
+                        else:
+                            self.model_map[data.opunit] = regressor
                         pred_results = (evaluate_x, y_pred, evaluate_y)
 
                     if j == 1:
@@ -105,6 +123,7 @@ class MiniTrainer:
 
         # Record the best prediction results on the test data
         result_writing_util.record_predictions(pred_results, prediction_path)
+        return best_transformer, best_method
 
     def train(self):
         """Train the mini-models
@@ -125,7 +144,9 @@ class MiniTrainer:
             data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.model_map,
                                                          self.stats_map, self.trim)
             for data in data_list:
-                self._train_data(data, summary_file)
+                best_transformer, best_method = self._train_data(data, summary_file)
+                if self.expose_all:
+                    self._train_specific_model(data, best_transformer, best_method)
 
         return self.model_map
 
@@ -145,11 +166,12 @@ if __name__ == '__main__':
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')
+    aparser.add_argument('--expose_all', default=False, help='Should expose all data to the model')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
     logging_util.init_logging(args.log)
-    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim)
+    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim, args.expose_all)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
         pickle.dump(trained_model_map, file)
