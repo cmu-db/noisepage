@@ -27,6 +27,7 @@
 #include "optimizer/query_to_operator_transformer.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
@@ -486,6 +487,24 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   }
 }
 
+/**
+ * Arg: <0, 1, 2>
+ * 0 - Col
+ * 1 - Outer Table
+ * 2 - Inner Table
+ */
+static void GenIdxJoinArguments(benchmark::internal::Benchmark *b) {
+  auto key_sizes = {1, 2, 4, 8, 15};
+  std::vector<int64_t> idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+  for (auto key_size : key_sizes) {
+    for (size_t i = 0; i < idx_sizes.size(); i++) {
+      for (size_t j = i; j < idx_sizes.size(); j++) {
+        b->Args({key_size, idx_sizes[i], idx_sizes[j]});
+      }
+    }
+  }
+}
+
 static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int64_t lookup_size, int64_t num_iters,
                                  std::vector<std::vector<parser::ConstantValueExpression>> *real_params) {
   std::mt19937 generator{};
@@ -732,6 +751,24 @@ class MiniRunners : public benchmark::Fixture {
     return plan;
   }
 
+  std::unique_ptr<planner::AbstractPlanNode> IndexNLJoinCorrector(
+      std::string build_tbl, size_t num_cols,
+      common::ManagedPointer<transaction::TransactionContext> txn,
+      std::unique_ptr<planner::AbstractPlanNode> plan) {
+    if (plan->GetPlanNodeType() != planner::PlanNodeType::INDEXNLJOIN) throw "Expected IndexNLJoin";
+    if (plan->GetChildrenSize() != 1) throw "Expected 1 child";
+    if (plan->GetChild(0)->GetPlanNodeType() != planner::PlanNodeType::SEQSCAN) throw "Expected child IdxScan";
+
+    auto *nlplan = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan.get());
+    if (nlplan->GetLoIndexColumns().size() != num_cols) throw "Number keys mismatch";
+
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+    auto build_oid = accessor->GetTableOid(std::move(build_tbl));
+    if (nlplan->GetTableOid() != build_oid) throw "inner index does not match";
+
+    return plan;
+  }
+
   std::unique_ptr<planner::AbstractPlanNode> ChildIndexScanCorrector(
       common::ManagedPointer<transaction::TransactionContext> txn, std::unique_ptr<planner::AbstractPlanNode> plan) {
     if (plan->GetChild(0)->GetPlanNodeType() != planner::PlanNodeType::INDEXSCAN) throw "Expected IndexScan";
@@ -858,7 +895,7 @@ class MiniRunners : public benchmark::Fixture {
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
-    pipe0_vec.emplace_back(type, num_elem, 4, 1, num_elem, 1);
+    pipe0_vec.emplace_back(type, num_elem, 4, 1, num_elem, 1, 0);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     switch (type) {
@@ -1094,7 +1131,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, tuple_size, num_col, 0, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, tuple_size, num_col, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
   exec_query.SetPipelineOperatingUnits(std::move(units));
   exec_query.Run(common::ManagedPointer(exec_ctx), mode);
@@ -1132,8 +1169,8 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1);
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row, tuple_size, num_col, 0, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row, tuple_size, num_col, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
   std::string query_final;
@@ -1168,7 +1205,7 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ1_1_SeqScanRunners)
     ->Apply(GenScanMixedArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ2_IndexScanRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state) {
   auto type = static_cast<type::TypeId>(state.range(0));
   auto key_num = state.range(1);
   auto num_rows = state.range(2);
@@ -1189,8 +1226,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_IndexScanRunners)(benchmark::State &state) 
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, lookup_size, tuple_size, key_num, 0, 1);
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, num_rows, tuple_size, key_num, lookup_size, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, lookup_size, tuple_size, key_num, 0, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, num_rows, tuple_size, key_num, lookup_size, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
   std::string cols;
@@ -1226,10 +1263,81 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_IndexScanRunners)(benchmark::State &state) 
   state.SetItemsProcessed(state.range(2));
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ2_IndexScanRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ2_0_IndexScanRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenIdxScanArguments);
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state) {
+  auto type = type::TypeId::INTEGER;
+  auto key_num = state.range(0);
+  auto outer = state.range(1);
+  auto inner = state.range(2);
+
+  if (inner < outer) {
+    throw std::invalid_argument("Invalid IndexJoin constraint");
+  }
+
+  int num_iters = 1;
+  if (inner <= warmup_rows_limit || outer <= warmup_rows_limit) {
+    num_iters += warmup_iterations_num_idx;
+  } else if (rerun_start) {
+    return;
+  }
+
+  auto type_size = type::TypeUtil::GetTypeSize(type);
+  auto tuple_size = type_size * key_num;
+
+  auto units = std::make_unique<brain::PipelineOperatingUnits>();
+  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+
+  // We only ever emit inner # of tuples
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, inner, tuple_size, key_num, 0, 1, 0);
+
+  // Outer table scan happens
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, outer, tuple_size, key_num, outer, 1, 0);
+
+  // For each in outer, match 1 tuple in inner
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, inner, tuple_size, key_num, 1, 1, outer);
+  units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+
+  std::string cols;
+  {
+    std::stringstream colss;
+    for (auto j = 1; j <= key_num; j++) {
+      colss << "a.col" << j;
+      if (j != key_num) colss << ", ";
+    }
+    cols = colss.str();
+  }
+
+  std::string predicate;
+  {
+    std::stringstream preds;
+    for (auto j = 1; j <= key_num; j++) {
+      preds << "a.col" << j << " = b.col" << j;
+      if (j != key_num) preds << " AND ";
+    }
+    predicate = preds.str();
+  }
+
+  auto outerTbl = execution::sql::TableGenerator::GenerateTableIndexName(type, outer);
+  auto innerTbl = execution::sql::TableGenerator::GenerateTableIndexName(type, inner);
+
+  std::stringstream query;
+  query << "SELECT " << cols << " FROM " << outerTbl << " AS a, " << innerTbl << " AS b WHERE " << predicate;
+  auto f = std::bind(&MiniRunners::IndexNLJoinCorrector, this, innerTbl, key_num, std::placeholders::_1, std::placeholders::_2);
+  auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units), f);
+  BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
+
+  state.SetItemsProcessed(state.range(2));
+}
+
+BENCHMARK_REGISTER_F(MiniRunners, SEQ2_1_IndexJoinRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Apply(GenIdxJoinArguments);
 
 void MiniRunners::ExecuteInsert(benchmark::State *state) {
   auto num_ints = state->range(0);
@@ -1306,7 +1414,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::INSERT, num_rows, tuple_size, num_cols, num_rows, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::INSERT, num_rows, tuple_size, num_cols, num_rows, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
   auto equery = OptimizeSqlStatement(query, std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
@@ -1411,16 +1519,16 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   if (is_idx == 0) {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, row, tuple_size, num_col, car, 1);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4, 1, car, 1);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, row, tuple_size, num_col, car, 1, 0);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4, 1, car, 1, 0);
     units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units));
   } else {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, car, tuple_size, num_col, car, 1);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, car, tuple_size, num_col, car, 1, 0);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1, 0);
     units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     std::vector<parser::ConstantValueExpression> params;
@@ -1508,8 +1616,8 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   if (is_idx == 0) {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, row, tuple_size, num_col, car, 1);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4, 1, car, 1);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, row, tuple_size, num_col, car, 1, 0);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4, 1, car, 1, 0);
     units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     query << "DELETE FROM "
@@ -1523,8 +1631,8 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, car, tbl_size, tbl_col, car, 1);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, car, tbl_size, tbl_col, car, 1, 0);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1, 0);
     units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     std::vector<parser::ConstantValueExpression> params;
@@ -1603,10 +1711,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1);
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_BUILD, row, tuple_size, num_col, car, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_ITERATE, row, tuple_size, num_col, car, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row, tuple_size, num_col, 0, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_BUILD, row, tuple_size, num_col, car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_ITERATE, row, tuple_size, num_col, car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row, tuple_size, num_col, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -1649,11 +1757,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1);
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, tuple_size, num_col, car, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row, tuple_size, num_col, hj_output, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, hj_output, tuple_size, num_col, 0, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, tuple_size, num_col, car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row, tuple_size, num_col, hj_output, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, hj_output, tuple_size, num_col, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -1696,13 +1804,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, build_row, tuple_size, num_col, build_car, 1);
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, tuple_size, num_col, build_car,
-                         1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, tuple_size, num_col, probe_car, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, tuple_size, num_col, matched_car,
-                         1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, matched_car, tuple_size, num_col, 0, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, build_row, tuple_size, num_col, build_car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, tuple_size, num_col, build_car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, tuple_size, num_col, probe_car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, tuple_size, num_col, matched_car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, matched_car, tuple_size, num_col, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -1754,10 +1860,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1);
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, tuple_size, num_col, car, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, out_size, out_cols, car, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, car, out_size, out_cols, 0, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, tuple_size, num_col, car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, out_size, out_cols, car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, car, out_size, out_cols, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -1799,10 +1905,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1);
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, 0, num_col, 1, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, 1, out_size, out_cols, 1, 1);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, 1, out_size, out_cols, 0, 1);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, 0, num_col, 1, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, 1, out_size, out_cols, 1, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, 1, out_size, out_cols, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -1979,7 +2085,7 @@ void RunBenchmarkSequence() {
   // from the composite to get an approximation for the target feature.
   std::vector<std::vector<std::string>> filters = {{"SEQ0"},
                                                    {"SEQ1_0", "SEQ1_1"},
-                                                   {"SEQ2"},
+                                                   {"SEQ2_0", "SEQ2_1"},
                                                    {"SEQ3"},
                                                    {"SEQ4"},
                                                    {"SEQ5_0", "SEQ5_1"},

@@ -118,7 +118,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period):
                     elif feature == 'IDX_SCAN':
                         # Set # output rows of IDX_SCAN as 850
                         x_loc[3] = 850
-                elif q_id == 20 and p_id == 0:
+                elif q_id == 37 and p_id == 0:
                     if feature == 'AGG_BUILD':
                         # Set agg_build input rows to 200, assume output unchanged
                         # Since there's distinct, set the correct key size/input key
