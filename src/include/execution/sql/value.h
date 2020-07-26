@@ -194,6 +194,10 @@ struct StringVal : public Val {
    * @return A VarlenEntry with the contents of the StringVal.
    */
   static storage::VarlenEntry CreateVarlen(const StringVal &str, bool own) {
+    if (str.is_null_) {
+      // TODO(WAN): matt points out that this is rather strange, but it currently exists in upstream/master. Fix later.
+      return terrier::storage::VarlenEntry::CreateInline(static_cast<const terrier::byte *>(nullptr), 0);
+    }
     if (str.GetLength() > storage::VarlenEntry::InlineThreshold()) {
       if (own) {
         // TODO(WAN): smarter allocation?
