@@ -498,7 +498,7 @@ static void GenIdxJoinArguments(benchmark::internal::Benchmark *b) {
   std::vector<int64_t> idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   for (auto key_size : key_sizes) {
     for (size_t i = 0; i < idx_sizes.size(); i++) {
-      for (size_t j = i; j < idx_sizes.size(); j++) {
+      for (size_t j = 0; j < idx_sizes.size(); j++) {
         b->Args({key_size, idx_sizes[i], idx_sizes[j]});
       }
     }
@@ -1292,8 +1292,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
 
-  // We only ever emit inner # of tuples
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, inner, tuple_size, key_num, 0, 1, 0);
+  // We only ever emit min(outer, inner) # of tuples
+  // Even though there are no matches, it still might be a good idea to see what the relation is
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, std::min(inner, outer), tuple_size, key_num, 0, 1, 0);
 
   // Outer table scan happens
   pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, outer, tuple_size, key_num, outer, 1, 0);
