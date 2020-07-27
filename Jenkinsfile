@@ -14,15 +14,13 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER="${macOS_LLVM_path}/bin/clang-8" -DCMAKE_CXX_COMPILER="${macOS_LLVM_path}/bin/clang++-8" -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 20m make check-format'
                         sh 'cd build && timeout 20m make check-lint'
                         sh 'cd build && timeout 20m make check-censored'
@@ -93,14 +91,12 @@ pipeline {
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_C_COMPILER="${macOS_LLVM_path}/bin/clang-8" -DCMAKE_CXX_COMPILER="${macOS_LLVM_path}/bin/clang++-8" -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
@@ -228,14 +224,12 @@ pipeline {
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_C_COMPILER="${macOS_LLVM_path}/bin/clang-8" -DCMAKE_CXX_COMPILER="${macOS_LLVM_path}/bin/clang++-8" -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
@@ -321,14 +315,12 @@ pipeline {
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
                         LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
+                        sh 'cd build && cmake -DCMAKE_C_COMPILER="${macOS_LLVM_path}/bin/clang-8" -DCMAKE_CXX_COMPILER="${macOS_LLVM_path}/bin/clang++-8" -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py ycsb 50,5,15,10,10,10 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
