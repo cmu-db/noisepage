@@ -68,6 +68,7 @@ class IndexUtil {
    * Checks whether a set of predicates can be satisfied with an index
    * @param accessor CatalogAccessor
    * @param tbl_oid OID of the table
+   * @param tbl_alias Name of the table
    * @param index_oid OID of an index to check
    * @param predicates List of predicates
    * @param allow_cves Allow CVEs
@@ -76,8 +77,9 @@ class IndexUtil {
    * @returns Whether index can be used
    */
   static bool SatisfiesPredicateWithIndex(
-      catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
-      const std::vector<AnnotatedExpression> &predicates, bool allow_cves, planner::IndexScanType *scan_type,
+      catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+      catalog::index_oid_t index_oid, const std::vector<AnnotatedExpression> &predicates, bool allow_cves,
+      planner::IndexScanType *scan_type,
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds);
 
  private:
@@ -85,6 +87,7 @@ class IndexUtil {
    * Check whether predicate can take part in index computation
    * @param schema Index Schema
    * @param tbl_oid Table OID
+   * @param tbl_alias Table name
    * @param lookup map from col_oid_t to indexkeycol_oid_t
    * @param mapped_cols col_oid_t from index schema's indexkeycol_oid_t
    * @param predicates Set of predicates to attempt to satisfy
@@ -94,7 +97,7 @@ class IndexUtil {
    * @returns Whether predicate can be utilized
    */
   static bool CheckPredicates(
-      const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid,
+      const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
       const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
       const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
       bool allow_cves, planner::IndexScanType *idx_scan_type,
