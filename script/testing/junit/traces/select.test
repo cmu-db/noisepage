@@ -101,3 +101,18 @@ SELECT 2+3
 
 statement ok
 DROP TABLE temp2
+
+# self-join
+statement ok
+CREATE TABLE xxx (id INT PRIMARY KEY, val INT);
+
+statement ok
+INSERT INTO xxx VALUES (1,1),(2,2),(3,3),(4,4);
+
+query I nosort
+SELECT * FROM xxx AS x1 JOIN xxx AS x2 ON x1.id = x2.id;
+----
+16 values hashing to 5411f476c4907debb6739c004a33651a
+
+statement ok
+DROP TABLE xxx
