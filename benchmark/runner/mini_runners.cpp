@@ -1275,10 +1275,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
   auto outer = state.range(1);
   auto inner = state.range(2);
 
-  if (inner < outer) {
-    throw std::invalid_argument("Invalid IndexJoin constraint");
-  }
-
   int num_iters = 1;
   if (inner <= warmup_rows_limit || outer <= warmup_rows_limit) {
     num_iters += warmup_iterations_num_idx;
