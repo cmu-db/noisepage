@@ -117,8 +117,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   auto db_oid = get->GetDatabaseOid();
   bool is_update = get->GetIsForUpdate();
   auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
-  auto limit_exists = context->GetOptimizerContext()->GetLimitExists();
-  auto limit = context->GetOptimizerContext()->GetLimit();
+  auto limit_exists = get->GetLimitExists();
+  auto limit = get->GetLimit();
   auto indexes = accessor->GetIndexOids(get->GetTableOid());
 
   auto sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT);
@@ -684,10 +684,6 @@ void LogicalLimitToPhysicalLimit::Transform(common::ManagedPointer<AbstractOptim
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-
-  //  Stash limit in optimizer context for reference in index scan
-  context->GetOptimizerContext()->SetLimitExists(true);
-  context->GetOptimizerContext()->SetLimit(limit_op->GetLimit());
 
   auto result_plan = std::make_unique<OperatorNode>(
       Limit::Make(limit_op->GetOffset(), limit_op->GetLimit(), std::move(sorts), std::move(types))

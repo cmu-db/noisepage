@@ -50,6 +50,20 @@ Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::table_oid_t t
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
 
+Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                          std::vector<AnnotatedExpression> predicates, std::string table_alias, bool is_for_update,
+                          size_t limit) {
+  auto *get = new LogicalGet();
+  get->database_oid_ = database_oid;
+  get->table_oid_ = table_oid;
+  get->predicates_ = std::move(predicates);
+  get->table_alias_ = std::move(table_alias);
+  get->is_for_update_ = is_for_update;
+  get->limit_exists_ = true;
+  get->limit_ = limit;
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
+}
+
 Operator LogicalGet::Make() {
   auto get = new LogicalGet();
   get->database_oid_ = catalog::INVALID_DATABASE_OID;
