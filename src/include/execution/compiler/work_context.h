@@ -83,7 +83,7 @@ class WorkContext {
   // The pipeline that this context flows through.
   const Pipeline &pipeline_;
 
-  struct hash_key {
+  struct HashKey {
     size_t operator()(const CacheKey_t &p) const {
       auto hash1 = std::hash<CacheKey_t::first_type>{}(p.first);
       auto hash2 = std::hash<CacheKey_t::second_type>{}(p.second);
@@ -92,7 +92,7 @@ class WorkContext {
   };
 
   // Cache of expression results.
-  std::unordered_map<CacheKey_t, ast::Expr *, hash_key> cache_;
+  std::unordered_map<CacheKey_t, ast::Expr *, HashKey> cache_;
   // The current pipeline step and last pipeline step.
   Pipeline::StepIterator pipeline_iter_, pipeline_end_;
   // Whether to cache translated expressions

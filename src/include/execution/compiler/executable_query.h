@@ -172,8 +172,8 @@ class ExecutableQuery {
   // For mini_runners.cpp
 
   /** Legacy constructor that creates a hardcoded fragment with main(ExecutionContext*)->int32. */
-  ExecutableQuery(const std::string &contents, const common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-                  bool is_file, const exec::ExecutionSettings &exec_settings);
+  ExecutableQuery(const std::string &contents, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file,
+                  const exec::ExecutionSettings &exec_settings);
   /**
    * Set Pipeline Operating Units for use by mini_runners
    * @param units Pipeline Operating Units

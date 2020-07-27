@@ -202,7 +202,7 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction(query_id_t query_id) c
     std::vector<ast::Expr *> args{
         compilation_context_->GetExecutionContextPtrFromQueryState(),
         codegen_->Const64(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
-    auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartResourceTracker, std::move(args));
+    auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartResourceTracker, args);
 
     builder.Append(codegen_->MakeStmt(start_call));
     // Begin a new code scope for fresh variables.
@@ -215,7 +215,7 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction(query_id_t query_id) c
     args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
     args.push_back(codegen_->Const64(!query_id));
     args.push_back(codegen_->Const64(!GetPipelineId()));
-    auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, std::move(args));
+    auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
     builder.Append(codegen_->MakeStmt(end_call));
   }
   return builder.Finish();

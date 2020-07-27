@@ -61,7 +61,7 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
 
 // For mini_runners.cpp.
 namespace {
-static std::string GetFileName(const std::string &path) {
+std::string GetFileName(const std::string &path) {
   std::size_t size = path.size();
   std::size_t found = path.find_last_of("/\\");
   return path.substr(found + 1, size - found - 5);
