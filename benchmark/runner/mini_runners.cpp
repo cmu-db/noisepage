@@ -856,8 +856,8 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ0_ArithmeticRunners)
     ->Iterations(1)
     ->Apply(GenArithArguments);
 
-void NetworkQueries_OutputRunners(pqxx::work *txn) {
-  std::ostream null{0};
+void NetworkQueriesOutputRunners(pqxx::work *txn) {
+  std::ostream null{nullptr};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   std::vector<int64_t> row_nums = {1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000};
@@ -888,7 +888,7 @@ void NetworkQueries_OutputRunners(pqxx::work *txn) {
         pqxx::result r{txn->exec(query_ss.str())};
 
         // Get all the results
-        for (auto row_inner : r) {
+        for (const auto &row_inner : r) {
           for (auto i = 0; i < col; i++) {
             null << row_inner[i];
           }
@@ -1663,7 +1663,7 @@ void RunNetworkQueries() {
     pqxx::connection c{conn};
     pqxx::work txn{c};
 
-    terrier::runner::NetworkQueries_OutputRunners(&txn);
+    terrier::runner::NetworkQueriesOutputRunners(&txn);
 
     txn.commit();
   } catch (std::exception &e) {
@@ -1762,9 +1762,9 @@ int main(int argc, char **argv) {
   std::pair<bool, int> port_info{false, -1};
   std::pair<bool, int> filter_info{false, -1};
   for (int i = 0; i < argc; i++) {
-    if (strstr(argv[i], "--port=") != NULL)
+    if (strstr(argv[i], "--port=") != nullptr)
       port_info = std::make_pair(true, i);
-    else if (strstr(argv[i], "--benchmark_filter=") != NULL)
+    else if (strstr(argv[i], "--benchmark_filter=") != nullptr)
       filter_info = std::make_pair(true, i);
   }
 
