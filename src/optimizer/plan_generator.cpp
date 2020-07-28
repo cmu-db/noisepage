@@ -777,7 +777,6 @@ void PlanGenerator::Visit(const Update *op) {
   auto tbl_oid = op->GetTableOid();
   auto tbl_schema = accessor_->GetSchema(tbl_oid);
 
-  // TODO(WAN): I think Tanuj fixed this, but damn it breaks everything.
   auto indexes = accessor_->GetIndexes(op->GetTableOid());
   ExprSet cves;
   for (auto index : indexes) {

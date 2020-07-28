@@ -2480,8 +2480,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     default:
-      // TODO(WAN): IMPLEMENT
-      UNREACHABLE("PORTING IMPLEMENT TODO");
+      UNREACHABLE("Unknown builtin bytecode.");
   }
 }
 

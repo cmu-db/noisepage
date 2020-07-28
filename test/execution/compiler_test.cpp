@@ -1202,7 +1202,7 @@ TEST_F(CompilerTest, DISABLED_StaticDistinctAggregateTest) {
   // Pipeline Units
   auto pipeline = executable->GetPipelineOperatingUnits();
   EXPECT_FALSE(true);
-  // TODO(WAN): re-enable EXPECT_EQ(pipeline->units_.size(), 2);
+  // TODO(WAN): re-enable when distinct works EXPECT_EQ(pipeline->units_.size(), 2);
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
@@ -3030,7 +3030,7 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
     // Pipeline Units
     auto pipeline = executable->GetPipelineOperatingUnits();
     EXPECT_FALSE(true);
-    // TODO(WAN): re-enable EXPECT_EQ(pipeline->units_.size(), 1);
+    // TODO(WAN): re-enable when distinct works EXPECT_EQ(pipeline->units_.size(), 1);
 
     auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
     auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
