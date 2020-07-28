@@ -1,3 +1,4 @@
+// Expected output: 42
 // Test scoping
 
 fun main() -> int {

@@ -1,8 +1,9 @@
+#include "execution/sql/functions/system_functions.h"
+
 #include <string>
 
 #include "common/version.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/functions/system_functions.h"
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
 
@@ -10,11 +11,12 @@ namespace terrier::execution::sql::test {
 
 class SystemFunctionsTests : public TplTest {
  public:
-  SystemFunctionsTests() : ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr) {}
+  SystemFunctionsTests() : ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr, settings_) {}
 
   exec::ExecutionContext *Ctx() { return &ctx_; }
 
  private:
+  exec::ExecutionSettings settings_{};
   exec::ExecutionContext ctx_;
 };
 

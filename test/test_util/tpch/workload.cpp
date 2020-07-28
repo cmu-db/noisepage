@@ -29,9 +29,9 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
   ns_oid_ = accessor->GetDefaultNamespace();
 
   // Make the execution context
-  execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
-                                             nullptr, nullptr,
-                                             common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
+  execution::exec::ExecutionContext exec_ctx{
+      db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), nullptr,
+      nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor),   exec_settings_};
 
   // create the TPCH database and compile the queries
   GenerateTPCHTables(&exec_ctx, table_root);
@@ -51,15 +51,19 @@ void Workload::GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, c
   execution::sql::TableReader table_reader(exec_ctx, block_store_.Get(), ns_oid_);
   for (const auto &table_name : tpch_tables) {
     auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
-    EXECUTION_LOG_INFO("Wrote {} rows on table {}.", num_rows, table_name);
+    EXECUTION_LOG_TRACE("Wrote {} rows on table {}.", num_rows, table_name);
   }
 }
 
 void Workload::LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, const std::vector<std::string> &queries) {
+  // TODO(WAN): no better way?
+  UNREACHABLE("figure out a better way");
+#if 0
   for (auto &query_file : queries) {
-    queries_.emplace_back(execution::ExecutableQuery(
+    queries_.emplace_back(execution::compiler::ExecutableQuery(
         query_file, common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx), true));
   }
+#endif
 }
 
 std::vector<parser::ConstantValueExpression> Workload::GetQueryParams(const std::string &query_name) {
@@ -97,17 +101,17 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
   uint64_t end_time = metrics::MetricsUtil::Now() + execution_us_per_worker;
   while (metrics::MetricsUtil::Now() < end_time) {
     // Executing all the queries on by one in round robin
-    auto txn = txn_manager_->BeginTransaction();
+    auto *txn = txn_manager_->BeginTransaction();
     auto accessor =
         catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
-    execution::ExecutableQuery &query = queries_[index[counter]];
-    auto &query_name = query.GetQueryName();
-    auto output_schema = sample_output_.GetSchema(query_name);
+    execution::compiler::ExecutableQuery &query = queries_[index[counter]];
+    std::string &query_name = query_names_[index[counter]];
+    const planner::OutputSchema *output_schema = sample_output_.GetSchema(query_name);
     execution::exec::NoOpResultConsumer printer;
     // execution::exec::OutputPrinter printer(output_schema);
-    execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
-                                               printer, output_schema,
-                                               common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
+    execution::exec::ExecutionContext exec_ctx{
+        db_oid_,       common::ManagedPointer<transaction::TransactionContext>(txn), printer,
+        output_schema, common::ManagedPointer<catalog::CatalogAccessor>(accessor),   exec_settings_};
     const auto params = GetQueryParams(query_name);
     exec_ctx.SetParams(common::ManagedPointer(&params));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);

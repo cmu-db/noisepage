@@ -17,6 +17,9 @@
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
 #include "storage/block_access_controller.h"
+#include "storage/write_ahead_log/log_io.h"
+#include "transaction/transaction_defs.h"
+#include "type/type_id.h"
 
 namespace terrier::storage {
 
@@ -192,6 +195,14 @@ class BlockAllocator {
   void Delete(RawBlock *const ptr) { delete ptr; }
 };
 
+/** ColumnMapInfo maps between col_oids in Schema and useful information that we need about a Column in SqlTable. */
+struct ColumnMapInfo {
+  /** col_id in BlockLayout. */
+  col_id_t col_id_;
+  /** SQL type of the column. */
+  type::TypeId col_type_;
+};
+
 /**
  * A block store is essentially an object pool. However, all blocks should be
  * aligned, so we will need to use the default constructor instead of raw
@@ -199,9 +210,9 @@ class BlockAllocator {
  */
 using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 /**
- * Used by SqlTable to map between col_oids in Schema and col_ids in BlockLayout
+ * Used by SqlTable to map between col_oids in Schema and useful necessary information.
  */
-using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+using ColumnMap = std::unordered_map<catalog::col_oid_t, ColumnMapInfo>;
 /**
  * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
  */
@@ -235,11 +246,31 @@ class VarlenEntry {
    */
   static VarlenEntry Create(const byte *content, uint32_t size, bool reclaim) {
     VarlenEntry result;
+    if (size <= InlineThreshold()) {
+      TERRIER_ASSERT(!reclaim, "can't reclaim this");
+      return CreateInline(content, size);
+    }
     TERRIER_ASSERT(size > InlineThreshold(), "small varlen values should be inlined");
     result.size_ = reclaim ? size : (INT32_MIN | size);  // the first bit denotes whether we can reclaim it
     std::memcpy(result.prefix_, content, sizeof(uint32_t));
     result.content_ = content;
     return result;
+  }
+
+  /**
+   * Construct a new varlen entry whose contents match the provided string. The varlen DOES NOT
+   * take ownership of the content, but it will store a pointer to it if it cannot apply a small
+   * string optimization. It is the caller's responsibility to ensure the content outlives this
+   * varlen entry.
+   *
+   * @param str The input string.
+   * @return A constructed VarlenEntry object.
+   */
+  static VarlenEntry Create(std::string_view str) {
+    if (str.length() > InlineThreshold()) {
+      return Create(reinterpret_cast<const byte *>(str.data()), str.length(), false);
+    }
+    return CreateInline(reinterpret_cast<const byte *>(str.data()), str.length());
   }
 
   /**
@@ -255,8 +286,12 @@ class VarlenEntry {
     TERRIER_ASSERT(size <= InlineThreshold(), "varlen value must be small enough for inlining to happen");
     VarlenEntry result;
     result.size_ = size;
-    // overwrite the content field's 8 bytes for inline storage
-    std::memcpy(result.prefix_, content, size);
+    // Small string: just store the prefix as part of inline storage.
+    // But first zero initialize prefix to ensure strings smaller than GetPrefixSize() still have an equal prefix.
+    std::memset(result.prefix_, 0, PrefixSize());
+    if (size != 0) {
+      std::memcpy(result.prefix_, content, size);
+    }
     return result;
   }
 
@@ -354,6 +389,105 @@ class VarlenEntry {
     return vec;
   }
 
+  /**
+   * @return The hash value of this variable-length string.
+   */
+  hash_t Hash() const { return Hash(0); }
+
+  /**
+   * Compute the hash value of this variable-length string instance.
+   * @param seed The value to seed the hash with.
+   * @return The hash value for this string instance.
+   */
+  hash_t Hash(hash_t seed) const {
+    // "small" strings use CRC hashing, "long" strings use XXH3.
+    if (IsInlined()) {
+      return common::HashUtil::HashCrc(reinterpret_cast<const uint8_t *>(Prefix()), Size(), seed);
+    }
+    return common::HashUtil::HashXX3(reinterpret_cast<const uint8_t *>(Content()), Size(), seed);
+  }
+
+  /**
+   * Compare two strings ONLY for equality or inequality only.
+   * @tparam EqualCheck True for ==, false for !=.
+   * @param left The first string.
+   * @param right The second string.
+   * @return 0 if equal according to EqualCheck; any non-zero value otherwise.
+   */
+  template <bool EqualityCheck>
+  static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
+    TERRIER_ASSERT(left.Size() >= 0, "Left VarlenEntry has negative size?");
+    TERRIER_ASSERT(right.Size() >= 0, "Right VarlenEntry has negative size?");
+
+    // Compare the size and prefix in one fell swoop, ignoring the sign bit indicating reclaimability.
+    uint8_t left_first = *reinterpret_cast<const uint8_t *>(&left);
+    uint8_t right_first = *reinterpret_cast<const uint8_t *>(&right);
+    bool first_byte_same = (left_first << 1) == (right_first << 1);
+    bool following_bytes_same =
+        0 == std::memcmp(reinterpret_cast<const char *>(&left) + 1, reinterpret_cast<const char *>(&right) + 1,
+                         sizeof(left.size_) + PrefixSize() - 1);
+    if (first_byte_same && following_bytes_same) {
+      // Prefix and length are equal.
+      if (left.IsInlined()) {
+        if (std::memcmp(left.prefix_, right.prefix_, PrefixSize()) == 0) {
+          return EqualityCheck ? true : false;
+        }
+      } else {
+        if (std::memcmp(left.content_, right.content_, left.Size()) == 0) {
+          return EqualityCheck ? true : false;
+        }
+      }
+    }
+    // Not equal.
+    return EqualityCheck ? false : true;
+  }
+
+  /**
+   * Compare two strings. Returns:
+   * < 0 if left < right
+   *  0  if left == right
+   * > 0 if left > right
+   *
+   * @param left The first string.
+   * @param right The second string.
+   * @return The appropriate signed value indicating comparison order.
+   */
+  static int32_t Compare(const VarlenEntry &left, const VarlenEntry &right) {
+    const auto min_len = std::min(left.Size(), right.Size());
+    const auto result = std::memcmp(left.Content(), right.Content(), min_len);
+    return result != 0 ? result : left.Size() - right.Size();
+  }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator==(const VarlenEntry &that) const { return CompareEqualOrNot<true>(*this, that); }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator!=(const VarlenEntry &that) const { return CompareEqualOrNot<false>(*this, that); }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator<(const VarlenEntry &that) const { return Compare(*this, that) < 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator<=(const VarlenEntry &that) const { return Compare(*this, that) <= 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator>(const VarlenEntry &that) const { return Compare(*this, that) > 0; }
+
+  /**
+   * @return True if this varlen equals @em that varlen; false otherwise.
+   */
+  bool operator>=(const VarlenEntry &that) const { return Compare(*this, that) >= 0; }
+
  private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
@@ -373,9 +507,7 @@ struct VarlenContentDeepEqual {
    * @return whether the two varlen entries hold the same underlying value
    */
   bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
-    if (lhs.Size() != rhs.Size()) return false;
-    // TODO(Tianyu): Can optimize using prefixes
-    return std::memcmp(lhs.Content(), rhs.Content(), lhs.Size()) == 0;
+    return VarlenEntry::CompareEqualOrNot<true>(lhs, rhs);
   }
 };
 
@@ -387,7 +519,7 @@ struct VarlenContentHasher {
    * @param obj object to hash
    * @return hash code of object
    */
-  size_t operator()(const VarlenEntry &obj) const { return common::HashUtil::HashBytes(obj.Content(), obj.Size()); }
+  size_t operator()(const VarlenEntry &obj) const { return obj.Hash(0); }
 };
 
 /**
@@ -400,15 +532,7 @@ struct VarlenContentCompare {
    * @param rhs right hand side of comparison
    * @return whether lhs < rhs in lexicographic order
    */
-  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const {
-    // Compare up to the minimum of the two sizes
-    int res = std::memcmp(lhs.Content(), rhs.Content(), std::min(lhs.Size(), rhs.Size()));
-    if (res == 0) {
-      // Shorter wins. If the two are equal, also return false.
-      return lhs.Size() < rhs.Size();
-    }
-    return res < 0;
-  }
+  bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const { return VarlenEntry::Compare(lhs, rhs) < 0; }
 };
 
 }  // namespace terrier::storage

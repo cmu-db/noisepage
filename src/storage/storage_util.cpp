@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "catalog/schema.h"
+#include "execution/sql/vector_projection.h"
 #include "storage/projected_columns.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
@@ -23,6 +24,8 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, c
 template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint16_t, uint16_t);
 template void StorageUtil::CopyWithNullCheck<ProjectedColumns::RowView>(const byte *, ProjectedColumns::RowView *,
                                                                         uint16_t, uint16_t);
+template void StorageUtil::CopyWithNullCheck<execution::sql::VectorProjection::RowView>(
+    const byte *, execution::sql::VectorProjection::RowView *, uint16_t, uint16_t);
 
 void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStrategy &accessor, const TupleSlot to,
                                     const col_id_t col_id) {
@@ -45,6 +48,8 @@ template void StorageUtil::CopyAttrIntoProjection<ProjectedRow>(const TupleAcces
                                                                 uint16_t);
 template void StorageUtil::CopyAttrIntoProjection<ProjectedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
                                                                              ProjectedColumns::RowView *, uint16_t);
+template void StorageUtil::CopyAttrIntoProjection<execution::sql::VectorProjection::RowView>(
+    const TupleAccessStrategy &, TupleSlot, execution::sql::VectorProjection::RowView *, uint16_t);
 
 template <class RowType>
 void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor, const TupleSlot to, const RowType &from,
@@ -59,6 +64,8 @@ template void StorageUtil::CopyAttrFromProjection<ProjectedRow>(const TupleAcces
 template void StorageUtil::CopyAttrFromProjection<ProjectedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
                                                                              const ProjectedColumns::RowView &,
                                                                              uint16_t);
+template void StorageUtil::CopyAttrFromProjection<execution::sql::VectorProjection::RowView>(
+    const TupleAccessStrategy &, TupleSlot, const execution::sql::VectorProjection::RowView &, uint16_t);
 
 template <class RowType>
 void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, RowType *const buffer) {
@@ -90,6 +97,8 @@ template void StorageUtil::ApplyDelta<ProjectedRow>(const BlockLayout &layout, c
                                                     ProjectedRow *buffer);
 template void StorageUtil::ApplyDelta<ProjectedColumns::RowView>(const BlockLayout &layout, const ProjectedRow &delta,
                                                                  ProjectedColumns::RowView *buffer);
+template void StorageUtil::ApplyDelta<execution::sql::VectorProjection::RowView>(
+    const BlockLayout &layout, const ProjectedRow &delta, execution::sql::VectorProjection::RowView *buffer);
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
   TERRIER_ASSERT((word_size & (word_size - 1)) == 0, "word_size should be a power of two.");

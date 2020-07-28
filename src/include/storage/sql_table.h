@@ -18,6 +18,11 @@ class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
 }  // namespace terrier
 
+namespace terrier::execution::sql {
+class TableVectorIterator;
+class VectorProjection;
+}  // namespace terrier::execution::sql
+
 namespace terrier::catalog {
 class Schema;
 }  // namespace terrier::catalog
@@ -155,9 +160,30 @@ class SqlTable {
   }
 
   /**
+   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
+   * fit into the given buffer, as visible to the transaction given, according to the format described by the given
+   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot past the
+   * last slot scanned in the invocation.
+   *
+   * @param txn The calling transaction.
+   * @param start_pos Iterator to the starting location for the sequential scan.
+   * @param out_buffer Output buffer. This buffer is always cleared of old values.
+   */
+  void Scan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *const start_pos,
+            execution::sql::VectorProjection *const out_buffer) const {
+    return table_.data_table_->Scan(txn, start_pos, out_buffer);
+  }
+
+  /**
    * @return the first tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
+
+  /** @return A blocked slot iterator over the [start, end) blocks. */
+  DataTable::SlotIterator GetBlockedSlotIterator(uint32_t start_block, uint32_t end_block) const {
+    return table_.data_table_->GetBlockedSlotIterator(start_block, end_block);
+  }
 
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
@@ -221,11 +247,20 @@ class SqlTable {
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
-  const common::ManagedPointer<BlockStore>
-      block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.
+  /*
+   * Internals are exposed to the execution::sql::VectorProjection class so that we do not need to do a full recompile
+   * of the storage layer whenever we change something up in execution. The execution engine currently requires the
+   * following:
+   *   (1) catalog::col_oid -> BlockLayout's col_id, and
+   *   (2) catalog::col_oid -> execution::sql::TypeId.
+   * This is exposed via GetColumnMap() below.
+   */
+  friend class execution::sql::TableVectorIterator;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;
+
+  const ColumnMap &GetColumnMap() const { return table_.column_map_; }
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
@@ -235,6 +270,7 @@ class SqlTable {
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
   /**
+   * TODO(WAN): currently only used by RecoveryManager::GetOidsForRedoRecord in a O(n^2) way. Refactor + remove?
    * @warning This function is expensive to call and should be used with caution and sparingly.
    * Returns the col oid for the given col id
    * @param col_id given col id

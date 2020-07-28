@@ -5,7 +5,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/vector_projection_iterator.h"
 #include "storage/index/index.h"
 
 namespace terrier::storage {

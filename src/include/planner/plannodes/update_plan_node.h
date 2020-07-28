@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "parser/parameter.h"
 #include "parser/update_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -87,7 +88,7 @@ class UpdatePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<UpdatePlanNode> Build() {
-      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::move(output_schema_),
+      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::make_unique<OutputSchema>(),
                                                                 database_oid_, table_oid_, update_primary_key_,
                                                                 indexed_update_, std::move(sets_)));
     }

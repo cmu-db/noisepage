@@ -17,8 +17,9 @@ class ErrorReporterTest : public TplTest {
   void SetUp() override {
     // Set up loggers
     TplTest::SetUp();
-    reporter_ = std::make_unique<sema::ErrorReporter>(&region_);
-    ctx_ = std::make_unique<ast::Context>(&region_, reporter_.get());
+    region_ = std::make_unique<util::Region>("error_reporter_test");
+    reporter_ = std::make_unique<sema::ErrorReporter>(region_.get());
+    ctx_ = std::make_unique<ast::Context>(region_.get(), reporter_.get());
   }
 
   /**
@@ -43,16 +44,16 @@ class ErrorReporterTest : public TplTest {
   sema::ErrorReporter *Reporter() { return reporter_.get(); }
 
  private:
-  util::Region region_{"test"};
+  std::unique_ptr<util::Region> region_;
   std::unique_ptr<sema::ErrorReporter> reporter_;
   std::unique_ptr<ast::Context> ctx_;
 };
 
 // TODO(pavlo): This test is disabled until the invalid memory access error in the TPL parser is fixed (#610)
 // NOLINTNEXTLINE
-TEST_F(ErrorReporterTest, DISABLED_SerializeErrorsTest) {
+TEST_F(ErrorReporterTest, SerializeErrorsTest) {
   // Throw some busted TPL at the parser and check the error
-  const auto src = R"(
+  std::string src = R"(
     fun bad_function(xyz: int) -> void {
       XXX YYY ZZZ!!!
   )";

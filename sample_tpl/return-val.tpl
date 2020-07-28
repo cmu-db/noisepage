@@ -10,7 +10,7 @@ fun f(l : *Large) -> *Large {
   return l
 }
 
-fun main() -> int64 {
+fun main() -> int {
   var l : Large
   var r = f(&l)
   return r.a[0]
