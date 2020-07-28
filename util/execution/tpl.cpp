@@ -210,14 +210,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
-      EXECUTION_LOG_TRACE("VM main() returned: {}", main(&exec_ctx));
+      EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
       std::function<int32_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
       }
-      EXECUTION_LOG_TRACE("VM main() returned: {}", main());
+      EXECUTION_LOG_INFO("VM main() returned: {}", main());
     }
   }
 
@@ -235,14 +235,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
-      EXECUTION_LOG_TRACE("ADAPTIVE main() returned: {}", main(&exec_ctx));
+      EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
     } else {
       std::function<int32_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
       }
-      EXECUTION_LOG_TRACE("ADAPTIVE main() returned: {}", main());
+      EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main());
     }
   }
 
@@ -261,21 +261,21 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       util::Timer<std::milli> x;
       x.Start();
-      EXECUTION_LOG_TRACE("JIT main() returned: {}", main(&exec_ctx));
+      EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
       x.Stop();
-      EXECUTION_LOG_TRACE("Jit exec: {} ms", x.GetElapsed());
+      EXECUTION_LOG_INFO("Jit exec: {} ms", x.GetElapsed());
     } else {
       std::function<int32_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
         return;
       }
-      EXECUTION_LOG_TRACE("JIT main() returned: {}", main());
+      EXECUTION_LOG_INFO("JIT main() returned: {}", main());
     }
   }
 
   // Dump stats
-  EXECUTION_LOG_TRACE(
+  EXECUTION_LOG_INFO(
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Interp. Exec.: {} ms, "
       "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
@@ -296,7 +296,7 @@ static void RunFile(const std::string &filename) {
     return;
   }
 
-  EXECUTION_LOG_TRACE("Compiling and running file: {}", filename);
+  EXECUTION_LOG_INFO("Compiling and running file: {}", filename);
 
   // Copy the source into a temporary, compile, and run
   CompileAndRun((*file)->getBuffer().str(), filename);
@@ -347,9 +347,9 @@ void InitTPL() {
 
   execution::vm::LLVMEngine::Initialize();
 
-  EXECUTION_LOG_TRACE("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
+  EXECUTION_LOG_INFO("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
 
-  EXECUTION_LOG_TRACE("TPL initialized ...");
+  EXECUTION_LOG_INFO("TPL initialized ...");
 }
 
 /**
@@ -360,7 +360,7 @@ void ShutdownTPL() {
 
   scheduler.terminate();
 
-  EXECUTION_LOG_TRACE("TPL cleanly shutdown ...");
+  EXECUTION_LOG_INFO("TPL cleanly shutdown ...");
 }
 
 }  // namespace terrier::execution
@@ -394,9 +394,9 @@ int main(int argc, char **argv) {
   // Init TPL
   terrier::execution::InitTPL();
 
-  EXECUTION_LOG_TRACE("\n{}", terrier::execution::CpuInfo::Instance()->PrettyPrintInfo());
+  EXECUTION_LOG_INFO("\n{}", terrier::execution::CpuInfo::Instance()->PrettyPrintInfo());
 
-  EXECUTION_LOG_TRACE("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
+  EXECUTION_LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
 
   // Either execute a TPL program from a source file, or run REPL
   if (!INPUT_FILE.empty()) {
