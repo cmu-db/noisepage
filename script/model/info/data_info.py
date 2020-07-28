@@ -48,7 +48,7 @@ TUPLE_NUM_INDEX = 0
 CARDINALITY_INDEX = 3
 
 # Index for execution mode in the model input feature vector
-EXECUTION_MODE_INDEX = 5
+EXECUTION_MODE_INDEX = 6
 
 # Size of a pointer on the target architecture
 POINTER_SIZE = 8
