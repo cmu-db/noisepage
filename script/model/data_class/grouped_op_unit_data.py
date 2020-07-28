@@ -126,6 +126,10 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period):
                         x_loc[1] = 4
                         x_loc[2] = 1
                         x_loc[3] = 1
+                    elif feature == 'IDX_SCAN' and x_loc[2] == 2:
+                        # Scale to account for the "loop" factor
+                        # Then don't need to adjust the prediction metric
+                        x_loc[5] = 200
 
                 opunits.append((opunit, x_loc))
 
