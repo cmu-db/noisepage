@@ -446,7 +446,7 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
     }
   });
 
-  EXECUTION_LOG_INFO("TaaT: {:.2f} ms ({}), VaaT: {:2f} ms ({})", taat_ms, sum1, vaat_ms, sum2);
+  EXECUTION_LOG_TRACE("TaaT: {:.2f} ms ({}), VaaT: {:2f} ms ({})", taat_ms, sum1, vaat_ms, sum2);
 }
 
 }  // namespace terrier::execution::sql::test

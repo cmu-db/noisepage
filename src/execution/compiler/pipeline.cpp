@@ -138,8 +138,8 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
       std::transform(plan_type.begin(), plan_type.end(), plan_type.begin(), ::tolower);
       result.append(plan_type);
     }
-    EXECUTION_LOG_INFO("Pipeline-{}: parallel={}, vectorized={}, steps=[{}]", id_, IsParallel(), IsVectorized(),
-                       result);
+    EXECUTION_LOG_TRACE("Pipeline-{}: parallel={}, vectorized={}, steps=[{}]", id_, IsParallel(), IsVectorized(),
+                        result);
   }
 }
 

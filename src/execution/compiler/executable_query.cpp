@@ -142,8 +142,8 @@ void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, 
   query_state_size_ = query_state_size;
   pipeline_operating_units_ = std::move(pipeline_operating_units);
 
-  EXECUTION_LOG_INFO("Query has {} fragment{} with {}-byte query state.", fragments_.size(),
-                     fragments_.size() > 1 ? "s" : "", query_state_size_);
+  EXECUTION_LOG_TRACE("Query has {} fragment{} with {}-byte query state.", fragments_.size(),
+                      fragments_.size() > 1 ? "s" : "", query_state_size_);
 }
 
 void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ctx, vm::ExecutionMode mode) {

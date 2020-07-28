@@ -58,7 +58,7 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
     EXPECT_EQ(nullptr, obj->next);
     EXPECT_EQ(true, obj->initialized);
   });
-  EXECUTION_LOG_INFO("{} thread states", container.GetThreadStateCount());
+  EXECUTION_LOG_TRACE("{} thread states", container.GetThreadStateCount());
 }
 
 // NOLINTNEXTLINE

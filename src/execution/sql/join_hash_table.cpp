@@ -447,9 +447,9 @@ void JoinHashTable::BuildConciseHashTableInternal() {
   concise_hash_table_.InsertBatch(&entries_);
   concise_hash_table_.Build();
 
-  EXECUTION_LOG_INFO("Concise Table Stats: {} entries, {} overflow ({} % overflow)", entries_.size(),
-                     concise_hash_table_.GetOverflowEntryCount(),
-                     100.0 * (concise_hash_table_.GetOverflowEntryCount() * 1.0 / entries_.size()));
+  EXECUTION_LOG_TRACE("Concise Table Stats: {} entries, {} overflow ({} % overflow)", entries_.size(),
+                      concise_hash_table_.GetOverflowEntryCount(),
+                      100.0 * (concise_hash_table_.GetOverflowEntryCount() * 1.0 / entries_.size()));
 
   // Reorder all the main entries in place according to CHT order
   ReorderMainEntries<PrefetchCHT, PrefetchEntries>();
@@ -571,21 +571,21 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
   const bool use_serial_build = num_elem_estimate < DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE;
   if (use_serial_build) {
     // TODO(pmenon): Switch to parallel-mode if estimate is wrong.
-    EXECUTION_LOG_INFO("JHT: Estimated {} elements < {} element parallel threshold. Using serial merge.",
-                       num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
+    EXECUTION_LOG_TRACE("JHT: Estimated {} elements < {} element parallel threshold. Using serial merge.",
+                        num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
     llvm::for_each(tl_join_tables, [this](auto *source) { MergeIncomplete<false>(source); });
   } else {
-    EXECUTION_LOG_INFO("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
-                       num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
+    EXECUTION_LOG_TRACE("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
+                        num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
     tbb::parallel_for_each(tl_join_tables, [this](auto source) { MergeIncomplete<true>(source); });
   }
 
   timer.Stop();
 
   const double tps = (chaining_hash_table_.GetElementCount() / timer.GetElapsed()) / 1000.0;
-  EXECUTION_LOG_INFO("JHT: {} merged {} JHTs. Estimated {}, actual {}. Time: {:.2f} ms ({:.2f} mtps)",
-                     use_serial_build ? "Serial" : "Parallel", tl_join_tables.size(), num_elem_estimate,
-                     chaining_hash_table_.GetElementCount(), timer.GetElapsed(), tps);
+  EXECUTION_LOG_TRACE("JHT: {} merged {} JHTs. Estimated {}, actual {}. Time: {:.2f} ms ({:.2f} mtps)",
+                      use_serial_build ? "Serial" : "Parallel", tl_join_tables.size(), num_elem_estimate,
+                      chaining_hash_table_.GetElementCount(), timer.GetElapsed(), tps);
 }
 
 }  // namespace terrier::execution::sql

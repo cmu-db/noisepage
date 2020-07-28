@@ -77,7 +77,7 @@ TEST_F(BloomFilterTest, Comprehensive) {
     filter.Add(Hash(elem));
   }
 
-  EXECUTION_LOG_INFO("{}", filter.DebugString());
+  EXECUTION_LOG_TRACE("{}", filter.DebugString());
 
   for (auto prob_success : {0.00, 0.25, 0.50, 0.75, 1.00}) {
     std::vector<uint32_t> lookups;
@@ -104,8 +104,8 @@ TEST_F(BloomFilterTest, Comprehensive) {
 
     double fpr = (actual_found - expected_found) / static_cast<double>(lookups.size());
     double probes_per_sec = static_cast<double>(lookups.size()) / timer.GetElapsed() * 1000.0 / 1000000.0;
-    EXECUTION_LOG_INFO("p: {:.2f}, {} M probes/sec, FPR: {:2.4f}, (expected: {}, actual: {})", prob_success,
-                       probes_per_sec, fpr, expected_found, actual_found);
+    EXECUTION_LOG_TRACE("p: {:.2f}, {} M probes/sec, FPR: {:2.4f}, (expected: {}, actual: {})", prob_success,
+                        probes_per_sec, fpr, expected_found, actual_found);
   }
 }
 

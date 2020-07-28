@@ -281,9 +281,9 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
   auto std_ms = bench_std(num3);
 
   // TODO(Amadou): Move this test to benchmark folder.
-  EXECUTION_LOG_INFO("Trampoline: {} ms", tramp_ms);
-  EXECUTION_LOG_INFO("Function: {} ms", func_ms);
-  EXECUTION_LOG_INFO("Std: {} ms", std_ms);
+  EXECUTION_LOG_TRACE("Trampoline: {} ms", tramp_ms);
+  EXECUTION_LOG_TRACE("Function: {} ms", func_ms);
+  EXECUTION_LOG_TRACE("Std: {} ms", std_ms);
 }
 
 }  // namespace terrier::execution::vm::test

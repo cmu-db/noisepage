@@ -236,8 +236,8 @@ TEST_F(AggregationHashTableVectorIteratorTest, DISABLED_Perf) {
       }
     });
 
-    EXECUTION_LOG_INFO("===== Size {} =====", size);
-    EXECUTION_LOG_INFO("Taat: {:.2f} ms ({}), Vaat: {:.2f} ({})", taat_ms, taat_ret, vaat_ms, vaat_ret);
+    EXECUTION_LOG_TRACE("===== Size {} =====", size);
+    EXECUTION_LOG_TRACE("Taat: {:.2f} ms ({}), Vaat: {:.2f} ({})", taat_ms, taat_ret, vaat_ms, vaat_ret);
   }
 }
 

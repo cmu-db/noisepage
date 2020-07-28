@@ -51,7 +51,7 @@ void Workload::GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, c
   execution::sql::TableReader table_reader(exec_ctx, block_store_.Get(), ns_oid_);
   for (const auto &table_name : tpch_tables) {
     auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
-    EXECUTION_LOG_INFO("Wrote {} rows on table {}.", num_rows, table_name);
+    EXECUTION_LOG_TRACE("Wrote {} rows on table {}.", num_rows, table_name);
   }
 }
 

@@ -147,11 +147,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   };
 
 #ifdef TPL_DEBUG_TRACE_INSTRUCTIONS
-#define DEBUG_TRACE_INSTRUCTIONS(op)                                                                                  \
-  do {                                                                                                                \
-    auto bytecode = Bytecodes::FromByte(op);                                                                          \
-    bytecode_counts_[op]++;                                                                                           \
-    EXECUTION_LOG_INFO("{0:p}: {1:s}", ip - sizeof(std::underlying_type_t<Bytecode>), Bytecodes::ToString(bytecode)); \
+#define DEBUG_TRACE_INSTRUCTIONS(op)                                                                                   \
+  do {                                                                                                                 \
+    auto bytecode = Bytecodes::FromByte(op);                                                                           \
+    bytecode_counts_[op]++;                                                                                            \
+    EXECUTION_LOG_DEBUG("{0:p}: {1:s}", ip - sizeof(std::underlying_type_t<Bytecode>), Bytecodes::ToString(bytecode)); \
   } while (false)
 #else
 #define DEBUG_TRACE_INSTRUCTIONS(op) (void)op
