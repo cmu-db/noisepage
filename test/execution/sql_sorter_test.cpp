@@ -186,10 +186,9 @@ void TestParallelSort(exec::ExecutionContext *exec_ctx, const std::vector<uint32
   const auto destroy_sorter = [](UNUSED_ATTRIBUTE void *ctx, void *s) { reinterpret_cast<Sorter *>(s)->~Sorter(); };
 
   // Create container
-  MemoryPool memory(nullptr);
-  ThreadStateContainer container(&memory);
+  ThreadStateContainer container(exec_ctx->GetMemoryPool());
 
-  container.Reset(sizeof(Sorter), init_sorter, destroy_sorter, &exec_ctx);
+  container.Reset(sizeof(Sorter), init_sorter, destroy_sorter, exec_ctx);
 
   // Parallel construct sorter
 
