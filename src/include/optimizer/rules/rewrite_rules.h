@@ -162,36 +162,6 @@ class RewriteEmbedFilterIntoGet : public Rule {
 };
 
 /**
- * Rule embeds a logical limit into a scan operator. After predicate push-down, we eliminate all limits with
- * children get operators in the operator trees. Limits and sorts should be associated with get.
- */
-class RewriteEmbedLimitIntoGet : public Rule {
- public:
-  /**
-   * Constructor
-   */
-  RewriteEmbedLimitIntoGet();
-
-  /**
-   * Checks whether the given rule can be applied
-   * @param plan AbstractOptimizerNode to check
-   * @param context Current OptimizationContext executing under
-   * @returns Whether the input AbstractOptimizerNode passes the check
-   */
-  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
-
-  /**
-   * Transforms the input expression using the given rule
-   * @param input Input AbstractOptimizerNode to transform
-   * @param transformed Vector of transformed AbstractOptimizerNodes
-   * @param context Current OptimizationContext executing under
-   */
-  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
-                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
-                 OptimizationContext *context) const override;
-};
-
-/**
  * Rewrite Pull Filter through Mark Join
  */
 class RewritePullFilterThroughMarkJoin : public Rule {

@@ -19,6 +19,8 @@ RulePromise Rule::Promise(GroupExpression *group_expr) const {
 RuleSet::RuleSet() {
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinCommutativity());
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinAssociativity());
+  AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new EmbedLimitIntoGet());
+
 
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDeleteToPhysicalDelete());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalUpdateToPhysicalUpdate());
@@ -57,7 +59,6 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushFilterThroughAggregation());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteCombineConsecutiveFilter());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoGet());
-  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedLimitIntoGet());
 
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());

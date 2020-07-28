@@ -17,6 +17,7 @@ enum class RuleType : uint32_t {
   // Transformation rules (logical -> logical)
   INNER_JOIN_COMMUTE = 0,
   INNER_JOIN_ASSOCIATE,
+  EMBED_LIMIT_INTO_GET,
 
   // Don't move this one
   LogicalPhysicalDelimiter,
@@ -64,7 +65,6 @@ enum class RuleType : uint32_t {
   PUSH_FILTER_THROUGH_AGGREGATION,
   COMBINE_CONSECUTIVE_FILTER,
   EMBED_FILTER_INTO_GET,
-  EMBED_LIMIT_INTO_GET,
   MARK_JOIN_GET_TO_INNER_JOIN,
   MARK_JOIN_INNER_JOIN_TO_INNER_JOIN,
   MARK_JOIN_FILTER_TO_INNER_JOIN,
@@ -108,7 +108,12 @@ enum class RulePromise : uint32_t {
   /**
    * Physical rule
    */
-  PHYSICAL_PROMISE = 3
+  PHYSICAL_PROMISE = 3,
+
+  /**
+   * High priority pushdown
+   */
+   LOGICAL_PROMISE_PUSHDOWN = 4
 };
 
 /**

@@ -66,4 +66,41 @@ class LogicalInnerJoinAssociativity : public Rule {
                  OptimizationContext *context) const override;
 };
 
+/**
+ * Rule embeds a logical limit into a scan operator. After predicate push-down, we eliminate all limits with
+ * children get operators in the operator trees. Limits and sorts should be associated with get.
+ */
+class EmbedLimitIntoGet : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  EmbedLimitIntoGet();
+
+  /**
+   * Gets the rule's promise to apply against a GroupExpression
+   * @param group_expr GroupExpression to compute promise from
+   * @returns The promise value of applying the rule for ordering
+   */
+  RulePromise Promise(GroupExpression *group_expr) const override;
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan AbstractOptimizerNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input AbstractOptimizerNode passes the check
+   */
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
 }  // namespace terrier::optimizer

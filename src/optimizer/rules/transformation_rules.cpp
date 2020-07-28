@@ -158,4 +158,42 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
   transformed->emplace_back(std::move(new_parent_join));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// RewriteEmbedFilterIntoGet
+///////////////////////////////////////////////////////////////////////////////
+EmbedLimitIntoGet::EmbedLimitIntoGet() {
+  type_ = RuleType::EMBED_LIMIT_INTO_GET;
+
+  match_pattern_ = new Pattern(OpType::LOGICALLIMIT);
+  auto child = new Pattern(OpType::LOGICALGET);
+
+  match_pattern_->AddChild(child);
+}
+
+bool EmbedLimitIntoGet::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                     OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+RulePromise EmbedLimitIntoGet::Promise(GroupExpression *group_expr) const {
+  return RulePromise::LOGICAL_PROMISE_PUSHDOWN;
+}
+
+void EmbedLimitIntoGet::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                         std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto get = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalGet>();
+  std::string tbl_alias = std::string(get->GetTableAlias());
+  size_t limit = input->Contents()->GetContentsAs<LogicalLimit>()->GetLimit();
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
+  auto output =
+      std::make_unique<OperatorNode>(LogicalGet::Make(get->GetDatabaseOid(), get->GetTableOid(), get->GetPredicates(),
+                                                      tbl_alias, get->GetIsForUpdate(), limit)
+                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(c), context->GetOptimizerContext()->GetTxn());
+  transformed->emplace_back(std::move(output));
+}
+
 }  // namespace terrier::optimizer
