@@ -47,7 +47,7 @@ class GarbageCollector {
    * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
    * the second is the number of transactions unlinked on this iteration.
    */
-  std::pair<uint32_t, uint32_t> PerformGarbageCollection();
+  std::pair<uint32_t, uint32_t> PerformGarbageCollection(bool main_thread = true);
 
   /**
    * Register an index to be periodically garbage collected

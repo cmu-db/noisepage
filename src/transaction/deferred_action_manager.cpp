@@ -23,6 +23,7 @@ uint32_t DeferredActionManager::Process() {
   //  We could potentially more aggressively process the backlog and the deferred action queue
   //  by taking timestamp after processing each event
   timestamp_manager_->CheckOutTimestamp();
+  auto begin = timestamp_manager_->BeginTransaction();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   // Check out a timestamp from the transaction manager to determine the progress of
   // running transactions in the system.
@@ -45,6 +46,7 @@ uint32_t DeferredActionManager::Process() {
 
   ProcessIndexes();
   common::thread_context.visited_slots_.clear();
+  timestamp_manager_->RemoveTransaction(begin);
 //
 //  if (daf_metrics_enabled) {
 //    common::thread_context.metrics_store_->RecordAfterQueueSize(back_log_.size() + new_deferred_actions_.unsafe_size());

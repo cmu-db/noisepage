@@ -97,7 +97,7 @@ class DeferredActionManager {
    * @param index pointer to the index to unregister
    */
   void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
-  
+
  private:
   friend class storage::GarbageCollectorThread;
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
