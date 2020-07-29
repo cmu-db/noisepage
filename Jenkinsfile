@@ -1,5 +1,3 @@
-def macOS_LLVM_path = "/usr/local/Cellar/llvm@8/8.0.1_1"
-
 pipeline {
     agent none
     options {
@@ -10,12 +8,12 @@ pipeline {
 
         stage('Check') {
             parallel {
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/format/lint/censored)') {
+                stage('macos-10.14/clang-8 (Debug/format/lint/censored)') {
                     agent { label 'macos' }
                     environment {
-                        LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
+                        LLVM_DIR=sh(script: "brew --prefix llvm@8", returnStdout: true).trim()
+                        CC="${LLVM_DIR}/bin/clang"
+                        CXX="${LLVM_DIR}/bin/clang++"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -88,13 +86,13 @@ pipeline {
 
         stage('Test') {
             parallel {
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/ASAN/unittest)') {
+                stage('macos-10.14/clang-8 (Debug/ASAN/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
+                        LLVM_DIR=sh(script: "brew --prefix llvm@8", returnStdout: true).trim()
+                        CC="${LLVM_DIR}/bin/clang"
+                        CXX="${LLVM_DIR}/bin/clang++"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -223,13 +221,13 @@ pipeline {
                     }
                 }
 
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Release/unittest)') {
+                stage('macos-10.14/clang-8 (Release/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
+                        LLVM_DIR=sh(script: "brew --prefix llvm@8", returnStdout: true).trim()
+                        CC="${LLVM_DIR}/bin/clang"
+                        CXX="${LLVM_DIR}/bin/clang++"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -316,13 +314,13 @@ pipeline {
 
         stage('End-to-End Debug') {
             parallel{
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
+                stage('macos-10.14/clang-8 (Debug/e2etest/oltpbench)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
+                        LLVM_DIR=sh(script: "brew --prefix llvm@8", returnStdout: true).trim()
+                        CC="${LLVM_DIR}/bin/clang"
+                        CXX="${LLVM_DIR}/bin/clang++"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
