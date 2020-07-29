@@ -50,7 +50,7 @@ OLTPBENCH_ANT_COMMANDS = [
 # The default is none, which means that the testing result won't be uploaded to any server
 PERFORMANCE_STORAGE_SERVICE_API = {
     "none":"",
-    "test":"http://incrudibles-testing.db.pdl.cmu.edu/performance-results",
-    "staging":"http://incrudibles-staging.db.pdl.cmu.edu/performance-results",
-    "prod":"http://incrudibles-production.db.pdl.cmu.edu/performance-results"
+    "test":"https://incrudibles-testing.db.pdl.cmu.edu/performance-results",
+    "staging":"https://incrudibles-staging.db.pdl.cmu.edu/performance-results",
+    "prod":"https://incrudibles-production.db.pdl.cmu.edu/performance-results"
 }
