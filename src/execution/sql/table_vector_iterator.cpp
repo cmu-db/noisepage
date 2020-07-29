@@ -21,16 +21,24 @@ TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint3
 
 TableVectorIterator::~TableVectorIterator() = default;
 
-bool TableVectorIterator::Init() { return Init(0, storage::DataTable::GetMaxBlocks()); }
+bool TableVectorIterator::Init() {
+  return Init(table_, 0, storage::DataTable::GetMaxBlocks());
+}
 
 bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
+  auto table = exec_ctx_->GetAccessor()->GetTable(table_oid_);
+  return Init(table, block_start, block_end);
+}
+
+bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table,
+                               uint32_t block_start, uint32_t block_end) {
   // No-op if already initialized
   if (IsInitialized()) {
     return true;
   }
 
   // Set up the table and the iterator.
-  table_ = exec_ctx_->GetAccessor()->GetTable(table_oid_);
+  table_ = table;
   TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
   if (block_start == 0 && block_end == storage::DataTable::GetMaxBlocks()) {
     iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
@@ -62,20 +70,7 @@ bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
 }
 
 bool TableVectorIterator::InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table) {
-  // Find the table
-  table_ = cte_table;
-  TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
-
-  // Initialize the projected column
-  TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
-  auto pc_init = table_->InitializerForProjectedColumns(col_oids_, common::Constants::K_DEFAULT_VECTOR_SIZE);
-  buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_init.ProjectedColumnsSize(), alignof(uint64_t), false);
-  projected_columns_ = pc_init.Initialize(buffer_);
-  initialized_ = true;
-
-  // Begin iterating
-  iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
-  return true;
+  return Init(cte_table, 0, storage::DataTable::GetMaxBlocks());
 }
 
 bool TableVectorIterator::Advance() {

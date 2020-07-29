@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 #include "execution/compiler/operator/operator_translator.h"
-#include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
 
 namespace terrier::execution::compiler {

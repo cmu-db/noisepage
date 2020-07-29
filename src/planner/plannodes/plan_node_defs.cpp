@@ -72,6 +72,10 @@ std::string PlanNodeTypeToString(PlanNodeType type) {
       return "ExportExternalFile";
     case PlanNodeType::RESULT:
       return "Result";
+    case PlanNodeType::CTESCAN:
+      return "CteScan";
+    case PlanNodeType::CTESCANLEADER:
+      return "CteScanLeader";
     case PlanNodeType::MOCK:
       return "Mock";
   }

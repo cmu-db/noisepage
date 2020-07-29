@@ -325,7 +325,7 @@ namespace terrier::execution::ast {
 /**
  * An enumeration of all TPL builtin functions.
  */
-enum class Builtin : uint8_t {
+enum class Builtin : uint16_t {
 #define ENTRY(Name, ...) Name,
   BUILTINS_LIST(ENTRY)
 #undef ENTRY

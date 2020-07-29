@@ -138,6 +138,7 @@ class EXPORT TableVectorIterator {
 
   // True if the iterator has been initialized.
   bool initialized_{false};
+  bool Init(common::ManagedPointer<storage::SqlTable> table, uint32_t block_start, uint32_t block_end);
 };
 
 }  // namespace terrier::execution::sql

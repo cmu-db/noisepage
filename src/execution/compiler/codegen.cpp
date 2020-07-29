@@ -46,11 +46,11 @@ CodeGen::CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor)
       scope_(nullptr),
       accessor_(accessor),
       pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()),
-      cte_scan_iterator_(NewIdentifier("cte_scan_iterator"))
+      cte_scan_iterator_(MakeFreshIdentifier("cte_scan_iterator"))
 // TODO(tanujnay112) ^get rid of this
 {
   for (auto &scope : scope_cache_) {
-    scope = std::make_unique<Scope>(nullptr),;
+    scope = std::make_unique<Scope>(nullptr);
   }
   num_cached_scopes_ = DEFAULT_SCOPE_CACHE_SIZE;
   EnterScope();
@@ -176,16 +176,14 @@ ast::Expr *CodeGen::ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind) {
   return GetFactory()->NewArrayType(position_, Const64(num_elems), BuiltinType(kind));
 }
 
-ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr,
-                                      ast::Identifier col_oids) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::TempTableIterInitBind);
-  ast::Expr *tvi_ptr = PointerTo(tvi);
-  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr, ast::Identifier col_oids,
+                                      ast::Expr *exec_ctx_expr) {
+  ast::Expr *tvi_ptr = AddressOf(tvi);
 //  ast::Expr *cte_scan_iterator_ptr = GetStateMemberPtr(cte_scan_iterator);
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
 
-  util::RegionVector<ast::Expr *> args{{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+  std::vector<ast::Expr*> args{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr};
+  return CallBuiltin(ast::Builtin::TempTableIterInitBind, std::move(args));
 }
 
 ast::Expr *CodeGen::ArrayAccess(ast::Identifier arr, uint64_t idx) {
@@ -1177,42 +1175,25 @@ ast::FieldDecl *CodeGen::MakeField(ast::Identifier name, ast::Expr *type) const 
   return context_->GetNodeFactory()->NewFieldDecl(position_, name, type);
 }
 
-ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::CteScanInit);
-  ast::Expr *si_ptr = GetStateMemberPtr(si);
-  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
-  ast::Expr *col_oids_expr = MakeExpr(col_types);
-
-  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
-}
-
-ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types, bool is_recursive) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::IterCteScanInit);
-  ast::Expr *si_ptr = GetStateMemberPtr(si);
-  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
-  ast::Expr *col_oids_expr = MakeExpr(col_types);
-  ast::Expr *is_recursive_expr = BoolLiteral(is_recursive);
-
-  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr, is_recursive_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
-}
-
-ast::FieldDecl *CodeGen::MakeField(ast::Identifier name, ast::Expr *type) const {
-  return context_->GetNodeFactory()->NewFieldDecl(position_, name, type);
-}
-
-ast::AstNodeFactory *CodeGen::GetFactory() { return context_->GetNodeFactory(); }
-
-void CodeGen::EnterScope() {
-  if (num_cached_scopes_ == 0) {
-    scope_ = new Scope(scope_);
-  } else {
-    auto scope = scope_cache_[--num_cached_scopes_].release();
-    scope->Init(scope_);
-    scope_ = scope;
-  }
-}
+//ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types) {
+//  ast::Expr *si_ptr = GetStateMember(si);
+//  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+//  ast::Expr *col_oids_expr = MakeExpr(col_types);
+//
+//  std::vector<ast::Expr *> args{si_ptr, exec_ctx_expr, col_oids_expr};
+//  return CallBuiltin(ast::Builtin::CteScanInit, std::move(args));
+//}
+//
+//ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types, bool is_recursive) {
+//  ast::Expr *fun = BuiltinFunction(ast::Builtin::IterCteScanInit);
+//  ast::Expr *si_ptr = GetStateMemberPtr(si);
+//  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+//  ast::Expr *col_oids_expr = MakeExpr(col_types);
+//  ast::Expr *is_recursive_expr = BoolLiteral(is_recursive);
+//
+//  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr, is_recursive_expr}, Region()};
+//  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+//}
 
 ast::AstNodeFactory *CodeGen::GetFactory() { return context_->GetNodeFactory(); }
 

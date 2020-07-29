@@ -49,26 +49,24 @@ storage::TupleSlot IterCteScanIterator::TableInsert() {
 bool IterCteScanIterator::Accumulate() {
   // Dump contents from read table into table_1, and then swap read and write
   // dump read table into table_1
-  cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
-  if (written_) {
-  if (is_recursive_) {
-    // dump read table into table_1
-    cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
+    if (is_recursive_) {
+      // dump read table into table_1
+      cte_scan_1_.GetTable()->CopyTable(txn_, common::ManagedPointer(cte_scan_read_->GetTable()));
+    }
+
+    if (written_) {
+      // swap the table
+      auto temp_table = cte_scan_write_;
+      cte_scan_write_ = cte_scan_read_;
+      cte_scan_read_ = temp_table;
+
+      // clear new write table
+      cte_scan_write_->GetTable()->Reset();
+    }
+
+    bool old_written_ = written_;
+    written_ = false;
+    return old_written_;
   }
-
-  if (written_) {
-    // swap the table
-    auto temp_table = cte_scan_write_;
-    cte_scan_write_ = cte_scan_read_;
-    cte_scan_read_ = temp_table;
-
-    // clear new write table
-    cte_scan_write_->GetTable()->Reset();
-  }
-
-  bool old_written_ = written_;
-  written_ = false;
-  return old_written_;
-}
 
 }  // namespace terrier::execution::sql

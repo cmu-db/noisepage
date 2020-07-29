@@ -119,10 +119,10 @@ void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionCo
         new_pr->SetNull(offset);
         continue;
       }
-      std::memcpy(new_pr_ptr, src_ptr, table_.layout_.AttrSize(cols.second));
+      std::memcpy(new_pr_ptr, src_ptr, table_.layout_.AttrSize(cols.second.col_id_));
 
       // copy over varlens contents
-      if(table_.layout_.IsVarlen(cols.second)){
+      if(table_.layout_.IsVarlen(cols.second.col_id_)){
         auto varlen = reinterpret_cast<storage::VarlenEntry*>(src_ptr);
         if(varlen->NeedReclaim()){
           byte *new_allocation = new byte[varlen->Size()];

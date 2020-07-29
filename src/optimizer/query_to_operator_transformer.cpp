@@ -356,7 +356,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     } else {
       // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
       output_expr_ = std::make_unique<OperatorNode>(
-          LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
+          LogicalGet::Make(db_oid_, accessor_->GetTableOid(node->GetTableName()), {},
                            node->GetAlias(), false)
               .RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);

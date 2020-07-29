@@ -305,7 +305,7 @@ void DataTable::Reset() {
       accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
     accessor_.InitializeRawBlock(this, block, block->layout_version_);
   }
-  insertion_head_ = blocks_.begin();
+  insertion_head_ = 0;
 }
 
 template <class RowType>
