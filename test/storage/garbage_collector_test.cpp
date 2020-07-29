@@ -117,6 +117,7 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
 
     // Unlink the Insert's UndoRecord, then deallocate it on the next run
     EXPECT_EQ(std::make_pair(0U, 1U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
   }
 }
@@ -181,6 +182,7 @@ TEST_F(GarbageCollectorTests, CommitInsert1) {
 
     // Unlink the two transactions and then deallocate the single non-read-only transaction
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
     auto *txn2 = txn_manager->BeginTransaction();
@@ -236,6 +238,7 @@ TEST_F(GarbageCollectorTests, CommitInsert2) {
 
     // Unlink the two transactions and then deallocate the single non-read-only transaction
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
     auto *txn2 = txn_manager->BeginTransaction();
@@ -292,6 +295,7 @@ TEST_F(GarbageCollectorTests, AbortInsert1) {
 
     //  process the read-only transaction and aborted transaction
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     // Read-only transaction shouldn't have made it to the deallocate queue, aborted transaction can be deallocated
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
@@ -348,6 +352,7 @@ TEST_F(GarbageCollectorTests, AbortInsert2) {
 
     // process the read-only transaction and aborted transcation
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     // Read-only transaction shouldn't have made it to the deallocate queue, aborted transaction is deallocated
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
@@ -384,6 +389,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     // Unlink and reclaim the Insert
     EXPECT_EQ(std::make_pair(0U, 1U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -420,6 +426,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     // Unlink the update and read-only txns, then deallocate the update txn
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     // Read-only transaction shouldn't have made it to the deallocate queue
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
@@ -457,6 +464,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 
     // Unlink and reclaim the Insert
     EXPECT_EQ(std::make_pair(0U, 1U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -493,6 +501,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 
     // Unlink the update and read-only txns, then deallocate the update txn
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     // Read-only transaction shouldn't have made it to the deallocate queue
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
@@ -530,6 +539,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 
     // Unlink and reclaim the Insert
     EXPECT_EQ(std::make_pair(0U, 1U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -566,6 +576,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 
     // process the read-only transaction and aborted transcation
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     // Read-only transaction shouldn't have made it to the deallocate queue, aborted transaction is deallocated
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
@@ -603,6 +614,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
 
     // Unlink and reclaim the Insert
     EXPECT_EQ(std::make_pair(0U, 1U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -639,6 +651,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
 
     // process the read-only transaction and aborted transcation
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     // Read-only transaction shouldn't have made it to the deallocate queue, aborted transaction is deallocated
     EXPECT_EQ(std::make_pair(1U, 0U), gc->PerformGarbageCollection());
 
@@ -696,6 +709,7 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
 
     // Process the insert and aborted txns. Both should make it to the unlink phase
     EXPECT_EQ(std::make_pair(0U, 2U), gc->PerformGarbageCollection());
+    EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
     EXPECT_EQ(std::make_pair(2U, 0U), gc->PerformGarbageCollection());
   }
 }
