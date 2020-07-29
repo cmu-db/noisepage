@@ -10,10 +10,12 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_defs.h"
 
+namespace terrier::storage {
+class GarbageCollectorThread;
+}
 namespace terrier::transaction {
 
 constexpr uint8_t MIN_GC_INVOCATIONS = 3;
-
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
  */
@@ -56,10 +58,16 @@ class DeferredActionManager {
   }
 
   /**
-   * Clear the queue and apply as many actions as possible
+   * Clear the queue and apply as many actions as possible. Used in single-threaded GC.
    * @return numbers of deferred actions processed
    */
   uint32_t Process();
+
+  /**
+   * Clear the queue and apply as many actions as possible. Used in multi-threaded GC.
+   * @return numbers of deferred actions processed
+   */
+  uint32_t Process(bool process_index);
 
   /**
    * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
@@ -91,6 +99,7 @@ class DeferredActionManager {
   void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
   
  private:
+  friend class storage::GarbageCollectorThread;
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   tbb::concurrent_queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> new_deferred_actions_;
