@@ -98,6 +98,7 @@ namespace terrier::execution::vm {
   F(Return)                                                                                                           \
                                                                                                                       \
   /* Execution Context */                                                                                             \
+  F(ExecutionContextAddRowsAffected, OperandType::Local, OperandType::Local)                                          \
   F(ExecutionContextGetMemoryPool, OperandType::Local, OperandType::Local)                                            \
   F(ExecutionContextGetTLS, OperandType::Local, OperandType::Local)                                                   \
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \

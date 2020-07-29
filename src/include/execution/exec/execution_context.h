@@ -164,6 +164,9 @@ class EXPORT ExecutionContext {
     pipeline_operating_units_ = op;
   }
 
+  /** Increment or decrement the number of rows affected. */
+  void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
+
  private:
   const exec::ExecutionSettings &exec_settings_;
   catalog::db_oid_t db_oid_;

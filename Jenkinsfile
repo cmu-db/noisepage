@@ -366,7 +366,8 @@ pipeline {
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) terrier'
-                sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release' 
+                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release' 
+                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release' 
             }
         }
         stage('Microbenchmark') {
