@@ -156,6 +156,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   size_t num_rows = 1;
   size_t cardinality = 1;
+  size_t num_iterations = 0;
   if (type == ExecutionOperatingUnitType::OUTPUT) {
     // Uses the network result consumer
     cardinality = 1;
@@ -195,6 +196,9 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     } else {
       TERRIER_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
       num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
+
+      UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
+      num_iterations = 0; // extract from c_plan num_rows
     }
 
     cardinality = 1;  // extract from plan num_rows (this is the scan size)
@@ -214,8 +218,8 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  pipeline_features_.emplace(
-      type, ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor));
+  auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_iterations);
+  pipeline_features_.emplace(type, std::move(feature));
 }
 
 void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling) {
@@ -349,8 +353,7 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of right plan which is probe
     auto *c_plan = plan->GetChild(1);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(),
-                      plan, 1, 1);
+    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(), plan, 1, 1);
   }
 
   // Computes against OutputSchema/Join predicate which will
@@ -386,8 +389,8 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
       rec.plan_feature_type_ = plan_feature_type_;
       plan->GetChild(1)->Accept(common::ManagedPointer<planner::PlanVisitor>(&rec));
       for (auto &feature : rec.pipeline_features_) {
-        AggregateFeatures(feature.first, feature.second.GetKeySize(), feature.second.GetNumKeys(), c_plan,
-                          o_num_rows - 1, 1);
+        // TODO: maybe a NL join should also record a # iterations feature --- but the data/instr is not shared that much
+        AggregateFeatures(feature.first, feature.second.GetKeySize(), feature.second.GetNumKeys(), c_plan, o_num_rows - 1, 1);
       }
     }
   }
@@ -595,6 +598,10 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
       if (!keys.empty()) {
         key_size = ComputeKeySize(keys);
         num_keys = keys.size();
+      } else {
+        // This case is typically just numerics (i.e COUNT)
+        // We still record something to differentiate in the models.
+        num_keys = plan->GetAggregateTerms().size();
       }
     }
 

@@ -6,6 +6,7 @@ import pandas as pd
 import os
 import logging
 import tqdm
+import math
 
 from data_class import data_util
 from info import data_info
@@ -23,13 +24,14 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
         io_util.write_csv_result(output_path, key, value)
 
 
-def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cache={}, ):
+def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cache={}, trim=0.2):
     """Get the training data from the mini runner
 
     :param filename: the input data file
     :param model_results_path: results log directory
     :param model_map: the map from OpUnit to the mini model
     :param predict_cache: cache for the mini model prediction
+    :param trim: % of too high/too low anomalies to prune
     :return: the list of Data for execution operating units
     """
 
@@ -38,7 +40,7 @@ def get_mini_runner_data(filename, model_results_path, model_map={}, predict_cac
         return []
     if "execution" in filename:
         # Handle the execution data
-        return _execution_get_mini_runner_data(filename, model_map, predict_cache)
+        return _execution_get_mini_runner_data(filename, model_map, predict_cache, trim)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_mini_runner_data(filename, model_results_path)
@@ -91,10 +93,19 @@ def _interval_get_mini_runner_data(filename, model_results_path):
 
     return [OpUnitData(OpUnit[file_name.upper()], np.array(x_list), np.array(y_list))]
 
+def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
+    """Get the training data from the mini runner
 
-def _execution_get_mini_runner_data(filename, model_map, predict_cache):
+    :param filename: the input data file
+    :param model_map: the map from OpUnit to the mini model
+    :param predict_cache: cache for the mini model prediction
+    :param trim: % of too high/too low anomalies to prune
+    :return: the list of Data for execution operating units
+    """
+
     # Get the mini runner data for the execution engine
     data_map = {}
+    anomaly_map = {}
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
 
@@ -117,11 +128,14 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache):
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
                 if opunit in model_map:
                     key = [opunit] + x_loc
-                    if tuple(key) in predict_cache:
-                        y_merged = y_merged - predict_cache[tuple(key)]
-                    else:
+                    if tuple(key) not in predict_cache:
                         predict = model_map[opunit].predict(np.array(x_loc).reshape(1, -1))[0]
                         predict_cache[tuple(key)] = predict
+                        assert len(predict) == len(y_merged)
+                        y_merged = y_merged - predict
+                    else:
+                        predict = predict_cache[tuple(key)]
+                        assert len(predict) == len(y_merged)
                         y_merged = y_merged - predict
 
                     y_merged = np.clip(y_merged, 0, None)
@@ -131,15 +145,39 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache):
             if len(opunits) > 1:
                 raise Exception('Unmodelled OperatingUnits detected: {}'.format(opunits))
 
-            # record real result
-            predict_cache[tuple([opunits[0][0]] + opunits[0][1])] = list(y_merged)
+            # Record into predict_cache
+            key = tuple([opunits[0][0]] + opunits[0][1])
+            if key not in anomaly_map:
+                anomaly_map[key] = []
+            anomaly_map[key].append(y_merged)
 
-            # opunits[0][0] is the opunit
-            # opunits[0][1] is input feature
-            # y_merged should be post-subtraction
-            if opunits[0][0] not in data_map:
-                data_map[opunits[0][0]] = []
-            data_map[opunits[0][0]].append(opunits[0][1] + list(y_merged))
+    # Postprocess the anomaly_map -> data_map
+    # We need to do this here since we need to have seen all the data
+    # before we can start pruning. This step is done here so dropped
+    # data don't actually become a part of the model.
+    for key in anomaly_map:
+        len_vec = len(anomaly_map[key])
+        anomaly_map[key].sort(key=lambda x: x[-1])
+
+        # compute how much to trim
+        trim_side = trim * len_vec
+        low = int(math.ceil(trim_side))
+        high = len_vec - low
+        if low >= high:
+            # if bounds are bad, just take the median
+            anomaly_map[key] = np.median(anomaly_map[key], axis=0)
+        else:
+            # otherwise, x% trimmed mean
+            anomaly_map[key] = np.average(anomaly_map[key][low:high], axis=0)
+
+        # Expose the singular data point
+        opunit = key[0]
+        if opunit not in data_map:
+            data_map[opunit] = []
+
+        predict = anomaly_map[key]
+        predict_cache[key] = predict
+        data_map[opunit].append(list(key[1:]) + list(predict))
 
     data_list = []
     for opunit, values in data_map.items():
