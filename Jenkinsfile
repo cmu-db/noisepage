@@ -1,5 +1,3 @@
-def macOS_LLVM_path = "/usr/local/Cellar/llvm@8/8.0.1_1"
-
 pipeline {
     agent none
     options {
@@ -13,9 +11,7 @@ pipeline {
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/format/lint/censored)') {
                     agent { label 'macos' }
                     environment {
-                        LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -92,9 +88,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -227,9 +221,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -320,9 +312,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="${macOS_LLVM_path}"
-                        CC="${macOS_LLVM_path}/bin/clang-8"
-                        CXX="${macOS_LLVM_path}/bin/clang++-8"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
