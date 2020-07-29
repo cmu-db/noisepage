@@ -11,7 +11,7 @@ pipeline {
                 stage('macos-10.14/clang-8 (Debug/format/lint/censored)') {
                     agent { label 'macos' }
                     environment {
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", returnStdout: true).trim()
+                        LLVM_DIR=sh(script: "(set +x; brew --prefix llvm@8)", returnStdout: true).trim()
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
                     }
@@ -90,7 +90,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", returnStdout: true).trim()
+                        LLVM_DIR=sh(script: "(set +x; brew --prefix llvm@8)", returnStdout: true).trim()
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
                     }
@@ -225,7 +225,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", returnStdout: true).trim()
+                        LLVM_DIR=sh(script: "(set +x; brew --prefix llvm@8)", returnStdout: true).trim()
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
                     }
@@ -318,7 +318,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR=sh(script: "brew --prefix llvm@8", returnStdout: true).trim()
+                        LLVM_DIR=sh(script: "(set +x; brew --prefix llvm@8)", returnStdout: true).trim()
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
                     }
