@@ -1,0 +1,16 @@
+{
+    "type": "oltpbenchmark",
+    "testcases": [
+        {
+            "base": {
+                "benchmark": "tpcc",
+                "weights": "45,43,4,4,4",
+                "query_mode": "extended",
+                "terminals": 4,
+                "scale_factor": 4,
+                "loader_threads": 4,
+                "client_time": 60
+            }
+        }
+    ]
+}
