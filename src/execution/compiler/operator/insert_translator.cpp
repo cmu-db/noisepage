@@ -10,7 +10,6 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
-#include "execution/compiler/translator_factory.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/insert_plan_node.h"

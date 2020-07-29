@@ -1806,7 +1806,8 @@ VM_OP void OpStorageInterfaceDeleteCascade(bool *result, terrier::execution::sql
 VM_OP void OpStorageInterfaceUpdateCascade(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);
 
-VM_OP void OpStorageInterfaceUpdateVerify(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
+VM_OP void OpStorageInterfaceUpdateVerify(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                          terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);
 

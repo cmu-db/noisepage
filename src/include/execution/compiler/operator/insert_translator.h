@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-
 #include "execution/ast/identifier.h"
 #include "catalog/schema.h"
 #include "execution/compiler/ast_fwd.h"
