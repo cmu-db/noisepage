@@ -37,7 +37,7 @@ if (${TERRIER_USE_ASAN})
       message(SEND_ERROR "Cannot use dynamic linking when ASAN and UBSAN are both enabled")
     endif ()
   endif ()
-  set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} -fsanitize=address")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
   message(STATUS "AddressSanitizer enabled.")
 endif ()
 

@@ -155,6 +155,9 @@ endif ()
 include(CompilerInfo)
 include(SetupCxxFlags)
 
+# ASAN / TSAN / UBSAN
+include(san-config)
+
 ############################################################
 # Dependencies
 ############################################################
@@ -164,8 +167,6 @@ enable_testing()
 
 include(ThirdpartyToolchain)
 
-# ASAN / TSAN / UBSAN
-include(san-config)
 
 ###########################################################
 # code coverage
