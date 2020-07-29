@@ -62,6 +62,7 @@ class GarbageCollector {
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
  private:
+  friend class GarbageCollectorThread;
   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
   const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate

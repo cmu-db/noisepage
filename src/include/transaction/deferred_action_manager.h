@@ -1,5 +1,4 @@
 #pragma once
-#include <tbb/concurrent_queue.h>
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -61,7 +60,7 @@ class DeferredActionManager {
    * Clear the queue and apply as many actions as possible. Used in single-threaded GC.
    * @return numbers of deferred actions processed
    */
-  uint32_t Process();
+  uint32_t Process() { return Process(true); }
 
   /**
    * Clear the queue and apply as many actions as possible. Used in multi-threaded GC.
@@ -77,10 +76,10 @@ class DeferredActionManager {
    * @param log_manager log manager to use for flushing logs
    */
   void FullyPerformGC(const common::ManagedPointer<storage::GarbageCollector> gc,
-                      const common::ManagedPointer<storage::LogManager> log_manager) {
+                      const common::ManagedPointer<storage::LogManager> log_manager, bool main_thread = true) {
     for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
       if (log_manager != DISABLED) log_manager->ForceFlush();
-      gc->PerformGarbageCollection();
+      gc->PerformGarbageCollection(main_thread);
     }
   }
 
@@ -102,8 +101,7 @@ class DeferredActionManager {
   friend class storage::GarbageCollectorThread;
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
-  tbb::concurrent_queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> new_deferred_actions_;
-  std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> back_log_;
+  std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> new_deferred_actions_;
   // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
   // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
   // wasteful traversals of the version chain.
@@ -112,15 +110,13 @@ class DeferredActionManager {
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
   std::vector<std::atomic<uint16_t>> daf_tags_;
-  std::atomic<size_t> back_log_count_ = 0;
+  common::SharedLatch queue_latch_;
 
   // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
   //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls
   //  and looks inefficient if there is not much to gc. Preferably make index gc action a deferred action that gets
   //  added to the deferred action queue either in a fixed interval or after a threshold number of tombstones
   void ProcessIndexes();
-
-  uint32_t ClearBacklog(timestamp_t oldest_txn, bool metrics_enabled);
 
   uint32_t ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled);
 };

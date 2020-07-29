@@ -12,7 +12,7 @@ class MetricsManager;
 }
 
 namespace terrier::storage {
-constexpr uint8_t NUM_GC_THREADS = 1;
+constexpr uint8_t NUM_GC_THREADS = 2;
 
 /**
  * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases
@@ -94,7 +94,7 @@ class GarbageCollectorThread {
       if (!gc_paused_) gc_->PerformGarbageCollection(main_thread);
     }
     if (!gc_paused_) {
-      gc_->deferred_action_manager_->FullyPerformGC(gc_, log_manager_);
+      gc_->deferred_action_manager_->FullyPerformGC(gc_, log_manager_, main_thread);
     }
   }
 };
