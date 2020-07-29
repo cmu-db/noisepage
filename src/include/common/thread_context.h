@@ -35,8 +35,6 @@ struct ThreadContext {
   // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
   // wasteful traversals of the version chain.
   std::unordered_set<storage::TupleSlot> visited_slots_;
-
-  std::queue<std::pair<transaction::timestamp_t, std::pair<transaction::DeferredAction, transaction::DafId>>> back_log_;
 };
 
 /**
