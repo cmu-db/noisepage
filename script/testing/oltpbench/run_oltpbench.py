@@ -9,7 +9,7 @@ import itertools
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
-from oltpbench.test_case_oltp import TestCaseOLTP
+from oltpbench.test_case_oltp import TestCaseOLTPBench
 from oltpbench.test_oltpbench import TestOLTPBench
 from oltpbench.utils import parse_command_line_args
 from oltpbench import constants
@@ -56,11 +56,11 @@ def generate_test_suite(args):
         if oltp_testcase_loop:
             for loop_item in oltp_testcase_loop:
                 oltp_testcase_combined = {**oltp_testcase_base,**loop_item}             
-                oltp_test_suite.append(TestCaseOLTP(oltp_testcase_combined)) 
+                oltp_test_suite.append(TestCaseOLTPBench(oltp_testcase_combined)) 
 
         else:
             # there is no loop
-            oltp_test_suite.append(TestCaseOLTP(oltp_testcase_base))
+            oltp_test_suite.append(TestCaseOLTPBench(oltp_testcase_base))
 
     return oltp_test_suite
 

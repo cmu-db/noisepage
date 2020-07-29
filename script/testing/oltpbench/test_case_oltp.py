@@ -14,7 +14,7 @@ from oltpbench import constants
 from oltpbench.reporting.report_result import report
 
 
-class TestCaseOLTP(TestCase):
+class TestCaseOLTPBench(TestCase):
     """Class of a test case of OLTPBench"""
 
     def __init__(self, args):
@@ -27,34 +27,34 @@ class TestCaseOLTP(TestCase):
         # oltpbench specific attributes
         self.benchmark = str(args.get("benchmark"))
         self.scalefactor = float(
-            args.get("scale_factor", constants.OLTP_DEFAULT_SCALEFACTOR))
+            args.get("scale_factor", constants.OLTPBENCH_DEFAULT_SCALEFACTOR))
         self.terminals = int(
-            args.get("terminals", constants.OLTP_DEFAULT_TERMINALS))
+            args.get("terminals", constants.OLTPBENCH_DEFAULT_TERMINALS))
         self.loader_threads = int(
             args.get("loader_threads",
-                          constants.OLTP_DEFAULT_LOADER_THREADS))
+                          constants.OLTPBENCH_DEFAULT_LOADER_THREADS))
         self.client_time = int(
-            args.get("client_time", constants.OLTP_DEFAULT_TIME))
+            args.get("client_time", constants.OLTPBENCH_DEFAULT_TIME))
         self.weights = str(args.get("weights"))
         self.transaction_isolation = str(
             args.get("transaction_isolation",
-                          constants.OLTP_DEFAULT_TRANSACTION_ISOLATION))
+                          constants.OLTPBENCH_DEFAULT_TRANSACTION_ISOLATION))
         self.query_mode = args.get("query_mode")
-        self.db_restart = args.get("db_restart",constants.OLTP_DEFAULT_DATABASE_RESTART)
-        self.db_create = args.get("db_create",constants.OLTP_DEFAULT_DATABASE_CREATE)
-        self.db_load = args.get("db_load",constants.OLTP_DEFAULT_DATABASE_LOAD)
-        self.db_execute = args.get("db_execute",constants.OLTP_DEFAULT_DATABASE_EXECUTE)
-        self.buckets = args.get("buckets",constants.OLTP_DEFAULT_BUCKETS)
+        self.db_restart = args.get("db_restart",constants.OLTPBENCH_DEFAULT_DATABASE_RESTART)
+        self.db_create = args.get("db_create",constants.OLTPBENCH_DEFAULT_DATABASE_CREATE)
+        self.db_load = args.get("db_load",constants.OLTPBENCH_DEFAULT_DATABASE_LOAD)
+        self.db_execute = args.get("db_execute",constants.OLTPBENCH_DEFAULT_DATABASE_EXECUTE)
+        self.buckets = args.get("buckets",constants.OLTPBENCH_DEFAULT_BUCKETS)
 
-        self.publish_results = args.get("publish_results",constants.OLTP_DEFAULT_REPORT_SERVER)
+        self.publish_results = args.get("publish_results",constants.OLTPBENCH_DEFAULT_REPORT_SERVER)
         self.publish_username = args.get("publish_username")
         self.publish_password = args.get("publish_password")
 
     def init_test_case(self):
         # oltpbench xml file paths
         xml_file = "{}_config.xml".format(self.benchmark)
-        self.xml_config = os.path.join(constants.OLTP_DIR_CONFIG, xml_file)
-        self.xml_template = os.path.join(constants.OLTP_DIR_CONFIG,
+        self.xml_config = os.path.join(constants.OLTPBENCH_DIR_CONFIG, xml_file)
+        self.xml_template = os.path.join(constants.OLTPBENCH_DIR_CONFIG,
                                          "sample_{}".format(xml_file))
 
         # for different testing, oltpbench needs different folder to put testing results 
@@ -87,7 +87,7 @@ class TestCaseOLTP(TestCase):
         if not self.test_histograms_json_file:
             self.test_histograms_json_file = "oltp_histograms_" + self.filename_suffix + ".json"
         self.test_histogram_path = os.path.join(
-            constants.OLTP_GIT_LOCAL_PATH, self.test_histograms_json_file)
+            constants.OLTPBENCH_GIT_LOCAL_PATH, self.test_histograms_json_file)
 
         # oltpbench initiate database and load data
         self.oltp_flag = "--histograms --create={CREATE} --load={LOAD} --execute={EXECUTE} -s {BUCKETS}".format(
@@ -98,14 +98,14 @@ class TestCaseOLTP(TestCase):
 
         # oltpbench test command
         self.test_command = "{BIN} -b {BENCHMARK} -c {XML} -d {RESULTS} {FLAGS} -json-histograms {HISTOGRAMS}".format(
-            BIN=constants.OLTP_DEFAULT_BIN,
+            BIN=constants.OLTPBENCH_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
             RESULTS=self.test_result_dir,
             XML=self.xml_config,
             FLAGS=self.oltp_flag,
             HISTOGRAMS=self.test_histogram_path)
-        self.test_command_cwd = constants.OLTP_GIT_LOCAL_PATH
-        self.test_error_msg = constants.OLTP_TEST_ERROR_MSG
+        self.test_command_cwd = constants.OLTPBENCH_GIT_LOCAL_PATH
+        self.test_error_msg = constants.OLTPBENCH_TEST_ERROR_MSG
 
     def run_pre_test(self):
         self.config_xml_file()
@@ -145,17 +145,17 @@ class TestCaseOLTP(TestCase):
     def config_xml_file(self):
         xml = ElementTree.parse(self.xml_template)
         root = xml.getroot()
-        root.find("dbtype").text = constants.OLTP_DEFAULT_DBTYPE
-        root.find("driver").text = constants.OLTP_DEFAULT_DRIVER
+        root.find("dbtype").text = constants.OLTPBENCH_DEFAULT_DBTYPE
+        root.find("driver").text = constants.OLTPBENCH_DEFAULT_DRIVER
         root.find("DBUrl").text = self.get_db_url()
-        root.find("username").text = constants.OLTP_DEFAULT_USERNAME
-        root.find("password").text = constants.OLTP_DEFAULT_PASSWORD
+        root.find("username").text = constants.OLTPBENCH_DEFAULT_USERNAME
+        root.find("password").text = constants.OLTPBENCH_DEFAULT_PASSWORD
         root.find("isolation").text = str(self.transaction_isolation)
         root.find("scalefactor").text = str(self.scalefactor)
         root.find("terminals").text = str(self.terminals)
         for work in root.find("works").findall("work"):
             work.find("time").text = str(self.client_time)
-            work.find("rate").text = str(constants.OLTP_DEFAULT_RATE)
+            work.find("rate").text = str(constants.OLTPBENCH_DEFAULT_RATE)
             work.find("weights").text = str(self.weights)
 
         # Loader Threads

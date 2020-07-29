@@ -28,7 +28,7 @@ class TestOLTPBench(TestServer):
         self.build_oltp()
 
     def clean_oltp(self):
-        rc, stdout, stderr = run_command(constants.OLTP_GIT_CLEAN_COMMAND,
+        rc, stdout, stderr = run_command(constants.OLTPBENCH_GIT_CLEAN_COMMAND,
                                          "Error: unable to clean OLTP repo")
         if rc != ErrorCode.SUCCESS:
             LOG.error(stderr)
@@ -36,14 +36,14 @@ class TestOLTPBench(TestServer):
 
     def download_oltp(self):
         rc, stdout, stderr = run_command(
-            constants.OLTP_GIT_COMMAND,
+            constants.OLTPBENCH_GIT_COMMAND,
             "Error: unable to git clone OLTP source code")
         if rc != ErrorCode.SUCCESS:
             LOG.error(stderr)
             sys.exit(rc)
 
     def build_oltp(self):
-        for command in constants.OLTP_ANT_COMMANDS:
+        for command in constants.OLTPBENCH_ANT_COMMANDS:
             error_msg = "Error: unable to run \"{}\"".format(command)
             rc, stdout, stderr = run_command(command, error_msg)
             if rc != ErrorCode.SUCCESS:
