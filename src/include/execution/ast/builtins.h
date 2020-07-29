@@ -36,6 +36,7 @@ namespace terrier::execution::ast {
   F(ExtractYear, extractYear)                                           \
                                                                         \
   /* Thread State Container */                                          \
+  F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
   F(ExecutionContextGetTLS, execCtxGetTLS)                              \
   F(ThreadStateContainerReset, tlsReset)                                \

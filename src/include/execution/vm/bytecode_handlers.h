@@ -197,6 +197,11 @@ VM_OP_HOT void OpReturn() {}
 // Execution Context
 // ---------------------------------------------------------
 
+VM_OP_HOT void OpExecutionContextAddRowsAffected(terrier::execution::exec::ExecutionContext *exec_ctx,
+                                                 int64_t rows_affected) {
+  exec_ctx->AddRowsAffected(rows_affected);
+}
+
 VM_OP_WARM void OpExecutionContextGetMemoryPool(terrier::execution::sql::MemoryPool **const memory,
                                                 terrier::execution::exec::ExecutionContext *const exec_ctx) {
   *memory = exec_ctx->GetMemoryPool();

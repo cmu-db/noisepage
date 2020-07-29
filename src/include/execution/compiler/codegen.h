@@ -587,14 +587,14 @@ class CodeGen {
                                                 ast::Identifier worker_name);
 
   /**
-   * Call \@abortTxn().
+   * Call \@abortTxn(exec_ctx).
    * @param exec_ctx The execution context that we are running in.
    * @return The call.
    */
   ast::Expr *AbortTxn(ast::Expr *exec_ctx);
 
   /**
-   * Call indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
+   * Call \@indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
    * @param iter The identifier of the index iterator.
    * @param exec_ctx_var The execution context variable.
    * @param num_attrs Number of attributes
@@ -603,17 +603,17 @@ class CodeGen {
    * @param col_oids The identifier of the array of column oids to read.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_var, uint32_t num_attrs, uint32_t table_oid,
-                               uint32_t index_oid, ast::Identifier col_oids);
+  [[nodiscard]] ast::Expr *IndexIteratorInit(ast::Identifier iter, ast::Expr *exec_ctx_var, uint32_t num_attrs,
+                                             uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
 
   /**
-   * Call IndexIteratorScanType(&iter[, limit])
+   * Call \@indexIteratorScanType(&iter[, limit])
    * @param iter The identifier of the index iterator.
    * @param scan_type The type of scan to perform.
    * @param limit The limit of the scan in case of limited scans.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
+  [[nodiscard]] ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
 
   // -------------------------------------------------------
   //
@@ -744,6 +744,14 @@ class CodeGen {
    * @param exec_ctx The execution context.
    */
   [[nodiscard]] ast::Expr *FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr *vpi, ast::Expr *exec_ctx);
+
+  /**
+   * Call \@execCtxAddRowsAffected(exec_ctx, num_rows_affected).
+   * @param exec_ctx The execution context to modify.
+   * @param num_rows_affected The amount to increment or decrement the number of rows affected.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows_affected);
 
   /**
    * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.

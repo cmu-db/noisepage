@@ -1544,6 +1544,11 @@ void BytecodeGenerator::VisitCSVReaderCall(ast::CallExpr *call, ast::Builtin bui
 void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Builtin builtin) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
+    case ast::Builtin::ExecutionContextAddRowsAffected: {
+      auto rows_affected = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextAddRowsAffected, exec_ctx, rows_affected);
+      break;
+    }
     case ast::Builtin::ExecutionContextStartResourceTracker: {
       LocalVar cmp = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, cmp);
@@ -2141,6 +2146,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }
+    case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:

@@ -73,6 +73,7 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     // Non-indexed updates just update.
     GenTableUpdate(function);
   }
+  function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
 
   // @storageInterfaceFree(&updater)
   GenUpdaterFree(function);
