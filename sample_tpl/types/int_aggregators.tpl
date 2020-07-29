@@ -1,4 +1,6 @@
-fun main() -> int64 {
+// Expected output:
+
+fun main() -> int {
   // Init aggregates
   var sum_agg : IntegerSumAggregate
   var count_agg : CountAggregate
@@ -23,7 +25,7 @@ fun main() -> int64 {
   @aggAdvance(&sum_agg, &input3)
   @aggAdvance(&sum_agg, &input4)
   if (@aggResult(&sum_agg) != @intToSql(38)) {
-    return 1
+    return 2
   }
 
   // Test count
@@ -32,7 +34,7 @@ fun main() -> int64 {
   @aggAdvance(&count_agg, &input3)
   @aggAdvance(&count_agg, &input4)
   if (@aggResult(&count_agg) != @intToSql(4)) {
-    return 1
+    return 3
   }
 
   // Test avg
@@ -41,7 +43,7 @@ fun main() -> int64 {
   @aggAdvance(&avg_agg, &input3)
   @aggAdvance(&avg_agg, &input4)
   if (@aggResult(&avg_agg) != @floatToSql(9.5)) {
-    return 1
+    return 4
   }
 
   // Test min
@@ -50,7 +52,7 @@ fun main() -> int64 {
   @aggAdvance(&min_agg, &input3)
   @aggAdvance(&min_agg, &input4)
   if (@aggResult(&min_agg) != @intToSql(3)) {
-    return 1
+    return 5
   }
 
   // Test max

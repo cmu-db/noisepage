@@ -1,12 +1,11 @@
-// Perform:
-//
-// SELECT SUM(colA) from test_1;
+// TODO(WAN): FIX THIS - table too big?
+// Expected output: ?
+// SQL: SELECT SUM(colA) from test_1;
 
 struct State {
   sum: IntegerSumAggregate
   count: int32
 }
-
 
 struct Values {
   sum: Integer
@@ -22,15 +21,18 @@ fun tearDownState(state: *State) -> nil {
 
 fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var tvi: TableVectorIterator
-  var col_oids : [2]uint32
-  col_oids[0] = 1
-  col_oids[1] = 2
-  @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
+
+  var table_oid : uint32
+  table_oid = @testCatalogLookup(execCtx, "test_1", "")
+  var col_oids: [1]uint32
+  col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
+
+  @tableIterInit(&tvi, execCtx, table_oid, col_oids)
   for (@tableIterAdvance(&tvi)) {
-    var vec = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(vec); @pciAdvance(vec)) {
+    var vec = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {
       var values : Values
-      values.sum = @pciGetInt(vec, 0)
+      values.sum = @vpiGetInt(vec, 0)
       @aggAdvance(&state.sum, &values.sum)
     }
   }
@@ -38,12 +40,12 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
-  var out = @ptrCast(*Values, @outputAlloc(execCtx))
+  var out = @ptrCast(*Values, @resultBufferAllocRow(execCtx))
   out.sum = @aggResult(&state.sum)
   for (var i : int64 = 0; @sqlToBool(i < out.sum); i = i + 1) {
     state.count = state.count + 1
   }
-  @outputFinalize(execCtx)
+  @resultBufferFinalize(execCtx)
 }
 
 fun main(execCtx: *ExecutionContext) -> int32 {

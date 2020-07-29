@@ -1,14 +1,14 @@
-// Test struct fields
+// Expected output: 30
 
 struct S {
-  z: int
-  y: int
-  a: int
+    z: int
+    y: int
+    a: int
 }
 
 fun main() -> int {
-  var q : S
-  q.a = 10
-  q.z = 20
-  return q.a + q.z
+    var q : S
+    q.a = 10
+    q.z = 20
+    return q.a + q.z
 }

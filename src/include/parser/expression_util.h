@@ -24,7 +24,7 @@
 namespace terrier::parser {
 
 /**
- * Collection of expression helpers for the optimizer
+ * Collection of expression helpers for the optimizer and execution engine.
  */
 class ExpressionUtil {
  public:
@@ -115,6 +115,59 @@ class ExpressionUtil {
         return false;
     }
   }
+
+  /**
+   * @return True if the given expression type is a comparison expression; false otherwise.
+   */
+  static bool IsComparisonExpression(ExpressionType type) {
+    switch (type) {
+      case ExpressionType::COMPARE_EQUAL:
+      case ExpressionType::COMPARE_NOT_EQUAL:
+      case ExpressionType::COMPARE_LESS_THAN:
+      case ExpressionType::COMPARE_GREATER_THAN:
+      case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+      case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+      case ExpressionType::COMPARE_LIKE:
+      case ExpressionType::COMPARE_NOT_LIKE:
+      case ExpressionType::COMPARE_IN:
+      case ExpressionType::COMPARE_IS_DISTINCT_FROM:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @return True if the given expression type is an arithmetic expression; false otherwise.
+   */
+  static bool IsArithmeticExpression(ExpressionType type) {
+    switch (type) {
+      case ExpressionType::OPERATOR_PLUS:
+      case ExpressionType::OPERATOR_MINUS:
+      case ExpressionType::OPERATOR_MULTIPLY:
+      case ExpressionType::OPERATOR_DIVIDE:
+      case ExpressionType::OPERATOR_CONCAT:
+      case ExpressionType::OPERATOR_MOD:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @return True if the given expression type is a column-reference expression; false otherwise.
+   */
+  static bool IsColumnRefExpression(ExpressionType type) { return type == ExpressionType::COLUMN_VALUE; }
+
+  /**
+   * @return True if the given expression type is a constant value expression; false otherwise.
+   */
+  static bool IsConstantExpression(ExpressionType type) { return type == ExpressionType::VALUE_CONSTANT; }
+
+  /**
+   * @return True if the given expression type is a parameter value expression; false otherwise.
+   */
+  static bool IsParamExpression(ExpressionType type) { return type == ExpressionType::VALUE_PARAMETER; }
 
   /**
    * For a given comparison operator, reverses the comparison.
@@ -488,6 +541,42 @@ class ExpressionUtil {
 
     TERRIER_ASSERT(children.size() == 1, "children should have exactly 1 AbstractExpression");
     return std::move(children[0]);
+  }
+
+  /**
+   * @return True if the given expression is of the form: col op const_val. False otherwise.
+   */
+  static bool IsColumnCompareWithConst(const parser::AbstractExpression &expr) {
+    if (expr.GetChildrenSize() != 2) {
+      return false;
+    }
+    return IsComparisonExpression(expr.GetExpressionType()) &&
+           IsColumnRefExpression(expr.GetChild(0)->GetExpressionType()) &&
+           IsConstantExpression(expr.GetChild(1)->GetExpressionType());
+  }
+
+  /**
+   * @return True if the given expression is of the form: col op param_val. False otherwise.
+   */
+  static bool IsColumnCompareWithParam(const parser::AbstractExpression &expr) {
+    if (expr.GetChildrenSize() != 2) {
+      return false;
+    }
+    return IsComparisonExpression(expr.GetExpressionType()) &&
+           IsColumnRefExpression(expr.GetChild(0)->GetExpressionType()) &&
+           IsParamExpression(expr.GetChild(1)->GetExpressionType());
+  }
+
+  /**
+   * @return True if the given expression is of the form: const op col. False otherwise.
+   */
+  static bool IsConstCompareWithColumn(const parser::AbstractExpression &expr) {
+    if (expr.GetChildrenSize() != 2) {
+      return false;
+    }
+    return IsComparisonExpression(expr.GetExpressionType()) &&
+           IsConstantExpression(expr.GetChild(0)->GetExpressionType()) &&
+           IsColumnRefExpression(expr.GetChild(1)->GetExpressionType());
   }
 };
 

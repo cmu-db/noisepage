@@ -1,9 +1,14 @@
 #pragma once
 
+#include <llvm/Support/ErrorHandling.h>
 #include <cstddef>
 #include <cstdint>
-#include "llvm/Support/ErrorHandling.h"
 #define EXPORT __attribute__((visibility("default")))
+
+/** Selection vector. */
+using sel_t = uint16_t;
+using int128_t = __int128;
+using uint128_t = unsigned __int128;
 
 //===--------------------------------------------------------------------===//
 // branch predictor hints

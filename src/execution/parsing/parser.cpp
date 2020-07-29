@@ -15,7 +15,7 @@ static std::unordered_set<Token::Type> k_top_level_decls = {Token::Type::STRUCT,
 Parser::Parser(Scanner *scanner, ast::Context *context)
     : scanner_(scanner),
       context_(context),
-      node_factory_(context->NodeFactory()),
+      node_factory_(context->GetNodeFactory()),
       error_reporter_(context->GetErrorReporter()) {}
 
 ast::AstNode *Parser::Parse() {
@@ -514,14 +514,14 @@ ast::Expr *Parser::ParseOperand() {
       Next();
       // Convert the number
       char *end = nullptr;
-      int64_t num = std::strtoll(GetSymbol().Data(), &end, 10);
+      int64_t num = std::strtoll(GetSymbol().GetData(), &end, 10);
       return node_factory_->NewIntLiteral(scanner_->CurrentPosition(), num);
     }
     case Token::Type::FLOAT: {
       Next();
       // Convert the number
       char *end = nullptr;
-      double num = std::strtod(GetSymbol().Data(), &end);
+      double num = std::strtod(GetSymbol().GetData(), &end);
       return node_factory_->NewFloatLiteral(scanner_->CurrentPosition(), num);
     }
     case Token::Type::STRING: {
@@ -609,7 +609,7 @@ ast::Expr *Parser::ParseFunctionType() {
   while (Peek() != Token::Type::RIGHT_PAREN) {
     const SourcePosition &field_position = scanner_->CurrentPosition();
 
-    ast::Identifier ident(nullptr);
+    ast::Identifier ident{};
 
     ast::Expr *type = nullptr;
 
@@ -617,11 +617,11 @@ ast::Expr *Parser::ParseFunctionType() {
       ident = GetSymbol();
     }
 
-    if (Matches(Token::Type::COLON) || ident.Data() == nullptr) {
+    if (Matches(Token::Type::COLON) || ident.GetData() == nullptr) {
       type = ParseType();
     } else {
       type = node_factory_->NewIdentifierExpr(field_position, ident);
-      ident = ast::Identifier(nullptr);
+      ident = ast::Identifier();
     }
 
     // That's it
