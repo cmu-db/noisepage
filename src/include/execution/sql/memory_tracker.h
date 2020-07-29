@@ -7,7 +7,7 @@ namespace terrier::execution::sql {
 /**
  * TODO: track memory usage
  */
-class MemoryTracker {
+class EXPORT MemoryTracker {
  public:
   // TODO(pmenon): Fill me in
 

@@ -55,10 +55,10 @@ SELECT c1, c2 as c1 FROM new
 statement ok
 INSERT INTO new VALUES (3, 2, 10), (4, 3, 20)
 
-query I nosort
-SELECT COUNT(DISTINCT c2) AS STOCK_COUNT FROM new
-----
-1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+# query I nosort
+# SELECT COUNT(DISTINCT c2) AS STOCK_COUNT FROM new
+# ----
+# 1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
 
 statement ok
 DROP TABLE new
@@ -101,3 +101,18 @@ SELECT 2+3
 
 statement ok
 DROP TABLE temp2
+
+# self-join
+statement ok
+CREATE TABLE xxx (id INT PRIMARY KEY, val INT);
+
+statement ok
+INSERT INTO xxx VALUES (1,1),(2,2),(3,3),(4,4);
+
+query I nosort
+SELECT * FROM xxx AS x1 JOIN xxx AS x2 ON x1.id = x2.id;
+----
+16 values hashing to 5411f476c4907debb6739c004a33651a
+
+statement ok
+DROP TABLE xxx

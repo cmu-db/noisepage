@@ -1,9 +1,8 @@
 #include <string>
 
-#include "execution/tpl_test.h"
-
 #include "execution/sql/functions/comparison_functions.h"
 #include "execution/sql/value.h"
+#include "execution/tpl_test.h"
 
 namespace terrier::execution::sql::test {
 class DateFunctionsTests : public TplTest {};

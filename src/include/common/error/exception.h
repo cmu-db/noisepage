@@ -24,6 +24,8 @@ namespace terrier {
 #define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
 #define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
 #define BINDER_EXCEPTION(msg, code) BinderException(msg, __FILE__, __LINE__, (code))
+#define EXECUTION_EXCEPTION(msg) ExecutionException(msg, __FILE__, __LINE__)
+#define ABORT_EXCEPTION(msg) AbortException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
@@ -38,7 +40,8 @@ enum class ExceptionType : uint8_t {
   PARSER,
   SETTINGS,
   OPTIMIZER,
-  SYNTAX
+  SYNTAX,
+  EXECUTION
 };
 
 /**
@@ -87,6 +90,8 @@ class Exception : public std::runtime_error {
         return "Binder";
       case ExceptionType::OPTIMIZER:
         return "Optimizer";
+      case ExceptionType::EXECUTION:
+        return "Execution";
       default:
         return "Unknown exception type";
     }
@@ -137,6 +142,8 @@ DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
+DEFINE_EXCEPTION(ExecutionException, ExceptionType::EXECUTION);
+DEFINE_EXCEPTION(AbortException, ExceptionType::EXECUTION);
 
 /**
  * Specialized Parser exception since we want a cursor position to get more verbose output
