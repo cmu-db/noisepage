@@ -20,6 +20,7 @@
 GTEST_VERSION=1.8.0
 GFLAGS_VERSION=2.2.0
 GBENCHMARK_VERSION=1.4.1
+SPDLOG_VERSION=1.7.0
 
 # Library, Version, Commit Hash
 # nlohmann::json, 3.1.2, d2dd27dc3b8472dbaa7d66f83619b3ebcd9185fe
@@ -27,7 +28,7 @@ GBENCHMARK_VERSION=1.4.1
 # spdlog
 # url: https://github.com/gabime/spdlog.git
 # branch: v1.x
-# commit hash: 8179b26388d118fa887030f2609560ec287531dd
+# commit hash: 616caa5d30172b65cc3a06800894c575d70cb8e6
 # commit hash date: 7 Aug 2018
 
 # madoka

@@ -4,9 +4,7 @@ list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/tpl.cpp)
 list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/gen_opt_bc.cpp)
 list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp)
 add_library(util_static STATIC ${UTIL_SRCS})
-target_link_libraries(util_static terrier_static ${TERRIER_LINK_LIBS})
-add_dependencies(util_static terrier_static)
-
+target_link_libraries(util_static $<IF:$<PLATFORM_ID:Darwin>,terrier_static,terrier_shared> ${TERRIER_LINK_LIBS})
 
 # The version number.
 set(TPL_VERSION_MAJOR 0)
@@ -18,9 +16,16 @@ configure_file(
         "${PROJECT_BINARY_DIR}/execution/tpl.h"
 )
 
-# Find CLANG
+# Common names for Clang to search for
 set(SUPPORTED_CLANGS "clang++-8" "clang++")
-find_program(CLANG NAMES ${SUPPORTED_CLANGS})
+
+# On macOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
+if (APPLE)
+    set(CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
+else ()
+    find_program(CLANG NAMES ${SUPPORTED_CLANGS})
+endif ()
+
 if (NOT EXISTS ${CLANG})
     message(FATAL_ERROR "Unable to locate clang++.")
 else ()

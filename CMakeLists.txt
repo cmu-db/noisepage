@@ -55,6 +55,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 include(CMakeParseArguments)
 include(ExternalProject)
+include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -378,6 +379,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif ()
 
 set(TERRIER_LINK_LIBS
+        terrier_static
         gflags
         ${TERRIER_LINK_LIBS}
         pg_query)
@@ -387,7 +389,6 @@ set(TERRIER_DEPENDENCIES
 
 set(TERRIER_TEST_LINK_LIBS
         test_util
-        terrier_static
         gtest
         gmock_main
         gflags
@@ -396,12 +397,25 @@ set(TERRIER_TEST_LINK_LIBS
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
         test_util
-        terrier_static
         benchmark
         gtest
         gmock_main
         gflags
         ${CMAKE_DL_LIBS})
+
+# Mandate static linking on mac OS
+if (APPLE) 
+    list(APPEND TERRIER_TEST_LINK_LIBS terrier_static)
+    if (TERRIER_BUILD_SHARED) 
+        set(TERRIER_BUILD_SHARED OFF CACHE BOOL "Build the libterrier shared libraries" FORCE)
+        message("Disabling TERRIER_BUILD_SHARED due to lack of support on mac OS.")
+    endif ()
+else ()
+    list(APPEND TERRIER_TEST_LINK_LIBS terrier_shared)
+endif ()
+
+# Mandate static linking of the benchmark
+list(APPEND TERRIER_BENCHMARK_LINK_LIBS terrier_static)
 
 # configure settings for ctest
 configure_file(
