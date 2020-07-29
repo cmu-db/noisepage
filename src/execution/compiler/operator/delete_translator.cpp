@@ -31,6 +31,7 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   // Delete from table
   DeclareDeleter(function);
   GenTableDelete(function);
+  function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
 
   // Delete from every index
   const auto &op = GetPlanAs<planner::DeletePlanNode>();

@@ -57,6 +57,7 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     GenSetTablePR(function, context, idx);
     // var insert_slot = @tableInsert(&inserter)
     GenTableInsert(function);
+    function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
     const auto &table_oid = GetPlanAs<planner::InsertPlanNode>().GetTableOid();
     const auto &index_oids = GetCodeGen()->GetCatalogAccessor()->GetIndexOids(table_oid);
     for (const auto &index_oid : index_oids) {
