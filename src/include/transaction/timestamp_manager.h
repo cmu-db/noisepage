@@ -15,6 +15,7 @@ class LogSerializerTask;
 
 namespace terrier::transaction {
 class TransactionManager;
+class DeferredActionManager;
 /**
  * Generates timestamps, and keeps track of the lifetime of transactions (whether they have entered or left the system)
  */
@@ -64,6 +65,7 @@ class TimestampManager {
   // along with removing a transaction from the table of active transactions. We need this for correctness
   // in the deferred action framework when dropping tables.
   friend class TransactionManager;
+  friend class DeferredActionManager;
   friend class storage::LogSerializerTask;
 
   bool HasRunningTxn() {

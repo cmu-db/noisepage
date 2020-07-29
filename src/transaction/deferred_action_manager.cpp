@@ -93,6 +93,7 @@ uint32_t DeferredActionManager::ClearBacklog(timestamp_t oldest_txn, bool metric
     }
     processed++;
     common::thread_context.back_log_.pop();
+    back_log_count_--;
   }
   return processed;
 }

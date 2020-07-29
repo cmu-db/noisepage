@@ -89,12 +89,7 @@ class DeferredActionManager {
    * @param index pointer to the index to unregister
    */
   void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
-
-  /**
-   * @return Pointer to the visited tuple slot set
-   */
-  std::unordered_set<storage::TupleSlot> *GetVisitedSlotsLocation() { return &visited_slots_; }
-
+  
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
@@ -108,6 +103,7 @@ class DeferredActionManager {
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
   std::vector<std::atomic<uint16_t>> daf_tags_;
+  std::atomic<size_t> back_log_count_ = 0;
 
   // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
   //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls
