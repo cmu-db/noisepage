@@ -41,7 +41,6 @@ endif()
 if (CLANG_TOOLS_VERSION)
   find_program(CLANG_TIDY_BIN
       NAMES clang-tidy-${CLANG_TOOLS_VERSION}
-      clang-tidy
       PATHS
       ${ClangTools_PATH}
       $ENV{CLANG_TOOLS_PATH}
@@ -98,7 +97,6 @@ endif()
 if (CLANG_TOOLS_VERSION)
   find_program(CLANG_FORMAT_BIN
       NAMES clang-format-${CLANG_TOOLS_VERSION}
-      clang-format
       PATHS
       ${ClangTools_PATH}
       $ENV{CLANG_TOOLS_PATH}

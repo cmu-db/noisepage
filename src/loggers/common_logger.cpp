@@ -2,6 +2,9 @@
 
 #include <memory>
 
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
+
 namespace terrier::common {
 
 std::shared_ptr<spdlog::logger> common_logger = nullptr;  // NOLINT
