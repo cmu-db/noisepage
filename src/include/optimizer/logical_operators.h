@@ -132,6 +132,14 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
   bool GetIsForUpdate() const { return is_for_update_; }
 
   /**
+   * Sets the limit
+   */
+    void SetLimit(uint32_t limit) {
+      limit_exists_ = true;
+      limit_ = limit;
+    }
+
+  /**
    * Gets whether the limit exists
    * @returns limit exists
    */
@@ -142,11 +150,6 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    * @returns limit
    */
   uint32_t GetLimit() { return limit_; }
-
-  void SetLimit(uint32_t limit) {
-    limit_exists_ = true;
-    limit_ = limit;
-  }
 
  private:
   /**
