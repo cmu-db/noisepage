@@ -5,7 +5,7 @@
             "base": {
                 "benchmark": "noop",
                 "weights": "100",
-                "query_mode": "simple"
+                "query_mode": "extended"
             }
         }
     ]
