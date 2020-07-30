@@ -1,7 +1,6 @@
 #include "execution/sql/vector.h"
 
 #include <cstring>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <string>
