@@ -1,9 +1,10 @@
 #pragma once
 
-#include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_label.h"
 
 namespace terrier::execution::vm {
+
+class BytecodeGenerator;
 
 /**
  * Base class for all control-flow builders.
