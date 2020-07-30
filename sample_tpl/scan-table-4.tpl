@@ -1,27 +1,24 @@
-// Perform:
-//
-// SELECT col1, col2 FROM test_2 WHERE (col1 < col2)
-//
-// Should return 5, given default random seed (number of output rows). The expected value is 5.
+// TODO(WAN): figure out expected output
+// Expected output: wait this is a non-deterministic test?
+// SQL: SELECT col1, col2 FROM test_2 WHERE (col1 < col2)
 
-
-fun main(execCtx: *ExecutionContext) -> int64 {
+fun main(execCtx: *ExecutionContext) -> int {
   var ret = 0
   var tvi: TableVectorIterator
-  var oids: [2]uint32
-  oids[0] = 1 // col1
-  oids[1] = 2 // col2
-  @tableIterInitBind(&tvi, execCtx, "test_2", oids)
-  for (; @tableIterAdvance(&tvi); ) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var col1 = @pciGetSmallInt(pci, 1)
-      var col2 = @pciGetIntNull(pci, 0)
+  var table_oid = @testCatalogLookup(execCtx, "test_2", "")
+  var col_oids: [2]uint32
+  col_oids[0] = @testCatalogLookup(execCtx, "test_2", "col1")
+  col_oids[1] = @testCatalogLookup(execCtx, "test_2", "col2")
+  for (@tableIterInit(&tvi, execCtx, table_oid, col_oids); @tableIterAdvance(&tvi); ) {
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      var col1 = @vpiGetSmallInt(vpi, 1)
+      var col2 = @vpiGetInt(vpi, 0)
       if (col1 < col2) {
         ret = ret + 1
       }
     }
-    @pciReset(pci)
+    @vpiReset(vpi)
   }
   @tableIterClose(&tvi)
   return ret
