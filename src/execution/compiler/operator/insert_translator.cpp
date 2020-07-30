@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/schema.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/codegen.h"
@@ -180,6 +181,14 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
   If success(builder, cond);
   { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }
   success.EndIf();
+}
+
+std::vector<catalog::col_oid_t> InsertTranslator::AllColOids(const catalog::Schema &table_schema) {
+  std::vector<catalog::col_oid_t> oids;
+  for (const auto &col : table_schema.GetColumns()) {
+    oids.emplace_back(col.Oid());
+  }
+  return oids;
 }
 
 }  // namespace terrier::execution::compiler

@@ -1,23 +1,18 @@
 #pragma once
+
 #include <memory>
 #include <utility>
 #include <vector>
 
-// TODO(WAN): COMPILE TIME looks like a lot of possible forward declarations
-
-#include "catalog/catalog_accessor.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
 #include "execution/exec_defs.h"
-#include "execution/sql/memory_pool.h"
 #include "execution/sql/memory_tracker.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
-
-#include "execution/exec/execution_settings.h"
 
 namespace terrier::brain {
 class PipelineOperatingUnits;
