@@ -276,21 +276,31 @@ void BinderContext::GenerateAllColumnExpressions(
     }
   }
 
+  std::set<std::string> constituent_table_aliases;
+  for (auto &stmt : parse_result->GetStatements()) {
+    if (stmt->GetType() == parser::StatementType::SELECT) {
+      auto select_stmt = stmt.CastManagedPointerTo<parser::SelectStatement>();
+      select_stmt->GetSelectTable()->GetConstituentTableAliases(constituent_table_aliases);
+    }
+  }
+
   for (auto &entry : nested_table_alias_map_) {
     auto &table_alias = entry.first;
-    auto &cols = entry.second;
-    for (auto &col_entry : cols) {
-      auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));
-      tv_expr->SetReturnValueType(col_entry.second);
-      tv_expr->DeriveExpressionName();
-      tv_expr->SetDepth(depth_);
+    if (constituent_table_aliases.count(table_alias)) {
+      auto &cols = entry.second;
+      for (auto &col_entry : cols) {
+        auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));
+        tv_expr->SetReturnValueType(col_entry.second);
+        tv_expr->DeriveExpressionName();
+        tv_expr->SetDepth(depth_);
 
-      auto unique_tv_expr =
-          std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
-      parse_result->AddExpression(std::move(unique_tv_expr));
-      auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
-      // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
-      exprs->push_back(new_tv_expr);
+        auto unique_tv_expr =
+            std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+        parse_result->AddExpression(std::move(unique_tv_expr));
+        auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
+        // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
+        exprs->push_back(new_tv_expr);
+      }
     }
   }
 }

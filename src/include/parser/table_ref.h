@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -273,6 +274,13 @@ class TableRef {
    * @return true if the two TabelRef are logically unequal
    */
   bool operator!=(const TableRef &rhs) const { return !(operator==(rhs)); }
+
+  /**
+   * Inserts all the table aliases forming a table ref into the inputted set.
+   * (i.e., all the aliases used in the from clause, including all aliases in all JOINs)
+   * @param aliases set to insert aliases into
+   */
+  void GetConstituentTableAliases(std::set<std::string> &aliases);
 
   /** @return TableRef serialized to json */
   nlohmann::json ToJson() const;
