@@ -70,12 +70,12 @@ class LogicalInnerJoinAssociativity : public Rule {
  * Rule embeds a logical limit into a scan operator. After predicate push-down, we eliminate all limits with
  * children get operators in the operator trees. Limits and sorts should be associated with get.
  */
-class EmbedLimitIntoGet : public Rule {
+class SetLimitInGet : public Rule {
  public:
   /**
    * Constructor
    */
-  EmbedLimitIntoGet();
+  SetLimitInGet();
 
   /**
    * Gets the rule's promise to apply against a GroupExpression

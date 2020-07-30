@@ -159,10 +159,10 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// RewriteEmbedFilterIntoGet
+/// SetLimitInGet
 ///////////////////////////////////////////////////////////////////////////////
-EmbedLimitIntoGet::EmbedLimitIntoGet() {
-  type_ = RuleType::EMBED_LIMIT_INTO_GET;
+SetLimitInGet::SetLimitInGet() {
+  type_ = RuleType::SET_LIMIT_IN_GET;
 
   match_pattern_ = new Pattern(OpType::LOGICALLIMIT);
   auto child = new Pattern(OpType::LOGICALGET);
@@ -170,30 +170,20 @@ EmbedLimitIntoGet::EmbedLimitIntoGet() {
   match_pattern_->AddChild(child);
 }
 
-bool EmbedLimitIntoGet::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
-                                     OptimizationContext *context) const {
+bool SetLimitInGet::Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-RulePromise EmbedLimitIntoGet::Promise(GroupExpression *group_expr) const {
-  return RulePromise::LOGICAL_PROMISE_PUSHDOWN;
-}
+RulePromise SetLimitInGet::Promise(GroupExpression *group_expr) const { return RulePromise::LOGICAL_PROMISE_PUSHDOWN; }
 
-void EmbedLimitIntoGet::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
-                                         std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
-                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void SetLimitInGet::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                              std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto get = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalGet>();
-  std::string tbl_alias = std::string(get->GetTableAlias());
   size_t limit = input->Contents()->GetContentsAs<LogicalLimit>()->GetLimit();
-  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto output =
-      std::make_unique<OperatorNode>(LogicalGet::Make(get->GetDatabaseOid(), get->GetTableOid(), get->GetPredicates(),
-                                                      tbl_alias, get->GetIsForUpdate(), limit)
-                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                     std::move(c), context->GetOptimizerContext()->GetTxn());
-  transformed->emplace_back(std::move(output));
+  get->SetLimit(limit);
 }
 
 }  // namespace terrier::optimizer

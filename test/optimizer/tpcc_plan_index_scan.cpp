@@ -200,6 +200,8 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(plani->GetChildrenSize(), 0);
     auto index_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plani);
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
+    EXPECT_EQ(index_plan->GetScanHasLimit(), true);
+    EXPECT_EQ(index_plan->GetScanLimit(), 15);
     test->CheckOids(index_plan->GetColumnOids(),
                     {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
 

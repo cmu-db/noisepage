@@ -143,6 +143,11 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    */
   uint32_t GetLimit() { return limit_; }
 
+  void SetLimit(uint32_t limit) {
+    limit_exists_ = true;
+    limit_ = limit;
+  }
+
  private:
   /**
    * OID of the database

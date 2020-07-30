@@ -19,8 +19,7 @@ RulePromise Rule::Promise(GroupExpression *group_expr) const {
 RuleSet::RuleSet() {
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinCommutativity());
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinAssociativity());
-  AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new EmbedLimitIntoGet());
-
+  AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new SetLimitInGet());
 
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDeleteToPhysicalDelete());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalUpdateToPhysicalUpdate());
