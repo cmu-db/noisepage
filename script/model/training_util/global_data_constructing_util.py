@@ -14,7 +14,7 @@ import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
-def get_data(input_path, mini_model_map, model_results_path, warmup_period):
+def get_data(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
@@ -30,7 +30,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period):
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list = pickle.load(pickle_file)
     else:
-        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period)
+        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
@@ -39,7 +39,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period):
     return resource_data_list, impact_data_list
 
 
-def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period):
+def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -49,7 +49,7 @@ def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_r
     :return: The list of the GroupedOpUnitData objects
     """
     data_list = _get_data_list(input_path, warmup_period)
-    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path)
+    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, simulate_cache)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
 
@@ -191,7 +191,7 @@ def _get_data_list(input_path, warmup_period):
     return data_list
 
 
-def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
+def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, simulate_cache):
     """Use the mini-runner to predict the resource consumptions for all the GlobalData, and record the prediction
     result in place
 
@@ -216,9 +216,20 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     prediction_cache = {}
 
     # First run a prediction on the global running data with the mini model results
+    last_pipeline = None
     for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
         y = data.y
         logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
+
+        # Hack for "cache-ness"
+        should_mult = False
+        if i == 0:
+            last_pipeline = data.name
+        elif last_pipeline != data.name:
+            last_pipeline = data.name
+        else:
+            should_mult = True
+
         pipeline_y_pred = 0
         x = None
         for opunit_feature in data.opunit_features:
@@ -265,14 +276,19 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
 
             pipeline_y_pred += y_pred[0]
 
+        pipeline_y = copy.deepcopy(pipeline_y_pred)
+        if should_mult and simulate_cache:
+            # Scale elapsed time by 40% (this is a hack)
+            pipeline_y[-1] = pipeline_y[-1] * 0.4
+
         # Record the predicted
-        data.y_pred = pipeline_y_pred
-        logging.debug("{} pipeline prediction: {}".format(data.name, pipeline_y_pred))
-        logging.debug("{} pipeline predicted time: {}".format(data.name, pipeline_y_pred[-1]))
-        ratio_error = abs(y - pipeline_y_pred) / (y + 1)
+        data.y_pred = pipeline_y
+        logging.debug("{} pipeline prediction: {}".format(data.name, pipeline_y))
+        logging.debug("{} pipeline predicted time: {}".format(data.name, pipeline_y[-1]))
+        ratio_error = abs(y - pipeline_y) / (y + 1)
         logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
 
-        io_util.write_csv_result(prediction_path, data.name, [""] + list(y) + [""] + list(pipeline_y_pred) + [""] +
+        io_util.write_csv_result(prediction_path, data.name, [""] + list(y) + [""] + list(pipeline_y) + [""] +
                                  list(ratio_error))
 
         logging.debug("")
@@ -280,20 +296,20 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         # Record cumulative numbers
         if data.name not in actual_pipelines:
             actual_pipelines[data.name] = copy.deepcopy(y)
-            predicted_pipelines[data.name] = copy.deepcopy(pipeline_y_pred)
+            predicted_pipelines[data.name] = copy.deepcopy(pipeline_y)
             count_pipelines[data.name] = 1
         else:
             actual_pipelines[data.name] += y
-            predicted_pipelines[data.name] += pipeline_y_pred
+            predicted_pipelines[data.name] += pipeline_y
             count_pipelines[data.name] += 1
 
         # Update totals
         if total_actual is None:
             total_actual = copy.deepcopy(y)
-            total_predicted = copy.deepcopy(pipeline_y_pred)
+            total_predicted = copy.deepcopy(pipeline_y)
         else:
             total_actual += y
-            total_predicted += pipeline_y_pred
+            total_predicted += pipeline_y
 
         num_pipelines += 1
 

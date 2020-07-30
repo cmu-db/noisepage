@@ -260,7 +260,7 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -284,7 +284,7 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
 }
 
 static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<std::vector<int64_t>> args;
   GENERATE_MIXED_ARGUMENTS(args, false);
@@ -305,7 +305,7 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
 static void GenSortArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -340,7 +340,7 @@ static void GenSortArguments(benchmark::internal::Benchmark *b) {
 static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -372,7 +372,7 @@ static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenAggregateKeylessArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto col : num_cols) {
     for (auto row : row_nums) {
@@ -399,7 +399,7 @@ static void GenAggregateKeylessArguments(benchmark::internal::Benchmark *b) {
 static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -441,7 +441,7 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
 static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -472,7 +472,7 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   auto key_sizes = {1, 2, 4, 8, 15};
-  auto idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+  auto idx_sizes = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   std::vector<int64_t> lookup_sizes = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
   for (auto type : types) {
     for (auto key_size : key_sizes) {
@@ -495,7 +495,7 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenIdxJoinArguments(benchmark::internal::Benchmark *b) {
   auto key_sizes = {1, 2, 4, 8, 15};
-  std::vector<int64_t> idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+  std::vector<int64_t> idx_sizes = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   for (auto key_size : key_sizes) {
     for (size_t i = 0; i < idx_sizes.size(); i++) {
       for (size_t j = 0; j < idx_sizes.size(); j++) {
@@ -1275,13 +1275,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
   auto outer = state.range(1);
   auto inner = state.range(2);
 
+  // No warmup
   int num_iters = 1;
-  if (inner <= warmup_rows_limit || outer <= warmup_rows_limit) {
-    num_iters += warmup_iterations_num_idx;
-  } else if (rerun_start) {
-    return;
-  }
-
   auto type_size = type::TypeUtil::GetTypeSize(type);
   auto tuple_size = type_size * key_num;
 
