@@ -44,9 +44,9 @@ GBENCHMARK_VERSION=1.4.1
 
 # xxhash
 # url: https://github.com/Cyan4973/xxHash
-# release: 0.7.2
-# commit hash: e2f4695899e831171ecd2e780078474712ea61d3
-# commit hash date: 8 Oct 2019
+# release: 0.8.0
+# commit hash: 94e5f23e736f2bb67ebdf90727353e65344f9fc0
+# commit hash date: 27 Jul 2020
 
 # libcuckoo
 # url: https://github.com/efficient/libcuckoo.git
