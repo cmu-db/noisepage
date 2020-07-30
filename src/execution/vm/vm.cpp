@@ -1493,6 +1493,39 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(HashTableNaiveIteratorInit) : {
+    auto *iter = frame->LocalAt<sql::HashTableNaiveIterator *>(READ_LOCAL_ID());
+    auto *hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    OpHashTableNaiveIteratorInit(iter, hash_table);
+    DISPATCH_NEXT();
+  }
+
+  OP(HashTableNaiveIteratorHasNext) : {
+    auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::HashTableNaiveIterator *>(READ_LOCAL_ID());
+    OpHashTableNaiveIteratorHasNext(has_more, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(HashTableNaiveIteratorNext) : {
+    auto *hash_table_iter = frame->LocalAt<sql::HashTableNaiveIterator *>(READ_LOCAL_ID());
+    OpHashTableNaiveIteratorNext(hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(HashTableNaiveIteratorGetRow) : {
+    auto *row = frame->LocalAt<const byte **>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::HashTableNaiveIterator *>(READ_LOCAL_ID());
+    OpHashTableNaiveIteratorGetRow(row, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(HashTableNaiveIteratorFree) : {
+    auto *hash_table_iter = frame->LocalAt<sql::HashTableNaiveIterator *>(READ_LOCAL_ID());
+    OpHashTableNaiveIteratorFree(hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Sorting
   // -------------------------------------------------------

@@ -903,6 +903,44 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *HTEntryIterGetRow(ast::Expr *iter, ast::Identifier row_type);
 
+  /**
+   * Call \@htNaiveIterInit(). Initializes a join hash table iterator which iterates over every element
+   * of the hash table.
+   * @param iter A pointer to the iterator.
+   * @param ht A pointer to the hash table to iterate over.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *HTNaiveIteratorInit(ast::Expr *iter, ast::Expr *ht);
+
+  /**
+   * Call \@htNaiveIterHasNext(). Determines if the given iterator has more data.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *HTNaiveIteratorHasNext(ast::Expr *iter);
+
+  /**
+   * Call \@htNaiveIterNext(). Advances the iterator by one element.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *HTNaiveIteratorNext(ast::Expr *iter);
+
+  /**
+   * Call \@htNaiveIterGetRow(). Returns a pointer to the payload the iterator is currently positioned at.
+   * @param iter A pointer to the iterator.
+   * @param payload_type The type of the payload
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *HTNaiveIteratorGetRow(ast::Expr *iter, ast::Identifier payload_type);
+
+  /**
+   * Call \@htNaiveIterFree(). Cleans up and destroys the given iterator.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *HTNaiveIteratorFree(ast::Expr *iter);
+
   // -------------------------------------------------------
   //
   // Hash aggregation

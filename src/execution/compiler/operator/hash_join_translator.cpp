@@ -216,7 +216,7 @@ void HashJoinTranslator::CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *f
   auto *codegen = GetCodeGen();
 
   auto cond = ctx->DeriveValue(*join_plan.GetJoinPredicate(), this);
-  if (join_plan.RequiresLeftMark()) {
+  if (join_plan.GetLogicalJoinType() == planner::LogicalJoinType::LEFT_SEMI) {
     // For left-semi joins, we also need to make sure the build-side tuple
     // has not already found an earlier join partner. We enforce the check
     // by modifying the join predicate.
@@ -252,12 +252,52 @@ void HashJoinTranslator::CheckRightMark(WorkContext *ctx, FunctionBuilder *funct
   check_condition.EndIf();
 }
 
+void HashJoinTranslator::CollectUnmatchedLeftRows(WorkContext *ctx, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+
+  // var naiveIterBase: HashTableNaiveIterator
+  ast::Identifier naive_iter_base = codegen->MakeFreshIdentifier("naiveIterBase");
+  ast::Expr *naive_iter_type = codegen->BuiltinType(ast::BuiltinType::HashTableNaiveIterator);
+  function->Append(codegen->DeclareVarNoInit(naive_iter_base, naive_iter_type));
+
+  // var naiveIter = &naiveIterBase
+  ast::Identifier naive_iter = codegen->MakeFreshIdentifier("naiveIter");
+  ast::Expr *naive_iter_init = codegen->AddressOf(codegen->MakeExpr(naive_iter_base));
+  function->Append(codegen->DeclareVarWithInit(naive_iter, naive_iter_init));
+
+  ast::Expr *join_ht = global_join_ht_.GetPtr(codegen);
+  Loop loop(function, codegen->MakeStmt(codegen->HTNaiveIteratorInit(codegen->MakeExpr(naive_iter), join_ht)),
+            codegen->HTNaiveIteratorHasNext(codegen->MakeExpr(naive_iter)),
+            codegen->MakeStmt(codegen->HTNaiveIteratorNext(codegen->MakeExpr(naive_iter))));
+  {
+    // var buildRow = @htNaiveIterGetRow()
+    function->Append(codegen->DeclareVarWithInit(
+        build_row_var_, codegen->HTNaiveIteratorGetRow(codegen->MakeExpr(naive_iter), build_row_type_)));
+
+    auto left_mark = codegen->AccessStructMember(codegen->MakeExpr(build_row_var_), build_mark_);
+
+    // If mark is true, then row was not matched
+    If check_condition(function, left_mark);
+    {
+      // function->Append(codegen->Assign(left_mark, codegen->ConstBool(false)));
+
+      // Move along.
+      ctx->Push(function);
+    }
+  }
+  loop.EndLoop();
+
+  // Close iterator.
+  function->Append(codegen->HTNaiveIteratorFree(codegen->MakeExpr(naive_iter)));
+}
+
 void HashJoinTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *function) const {
   if (IsLeftPipeline(ctx->GetPipeline())) {
     InsertIntoJoinHashTable(ctx, function);
   } else {
     TERRIER_ASSERT(IsRightPipeline(ctx->GetPipeline()), "Pipeline is unknown to join translator");
     ProbeJoinHashTable(ctx, function);
+    CollectUnmatchedLeftRows(ctx, function);
   }
 }
 

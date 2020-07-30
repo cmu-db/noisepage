@@ -139,6 +139,9 @@ class HashJoinTranslator : public OperatorTranslator {
   // Check the join predicate.
   void CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *function) const;
 
+  // Only for left outer joins - iterate the hash table and output unmatched left rows
+  void CollectUnmatchedLeftRows(WorkContext *ctx, FunctionBuilder *function) const;
+
   /** @return The struct that was declared, used for the minirunner. */
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 

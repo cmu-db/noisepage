@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "execution/sql/bloom_filter.h"
@@ -180,6 +181,7 @@ class EXPORT JoinHashTable {
   const BloomFilter *GetBloomFilter() const { return &bloom_filter_; }
 
  private:
+  friend class HashTableNaiveIterator;
   FRIEND_TEST(JoinHashTableTest, LazyInsertionTest);
   FRIEND_TEST(JoinHashTableTest, PerfTest);
 
@@ -271,5 +273,48 @@ inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) con
   auto *entry = (found ? EntryAt(idx) : nullptr);
   return HashTableEntryIterator(entry, hash);
 }
+
+//===----------------------------------------------------------------------===//
+// Join Hash Table Naive Iterator
+//===----------------------------------------------------------------------===//
+
+/**
+ * A tuple-at-a-time iterator over the contents of a join hash table.
+ * TODO(abalakum): Support concise hash tables as well
+ */
+  class HashTableNaiveIterator {
+  public:
+    /**
+     * Construct an iterator over the given join hash table.
+     * @param join_table The table to iterate.
+     */
+    explicit HashTableNaiveIterator(const JoinHashTable &join_table) : iter_(join_table.chaining_hash_table_) {
+      TERRIER_ASSERT(!join_table.use_concise_ht_,
+              "Must use chaining hash table to use this iterator");
+    }
+
+    /**
+     * @return True if the iterator has more data; false otherwise
+     */
+    bool HasNext() const { return iter_.HasNext(); }
+
+    /**
+     * Advance the iterator one tuple.
+     */
+    void Next() { iter_.Next(); }
+
+    /**
+     * @return A pointer to the current row. This assumes a previous call to HasNext() indicated there
+     *         is more data.
+     */
+    const byte *GetCurrentRow() const {
+      auto *ht_entry = iter_.GetCurrentEntry();
+      return ht_entry->payload_;
+    }
+
+  private:
+    // The iterator over the aggregation hash table
+    ChainingHashTableIterator<true> iter_;
+  };
 
 }  // namespace terrier::execution::sql

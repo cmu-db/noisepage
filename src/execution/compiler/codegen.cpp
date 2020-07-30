@@ -834,6 +834,36 @@ ast::Expr *CodeGen::HTEntryIterGetRow(ast::Expr *iter, ast::Identifier row_type)
   return PtrCast(row_type, call);
 }
 
+ast::Expr *CodeGen::HTNaiveIteratorInit(ast::Expr *iter, ast::Expr *ht) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterInit, {iter, ht});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
+ast::Expr *CodeGen::HTNaiveIteratorHasNext(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterHasNext, {iter});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Bool));
+  return call;
+}
+
+ast::Expr *CodeGen::HTNaiveIteratorNext(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterNext, {iter});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
+ast::Expr *CodeGen::HTNaiveIteratorGetRow(ast::Expr *iter, ast::Identifier payload_type) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterGetRow, {iter});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Uint8)->PointerTo());
+  return PtrCast(payload_type, call);
+}
+
+ast::Expr *CodeGen::HTNaiveIteratorFree(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterFree, {iter});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
 // ---------------------------------------------------------
 // Hash aggregations
 // ---------------------------------------------------------

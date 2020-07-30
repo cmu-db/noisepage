@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <map>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -189,7 +190,7 @@ class BinderContext {
   /**
    * Map table alias to its metadata
    */
-  std::unordered_map<std::string, TableMetadata> regular_table_alias_map_;
+  std::map<std::string, TableMetadata> regular_table_alias_map_;
 
   /**
    * Map the table alias to maps which is from table alias to the value type
