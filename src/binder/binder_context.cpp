@@ -167,6 +167,16 @@ void BinderContext::SetColumnPosTuple(const std::string &col_name,
   expr->SetReturnValueType(column_object.Type());
 }
 
+void BinderContext::SetTableName(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                                 common::ManagedPointer<parser::SelectStatement> node) {
+  if (node->GetSelectTable() != nullptr && node->GetSelectTable()->GetJoin() == nullptr) {
+    auto table_alias = node->GetSelectTable()->GetAlias();
+    if (expr->GetTableName().empty()) {
+      expr->SetTableName(table_alias);
+    }
+  }
+}
+
 bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValueExpression> expr) {
   auto col_name = expr->GetColumnName();
   std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
