@@ -133,7 +133,7 @@ class CompilationContext {
 
  private:
   // Unique ID used as a prefix for all generated functions to ensure uniqueness.
-  uint64_t unique_id_;
+  uint32_t unique_id_;
 
   // The compiled query object we'll update.
   ExecutableQuery *query_;
