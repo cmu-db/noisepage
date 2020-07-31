@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import moglib.*;
+import org.junit.Test;
 
 
 /**
@@ -24,7 +25,7 @@ public class GenerateTrace {
     public static final String QUERY_I_NOSORT = "query I nosort";
     public static final String SEPARATION = "----";
     public static final String DEST_DIR = "traces";
-    public static final String DEST_NAME = "output.test";
+    public static final String DEST_NAME = "output.txt";
 
     public static void main(String[] args) throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
@@ -65,21 +66,12 @@ public class GenerateTrace {
                 ResultSet rs = statement.getResultSet();
                 List<String> res = mog.processResults(rs);
                 // compute the hash
-                MessageDigest md;
-                try {
-                    md = MessageDigest.getInstance("MD5");
-                } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException("no Alg", e);
-                }
-                String resultString = String.join("\n", res) + "\n";
-                md.update(resultString.getBytes());
-                byte[] byteArr = md.digest();
-                String hash = MogUtil.bytesToHex(byteArr).toLowerCase();
+                String hash = TestUtility.getHashFromDb(res);
                 int num = res.size();
                 String queryResult = num + " values hashing to " + hash;
                 writeToFile(writer, queryResult);
                 writer.write('\n');
-            } else if(line.startsWith("#")){
+            } else if(line.startsWith("#")||line.startsWith("skip")){
                 writeToFile(writer, line);
             } else{
                 // other sql statements

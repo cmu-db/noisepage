@@ -1,9 +1,6 @@
-import org.junit.FixMethodOrder;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.function.Executable;
 import java.io.*;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,7 +15,6 @@ import moglib.*;
  * Test class that dynamically generate test cases for each sql query
  * Get file path from environment variable
  */
-@FixMethodOrder()
 public class TracefileTest {
     private static File file;
     private static MogSqlite mog;
@@ -56,16 +52,19 @@ public class TracefileTest {
         Collection<DynamicTest> dTest = new ArrayList<>();
         int lineCounter = -1;
         // get all query start numbers
-        List<Integer> queryLine = null;
-        queryLine = getQueryLineNum(file);
+        List<Integer> queryLine = TestUtility.getQueryLineNum(file);
 
         // loop through every sql statement
         while (mog.next()) {
             // case for create and insert statements
             lineCounter++;
+            if(mog.skip_status){
+                mog.skip_status = false;
+                continue;
+            }
             String cur_sql = mog.sql.trim();
             int num = queryLine.get(lineCounter);
-            if (mog.queryResults.size() == 0) {
+            if (mog.queryFirstLine.contains("statement")) {
                 Statement statement = null;
                 Executable exec = null;
                 String testName = "Line:" + num + " | Expected " + mog.status;
@@ -91,31 +90,34 @@ public class TracefileTest {
                 dTest.add(cur);
             } else{
                 // case for query statements
-                if(mog.queryResults.get(0).contains("values")){
+                String parsed_hash;
+                if(mog.queryResults.size()==0 || (!mog.queryResults.get(0).contains("values"))) {
+                    parsed_hash = TestUtility.getHashFromDb(mog.queryResults);
+                }else{
                     // parse the line from test file to get the hash
                     String[] sentence = mog.queryResults.get(0).split(" ");
-                    String hash = sentence[sentence.length-1];
-                    String testName = "Line:" + num +" | Hash:"+hash;
-                    // execute sql query to get result from database
-                    Statement statement = null;
-                    List<String> res = new ArrayList<>();
-                    Executable exec = null;
-                    try {
-                        statement = conn.createStatement();
-                        statement.execute(cur_sql);
-                        ResultSet rs = statement.getResultSet();
-                        res = mog.processResults(rs);
-                        // create an executable for the query
-                        String hash2 = getHashFromDb(res);
-                        exec = () -> check(hash, hash2, num, cur_sql);
-                        // create the DynamicTest object
-                    } catch (Throwable e) {
-                        String message = "Failure at Line " + num + ": " + e.getMessage() + "\n" + cur_sql;
-                        exec = () -> check2(message);
-                    }
-                    DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
-                    dTest.add(cur);
+                    parsed_hash = sentence[sentence.length - 1];
                 }
+                String testName = "Line:" + num +" | Hash:" + parsed_hash;
+                // execute sql query to get result from database
+                Statement statement;
+                List<String> res;
+                Executable exec;
+                try {
+                    statement = conn.createStatement();
+                    statement.execute(cur_sql);
+                    ResultSet rs = statement.getResultSet();
+                    res = mog.processResults(rs);
+                    // create an executable for the query
+                    String hash2 = TestUtility.getHashFromDb(res);
+                    exec = () -> check(parsed_hash, hash2, num, cur_sql);
+                    // create the DynamicTest object
+                } catch (Throwable e) {
+                    String message = "Failure at Line " + num + ": " + e.getMessage() + "\n" + cur_sql;
+                    exec = () -> check2(message);
+                }
+                DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
+                dTest.add(cur);
             }
             mog.queryResults.clear();
         }
@@ -150,42 +152,19 @@ public class TracefileTest {
         throw new Exception(mes);
     }
 
-    /**
-     * Compute the hash from result list
-     * @param res result list of strings queried from database
-     * @return hash computed
-     */
-    public static String getHashFromDb(List<String> res)  {
-        MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+    public static void removeExistingTable(List<String> tab, Connection connection) throws SQLException {
+        for(String i:tab){
+            Statement st = connection.createStatement();
+            String sql = "DROP TABLE IF EXISTS " + i + " CASCADE";
+            st.execute(sql);
         }
-        String resultString = String.join("\n", res) + "\n";
-        md.update(resultString.getBytes());
-        byte[] byteArr = md.digest();
-        String hex = MogUtil.bytesToHex(byteArr);
-        return hex.toLowerCase();
     }
-
-    /**
-     * Get all sql query statement start line numbers
-     * @param input test file
-     * @return list of integers that contains start line numbers
-     * @throws IOException
-     */
-    public static List<Integer> getQueryLineNum(File input) throws IOException {
-        BufferedReader bf = new BufferedReader(new FileReader(input));
-        List<Integer> res = new ArrayList<>();
-        String line;
-        int counter = 0;
-        while (null != (line = bf.readLine())){
-            counter++;
-            if(line.startsWith("query") || line.startsWith("statement")){
-                res.add(counter);
-            }
-        }
+    public static List<String> getAllExistingTableName(MogSqlite mog,Connection connection) throws SQLException {
+        Statement st = connection.createStatement();
+        String getTableName = "SELECT tablename FROM pg_tables WHERE schemaname = 'public';";
+        st.execute(getTableName);
+        ResultSet rs = st.getResultSet();
+        List<String> res = mog.processResults(rs);
         return res;
     }
 

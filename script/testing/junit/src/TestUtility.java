@@ -3,11 +3,21 @@
  * Base class (helper functions) for prepared statement tests
  */
 
+import moglib.MogUtil;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 
@@ -126,5 +136,44 @@ public class TestUtility {
         for (int i = 0; i < values.length; i++) {
             pstmt.setInt(col++, (int) values[i]);
         }
+    }
+
+    /**
+     * Get all sql query statement start line numbers
+     * @param input test file
+     * @return list of integers that contains start line numbers
+     * @throws IOException
+     */
+    public static List<Integer> getQueryLineNum(File input) throws IOException {
+        BufferedReader bf = new BufferedReader(new FileReader(input));
+        List<Integer> res = new ArrayList<>();
+        String line;
+        int counter = 0;
+        while (null != (line = bf.readLine())){
+            counter++;
+            if(line.startsWith("query") || line.startsWith("statement")){
+                res.add(counter);
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Compute the hash from result list
+     * @param res result list of strings queried from database
+     * @return hash computed
+     */
+    public static String getHashFromDb(List<String> res)  {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        String resultString = String.join("\n", res) + "\n";
+        md.update(resultString.getBytes());
+        byte[] byteArr = md.digest();
+        String hex = MogUtil.bytesToHex(byteArr);
+        return hex.toLowerCase();
     }
 }

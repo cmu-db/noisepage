@@ -29,9 +29,11 @@ public class MogSqlite {
 
     /* Query records. */
     private String typeString = "";
-    private String sortMode = "";
+    public String sortMode = "";
     private String label = "";
     public ArrayList<String> queryResults = new ArrayList<>();
+    public String queryFirstLine;
+    public ArrayList<String> comments = new ArrayList<>();
     public int lineCounter = 0;
     public int lineNum;
     public String status;
@@ -42,6 +44,8 @@ public class MogSqlite {
     public static final String HALT = "halt";
     public static final String HASH_THRESHOLD = "hash-threshold";
     public static final String SEPARATION = "----";
+    public static final String SKIP = "skip";
+    public boolean skip_status = false;
 
     public MogSqlite(File sqliteTestFile) throws FileNotFoundException {
         this.br = new BufferedReader(new FileReader(sqliteTestFile));
@@ -57,12 +61,12 @@ public class MogSqlite {
     public boolean next() throws IOException, RuntimeException {
         boolean readLine = false;
         String line;
-
         while (null != (line = br.readLine())) {
             readLine = true;
             if (line.startsWith(HASHTAG)) {
                 /* Ignore comments. */
                 lineCounter++;
+                comments.add(line);
                 continue;
             } else if (line.startsWith(HALT)) {
                 /* Special debugging control record, ignore the rest of the test script. */
@@ -75,11 +79,16 @@ public class MogSqlite {
             } else if (line.startsWith(STATEMENT_OK) || line.startsWith(STATEMENT_ERROR)) {
                 /* Statement record. */
                 status = line.split(" ")[1];
+                queryFirstLine = line.trim();
                 lineCounter++;
                 readRecordStatement(line);
                 break;
+            } else if(line.startsWith(SKIP)){
+                skip_status = true;
+                continue;
             } else if (line.startsWith(QUERY)) {
                 /* Query record. */
+                queryFirstLine = line.trim();
                 lineNum = lineCounter;
                 readRecordQuery(line);
                 break;
@@ -225,7 +234,19 @@ public class MogSqlite {
         }
         return resultRows.stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
-
+    public static String getHashFromDb(List<String> res)  {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        String resultString = String.join("\n", res) + "\n";
+        md.update(resultString.getBytes());
+        byte[] byteArr = md.digest();
+        String hex = MogUtil.bytesToHex(byteArr);
+        return hex.toLowerCase();
+    }
     private boolean checkResults(ResultSet rs, ResultSet refRs) throws SQLException {
         List<String> results = processResults(rs);
         List<String> refResults = null == refRs ? null : processResults(refRs);
@@ -315,7 +336,7 @@ public class MogSqlite {
             line = this.br.readLine();
 
             if (null == line || line.startsWith(QUERY) || line.startsWith(STATEMENT_OK)
-                    || line.startsWith(STATEMENT_ERROR) ||line.startsWith(HASHTAG)) {
+                    || line.startsWith(STATEMENT_ERROR) ||line.startsWith(HASHTAG) ||line.startsWith(SKIP)) {
                 /* End of SQL query reached. */
                 this.br.reset();
                 this.sql = this.sb.toString();
@@ -337,7 +358,6 @@ public class MogSqlite {
      */
     private void readRecordQuery(String line) throws IOException {
         assert (line.startsWith(QUERY));
-        lineNum = lineCounter;
         this.mode = SqliteMode.RECORD_QUERY;
 
         /* Parse the query string arguments. */
@@ -399,7 +419,8 @@ public class MogSqlite {
         return null == line
                 || line.startsWith(QUERY)
                 || line.startsWith(STATEMENT_OK)
-                || line.startsWith(STATEMENT_ERROR);
+                || line.startsWith(STATEMENT_ERROR)
+                || line.startsWith(SKIP);
     }
 
 }

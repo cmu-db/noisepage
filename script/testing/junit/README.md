@@ -1,24 +1,87 @@
 # JUnit Testing Script
 
 This directory contains tests using Junit5.
-Under src, the moglib directory contains APIs from Wan's mogjdbc library used to
-handle database interaction
-GenerateTrace converts input file consisting of sql statements to tracefile format
-TracefileTest takes in path to a tracefile and dynamically generate a test case
-for each query. (Test case: execute the query, get the result from database and
-check if the hash match)
-TrafficCopTest and WireTest are non-tracefile related tests.
-TestUtility provides a list of utility methods
 
-Instruction to use GenerateTrace:
-First, establish a local postgresql database
-Second, start the database server with "pg_ctl -D /usr/local/var/postgres start"
-Third, in the command line, run ant compile
-Finally, run ant generate-trace with 4 arguments: path, db-url, db-user and db-password
+### src directory
+
+1. The moglib directory contains modified APIs from Wan's mogjdbc library 
+used to handle database interaction
+
+2. GenerateTrace converts input file consisting of sql statements to trace file format
+
+3. There are two sets of tests: trace tests and non-trace related junit tests.
+
+* TracefileTest takes in path to a trace file from an environment variable called 
+NOISEPAGE_TRACE_FILE and dynamically generate a test case for each query. 
+(Test case: execute the query, get the result from database and
+check if the hash match)
+
+* TrafficCopTest and WireTest are non-trace related junit tests.
+
+4. TestUtility provides a list of utility methods. It contains supporting functions 
+shared across tests. Supplement as needed. Avoid duplicating code in tests.
+
+### traces directory
+
+The traces directory contains trace test files that end with .test
+
+### Instruction to use FilterTrace:
+
+1. Establish a local postgresql database
+
+2. Start the database server with "pg_ctl -D /usr/local/var/postgres start"
+
+3. Prepare your input trace file
+
+4. In the command line, after the code compiles (ant compile), run 
+ant filter-trace with 5 arguments: path, db-url, db-user, db-password, and skip-list
+Command format: ant filter-trace -Dpath=PATH_TO_YOUR_FILE
+ -Ddb-url=YOUR_JDBC_URL -Ddb-user=YOUR_DB_USERNAME -Ddb-password=YOUR_DB_PASSWORD
+ -Dskip-list=DESIRED_SKIP_LIST
+
+5. An output trace file should be produced called xxx_new (XXX is the input)
+Rename output.txt to contain .test (like xxx.test) for it to be included in 
+future junit test runs
+
+Example: 
+
+Given sql input file select.test under traces directory, jdbc url jdbc:postgresql://localhost/jeffdb,
+db username jeffniu, password "", and skip-list [CASE,BETWEEN,WHERE,abs(,WHEN],
+the command should be:
+
+ant filter-trace -Dpath=traces/select.test -Ddb-url=jdbc:postgresql://localhost/jeffdb 
+-Ddb-user=jeffniu -Dpassword="" -Dskip-list=“CASE,BETWEEN,WHERE,abs(,WHEN"
+
+The output file contains all traces as before, except that for a query that contain
+any keyword within the skip-list, a "skip" tag is added above the query so that when
+TracefileTest is run the query would be skipped. For a query that doesn't contain
+any keyword within the skip-list, its hash will be updated with postgresql.
+
+### Instruction to use GenerateTrace:
+
+1. Establish a local postgresql database
+
+2. Start the database server with "pg_ctl -D /usr/local/var/postgres start"
+
+3. Write your own sql input file. Format: sql statements, one per line, 
+comments allowed (start line with #)
+
+4. In the command line, after the code compiles (ant compile), run 
+ant generate-trace with 4 arguments: path, db-url, db-user and db-password
 Command format: ant generate-trace -Dpath=PATH_TO_YOUR_FILE
- -Ddb-url=YOUR_JDBC_URL -Ddb-user=YOUR_DB_USERNAME -Ddb=password=YOUR_DB_PASSWORD
-Format of your input file: sql statements, one per line
-An output file should be produced called output.txt which is of tracefile format
+ -Ddb-url=YOUR_JDBC_URL -Ddb-user=YOUR_DB_USERNAME -Ddb-password=YOUR_DB_PASSWORD
+
+5. An output file should be produced called output.txt which is of trace file format.
+Rename output.txt to contain .test (like xxx.test) for it to be included in 
+future junit test runs
+
+Example: 
+
+Given sql input file select.sql under traces directory, jdbc url jdbc:postgresql://localhost/jeffdb,
+db username jeffniu and password "", the command should be:
+
+ant generate-trace -Dpath=traces/select.sql -Ddb-url=jdbc:postgresql://localhost/jeffdb
+ -Ddb-user=jeffniu -Ddb-password=""
 
 ## Installation and pre-requisites
 
@@ -51,50 +114,36 @@ been built in this development tree), and run the tests.
 
 `./run_junit.py`
 
-
-## Manual Run with Ant JUnit Runner
-
-1. Compile the tests.
-   `ant compile`
-
-2. To run the tests, first start the database server manually in a separate shell (e.g., `./terrier`)
-
-3. Run the tests, (from this directory):
-   `ant test`
+run_junit.py will execute the non-trace related junit tests first and then the trace tests.
 
 ## Manual Run with the JUnit Console Runner
-This method provides clearer, human friendly output. This requires Java 8 or later.
+This method provides clear, human friendly output. This requires Java 8 or later.
 
 1. Compile the tests.
    `ant compile`
 
-2. To run the tests, first start the database server manually in a separate shell (e.g., `./terrier`)
+2. Start the database server manually in a separate shell (e.g., `./terrier`)
 
-3. Run the tests, (from this directory):
-   `ant testconsole`
+3. To run a trace test, pass in file path as an environment variable.
+Example command: NOISEPAGE_TRACE_FILE=./traces/select.test ant test-trace
+
+4. To run non-trace tests, run ant test-unit
 
 ## Adding New Tests
 
-No changes are necessary to the antfile (build.xml). Ant compiles all java files present in 
-the `src` directory. The test runners find all compiled tests and run them.
+No changes are necessary to the antfile (build.xml). 
+To add trace tests, add the trace files ending with .test (`XXX.test`) to the junit/traces directory.
+To add non-trace junit tests, add the java test files (`XXX.java`) to the junit/src directory.
+Ant compiles all java files present in the `src` directory. The test runners find all compiled tests and run them.
 
 ## Code Structure for Tests
 
-* `TestUtility` contains supporting functions shared across tests. Supplement as needed. Avoid duplicating code in tests.
-
-* Add a new `XXX.java` file for each new test class. Each class may contain as many tests as desired. The current tests use one schema for the class.
-
-* See `UpdateTest.java` for an example of a simple test. Each test will need a `Connection`
+* See `TrafficCopTest.java` for an example of a non-trace junit test. Each test will need a `Connection`
   variable and SQL statements to setup the tables.
 
-* See InsertPSTest.java for additional examples, including use of prepared statements. 
-  Most likely you'll want to implement using normal statements rather than prepared statements.
-
 * JUnit invokes the `Setup()` method prior to each test and then calls `Teardown()` after they
-  finish. If you need different granularity, see the JUnit4 documentation. Class
+  finish. If you need different granularity, see the JUnit5 documentation. Class
   level setup / teardown is possible.
 
 * Functions annotated with `@Test` are the actual tests. 
   Tests may be temporarily disabled by commented out the annotation (e.g., `//@Test`).
-
-
