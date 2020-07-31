@@ -15,77 +15,55 @@ namespace terrier::execution::compiler {
 class CteScanTranslator : public OperatorTranslator {
  public:
   /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * Create a translator for the given plan.
+   * @param plan The plan.
+   * @param compilation_context The context this translator belongs to.
+   * @param pipeline The pipeline this translator is participating in.
    */
-  CteScanTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen);
+  CteScanTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
-  // Pass through
-  void Produce(FunctionBuilder *builder) override;
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(CteScanTranslator);
 
-  // Pass through
-  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
+  /**
+   * If the scan has a predicate, this function will define all clause functions.
+   * @param decls The top-level declarations.
+   */
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
-  // Pass through
-  void Consume(FunctionBuilder *builder) override;
+  /**
+   * Initialize the FilterManager if required.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
+  /**
+   * Generate the scan.
+   * @param context The context of the work.
+   * @param function The pipeline generating function.
+   */
+  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override {}
+  /**
+   * Tear-down the FilterManager if required.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override {}
+  /**
+   * @return The value (or value vector) of the column with the provided column OID in the table
+   *         this sequential scan is operating over.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
-  // Does nothing
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
+  ast::Expr *GetSlotAddress() const override;
 
-  // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
-
-  ast::Expr *GetOutput(uint32_t attr_idx) override {
-    // We need to do this as the output schema can be only one thing
-    // Either a constant value expression or a derived value expression
-    // Leader is given preference - As that node is the LEADER..!!
-
-    auto type = op_->GetOutputSchema()->GetColumn(attr_idx).GetType();
-    auto name = op_->GetOutputSchema()->GetColumn(attr_idx).GetName();
-
-    auto nullable = false;
-    // ToDo(Rohan) : Think if this can be simplified
-    uint16_t projection_map_index = projection_map_[static_cast<catalog::col_oid_t>(col_name_to_oid_[name])];
-    return codegen_->PCIGet(read_pci_, type, nullable, projection_map_index);
-  }
-
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
-    return child_translator_->GetOutput(attr_idx);
-  }
-
-  // Is always vectorizable.
-  bool IsVectorizable() override { return true; }
-
-  // Should not be called here
-  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
-
-  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   const planner::CteScanPlanNode *op_;
-  ast::Identifier GetCteScanIterator();
-  // Declare Cte Scan Itarator
-  void DeclareCteScanIterator(FunctionBuilder *builder);
-  // Set Column Types for insertion
-  void SetColumnTypes(FunctionBuilder *builder);
-  // Declare the insert PR
-  void DeclareInsertPR(FunctionBuilder *builder);
-  // Get the pr to insert
-  void GetInsertPR(FunctionBuilder *builder);
-  // Fill the insert PR from the child's output
-  void FillPRFromChild(FunctionBuilder *builder);
-  // Insert into table.
-  void GenTableInsert(FunctionBuilder *builder);
+  ast::Expr* GetCteScanIterator() const;
   ast::Identifier col_types_;
   std::vector<int> all_types_;
   ast::Identifier insert_pr_;
@@ -94,25 +72,16 @@ class CteScanTranslator : public OperatorTranslator {
   storage::ProjectionMap projection_map_;
   ast::Identifier read_col_oids_;
   ast::Identifier read_tvi_;
-  ast::Identifier read_pci_;
-  void SetReadOids(FunctionBuilder *builder);
-  void DeclareReadTVI(FunctionBuilder *builder);
-  void GenReadTVIClose(FunctionBuilder *builder);
-  void DoTableScan(FunctionBuilder *builder);
+  ast::Identifier read_vpi_;
+  void SetReadOids(FunctionBuilder *builder) const;
+  void DeclareReadTVI(FunctionBuilder *builder) const;
+  void GenReadTVIClose(FunctionBuilder *builder) const;
+  void DoTableScan(WorkContext *context, FunctionBuilder *builder) const;
 
   // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
-  void GenTVILoop(FunctionBuilder *builder);
-
-  void DeclarePCI(FunctionBuilder *builder);
-  void DeclareSlot(FunctionBuilder *builder);
-
-  // var pci = @tableIterGetPCI(&tvi)
-  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
-  void GenPCILoop(FunctionBuilder *builder);
-
-  void GenReadTVIReset(FunctionBuilder *builder);
-  void GenScanCondition(FunctionBuilder *builder);
+  void DeclareSlot(FunctionBuilder *builder) const;
   catalog::Schema schema_;
+  ast::Identifier read_slot_;
 };
 
 }  // namespace terrier::execution::compiler

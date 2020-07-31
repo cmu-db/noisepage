@@ -45,9 +45,7 @@ CodeGen::CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor)
       num_cached_scopes_(0),
       scope_(nullptr),
       accessor_(accessor),
-      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()),
-      cte_scan_iterator_(MakeFreshIdentifier("cte_scan_iterator"))
-// TODO(tanujnay112) ^get rid of this
+      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>())
 {
   for (auto &scope : scope_cache_) {
     scope = std::make_unique<Scope>(nullptr);
@@ -174,16 +172,6 @@ ast::Expr *CodeGen::PointerType(ast::BuiltinType::Kind builtin) const { return P
 
 ast::Expr *CodeGen::ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind) {
   return GetFactory()->NewArrayType(position_, Const64(num_elems), BuiltinType(kind));
-}
-
-ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr, ast::Identifier col_oids,
-                                      ast::Expr *exec_ctx_expr) {
-  ast::Expr *tvi_ptr = AddressOf(tvi);
-//  ast::Expr *cte_scan_iterator_ptr = GetStateMemberPtr(cte_scan_iterator);
-  ast::Expr *col_oids_expr = MakeExpr(col_oids);
-
-  std::vector<ast::Expr*> args{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr};
-  return CallBuiltin(ast::Builtin::TempTableIterInitBind, std::move(args));
 }
 
 ast::Expr *CodeGen::ArrayAccess(ast::Identifier arr, uint64_t idx) {
@@ -545,6 +533,16 @@ ast::Expr *CodeGen::TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, ca
       CallBuiltin(ast::Builtin::TableIterInit, {table_iter, exec_ctx, Const32(!table_oid), MakeExpr(col_oids)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
+}
+
+ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr, ast::Identifier col_oids,
+                                      ast::Expr *exec_ctx_expr) {
+  ast::Expr *tvi_ptr = AddressOf(tvi);
+//  ast::Expr *cte_scan_iterator_ptr = GetStateMemberPtr(cte_scan_iterator);
+  ast::Expr *col_oids_expr = MakeExpr(col_oids);
+
+  std::vector<ast::Expr*> args{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr};
+  return CallBuiltin(ast::Builtin::TempTableIterInitBind, std::move(args));
 }
 
 ast::Expr *CodeGen::TableIterAdvance(ast::Expr *table_iter) {
@@ -1175,15 +1173,13 @@ ast::FieldDecl *CodeGen::MakeField(ast::Identifier name, ast::Expr *type) const 
   return context_->GetNodeFactory()->NewFieldDecl(position_, name, type);
 }
 
-//ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types) {
-//  ast::Expr *si_ptr = GetStateMember(si);
-//  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
-//  ast::Expr *col_oids_expr = MakeExpr(col_types);
-//
-//  std::vector<ast::Expr *> args{si_ptr, exec_ctx_expr, col_oids_expr};
-//  return CallBuiltin(ast::Builtin::CteScanInit, std::move(args));
-//}
-//
+ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *si, ast::Identifier col_types, ast::Expr *exec_ctx_var) {
+  ast::Expr *col_oids_expr = MakeExpr(col_types);
+
+  std::vector<ast::Expr *> args{si, exec_ctx_var, col_oids_expr};
+  return CallBuiltin(ast::Builtin::CteScanInit, std::move(args));
+}
+
 //ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types, bool is_recursive) {
 //  ast::Expr *fun = BuiltinFunction(ast::Builtin::IterCteScanInit);
 //  ast::Expr *si_ptr = GetStateMemberPtr(si);

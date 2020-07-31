@@ -319,6 +319,8 @@ class BytecodeEmitter {
   void EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid, LocalVar col_oids,
                          uint32_t num_oids);
 
+  void EmitTempTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
+
   /** Emit a parallel table scan. */
   void EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
                              LocalVar exec_ctx, FunctionId scan_fn);

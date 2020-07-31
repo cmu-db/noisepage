@@ -15,7 +15,7 @@
 namespace terrier::planner {
 
 /**
- * Plan node for a limit operator
+ * Plan node for a ctescan operator
  */
 class CteScanPlanNode : public AbstractPlanNode {
  public:
@@ -109,7 +109,8 @@ class CteScanPlanNode : public AbstractPlanNode {
   /**
    * @return the type of this plan node
    */
-  PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CTESCAN; }
+  PlanNodeType GetPlanNodeType() const override { return is_leader_ ? PlanNodeType::CTESCANLEADER :
+                                                                    PlanNodeType::CTESCAN; }
 
   /**
    * @return the hashed value of this plan node
@@ -129,7 +130,11 @@ class CteScanPlanNode : public AbstractPlanNode {
   /**
    * Assign's this node as the leader CTE scan node
    */
-  void SetLeader() { is_leader_ = true; }
+  void MakeLeader() { is_leader_ = true; }
+
+  void SetLeader(common::ManagedPointer<const planner::CteScanPlanNode> leader) { leader_ = leader; }
+
+  common::ManagedPointer<const planner::CteScanPlanNode> GetLeader() const { return leader_; }
 
   parser::CTEType GetCTEType() const { return cte_type_; }
 
@@ -184,6 +189,7 @@ class CteScanPlanNode : public AbstractPlanNode {
   parser::CTEType cte_type_;
   // Output table schema for CTE scan
   std::unique_ptr<OutputSchema> table_output_schema_;
+  common::ManagedPointer<const CteScanPlanNode> leader_{nullptr};
 
   /**
    * Selection predicate.

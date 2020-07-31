@@ -1302,9 +1302,9 @@ class CodeGen {
    * @param col_types The identifier of the array of column types to access.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types);
+  ast::Expr *CteScanIteratorInit(ast::Expr *si, ast::Identifier col_types, ast::Expr *exec_ctx_var);
 
-  ast::Expr *IterCteScanIteratorInit(ast::Identifier si, ast::Identifier col_types, bool is_recursive);
+  ast::Expr *IterCteScanIteratorInit(ast::Expr *si, ast::Identifier col_types, bool is_recursive);
 
   // ---------------------------------------------------------------------------
   //
@@ -1394,12 +1394,6 @@ class CodeGen {
     return std::move(pipeline_operating_units_);
   }
 
-  /**
-   * Return the identifier for a cte scan iterator in tpl generated
-   * @return identifier for a cte scan iterator in tpl generated
-   */
-//  ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_; }
-
  private:
   // Enter a new lexical scope.
   void EnterScope();
@@ -1425,7 +1419,6 @@ class CodeGen {
   // Minirunner-related.
   std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 
-  ast::Identifier cte_scan_iterator_;
 };
 
 }  // namespace terrier::execution::compiler
