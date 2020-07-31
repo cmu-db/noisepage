@@ -134,10 +134,10 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
   /**
    * Sets the limit
    */
-    void SetLimit(uint32_t limit) {
-      limit_exists_ = true;
-      limit_ = limit;
-    }
+  void SetLimit(uint32_t limit) {
+    limit_exists_ = true;
+    limit_ = limit;
+  }
 
   /**
    * Gets whether the limit exists
