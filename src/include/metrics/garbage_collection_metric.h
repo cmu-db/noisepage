@@ -50,17 +50,8 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       before_queue_length_.store(other_db_metric->before_queue_length_.exchange(0));
     }
 
-//    if (after_queue_length_ < other_db_metric->after_queue_length_) {
-//      after_queue_length_.store(other_db_metric->after_queue_length_.exchange(0));
-//    }
-//      before_queue_length_ += other_db_metric->before_queue_length_.exchange(0);
-
-//    std::cout << "before record " << num_txns_processed_ << std::endl;
     num_daf_wakeup_ += other_db_metric->num_daf_wakeup_.exchange(0);
     num_txns_processed_ += other_db_metric->num_txns_processed_.exchange(0);
-//    std::cout << "record " << num_txns_processed_ << std::endl;
-//    other_db_metric->latch_.Unlock();
-
   }
 
   /**
@@ -88,7 +79,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
 //      data.resource_metrics_.ToCSV(daf_event);
 //      daf_event << std::endl;
 //    }
-    start_ = metrics::MetricsUtil::Now() % 1000000000;
+    start_ = metrics::MetricsUtil::Now();
     daf_count_agg << (start_);
     daf_time_agg << (start_);
     int total_processed = 0;
