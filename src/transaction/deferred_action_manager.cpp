@@ -33,9 +33,9 @@ uint32_t DeferredActionManager::Process(bool process_index) {
   bool daf_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
-  if (daf_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordDafWakeup();
-  }
+//  if (daf_metrics_enabled) {
+//    common::thread_context.metrics_store_->RecordDafWakeup();
+//  }
   uint32_t processed = ProcessNewActions(oldest_txn, daf_metrics_enabled);
 
   if (process_index) ProcessIndexes();
@@ -93,7 +93,7 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
     if (metrics_enabled) {
       common::thread_context.resource_tracker_.Stop();
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordActionData(new_deferred_actions_.front().second.second, resource_metrics);
+      common::thread_context.metrics_store_->RecordActionData(curr_action.second.second, resource_metrics);
     }
     processed++;
 
