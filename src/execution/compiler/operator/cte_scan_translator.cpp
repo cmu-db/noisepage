@@ -85,6 +85,9 @@ CteScanTranslator::CteScanTranslator(const planner::CteScanPlanNode &plan, Compi
     if(plan.GetChildrenSize() > 0){
       compilation_context->Prepare(*(plan.GetChild(0)), pipeline);
     }
+    if(plan.GetScanPredicate() != nullptr) {
+      compilation_context->Prepare(*plan.GetScanPredicate());
+    }
   }
 
   // Use std::map to effectively sort OIDs by their corresponding ID
