@@ -149,7 +149,8 @@ TEST_F(BlockCompactorTest, CompactionTest) {
     for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
 
     gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
+    gc.PerformGarbageCollection();
+    gc.PerformGarbageCollection();  // Third call to deallocate.
     // Deallocate all the leftover versions
     storage::StorageUtil::DeallocateVarlens(block, accessor);
     block_store_.Release(block);
@@ -253,7 +254,8 @@ TEST_F(BlockCompactorTest, GatherTest) {
     for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
 
     gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
+    gc.PerformGarbageCollection();
+    gc.PerformGarbageCollection();  // Third call to deallocate.
     // Deallocate all the leftover gathered varlens
     // No need to gather the ones still in the block because they are presumably all gathered
     for (storage::col_id_t col_id : layout.AllColumns())
@@ -375,7 +377,8 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
 
     gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
+    gc.PerformGarbageCollection();
+    gc.PerformGarbageCollection();  // Third call to deallocate.
     // Deallocate all the leftover gathered varlens
     // No need to gather the ones still in the block because they are presumably all gathered
     for (storage::col_id_t col_id : layout.AllColumns())
