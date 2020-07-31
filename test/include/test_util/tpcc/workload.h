@@ -230,7 +230,7 @@ template <class Random>
 std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator, const TransactionWeights &txn_weights,
                                                          const int8_t num_threads,
                                                          const uint32_t num_precomputed_txns_per_worker) {
-//  Deck deck(txn_weights);
+  Deck deck(txn_weights);
   std::vector<std::vector<TransactionArgs>> precomputed_args;
   precomputed_args.reserve(num_threads);
 
@@ -238,26 +238,26 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
     std::vector<TransactionArgs> txns;
     txns.reserve(num_precomputed_txns_per_worker);
     for (uint32_t i = 0; i < num_precomputed_txns_per_worker; i++) {
-      txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
-//      switch (deck.NextCard()) {
-//        case TransactionType::NewOrder:
-//          txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
-//          break;
-//        case TransactionType::Payment:
-//          txns.emplace_back(BuildPaymentArgs(generator, warehouse_id, num_threads));
-//          break;
-//        case TransactionType::OrderStatus:
-//          txns.emplace_back(BuildOrderStatusArgs(generator, warehouse_id, num_threads));
-//          break;
-//        case TransactionType::Delivery:
-//          txns.emplace_back(BuildDeliveryArgs(generator, warehouse_id, num_threads));
-//          break;
-//        case TransactionType::StockLevel:
-//          txns.emplace_back(BuildStockLevelArgs(generator, warehouse_id, num_threads));
-//          break;
-//        default:
-//          throw std::runtime_error("Unexpected transaction type.");
-//      }
+//      txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
+      switch (deck.NextCard()) {
+        case TransactionType::NewOrder:
+          txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
+          break;
+        case TransactionType::Payment:
+          txns.emplace_back(BuildPaymentArgs(generator, warehouse_id, num_threads));
+          break;
+        case TransactionType::OrderStatus:
+          txns.emplace_back(BuildOrderStatusArgs(generator, warehouse_id, num_threads));
+          break;
+        case TransactionType::Delivery:
+          txns.emplace_back(BuildDeliveryArgs(generator, warehouse_id, num_threads));
+          break;
+        case TransactionType::StockLevel:
+          txns.emplace_back(BuildStockLevelArgs(generator, warehouse_id, num_threads));
+          break;
+        default:
+          throw std::runtime_error("Unexpected transaction type.");
+      }
     }
     precomputed_args.emplace_back(txns);
   }
