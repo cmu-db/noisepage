@@ -77,17 +77,26 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       // SELECT statement has CTE, register CTE table name
       cte_table_name_.push_back(with->GetAlias());
       cte_type_.push_back(with->GetCteType());
+
+      std::vector<type::TypeId> col_types;
+      for(uint32_t i = 0;i < with->GetCteColumnAliases().size();i++){
+        col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
+      }
+      cte_schemas_.push_back(catalog::Schema(with->GetCteColumnAliases(), col_types));
       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> master_expressions;
-      auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(with->GetAlias(), {}, with->GetCteType(), {}),
-          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
-      cte_scan_expr->PushChild(std::move(output_expr_));
-      output_expr_ = std::move(cte_scan_expr);
       std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
       for (auto &elem : with->GetSelect()->GetSelectColumns()) {
         expressions.push_back(elem);
+        col_types.push_back(elem->GetReturnValueType());
       }
+
       master_expressions.push_back(std::move(expressions));
+      auto cte_scan_expr = std::make_unique<OperatorNode>(
+          LogicalCteScan::Make(with->GetAlias(), catalog::Schema(with->GetCteColumnAliases(), col_types),
+                                                                 {}, with->GetCteType(), {}),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+      cte_scan_expr->PushChild(std::move(output_expr_));
+      output_expr_ = std::move(cte_scan_expr);
 
       if (with->GetSelect()->GetUnionSelect() != nullptr) {
         std::vector<common::ManagedPointer<parser::AbstractExpression>> second_expressions;
@@ -349,8 +358,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     if (it != cte_table_name_.end()) {
       // CTE table referred
       auto index = std::distance(cte_table_name_.begin(), it);
+      std::vector<type::TypeId> col_types;
+
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_expressions_[index], cte_type_[index], {}).RegisterWithTxnContext(txn_context),
+          LogicalCteScan::Make(node->GetAlias(), cte_schemas_[index], cte_expressions_[index], cte_type_[index], {}).RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {

@@ -72,7 +72,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     catalog::table_oid_t table_oid_;
   };
 
- private:
+ protected:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node

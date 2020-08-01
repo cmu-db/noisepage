@@ -486,7 +486,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
           base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
         }
         auto &sel_cols = base_case->GetSelectColumns();
-        context.AddNestedTable(cte_table_name_.back(), sel_cols, column_aliases);
+        context.AddCTETable(cte_table_name_.back(), sel_cols, column_aliases);
       }
     }
 
@@ -813,7 +813,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
         (node->GetCteType() == parser::CTEType::RECURSIVE))) {
       // Add the table to the current context at the end
       // In the case of iterative/recursive CTEs, this was done earlier
-      context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), node->GetCteColumnAliases());
+      context_->AddCTETable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), node->GetCteColumnAliases());
     }
   } else if (node->GetJoin() != nullptr) {
     // Join
@@ -828,7 +828,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       // table not in catalog, check if table referred is the cte table
       if (std::find(cte_table_name_.begin(), cte_table_name_.end(), node->GetTableName()) != cte_table_name_.end()) {
         // copy cte table's schema for this alias
-        context_->AddCTETable(node->GetTableName(), node->GetAlias());
+        context_->AddCTETableAlias(node->GetTableName(), node->GetAlias());
       } else {
         throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()),
                              common::ErrorCode::ERRCODE_UNDEFINED_TABLE);

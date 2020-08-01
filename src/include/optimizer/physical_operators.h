@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node_contents.h"
@@ -22,7 +23,6 @@ namespace terrier {
 
 namespace catalog {
 class IndexSchema;
-class Schema;
 }  // namespace catalog
 
 namespace parser {
@@ -2103,7 +2103,7 @@ class CteScan : public OperatorNodeContents<CteScan> {
    */
   static Operator Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
                        std::string table_alias, parser::CTEType cte_type,
-                       std::vector<AnnotatedExpression> &&scan_predicate);
+                       std::vector<AnnotatedExpression> &&scan_predicate, catalog::Schema &&table_schema);
 
   /**
    * Copy
@@ -2139,6 +2139,10 @@ class CteScan : public OperatorNodeContents<CteScan> {
 
   bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
+  const catalog::Schema &GetTableSchema() const {
+    return table_schema_;
+  }
+
  private:
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
 
@@ -2150,6 +2154,8 @@ class CteScan : public OperatorNodeContents<CteScan> {
   parser::CTEType cte_type_;
 
   std::vector<AnnotatedExpression> scan_predicate_;
+
+  catalog::Schema table_schema_;
 };
 
 }  // namespace optimizer

@@ -10,6 +10,7 @@
 
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node.h"
 
@@ -174,6 +175,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   std::vector<std::string> cte_table_name_;
   std::vector<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> cte_expressions_;
   std::vector<parser::CTEType> cte_type_;
+  std::vector<catalog::Schema> cte_schemas_;
 
   /**
    * A set of predicates the current operator generated, we use them to generate filter operator

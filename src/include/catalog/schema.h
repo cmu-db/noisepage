@@ -263,6 +263,8 @@ class Schema {
     }
   }
 
+  explicit Schema(std::vector<std::string> column_aliases, std::vector<type::TypeId> column_types);
+
   /**
    * Default constructor used for deserialization
    */

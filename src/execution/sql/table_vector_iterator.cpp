@@ -22,7 +22,7 @@ TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint3
 TableVectorIterator::~TableVectorIterator() = default;
 
 bool TableVectorIterator::Init() {
-  return Init(table_, 0, storage::DataTable::GetMaxBlocks());
+  return Init(0, storage::DataTable::GetMaxBlocks());
 }
 
 bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {

@@ -26,81 +26,13 @@ CteScanTranslator::CteScanTranslator(const planner::CteScanPlanNode &plan, Compi
       read_vpi_(GetCodeGen()->MakeFreshIdentifier("read_pci")),
       read_slot_(GetCodeGen()->MakeFreshIdentifier("read_slot")) {
   // ToDo(Gautam,Preetansh): Send the complete schema in the plan node.
-  auto &all_columns = op_->GetTableOutputSchema()->GetColumns();
 
-  for (auto &col : all_columns) {
-    all_types_.emplace_back(static_cast<int>(col.GetType()));
+  if(plan.GetChildrenSize() > 0){
+    compilation_context->Prepare(*(plan.GetChild(0)), pipeline);
   }
-
-  std::vector<catalog::Schema::Column> all_schema_columns;
-  for (uint32_t i = 0; i < all_types_.size(); i++) {
-    catalog::Schema::Column col("col" + std::to_string(i + 1), static_cast<type::TypeId>(all_types_[i]), false,
-                                DummyCVE(), static_cast<catalog::col_oid_t>(i + 1));
-    all_schema_columns.push_back(col);
-    col_oids_.push_back(static_cast<catalog::col_oid_t>(i + 1));
-    col_name_to_oid_[all_columns[i].GetName()] = i + 1;
+  if(plan.GetScanPredicate() != nullptr) {
+    compilation_context->Prepare(*plan.GetScanPredicate());
   }
-
-  // Create the table in the catalog.
-  catalog::Schema schema(all_schema_columns);
-
-  std::vector<uint16_t> attr_sizes;
-  attr_sizes.reserve(storage::NUM_RESERVED_COLUMNS + schema.GetColumns().size());
-
-  for (uint8_t i = 0; i < storage::NUM_RESERVED_COLUMNS; i++) {
-    attr_sizes.emplace_back(8);
-  }
-
-  TERRIER_ASSERT(attr_sizes.size() == storage::NUM_RESERVED_COLUMNS,
-                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
-
-  for (const auto &column : schema.GetColumns()) {
-    attr_sizes.push_back(column.AttrSize());
-  }
-
-  auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, storage::NUM_RESERVED_COLUMNS);
-
-  storage::ColumnMap col_oid_to_id;
-  for (const auto &column : schema.GetColumns()) {
-    switch (column.AttrSize()) {
-      case storage::VARLEN_COLUMN:
-        col_oid_to_id[column.Oid()] = {storage::col_id_t(offsets[0]++), column.Type()};
-        break;
-      case 8:
-        col_oid_to_id[column.Oid()] = {storage::col_id_t(offsets[1]++), column.Type()};
-        break;
-      case 4:
-        col_oid_to_id[column.Oid()] = {storage::col_id_t(offsets[1]++), column.Type()};
-        break;
-      case 2:
-        col_oid_to_id[column.Oid()] = {storage::col_id_t(offsets[3]++), column.Type()};
-        break;
-      case 1:
-        col_oid_to_id[column.Oid()] = {storage::col_id_t(offsets[4]++), column.Type()};
-        break;
-      default:
-        throw std::runtime_error("unexpected switch case value");
-    }
-
-    if(plan.GetChildrenSize() > 0){
-      compilation_context->Prepare(*(plan.GetChild(0)), pipeline);
-    }
-    if(plan.GetScanPredicate() != nullptr) {
-      compilation_context->Prepare(*plan.GetScanPredicate());
-    }
-  }
-
-  // Use std::map to effectively sort OIDs by their corresponding ID
-  std::map<storage::col_id_t, catalog::col_oid_t> inverse_map;
-
-  // Notice the change in the inverse map argument different from sql_table get projection map function
-  for (auto col_oid : col_oids_) inverse_map[col_oid_to_id[col_oid].col_id_] = col_oid;
-
-  // Populate the projection map using the in-order iterator on std::map
-  uint16_t i = 0;
-  for (auto &iter : inverse_map) projection_map_[iter.second-1] = i++;
-
-  schema_ = schema;
 }
 
 ast::Expr *CteScanTranslator::GetCteScanIterator() const {
@@ -112,13 +44,14 @@ ast::Expr *CteScanTranslator::GetCteScanIterator() const {
 
 void CteScanTranslator::SetReadOids(FunctionBuilder *builder) const {
   // Declare: var col_oids: [num_cols]uint32
-  ast::Expr *arr_type = GetCodeGen()->ArrayType(col_oids_.size(), ast::BuiltinType::Kind::Uint32);
+  auto columns = op_->GetTableSchema()->GetColumns();
+  ast::Expr *arr_type = GetCodeGen()->ArrayType(columns.size(), ast::BuiltinType::Kind::Uint32);
   builder->Append(GetCodeGen()->DeclareVar(read_col_oids_, arr_type, nullptr));
 
   // For each oid, set col_oids[i] = col_oid
-  for (uint16_t i = 0; i < col_oids_.size(); i++) {
+  for (uint16_t i = 0; i < columns.size(); i++) {
     ast::Expr *lhs = GetCodeGen()->ArrayAccess(read_col_oids_, i);
-    ast::Expr *rhs = GetCodeGen()->Const32(!col_oids_[i]);
+    ast::Expr *rhs = GetCodeGen()->Const32(!columns[i].Oid());
     builder->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 }
@@ -202,10 +135,11 @@ void CteScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   DoTableScan(context, function);
 }
 ast::Expr *CteScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
-  auto type = static_cast<type::TypeId>(all_types_[!col_oid]);
-  auto nullable = false;
-  uint16_t attr_idx = projection_map_.find(col_oid)->second;
-  return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(read_vpi_), sql::GetTypeId(type), nullable, attr_idx);
+  const auto &schema = op_->GetTableSchema();
+  auto type = schema->GetColumn(col_oid).Type();
+  auto nullable = schema->GetColumn(col_oid).Nullable();
+  auto col_index = EXTRACT_OID(catalog::col_oid_t, col_oid);
+  return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(read_vpi_), sql::GetTypeId(type), nullable, !col_index);;
 }
 
 ast::Expr *CteScanTranslator::GetSlotAddress() const { return GetCodeGen()->AddressOf(read_slot_); }

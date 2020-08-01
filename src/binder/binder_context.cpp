@@ -11,6 +11,7 @@
 #include "catalog/catalog_accessor.h"
 #include "common/error/exception.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/table_ref.h"
 
@@ -118,7 +119,27 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
 
-void BinderContext::AddCTETable(const std::string &cte_table_name, const std::string &table_alias) {
+void BinderContext::AddCTETable(const std::string &table_name,
+                                const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
+                                const std::vector<std::string> &col_aliases) {
+  if(regular_table_alias_map_.find(table_name) != regular_table_alias_map_.end()){
+    throw BINDER_EXCEPTION("Duplicate cte table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
+  }
+  std::vector<catalog::Schema::Column> schema_columns;
+  for(size_t i = 0;i < col_aliases.size();i++){
+    catalog::Schema::Column col(col_aliases[i], select_list[i]->GetReturnValueType(), false,
+                                parser::ConstantValueExpression(select_list[i]->GetReturnValueType()),
+                                TEMP_OID(catalog::col_oid_t, i));
+    schema_columns.push_back(col);
+  }
+
+  catalog::Schema cte_schema(schema_columns);
+  regular_table_alias_map_[table_name] = TableMetadata(TEMP_OID(catalog::db_oid_t, catalog::NULL_OID),
+                                                    TEMP_OID(catalog::table_oid_t, catalog::NULL_OID),
+                                                    schema_columns);
+}
+
+void BinderContext::AddCTETableAlias(const std::string &cte_table_name, const std::string &table_alias) {
   if (cte_table_name == table_alias) {
     return;
   }

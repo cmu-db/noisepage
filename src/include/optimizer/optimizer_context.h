@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/schema.h"
 #include "common/settings.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
@@ -77,7 +78,7 @@ class OptimizerContext {
    * Gets the CTE Schema
    * @returns CTE Schema
    */
-  common::ManagedPointer<planner::OutputSchema> GetCTESchema(const std::string &cte_name) {
+  catalog::Schema &GetCTESchema(const std::string &cte_name) {
     return cte_schemas_.find(cte_name)->second;
   }
 
@@ -136,7 +137,7 @@ class OptimizerContext {
    * @param schema OutputSchema
    */
   void SetCTESchema(const std::string &cte_name,
-                    common::ManagedPointer<planner::OutputSchema> schema) { cte_schemas_[cte_name] = schema; }
+                    catalog::Schema schema) { cte_schemas_[cte_name] = schema; }
 
   /**
    * Sets the StatsStorage
@@ -225,7 +226,7 @@ class OptimizerContext {
   StatsStorage *stats_storage_{};
   transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
-  std::unordered_map<std::string, common::ManagedPointer<planner::OutputSchema>> cte_schemas_;
+  std::unordered_map<std::string, catalog::Schema> cte_schemas_;
 };
 
 }  // namespace optimizer

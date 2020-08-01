@@ -78,7 +78,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
     if (plan->GetChildren().empty()) {
       // Set cte schema
       auto cte_scan_plan_node_set = reinterpret_cast<planner::CteScanPlanNode *>(plan.Get());
-      cte_scan_plan_node_set->SetTableOutputSchema(context_->GetCTESchema(table_name)->Copy());
+      cte_scan_plan_node_set->SetTableSchema(context_->GetCTESchema(table_name));
     } else {
       // Child bearing CTE node
       // Replace with leader
@@ -101,7 +101,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
                           .SetCTEType(current_cte->GetCTEType())
                           .SetCTETableName(std::string(current_cte->GetCTETableName()))
                           .SetOutputSchema(current_cte->GetOutputSchema()->Copy())
-                          .SetTableOutputSchema(current_cte->GetTableOutputSchema()->Copy());
+                          .SetTableSchema(catalog::Schema(*current_cte->GetTableSchema().Get()));
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> children;
       current_cte->MoveChildren(&children);
       for(auto &child : children){
@@ -172,11 +172,11 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
     TERRIER_ASSERT(child_groups.size() <= 2, "CTE should not have more than 1 child.");
     if (plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
       auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(plan.get());
-      context_->SetCTESchema(cte_scan_plan_node->GetCTETableName(), cte_scan_plan_node->GetTableOutputSchema());
+      context_->SetCTESchema(cte_scan_plan_node->GetCTETableName(), *cte_scan_plan_node->GetTableSchema());
     } else if ((*plan->GetChildren().begin())->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
       // CTE Scan node can be inside a Projection node
       auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(&(*plan->GetChildren().begin()->Get()));
-      context_->SetCTESchema(cte_scan_plan_node->GetCTETableName(), (cte_scan_plan_node)->GetTableOutputSchema());
+      context_->SetCTESchema(cte_scan_plan_node->GetCTETableName(), *(cte_scan_plan_node)->GetTableSchema());
     }
   }
 

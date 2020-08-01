@@ -1026,19 +1026,19 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
       idx++;
     }
 
-    auto op = common::ManagedPointer<planner::AbstractPlanNode>(output_plan_);
-    while (op != nullptr) {
-      if (op->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
-        auto schema = std::make_unique<planner::OutputSchema>(std::move(inner_columns));
-        auto cte_scan_plan_node = op.CastManagedPointerTo<planner::CteScanPlanNode>();
-        cte_scan_plan_node->SetTableOutputSchema(std::move(schema));
-      }
-      if (op->GetChildrenSize() > 0) {
-        op = op->GetChildren()[0];
-      } else {
-        break;
-      }
-    }
+//    auto op = common::ManagedPointer<planner::AbstractPlanNode>(output_plan_);
+//    while (op != nullptr) {
+//      if (op->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
+//        auto schema = std::make_unique<planner::OutputSchema>(std::move(inner_columns));
+//        auto cte_scan_plan_node = op.CastManagedPointerTo<planner::CteScanPlanNode>();
+//        cte_scan_plan_node->SetTableSchema(std::move(schema));
+//      }
+//      if (op->GetChildrenSize() > 0) {
+//        op = op->GetChildren()[0];
+//      } else {
+//        break;
+//      }
+//    }
 
     std::vector<planner::OutputSchema::Column> columns;
     for (auto &output_expr : output_cols_) {
@@ -1050,10 +1050,11 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     }
 
     auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
+    (void)cte_scan_out;
     if (children_plans_.size() == 2) {
       output_plan_ = planner::CteScanPlanNode::Builder()
                          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
-                         .SetTableOutputSchema(std::move(cte_scan_out))
+                         .SetTableSchema(cte_scan->GetTableSchema())
                          .SetCTEType(cte_scan->GetCTEType())
                          .AddChild(std::move(output_plan_))
                          .AddChild(std::move(children_plans_[1]))
@@ -1063,7 +1064,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
     } else {
       output_plan_ = planner::CteScanPlanNode::Builder()
                          .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
-                         .SetTableOutputSchema(std::move(cte_scan_out))
+                         .SetTableSchema(cte_scan->GetTableSchema())
                          .SetCTEType(cte_scan->GetCTEType())
                          .AddChild(std::move(output_plan_))
                          .SetCTETableName(std::string(cte_scan->GetTableAlias()))
@@ -1083,6 +1084,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
 
     output_plan_ = planner::CteScanPlanNode::Builder()
                        .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                       .SetTableSchema(cte_scan->GetTableSchema())
                        .SetCTEType(cte_scan->GetCTEType())
                        .SetCTETableName(std::string(cte_scan->GetTableAlias()))
                        .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))

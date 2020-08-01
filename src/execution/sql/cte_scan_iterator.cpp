@@ -15,10 +15,10 @@ CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exe
   // Create column metadata for every column.
   std::vector<catalog::Schema::Column> all_columns;
   for (uint32_t i = 0; i < num_schema_cols; i++) {
-    catalog::Schema::Column col("col" + std::to_string(i + 1), static_cast<type::TypeId>(schema_cols_type[i]), false,
-                                DummyCVE(), static_cast<catalog::col_oid_t>(i + 1));
+    catalog::Schema::Column col("col" + std::to_string(i), static_cast<type::TypeId>(schema_cols_type[i]), false,
+                                DummyCVE(), TEMP_OID(catalog::col_oid_t, i));
     all_columns.push_back(col);
-    col_oids_.push_back(static_cast<catalog::col_oid_t>(i + 1));
+    col_oids_.push_back(TEMP_OID(catalog::col_oid_t, i));
   }
 
   // Create the table in the catalog.

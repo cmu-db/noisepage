@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node_contents.h"
@@ -1956,7 +1957,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    */
   static Operator Make();
 
-  static Operator Make(std::string table_alias,
+  static Operator Make(std::string table_alias, catalog::Schema table_schema,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
                        parser::CTEType cte_type, std::vector<AnnotatedExpression> &&scan_predicate);
 
@@ -1995,6 +1996,10 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
     return scan_predicate_;
   }
 
+  const catalog::Schema &GetTableSchema() const {
+    return table_schema_;
+  }
+
  private:
   /**
    * Alias of the table to get from
@@ -2003,6 +2008,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
   parser::CTEType cte_type_;
   std::vector<AnnotatedExpression> scan_predicate_;
+  catalog::Schema table_schema_;
 };
 
 }  // namespace terrier::optimizer

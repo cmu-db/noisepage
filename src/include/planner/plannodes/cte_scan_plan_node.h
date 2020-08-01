@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "catalog/schema.h"
-#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
@@ -17,7 +17,7 @@ namespace terrier::planner {
 /**
  * Plan node for a ctescan operator
  */
-class CteScanPlanNode : public AbstractPlanNode {
+class CteScanPlanNode : public SeqScanPlanNode {
  public:
   /**
    * Builder for cte scan plan node
@@ -44,8 +44,8 @@ class CteScanPlanNode : public AbstractPlanNode {
      * @param table_output_schema output schema for plan node
      * @return builder object
      */
-    Builder &SetTableOutputSchema(std::unique_ptr<OutputSchema> table_output_schema) {
-      table_output_schema_ = std::move(table_output_schema);
+    Builder &SetTableSchema(catalog::Schema table_schema) {
+      table_schema_ = std::move(table_schema);
       return *this;
     }
 
@@ -69,16 +69,20 @@ class CteScanPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
+      std::vector<catalog::col_oid_t> col_oids;
+      for(size_t i = 1;i <= table_schema_.GetColumns().size();i++){
+        col_oids.push_back(catalog::col_oid_t(i));
+      }
       return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(cte_table_name_),
-          std::move(children_), std::move(output_schema_), is_leader_, std::move(table_output_schema_), cte_type_,
-                                                                  scan_predicate_));
+          std::move(children_), std::move(output_schema_), is_leader_, std::move(table_schema_), cte_type_,
+                                                                  std::move(col_oids),scan_predicate_));
     }
 
    private:
     std::string cte_table_name_;
     bool is_leader_ = false;
     parser::CTEType cte_type_ = parser::CTEType::SIMPLE;
-    std::unique_ptr<OutputSchema> table_output_schema_;
+    catalog::Schema table_schema_;
     common::ManagedPointer<parser::AbstractExpression> scan_predicate_{nullptr};
   };
 
@@ -89,13 +93,15 @@ class CteScanPlanNode : public AbstractPlanNode {
    */
   CteScanPlanNode(std::string &&cte_table_name, std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, bool is_leader,
-                  std::unique_ptr<OutputSchema> table_output_schema, parser::CTEType cte_type,
+                  catalog::Schema table_schema, parser::CTEType cte_type,
+                  std::vector<catalog::col_oid_t> &&column_oids,
                   common::ManagedPointer<parser::AbstractExpression> scan_predicate)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      : SeqScanPlanNode(std::move(children), std::move(output_schema), scan_predicate, std::move(column_oids),
+                        false, catalog::INVALID_DATABASE_OID, catalog::INVALID_TABLE_OID, 0, false, 0, false),
         cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
         cte_type_(cte_type),
-        table_output_schema_(std::move(table_output_schema)),
+        table_schema_(std::move(table_schema)),
         scan_predicate_(scan_predicate) {}
 
  public:
@@ -153,8 +159,8 @@ class CteScanPlanNode : public AbstractPlanNode {
    * @return table output schema for the node. The output schema contains information on columns of the output of the
    * plan node operator
    */
-  common::ManagedPointer<OutputSchema> GetTableOutputSchema() const {
-    return common::ManagedPointer(table_output_schema_);
+  common::ManagedPointer<const catalog::Schema> GetTableSchema() const {
+    return common::ManagedPointer(&table_schema_);
   }
 
   const std::string &GetCTETableName() const {
@@ -177,9 +183,9 @@ class CteScanPlanNode : public AbstractPlanNode {
    * node operator
    * @param schema output schema for plan node
    */
-  void SetTableOutputSchema(std::unique_ptr<OutputSchema> schema) {
+  void SetTableSchema(catalog::Schema schema) {
     // TODO(preetang): Test for memory leak
-    table_output_schema_ = std::move(schema);
+    table_schema_ = std::move(schema);
   }
 
  private:
@@ -188,7 +194,7 @@ class CteScanPlanNode : public AbstractPlanNode {
   bool is_leader_;
   parser::CTEType cte_type_;
   // Output table schema for CTE scan
-  std::unique_ptr<OutputSchema> table_output_schema_;
+  catalog::Schema table_schema_;
   common::ManagedPointer<const CteScanPlanNode> leader_{nullptr};
 
   /**
