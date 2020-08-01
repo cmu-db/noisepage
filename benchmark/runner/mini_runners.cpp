@@ -1,9 +1,9 @@
 #include <common/macros.h>
 #include <gflags/gflags.h>
-#include <pqxx/pqxx>
 
 #include <cstdio>
 #include <functional>
+#include <pqxx/pqxx>  // NOLINT
 #include <random>
 #include <utility>
 
@@ -13,7 +13,8 @@
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
 #include "common/scoped_timer.h"
-#include "execution/executable_query.h"
+#include "execution/compiler/executable_query.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/execution_util.h"
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
@@ -590,11 +591,11 @@ static void GenUpdateDeleteArguments(benchmark::internal::Benchmark *b) {
         }
         cars.push_back(row);
 
-        for (auto car : cars) {
+        for (auto car_inner : cars) {
           if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, car, 0});
+            b->Args({col, 0, 15, 0, row, car_inner, 0});
           else if (type == type::TypeId::DECIMAL)
-            b->Args({0, col, 0, 15, row, car, 0});
+            b->Args({0, col, 0, 15, row, car_inner, 0});
         }
       }
     }
@@ -812,7 +813,8 @@ class MiniRunners : public benchmark::Fixture {
     metrics_manager_ = db_main->GetMetricsManager();
   }
 
-  std::pair<std::unique_ptr<execution::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> OptimizeSqlStatement(
+  std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>>
+  OptimizeSqlStatement(
       const std::string &query, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
       std::unique_ptr<brain::PipelineOperatingUnits> pipeline_units,
       const std::function<std::unique_ptr<planner::AbstractPlanNode>(
@@ -836,13 +838,13 @@ class MiniRunners : public benchmark::Fixture {
 
     out_plan = corrector(common::ManagedPointer(txn), std::move(out_plan));
 
+    execution::exec::ExecutionSettings exec_settings{};
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
         db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
-        common::ManagedPointer(accessor));
+        common::ManagedPointer(accessor), exec_settings);
 
-    execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
-    auto exec_query = std::make_unique<execution::ExecutableQuery>(common::ManagedPointer(out_plan),
-                                                                   common::ManagedPointer(exec_ctx));
+    execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
+    auto exec_query = std::make_unique<execution::compiler::ExecutableQuery>(*out_plan, exec_settings);
     exec_query->SetPipelineOperatingUnits(std::move(pipeline_units));
 
     auto ret_val = std::make_pair(std::move(exec_query), out_plan->GetOutputSchema()->Copy());
@@ -861,9 +863,11 @@ class MiniRunners : public benchmark::Fixture {
       auto txn = txn_manager_->BeginTransaction();
       auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
+      execution::exec::ExecutionSettings exec_settings{};
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn),
                                                                           execution::exec::NoOpResultConsumer(),
-                                                                          out_schema, common::ManagedPointer(accessor));
+                                                                          out_schema, common::ManagedPointer(accessor),
+                                                                          exec_settings);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
@@ -888,8 +892,9 @@ class MiniRunners : public benchmark::Fixture {
     auto qid = MiniRunners::query_id++;
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
-                                                                        nullptr, common::ManagedPointer(accessor));
+    execution::exec::ExecutionSettings exec_settings{};
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+        db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings);
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
 
     brain::PipelineOperatingUnits units;
@@ -996,8 +1001,8 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ0_ArithmeticRunners)
     ->Iterations(1)
     ->Apply(GenArithArguments);
 
-void NetworkQueries_OutputRunners(pqxx::work *txn) {
-  std::ostream null{0};
+void NetworkQueriesOutputRunners(pqxx::work *txn) {
+  std::ostream null{nullptr};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   std::vector<int64_t> row_nums = {1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000};
@@ -1085,15 +1090,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   if (num_col > 0) {
     output << "\tvar out: *Output\n";
     output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
-    output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
+    output << "\t\tout = @ptrCast(*Output, @resultBufferAllocRow(execCtx))\n";
     output << "\t}\n";
-    output << "\t@outputFinalize(execCtx)\n";
+    output << "\t@resultBufferFinalize(execCtx)\n";
   }
   output << "\t@execCtxEndPipelineTracker(execCtx, 0, 0)\n";
   output << "}\n";
 
   // main
-  output << "fun main (execCtx: *ExecutionContext) -> int64 {\n";
+  output << "fun main (execCtx: *ExecutionContext) -> int32 {\n";
   output << "\tvar state: State\n";
   output << "\tsetUpState(execCtx, &state)\n";
   output << "\tpipeline1(execCtx, &state)\n";
@@ -1122,12 +1127,14 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   auto schema = std::make_unique<planner::OutputSchema>(std::move(cols));
 
-  execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn),
-                                                                      execution::exec::NoOpResultConsumer(),
-                                                                      schema.get(), common::ManagedPointer(accessor));
+  execution::exec::ExecutionSettings exec_settings{};
+  execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+      db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), schema.get(),
+      common::ManagedPointer(accessor), exec_settings);
 
-  auto exec_query = execution::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false);
+  auto exec_query =
+      execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, exec_settings);
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1506,7 +1513,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   }
 
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
-  std::pair<std::unique_ptr<execution::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
+  std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
   if (is_idx == 0) {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
@@ -1603,7 +1610,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 
   std::stringstream query;
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
-  std::pair<std::unique_ptr<execution::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
+  std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
   if (is_idx == 0) {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
@@ -1958,8 +1965,9 @@ void InitializeRunnersState() {
 
   // Load the database
   auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
-                                                                      nullptr, common::ManagedPointer(accessor));
+  execution::exec::ExecutionSettings exec_settings{};
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+      db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings);
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
   table_gen.GenerateTestTables(true);
@@ -2021,7 +2029,7 @@ void RunNetworkQueries() {
     pqxx::connection c{conn};
     pqxx::work txn{c};
 
-    terrier::runner::NetworkQueries_OutputRunners(&txn);
+    terrier::runner::NetworkQueriesOutputRunners(&txn);
 
     txn.commit();
   } catch (std::exception &e) {
@@ -2131,9 +2139,9 @@ int main(int argc, char **argv) {
   std::pair<bool, int> rerun{false, -1};
   std::pair<bool, int> updel_limit{false, -1};
   for (int i = 0; i < argc; i++) {
-    if (strstr(argv[i], "--port=") != NULL)
+    if (strstr(argv[i], "--port=") != nullptr)
       port_info = std::make_pair(true, i);
-    else if (strstr(argv[i], "--benchmark_filter=") != NULL)
+    else if (strstr(argv[i], "--benchmark_filter=") != nullptr)
       filter_info = std::make_pair(true, i);
     else if (strstr(argv[i], "--warm_num=") != NULL)
       warm_num = std::make_pair(true, i);

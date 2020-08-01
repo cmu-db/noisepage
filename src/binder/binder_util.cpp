@@ -1,7 +1,9 @@
 #include "binder/binder_util.h"
 
+#include <algorithm>
 #include <limits>
 
+#include "network/postgres/postgres_defs.h"
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -56,7 +58,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
         break;
       }
 
-        // DATE and TIMESTAMP conversion. String to numeric type conversion.
+        // DATE and TIMESTAMP conversion. String to boolean conversion. String to numeric type conversion.
       case type::TypeId::VARCHAR: {
         const auto str_view = value->Peek<std::string_view>();
 
@@ -70,6 +72,20 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
           case type::TypeId::TIMESTAMP: {
             auto parsed_timestamp = execution::sql::Timestamp::FromString(str_view);
             value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(parsed_timestamp));
+            break;
+          }
+          case type::TypeId::BOOLEAN: {
+            if (std::find(network::POSTGRES_BOOLEAN_STR_TRUES.cbegin(), network::POSTGRES_BOOLEAN_STR_TRUES.cend(),
+                          str_view) != network::POSTGRES_BOOLEAN_STR_TRUES.cend()) {
+              value->SetValue(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+            } else if (std::find(network::POSTGRES_BOOLEAN_STR_FALSES.cbegin(),
+                                 network::POSTGRES_BOOLEAN_STR_FALSES.cend(),
+                                 str_view) != network::POSTGRES_BOOLEAN_STR_FALSES.cend()) {
+              value->SetValue(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+            } else {
+              throw BINDER_EXCEPTION(fmt::format("invalid input syntax for type boolean: \"{}\"", str_view),
+                                     common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
+            }
             break;
           }
           case type::TypeId::TINYINT: {

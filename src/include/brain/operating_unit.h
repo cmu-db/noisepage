@@ -1,13 +1,16 @@
 #pragma once
+
 #include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
 
 namespace terrier::execution::compiler::test {
 class CompilerTest_SimpleSeqScanTest_Test;
+class CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
 class CompilerTest_SimpleSeqScanWithProjectionTest_Test;
 class CompilerTest_SimpleSeqScanWithParamsTest_Test;
 class CompilerTest_SimpleIndexScanTest_Test;
@@ -167,6 +170,7 @@ class PipelineOperatingUnits {
  public:
   friend class terrier::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithProjectionTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithParamsTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanTest_Test;

@@ -12,9 +12,11 @@
 #include "catalog/catalog_accessor.h"
 #include "common/error/error_data.h"
 #include "common/error/exception.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
-#include "execution/executable_query.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
@@ -323,17 +325,10 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     return {ResultType::COMPLETE, 0};
   }
 
-  // TODO(Matt): We should get rid of the need of an OutputWriter to ExecutionContext since we just throw this one away
-  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
-
-  // TODO(Matt): We should get rid of the need of an ExecutionContext to perform codegen since we just throw this one
-  // away
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor());
-
-  auto exec_query = std::make_unique<execution::ExecutableQuery>(common::ManagedPointer(physical_plan),
-                                                                 common::ManagedPointer(exec_ctx));
+  // TODO(WAN): poke the settings manager for execution settings
+  execution::exec::ExecutionSettings exec_settings{};
+  auto exec_query =
+      execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get());
 
   std::cout << (exec_query->GetQueryId()) << " " << portal->GetStatement()->GetQueryText() << "\n";
 
@@ -355,9 +350,10 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
+  execution::exec::ExecutionSettings exec_settings{};
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor());
+      connection_ctx->Accessor(), exec_settings);
 
   exec_ctx->SetParams(portal->Parameters());
 

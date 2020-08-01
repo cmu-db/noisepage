@@ -6,13 +6,32 @@
 #include <vector>
 
 #include "brain/operating_unit.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "execution/ast/ast.h"
-#include "execution/ast/context.h"
-#include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/plan_visitor.h"
+#include "type/type_id.h"
+
+namespace terrier::catalog {
+class CatalogAccessor;
+}  // namespace terrier::catalog
+
+namespace terrier::execution {
+namespace ast {
+class Context;
+class StructDecl;
+}  // namespace ast
+namespace compiler {
+class OperatorTranslator;
+class Pipeline;
+}  // namespace compiler
+}  // namespace terrier::execution
+
+namespace terrier::parser {
+class AbstractExpression;
+}
 
 namespace terrier::planner {
+class AbstractPlanNode;
 class AbstractJoinPlanNode;
 class AbstractScanPlanNode;
 }  // namespace terrier::planner
@@ -29,10 +48,12 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * Constructor
    * @param accessor CatalogAccessor
    * @param ast_ctx AstContext
+   * @param pipeline Current pipeline, used to figure out if a given translator is Build or Probe.
    */
   explicit OperatingUnitRecorder(common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                 common::ManagedPointer<execution::ast::Context> ast_ctx)
-      : accessor_(accessor), ast_ctx_(ast_ctx) {}
+                                 common::ManagedPointer<execution::ast::Context> ast_ctx,
+                                 common::ManagedPointer<execution::compiler::Pipeline> pipeline)
+      : accessor_(accessor), ast_ctx_(ast_ctx), current_pipeline_(pipeline) {}
 
   /**
    * Extracts features from OperatorTranslators
@@ -40,7 +61,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @returns Vector of extracted features (ExecutionOperatingUnitFeature)
    */
   ExecutionOperatingUnitFeatureVector RecordTranslators(
-      const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators);
+      const std::vector<execution::compiler::OperatorTranslator *> &translators);
 
  private:
   /**
@@ -73,6 +94,9 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::OrderByPlanNode *plan) override;
   void Visit(const planner::ProjectionPlanNode *plan) override;
   void Visit(const planner::AggregatePlanNode *plan) override;
+
+  template <typename Translator>
+  void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
 
   /**
    * Accumulate Feature Information
@@ -169,6 +193,9 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * AstContext
    */
   common::ManagedPointer<execution::ast::Context> ast_ctx_;
+
+  /** Pipeline, used to figure out if current translator is Build or Probe. */
+  common::ManagedPointer<execution::compiler::Pipeline> current_pipeline_;
 };
 
 }  // namespace terrier::brain

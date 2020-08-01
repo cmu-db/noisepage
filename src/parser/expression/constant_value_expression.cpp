@@ -45,11 +45,12 @@ void ConstantValueExpression::Validate() const {
   } else if (std::holds_alternative<execution::sql::StringVal>(value_)) {
     TERRIER_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
                    "Invalid TypeId for Val type.");
-    TERRIER_ASSERT(GetStringVal().is_null_ ||
-                       (buffer_ == nullptr && GetStringVal().len_ <= execution::sql::StringVal::InlineThreshold()) ||
-                       (buffer_ != nullptr && GetStringVal().len_ > execution::sql::StringVal::InlineThreshold()),
-                   "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
-                   "InlineThreshold with a provided buffer.");
+    TERRIER_ASSERT(
+        GetStringVal().is_null_ ||
+            (buffer_ == nullptr && GetStringVal().GetLength() <= execution::sql::StringVal::InlineThreshold()) ||
+            (buffer_ != nullptr && GetStringVal().GetLength() > execution::sql::StringVal::InlineThreshold()),
+        "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
+        "InlineThreshold with a provided buffer.");
   } else {
     UNREACHABLE("Unknown Val type!");
   }
@@ -316,7 +317,8 @@ template ConstantValueExpression::ConstantValueExpression(const type::TypeId typ
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Integer value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Real value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Decimal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::DecimalVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
                                                           const execution::sql::StringVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::DateVal value);
@@ -327,7 +329,7 @@ template void ConstantValueExpression::SetValue(const type::TypeId type, const e
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::BoolVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Integer value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Real value);
-template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Decimal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DecimalVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::StringVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DateVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::TimestampVal value);

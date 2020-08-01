@@ -8,21 +8,15 @@ class TestJUnit(TestServer):
     """
     Class to run JUnit tests
     """
+
     def __init__(self, args):
         TestServer.__init__(self, args)
-        self.test_command = constants.JUNIT_TEST_COMMAND
-        self.test_command_cwd = constants.JUNIT_TEST_DIR
-        self.test_error_msg = constants.JUNIT_TEST_ERROR_MSG
-        self.test_output_file = self.args.get("test_output_file")
-        if not self.test_output_file:
-            self.test_output_file = constants.JUNIT_OUTPUT_FILE
 
-    def run_pre_test(self):
-        self.set_env_vars()
+        self.query_mode = args.get("query_mode", "simple")
+        self.set_env_vars(self.query_mode)
 
-    def set_env_vars(self):
+    def set_env_vars(self, query_mode):
         # set env var for QUERY_MODE
-        query_mode = self.args.get("query_mode", "simple")
         os.environ["TERRIER_QUERY_MODE"] = query_mode
 
         # set env var for PREPARE_THRESHOLD if the QUERY_MODE is 'extended'

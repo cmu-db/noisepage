@@ -68,6 +68,7 @@ m4/lt~obsolete.m4
 #==============================================================================#
 #m4/
 build/
+release/
 #*.m4
 *.o
 *.lo
@@ -277,3 +278,4 @@ wal.log
 
 # JUnit intermediate out directory
 **/junit/out/
+out/

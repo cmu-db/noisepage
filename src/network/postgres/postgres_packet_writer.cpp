@@ -2,19 +2,8 @@
 
 #include "common/error/error_data.h"
 #include "execution/sql/value.h"
+#include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_protocol_util.h"
-
-namespace {
-/**
- * The string value to use for 'true' boolean values
- */
-constexpr char POSTGRES_BOOLEAN_STR_TRUE[] = "t";
-
-/**
- * The string value to use for 'false' boolean values
- */
-constexpr char POSTGRES_BOOLEAN_STR_FALSE[] = "f";
-}  // namespace
 
 namespace terrier::network {
 
@@ -250,6 +239,10 @@ void PostgresPacketWriter::WriteDataRow(const byte *const tuple,
   uint32_t curr_offset = 0;
   for (uint32_t i = 0; i < columns.size(); i++) {
     // Reinterpret to a base value type first and check if it's NULL
+    auto alignment = execution::sql::ValUtil::GetSqlAlignment(columns[i].GetType());
+    if (!common::MathUtil::IsAligned(curr_offset, alignment)) {
+      curr_offset = static_cast<uint32_t>(common::MathUtil::AlignTo(curr_offset, alignment));
+    }
     const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
 
     // Field formats can either be the size of the number of columns, or size 1 where they all use the same format
@@ -351,9 +344,13 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         break;
       }
       case type::TypeId::BOOLEAN: {
+        // Don't allocate an actual string for a BOOLEAN, just wrap a std::string_view, write the value directly, and
+        // continue
         auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
-        string_value = (static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE);
-        break;
+        const auto str_view =
+            static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE;
+        AppendValue<int32_t>(static_cast<int32_t>(str_view.length())).AppendStringView(str_view, false);
+        return execution::sql::ValUtil::GetSqlSize(type);
       }
       case type::TypeId::DECIMAL: {
         auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
@@ -375,7 +372,8 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
         // continue
         const auto *const string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(string_val->len_)).AppendStringView(string_val->StringView(), false);
+        AppendValue<int32_t>(static_cast<int32_t>(string_val->GetLength()))
+            .AppendStringView(string_val->StringView(), false);
         return execution::sql::ValUtil::GetSqlSize(type);
       }
       default:

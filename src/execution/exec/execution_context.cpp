@@ -5,32 +5,16 @@
 #include "execution/sql/value.h"
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
-#include "planner/plannodes/output_schema.h"
 
 namespace terrier::execution::exec {
-
-ExecutionContext::ExecutionContext(catalog::db_oid_t db_oid,
-                                   common::ManagedPointer<transaction::TransactionContext> txn,
-                                   const OutputCallback &callback, const planner::OutputSchema *schema,
-                                   const common::ManagedPointer<catalog::CatalogAccessor> accessor)
-    : db_oid_(db_oid),
-      txn_(txn),
-      mem_tracker_(std::make_unique<sql::MemoryTracker>()),
-      mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
-      buffer_(schema == nullptr ? nullptr
-                                : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
-                                                                 ComputeTupleSize(schema), callback)),
-      string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
-      accessor_(accessor) {}
-
-char *ExecutionContext::StringAllocator::Allocate(std::size_t size) {
-  if (tracker_ != nullptr) tracker_->Increment(size);
-  return reinterpret_cast<char *>(region_.Allocate(size));
-}
 
 uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {
+    auto alignment = sql::ValUtil::GetSqlAlignment(col.GetType());
+    if (!common::MathUtil::IsAligned(tuple_size, alignment)) {
+      tuple_size = static_cast<uint32_t>(common::MathUtil::AlignTo(tuple_size, alignment));
+    }
     tuple_size += sql::ValUtil::GetSqlSize(col.GetType());
   }
   return tuple_size;

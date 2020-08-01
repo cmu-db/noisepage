@@ -2,47 +2,80 @@
 
 import os
 import sys
-import argparse
 import traceback
+import json
+import itertools
 
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
+from oltpbench.test_case_oltp import TestCaseOLTPBench
 from oltpbench.test_oltpbench import TestOLTPBench
+from oltpbench.utils import parse_command_line_args
+from oltpbench import constants
+from util.constants import LOG
+
+def generate_test_suite(args):
+    args_configfile = args.get("config_file")
+
+    oltp_test_suite = []
+
+    if not args_configfile:
+        msg = "config file is not provided"
+        raise FileNotFoundError(msg)
+
+    configfile_path = os.path.join(os.getcwd(), args_configfile)
+    if not os.path.exists(configfile_path):
+        msg = "Unable to find OLTPBench config file '{}'".format(
+            args_configfile)
+        raise FileNotFoundError(msg)
+
+    oltp_test_suite_json = None
+    with open(configfile_path) as oltp_tracefile:
+        oltp_test_suite_json = json.load(oltp_tracefile)
+
+    if not oltp_test_suite_json:
+        msg = "Unable to load OLTPBench config file '{}'. Maybe it is not valid JSON file?".format(
+            args_configfile)
+        raise TypeError(msg)
+
+    # publish test results to the server
+    oltp_report_server = constants.PERFORMANCE_STORAGE_SERVICE_API[args.get("publish_results")]
+    oltp_report_username = args.get("publish_username")
+    oltp_report_password= args.get("publish_password")
+
+    for oltp_testcase in oltp_test_suite_json.get("testcases", []):
+        oltp_testcase_base = oltp_testcase.get("base")
+
+        oltp_testcase_base["publish_results"] = oltp_report_server
+        oltp_testcase_base["publish_username"] = oltp_report_username
+        oltp_testcase_base["publish_password"] = oltp_report_password
+        oltp_testcase_loop = oltp_testcase.get("loop")
+
+        # if need to loop over parameters, for example terminals = 1,2,4,8,16
+        if oltp_testcase_loop:
+            for loop_item in oltp_testcase_loop:
+                oltp_testcase_combined = {**oltp_testcase_base,**loop_item}             
+                oltp_test_suite.append(TestCaseOLTPBench(oltp_testcase_combined)) 
+
+        else:
+            # there is no loop
+            oltp_test_suite.append(TestCaseOLTPBench(oltp_testcase_base))
+
+    return oltp_test_suite
+
 
 if __name__ == "__main__":
-    aparser = argparse.ArgumentParser(description="Timeseries")
+    
+    args = parse_command_line_args()
 
-    aparser.add_argument("benchmark", help="Benchmark Type")
-    aparser.add_argument("weights", help="Benchmark weights")
-    aparser.add_argument("--db-host", help="DB Hostname")
-    aparser.add_argument("--db-port", type=int, help="DB Port")
-    aparser.add_argument("--db-output-file", help="DB output log file")
-    aparser.add_argument("--scale-factor", type=float, metavar="S", \
-                         help="The scale factor. (default: 1)")
-    aparser.add_argument("--transaction-isolation", metavar="I", \
-                         help="The transaction isolation level (default: TRANSACTION_SERIALIZABLE")
-    aparser.add_argument("--client-time", type=int, metavar="C", \
-                         help="How long to execute each benchmark trial (default: 20)")
-    aparser.add_argument("--terminals", type=int, metavar="T", \
-                         help="Number of terminals in each benchmark trial (default: 1)")
-    aparser.add_argument("--loader-threads", type=int, metavar="L", \
-                         help="Number of loader threads to use (default: 1)")
-    aparser.add_argument("--build-type",
-                         default="debug",
-                         choices=["debug", "release", "relwithdebinfo"],
-                         help="Build type (default: %(default)s")
-    aparser.add_argument("--query-mode",
-                         default="simple",
-                         choices=["simple", "extended"],
-                         help="Query protocol mode")
-    args = vars(aparser.parse_args())
+    test_suite = generate_test_suite(args)
 
     try:
         oltpbench = TestOLTPBench(args)
-        exit_code = oltpbench.run()
+        exit_code = oltpbench.run(test_suite)
     except:
-        print("Exception trying to run OLTP Bench tests")
+        LOG.error("Exception trying to run OLTP Bench tests")
         traceback.print_exc(file=sys.stdout)
         exit_code = 1
 

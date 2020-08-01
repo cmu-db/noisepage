@@ -39,12 +39,12 @@ def generate_build_side(col_num, row_num, cardinality):
     print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol31Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
-    print("    var vec = @tableIterGetPCI(&tvi)")
-    print("    for (; @pciHasNext(vec); @pciAdvance(vec)) {")
+    print("    var vec = @tableIterGetVPI(&tvi)")
+    print("    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {")
 
     print("      var row = @ptrCast(*SortRow{}, @sorterInsert(sorter))".format(col_num))
     for i in range(col_num):
-        print("      row.c{} = @pciGetInt(vec, {})".format(i + 1, col_num - 1))
+        print("      row.c{} = @vpiGetInt(vec, {})".format(i + 1, col_num - 1))
 
     print("    }")
     print("  }")

@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "parser/delete_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
@@ -56,7 +57,7 @@ class DeletePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<DeletePlanNode> Build() {
       return std::unique_ptr<DeletePlanNode>(
-          new DeletePlanNode(std::move(children_), std::move(output_schema_), database_oid_, table_oid_));
+          new DeletePlanNode(std::move(children_), std::make_unique<OutputSchema>(), database_oid_, table_oid_));
     }
 
    protected:
