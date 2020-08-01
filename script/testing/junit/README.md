@@ -34,10 +34,10 @@ The traces directory contains trace test files that end with .test
 3. Prepare your input trace file
 
 4. In the command line, after the code compiles (ant compile), run 
-ant filter-trace with 5 arguments: path, db-url, db-user, db-password, and skip-list
+ant filter-trace with 6 arguments: path, db-url, db-user, db-password, skip-list, and output name
 Command format: ant filter-trace -Dpath=PATH_TO_YOUR_FILE
  -Ddb-url=YOUR_JDBC_URL -Ddb-user=YOUR_DB_USERNAME -Ddb-password=YOUR_DB_PASSWORD
- -Dskip-list=DESIRED_SKIP_LIST
+ -Dskip-list=DESIRED_SKIP_LIST -Doutput-name=OUTPUT_FILE_NAME
 
 5. An output trace file should be produced called xxx_new (XXX is the input)
 Rename output.txt to contain .test (like xxx.test) for it to be included in 
@@ -46,11 +46,11 @@ future junit test runs
 Example: 
 
 Given sql input file select.test under traces directory, jdbc url jdbc:postgresql://localhost/jeffdb,
-db username jeffniu, password "", and skip-list [CASE,BETWEEN,WHERE,abs(,WHEN],
+db username jeffniu, password "", skip-list [CASE,BETWEEN,WHERE,abs(,WHEN], and output name select_new.test,
 the command should be:
 
 ant filter-trace -Dpath=traces/select.test -Ddb-url=jdbc:postgresql://localhost/jeffdb 
--Ddb-user=jeffniu -Dpassword="" -Dskip-list=“CASE,BETWEEN,WHERE,abs(,WHEN"
+-Ddb-user=jeffniu -Dpassword="" -Dskip-list=“CASE,BETWEEN,WHERE,abs(,WHEN" -Doutput-name=select_new.test
 
 The output file contains all traces as before, except that for a query that contain
 any keyword within the skip-list, a "skip" tag is added above the query so that when
@@ -67,21 +67,21 @@ any keyword within the skip-list, its hash will be updated with postgresql.
 comments allowed (start line with #)
 
 4. In the command line, after the code compiles (ant compile), run 
-ant generate-trace with 4 arguments: path, db-url, db-user and db-password
-Command format: ant generate-trace -Dpath=PATH_TO_YOUR_FILE
- -Ddb-url=YOUR_JDBC_URL -Ddb-user=YOUR_DB_USERNAME -Ddb-password=YOUR_DB_PASSWORD
+ant generate-trace with 5 arguments: path, db-url, db-user, db-password and output name
+Command format: ant generate-trace -Dpath=PATH_TO_YOUR_FILE -Ddb-url=YOUR_JDBC_URL 
+-Ddb-user=YOUR_DB_USERNAME -Ddb-password=YOUR_DB_PASSWORD -Doutput-name=OUTPUT_FILE_NAME
 
-5. An output file should be produced called output.txt which is of trace file format.
-Rename output.txt to contain .test (like xxx.test) for it to be included in 
+5. An output file should be produced which is of trace file format.
+If it contains .test (like xxx.test), then it will be included in 
 future junit test runs
 
 Example: 
 
 Given sql input file select.sql under traces directory, jdbc url jdbc:postgresql://localhost/jeffdb,
-db username jeffniu and password "", the command should be:
+db username jeffniu, password "", and output name select_new.test, the command should be:
 
 ant generate-trace -Dpath=traces/select.sql -Ddb-url=jdbc:postgresql://localhost/jeffdb
- -Ddb-user=jeffniu -Ddb-password=""
+ -Ddb-user=jeffniu -Ddb-password="" -Doutput-name=select_new.test
 
 ## Installation and pre-requisites
 

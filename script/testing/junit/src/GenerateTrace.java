@@ -23,9 +23,6 @@ public class GenerateTrace {
     private static final String STATEMENT_OK = "statement ok";
     private static final String STATEMENT_ERROR = "statement error";
     public static final String QUERY_I_NOSORT = "query I nosort";
-    public static final String SEPARATION = "----";
-    public static final String DEST_DIR = "traces";
-    public static final String DEST_NAME = "output.txt";
 
     public static void main(String[] args) throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
@@ -45,7 +42,7 @@ public class GenerateTrace {
         Statement statement = null;
         BufferedReader br = new BufferedReader(new FileReader(file));
         // create output file
-        FileWriter writer = new FileWriter(new File(DEST_DIR, DEST_NAME));
+        FileWriter writer = new FileWriter(new File(constants.DEST_DIR, args[4]));
         while (null != (line = br.readLine())) {
             line = line.trim();
             // execute sql statement
@@ -62,7 +59,7 @@ public class GenerateTrace {
                 String[] lines = line.split(",");
                 writeToFile(writer, QUERY_I_NOSORT);
                 writeToFile(writer, line);
-                writeToFile(writer, SEPARATION);
+                writeToFile(writer, constants.SEPARATION);
                 ResultSet rs = statement.getResultSet();
                 List<String> res = mog.processResults(rs);
                 // compute the hash
@@ -71,7 +68,7 @@ public class GenerateTrace {
                 String queryResult = num + " values hashing to " + hash;
                 writeToFile(writer, queryResult);
                 writer.write('\n');
-            } else if(line.startsWith("#")||line.startsWith("skip")){
+            } else if(line.startsWith(constants.HASHTAG)||line.startsWith(constants.SKIP)){
                 writeToFile(writer, line);
             } else{
                 // other sql statements

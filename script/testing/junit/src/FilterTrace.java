@@ -21,21 +21,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * check out instruction at junit/README.md
  */
 public class FilterTrace {
-    public static final String QUERY = "query";
-    public static final String SEPARATION = "----";
-    public static final String SKIP = "skip";
-    public static final String DEST_DIR = "traces";
-
     public static void main(String[] args) throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         String path = args[0];
         File file = new File(path);
         System.out.println("File path: " + path);
-        String[] outputArr = path.split("/");
-        String outputName = outputArr[outputArr.length-1] + "_new";
         MogSqlite mog = new MogSqlite(file);
         // create output file
-        File outputFile = new File(DEST_DIR, outputName);
+        File outputFile = new File(constants.DEST_DIR, args[5]);
         FileWriter writer = new FileWriter(outputFile);
         String[] skip_list = args[4].split(",");
         for(String i: skip_list){
@@ -49,28 +42,53 @@ public class FilterTrace {
         removeExistingTable(tab,conn);
         while (mog.next()) {
             String cur_sql = mog.sql.trim();
-            for(String i:mog.comments){
-                writeToFile(writer, i);
-            }
-            for(String skip_word:skip_list){
-                if(cur_sql.contains(skip_word)){
+            // the commented code below adds the skip tag to queries
+//            for(String i:mog.comments){
+//                writeToFile(writer, i);
+//            }
+//            for(String skip_word:skip_list){
+//                if(cur_sql.contains(skip_word)){
+//                    skip_flag = true;
+//                    writeToFile(writer, constants.SKIP);
+//                    break;
+//                }
+//            }
+            // the code below remove the queries that contain any skip keyword
+            for(String skip_word:skip_list) {
+                if (cur_sql.contains(skip_word)) {
+                    mog.comments.clear();
                     skip_flag = true;
-                    writeToFile(writer, SKIP);
                     break;
                 }
+            }
+            if(skip_flag){
+                skip_flag = false;
+                continue;
+            }
+            // filter out nested SELECT statements
+            if(getFrequency(cur_sql, "SELECT")>1){
+                mog.comments.clear();
+                continue;
             }
             writeToFile(writer, mog.queryFirstLine);
             writeToFile(writer, cur_sql);
             if(skip_flag){
-                if(mog.queryFirstLine.contains(QUERY)){
-                    writeToFile(writer, SEPARATION);
+                if(mog.queryFirstLine.contains(constants.QUERY)){
+                    writeToFile(writer, constants.SEPARATION);
                     if(mog.queryResults.size()>0){
-                        writeToFile(writer, mog.queryResults.get(0));
+                        if(mog.queryResults.get(0).contains(constants.VALUES)){
+                            writeToFile(writer, mog.queryResults.get(0));
+                        }else{
+                            for(String i:mog.queryResults){
+                                writeToFile(writer, i);
+                            }
+                        }
+
                     }
                 }
             }else{
-                if(mog.queryFirstLine.contains(QUERY)){
-                    writeToFile(writer, SEPARATION);
+                if(mog.queryFirstLine.contains(constants.QUERY)){
+                    writeToFile(writer, constants.SEPARATION);
                     try{
                         Statement statement = conn.createStatement();
                         statement.execute(cur_sql);
@@ -102,6 +120,16 @@ public class FilterTrace {
         }
         writer.close();
         conn.close();
+    }
+    public static int getFrequency(String sql, String keyword){
+        int num = 0;
+        String[] arr = sql.split(" ");
+        for(String i:arr){
+            if(i.contains(keyword)){
+                num += 1;
+            }
+        }
+        return num;
     }
     public static void writeToFile(FileWriter writer, String str) throws IOException {
         writer.write(str);

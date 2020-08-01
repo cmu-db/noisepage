@@ -47,6 +47,7 @@
     <arg value="${db-url}"></arg>
     <arg value="${db-user}"></arg>
     <arg value="${db-password}"></arg>
+    <arg value="${output-name}"></arg>
   </java>
 </target>
 
@@ -79,6 +80,7 @@
     <arg value="${db-user}"></arg>
     <arg value="${db-password}"></arg>
     <arg value="${skip-list}"></arg>
+    <arg value="${output-name}"></arg>
   </java>
 </target>
 

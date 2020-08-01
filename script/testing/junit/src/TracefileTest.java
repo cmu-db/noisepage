@@ -19,8 +19,6 @@ public class TracefileTest {
     private static File file;
     private static MogSqlite mog;
     private static Connection conn;
-    private static final String OK = "ok";
-    private static final String ERROR = "error";
 
     /**
      * Set up connection to database
@@ -64,14 +62,14 @@ public class TracefileTest {
             }
             String cur_sql = mog.sql.trim();
             int num = queryLine.get(lineCounter);
-            if (mog.queryFirstLine.contains("statement")) {
+            if (mog.queryFirstLine.equals(constants.STATEMENT_ERROR)||mog.queryFirstLine.equals(constants.STATEMENT_OK)) {
                 Statement statement = null;
                 Executable exec = null;
-                String testName = "Line:" + num + " | Expected " + mog.status;
+                String testName = "Line:" + num + " | Expected " + mog.queryFirstLine;
                 try {
                     statement = conn.createStatement();
                     statement.execute(cur_sql);
-                    if(mog.status.equals(ERROR)){
+                    if(mog.queryFirstLine.equals(constants.STATEMENT_ERROR)){
                         String message = "Failure at Line " + num + ": Expected failure but success"  + "\n " + cur_sql;
                         exec = () -> check2(message);
                     }else{
@@ -79,7 +77,7 @@ public class TracefileTest {
                     }
                 }
                 catch (Throwable e) {
-                    if(mog.status.equals(OK)){
+                    if(mog.queryFirstLine.equals(constants.STATEMENT_OK)){
                         String message = "Failure at Line " + num + ": Expected success but failure"  + "\n " + cur_sql;
                         exec = () -> check2(message);
                     }else{
@@ -91,7 +89,7 @@ public class TracefileTest {
             } else{
                 // case for query statements
                 String parsed_hash;
-                if(mog.queryResults.size()==0 || (!mog.queryResults.get(0).contains("values"))) {
+                if(mog.queryResults.size()==0 || (!mog.queryResults.get(0).contains(constants.VALUES))) {
                     parsed_hash = TestUtility.getHashFromDb(mog.queryResults);
                 }else{
                     // parse the line from test file to get the hash
@@ -150,22 +148,6 @@ public class TracefileTest {
      */
     public static void check2(String mes) throws Exception {
         throw new Exception(mes);
-    }
-
-    public static void removeExistingTable(List<String> tab, Connection connection) throws SQLException {
-        for(String i:tab){
-            Statement st = connection.createStatement();
-            String sql = "DROP TABLE IF EXISTS " + i + " CASCADE";
-            st.execute(sql);
-        }
-    }
-    public static List<String> getAllExistingTableName(MogSqlite mog,Connection connection) throws SQLException {
-        Statement st = connection.createStatement();
-        String getTableName = "SELECT tablename FROM pg_tables WHERE schemaname = 'public';";
-        st.execute(getTableName);
-        ResultSet rs = st.getResultSet();
-        List<String> res = mog.processResults(rs);
-        return res;
     }
 
 }
