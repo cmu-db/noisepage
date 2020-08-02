@@ -1266,13 +1266,14 @@ Operator LogicalCteScan::Make() {
 }
 
 Operator LogicalCteScan::Make(
-    std::string table_alias, catalog::Schema table_schema,
+    std::string table_alias, catalog::table_oid_t table_oid, catalog::Schema table_schema,
     std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
     parser::CTEType cte_type,
     std::vector<AnnotatedExpression> &&scan_predicate) {
   auto *op = new LogicalCteScan();
   op->table_schema_ = table_schema;
   op->table_alias_ = std::move(table_alias);
+  op->table_oid_ = table_oid;
   op->child_expressions_ = std::move(child_expressions);
   op->cte_type_ = cte_type;
   op->scan_predicate_ = std::move(scan_predicate);

@@ -124,7 +124,7 @@ namespace terrier::execution::vm {
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::FunctionId)                                                                      \
                                                                                                                       \
-  F(CteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)                      \
+  F(CteScanInit, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::Local, OperandType::UImm4)  \
   F(CteScanGetTable, OperandType::Local, OperandType::Local)                                                          \
   F(CteScanGetTableOid, OperandType::Local, OperandType::Local)                                                       \
   F(CteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                              \

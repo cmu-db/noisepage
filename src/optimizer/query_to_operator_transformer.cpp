@@ -78,6 +78,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       cte_table_name_.push_back(with->GetAlias());
       cte_type_.push_back(with->GetCteType());
 
+      auto oid = TEMP_OID(catalog::table_oid_t, accessor_->GetNewTempOid());
+      cte_oids_.push_back(oid);
+
       std::vector<type::TypeId> col_types;
       for(uint32_t i = 0;i < with->GetCteColumnAliases().size();i++){
         col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
@@ -92,7 +95,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
       master_expressions.push_back(std::move(expressions));
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(with->GetAlias(), catalog::Schema(with->GetCteColumnAliases(), col_types),
+          LogicalCteScan::Make(with->GetAlias(), oid, catalog::Schema(with->GetCteColumnAliases(), col_types),
                                                                  {}, with->GetCteType(), {}),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       cte_scan_expr->PushChild(std::move(output_expr_));
@@ -361,7 +364,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
       std::vector<type::TypeId> col_types;
 
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_schemas_[index], cte_expressions_[index], cte_type_[index], {}).RegisterWithTxnContext(txn_context),
+          LogicalCteScan::Make(node->GetAlias(), cte_oids_[index],
+                               cte_schemas_[index], cte_expressions_[index], cte_type_[index], {}).RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {

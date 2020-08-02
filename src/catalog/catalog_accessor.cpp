@@ -217,4 +217,9 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   return catalog_->GetBlockStore();
 }
 
+void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table) {
+  TERRIER_ASSERT(cache_ != DISABLED, "cache is disabled");
+  cache_->PutTable(table_oid, table);
+}
+
 }  // namespace terrier::catalog

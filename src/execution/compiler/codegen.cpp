@@ -537,7 +537,7 @@ ast::Expr *CodeGen::TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, ca
 
 ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr, ast::Identifier col_oids,
                                       ast::Expr *exec_ctx_expr) {
-  ast::Expr *tvi_ptr = AddressOf(tvi);
+  ast::Expr *tvi_ptr = MakeExpr(tvi);
 //  ast::Expr *cte_scan_iterator_ptr = GetStateMemberPtr(cte_scan_iterator);
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
 
@@ -1173,10 +1173,11 @@ ast::FieldDecl *CodeGen::MakeField(ast::Identifier name, ast::Expr *type) const 
   return context_->GetNodeFactory()->NewFieldDecl(position_, name, type);
 }
 
-ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *si, ast::Identifier col_types, ast::Expr *exec_ctx_var) {
+ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table,
+                                        ast::Identifier col_types, ast::Expr *exec_ctx_var) {
   ast::Expr *col_oids_expr = MakeExpr(col_types);
 
-  std::vector<ast::Expr *> args{si, exec_ctx_var, col_oids_expr};
+  std::vector<ast::Expr *> args{si, exec_ctx_var, Const32(!table), col_oids_expr};
   return CallBuiltin(ast::Builtin::CteScanInit, std::move(args));
 }
 

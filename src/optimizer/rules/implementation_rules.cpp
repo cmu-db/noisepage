@@ -1129,7 +1129,7 @@ void LogicalCteScanToPhysicalCteScanIterative::Transform(
   TERRIER_ASSERT(logical_op->GetIsInductive(), "LogicalCteScan should be iterative");
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()),
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()), logical_op->GetTableOid(),
                     logical_op->GetCTEType(), logical_op->GetScanPredicate(),
                     catalog::Schema(logical_op->GetTableSchema()))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
@@ -1167,7 +1167,7 @@ void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<AbstractO
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()),
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()), logical_op->GetTableOid(),
                     logical_op->GetCTEType(), logical_op->GetScanPredicate(),
                     catalog::Schema(logical_op->GetTableSchema()))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
@@ -1201,7 +1201,7 @@ void LogicalCteScanToPhysicalEmptyCteScan::Transform(common::ManagedPointer<Abst
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()),
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()), logical_op->GetTableOid(),
                     logical_op->GetCTEType(), logical_op->GetScanPredicate(),
                     catalog::Schema(logical_op->GetTableSchema())),
       std::move(c), context->GetOptimizerContext()->GetTxn());

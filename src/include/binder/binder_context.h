@@ -80,7 +80,7 @@ class BinderContext {
                       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
                       const std::vector<std::string> &col_aliases);
 
-  void AddCTETable(const std::string &table_name,
+  void AddCTETable(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &table_name,
                    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
                    const std::vector<std::string> &col_aliases);
 

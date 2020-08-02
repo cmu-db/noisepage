@@ -380,6 +380,10 @@ class EXPORT CatalogAccessor {
    */
   common::ManagedPointer<transaction::TransactionContext> GetTxn() const { return txn_; }
 
+  void RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table);
+
+  uint32_t GetNewTempOid() { return ++temp_oid_counter_; }
+
   /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
@@ -405,6 +409,7 @@ class EXPORT CatalogAccessor {
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
   const common::ManagedPointer<CatalogCache> cache_ = nullptr;
+  uint32_t temp_oid_counter_{0};
 
   /**
    * A helper function to ensure that user-defined object names are standardized prior to doing catalog operations

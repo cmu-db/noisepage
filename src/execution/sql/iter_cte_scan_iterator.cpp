@@ -14,9 +14,9 @@ IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx,
                                          uint32_t *schema_cols_type, uint32_t num_schema_cols,
                                          bool is_recursive)
     :
-      cte_scan_1_{exec_ctx, schema_cols_type, num_schema_cols},
-      cte_scan_2_{exec_ctx, schema_cols_type, num_schema_cols},
-      cte_scan_3_{exec_ctx, schema_cols_type, num_schema_cols},
+      cte_scan_1_{exec_ctx, catalog::INVALID_TABLE_OID, schema_cols_type, num_schema_cols},
+      cte_scan_2_{exec_ctx, catalog::INVALID_TABLE_OID, schema_cols_type, num_schema_cols},
+      cte_scan_3_{exec_ctx, catalog::INVALID_TABLE_OID, schema_cols_type, num_schema_cols},
       cte_scan_read_{&cte_scan_2_},
       cte_scan_write_{&cte_scan_3_},
       txn_{exec_ctx->GetTxn()},

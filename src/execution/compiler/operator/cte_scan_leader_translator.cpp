@@ -7,9 +7,6 @@
 //
 namespace terrier::execution::compiler {
 
-parser::ConstantValueExpression DummyLeaderCVE() {
-  return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
-}
 //
 CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                  CompilationContext *compilation_context, Pipeline *pipeline)
@@ -58,7 +55,9 @@ void CteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) c
   auto codegen = GetCodeGen();
   SetColumnTypes(builder);
   // Call @cteScanIteratorInit
-  ast::Expr *cte_scan_iterator_setup = codegen->CteScanIteratorInit(cte_scan_val_entry_.GetPtr(codegen), col_types_,
+  ast::Expr *cte_scan_iterator_setup = codegen->CteScanIteratorInit(cte_scan_val_entry_.GetPtr(codegen),
+                                                                    GetPlanAs<planner::CteScanPlanNode>().GetTableOid(),
+                                                                    col_types_,
                                                                     GetCompilationContext()->
                                                                     GetExecutionContextPtrFromQueryState());
   builder->Append(codegen->MakeStmt(cte_scan_iterator_setup));

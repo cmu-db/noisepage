@@ -615,9 +615,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(CteScanInit) : {
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto table_id = READ_UIMM4();
     auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    OpCteScanInit(iter, exec_ctx, schema_cols_type, num_oids);
+    OpCteScanInit(iter, exec_ctx, table_id, schema_cols_type, num_oids);
     DISPATCH_NEXT();
   }
   OP(CteScanGetTable) : {

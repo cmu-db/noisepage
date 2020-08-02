@@ -17,7 +17,8 @@ class EXPORT CteScanIterator {
    * Constructor for the CTEScanIterator
    */
 
-  CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
+  CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
+                  uint32_t *schema_cols_type,
                   uint32_t num_schema_cols);
 
   /**

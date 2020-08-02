@@ -354,9 +354,9 @@ void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, Lo
   EmitAll(bytecode, iter, exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
 }
 
-void BytecodeEmitter::EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids,
-                                              uint32_t num_oids) {
-  EmitAll(bytecode, iter, exec_ctx, col_oids, num_oids);
+void BytecodeEmitter::EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
+                                              LocalVar col_oids, uint32_t num_oids) {
+  EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, num_oids);
 }
 
 void BytecodeEmitter::EmitIterCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx,

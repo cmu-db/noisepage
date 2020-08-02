@@ -486,7 +486,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
           base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
         }
         auto &sel_cols = base_case->GetSelectColumns();
-        context.AddCTETable(cte_table_name_.back(), sel_cols, column_aliases);
+        context.AddCTETable(catalog_accessor_, cte_table_name_.back(), sel_cols, column_aliases);
       }
     }
 
@@ -813,7 +813,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
         (node->GetCteType() == parser::CTEType::RECURSIVE))) {
       // Add the table to the current context at the end
       // In the case of iterative/recursive CTEs, this was done earlier
-      context_->AddCTETable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), node->GetCteColumnAliases());
+      context_->AddCTETable(catalog_accessor_, node->GetAlias(), node->GetSelect()->GetSelectColumns(),
+                            node->GetCteColumnAliases());
     }
   } else if (node->GetJoin() != nullptr) {
     // Join

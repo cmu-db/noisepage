@@ -64,17 +64,22 @@ class CteScanPlanNode : public SeqScanPlanNode {
       return *this;
     }
 
+    Builder &SetTableOid(catalog::table_oid_t table_oid) {
+      table_oid_ = table_oid;
+      return *this;
+    }
+
     /**
      * Build the limit plan node
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
       std::vector<catalog::col_oid_t> col_oids;
-      for(size_t i = 1;i <= table_schema_.GetColumns().size();i++){
-        col_oids.push_back(catalog::col_oid_t(i));
+      for(auto &col : table_schema_.GetColumns()){
+        col_oids.push_back(col.Oid());
       }
       return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(cte_table_name_),
-          std::move(children_), std::move(output_schema_), is_leader_, std::move(table_schema_), cte_type_,
+          std::move(children_), std::move(output_schema_), is_leader_, table_oid_, std::move(table_schema_), cte_type_,
                                                                   std::move(col_oids),scan_predicate_));
     }
 
@@ -84,6 +89,7 @@ class CteScanPlanNode : public SeqScanPlanNode {
     parser::CTEType cte_type_ = parser::CTEType::SIMPLE;
     catalog::Schema table_schema_;
     common::ManagedPointer<parser::AbstractExpression> scan_predicate_{nullptr};
+    catalog::table_oid_t table_oid_;
   };
 
  private:
@@ -92,12 +98,13 @@ class CteScanPlanNode : public SeqScanPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    */
   CteScanPlanNode(std::string &&cte_table_name, std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                  std::unique_ptr<OutputSchema> output_schema, bool is_leader,
+                  std::unique_ptr<OutputSchema> output_schema, bool is_leader, catalog::table_oid_t table_oid,
                   catalog::Schema table_schema, parser::CTEType cte_type,
                   std::vector<catalog::col_oid_t> &&column_oids,
                   common::ManagedPointer<parser::AbstractExpression> scan_predicate)
       : SeqScanPlanNode(std::move(children), std::move(output_schema), scan_predicate, std::move(column_oids),
-                        false, catalog::INVALID_DATABASE_OID, catalog::INVALID_TABLE_OID, 0, false, 0, false),
+                        false, TEMP_OID(catalog::db_oid_t, !catalog::INVALID_DATABASE_OID),
+                        table_oid, 0, false, 0, false),
         cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
         cte_type_(cte_type),
@@ -167,10 +174,6 @@ class CteScanPlanNode : public SeqScanPlanNode {
     return cte_table_name_;
   }
 
-  common::ManagedPointer<parser::AbstractExpression> GetScanPredicate() const {
-    return scan_predicate_;
-  }
-
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -200,7 +203,7 @@ class CteScanPlanNode : public SeqScanPlanNode {
   /**
    * Selection predicate.
    */
-  common::ManagedPointer<parser::AbstractExpression> scan_predicate_;
+  UNUSED_ATTRIBUTE common::ManagedPointer<parser::AbstractExpression> scan_predicate_;
 };
 
 }  // namespace terrier::planner

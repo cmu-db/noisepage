@@ -119,7 +119,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
 
-void BinderContext::AddCTETable(const std::string &table_name,
+void BinderContext::AddCTETable(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &table_name,
                                 const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
                                 const std::vector<std::string> &col_aliases) {
   if(regular_table_alias_map_.find(table_name) != regular_table_alias_map_.end()){
@@ -135,7 +135,7 @@ void BinderContext::AddCTETable(const std::string &table_name,
 
   catalog::Schema cte_schema(schema_columns);
   regular_table_alias_map_[table_name] = TableMetadata(TEMP_OID(catalog::db_oid_t, catalog::NULL_OID),
-                                                    TEMP_OID(catalog::table_oid_t, catalog::NULL_OID),
+                                                    TEMP_OID(catalog::table_oid_t, accessor->GetNewTempOid()),
                                                     schema_columns);
 }
 

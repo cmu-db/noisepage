@@ -1,5 +1,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
+#include <execution/compiler/operator/cte_scan_leader_translator.h>
+
 #include "catalog/catalog_accessor.h"
 #include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
@@ -7,6 +9,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
+#include "execution/compiler/operator/cte_scan_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/work_context.h"
 #include "parser/expression/column_value_expression.h"
@@ -19,13 +22,12 @@ namespace terrier::execution::compiler {
 SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SEQ_SCAN),
-      tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
       vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")),
-      col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       slot_var_(GetCodeGen()->MakeFreshIdentifier("slot")),
-      col_oids_(MakeInputOids(
-          GetCodeGen()->GetCatalogAccessor()->GetSchema(GetPlanAs<planner::SeqScanPlanNode>().GetTableOid()),
-          GetPlanAs<planner::SeqScanPlanNode>())) {
+      col_oids_(MakeInputOids(GetCodeGen()->GetCatalogAccessor(),GetTableOid(),
+          GetPlanAs<planner::SeqScanPlanNode>())),
+      tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
+      col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
   // If there's a predicate, prepare the expression and register a filter manager.
   if (HasPredicate()) {
@@ -38,6 +40,10 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
 
 bool SeqScanTranslator::HasPredicate() const {
   return GetPlanAs<planner::SeqScanPlanNode>().GetScanPredicate() != nullptr;
+}
+
+catalog::Schema SeqScanTranslator::GetPlanSchema() const {
+  return GetCodeGen()->GetCatalogAccessor()->GetSchema(GetPlanAs<planner::SeqScanPlanNode>().GetTableOid());
 }
 
 catalog::table_oid_t SeqScanTranslator::GetTableOid() const {
@@ -253,6 +259,18 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
   }
 }
 
+ast::Expr *SeqScanTranslator::TableIterInitExpr() const {
+  if (IS_TEMP_OID(GetTableOid())){
+    auto leader_translator = reinterpret_cast<CteScanLeaderTranslator*>(
+        GetCompilationContext()->LookupTranslator(*GetPlanAs<planner::CteScanPlanNode>().GetLeader()));
+    return GetCodeGen()->TempTableIterInit(tvi_var_,
+                                  leader_translator->GetCteScanPtr(GetCodeGen()),
+                                  col_oids_var_,
+                                  GetCompilationContext()->GetExecutionContextPtrFromQueryState());
+  }
+  return GetCodeGen()->TableIterInit(GetCodeGen()->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(), col_oids_var_);
+}
+
 void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
 
@@ -266,8 +284,7 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
     // Declare the col_oids variable.
     DeclareColOids(function);
     // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
-    function->Append(
-        codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(), col_oids_var_));
+    function->Append(TableIterInitExpr());
   }
 
   auto declare_slot = codegen->DeclareVarNoInit(slot_var_, ast::BuiltinType::TupleSlot);
@@ -295,9 +312,18 @@ void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier wo
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
-  const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
-  auto type = schema.GetColumn(col_oid).Type();
-  auto nullable = schema.GetColumn(col_oid).Nullable();
+  type::TypeId type;
+  bool nullable;
+  if (IS_TEMP_OID(GetTableOid())){
+    const auto &schema = *GetPlanAs<planner::CteScanPlanNode>().GetTableSchema();
+    type = schema.GetColumn(col_oid).Type();
+    nullable = schema.GetColumn(col_oid).Nullable();
+  }else{
+    const auto &schema = GetCodeGen()->GetCatalogAccessor()->GetSchema(GetTableOid());
+    type = schema.GetColumn(col_oid).Type();
+    nullable = schema.GetColumn(col_oid).Nullable();
+  }
+
   auto col_index = GetColOidIndex(col_oid);
   return GetCodeGen()->VPIGet(GetCodeGen()->MakeExpr(vpi_var_), sql::GetTypeId(type), nullable, col_index);
 }
@@ -333,9 +359,15 @@ uint32_t SeqScanTranslator::GetColOidIndex(catalog::col_oid_t col_oid) const {
   throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", !col_oid));
 }
 
-std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(const catalog::Schema &schema,
+std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(catalog::CatalogAccessor *accessor, catalog::table_oid_t table,
                                                                  const planner::SeqScanPlanNode &op) {
   if (op.GetColumnOids().empty()) {
+    catalog::Schema schema;
+    if (IS_TEMP_OID(table)){
+      schema = *reinterpret_cast<const planner::CteScanPlanNode*>(&op)->GetTableSchema();
+    }else {
+      schema = accessor->GetSchema(table);
+    }
     return {schema.GetColumn(0).Oid()};
   }
   return op.GetColumnOids();

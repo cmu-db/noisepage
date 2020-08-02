@@ -51,8 +51,10 @@ void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->~V
 // ---------------------------------------------------------
 
 void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter, terrier::execution::exec::ExecutionContext *exec_ctx,
+                   uint32_t table_oid,
                    uint32_t *schema_cols_type, uint32_t num_schema_cols) {
-  new (iter) terrier::execution::sql::CteScanIterator(exec_ctx, schema_cols_type, num_schema_cols);
+  new (iter) terrier::execution::sql::CteScanIterator(exec_ctx, terrier::catalog::table_oid_t(table_oid),
+                                                      schema_cols_type, num_schema_cols);
 }
 
 void OpCteScanGetTable(terrier::storage::SqlTable **sql_table, terrier::execution::sql::CteScanIterator *iter) {

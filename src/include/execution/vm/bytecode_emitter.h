@@ -368,7 +368,7 @@ class BytecodeEmitter {
    * @param col_oids column oids
    * @param num_oids length of the array
    */
-  void EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids,
+  void EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid, LocalVar col_oids,
                                uint32_t num_oids);
 
   /**

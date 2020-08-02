@@ -3293,10 +3293,11 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::CteScanInit: {
       // Execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      auto *arr_type = call->Arguments()[2]->GetType()->As<ast::ArrayType>();
-      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
+      uint32_t table_oid = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val();
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
       // Emit the initialization codes
-      GetEmitter()->EmitCteScanIteratorInit(Bytecode::CteScanInit, iterator, exec_ctx, col_oids,
+      GetEmitter()->EmitCteScanIteratorInit(Bytecode::CteScanInit, iterator, exec_ctx, table_oid, col_oids,
                                          static_cast<uint32_t>(arr_type->GetLength()));
       break;
     }

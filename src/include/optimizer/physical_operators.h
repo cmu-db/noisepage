@@ -2102,7 +2102,7 @@ class CteScan : public OperatorNodeContents<CteScan> {
    * @return
    */
   static Operator Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       std::string table_alias, parser::CTEType cte_type,
+                       std::string table_alias, catalog::table_oid_t table_oid, parser::CTEType cte_type,
                        std::vector<AnnotatedExpression> &&scan_predicate, catalog::Schema &&table_schema);
 
   /**
@@ -2143,6 +2143,8 @@ class CteScan : public OperatorNodeContents<CteScan> {
     return table_schema_;
   }
 
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
  private:
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
 
@@ -2156,6 +2158,8 @@ class CteScan : public OperatorNodeContents<CteScan> {
   std::vector<AnnotatedExpression> scan_predicate_;
 
   catalog::Schema table_schema_;
+
+  catalog::table_oid_t table_oid_;
 };
 
 }  // namespace optimizer

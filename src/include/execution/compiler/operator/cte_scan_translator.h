@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/operator/seq_scan_translator.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -12,7 +12,7 @@ namespace terrier::execution::compiler {
 /**
  * CteScan Translator
  */
-class CteScanTranslator : public OperatorTranslator {
+class CteScanTranslator : public SeqScanTranslator {
  public:
   /**
    * Create a translator for the given plan.
@@ -27,30 +27,6 @@ class CteScanTranslator : public OperatorTranslator {
    */
   DISALLOW_COPY_AND_MOVE(CteScanTranslator);
 
-  /**
-   * If the scan has a predicate, this function will define all clause functions.
-   * @param decls The top-level declarations.
-   */
-  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
-
-  /**
-   * Initialize the FilterManager if required.
-   */
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
-
-  /**
-   * Generate the scan.
-   * @param context The context of the work.
-   * @param function The pipeline generating function.
-   */
-  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
-
-  /**
-   * Tear-down the FilterManager if required.
-   * @param pipeline The current pipeline.
-   * @param function The pipeline generating function.
-   */
-  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * @return The value (or value vector) of the column with the provided column OID in the table
@@ -58,7 +34,9 @@ class CteScanTranslator : public OperatorTranslator {
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
-  ast::Expr *GetSlotAddress() const override;
+  ast::Expr *TableIterInitExpr() const override;
+
+  catalog::Schema GetPlanSchema() const override;
 
 
  private:

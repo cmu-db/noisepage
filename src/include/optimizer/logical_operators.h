@@ -1957,7 +1957,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    */
   static Operator Make();
 
-  static Operator Make(std::string table_alias, catalog::Schema table_schema,
+  static Operator Make(std::string table_alias, catalog::table_oid_t table_oid, catalog::Schema table_schema,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
                        parser::CTEType cte_type, std::vector<AnnotatedExpression> &&scan_predicate);
 
@@ -1992,6 +1992,8 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
 
   bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
   std::vector<AnnotatedExpression> GetScanPredicate() const {
     return scan_predicate_;
   }
@@ -2009,6 +2011,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
   parser::CTEType cte_type_;
   std::vector<AnnotatedExpression> scan_predicate_;
   catalog::Schema table_schema_;
+  catalog::table_oid_t table_oid_;
 };
 
 }  // namespace terrier::optimizer
