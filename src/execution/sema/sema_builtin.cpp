@@ -1062,55 +1062,61 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 5)) {
+  if (!CheckArgCount(call, 6)) {
     return;
   }
 
   const auto &call_args = call->Arguments();
 
+  // The fourth argument is the execution context.
+  const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+    return;
+  }
+
   // The first argument is a table oid.
-  if (!call_args[0]->GetType()->IsIntegerType()) {
-    ReportIncorrectCallArg(call, 0, "First argument should be an integer type.");
+  if (!call_args[1]->GetType()->IsIntegerType()) {
+    ReportIncorrectCallArg(call, 1, "First argument should be an integer type.");
     return;
   }
 
   // The second argument is a uint32_t array.
-  if (!call_args[1]->GetType()->IsArrayType()) {
-    ReportIncorrectCallArg(call, 1, "Second argument should be a fixed length uint32 array.");
+  if (!call_args[2]->GetType()->IsArrayType()) {
+    ReportIncorrectCallArg(call, 2, "Second argument should be a fixed length uint32 array.");
     return;
   }
-  auto *arr_type = call_args[1]->GetType()->SafeAs<ast::ArrayType>();
+  auto *arr_type = call_args[2]->GetType()->SafeAs<ast::ArrayType>();
   if (!arr_type->GetElementType()->IsSpecificBuiltin(ast::BuiltinType::Uint32) || !arr_type->HasKnownLength()) {
-    ReportIncorrectCallArg(call, 1, "Second argument should be a fixed length uint32 array");
+    ReportIncorrectCallArg(call, 2, "Second argument should be a fixed length uint32 array");
   }
 
   // The third argument is an opaque query state. For now, check it's a pointer.
   const auto void_kind = ast::BuiltinType::Nil;
-  if (!call_args[2]->GetType()->IsPointerType()) {
-    ReportIncorrectCallArg(call, 2, GetBuiltinType(void_kind)->PointerTo());
+  if (!call_args[3]->GetType()->IsPointerType()) {
+    ReportIncorrectCallArg(call, 3, GetBuiltinType(void_kind)->PointerTo());
     return;
   }
 
   // The fourth argument is the execution context.
-  const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), exec_ctx_kind)) {
-    ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
+  const auto tls_type = ast::BuiltinType::ThreadStateContainer;
+  if (!IsPointerToSpecificBuiltin(call_args[4]->GetType(), tls_type)) {
+    ReportIncorrectCallArg(call, 4, GetBuiltinType(tls_type)->PointerTo());
     return;
   }
 
   // The fifth argument is the scanner function.
-  auto *scan_fn_type = call_args[4]->GetType()->SafeAs<ast::FunctionType>();
+  auto *scan_fn_type = call_args[5]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[5]->GetType());
     return;
   }
   // Check the type of the scanner function parameters.
   const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
   const auto &params = scan_fn_type->GetParams();
-  if (params.size() != 4 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
-      !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind) ||
-      !IsPointerToSpecificBuiltin(params[3].type_, exec_ctx_kind)) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
+  if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
+      !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[5]->GetType());
     return;
   }
 
@@ -2144,7 +2150,7 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
     } break;
     case ast::Builtin::IterCteScanInit: {
-      if (!CheckArgCount(call, 4)) {
+      if (!CheckArgCount(call, 5)) {
         return;
       }
       const auto cte_scan_iterator_kind = ast::BuiltinType::IterCteScanIterator;
@@ -2158,20 +2164,25 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The third argument is a uint32_t array
-      if (!call->Arguments()[2]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 2, "Third argument should be a fixed length uint32 array");
+      // Third argument must be an integer literal
+      if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      auto *arr_type = call->Arguments()[2]->GetType()->SafeAs<ast::ArrayType>();
+      // The third argument is a uint32_t array
+      if (!call->Arguments()[3]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call->Arguments()[3]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
       if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
-        ReportIncorrectCallArg(call, 2, "Third argument should be a fixed length uint32 array");
+        ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
       }
       // The fourth argument is a boolean
       auto bool_kind = ast::BuiltinType::Bool;
-      if (!call->Arguments()[3]->GetType()->IsSpecificBuiltin(bool_kind)) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(bool_kind));
+      if (!call->Arguments()[4]->GetType()->IsSpecificBuiltin(bool_kind)) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(bool_kind));
         return;
       }
 

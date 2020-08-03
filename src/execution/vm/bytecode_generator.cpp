@@ -694,17 +694,19 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 }
 
 void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
+  // The fourth argument should be the execution context.
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+
   // The first argument is the table oid, which is integer-typed.
-  LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[1]);
   // The second argument is the array of column oids.
   auto *arr_type = call->Arguments()[1]->GetType()->As<ast::ArrayType>();
-  LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[1]);
+  LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
   // The third argument is the query state.
-  LocalVar query_state = VisitExpressionForRValue(call->Arguments()[2]);
-  // The fourth argument should be the execution context.
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
+  LocalVar query_state = VisitExpressionForRValue(call->Arguments()[3]);
+
   // The fifth argument is the scan function as an identifier.
-  const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
+  const auto scan_fn_name = call->Arguments()[5]->As<ast::IdentifierExpr>()->Name();
   // Emit the bytecode.
   GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
                                       exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
@@ -3328,11 +3330,12 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::IterCteScanInit: {
       // Execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      auto *arr_type = call->Arguments()[2]->GetType()->As<ast::ArrayType>();
-      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
-      bool is_recursive = call->Arguments()[3]->As<ast::LitExpr>()->BoolVal();
+      uint32_t table_oid = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val();
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
+      bool is_recursive = call->Arguments()[4]->As<ast::LitExpr>()->BoolVal();
       // Emit the initialization codes
-      GetEmitter()->EmitIterCteScanIteratorInit(Bytecode::IterCteScanInit, iterator, exec_ctx, col_oids,
+      GetEmitter()->EmitIterCteScanIteratorInit(Bytecode::IterCteScanInit, iterator, exec_ctx, table_oid, col_oids,
                                          static_cast<uint32_t>(arr_type->GetLength()), is_recursive);
       break;
     }

@@ -10,15 +10,26 @@
 
 namespace terrier::execution::sql {
 
-IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx,
+IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
                                          uint32_t *schema_cols_type, uint32_t num_schema_cols,
                                          bool is_recursive)
     :
-      cte_scan_1_{exec_ctx, catalog::INVALID_TABLE_OID, schema_cols_type, num_schema_cols},
-      cte_scan_2_{exec_ctx, catalog::INVALID_TABLE_OID, schema_cols_type, num_schema_cols},
-      cte_scan_3_{exec_ctx, catalog::INVALID_TABLE_OID, schema_cols_type, num_schema_cols},
+      exec_ctx_{exec_ctx},
+      cte_scan_1_{exec_ctx, catalog::table_oid_t(
+                                TEMP_OID(catalog::table_oid_t,
+                                         exec_ctx->GetAccessor()->GetNewTempOid()))
+                                , schema_cols_type, num_schema_cols},
+      cte_scan_2_{exec_ctx, catalog::table_oid_t(
+          TEMP_OID(catalog::table_oid_t,
+                   exec_ctx->GetAccessor()->GetNewTempOid()))
+          , schema_cols_type, num_schema_cols},
+      cte_scan_3_{exec_ctx, catalog::table_oid_t(
+          TEMP_OID(catalog::table_oid_t,
+                   exec_ctx->GetAccessor()->GetNewTempOid()))
+          , schema_cols_type, num_schema_cols},
       cte_scan_read_{&cte_scan_2_},
       cte_scan_write_{&cte_scan_3_},
+      table_oid_{table_oid},
       txn_{exec_ctx->GetTxn()},
       written_{false},
       is_recursive_{is_recursive}
@@ -30,9 +41,11 @@ CteScanIterator *IterCteScanIterator::GetReadCte() { return cte_scan_read_; }
 
 CteScanIterator *IterCteScanIterator::GetResultCTE() {
   if (is_recursive_) {
+    exec_ctx_->GetAccessor()->RegisterTempTable(table_oid_, common::ManagedPointer(cte_scan_1_.GetTable()));
     return &cte_scan_1_;
   }
   else {
+    exec_ctx_->GetAccessor()->RegisterTempTable(table_oid_, common::ManagedPointer(cte_scan_read_->GetTable()));
     return cte_scan_read_;
   }
 }

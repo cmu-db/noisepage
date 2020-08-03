@@ -1,5 +1,7 @@
 #include "execution/compiler/compilation_context.h"
 
+#include <execution/compiler/operator/iter_cte_scan_leader_translator.h>
+
 #include <algorithm>
 #include <atomic>
 #include <sstream>
@@ -23,9 +25,9 @@
 #include "execution/compiler/expression/star_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/function_builder.h"
-#include "execution/compiler/operator/cte_scan_translator.h"
-#include "execution/compiler/operator/cte_scan_leader_translator.h"
 #include "execution/compiler/operator/csv_scan_translator.h"
+#include "execution/compiler/operator/cte_scan_leader_translator.h"
+#include "execution/compiler/operator/cte_scan_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
@@ -279,7 +281,11 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     }
     case planner::PlanNodeType::CTESCANLEADER: {
       const auto &cte_scan_leader = dynamic_cast<const planner::CteScanPlanNode &>(plan);
-      translator = std::make_unique<CteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
+      if(cte_scan_leader.GetIsInductive()){
+        translator = std::make_unique<IterCteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
+      }else {
+        translator = std::make_unique<CteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
+      }
       break;
     }
     case planner::PlanNodeType::CTESCAN: {

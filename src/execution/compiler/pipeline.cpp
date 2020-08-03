@@ -102,8 +102,29 @@ void Pipeline::LinkSourcePipeline(Pipeline *dependency) {
   dependencies_.push_back(dependency);
 }
 
+void Pipeline::LinkNestedPipeline(Pipeline *pipeline) {
+  TERRIER_ASSERT(pipeline != nullptr, "Nested pipeline cannot be null");
+  nested_pipelines_.push_back(pipeline);
+  pipeline->MarkNested();
+}
+
 void Pipeline::CollectDependencies(std::vector<Pipeline *> *deps) {
   for (auto *pipeline : dependencies_) {
+    pipeline->CollectDependencies(deps);
+  }
+
+  for (auto *pipeline : nested_pipelines_) {
+    pipeline->CollectDependencies(deps);
+  }
+  deps->push_back(this);
+}
+
+void Pipeline::CollectDependencies(std::vector<const Pipeline *> *deps) const {
+  for (auto *pipeline : dependencies_) {
+    pipeline->CollectDependencies(deps);
+  }
+
+  for (auto *pipeline : nested_pipelines_) {
     pipeline->CollectDependencies(deps);
   }
   deps->push_back(this);
@@ -119,9 +140,9 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
   //  2. If the consumer doesn't support parallel execution.
   //  3. If ANY operator in the pipeline explicitly requested serial execution.
 
-  const bool parallel_exec_disabled = exec_settings.GetIsParallelQueryExecution();
+  const bool parallel_exec_enabled = exec_settings.GetIsParallelQueryExecution();
   const bool parallel_consumer = true;
-  if (parallel_exec_disabled || !parallel_consumer || parallelism_ == Pipeline::Parallelism::Serial) {
+  if (!parallel_exec_enabled || !parallel_consumer || parallelism_ == Pipeline::Parallelism::Serial) {
     parallelism_ = Pipeline::Parallelism::Serial;
   } else {
     parallelism_ = Pipeline::Parallelism::Parallel;
@@ -221,8 +242,43 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction(query_id_t query_id) c
   return builder.Finish();
 }
 
+std::vector<ast::Expr*> Pipeline::CallSingleRunPipelineFunction() const {
+    return {codegen_->Call(GetInitPipelineFunctionName(),
+                           {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
+      codegen_->Call(GetRunPipelineFunctionName(),
+                          {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
+            codegen_->Call(GetTeardownPipelineFunctionName(),
+                           {compilation_context_->GetQueryState()->GetStatePointer(codegen_)})};
+}
+
+std::vector<ast::Expr*> Pipeline::CallRunPipelineFunction() const {
+  std::vector<ast::Expr*> calls;
+  std::vector<const Pipeline*> pipelines;
+  CollectDependencies(&pipelines);
+  for(auto pipeline : pipelines){
+    if(!pipeline->nested_ || (pipeline == this)) {
+      for(auto call : CallSingleRunPipelineFunction()) {
+        calls.push_back(call);
+      }
+    }
+  }
+  return calls;
+}
+
+ast::Identifier Pipeline::GetInitPipelineFunctionName() const {
+  return codegen_->MakeIdentifier(CreatePipelineFunctionName("Init"));
+}
+
+ast::Identifier Pipeline::GetTeardownPipelineFunctionName() const {
+  return codegen_->MakeIdentifier(CreatePipelineFunctionName("TearDown"));
+}
+
+ast::Identifier Pipeline::GetRunPipelineFunctionName() const {
+  return codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
+}
+
 ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
-  auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
+  auto name = GetRunPipelineFunctionName();
   FunctionBuilder builder(codegen_, name, compilation_context_->QueryParams(), codegen_->Nil());
   {
     // Begin a new code scope for fresh variables.
@@ -278,12 +334,20 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_i
 
   // Generate main pipeline logic.
   builder->DeclareFunction(GeneratePipelineWorkFunction(query_id));
+  builder->DeclareFunction(GenerateRunPipelineFunction());
+  builder->DeclareFunction(GenerateInitPipelineFunction());
+  builder->DeclareFunction(GenerateRunPipelineFunction());
+  auto teardown = GenerateTearDownPipelineFunction();
+  builder->DeclareFunction(teardown);
 
   // Register the main init, run, tear-down functions as steps, in that order.
-  builder->RegisterStep(GenerateInitPipelineFunction());
-  builder->RegisterStep(GenerateRunPipelineFunction());
-  auto teardown = GenerateTearDownPipelineFunction();
-  builder->RegisterStep(teardown);
+  if(!nested_){
+
+    builder->RegisterStep(GenerateInitPipelineFunction());
+
+    builder->RegisterStep(GenerateRunPipelineFunction());
+    builder->RegisterStep(teardown);
+  }
   builder->AddTeardownFn(teardown);
 }
 

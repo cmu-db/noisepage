@@ -109,7 +109,11 @@ class CteScanPlanNode : public SeqScanPlanNode {
         is_leader_(is_leader),
         cte_type_(cte_type),
         table_schema_(std::move(table_schema)),
-        scan_predicate_(scan_predicate) {}
+        scan_predicate_(scan_predicate) {
+    if(is_leader_){
+      leader_ = this;
+    }
+  }
 
  public:
   /**

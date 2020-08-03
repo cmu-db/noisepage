@@ -615,10 +615,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(CteScanInit) : {
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto table_id = READ_UIMM4();
+    auto table_oid = READ_UIMM4();
     auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    OpCteScanInit(iter, exec_ctx, table_id, schema_cols_type, num_oids);
+    OpCteScanInit(iter, exec_ctx, table_oid, schema_cols_type, num_oids);
     DISPATCH_NEXT();
   }
   OP(CteScanGetTable) : {
@@ -658,10 +658,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(IterCteScanInit) : {
     auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto table_oid = READ_UIMM4();
     auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
     auto is_recursive = static_cast<bool>(READ_IMM1());
-    OpIterCteScanInit(iter, exec_ctx, schema_cols_type, num_oids, is_recursive);
+    OpIterCteScanInit(iter, exec_ctx, table_oid, schema_cols_type, num_oids, is_recursive);
     DISPATCH_NEXT();
   }
 

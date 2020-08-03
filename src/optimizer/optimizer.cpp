@@ -77,8 +77,9 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
       && (plan.CastManagedPointerTo<planner::CteScanPlanNode>()->GetCTETableName() == table_name)) {
     if (plan->GetChildren().empty()) {
       // Set cte schema
-      auto cte_scan_plan_node_set = reinterpret_cast<planner::CteScanPlanNode *>(plan.Get());
+      auto cte_scan_plan_node_set = dynamic_cast<planner::CteScanPlanNode *>(plan.Get());
       cte_scan_plan_node_set->SetTableSchema(context_->GetCTESchema(table_name));
+      cte_scan_plan_node_set->SetLeader(leader->CastManagedPointerTo<const planner::CteScanPlanNode>());
     } else {
       // Child bearing CTE node
       // Replace with leader
@@ -87,13 +88,13 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
         plan->MoveChildren(&adopted_children);
         TERRIER_ASSERT(adopted_children.size() == 1, "CTE leader should have 1 child");
         (*leader)->AddChild(std::move(adopted_children[0]));
-        auto cte_scan = reinterpret_cast<planner::CteScanPlanNode *>(plan.Get());
+        auto cte_scan = dynamic_cast<planner::CteScanPlanNode *>(plan.Get());
         cte_scan->SetLeader(leader->CastManagedPointerTo<const planner::CteScanPlanNode>());
       }
     }
 
     if (*leader == nullptr) {
-      auto current_cte = plan.CastManagedPointerTo<planner::CteScanPlanNode>();
+      auto current_cte = dynamic_cast<planner::CteScanPlanNode *>(plan.Get());
 
       auto builder = planner::CteScanPlanNode::Builder();
                          builder.SetLeader(true)
@@ -104,20 +105,24 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
                           .SetTableSchema(catalog::Schema(*current_cte->GetTableSchema().Get()));
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> children;
       current_cte->MoveChildren(&children);
-      for(auto &child : children){
-        builder.AddChild(std::move(child));
-      }
+//      for(auto &child : children){
+//        builder.AddChild(std::move(child));
+//      }
 
-      current_cte->AddChild(builder.Build());
-      current_cte->SetLeader(common::ManagedPointer(reinterpret_cast<const planner::CteScanPlanNode*>
-                              (current_cte->GetChild(0))));
+      builder.AddChild(std::move(children[0]));
+      builder.AddChild(std::move(children[1]));
+
+      auto new_leader = builder.Build();
+      *leader = common::ManagedPointer(new_leader);
+      current_cte->AddChild(std::move(new_leader));
+
+      current_cte->SetLeader(leader->CastManagedPointerTo<const planner::CteScanPlanNode>());
     }
-  } else {
+  }
     auto children = plan->GetChildren();
     for (auto &i : children) {
       ElectCTELeader(i, table_name, leader);
     }
-  }
 }
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(

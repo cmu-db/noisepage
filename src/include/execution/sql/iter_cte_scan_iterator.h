@@ -15,7 +15,7 @@ class EXPORT IterCteScanIterator {
    * Constructor for the CTEScanIterator
    */
 
-  IterCteScanIterator(exec::ExecutionContext *exec_ctx, uint32_t *schema_cols_type,
+  IterCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *schema_cols_type,
                       uint32_t num_schema_cols, bool is_recursive);
 
   /**
@@ -68,11 +68,13 @@ class EXPORT IterCteScanIterator {
   DISALLOW_COPY_AND_MOVE(IterCteScanIterator);
 
  private:
+  exec::ExecutionContext *exec_ctx_;
   CteScanIterator cte_scan_1_;
   CteScanIterator cte_scan_2_;
   CteScanIterator cte_scan_3_;
   CteScanIterator *cte_scan_read_;
   CteScanIterator *cte_scan_write_;
+  catalog::table_oid_t table_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
   bool written_;
   bool is_recursive_;

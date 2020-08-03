@@ -110,6 +110,8 @@ class Pipeline {
    */
   void LinkSourcePipeline(Pipeline *dependency);
 
+  void LinkNestedPipeline(Pipeline *pipeline);
+
   /**
    * Store in the provided output vector the set of all dependencies for this pipeline. In other
    * words, store in the output vector all pipelines that must execute (in order) before this
@@ -171,6 +173,9 @@ class Pipeline {
    */
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
+  std::vector<ast::Expr*> CallSingleRunPipelineFunction() const;
+  std::vector<ast::Expr*> CallRunPipelineFunction() const;
+
  private:
   // Return the thread-local state initialization and tear-down function names.
   // This is needed when we invoke @tlsReset() from the pipeline initialization
@@ -196,6 +201,8 @@ class Pipeline {
 
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
+
+  void MarkNested() { nested_ = true; }
 
  private:
   // Internals which are exposed for minirunners.
@@ -223,12 +230,20 @@ class Pipeline {
   Parallelism parallelism_;
   // Whether to check for parallelism in new pipeline elements.
   bool check_parallelism_;
-  // All pipelines this one depends on completion of.
+  // All unnested pipelines this one depends on completion of.
   std::vector<Pipeline *> dependencies_;
+
+  std::vector<Pipeline *> nested_pipelines_;
   // Cache of common identifiers.
   ast::Identifier state_var_;
   // The pipeline state.
   StateDescriptor state_;
+
+  bool nested_{false};
+  ast::Identifier GetRunPipelineFunctionName() const;
+  void CollectDependencies(std::vector<const Pipeline *> *deps) const;
+  ast::Identifier GetTeardownPipelineFunctionName() const;
+  ast::Identifier GetInitPipelineFunctionName() const;
 };
 
 }  // namespace terrier::execution::compiler

@@ -359,9 +359,9 @@ void BytecodeEmitter::EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, 
   EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, num_oids);
 }
 
-void BytecodeEmitter::EmitIterCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx,
+void BytecodeEmitter::EmitIterCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
                                                   LocalVar col_oids, uint32_t num_oids, bool is_recursive) {
-  EmitAll(bytecode, iter, exec_ctx, col_oids, num_oids, is_recursive);
+  EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, num_oids, is_recursive);
 }
 
 void BytecodeEmitter::EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name,

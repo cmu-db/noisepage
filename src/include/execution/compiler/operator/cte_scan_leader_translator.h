@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/operator/cte_scan_provider.h"
 #include "execution/compiler/pipeline.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
 
@@ -11,7 +12,7 @@ namespace terrier::execution::compiler {
 /**
  * CteScanLeader Translator
  */
-class CteScanLeaderTranslator : public OperatorTranslator {
+class CteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
  public:
   /**
    * Constructor
@@ -34,7 +35,7 @@ class CteScanLeaderTranslator : public OperatorTranslator {
      */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  ast::Expr *GetCteScanPtr(CodeGen *codegen) const;
+  ast::Expr *GetCteScanPtr(CodeGen *codegen) const override;
 
   void InitializeQueryState(FunctionBuilder *function) const override;
 

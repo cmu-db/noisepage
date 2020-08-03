@@ -88,6 +88,9 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
     }
     return table_ptr;
   }
+  if(UNLIKELY(IS_TEMP_OID(table))){
+    return temp_tables_.find(table)->second;
+  }
   return dbc_->GetTable(txn_, table);
 }
 
@@ -218,8 +221,7 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
 }
 
 void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table) {
-  TERRIER_ASSERT(cache_ != DISABLED, "cache is disabled");
-  cache_->PutTable(table_oid, table);
+  temp_tables_[table_oid] = table;
 }
 
 }  // namespace terrier::catalog

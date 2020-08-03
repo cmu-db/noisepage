@@ -1,6 +1,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
 #include <execution/compiler/operator/cte_scan_leader_translator.h>
+#include <execution/compiler/operator/iter_cte_scan_leader_translator.h>
 
 #include "catalog/catalog_accessor.h"
 #include "common/error/exception.h"
@@ -261,10 +262,20 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
 
 ast::Expr *SeqScanTranslator::TableIterInitExpr() const {
   if (IS_TEMP_OID(GetTableOid())){
-    auto leader_translator = reinterpret_cast<CteScanLeaderTranslator*>(
-        GetCompilationContext()->LookupTranslator(*GetPlanAs<planner::CteScanPlanNode>().GetLeader()));
+    ast::Expr *cte_scan_ptr;
+    auto leader = GetPlanAs<planner::CteScanPlanNode>().GetLeader();
+    if(leader->GetIsInductive()){
+      cte_scan_ptr = reinterpret_cast<IterCteScanLeaderTranslator*>(GetCompilationContext()->LookupTranslator(
+          *leader))->GetCteScanPtr(GetCodeGen());
+    }else{
+      cte_scan_ptr = reinterpret_cast<CteScanLeaderTranslator*>(GetCompilationContext()->LookupTranslator(
+          *leader))->GetCteScanPtr(GetCodeGen());
+    }
+//    auto leader_translator =
+//        reinterpret_cast<CteScanLeaderTranslator*>(GetCompilationContext()->LookupTranslator(
+//            *GetPlanAs<planner::CteScanPlanNode>().GetLeader()));
     return GetCodeGen()->TempTableIterInit(tvi_var_,
-                                  leader_translator->GetCteScanPtr(GetCodeGen()),
+                                  cte_scan_ptr,
                                   col_oids_var_,
                                   GetCompilationContext()->GetExecutionContextPtrFromQueryState());
   }
