@@ -2,8 +2,6 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/allocator.h"
-#include "common/scoped_timer.h"
 #include "storage/storage_defs.h"
 #include "test_util/storage_test_util.h"
 
