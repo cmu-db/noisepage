@@ -13,34 +13,31 @@ class VarlenEntryHashBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {}
 
-  void TearDown(const benchmark::State &state) final { delete[] buffer_; }
+  void TearDown(const benchmark::State &state) final {}
 
   std::default_random_engine generator_;
-
-  byte *buffer_;
 };
 
-#define VARLEN_HASH_BENCHMARK(varlen_bytes)                                                      \
-                                                                                                 \
-  if constexpr ((varlen_bytes) <= storage::VarlenEntry::InlineThreshold()) {                     \
-    byte random_buffer[(varlen_bytes)];                                                          \
-    StorageTestUtil::FillWithRandomBytes((varlen_bytes), random_buffer, &generator_);            \
-    const auto varlen_entry = storage::VarlenEntry::CreateInline(random_buffer, (varlen_bytes)); \
-    /* NOLINTNEXTLINE */                                                                         \
-    for (auto _ : state) {                                                                       \
-      benchmark::DoNotOptimize(varlen_entry.Hash());                                             \
-    }                                                                                            \
-  } else {                                                                                       \
-    buffer_ = common::AllocationUtil::AllocateAligned((varlen_bytes));                           \
-    StorageTestUtil::FillWithRandomBytes((varlen_bytes), buffer_, &generator_);                  \
-    const auto varlen_entry = storage::VarlenEntry::Create(buffer_, (varlen_bytes), false);      \
-    /* NOLINTNEXTLINE */                                                                         \
-    for (auto _ : state) {                                                                       \
-      benchmark::DoNotOptimize(varlen_entry.Hash());                                             \
-    }                                                                                            \
-  }                                                                                              \
-                                                                                                 \
-  state.SetItemsProcessed(state.iterations());                              \
+#define VARLEN_HASH_BENCHMARK(varlen_bytes)                                                       \
+                                                                                                  \
+  byte random_buffer[(varlen_bytes)];                                                             \
+  StorageTestUtil::FillWithRandomBytes((varlen_bytes), random_buffer, &generator_);               \
+                                                                                                  \
+  if constexpr ((varlen_bytes) <= storage::VarlenEntry::InlineThreshold()) {                      \
+    const auto varlen_entry = storage::VarlenEntry::CreateInline(random_buffer, (varlen_bytes));  \
+    /* NOLINTNEXTLINE */                                                                          \
+    for (auto _ : state) {                                                                        \
+      benchmark::DoNotOptimize(varlen_entry.Hash());                                              \
+    }                                                                                             \
+  } else {                                                                                        \
+    const auto varlen_entry = storage::VarlenEntry::Create(random_buffer, (varlen_bytes), false); \
+    /* NOLINTNEXTLINE */                                                                          \
+    for (auto _ : state) {                                                                        \
+      benchmark::DoNotOptimize(varlen_entry.Hash());                                              \
+    }                                                                                             \
+  }                                                                                               \
+                                                                                                  \
+  state.SetItemsProcessed(state.iterations());                                                    \
   state.SetBytesProcessed(state.iterations() * (varlen_bytes));
 
 // NOLINTNEXTLINE
