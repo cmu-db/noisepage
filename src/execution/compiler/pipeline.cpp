@@ -248,8 +248,8 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
     }
 
     // Let the operators perform some completion work in this pipeline.
-    for (auto op : steps_) {
-      op->FinishPipelineWork(*this, &builder);
+    for (auto op_iter = steps_.rbegin(); op_iter < steps_.rend(); op_iter++) {
+      (*op_iter)->FinishPipelineWork(*this, &builder);
     }
   }
   return builder.Finish();

@@ -12,6 +12,7 @@ namespace terrier::execution::compiler {
 
 namespace {
 const char *build_row_attr_prefix = "attr";
+bool outer_join_flag = false;
 }  // namespace
 
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
@@ -20,6 +21,7 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
       build_row_var_(GetCodeGen()->MakeFreshIdentifier("buildRow")),
       build_row_type_(GetCodeGen()->MakeFreshIdentifier("BuildRow")),
       build_mark_(GetCodeGen()->MakeFreshIdentifier("buildMark")),
+      outer_join_consumer_(GetCodeGen()->MakeFreshIdentifier("outerJoinConsumer")),
       left_pipeline_(this, Pipeline::Parallelism::Parallel) {
   TERRIER_ASSERT(!plan.GetLeftHashKeys().empty(), "Hash-join must have join keys from left input");
   TERRIER_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
@@ -59,6 +61,23 @@ void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl 
   ast::StructDecl *struct_decl = codegen->DeclareStruct(build_row_type_, std::move(fields));
   struct_decl_ = struct_decl;
   decls->push_back(struct_decl);
+}
+
+void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
+  auto cc = GetCompilationContext();
+  auto pipeline = GetPipeline();
+  WorkContext ctx(cc, *pipeline);
+  ctx.AdvancePipelineIter();
+  auto *codegen = GetCodeGen();
+  util::RegionVector<ast::FieldDecl *> params = cc->QueryParams();
+  params.push_back(codegen->MakeField(build_row_var_, codegen->MakeExpr(build_row_type_)));
+  outer_join_flag = true;
+  FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
+  {
+    ctx.Push(&function);
+  }
+  outer_join_flag = false;
+  decls->push_back(function.Finish());
 }
 
 void HashJoinTranslator::InitializeJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {
@@ -252,7 +271,7 @@ void HashJoinTranslator::CheckRightMark(WorkContext *ctx, FunctionBuilder *funct
   check_condition.EndIf();
 }
 
-void HashJoinTranslator::CollectUnmatchedLeftRows(WorkContext *ctx, FunctionBuilder *function) const {
+void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
 
   // var naiveIterBase: HashTableNaiveIterator
@@ -279,10 +298,8 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(WorkContext *ctx, FunctionBuil
     // If mark is true, then row was not matched
     If check_condition(function, left_mark);
     {
-      // function->Append(codegen->Assign(left_mark, codegen->ConstBool(false)));
-
-      // Move along.
-      ctx->Push(function);
+      std::initializer_list<ast::Expr *> args{GetQueryStatePtr(), codegen->MakeExpr(build_row_var_)};
+      function->Append(codegen->Call(outer_join_consumer_, args));
     }
   }
   loop.EndLoop();
@@ -297,7 +314,6 @@ void HashJoinTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *
   } else {
     TERRIER_ASSERT(IsRightPipeline(ctx->GetPipeline()), "Pipeline is unknown to join translator");
     ProbeJoinHashTable(ctx, function);
-    CollectUnmatchedLeftRows(ctx, function);
   }
 }
 
@@ -312,6 +328,8 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
     }
+  } else {
+      CollectUnmatchedLeftRows(function);
   }
 }
 
@@ -322,7 +340,46 @@ ast::Expr *HashJoinTranslator::GetChildOutput(WorkContext *context, uint32_t chi
   if (IsRightPipeline(context->GetPipeline()) && child_idx == 0) {
     return GetBuildRowAttribute(GetCodeGen()->MakeExpr(build_row_var_), attr_idx);
   }
+  if (IsRightPipeline(context->GetPipeline()) && child_idx == 1) {
+    if (outer_join_flag) {
+      auto schema = this->GetPlan().GetOutputSchema();
+      auto type = schema->GetColumn(attr_idx).GetType();
+      return makeNull(type);
+    }
+  }
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
+}
+
+ast::Expr *HashJoinTranslator::makeNull(type::TypeId type) const {
+  ast::Expr *dummy_expr;
+  auto codegen = GetCodeGen();
+  switch (type) {
+    case type::TypeId::BOOLEAN:
+      dummy_expr = codegen->BoolToSql(false);
+      break;
+    case type::TypeId::TINYINT:   // fallthrough
+    case type::TypeId::SMALLINT:  // fallthrough
+    case type::TypeId::INTEGER:   // fallthrough
+    case type::TypeId::BIGINT:
+      dummy_expr = codegen->IntToSql(0);
+      break;
+    case type::TypeId::DATE:
+      dummy_expr = codegen->DateToSql(0, 0, 0);
+      break;
+    case type::TypeId::TIMESTAMP:
+      dummy_expr = codegen->TimestampToSql(0);
+      break;
+    case type::TypeId::VARCHAR:
+      dummy_expr = codegen->StringToSql("");
+      break;
+    case type::TypeId::DECIMAL:
+      dummy_expr = codegen->FloatToSql(0.0);
+      break;
+    case type::TypeId::VARBINARY:
+    default:
+      UNREACHABLE("Unsupported NULL type!");
+  }
+  return codegen->CallBuiltin(ast::Builtin::InitSqlNull, {codegen->PointerType(dummy_expr)});
 }
 
 }  // namespace terrier::execution::compiler

@@ -77,6 +77,8 @@ class WorkContext {
    */
   void SetExpressionCacheEnable(bool val) { cache_enabled_ = val; }
 
+  void AdvancePipelineIter() { pipeline_iter_++; }
+
  private:
   // The compilation context.
   CompilationContext *compilation_context_;

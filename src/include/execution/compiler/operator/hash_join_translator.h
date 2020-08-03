@@ -45,6 +45,14 @@ class HashJoinTranslator : public OperatorTranslator {
    */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
+
+  /**
+   * Declare a function OuterJoinConsumer which encapsulates the parent translator's functionality, this is required
+   * in order to implement outer joins properly
+   * @param decls
+   */
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
+
   /**
    * Initialize the global hash table.
    */
@@ -140,10 +148,12 @@ class HashJoinTranslator : public OperatorTranslator {
   void CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *function) const;
 
   // Only for left outer joins - iterate the hash table and output unmatched left rows
-  void CollectUnmatchedLeftRows(WorkContext *ctx, FunctionBuilder *function) const;
+  void CollectUnmatchedLeftRows(FunctionBuilder *function) const;
 
   /** @return The struct that was declared, used for the minirunner. */
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
+  ast::Expr *makeNull(type::TypeId type) const;
 
  private:
   // The name of the materialized row when inserting or probing into join hash
@@ -152,6 +162,8 @@ class HashJoinTranslator : public OperatorTranslator {
   ast::Identifier build_row_type_;
   // For mark-based joins.
   ast::Identifier build_mark_;
+  // The name of the function which encapuslates the join conumser
+  ast::Identifier outer_join_consumer_;
 
   // The left build-side pipeline.
   Pipeline left_pipeline_;
