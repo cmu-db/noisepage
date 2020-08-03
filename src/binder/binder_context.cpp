@@ -171,8 +171,13 @@ void BinderContext::SetTableName(common::ManagedPointer<parser::ColumnValueExpre
                                  common::ManagedPointer<parser::SelectStatement> node) {
   if (node->GetSelectTable() != nullptr && node->GetSelectTable()->GetJoin() == nullptr) {
     auto table_alias = node->GetSelectTable()->GetAlias();
-    if (expr->GetTableName().empty()) {
+    auto expr_table_name = expr->GetTableName();
+    if (expr_table_name.empty()) {
       expr->SetTableName(table_alias);
+    }
+    else if (expr_table_name != table_alias) {
+      throw BINDER_EXCEPTION(fmt::format("missing FROM-clause entry for table \"{}\"", expr_table_name),
+                             common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
     }
   }
 }
