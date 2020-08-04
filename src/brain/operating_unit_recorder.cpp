@@ -602,12 +602,9 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
       num_keys = plan->GetGroupByTerms().size();
 
       // Get Struct and compute memory scaling factor
-      // TODO(WAN): THIS IS NOT BEING SET PROPERLY
-#if 0
       auto offset = sizeof(execution::sql::HashTableEntry);
       auto ref_offset = offset + sizeof(execution::sql::CountAggregate);
       mem_factor = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, ref_offset);
-#endif
     } else {
       std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
       for (auto term : plan->GetAggregateTerms()) {
@@ -626,7 +623,7 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
       }
     }
 
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1, mem_factor);
+    AggregateFeatures(ExecutionOperatingUnitType::AGGREGATE_BUILD, key_size, num_keys, c_plan, 1, mem_factor);
   } else if (translator->IsProducePipeline(*current_pipeline_)) {
     // AggregateTopTranslator handles any exprs/computations in the output
     VisitAbstractPlanNode(plan);
@@ -641,7 +638,7 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
     auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+    AggregateFeatures(ExecutionOperatingUnitType::AGGREGATE_ITERATE, key_size, num_keys, plan, 1, 1);
   }
 }
 

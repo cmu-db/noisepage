@@ -189,10 +189,10 @@ class Pipeline {
   ast::FunctionDecl *GenerateInitPipelineFunction() const;
 
   // Generate the main pipeline work function.
-  ast::FunctionDecl *GeneratePipelineWorkFunction(query_id_t query_id) const;
+  ast::FunctionDecl *GeneratePipelineWorkFunction() const;
 
   // Generate the main pipeline logic.
-  ast::FunctionDecl *GenerateRunPipelineFunction() const;
+  ast::FunctionDecl *GenerateRunPipelineFunction(query_id_t query_id) const;
 
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;

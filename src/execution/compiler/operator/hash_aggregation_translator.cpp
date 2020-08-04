@@ -85,7 +85,8 @@ ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
     term_idx++;
   }
 
-  return codegen->DeclareStruct(agg_payload_type_, std::move(fields));
+  struct_decl_ = codegen->DeclareStruct(agg_payload_type_, std::move(fields));
+  return struct_decl_;
 }
 
 ast::StructDecl *HashAggregationTranslator::GenerateInputValuesStruct() {
