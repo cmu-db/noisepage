@@ -515,6 +515,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
       continue;
     }
+    if (select_element->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      auto cve = select_element.CastManagedPointerTo<terrier::parser::ColumnValueExpression>();
+      context_->SetTableName(cve, node);
+    }
 
     select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 

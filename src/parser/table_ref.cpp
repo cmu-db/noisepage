@@ -1,5 +1,7 @@
 #include "parser/table_ref.h"
+
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -192,4 +194,15 @@ std::unique_ptr<TableRef> TableRef::Copy() {
   }
   return table_ref;
 }
+
+void TableRef::GetConstituentTableAliases(std::set<std::string> &aliases) {
+  if (!alias_.empty()) {
+    aliases.insert(alias_);
+  }
+  if (join_ != nullptr) {
+    join_->GetLeftTable()->GetConstituentTableAliases(aliases);
+    join_->GetRightTable()->GetConstituentTableAliases(aliases);
+  }
+}
+
 }  // namespace terrier::parser

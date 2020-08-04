@@ -126,6 +126,14 @@ class BinderContext {
                                 common::ManagedPointer<parser::ColumnValueExpression> expr);
 
   /**
+   * Set the table_name for a column value expression to the name used in the select statement
+   * @param expr Column value expression to modify
+   * @param node Select statement
+   */
+  void SetTableName(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                    common::ManagedPointer<parser::SelectStatement> node);
+
+  /**
    * Construct the column position tuple given only the column value expression and the context.
    * Also internally update the column value expression according to the values in the context
    * @param expr Column value expression

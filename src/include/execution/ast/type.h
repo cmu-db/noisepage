@@ -7,6 +7,8 @@
 
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
+#include "execution/sql/cte_scan_iterator.h"
+#include "execution/sql/iter_cte_scan_iterator.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
