@@ -17,7 +17,6 @@
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
 #include "storage/block_access_controller.h"
-#include "storage/write_ahead_log/log_io.h"
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
 
