@@ -15,6 +15,8 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
+#include "parser/expression/function_expression.h"
+#include "execution/sql/value_util.h"
 
 namespace terrier::execution::compiler::test {
 
@@ -55,11 +57,32 @@ class ExpressionMaker {
   }
 
   /**
+   * Create a string constant expression
+   */
+  ManagedExpression Constant(const std::string &str) {
+    auto string_val = execution::sql::ValueUtil::CreateStringVal(str);
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,std::move(string_val.second)));
+  }
+
+  /**
    * Create a date constant expression
    */
   ManagedExpression Constant(int32_t year, uint32_t month, uint32_t day) {
     return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
         type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(year, month, day))));
+  }
+
+  /**
+ * Create an expression for a builtin call.
+ */
+  ManagedExpression Function(std::string &&func_name, std::vector<ManagedExpression> args,
+                             const type::TypeId return_value_type, catalog::proc_oid_t proc_oid) {
+    std::vector<execution::compiler::test::ExpressionMaker::OwnedExpression> children;
+    for (const auto &arg : args) {
+      children.emplace_back(arg->Copy());
+    }
+    return MakeManaged(std::make_unique<parser::FunctionExpression>(std::string{func_name}, return_value_type,
+                                                                    std::move(children), proc_oid));
   }
 
   /**
