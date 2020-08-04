@@ -121,7 +121,13 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   auto limit = get->GetLimit();
   auto indexes = accessor->GetIndexOids(get->GetTableOid());
 
-  auto sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT);
+  auto sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT).first;
+  bool set_optional = false;
+  if (sort == nullptr) {
+    sort = context->GetOptionalProperties()->GetPropertyOfType(PropertyType::SORT).first;
+    set_optional = sort != nullptr;
+  }
+
   std::vector<catalog::col_oid_t> sort_col_ids;
   bool sort_exists = sort != nullptr && IndexUtil::CheckSortProperty(sort->As<PropertySort>());
   auto sort_prop = sort_exists ? sort->As<PropertySort>() : nullptr;
@@ -137,14 +143,14 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
       if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), get->GetTableAlias(), index, preds,
                                                  allow_cves_, &scan_type, &bounds)) {
-        // There is an index that satisifed predicates for at least one column
+        // There is an index that satisfies predicates for at least one column
         if (sort_exists) {
           if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index, &bounds)) {
             // Index also satisfies sort properties so can push down limit
             preds = get->GetPredicates();
             auto op = std::make_unique<OperatorNode>(
                 IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
-                                std::move(bounds), limit_exists, limit)
+                                std::move(bounds), limit_exists, limit, set_optional ? sort : nullptr)
                     .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                 std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
             transformed->emplace_back(std::move(op));

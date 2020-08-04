@@ -286,26 +286,42 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];
+      PropertySet *req_input_props = new PropertySet();
+      PropertySet *optional_input_props = new PropertySet();
+
+      for (auto prop : i_prop->Properties()) {
+        if (prop.second) {
+          // Optional property
+          optional_input_props->AddProperty(prop.first, true);
+        } else {
+          // Required property
+          req_input_props->AddProperty(prop.first);
+        }
+      }
+
       auto child_group =
           context_->GetOptimizerContext()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
 
-      // Check whether the child group is already optimized for the prop
-      auto child_best_expr = child_group->GetBestExpression(i_prop);
+      // Check whether the child group is already optimized for the required input properties
+      auto child_best_expr = child_group->GetBestExpression(req_input_props);
       if (child_best_expr != nullptr) {  // Directly get back the best expr if the child group is optimized
-        cur_total_cost_ += child_best_expr->GetCost(i_prop);
+        cur_total_cost_ += child_best_expr->GetCost(req_input_props);
         if (cur_total_cost_ > context_->GetCostUpperBound()) break;
       } else if (prev_child_idx_ != cur_child_idx_) {  // We haven't optimized child group
         prev_child_idx_ = cur_child_idx_;
         PushTask(new OptimizeExpressionCostWithEnforcedProperty(this));
 
         auto cost_high = context_->GetCostUpperBound() - cur_total_cost_;
-        auto ctx = new OptimizationContext(context_->GetOptimizerContext(), i_prop->Copy(), cost_high);
+        auto ctx = new OptimizationContext(context_->GetOptimizerContext(), req_input_props->Copy(), cost_high,
+                                           optional_input_props->Copy());
         PushTask(new OptimizeGroup(child_group, ctx));
         context_->GetOptimizerContext()->AddOptimizationContext(ctx);
         return;
       } else {  // If we return from OptimizeGroup, then there is no expr for the context
         break;
       }
+
+      input_props[cur_child_idx_] = req_input_props;
     }
 
     // TODO(wz2): Can we reduce the amount of copying
@@ -336,9 +352,9 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       // property (sort). If more properties are added, we should add some heuristics
       // to derive the optimal enforce order or perform a cost-based full enumeration.
       for (auto &prop : context_->GetRequiredProperties()->Properties()) {
-        if (!output_prop->HasProperty(*prop)) {
+        if (!output_prop->HasProperty(*(prop.first))) {
           auto enforced_expr =
-              prop_enforcer.EnforceProperty(group_expr_, prop, context_->GetOptimizerContext()->GetTxn());
+              prop_enforcer.EnforceProperty(group_expr_, prop.first, context_->GetOptimizerContext()->GetTxn());
           // Cannot enforce the missing property
           if (enforced_expr == nullptr) {
             meet_requirement = false;
@@ -352,7 +368,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 
           // Cost the enforced expression
           auto extended_prop_set = output_prop->Copy();
-          extended_prop_set->AddProperty(prop->Copy());
+          extended_prop_set->AddProperty(prop.first->Copy());
           cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
               context_->GetOptimizerContext()->GetTxn(), context_->GetOptimizerContext()->GetCatalogAccessor(),
               &context_->GetOptimizerContext()->GetMemo(), memo_enforced_expr);

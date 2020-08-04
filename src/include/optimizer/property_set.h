@@ -24,7 +24,7 @@ class PropertySet {
    */
   ~PropertySet() {
     for (auto prop : properties_) {
-      delete prop;
+      delete prop.first;
     }
   }
 
@@ -32,9 +32,9 @@ class PropertySet {
    * Copy
    */
   PropertySet *Copy() {
-    std::vector<Property *> props;
+    std::vector<std::pair<Property *, bool>> props;
     for (auto prop : properties_) {
-      props.push_back(prop->Copy());
+      props.push_back({prop.first->Copy(), prop.second});
     }
 
     return new PropertySet(props);
@@ -45,26 +45,26 @@ class PropertySet {
    * PropertySet acquires ownership of the property.
    * @param properties properties to add to PropertySet
    */
-  explicit PropertySet(std::vector<Property *> properties) : properties_(std::move(properties)) {}
+  explicit PropertySet(std::vector<std::pair<Property *, bool>> properties) : properties_(std::move(properties)) {}
 
   /**
    * Gets the properties in the PropertySet
    * @returns properties stored in PropertySet
    */
-  const std::vector<Property *> &Properties() const { return properties_; }
+  const std::vector<std::pair<Property *, bool>> &Properties() const { return properties_; }
 
   /**
    * Adds a property to the PropertySet
    * @param property Property to add to PropertySet
    */
-  void AddProperty(Property *property);
+  void AddProperty(Property *property, bool optional = false);
 
   /**
    * Gets a property of a given type from PropertySet
    * @param type Type of the property to retrieve
    * @returns nullptr or pointer to property
    */
-  const Property *GetPropertyOfType(PropertyType type) const;
+  const std::pair<Property *, bool> GetPropertyOfType(PropertyType type) const;
 
   /**
    * Gets a property of a given type with additional type-check
@@ -74,7 +74,7 @@ class PropertySet {
   template <typename T>
   const T *GetPropertyOfTypeAs(PropertyType type) const {
     auto property = GetPropertyOfType(type);
-    if (property) return property->As<T>();
+    if (property.first) return property.first->As<T>();
     return nullptr;
   }
 
@@ -107,7 +107,7 @@ class PropertySet {
   bool operator==(const PropertySet &r) const;
 
  private:
-  std::vector<Property *> properties_;
+  std::vector<std::pair<Property *, bool>> properties_;
 };
 
 /**

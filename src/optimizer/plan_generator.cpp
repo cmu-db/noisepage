@@ -252,11 +252,13 @@ void PlanGenerator::Visit(const IndexScan *op) {
     }
   }
 
-  // TODO(dpatra): Discuss exactly when limit should be pushed down
   // Check that the limit is set in the optimization context
   if (op->GetLimitExists()) {
     builder.SetScanLimit(op->GetLimit());
   }
+
+  // If a sort property exists, set it in the plan node
+  builder.SetOptSortProp(op->GetOptSortProp());
 
   output_plan_ = builder.Build();
 }
@@ -401,7 +403,7 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   TERRIER_ASSERT(children_expr_map_.size() == 1, "OrderBy needs 1 child expr map");
   auto &child_cols_map = children_expr_map_[0];
 
-  auto sort_prop = required_props_->GetPropertyOfType(PropertyType::SORT)->As<PropertySort>();
+  auto sort_prop = required_props_->GetPropertyOfType(PropertyType::SORT).first->As<PropertySort>();
   TERRIER_ASSERT(sort_prop != nullptr, "OrderBy requires a sort property");
 
   auto sort_columns_size = sort_prop->GetSortColumnSize();

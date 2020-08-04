@@ -23,8 +23,12 @@ class OptimizationContext {
    * @param cost_upper_bound Upper cost bound
    */
   OptimizationContext(OptimizerContext *context, PropertySet *required_prop,
-                      double cost_upper_bound = std::numeric_limits<double>::max())
-      : context_(context), required_prop_(required_prop), cost_upper_bound_(cost_upper_bound) {}
+                      double cost_upper_bound = std::numeric_limits<double>::max(),
+                      PropertySet *optional_props = new PropertySet())
+      : context_(context),
+        required_prop_(required_prop),
+        cost_upper_bound_(cost_upper_bound),
+        optional_props_(optional_props) {}
 
   /**
    * Destructor
@@ -40,6 +44,11 @@ class OptimizationContext {
    * @returns Properties to satisfy, owned by this OptimizationContext
    */
   PropertySet *GetRequiredProperties() const { return required_prop_; }
+
+  /**
+   * @returns Properties to attempt, owned by this OptimizationContext
+   */
+  PropertySet *GetOptionalProperties() const { return optional_props_; }
 
   /**
    * @returns Current context's upper bound cost
@@ -67,6 +76,11 @@ class OptimizationContext {
    * Cost Upper Bound (for pruning)
    */
   double cost_upper_bound_;
+
+  /**
+   * Required properties
+   */
+  PropertySet *optional_props_;
 };
 
 }  // namespace terrier::optimizer

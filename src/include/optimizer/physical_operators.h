@@ -12,6 +12,7 @@
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node_contents.h"
+#include "optimizer/property.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
 #include "parser/statements.h"
@@ -151,7 +152,7 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
                        std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
                        std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
-                       bool limit_exists, uint32_t limit);
+                       bool limit_exists, uint32_t limit, Property *opt_sort_prop = nullptr);
 
   /**
    * Copy
@@ -210,6 +211,11 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    */
   uint32_t GetLimit() const { return limit_; }
 
+  /**
+   * @return optional sort property
+   */
+  Property *GetOptSortProp() const { return opt_sort_prop_; }
+
  private:
   /**
    * OID of the database
@@ -255,6 +261,11 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * Limit
    */
   uint32_t limit_;
+
+  /**
+   * Optional sort property
+   */
+  Property *opt_sort_prop_{};
 };
 
 /**

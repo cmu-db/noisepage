@@ -39,15 +39,15 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
 
   auto *property_set = new PropertySet();
   for (auto prop : requirements_->Properties()) {
-    if (prop->Type() == PropertyType::SORT) {
-      auto sort_prop = prop->As<PropertySort>();
+    if (prop.first->Type() == PropertyType::SORT) {
+      auto sort_prop = prop.first->As<PropertySort>();
       if (!IndexUtil::CheckSortProperty(sort_prop)) {
         continue;
       }
 
       auto idx_oid = op->GetIndexOID();
       if (IndexUtil::SatisfiesSortWithIndex(accessor_, sort_prop, tbl_id, idx_oid)) {
-        property_set->AddProperty(prop->Copy());
+        property_set->AddProperty(prop.first->Copy(), prop.second);
       }
     }
   }
@@ -81,7 +81,8 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
   std::vector<catalog::OrderByOrderingType> sort_ascending(op->GetColumns().size(), catalog::OrderByOrderingType::ASC);
 
   auto sort_prop = new PropertySort(op->GetColumns(), std::move(sort_ascending));
-  auto prop_set = new PropertySet(std::vector<Property *>{sort_prop});
+  auto prop_set = new PropertySet();
+  prop_set->AddProperty(sort_prop);
   output_.emplace_back(prop_set, std::vector<PropertySet *>{prop_set->Copy()});
 }
 
@@ -97,6 +98,7 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
     const std::vector<catalog::OrderByOrderingType> &sorts{op->GetSortAscending()};
     provided_prop->AddProperty(new PropertySort(exprs, sorts));
+    child_input_properties[0]->AddProperty(new PropertySort(exprs, sorts), true);
   }
 
   output_.emplace_back(provided_prop, std::move(child_input_properties));
@@ -158,10 +160,10 @@ void ChildPropertyDeriver::DeriveForJoin() {
   // If there is sort property and all the sort columns are from the probe
   // table (currently right table), we can push down the sort property
   for (auto prop : requirements_->Properties()) {
-    if (prop->Type() == PropertyType::SORT) {
+    if (prop.first->Type() == PropertyType::SORT) {
       bool can_pass_down = true;
 
-      auto sort_prop = prop->As<PropertySort>();
+      auto sort_prop = prop.first->As<PropertySort>();
       size_t sort_col_size = sort_prop->GetSortColumnSize();
       Group *probe_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(1));
       for (size_t idx = 0; idx < sort_col_size; ++idx) {

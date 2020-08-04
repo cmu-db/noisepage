@@ -98,7 +98,7 @@ void InputColumnDeriver::Visit(const Limit *op) {
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   // we need to pass down both required columns and sort columns
   auto prop = properties_->GetPropertyOfType(PropertyType::SORT);
-  TERRIER_ASSERT(prop != nullptr, "property should exist");
+  TERRIER_ASSERT(prop.first != nullptr, "property should exist");
 
   ExprSet input_cols_set;
   for (auto expr : required_cols_) {
@@ -109,7 +109,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
     }
   }
 
-  auto sort_prop = prop->As<PropertySort>();
+  auto sort_prop = prop.first->As<PropertySort>();
   size_t sort_col_size = sort_prop->GetSortColumnSize();
   for (size_t idx = 0; idx < sort_col_size; ++idx) {
     input_cols_set.insert(sort_prop->GetSortColumn(idx));

@@ -85,7 +85,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tb
                          std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                          planner::IndexScanType scan_type,
                          std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
-                         bool limit_exists, uint32_t limit) {
+                         bool limit_exists, uint32_t limit, Property *opt_sort_prop) {
   auto *scan = new IndexScan();
   scan->database_oid_ = database_oid;
   scan->tbl_oid_ = tbl_oid;
@@ -96,6 +96,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tb
   scan->bounds_ = std::move(bounds);
   scan->limit_exists_ = limit_exists;
   scan->limit_ = limit;
+  scan->opt_sort_prop_ = opt_sort_prop;
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(scan));
 }
 
