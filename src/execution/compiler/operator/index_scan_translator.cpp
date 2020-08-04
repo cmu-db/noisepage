@@ -31,6 +31,7 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
       hi_index_pr_(GetCodeGen()->MakeFreshIdentifier("hi_index_pr")),
       table_pr_(GetCodeGen()->MakeFreshIdentifier("table_pr")),
       slot_(GetCodeGen()->MakeFreshIdentifier("slot")) {
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   if (plan.GetScanPredicate() != nullptr) {
     compilation_context->Prepare(*plan.GetScanPredicate());
   }

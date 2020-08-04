@@ -495,7 +495,7 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanAscendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
