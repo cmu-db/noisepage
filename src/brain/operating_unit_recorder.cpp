@@ -602,9 +602,12 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
       num_keys = plan->GetGroupByTerms().size();
 
       // Get Struct and compute memory scaling factor
+      // TODO(WAN): THIS IS NOT BEING SET PROPERLY
+#if 0
       auto offset = sizeof(execution::sql::HashTableEntry);
       auto ref_offset = offset + sizeof(execution::sql::CountAggregate);
       mem_factor = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, ref_offset);
+#endif
     } else {
       std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
       for (auto term : plan->GetAggregateTerms()) {

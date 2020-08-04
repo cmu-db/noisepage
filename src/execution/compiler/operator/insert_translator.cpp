@@ -27,6 +27,7 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
                     ->GetCatalogAccessor()
                     ->GetTable(GetPlanAs<planner::InsertPlanNode>().GetTableOid())
                     ->ProjectionMapForOids(all_oids_)) {
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   for (uint32_t idx = 0; idx < plan.GetBulkInsertCount(); idx++) {
     const auto &node_vals = GetPlanAs<planner::InsertPlanNode>().GetValues(idx);
     for (const auto &node_val : node_vals) {
