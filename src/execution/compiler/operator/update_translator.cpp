@@ -61,6 +61,7 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 
   // For each set clause, @prSet(update_pr, ...)
   GenSetTablePR(function, context);
+  GenUpdateCascade(function);
 
   if (op.GetIndexedUpdate()) {
     // For indexed updates, we need to re-insert into the table, and then delete-and-insert into every index.
@@ -74,6 +75,7 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   } else {
     // Non-indexed updates just update.
     GenTableUpdate(function);
+    GenUpdateVerify(function);
   }
   function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
 
@@ -274,12 +276,28 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   builder->Append(GetCodeGen()->MakeStmt(index_delete_call));
 }
 
-std::vector<catalog::col_oid_t> UpdateTranslator::CollectOids(const catalog::Schema &schema) {
-  std::vector<catalog::col_oid_t> oids;
-  for (const auto &col : schema.GetColumns()) {
-    oids.emplace_back(col.Oid());
-  }
-  return oids;
+void UpdateTranslator::GenUpdateVerify(FunctionBuilder *builder) const {
+  const auto &op = GetPlanAs<planner::UpdatePlanNode>();
+  const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
+  const auto &delete_slot = child->GetSlotAddress();
+  std::vector<ast::Expr *> update_cascad_args{GetCodeGen()->AddressOf(updater_), delete_slot};
+  auto verify_constraint_call = GetCodeGen()->CallBuiltin(ast::Builtin::UpdateVerify, update_cascad_args);
+  auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, verify_constraint_call);
+  If success(builder, cond);
+  builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  success.EndIf();
+}
+
+void UpdateTranslator::GenUpdateCascade(FunctionBuilder *builder) const {
+  const auto &op = GetPlanAs<planner::UpdatePlanNode>();
+  const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
+  const auto &delete_slot = child->GetSlotAddress();
+  std::vector<ast::Expr *> update_cascad_args{GetCodeGen()->AddressOf(updater_), delete_slot};
+  auto update_cascade_call = GetCodeGen()->CallBuiltin(ast::Builtin::UpdateCascade, update_cascad_args);
+  auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, update_cascade_call);
+  If success(builder, cond);
+  builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  success.EndIf();
 }
 
 }  // namespace terrier::execution::compiler

@@ -32,6 +32,7 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table
   DeclareDeleter(function);
+  GenDeleteCascade(function);
   GenTableDelete(function);
   function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
 
@@ -110,6 +111,22 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), child->GetSlotAddress()};
   auto *index_delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::IndexDelete, delete_args);
   builder->Append(GetCodeGen()->MakeStmt(index_delete_call));
+}
+
+void DeleteTranslator::GenDeleteCascade(FunctionBuilder *builder) const {
+  const auto &op = GetPlanAs<planner::DeletePlanNode>();
+  const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
+  TERRIER_ASSERT(child != nullptr, "delete should have a child");
+  const auto &delete_slot = child->GetSlotAddress();
+  std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(deleter_), delete_slot};
+  auto delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::DeleteCascade, delete_args);
+  auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, delete_call);
+  If check(builder, cond);
+  {
+    // The delete was not successful; abort the transaction.
+    builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  }
+  check.EndIf();
 }
 
 void DeleteTranslator::SetOids(FunctionBuilder *builder) const {

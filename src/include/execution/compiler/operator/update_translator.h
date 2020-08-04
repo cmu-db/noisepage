@@ -1,9 +1,12 @@
 #pragma once
 
+#include <catalog/schema.h>
+
 #include <vector>
 
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "execution/compiler/pipeline_driver.h"
 #include "storage/storage_defs.h"
 
@@ -105,6 +108,12 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
 
   // Deletes from all indexes.
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
+
+  // Verify update
+  void GenUpdateVerify(FunctionBuilder *builder) const;
+
+  // Cascade Delete
+  void GenUpdateCascade(FunctionBuilder *builder) const;
 
   static std::vector<catalog::col_oid_t> CollectOids(const catalog::Schema &schema);
 
