@@ -80,7 +80,7 @@ TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
   TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  VectorProjectionIterator *vpi = iter.GetVectorProjectionIterator();
+  VectorProjectionIterator *vpi;
 
   uint32_t num_tuples = 0;
   int16_t prev_val{0};
