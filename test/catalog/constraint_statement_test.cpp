@@ -211,7 +211,7 @@ TEST_F(ConstraintStatementTest, TemporaryNamespaceTest) {
       auto txn = txn_manager_->BeginTransaction();
       auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
       EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-      auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+      auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
       EXPECT_NE(db_accessor, nullptr);
       new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
       txn_manager_->Abort(txn);
