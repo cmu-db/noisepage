@@ -110,7 +110,10 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
 //      }
 
       builder.AddChild(std::move(children[0]));
-      builder.AddChild(std::move(children[1]));
+      if(children.size() > 1){
+        builder.AddChild(std::move(children[1]));
+      }
+
 
       auto new_leader = builder.Build();
       *leader = common::ManagedPointer(new_leader);
