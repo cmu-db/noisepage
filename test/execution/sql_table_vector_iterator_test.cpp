@@ -135,13 +135,16 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
 
   struct Counter {
     uint32_t c_;
+    exec::ExecutionContext *exec_ctx_;
   };
 
-  auto init_count = [](UNUSED_ATTRIBUTE void *ctx, void *tls) { reinterpret_cast<Counter *>(tls)->c_ = 0; };
+  auto init_count = [](void *ctx, void *tls) {
+    reinterpret_cast<Counter *>(tls)->c_ = 0;
+    reinterpret_cast<Counter *>(tls)->exec_ctx_ = reinterpret_cast<exec::ExecutionContext *>(ctx);
+  };
 
   // Scan function just counts all tuples it sees
-  auto scanner = [](UNUSED_ATTRIBUTE void *state, void *tls, TableVectorIterator *tvi,
-                    exec::ExecutionContext *exec_ctx) {
+  auto scanner = [](UNUSED_ATTRIBUTE void *state, void *tls, TableVectorIterator *tvi) {
     auto *counter = reinterpret_cast<Counter *>(tls);
     while (tvi->Advance()) {
       for (auto *vpi = tvi->GetVectorProjectionIterator(); vpi->HasNext(); vpi->Advance()) {
@@ -151,7 +154,7 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   };
 
   // Setup thread states
-  exec_ctx_->GetThreadStateContainer()->Reset(sizeof(Counter), init_count, nullptr, nullptr);
+  exec_ctx_->GetThreadStateContainer()->Reset(sizeof(Counter), init_count, nullptr, exec_ctx_.get());
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
