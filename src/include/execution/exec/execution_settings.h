@@ -27,7 +27,7 @@ class EXPORT ExecutionSettings {
   }
 
   /** @return True if parallel query execution is enabled. */
-  constexpr bool GetIsParallelQueryExecution() const { return is_parallel_query_execution_; }
+  constexpr bool GetIsParallelQueryExecutionEnabled() const { return is_parallel_query_execution_; }
 
  private:
   double select_opt_threshold_{common::Constants::SELECT_OPT_THRESHOLD};

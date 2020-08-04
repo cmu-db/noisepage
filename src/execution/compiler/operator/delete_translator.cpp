@@ -16,6 +16,7 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DELETE),
       deleter_(GetCodeGen()->MakeFreshIdentifier("deleter")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   // Prepare the child.
   compilation_context->Prepare(*plan.GetChild(0), pipeline);
 

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline_driver.h"
 #include "planner/plannodes/update_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -12,7 +13,7 @@ namespace terrier::execution::compiler {
 /**
  * Update Translator
  */
-class UpdateTranslator : public OperatorTranslator {
+class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
    * Create a new translator for the given update plan. The compilation occurs within the
@@ -55,6 +56,14 @@ class UpdateTranslator : public OperatorTranslator {
    * @return An expression representing the value of the column with the given OID.
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
+
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Update is serial."); };
+
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Update is serial.");
+  };
 
  private:
   // Generates the update on the table.

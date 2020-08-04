@@ -22,6 +22,7 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
       all_oids_(CollectOids(table_schema_)),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(all_oids_)) {
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   compilation_context->Prepare(*plan.GetChild(0), pipeline);
 
   for (const auto &clause : plan.GetSetClauses()) {
