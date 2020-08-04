@@ -5,6 +5,7 @@
 #include "execution/vm/module.h"
 #include "main/db_main.h"
 #include "test_util/tpch/workload.h"
+#include "loggers/execution_logger.h"
 
 namespace terrier::runner {
 class TPCHRunner : public benchmark::Fixture {
@@ -33,7 +34,6 @@ class TPCHRunner : public benchmark::Fixture {
                                .SetRecordBufferSegmentSize(1000000)
                                .SetRecordBufferSegmentReuse(1000000);
     db_main_ = db_main_builder.Build();
-
     auto metrics_manager = db_main_->GetMetricsManager();
     metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
