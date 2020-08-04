@@ -618,8 +618,8 @@ class DBMain {
      * @param value use component
      * @return self reference for chaining
      */
-    Builder &SetExecutionMode(const execution::vm::ExecutionMode execution_mode) {
-      execution_mode_ = execution_mode;
+    Builder &SetExecutionMode(const execution::vm::ExecutionMode value) {
+      execution_mode_ = value;
       return *this;
     }
 
