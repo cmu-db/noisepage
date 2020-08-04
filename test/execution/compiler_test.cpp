@@ -575,7 +575,7 @@ TEST_F(CompilerTest, SimpleIndexScanAscendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanLimitAscendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA LIMIT 5;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -654,7 +654,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanDescendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA DESC;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -733,7 +733,7 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanLimitDescendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA DESC LIMIT 5;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
