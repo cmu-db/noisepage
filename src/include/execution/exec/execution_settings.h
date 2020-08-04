@@ -3,6 +3,10 @@
 #include "common/constants.h"
 #include "execution/util/execution_common.h"
 
+namespace terrier::runner {
+class MiniRunners;
+}  // namespace terrier::runner
+
 namespace terrier::execution::exec {
 /**
  * ExecutionSettings stores settings that are passed down from the upper layers.
@@ -35,5 +39,8 @@ class EXPORT ExecutionSettings {
   float min_bit_density_threshold_for_avx_index_decode_{common::Constants::BIT_DENSITY_THRESHOLD_FOR_AVX_INDEX_DECODE};
   float adaptive_predicate_order_sampling_frequency_{common::Constants::ADAPTIVE_PRED_ORDER_SAMPLE_FREQ};
   bool is_parallel_query_execution_{common::Constants::IS_PARALLEL_QUERY_EXECUTION};
+
+  // MiniRunners needs to set query_identifier and pipeline_operating_units_.
+  friend class terrier::runner::MiniRunners;
 };
 }  // namespace terrier::execution::exec
