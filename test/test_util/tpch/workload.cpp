@@ -84,12 +84,12 @@ void Workload::LoadTPCHQueries() {
   MakeExecutableQ18();
 
   queries_ptr_.emplace_back(std::move(q1_));
-//  queries_ptr_.emplace_back(std::move(q4_));
-//  queries_ptr_.emplace_back(std::move(q5_));
-//  queries_ptr_.emplace_back(std::move(q6_));
-//  queries_ptr_.emplace_back(std::move(q7_));
-//  queries_ptr_.emplace_back(std::move(q11_));
-//  queries_ptr_.emplace_back(std::move(q18_));
+  queries_ptr_.emplace_back(std::move(q4_));
+  queries_ptr_.emplace_back(std::move(q5_));
+  queries_ptr_.emplace_back(std::move(q6_));
+  queries_ptr_.emplace_back(std::move(q7_));
+  queries_ptr_.emplace_back(std::move(q11_));
+  queries_ptr_.emplace_back(std::move(q18_));
 }
 
 std::vector<parser::ConstantValueExpression> Workload::GetQueryParams(const std::string &query_name) {
@@ -130,6 +130,8 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     auto *txn = txn_manager_->BeginTransaction();
     auto accessor =
         catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
+
+
 //    execution::compiler::ExecutableQuery &query = queries_[index[counter]];
 //    std::string &query_name = query_names_[index[counter]];
 //    const planner::OutputSchema *output_schema = sample_output_.GetSchema(query_name);
@@ -141,12 +143,16 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
 //    const auto params = GetQueryParams(query_name);
 //    exec_ctx.SetParams(common::ManagedPointer(&params));
 //    query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
+
+
+
+    EXECUTION_LOG_INFO("running query num {}", (uint32_t)index[counter]);
     auto output_schema = queries_ptr_[index[counter]]->GetPlan().GetOutputSchema().Get();
     execution::exec::OutputPrinter printer(output_schema);
     //execution::exec::NoOpResultConsumer printer;
     auto exec_ctx = execution::exec::ExecutionContext(
         db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), printer, output_schema,
-        common::ManagedPointer<catalog::CatalogAccessor>(accessor_), exec_settings_);
+        common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_);
 
     queries_ptr_[index[counter]]->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     // Only execute up to query_num number of queries for this thread in round-robin
