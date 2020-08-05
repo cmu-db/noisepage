@@ -817,32 +817,32 @@ l_seq_scan = builder.SetOutputSchema(std::move(schema))
     .SetColumnOids(std::move(l_col_oids))
     .Build();
 }
-// Make the aggregate
-//std::unique_ptr<planner::AbstractPlanNode> agg;
-//execution::compiler::test::OutputSchemaHelper agg_out{0, &expr_maker};
-//{
-//// Read previous layer's output
-//auto l_extendedprice = l_seq_scan_out.GetOutput("l_extendedprice");
-//auto l_discount = l_seq_scan_out.GetOutput("l_discount");
-//// Make the aggregate expressions
-//auto revenue = expr_maker.AggSum(expr_maker.OpMul(l_extendedprice, l_discount));
-//// Add them to the helper.
-//agg_out.AddAggTerm("revenue", revenue);
-//// Make the output schema
-//agg_out.AddOutput("revenue", agg_out.GetAggTermForOutput("revenue"));
-//auto schema = agg_out.MakeSchema();
-//// Build
-//planner::AggregatePlanNode::Builder builder;
-//agg = builder.SetOutputSchema(std::move(schema))
-//    .AddAggregateTerm(revenue)
-//    .AddChild(std::move(l_seq_scan))
-//    .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-//    .SetHavingClausePredicate(nullptr)
-//    .Build();
-//}
+ //Make the aggregate
+std::unique_ptr<planner::AbstractPlanNode> agg;
+execution::compiler::test::OutputSchemaHelper agg_out{0, &expr_maker};
+{
+// Read previous layer's output
+auto l_extendedprice = l_seq_scan_out.GetOutput("l_extendedprice");
+auto l_discount = l_seq_scan_out.GetOutput("l_discount");
+// Make the aggregate expressions
+auto revenue = expr_maker.AggSum(expr_maker.OpMul(l_extendedprice, l_discount));
+// Add them to the helper.
+agg_out.AddAggTerm("revenue", revenue);
+// Make the output schema
+agg_out.AddOutput("revenue", agg_out.GetAggTermForOutput("revenue"));
+auto schema = agg_out.MakeSchema();
+// Build
+planner::AggregatePlanNode::Builder builder;
+agg = builder.SetOutputSchema(std::move(schema))
+    .AddAggregateTerm(revenue)
+    .AddChild(std::move(l_seq_scan))
+    .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+    .SetHavingClausePredicate(nullptr)
+    .Build();
+}
 
 // Compile plan
-auto last_op = l_seq_scan.get();
+auto last_op = agg.get();
 execution::exec::OutputPrinter printer(last_op->GetOutputSchema().Get());
 txn_ = txn_manager_->BeginTransaction();
 accessor_ = db_main_->GetCatalogLayer()->GetCatalog()->GetAccessor(
@@ -2556,10 +2556,10 @@ txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr)
 //BENCHMARK_REGISTER_F(TPCHRunner, Q1)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(10);
 //BENCHMARK_REGISTER_F(TPCHRunner, Q4)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(10);
 //BENCHMARK_REGISTER_F(TPCHRunner, Q5)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(10);
-BENCHMARK_REGISTER_F(TPCHRunner, Q6)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(10);
+//BENCHMARK_REGISTER_F(TPCHRunner, Q6)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(10);
 //BENCHMARK_REGISTER_F(TPCHRunner, Q7)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
-//BENCHMARK_REGISTER_F(TPCHRunner, Q11)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
-// BENCHMARK_REGISTER_F(TPCHRunner, Q16)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
-// BENCHMARK_REGISTER_F(TPCHRunner, Q18)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
+BENCHMARK_REGISTER_F(TPCHRunner, Q11)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
+ //BENCHMARK_REGISTER_F(TPCHRunner, Q16)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
+ //BENCHMARK_REGISTER_F(TPCHRunner, Q18)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
 //BENCHMARK_REGISTER_F(TPCHRunner, Q19)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(10);
 }  // namespace terrier::runner
