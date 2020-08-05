@@ -216,6 +216,13 @@ class ExpressionMaker {
   }
 
   /**
+ * Create expression for NOT(child)
+ */
+  ManagedExpression OpNot(ManagedExpression child) {
+    return Operator(parser::ExpressionType::OPERATOR_NOT, type::TypeId::BOOLEAN, child);
+  }
+
+  /**
    * Create expression for child1 AND/OR child2
    */
   ManagedExpression Conjunction(parser::ExpressionType op_type, ManagedExpression child1, ManagedExpression child2) {
