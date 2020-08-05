@@ -345,7 +345,7 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of left plan
     auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, key_size, plan->GetLeftHashKeys().size(), c_plan, 1, scale);
+    AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_BUILD, key_size, plan->GetLeftHashKeys().size(), c_plan, 1, scale);
   }
 
   // Probe
@@ -359,7 +359,7 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of right plan which is probe
     auto *c_plan = plan->GetChild(1);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(), plan, 1, 1);
+    AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(), plan, 1, 1);
   }
 
   // Computes against OutputSchema/Join predicate which will
@@ -544,7 +544,7 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     // Sort build sizes/operations are based on the input (from child)
     const auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, key_size, keys.size(), c_plan, 1, scale);
+    AggregateFeatures(ExecutionOperatingUnitType::SORT_BUILD, key_size, keys.size(), c_plan, 1, scale);
   } else if (translator->IsScanPipeline(*current_pipeline_)) {
     // SORT_ITERATE will do any output computations
     VisitAbstractPlanNode(plan);
@@ -553,7 +553,7 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
     auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+    AggregateFeatures(ExecutionOperatingUnitType::SORT_ITERATE, key_size, num_keys, plan, 1, 1);
   }
 }
 

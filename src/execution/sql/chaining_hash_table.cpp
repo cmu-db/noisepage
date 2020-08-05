@@ -18,15 +18,15 @@ ChainingHashTableBase::ChainingHashTableBase(float load_factor) noexcept
 
 ChainingHashTableBase::~ChainingHashTableBase() {
   if (entries_ != nullptr) {
-    util::Memory::FreeHugeArray(entries_, GetCapacity());
+    util::Memory::TrackFreeHugeArray(nullptr, entries_, GetCapacity());
   }
 }
 
-void ChainingHashTableBase::SetSize(uint64_t new_size) {
+void ChainingHashTableBase::SetSize(uint64_t new_size, common::ManagedPointer<MemoryTracker> tracker) {
   new_size = std::max(new_size, MIN_TABLE_SIZE);
 
   if (entries_ != nullptr) {
-    util::Memory::FreeHugeArray(entries_, GetCapacity());
+    util::Memory::TrackFreeHugeArray(tracker, entries_, GetCapacity());
   }
 
   uint64_t next_size = common::MathUtil::PowerOf2Ceil(new_size);
@@ -36,7 +36,7 @@ void ChainingHashTableBase::SetSize(uint64_t new_size) {
 
   capacity_ = next_size;
   mask_ = capacity_ - 1;
-  entries_ = util::Memory::MallocHugeArray<HashTableEntry *>(capacity_, true);
+  entries_ = util::Memory::TrackMallocHugeArray<HashTableEntry *>(tracker, capacity_, true);
 }
 
 //===----------------------------------------------------------------------===//
@@ -50,9 +50,9 @@ ChainingHashTable<UseTags>::ChainingHashTable(float load_factor)
     : ChainingHashTableBase(load_factor), num_elements_(0) {}
 
 template <bool UseTags>
-void ChainingHashTable<UseTags>::SetSize(uint64_t new_size) {
+void ChainingHashTable<UseTags>::SetSize(uint64_t new_size, common::ManagedPointer<MemoryTracker> tracker) {
   num_elements_ = 0;
-  ChainingHashTableBase::SetSize(new_size);
+  ChainingHashTableBase::SetSize(new_size, tracker);
 }
 
 template <bool UseTags>
