@@ -21,6 +21,7 @@ class OptimizationContext {
    * @param context OptimizerContext containing optimization context
    * @param required_prop Properties required to satisfy. acquires ownership
    * @param cost_upper_bound Upper cost bound
+   * @param optional_props Set of properties expressions in group can optionally attempt satisfying
    */
   OptimizationContext(OptimizerContext *context, PropertySet *required_prop,
                       double cost_upper_bound = std::numeric_limits<double>::max(),

@@ -146,6 +146,7 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * @param bounds bounds for IndexScan
    * @param limit_exists whether a limit exists
    * @param limit value of the limit
+   * @param opt_sort_prop optional sort property satisfied by IndexScan
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,

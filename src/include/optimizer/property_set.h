@@ -56,6 +56,7 @@ class PropertySet {
   /**
    * Adds a property to the PropertySet
    * @param property Property to add to PropertySet
+   * @param optional Flag to indicate whether the property is optional for this property set
    */
   void AddProperty(Property *property, bool optional = false);
 

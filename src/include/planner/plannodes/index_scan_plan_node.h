@@ -111,6 +111,10 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
       return *this;
     }
 
+    /**
+     * @param opt_sort_prop optional sort property satisfied by index scan node
+     * @return builder object
+     */
     Builder &SetOptSortProp(optimizer::Property *opt_sort_prop) {
       opt_sort_prop_ = opt_sort_prop;
       return *this;
