@@ -31,12 +31,12 @@ class FunctionExpression : public AbstractExpression {
   FunctionExpression() = default;
 
   /**
- * Instantiate a new function expression with the given name and children.
- * @param func_name function name
- * @param return_value_type function return value type
- * @param children children arguments for the function
- * @param proc_oid proc id
- */
+   * Instantiate a new function expression with the given name and children.
+   * @param func_name function name
+   * @param return_value_type function return value type
+   * @param children children arguments for the function
+   * @param proc_oid proc id
+   */
   FunctionExpression(std::string &&func_name, const type::TypeId return_value_type,
                      std::vector<std::unique_ptr<AbstractExpression>> &&children, catalog::proc_oid_t proc_oid)
       : AbstractExpression(ExpressionType::FUNCTION, return_value_type, std::move(children)),

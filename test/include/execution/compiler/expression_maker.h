@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "execution/sql/value.h"
+#include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -12,11 +13,10 @@
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/derived_value_expression.h"
+#include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
-#include "parser/expression/function_expression.h"
-#include "execution/sql/value_util.h"
 
 namespace terrier::execution::compiler::test {
 
@@ -61,7 +61,8 @@ class ExpressionMaker {
    */
   ManagedExpression Constant(const std::string &str) {
     auto string_val = execution::sql::ValueUtil::CreateStringVal(str);
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,std::move(string_val.second)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
+                                                                         std::move(string_val.second)));
   }
 
   /**
@@ -73,8 +74,8 @@ class ExpressionMaker {
   }
 
   /**
- * Create an expression for a builtin call.
- */
+   * Create an expression for a builtin call.
+   */
   ManagedExpression Function(std::string &&func_name, std::vector<ManagedExpression> args,
                              const type::TypeId return_value_type, catalog::proc_oid_t proc_oid) {
     std::vector<execution::compiler::test::ExpressionMaker::OwnedExpression> children;
@@ -216,8 +217,8 @@ class ExpressionMaker {
   }
 
   /**
- * Create expression for NOT(child)
- */
+   * Create expression for NOT(child)
+   */
   ManagedExpression OpNot(ManagedExpression child) {
     return Operator(parser::ExpressionType::OPERATOR_NOT, type::TypeId::BOOLEAN, child);
   }
