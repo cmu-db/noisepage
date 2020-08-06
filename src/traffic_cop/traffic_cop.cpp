@@ -330,8 +330,6 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   auto exec_query =
       execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get());
 
-  std::cout << (exec_query->GetQueryId()) << " " << portal->GetStatement()->GetQueryText() << "\n";
-
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
