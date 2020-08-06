@@ -39,7 +39,15 @@ namespace terrier::runner {
  * Should start small-row only scans
  */
 bool rerun_start = false;
+
+/**
+ * Number of rerun iterations
+ */
 int64_t rerun_iterations = 5;
+
+/**
+ * Rerun Counter
+ */
 int64_t rerun_counter = 0;
 
 /**
@@ -67,9 +75,12 @@ catalog::db_oid_t db_oid{0};
 /**
  * Number of warmup iterations
  */
-int64_t warmup_iterations_num{-1};
-int64_t warmup_iterations_num_idx(1);
-int64_t warmup_iterations_num_crud{-1};
+int64_t warmup_iterations_num{5};
+
+/**
+ * Should skip large rows iterations
+ */
+bool skip_large_rows = false;
 
 /**
  * Limit on num_rows for which queries need warming up
@@ -1022,7 +1033,7 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
         // Want to warmup the first query
         int iters = 1;
         if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
-          iters += 2;
+          iters += warmup_iterations_num;
         }
 
         for (int i = 0; i < iters; i++) {
@@ -1190,7 +1201,7 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   int num_iters = 1;
   if (row <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
-  } else if (rerun_start) {
+  } else if (rerun_start || skip_large_rows) {
     return;
   }
 
@@ -1245,8 +1256,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
 
   int num_iters = 1;
   if (lookup_size <= warmup_rows_limit) {
-    num_iters += warmup_iterations_num_idx;
-  } else if (rerun_start) {
+    num_iters += warmup_iterations_num;
+  } else if (rerun_start || skip_large_rows) {
     return;
   }
 
@@ -1369,11 +1380,11 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   auto num_cols = state->range(2);
   auto num_rows = state->range(3);
 
-  // UGLY HACK: skip insert for now if compiled
+  // TODO(wz2): Re-enable compiled inserts once runtime is sensible
   if (terrier::runner::MiniRunners::mode == execution::vm::ExecutionMode::Compiled)
     return;
 
-  if (rerun_start)
+  if (rerun_start || (num_rows > warmup_rows_limit && skip_large_rows))
     return;
 
   // Create temporary table schema
@@ -1497,8 +1508,8 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 
   int num_iters = 1;
   if (((is_idx != 0) ? car : row) <= warmup_rows_limit) {
-    num_iters += warmup_iterations_num_crud;
-  } else if (rerun_start) {
+    num_iters += warmup_iterations_num;
+  } else if (rerun_start || skip_large_rows) {
     return;
   }
 
@@ -1631,8 +1642,8 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 
   int num_iters = 1;
   if (((is_idx != 0) ? car : row) <= warmup_rows_limit) {
-    num_iters += warmup_iterations_num_crud;
-  } else if (rerun_start) {
+    num_iters += warmup_iterations_num;
+  } else if (rerun_start || skip_large_rows) {
     return;
   }
 
@@ -1731,7 +1742,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   int num_iters = 1;
   if (row <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
-  } else if (rerun_start) {
+  } else if (rerun_start || skip_large_rows) {
     return;
   }
 
@@ -1878,7 +1889,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
   int num_iters = 1;
   if (row <= warmup_rows_limit && car <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
-  } else if (rerun_start) {
+  } else if (rerun_start || skip_large_rows) {
     return;
   }
 
@@ -1924,7 +1935,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state
   int num_iters = 1;
   if (row <= warmup_rows_limit && car <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
-  } else if (rerun_start) {
+  } else if (rerun_start || skip_large_rows) {
     return;
   }
 
@@ -2161,80 +2172,54 @@ void RunBenchmarkSequence() {
   }
 }
 
+struct Arg {
+  const char* match;
+  bool found;
+  const char* value;
+  int intValue;
+};
+
 int main(int argc, char **argv) {
-  // mini_runners --port=9999 --benchmark_filter=
-  std::pair<bool, int> port_info{false, -1};
-  std::pair<bool, int> filter_info{false, -1};
+  Arg port_info{"--port=", false};
+  Arg filter_info{"--benchmark_filter=", false, "*"};
+  Arg skip_large_rows_info{"--skip_large_rows=", false};
+  Arg warm_num_info{"--warm_num=", false};
+  Arg rerun_info{"--rerun=", false};
+  Arg updel_info{"--updel_limit=", false};
+  Arg warm_limit_info{"--warm_limit=", false};
+  Arg compiled_info{"--compiled=", false};
+  Arg* args[] = {
+    &port_info, &filter_info, &skip_large_rows_info, &warm_num_info,
+    &rerun_info, &updel_info, &warm_limit_info, &compiled_info
+  };
 
-  std::pair<bool, int> warm_num{false, -1};
-  std::pair<bool, int> warm_num_idx{false, -1};
-  std::pair<bool, int> warm_num_crud{false, -1};
-  std::pair<bool, int> rerun{false, -1};
-  std::pair<bool, int> updel_limit{false, -1};
   for (int i = 0; i < argc; i++) {
-    if (strstr(argv[i], "--port=") != nullptr)
-      port_info = std::make_pair(true, i);
-    else if (strstr(argv[i], "--benchmark_filter=") != nullptr)
-      filter_info = std::make_pair(true, i);
-    else if (strstr(argv[i], "--warm_num=") != NULL)
-      warm_num = std::make_pair(true, i);
-    else if (strstr(argv[i], "--warm_num_idx=") != NULL)
-      warm_num_idx = std::make_pair(true, i);
-    else if (strstr(argv[i], "--warm_num_crud=") != NULL)
-      warm_num_crud = std::make_pair(true, i);
-    else if (strstr(argv[i], "--rerun=") != NULL)
-      rerun = std::make_pair(true, i);
-    else if (strstr(argv[i], "--updel_limit=") != NULL)
-      updel_limit = std::make_pair(true, i);
+    for (auto *arg : args) {
+      if (strstr(argv[i], arg->match) != nullptr) {
+        arg->found = true;
+        arg->value = strstr(argv[i], "=") + 1;
+        arg->intValue = atoi(arg->value);
+      }
+    }
   }
 
-  if (port_info.first) {
-    char *arg = argv[port_info.second];
-    char *equal_sign = strstr(arg, "=") + 1;
-    terrier::runner::port = atoi(equal_sign);
-  }
-
-  if (warm_num.first) {
-    char *arg = argv[warm_num.second];
-    char *equal_sign = strstr(arg, "=") + 1;
-    auto val = atoi(equal_sign);
-    terrier::runner::warmup_iterations_num = val;
-    std::cout << "warm_num = " << val << "\n";
-  }
-
-  if (warm_num_idx.first) {
-    char *arg = argv[warm_num_idx.second];
-    char *equal_sign = strstr(arg, "=") + 1;
-    auto val = atoi(equal_sign);
-    terrier::runner::warmup_iterations_num_idx = val;
-    std::cout << "warm_num_idx = " << val << "\n";
-  }
-
-  if (warm_num_crud.first) {
-    char *arg = argv[warm_num_crud.second];
-    char *equal_sign = strstr(arg, "=") + 1;
-    auto val = atoi(equal_sign);
-    terrier::runner::warmup_iterations_num_crud = val;
-    std::cout << "warm_num_crud = " << val << "\n";
-  }
-
-  if (rerun.first) {
-    char *arg = argv[rerun.second];
-    char *equal_sign = strstr(arg, "=") + 1;
-    auto val = atoi(equal_sign);
-    terrier::runner::rerun_iterations = val;
-    std::cout << "rerun = " << val << "\n";
-  }
-
-  if (updel_limit.first) {
-    char *arg = argv[updel_limit.second];
-    char *equal_sign = strstr(arg, "=") + 1;
-    auto val = atoi(equal_sign);
-    terrier::runner::updel_limit = val;
-    std::cout << "updel_limit = " << val << "\n";
-  }
+  if (port_info.found) terrier::runner::port = port_info.intValue;
+  if (skip_large_rows_info.found) terrier::runner::skip_large_rows = true;
+  if (warm_num_info.found) terrier::runner::warmup_iterations_num = warm_num_info.intValue;
+  if (rerun_info.found) terrier::runner::rerun_iterations = rerun_info.intValue;
+  if (updel_info.found) terrier::runner::updel_limit = updel_info.intValue;
+  if (warm_limit_info.found) terrier::runner::warmup_rows_limit = warm_limit_info.intValue;
 
   terrier::LoggersUtil::Initialize();
+  SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
+  SETTINGS_LOG_INFO("Port ({}): {}", port_info.match, terrier::runner::port);
+  SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_info.match, terrier::runner::skip_large_rows);
+  SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match, terrier::runner::warmup_iterations_num);
+  SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match, terrier::runner::rerun_iterations);
+  SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match, terrier::runner::updel_limit);
+  SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match, terrier::runner::warmup_rows_limit);
+  SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match, filter_info.value);
+  SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match, compiled_info.found);
 
   // Benchmark Config Environment Variables
   // Check whether we are being passed environment variables to override configuration parameter
@@ -2247,7 +2232,11 @@ int main(int argc, char **argv) {
 
   terrier::runner::InitializeRunnersState();
 
-  if (filter_info.first) {
+  if (filter_info.found) {
+    if (compiled_info.found) {
+      terrier::runner::MiniRunners::mode = terrier::execution::vm::ExecutionMode::Compiled;
+    }
+
     // Pass straight through to gbenchmark
     benchmark::Initialize(&argc, argv);
     benchmark::RunSpecifiedBenchmarks();
