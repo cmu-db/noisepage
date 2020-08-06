@@ -8,8 +8,8 @@
 #include <cstring>
 
 #include "common/macros.h"
-#include "common/math_util.h"
 #include "common/managed_pointer.h"
+#include "common/math_util.h"
 #include "execution/sql/memory_tracker.h"
 
 // Needed for some Darwin machine that don't have MAP_ANONYMOUS
@@ -110,7 +110,8 @@ class Memory {
    * @return A pointer tot he allocated array.
    */
   template <typename T>
-  [[nodiscard]] static T *TrackMallocHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker, const std::size_t num_elems, const bool populate) {
+  [[nodiscard]] static T *TrackMallocHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker,
+                                               const std::size_t num_elems, const bool populate) {
     std::size_t size = sizeof(T) * num_elems;
     if (tracker != nullptr) tracker->Increment(size);
 
@@ -138,7 +139,8 @@ class Memory {
    * @param num_elems The number of elements in the array.
    */
   template <typename T>
-  static void TrackFreeHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker, T arr[], const std::size_t num_elems) {
+  static void TrackFreeHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker, T arr[],
+                                 const std::size_t num_elems) {
     TERRIER_ASSERT(arr != nullptr, "Cannot free NULL pointer");
     TERRIER_ASSERT(num_elems != 0, "Cannot free zero-sized memory");
     std::size_t size = sizeof(T) * num_elems;

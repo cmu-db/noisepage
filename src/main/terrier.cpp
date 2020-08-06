@@ -85,6 +85,7 @@ int main(int argc, char *argv[]) {
                      .Build();
 
   db_main_handler_ptr = db_main.get();
+  db_main->GetMetricsManager()->EnableMetric(terrier::metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
 
   db_main->Run();
 

@@ -13,8 +13,8 @@
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
 #include "common/scoped_timer.h"
-#include "execution/compiler/executable_query.h"
 #include "execution/compiler/compilation_context.h"
+#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/execution_util.h"
 #include "execution/table_generator/table_generator.h"
@@ -27,9 +27,9 @@
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/query_to_operator_transformer.h"
+#include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
-#include "planner/plannodes/index_join_plan_node.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
@@ -273,7 +273,7 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -297,7 +297,7 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
 }
 
 static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<std::vector<int64_t>> args;
   GENERATE_MIXED_ARGUMENTS(args, false);
@@ -318,7 +318,7 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
 static void GenSortArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -353,7 +353,7 @@ static void GenSortArguments(benchmark::internal::Benchmark *b) {
 static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -385,7 +385,7 @@ static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenAggregateKeylessArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto col : num_cols) {
     for (auto row : row_nums) {
@@ -412,7 +412,7 @@ static void GenAggregateKeylessArguments(benchmark::internal::Benchmark *b) {
 static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -454,7 +454,7 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
 static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200, 500,    1000,
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -508,7 +508,8 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenIdxJoinArguments(benchmark::internal::Benchmark *b) {
   auto key_sizes = {1, 2, 4, 8, 15};
-  std::vector<int64_t> idx_sizes = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+  std::vector<int64_t> idx_sizes = {1,     10,    100,   200,    500,    1000,   2000,   5000,
+                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   for (auto key_size : key_sizes) {
     for (size_t i = 0; i < idx_sizes.size(); i++) {
       for (size_t j = 0; j < idx_sizes.size(); j++) {
@@ -526,8 +527,9 @@ static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int6
     // the span of numbers within a given range.
     int num_regions = 10;
     int64_t span = (num_rows - lookup_size) / num_regions;
-    auto range = std::uniform_int_distribution(static_cast<uint32_t>(0), static_cast<uint32_t>(num_regions-1))(generator);
-    auto low_key = std::uniform_int_distribution(static_cast<uint32_t>(0), static_cast<uint32_t>(span-1))(generator);
+    auto range =
+        std::uniform_int_distribution(static_cast<uint32_t>(0), static_cast<uint32_t>(num_regions - 1))(generator);
+    auto low_key = std::uniform_int_distribution(static_cast<uint32_t>(0), static_cast<uint32_t>(span - 1))(generator);
     low_key += range * span;
 
     std::vector<parser::ConstantValueExpression> param;
@@ -634,14 +636,14 @@ static void GenUpdateDeleteMixedArguments(benchmark::internal::Benchmark *b) {
 
 static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
   std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
-  std::vector<uint32_t> row_nums = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+  std::vector<uint32_t> row_nums = {1,     10,    100,   500,    1000,   2000,   5000,
+                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
 
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
       for (auto row_num : row_nums) {
-        if (row_num > updel_limit)
-          continue;
+        if (row_num > updel_limit) continue;
 
         int64_t lookup_size = 1;
         std::vector<int64_t> lookups;
@@ -651,8 +653,10 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
         }
 
         for (auto lookup : lookups) {
-          if (type == type::TypeId::INTEGER) b->Args({idx_key_size, 0, 15, 0, row_num, lookup, 1});
-          else if (type == type::TypeId::BIGINT) b->Args({0, idx_key_size, 0, 15, row_num, lookup, 1});
+          if (type == type::TypeId::INTEGER)
+            b->Args({idx_key_size, 0, 15, 0, row_num, lookup, 1});
+          else if (type == type::TypeId::BIGINT)
+            b->Args({0, idx_key_size, 0, 15, row_num, lookup, 1});
         }
       }
     }
@@ -676,7 +680,8 @@ class MiniRunners : public benchmark::Fixture {
   void ExecuteUpdate(benchmark::State *state);
   void ExecuteDelete(benchmark::State *state);
 
-  std::string ConstructIndexScanPredicate(int64_t key_num, int64_t num_rows, int64_t lookup_size, bool parameter = false) {
+  std::string ConstructIndexScanPredicate(int64_t key_num, int64_t num_rows, int64_t lookup_size,
+                                          bool parameter = false) {
     std::mt19937 generator{};
     auto low_key = std::uniform_int_distribution(static_cast<uint32_t>(0),
                                                  static_cast<uint32_t>(num_rows - lookup_size))(generator);
@@ -765,8 +770,7 @@ class MiniRunners : public benchmark::Fixture {
   }
 
   std::unique_ptr<planner::AbstractPlanNode> IndexNLJoinCorrector(
-      std::string build_tbl, size_t num_cols,
-      common::ManagedPointer<transaction::TransactionContext> txn,
+      std::string build_tbl, size_t num_cols, common::ManagedPointer<transaction::TransactionContext> txn,
       std::unique_ptr<planner::AbstractPlanNode> plan) {
     if (plan->GetPlanNodeType() != planner::PlanNodeType::INDEXNLJOIN) throw "Expected IndexNLJoin";
     if (plan->GetChildrenSize() != 1) throw "Expected 1 child";
@@ -842,7 +846,6 @@ class MiniRunners : public benchmark::Fixture {
               PassthroughPlanCorrect),
       common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params = nullptr,
       common::ManagedPointer<std::vector<type::TypeId>> param_types = nullptr) {
-
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
@@ -862,7 +865,8 @@ class MiniRunners : public benchmark::Fixture {
         common::ManagedPointer(accessor), exec_settings);
 
     execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
-    auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(), execution::compiler::CompilationMode::OneShot);
+    auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
+                                                                       execution::compiler::CompilationMode::OneShot);
     exec_query->SetPipelineOperatingUnits(std::move(pipeline_units));
 
     auto ret_val = std::make_pair(std::move(exec_query), out_plan->GetOutputSchema()->Copy());
@@ -870,8 +874,9 @@ class MiniRunners : public benchmark::Fixture {
     return ret_val;
   }
 
-  void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query, planner::OutputSchema *out_schema,
-                          bool commit, std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params) {
+  void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
+                          planner::OutputSchema *out_schema, bool commit,
+                          std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params) {
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
     for (auto i = 0; i < num_iters; i++) {
       if (i == num_iters - 1) {
@@ -882,10 +887,9 @@ class MiniRunners : public benchmark::Fixture {
       auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
       auto exec_settings = GetExecutionSettings();
-      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn),
-                                                                          execution::exec::NoOpResultConsumer(),
-                                                                          out_schema, common::ManagedPointer(accessor),
-                                                                          exec_settings);
+      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+          db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_schema,
+          common::ManagedPointer(accessor), exec_settings);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
@@ -1101,8 +1105,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "struct QueryState {\nexecCtx: *ExecutionContext\n}\n";
   output << "struct P1_State {\n}\n";
   output << "fun Query0_Init(queryState: *QueryState) -> nil {\nreturn}\n";
-  output << "fun Query0_Pipeline1_InitPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\nreturn\n}\n";
-  output << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\nreturn\n}\n";
+  output << "fun Query0_Pipeline1_InitPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil "
+            "{\nreturn\n}\n";
+  output << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil "
+            "{\nreturn\n}\n";
 
   // pipeline
   output << "fun Query0_Pipeline1_SerialWork(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
@@ -1116,13 +1122,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
   output << "fun Query0_Pipeline1_Init(queryState: *QueryState) -> nil {\n";
   output << "\tvar threadStateContainer = @execCtxGetTLS(queryState.execCtx)\n";
-  output << "\t@tlsReset(threadStateContainer, @sizeOf(P1_State), Query0_Pipeline1_InitPipelineState, Query0_Pipeline1_TearDownPipelineState, queryState)\n";
+  output << "\t@tlsReset(threadStateContainer, @sizeOf(P1_State), Query0_Pipeline1_InitPipelineState, "
+            "Query0_Pipeline1_TearDownPipelineState, queryState)\n";
   output << "\treturn\n";
   output << "}\n";
 
   output << "fun Query0_Pipeline1_Run(queryState: *QueryState) -> nil {\n";
   output << "\t@execCtxStartResourceTracker(queryState.execCtx, 4)\n";
-  output << "\tvar pipelineState = @ptrCast(*P1_State, @tlsGetCurrentThreadState(@execCtxGetTLS(queryState.execCtx)))\n";
+  output
+      << "\tvar pipelineState = @ptrCast(*P1_State, @tlsGetCurrentThreadState(@execCtxGetTLS(queryState.execCtx)))\n";
   output << "\tQuery0_Pipeline1_SerialWork(queryState, pipelineState)\n";
   output << "\t@resultBufferFinalize(queryState.execCtx)\n";
   output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1)\n";
@@ -1170,7 +1178,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
       db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), schema.get(),
       common::ManagedPointer(accessor), exec_settings);
 
-  auto exec_query = execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16, exec_settings);
+  auto exec_query =
+      execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16, exec_settings);
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1328,7 +1337,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
 
   // We only ever emit min(outer, inner) # of tuples
   // Even though there are no matches, it still might be a good idea to see what the relation is
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, std::min(inner, outer), tuple_size, key_num, 0, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, std::min(inner, outer), tuple_size, key_num, 0, 1,
+                         0);
 
   // Outer table scan happens
   pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, outer, tuple_size, key_num, outer, 1, 0);
@@ -1362,7 +1372,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
 
   std::stringstream query;
   query << "SELECT " << cols << " FROM " << outerTbl << " AS a, " << innerTbl << " AS b WHERE " << predicate;
-  auto f = std::bind(&MiniRunners::IndexNLJoinCorrector, this, innerTbl, key_num, std::placeholders::_1, std::placeholders::_2);
+  auto f = std::bind(&MiniRunners::IndexNLJoinCorrector, this, innerTbl, key_num, std::placeholders::_1,
+                     std::placeholders::_2);
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units), f);
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
 
@@ -1381,11 +1392,9 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   auto num_rows = state->range(3);
 
   // TODO(wz2): Re-enable compiled inserts once runtime is sensible
-  if (terrier::runner::MiniRunners::mode == execution::vm::ExecutionMode::Compiled)
-    return;
+  if (terrier::runner::MiniRunners::mode == execution::vm::ExecutionMode::Compiled) return;
 
-  if (rerun_start || (num_rows > warmup_rows_limit && skip_large_rows))
-    return;
+  if (rerun_start || (num_rows > warmup_rows_limit && skip_large_rows)) return;
 
   // Create temporary table schema
   std::vector<catalog::Schema::Column> cols;
@@ -1481,15 +1490,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ6_0_InsertRunners)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ6_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ6_0_InsertRunners)
-    ->UseManualTime()
-    ->Iterations(1)
-    ->Apply(GenInsertArguments);
+BENCHMARK_REGISTER_F(MiniRunners, SEQ6_0_InsertRunners)->UseManualTime()->Iterations(1)->Apply(GenInsertArguments);
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)
-    ->UseManualTime()
-    ->Iterations(1)
-    ->Apply(GenInsertMixedArguments);
+BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)->UseManualTime()->Iterations(1)->Apply(GenInsertMixedArguments);
 
 void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto num_integers = state->range(0);
@@ -1589,8 +1592,8 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 
     auto f = std::bind(&MiniRunners::ChildIndexScanCorrector, this, std::placeholders::_1, std::placeholders::_2);
     equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
-        common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
-        common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
+                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
+                                  common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
   }
 
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false, &real_params);
@@ -1689,13 +1692,13 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 
     GenIdxScanParameters(type, row, car, num_iters, &real_params);
     std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
-    query << "DELETE FROM " << execution::sql::TableGenerator::GenerateTableIndexName(type, row)
-          << " WHERE " << predicate;
+    query << "DELETE FROM " << execution::sql::TableGenerator::GenerateTableIndexName(type, row) << " WHERE "
+          << predicate;
 
     auto f = std::bind(&MiniRunners::ChildIndexScanCorrector, this, std::placeholders::_1, std::placeholders::_2);
     equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
-        common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
-        common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
+                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
+                                  common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
   }
 
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false, &real_params);
@@ -1848,9 +1851,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, build_row, tuple_size, num_col, build_car, 1, 0);
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, tuple_size, num_col, build_car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, tuple_size, num_col, build_car,
+                         1, 0);
   pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, tuple_size, num_col, probe_car, 1, 0);
-  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, tuple_size, num_col, matched_car, 1, 0);
+  pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, tuple_size, num_col, matched_car,
+                         1, 0);
   pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, matched_car, tuple_size, num_col, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
@@ -1979,7 +1984,6 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenAggregateKeylessArguments);
-
 
 void InitializeRunnersState() {
   auto db_main_builder = DBMain::Builder()
@@ -2136,7 +2140,8 @@ void RunBenchmarkSequence() {
                                                    {"SEQ6_0", "SEQ6_1"},
                                                    {"SEQ7_0", "SEQ7_1", "SEQ7_2"},
                                                    {"SEQ8_0", "SEQ8_1", "SEQ8_2"}};
-  std::vector<std::string> titles = {"OUTPUT", "SCANS", "IDX_SCANS", "SORTS", "HJ", "AGGS", "INSERT", "UPDATE", "DELETE"};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS", "HJ",
+                                     "AGGS",   "INSERT", "UPDATE",    "DELETE"};
 
   char buffer[32];
   const char *argv[2];
@@ -2173,9 +2178,9 @@ void RunBenchmarkSequence() {
 }
 
 struct Arg {
-  const char* match;
+  const char *match;
   bool found;
-  const char* value;
+  const char *value;
   int intValue;
 };
 
@@ -2188,10 +2193,8 @@ int main(int argc, char **argv) {
   Arg updel_info{"--updel_limit=", false};
   Arg warm_limit_info{"--warm_limit=", false};
   Arg compiled_info{"--compiled=", false};
-  Arg* args[] = {
-    &port_info, &filter_info, &skip_large_rows_info, &warm_num_info,
-    &rerun_info, &updel_info, &warm_limit_info, &compiled_info
-  };
+  Arg *args[] = {&port_info,  &filter_info, &skip_large_rows_info, &warm_num_info,
+                 &rerun_info, &updel_info,  &warm_limit_info,      &compiled_info};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
@@ -2255,7 +2258,8 @@ int main(int argc, char **argv) {
     Shutdown();
 
     // Do post-processing
-    std::vector<std::string> titles = {"OUTPUT", "SCANS", "IDX_SCANS", "SORTS", "HJ", "AGGS", "INSERT", "UPDATE", "DELETE", "NETWORK"};
+    std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
+                                       "AGGS",   "INSERT", "UPDATE",    "DELETE", "NETWORK"};
     for (auto title : titles) {
       char target[64];
       if (title == "NETWORK") {

@@ -89,22 +89,21 @@ ast::Identifier Pipeline::GetWorkFunctionName() const {
   return codegen_->MakeIdentifier(CreatePipelineFunctionName(IsParallel() ? "ParallelWork" : "SerialWork"));
 }
 
-void Pipeline::InjectStartResourceTracker(FunctionBuilder &builder) const {
+void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder) const {
   // Inject StartResourceTracker()
-  std::vector<ast::Expr *> args{
-    compilation_context_->GetExecutionContextPtrFromQueryState(),
-      codegen_->Const64(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
+  std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
+                                codegen_->Const64(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
   auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartResourceTracker, args);
-  builder.Append(codegen_->MakeStmt(start_call));
+  builder->Append(codegen_->MakeStmt(start_call));
 }
 
-void Pipeline::InjectEndResourceTracker(FunctionBuilder &builder, query_id_t query_id) const {
+void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const {
   // Inject EndPipelineTracker();
   std::vector<ast::Expr *> args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
   args.push_back(codegen_->Const64(!query_id));
   args.push_back(codegen_->Const64(!GetPipelineId()));
   auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
-  builder.Append(codegen_->MakeStmt(end_call));
+  builder->Append(codegen_->MakeStmt(end_call));
 }
 
 util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
@@ -231,7 +230,6 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
   FunctionBuilder builder(codegen_, name, compilation_context_->QueryParams(), codegen_->Nil());
   {
-
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope(codegen_);
 
@@ -252,7 +250,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
       // SerialWork(queryState, pipelineState)
       builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
 
-      InjectStartResourceTracker(builder);
+      InjectStartResourceTracker(&builder);
       started_tracker = true;
 
       builder.Append(
@@ -265,7 +263,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
     }
 
     if (started_tracker) {
-      InjectEndResourceTracker(builder, query_id);
+      InjectEndResourceTracker(&builder, query_id);
     }
   }
   return builder.Finish();

@@ -151,9 +151,7 @@ class ExecutableQuery {
   }
 
   /** @return The Query Identifier */
-  query_id_t GetQueryId() {
-    return query_id_;
-  }
+  query_id_t GetQueryId() { return query_id_; }
 
  private:
   // The plan.
