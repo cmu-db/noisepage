@@ -55,7 +55,7 @@ class TPCCBenchmark : public benchmark::Fixture {
    * Number of txns to run per terminal (worker thread)
    * default txn_weights. See definition for values
    */
-  const uint32_t num_precomputed_txns_per_worker_ = 100000;
+  const uint32_t num_precomputed_txns_per_worker_ = 200000;
   TransactionWeights txn_weights_;
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
