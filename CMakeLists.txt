@@ -397,7 +397,7 @@ set(TERRIER_TEST_LINK_LIBS
 
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
-        test_util
+        test_util_benchmark
         benchmark
         gtest
         gmock_main

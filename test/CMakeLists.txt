@@ -6,6 +6,8 @@ file(GLOB_RECURSE TEST_UTIL_SRCS ${PROJECT_SOURCE_DIR}/test/test_util/*.cpp ${PR
 if (TERRIER_BUILD_TESTS OR TERRIER_BUILD_BENCHMARKS)
     add_library(test_util STATIC ${TEST_UTIL_SRCS})
     target_link_libraries(test_util $<IF:$<PLATFORM_ID:Darwin>,terrier_static,terrier_shared> util_static ${TERRIER_LINK_LIBS})
+    add_library(test_util_benchmark STATIC ${TEST_UTIL_SRCS})
+    target_link_libraries(test_util_benchmark util_static_benchmark ${TERRIER_LINK_LIBS})
     add_dependencies(gtest gmock_main)
 endif ()
 

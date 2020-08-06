@@ -5,6 +5,8 @@ list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/gen_opt_bc.cpp)
 list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp)
 add_library(util_static STATIC ${UTIL_SRCS})
 target_link_libraries(util_static $<IF:$<PLATFORM_ID:Darwin>,terrier_static,terrier_shared> ${TERRIER_LINK_LIBS})
+add_library(util_static_benchmark STATIC ${UTIL_SRCS})
+target_link_libraries(util_static_benchmark ${TERRIER_LINK_LIBS})
 
 # The version number.
 set(TPL_VERSION_MAJOR 0)
