@@ -58,11 +58,7 @@ public class TrafficCopTest extends TestUtility {
    // begin explicit txn and take the write lock on a tuple
    stmt.execute("BEGIN;");
    stmt.execute("UPDATE FOO SET ID = 4 WHERE ID = 3;");
-   // The problem is that an update is implemented as a delete followed by an insert, so the count is doubled.
-   // TODO(WAN): fix this once we fix the update count. This was not an issue previously because updates were not being
-   //  correctly set in the optimizer in the past.
-   int updateHack = 2;
-   assertEquals(stmt.getUpdateCount(), 1 * updateHack);
+   assertEquals(stmt.getUpdateCount(), 1);
 
    Statement second_stmt = conn.createStatement();
    try {
@@ -80,7 +76,7 @@ public class TrafficCopTest extends TestUtility {
    // another statement can now acquire the write lock on the tuple
    Statement third_stmt = conn.createStatement();
    third_stmt.execute("UPDATE FOO SET ID = 5 WHERE ID = 3;");
-   assertEquals(third_stmt.getUpdateCount(), 1 * updateHack);
+   assertEquals(third_stmt.getUpdateCount(), 1);
    third_stmt.execute("DROP TABLE FOO;");
 
 

@@ -38,6 +38,7 @@ LINUX_BUILD_PACKAGES=(\
   "clang-8" \
   "clang-format-8" \
   "clang-tidy-8" \
+  "cmake" \
   "doxygen" \
   "git" \
   "g++-7" \
@@ -67,6 +68,7 @@ PYTHON_PACKAGES=(\
   "pyarrow" \
   "pandas" \
   "cmake" \
+  "requests" \
 )
 
 

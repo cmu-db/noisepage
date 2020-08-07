@@ -8,9 +8,10 @@
 #include <sys/syscall.h>
 #endif
 #include <unistd.h>
+
 #include <array>
 #include <cstring>
-#include <iostream>
+
 #include "common/macros.h"
 
 namespace terrier::common {

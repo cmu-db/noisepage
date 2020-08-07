@@ -813,18 +813,17 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
   uint32_t expected_arg_count = 1;
 
   switch (builtin) {
-    case ast::Builtin::ExecutionContextStartResourceTracker:
-      expected_arg_count = 2;
+    case ast::Builtin::ExecutionContextGetMemoryPool:
+    case ast::Builtin::ExecutionContextGetTLS:
+      expected_arg_count = 1;
       break;
+    case ast::Builtin::ExecutionContextAddRowsAffected:
+    case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextEndResourceTracker:
       expected_arg_count = 2;
       break;
     case ast::Builtin::ExecutionContextEndPipelineTracker:
       expected_arg_count = 3;
-      break;
-    case ast::Builtin::ExecutionContextGetMemoryPool:
-    case ast::Builtin::ExecutionContextGetTLS:
-      expected_arg_count = 1;
       break;
     default:
       UNREACHABLE("Impossible execution context call");
@@ -844,6 +843,20 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
   }
 
   switch (builtin) {
+    case ast::Builtin::ExecutionContextAddRowsAffected: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      // Number of rows affected, can be negative.
+      if (!call_args[1]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 1, "Second argument should be an integer type.");
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       call->SetType(GetBuiltinType(ast::BuiltinType::MemoryPool)->PointerTo());
       break;
@@ -2511,6 +2524,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinDateFunctionCall(call, builtin);
       break;
     }
+    case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
