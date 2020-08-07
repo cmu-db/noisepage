@@ -148,7 +148,7 @@ BENCHMARK_DEFINE_F(VarlenEntryBenchmark, EqualityNotInlineDifferentContentEqualL
 // ----------------------------------------------------------------------------
 // clang-format off
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashInline)->Arg(1)->Arg(2)->Arg(4)->Arg(8)->Arg(12);
-BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashNotInline)->RangeMultiplier(2)->Range(16,4096);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashNotInline)->RangeMultiplier(2)->Range(16, 4096);
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixOnly);
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixDifferentLength);
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixEqualLength);
