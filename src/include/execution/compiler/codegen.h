@@ -140,6 +140,11 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *ConstString(std::string_view str) const;
 
+  /**
+   * @return A literal null whose type matches the provided type
+   */
+  [[nodiscard]] ast::Expr *ConstNull(type::TypeId type) const;
+
   // ---------------------------------------------------------------------------
   //
   // Type representations (not full TPL types !!)

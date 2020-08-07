@@ -12,12 +12,12 @@ namespace terrier::execution::compiler {
 
 namespace {
 const char *build_row_attr_prefix = "attr";
-bool outer_join_flag = false;
 }  // namespace
 
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
                                        Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::HASH_JOIN),
+      outer_join_flag_(false),
       build_row_var_(GetCodeGen()->MakeFreshIdentifier("buildRow")),
       build_row_type_(GetCodeGen()->MakeFreshIdentifier("BuildRow")),
       build_mark_(GetCodeGen()->MakeFreshIdentifier("buildMark")),
@@ -70,13 +70,13 @@ void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionD
   ctx.AdvancePipelineIter();
   auto *codegen = GetCodeGen();
   util::RegionVector<ast::FieldDecl *> params = cc->QueryParams();
-  params.push_back(codegen->MakeField(build_row_var_, codegen->MakeExpr(build_row_type_)));
-  outer_join_flag = true;
+  params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
+  outer_join_flag_ = true;
   FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
   {
     ctx.Push(&function);
   }
-  outer_join_flag = false;
+  outer_join_flag_ = false;
   decls->push_back(function.Finish());
 }
 
@@ -284,6 +284,7 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
   ast::Expr *naive_iter_init = codegen->AddressOf(codegen->MakeExpr(naive_iter_base));
   function->Append(codegen->DeclareVarWithInit(naive_iter, naive_iter_init));
 
+  // while (hasNext()):
   ast::Expr *join_ht = global_join_ht_.GetPtr(codegen);
   Loop loop(function, codegen->MakeStmt(codegen->HTNaiveIteratorInit(codegen->MakeExpr(naive_iter), join_ht)),
             codegen->HTNaiveIteratorHasNext(codegen->MakeExpr(naive_iter)),
@@ -298,6 +299,7 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
     // If mark is true, then row was not matched
     If check_condition(function, left_mark);
     {
+      // outerJoinConsumer(queryState, buildRow);
       std::initializer_list<ast::Expr *> args{GetQueryStatePtr(), codegen->MakeExpr(build_row_var_)};
       function->Append(codegen->Call(outer_join_consumer_, args));
     }
@@ -329,7 +331,9 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
       function->Append(codegen->JoinHashTableBuild(jht));
     }
   } else {
-      CollectUnmatchedLeftRows(function);
+      if (GetPlanAs<planner::HashJoinPlanNode>().GetLogicalJoinType() == planner::LogicalJoinType::LEFT) {
+        CollectUnmatchedLeftRows(function);
+      }
   }
 }
 
@@ -338,48 +342,15 @@ ast::Expr *HashJoinTranslator::GetChildOutput(WorkContext *context, uint32_t chi
   // child, we read it from the probe/materialized build row. Otherwise, we
   // propagate to the appropriate child.
   if (IsRightPipeline(context->GetPipeline()) && child_idx == 0) {
-    return GetBuildRowAttribute(GetCodeGen()->MakeExpr(build_row_var_), attr_idx);
+    auto row = GetCodeGen()->MakeExpr(build_row_var_);
+    return GetBuildRowAttribute(row, attr_idx);
   }
-  if (IsRightPipeline(context->GetPipeline()) && child_idx == 1) {
-    if (outer_join_flag) {
-      auto schema = this->GetPlan().GetOutputSchema();
-      auto type = schema->GetColumn(attr_idx).GetType();
-      return makeNull(type);
-    }
+  if (IsRightPipeline(context->GetPipeline()) && child_idx == 1 && outer_join_flag_) {
+    auto schema = this->GetPlan().GetOutputSchema();
+    auto type = schema->GetColumn(attr_idx).GetType();
+    return GetCodeGen()->ConstNull(type);
   }
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
-}
-
-ast::Expr *HashJoinTranslator::makeNull(type::TypeId type) const {
-  ast::Expr *dummy_expr;
-  auto codegen = GetCodeGen();
-  switch (type) {
-    case type::TypeId::BOOLEAN:
-      dummy_expr = codegen->BoolToSql(false);
-      break;
-    case type::TypeId::TINYINT:   // fallthrough
-    case type::TypeId::SMALLINT:  // fallthrough
-    case type::TypeId::INTEGER:   // fallthrough
-    case type::TypeId::BIGINT:
-      dummy_expr = codegen->IntToSql(0);
-      break;
-    case type::TypeId::DATE:
-      dummy_expr = codegen->DateToSql(0, 0, 0);
-      break;
-    case type::TypeId::TIMESTAMP:
-      dummy_expr = codegen->TimestampToSql(0);
-      break;
-    case type::TypeId::VARCHAR:
-      dummy_expr = codegen->StringToSql("");
-      break;
-    case type::TypeId::DECIMAL:
-      dummy_expr = codegen->FloatToSql(0.0);
-      break;
-    case type::TypeId::VARBINARY:
-    default:
-      UNREACHABLE("Unsupported NULL type!");
-  }
-  return codegen->CallBuiltin(ast::Builtin::InitSqlNull, {codegen->PointerType(dummy_expr)});
 }
 
 }  // namespace terrier::execution::compiler

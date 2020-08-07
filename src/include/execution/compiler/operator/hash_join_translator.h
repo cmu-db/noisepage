@@ -153,9 +153,9 @@ class HashJoinTranslator : public OperatorTranslator {
   /** @return The struct that was declared, used for the minirunner. */
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
-  ast::Expr *makeNull(type::TypeId type) const;
-
  private:
+  // Flag to indicate we're generating code for the outer join
+  bool outer_join_flag_;
   // The name of the materialized row when inserting or probing into join hash
   // table.
   ast::Identifier build_row_var_;

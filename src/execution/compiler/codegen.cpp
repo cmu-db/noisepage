@@ -97,6 +97,38 @@ ast::Expr *CodeGen::ConstString(std::string_view str) const {
   return expr;
 }
 
+ast::Expr *CodeGen::ConstNull(type::TypeId type) const{
+  ast::Expr *dummy_expr;
+  // initSqlNull(&expr) produces a NULL of expr's type.
+  switch (type) {
+    case type::TypeId::BOOLEAN:
+      dummy_expr = BoolToSql(false);
+      break;
+    case type::TypeId::TINYINT:   // fallthrough
+    case type::TypeId::SMALLINT:  // fallthrough
+    case type::TypeId::INTEGER:   // fallthrough
+    case type::TypeId::BIGINT:
+      dummy_expr = IntToSql(0);
+      break;
+    case type::TypeId::DATE:
+      dummy_expr = DateToSql(0, 0, 0);
+      break;
+    case type::TypeId::TIMESTAMP:
+      dummy_expr = TimestampToSql(0);
+      break;
+    case type::TypeId::VARCHAR:
+      dummy_expr = StringToSql("");
+      break;
+    case type::TypeId::DECIMAL:
+      dummy_expr = FloatToSql(0.0);
+      break;
+    case type::TypeId::VARBINARY:
+    default:
+      UNREACHABLE("Unsupported NULL type!");
+  }
+  return CallBuiltin(ast::Builtin::InitSqlNull, {PointerType(dummy_expr)});
+}
+
 ast::VariableDecl *CodeGen::DeclareVar(ast::Identifier name, ast::Expr *type_repr, ast::Expr *init) {
   // Create a unique name for the variable
   ast::IdentifierExpr *var_name = MakeExpr(name);
