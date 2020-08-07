@@ -427,7 +427,7 @@ class VarlenEntry {
     if (size_and_prefix_same) {
       // Prefix and length are equal.
       if (left.IsInlined()) {
-        if (std::memcmp(left.prefix_, right.prefix_, PrefixSize()) == 0) {
+        if (std::memcmp(&left.content_, &right.content_, left.Size() - PrefixSize()) == 0) {
           return EqualityCheck ? true : false;
         }
       } else {
