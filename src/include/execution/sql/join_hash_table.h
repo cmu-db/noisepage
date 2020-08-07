@@ -282,39 +282,38 @@ inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) con
  * A tuple-at-a-time iterator over the contents of a join hash table.
  * TODO(abalakum): Support concise hash tables as well
  */
-  class HashTableNaiveIterator {
-  public:
-    /**
-     * Construct an iterator over the given join hash table.
-     * @param join_table The table to iterate.
-     */
-    explicit HashTableNaiveIterator(const JoinHashTable &join_table) : iter_(join_table.chaining_hash_table_) {
-      TERRIER_ASSERT(!join_table.use_concise_ht_,
-              "Must use chaining hash table to use this iterator");
-    }
+class HashTableNaiveIterator {
+ public:
+  /**
+   * Construct an iterator over the given join hash table.
+   * @param join_table The table to iterate.
+   */
+  explicit HashTableNaiveIterator(const JoinHashTable &join_table) : iter_(join_table.chaining_hash_table_) {
+    TERRIER_ASSERT(!join_table.use_concise_ht_, "Must use chaining hash table to use this iterator");
+  }
 
-    /**
-     * @return True if the iterator has more data; false otherwise
-     */
-    bool HasNext() const { return iter_.HasNext(); }
+  /**
+   * @return True if the iterator has more data; false otherwise
+   */
+  bool HasNext() const { return iter_.HasNext(); }
 
-    /**
-     * Advance the iterator one tuple.
-     */
-    void Next() { iter_.Next(); }
+  /**
+   * Advance the iterator one tuple.
+   */
+  void Next() { iter_.Next(); }
 
-    /**
-     * @return A pointer to the current row. This assumes a previous call to HasNext() indicated there
-     *         is more data.
-     */
-    const byte *GetCurrentRow() const {
-      auto *ht_entry = iter_.GetCurrentEntry();
-      return ht_entry->payload_;
-    }
+  /**
+   * @return A pointer to the current row. This assumes a previous call to HasNext() indicated there
+   *         is more data.
+   */
+  const byte *GetCurrentRow() const {
+    auto *ht_entry = iter_.GetCurrentEntry();
+    return ht_entry->payload_;
+  }
 
-  private:
-    // The iterator over the aggregation hash table
-    ChainingHashTableIterator<true> iter_;
-  };
+ private:
+  // The iterator over the aggregation hash table
+  ChainingHashTableIterator<true> iter_;
+};
 
 }  // namespace terrier::execution::sql

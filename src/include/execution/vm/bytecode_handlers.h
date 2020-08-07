@@ -1216,17 +1216,14 @@ VM_OP_HOT void OpHashTableEntryIteratorGetRow(const terrier::byte **row,
 VM_OP void OpHashTableNaiveIteratorInit(terrier::execution::sql::HashTableNaiveIterator *iter,
                                         terrier::execution::sql::JoinHashTable *join_hash_table);
 
-VM_OP_HOT void OpHashTableNaiveIteratorHasNext(bool *has_more,
-                                               terrier::execution::sql::HashTableNaiveIterator *iter) {
+VM_OP_HOT void OpHashTableNaiveIteratorHasNext(bool *has_more, terrier::execution::sql::HashTableNaiveIterator *iter) {
   *has_more = iter->HasNext();
 }
 
-VM_OP_HOT void OpHashTableNaiveIteratorNext(terrier::execution::sql::HashTableNaiveIterator *iter) {
-  iter->Next();
-}
+VM_OP_HOT void OpHashTableNaiveIteratorNext(terrier::execution::sql::HashTableNaiveIterator *iter) { iter->Next(); }
 
 VM_OP_HOT void OpHashTableNaiveIteratorGetRow(const terrier::byte **row,
-                                                    terrier::execution::sql::HashTableNaiveIterator *iter) {
+                                              terrier::execution::sql::HashTableNaiveIterator *iter) {
   *row = iter->GetCurrentRow();
 }
 

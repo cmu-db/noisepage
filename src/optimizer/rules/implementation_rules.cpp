@@ -647,16 +647,15 @@ LogicalLeftJoinToPhysicalLeftHashJoin::LogicalLeftJoinToPhysicalLeftHashJoin() {
 }
 
 bool LogicalLeftJoinToPhysicalLeftHashJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
-                                                    OptimizationContext *context) const {
+                                                  OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void LogicalLeftJoinToPhysicalLeftHashJoin::Transform(
-    common::ManagedPointer<AbstractOptimizerNode> input,
-    std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
-    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalLeftJoinToPhysicalLeftHashJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                                      std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                                                      UNUSED_ATTRIBUTE OptimizationContext *context) const {
   // first build an expression representing hash join
   const auto left_join = input->Contents()->GetContentsAs<LogicalLeftJoin>();
 

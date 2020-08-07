@@ -97,7 +97,7 @@ ast::Expr *CodeGen::ConstString(std::string_view str) const {
   return expr;
 }
 
-ast::Expr *CodeGen::ConstNull(type::TypeId type) const{
+ast::Expr *CodeGen::ConstNull(type::TypeId type) const {
   ast::Expr *dummy_expr;
   // initSqlNull(&expr) produces a NULL of expr's type.
   switch (type) {

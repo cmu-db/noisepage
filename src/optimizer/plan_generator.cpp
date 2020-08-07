@@ -618,9 +618,9 @@ void PlanGenerator::Visit(const LeftHashJoin *op) {
 
   auto comb_pred = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetJoinPredicates());
   auto eval_pred =
-          parser::ExpressionUtil::EvaluateExpression(children_expr_map_, common::ManagedPointer(comb_pred.get()));
+      parser::ExpressionUtil::EvaluateExpression(children_expr_map_, common::ManagedPointer(comb_pred.get()));
   auto join_predicate =
-          parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_pred.get()), children_expr_map_).release();
+      parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_pred.get()), children_expr_map_).release();
   RegisterPointerCleanup<parser::AbstractExpression>(join_predicate, true, true);
 
   auto builder = planner::HashJoinPlanNode::Builder();

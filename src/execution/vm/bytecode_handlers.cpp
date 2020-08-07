@@ -87,7 +87,7 @@ void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_h
 void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->~JoinHashTable(); }
 
 void OpHashTableNaiveIteratorInit(terrier::execution::sql::HashTableNaiveIterator *iter,
-                                      terrier::execution::sql::JoinHashTable *join_hash_table) {
+                                  terrier::execution::sql::JoinHashTable *join_hash_table) {
   TERRIER_ASSERT(join_hash_table != nullptr, "Null hash table");
   new (iter) terrier::execution::sql::HashTableNaiveIterator(*join_hash_table);
 }

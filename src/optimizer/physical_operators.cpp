@@ -498,8 +498,8 @@ bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
 
 Operator LeftHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
-                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
+                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
+                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new LeftHashJoin();
   join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);

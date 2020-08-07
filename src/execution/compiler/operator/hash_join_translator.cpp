@@ -66,16 +66,18 @@ void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl 
 void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
   auto cc = GetCompilationContext();
   auto pipeline = GetPipeline();
+  // Create a WorkContext and make the state identical to the WorkContext generated inside
+  // of PerformPipelineWork
   WorkContext ctx(cc, *pipeline);
-  ctx.AdvancePipelineIter();
+  while (ctx.CurrentOp() != this) {
+    ctx.AdvancePipelineIter();
+  }
   auto *codegen = GetCodeGen();
   util::RegionVector<ast::FieldDecl *> params = cc->QueryParams();
   params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
   outer_join_flag_ = true;
   FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
-  {
-    ctx.Push(&function);
-  }
+  { ctx.Push(&function); }
   outer_join_flag_ = false;
   decls->push_back(function.Finish());
 }
@@ -331,9 +333,9 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
       function->Append(codegen->JoinHashTableBuild(jht));
     }
   } else {
-      if (GetPlanAs<planner::HashJoinPlanNode>().GetLogicalJoinType() == planner::LogicalJoinType::LEFT) {
-        CollectUnmatchedLeftRows(function);
-      }
+    if (GetPlanAs<planner::HashJoinPlanNode>().GetLogicalJoinType() == planner::LogicalJoinType::LEFT) {
+      CollectUnmatchedLeftRows(function);
+    }
   }
 }
 
