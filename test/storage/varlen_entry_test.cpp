@@ -105,10 +105,13 @@ TEST(VarlenEntryTests, Array) {
  */
 // NOLINTNEXTLINE
 TEST(VarlenEntryTests, InlineEquality) {
+  constexpr std::string_view wan = "wan";
   constexpr std::string_view matt = "matt";
   constexpr std::string_view john = "john";
   constexpr std::string_view johnny = "johnny";
   constexpr std::string_view johnie = "johnie";
+  EXPECT_EQ(storage::VarlenEntry::Create(wan),
+            storage::VarlenEntry::Create(wan));  // equal in prefix, doesn't have content
   EXPECT_EQ(storage::VarlenEntry::Create(john), storage::VarlenEntry::Create(john));      // equal thru prefix
   EXPECT_EQ(storage::VarlenEntry::Create(johnny), storage::VarlenEntry::Create(johnny));  // equal thru content
   EXPECT_NE(storage::VarlenEntry::Create(john),
@@ -147,14 +150,14 @@ TEST(VarlenEntryTests, NonInlineEquality) {
  */
 // NOLINTNEXTLINE
 TEST(VarlenEntryTests, OwnershipEquality) {
-  constexpr std::string_view matthew_was_here = "matthew_was_here";
+  constexpr std::string_view matthew_was_here = "matthew_was_here"; // non-inline
 
   EXPECT_EQ(storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
                                          matthew_was_here.length(), false),
             storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
                                          matthew_was_here.length(), false));
 
-  EXPECT_NE(storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
+  EXPECT_EQ(storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
                                          matthew_was_here.length(), false),
             storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
                                          matthew_was_here.length(), true));
