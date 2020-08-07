@@ -49,12 +49,79 @@ BENCHMARK_DEFINE_F(VarlenEntryBenchmark, HashNotInline)(benchmark::State &state)
   state.SetBytesProcessed(state.iterations() * (varlen_bytes));
 }
 
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixOnly)(benchmark::State &state) {
+  constexpr std::string_view wan = "wan";
+
+  const auto lhs = storage::VarlenEntry::Create(wan);
+  const auto rhs = storage::VarlenEntry::Create(wan);
+
+  /* NOLINTNEXTLINE */
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(lhs == rhs);
+  }
+
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixDifferentLength)(benchmark::State &state) {
+  constexpr std::string_view matt = "matt";
+  constexpr std::string_view matthew = "matthew";
+
+  const auto lhs = storage::VarlenEntry::Create(matt);
+  const auto rhs = storage::VarlenEntry::Create(matthew);
+
+  /* NOLINTNEXTLINE */
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(lhs == rhs);
+  }
+
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixEqualLength)(benchmark::State &state) {
+  constexpr std::string_view johnny = "johnny";
+  constexpr std::string_view johnie = "johnie";
+
+  const auto lhs = storage::VarlenEntry::Create(johnny);
+  const auto rhs = storage::VarlenEntry::Create(johnie);
+
+  /* NOLINTNEXTLINE */
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(lhs == rhs);
+  }
+
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(VarlenEntryBenchmark, EqualityInlineDifferentPrefixEqualLength)(benchmark::State &state) {
+  constexpr std::string_view matt = "matt";
+  constexpr std::string_view john = "john";
+
+  const auto lhs = storage::VarlenEntry::Create(matt);
+  const auto rhs = storage::VarlenEntry::Create(john);
+
+  /* NOLINTNEXTLINE */
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(lhs == rhs);
+  }
+
+  state.SetItemsProcessed(state.iterations());
+}
+
 // ----------------------------------------------------------------------------
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashInline)->DenseRange(1,12,1);
-BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashNotInline)->RangeMultiplier(2)->Range(16,4096);;
+//BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashInline)->DenseRange(1,12,1);
+//BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashNotInline)->RangeMultiplier(2)->Range(16,4096);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixOnly);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixDifferentLength);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixEqualLength);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineDifferentPrefixEqualLength);
 // clang-format on
 
 }  // namespace terrier
