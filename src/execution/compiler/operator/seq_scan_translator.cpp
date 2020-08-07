@@ -85,7 +85,7 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
                                                       bool seen_conjunction) {
   // The top-most disjunctions in the tree form separate clauses in the filter manager.
   if (!seen_conjunction && predicate->GetExpressionType() == parser::ExpressionType::CONJUNCTION_OR) {
-    for (auto idx = 0; idx < predicate->GetChildrenSize() - 1; ++idx) {
+    for (size_t idx = 0; idx < predicate->GetChildrenSize() - 1; ++idx) {
       std::vector<ast::Identifier> next_clause;
       GenerateFilterClauseFunctions(decls, predicate->GetChild(idx), &next_clause, false);
       filters_.emplace_back(std::move(next_clause));
