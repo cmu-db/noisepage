@@ -34,4 +34,5 @@ ast::Expr *ConjunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValu
     }
   }
 }
+
 }  // namespace terrier::execution::compiler
