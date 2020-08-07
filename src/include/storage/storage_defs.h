@@ -416,17 +416,15 @@ class VarlenEntry {
    */
   template <bool EqualityCheck>
   static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
-    TERRIER_ASSERT(left.Size() >= 0, "Left VarlenEntry has negative size?");
-    TERRIER_ASSERT(right.Size() >= 0, "Right VarlenEntry has negative size?");
-
     // Compare the size and prefix in one fell swoop, ignoring the sign bit indicating reclaimability.
-    uint8_t left_first = *reinterpret_cast<const uint8_t *>(&left);
-    uint8_t right_first = *reinterpret_cast<const uint8_t *>(&right);
-    bool first_byte_same = (left_first << 1) == (right_first << 1);
-    bool following_bytes_same =
-        0 == std::memcmp(reinterpret_cast<const char *>(&left) + 1, reinterpret_cast<const char *>(&right) + 1,
-                         sizeof(left.size_) + PrefixSize() - 1);
-    if (first_byte_same && following_bytes_same) {
+    uint64_t left_size_prefix = *reinterpret_cast<const uint64_t *>(&left);
+    uint64_t right_size_prefix = *reinterpret_cast<const uint64_t *>(&right);
+    // Mask off the reclaimability bit and compare.
+    // Note that due to endianness, when reading this out as a uint64_t the reclaim bit is NOT the sign bit.
+    constexpr uint64_t remove_reclaim_mask = ~(0x1 << 31);
+    bool size_and_prefix_same = (left_size_prefix & remove_reclaim_mask) == (right_size_prefix & remove_reclaim_mask);
+
+    if (size_and_prefix_same) {
       // Prefix and length are equal.
       if (left.IsInlined()) {
         if (std::memcmp(left.prefix_, right.prefix_, PrefixSize()) == 0) {
