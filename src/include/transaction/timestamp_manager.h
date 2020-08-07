@@ -61,6 +61,7 @@ class TimestampManager {
   // along with removing a transaction from the table of active transactions. We need this for correctness
   // in the deferred action framework when dropping tables.
   friend class TransactionManager;
+  friend class DeferredActionManager;
   friend class storage::LogSerializerTask;
   timestamp_t BeginTransaction() {
     timestamp_t start_time;
