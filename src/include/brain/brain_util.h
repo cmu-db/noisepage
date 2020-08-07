@@ -2,7 +2,6 @@
 
 #include <string>
 #include "brain/brain_defs.h"
-#include "execution/util/execution_common.h"
 
 namespace terrier::brain {
 
