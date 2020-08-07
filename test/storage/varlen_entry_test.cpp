@@ -137,12 +137,12 @@ TEST(VarlenEntryTests, NonInlineEquality) {
   EXPECT_EQ(storage::VarlenEntry::Create(matthew_was_here),
             storage::VarlenEntry::Create(matthew_was_here));  // equal thru content
   EXPECT_NE(storage::VarlenEntry::Create(matthew),
-            storage::VarlenEntry::Create(matthew_was_here));  // equal thru prefix, different length (inline)
+            storage::VarlenEntry::Create(matthew_was_here));  // equal thru prefix, different length (in-line)
   EXPECT_NE(storage::VarlenEntry::Create(matthew_was_gone),
             storage::VarlenEntry::Create(
-                matthew_was_here));  // equal thru prefix, same length, different in content (non-inline)
+                matthew_was_here));  // equal thru prefix, same length, different in content (non-in-line)
   EXPECT_NE(storage::VarlenEntry::Create(matthew_was_gone),
-            storage::VarlenEntry::Create(matthew_was_not_here));  // equal thru prefix, different length (non-inline)
+            storage::VarlenEntry::Create(matthew_was_not_here));  // equal thru prefix, different length (non-in-line)
 }
 
 /**
@@ -150,7 +150,7 @@ TEST(VarlenEntryTests, NonInlineEquality) {
  */
 // NOLINTNEXTLINE
 TEST(VarlenEntryTests, OwnershipEquality) {
-  constexpr std::string_view matthew_was_here = "matthew_was_here";  // non-inline
+  constexpr std::string_view matthew_was_here = "matthew_was_here";  // non-in-line
 
   EXPECT_EQ(storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
                                          matthew_was_here.length(), false),
