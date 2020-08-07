@@ -150,7 +150,7 @@ TEST(VarlenEntryTests, NonInlineEquality) {
  */
 // NOLINTNEXTLINE
 TEST(VarlenEntryTests, OwnershipEquality) {
-  constexpr std::string_view matthew_was_here = "matthew_was_here"; // non-inline
+  constexpr std::string_view matthew_was_here = "matthew_was_here";  // non-inline
 
   EXPECT_EQ(storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
                                          matthew_was_here.length(), false),
