@@ -145,6 +145,49 @@ pipeline {
                     }
                 }
 
+                stage('ubuntu-18.04/gcc-7.3.0 (Debug/Coverage/unittest)') {
+                    agent {
+                        docker {
+                            image 'ubuntu:bionic'
+                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                        }
+                    }
+                    environment {
+                        CODECOV_TOKEN=credentials('codecov-token')
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
+                        sh 'cd build && timeout 1h make unittest'
+                        sh 'cd build && timeout 1h make check-tpl'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && lcov --directory . --capture --output-file coverage.info'
+                        sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
+                        sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
+                        sh 'cd build && lcov --remove coverage.info \'*/third_party/*\' --output-file coverage.info'
+                        sh 'cd build && lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info'
+                        sh 'cd build && lcov --remove coverage.info \'*/test/*\' --output-file coverage.info'
+                        sh 'cd build && lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info'
+                        sh 'cd build && lcov --remove coverage.info \'*/src/include/common/error/*\' --output-file coverage.info'
+                        sh 'cd build && lcov --list coverage.info'
+                        sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
+                        sh 'cd build && chmod a+x ./codecov.sh'
+                        sh 'cd build && /bin/bash ./codecov.sh -X gcov'
+                    }
+                    post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
+
                 stage('ubuntu-18.04/clang-8.0.0 (Debug/ASAN/unittest)') {
                     agent {
                         docker {
