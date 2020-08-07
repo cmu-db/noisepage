@@ -112,16 +112,49 @@ BENCHMARK_DEFINE_F(VarlenEntryBenchmark, EqualityInlineDifferentPrefixEqualLengt
   state.SetItemsProcessed(state.iterations());
 }
 
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(VarlenEntryBenchmark, EqualityNotInlineEqualContentEqualLength)(benchmark::State &state) {
+  constexpr std::string_view matthew_was_here = "matthew_was_here";
+
+  const auto lhs = storage::VarlenEntry::Create(matthew_was_here);
+  const auto rhs = storage::VarlenEntry::Create(matthew_was_here);
+
+  /* NOLINTNEXTLINE */
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(lhs == rhs);
+  }
+
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(VarlenEntryBenchmark, EqualityNotInlineDifferentContentEqualLength)(benchmark::State &state) {
+  constexpr std::string_view matthew_was_here = "matthew_was_here";
+  constexpr std::string_view matthew_was_gone = "matthew_was_gone";
+
+  const auto lhs = storage::VarlenEntry::Create(matthew_was_here);
+  const auto rhs = storage::VarlenEntry::Create(matthew_was_gone);
+
+  /* NOLINTNEXTLINE */
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(lhs == rhs);
+  }
+
+  state.SetItemsProcessed(state.iterations());
+}
+
 // ----------------------------------------------------------------------------
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-//BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashInline)->DenseRange(1,12,1);
-//BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashNotInline)->RangeMultiplier(2)->Range(16,4096);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashInline)->Arg(1)->Arg(2)->Arg(4)->Arg(8)->Arg(12);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, HashNotInline)->RangeMultiplier(2)->Range(16,4096);
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixOnly);
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixDifferentLength);
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineEqualPrefixEqualLength);
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityInlineDifferentPrefixEqualLength);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityNotInlineEqualContentEqualLength);
+BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityNotInlineDifferentContentEqualLength);
 // clang-format on
 
 }  // namespace terrier
