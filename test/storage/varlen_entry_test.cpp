@@ -99,4 +99,69 @@ TEST(VarlenEntryTests, Array) {
     delete[] varlen_entry.Content();
   }
 }
+
+/**
+ * Test equality operator for inline
+ */
+// NOLINTNEXTLINE
+TEST(VarlenEntryTests, InlineEquality) {
+  constexpr std::string_view matt = "matt";
+  constexpr std::string_view john = "john";
+  constexpr std::string_view johnny = "johnny";
+  constexpr std::string_view johnie = "johnie";
+  EXPECT_EQ(storage::VarlenEntry::Create(john), storage::VarlenEntry::Create(john));      // equal thru prefix
+  EXPECT_EQ(storage::VarlenEntry::Create(johnny), storage::VarlenEntry::Create(johnny));  // equal thru content
+  EXPECT_NE(storage::VarlenEntry::Create(john),
+            storage::VarlenEntry::Create(matt));  //  same length, different prefix
+  EXPECT_NE(storage::VarlenEntry::Create(matt),
+            storage::VarlenEntry::Create(johnny));  // different prefix, different length
+  EXPECT_NE(storage::VarlenEntry::Create(john),
+            storage::VarlenEntry::Create(johnny));  // equal thru prefix, different length
+  EXPECT_NE(storage::VarlenEntry::Create(johnny),
+            storage::VarlenEntry::Create(johnie));  // equal thru prefix, equal in length, different in content
+}
+
+/**
+ * Test equality operator for non-inline
+ */
+// NOLINTNEXTLINE
+TEST(VarlenEntryTests, NonInlineEquality) {
+  constexpr std::string_view matthew = "matthew";
+  constexpr std::string_view matthew_was_here = "matthew_was_here";
+  constexpr std::string_view matthew_was_gone = "matthew_was_gone";
+  constexpr std::string_view matthew_was_not_here = "matthew_was_not_here";
+
+  EXPECT_EQ(storage::VarlenEntry::Create(matthew_was_here),
+            storage::VarlenEntry::Create(matthew_was_here));  // equal thru content
+  EXPECT_NE(storage::VarlenEntry::Create(matthew),
+            storage::VarlenEntry::Create(matthew_was_here));  // equal thru prefix, different length (inline)
+  EXPECT_NE(storage::VarlenEntry::Create(matthew_was_gone),
+            storage::VarlenEntry::Create(
+                matthew_was_here));  // equal thru prefix, same length, different in content (non-inline)
+  EXPECT_NE(storage::VarlenEntry::Create(matthew_was_gone),
+            storage::VarlenEntry::Create(matthew_was_not_here));  // equal thru prefix, different length (non-inline)
+}
+
+/**
+ * Test that ownership doesn't change whether VarlenEntry content compares equal
+ */
+// NOLINTNEXTLINE
+TEST(VarlenEntryTests, OwnershipEquality) {
+  constexpr std::string_view matthew_was_here = "matthew_was_here";
+
+  EXPECT_EQ(storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
+                                         matthew_was_here.length(), false),
+            storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
+                                         matthew_was_here.length(), false));
+
+  EXPECT_NE(storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
+                                         matthew_was_here.length(), false),
+            storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
+                                         matthew_was_here.length(), true));
+
+  EXPECT_EQ(storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
+                                         matthew_was_here.length(), true),
+            storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
+                                         matthew_was_here.length(), true));
+}
 }  // namespace terrier

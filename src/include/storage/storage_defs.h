@@ -417,12 +417,13 @@ class VarlenEntry {
   template <bool EqualityCheck>
   static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
     // Compare the size and prefix in one fell swoop, ignoring the sign bit indicating reclaimability.
-    uint64_t left_size_prefix = *reinterpret_cast<const uint64_t *>(&left);
-    uint64_t right_size_prefix = *reinterpret_cast<const uint64_t *>(&right);
+    const uint64_t left_size_prefix = *reinterpret_cast<const uint64_t *>(&left);
+    const uint64_t right_size_prefix = *reinterpret_cast<const uint64_t *>(&right);
     // Mask off the reclaimability bit and compare.
     // Note that due to endianness, when reading this out as a uint64_t the reclaim bit is NOT the sign bit.
-    constexpr uint64_t remove_reclaim_mask = ~(0x1 << 31);
-    bool size_and_prefix_same = (left_size_prefix & remove_reclaim_mask) == (right_size_prefix & remove_reclaim_mask);
+    constexpr uint64_t remove_reclaim_mask = 0xffffff7fffffffff;  // You're just gonna have to believe me
+    const bool size_and_prefix_same =
+        (left_size_prefix & remove_reclaim_mask) == (right_size_prefix & remove_reclaim_mask);
 
     if (size_and_prefix_same) {
       // Prefix and length are equal.
