@@ -34,14 +34,14 @@ class PropertySet {
   PropertySet *Copy() {
     std::vector<std::pair<Property *, bool>> props;
     for (auto prop : properties_) {
-      props.emplace_back({prop.first->Copy(), prop.second});
+      props.emplace_back(prop.first->Copy(), prop.second);
     }
 
     return new PropertySet(props);
   }
 
   /**
-   * Constructor for PropertySet with vector of properties
+   * Constructor for PropertySet with vector of properties and flags for whether property is optional
    * PropertySet acquires ownership of the property.
    * @param properties properties to add to PropertySet
    */
@@ -56,7 +56,7 @@ class PropertySet {
   /**
    * Adds a property to the PropertySet
    * @param property Property to add to PropertySet
-   * @param optional Flag to indicate whether the property is optional for this property set
+   * @param optional Flag to indicate whether the property is optional for this property set (default is not optional)
    */
   void AddProperty(Property *property, bool optional = false);
 
@@ -108,6 +108,9 @@ class PropertySet {
   bool operator==(const PropertySet &r) const;
 
  private:
+  /**
+   * Vector of property, optional flag pairs to construct set
+   */
   std::vector<std::pair<Property *, bool>> properties_;
 };
 

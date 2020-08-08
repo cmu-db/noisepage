@@ -112,11 +112,11 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-     * @param opt_sort_prop optional sort property satisfied by index scan node
+     * @param satisfied_sort_prop sort property satisfied by index scan node
      * @return builder object
      */
-    Builder &SetOptSortProp(optimizer::Property *opt_sort_prop) {
-      opt_sort_prop_ = opt_sort_prop;
+    Builder &SetSatisfiedSortProp(optimizer::Property *satisfied_sort_prop) {
+      satisfied_sort_prop_ = satisfied_sort_prop;
       return *this;
     }
 
@@ -128,7 +128,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
       return std::unique_ptr<IndexScanPlanNode>(new IndexScanPlanNode(
           std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_), is_for_update_,
           database_oid_, index_oid_, table_oid_, scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_),
-          scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, index_size_, table_num_tuple_, opt_sort_prop_));
+          scan_limit_, scan_has_limit_, scan_offset_, scan_has_offset_, index_size_, table_num_tuple_, satisfied_sort_prop_));
     }
 
    private:
@@ -140,7 +140,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
     uint64_t index_size_{0};
-    optimizer::Property *opt_sort_prop_{};
+    optimizer::Property *satisfied_sort_prop_{};
   };
 
  private:
@@ -166,7 +166,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
                     uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset,
-                    uint64_t index_size, uint64_t table_num_tuple, optimizer::Property *opt_sort_prop)
+                    uint64_t index_size, uint64_t table_num_tuple, optimizer::Property *satisfied_sort_prop)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
                              scan_limit, scan_has_limit, scan_offset, scan_has_offset),
         scan_type_(scan_type),
@@ -177,7 +177,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
         hi_index_cols_(std::move(hi_index_cols)),
         table_num_tuple_(table_num_tuple),
         index_size_(index_size),
-        opt_sort_prop_(opt_sort_prop) {}
+        satisfied_sort_prop_(satisfied_sort_prop) {}
 
  public:
   /**
@@ -244,9 +244,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXSCAN; }
 
   /**
-   * @return the optional sort property
+   * @return the satisfied sort property by index scan
    */
-  optimizer::Property *GetOptSortProp() const { return opt_sort_prop_; }
+  optimizer::Property *GetSatisfiedSortProp() const { return satisfied_sort_prop_; }
 
   /**
    * @return the hashed value of this plan node
@@ -268,7 +268,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
   uint64_t table_num_tuple_;
   uint64_t index_size_;
-  optimizer::Property *opt_sort_prop_{};
+  optimizer::Property *satisfied_sort_prop_{};
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(IndexScanPlanNode);

@@ -356,7 +356,6 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   const auto bind_result = t_cop->BindQuery(connection, statement, common::ManagedPointer(&params));
   if (LIKELY(bind_result.type_ == trafficcop::ResultType::COMPLETE)) {
     // Binding succeeded, optimize to generate a physical plan
-    auto temp_text = statement->GetQueryText();
     if (statement->PhysicalPlan() == nullptr || !t_cop->UseQueryCache()) {
       // it's not cached, optimize it
       auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());

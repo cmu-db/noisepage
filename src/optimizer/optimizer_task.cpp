@@ -286,6 +286,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];
+
+      // Fill input properties based on required properties and optional properties
       PropertySet *req_input_props = new PropertySet();
       PropertySet *optional_input_props = new PropertySet();
 
@@ -305,6 +307,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       // Check whether the child group is already optimized for the required input properties
       auto child_best_expr = child_group->GetBestExpression(req_input_props);
       if (child_best_expr != nullptr) {  // Directly get back the best expr if the child group is optimized
+        // Only cost on required properties
+        // TODO(dpatra): Update out costing structure for completed optional properties
         cur_total_cost_ += child_best_expr->GetCost(req_input_props);
         if (cur_total_cost_ > context_->GetCostUpperBound()) break;
       } else if (prev_child_idx_ != cur_child_idx_) {  // We haven't optimized child group
@@ -321,6 +325,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
         break;
       }
 
+      // Only preserve required input properties, optional properties should be in child operator
       input_props[cur_child_idx_] = req_input_props;
     }
 

@@ -38,6 +38,8 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
   std::vector<catalog::index_oid_t> tbl_indexes = accessor_->GetIndexOids(tbl_id);
 
   auto *property_set = new PropertySet();
+
+  // Output properties of IndexScan should be required properties satisfied by index
   for (auto prop : requirements_->Properties()) {
     if (prop.first->Type() == PropertyType::SORT) {
       auto sort_prop = prop.first->As<PropertySort>();
@@ -52,6 +54,7 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
     }
   }
 
+  // Index scan children should have no properties
   output_.emplace_back(property_set, std::vector<PropertySet *>{});
 }
 
@@ -94,6 +97,8 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   // Limit fulfill the internal sort property
   std::vector<PropertySet *> child_input_properties{new PropertySet()};
   auto provided_prop = new PropertySet();
+
+  // Limit must satisfy output sort properties but child can attempt to satisfy sort property optionally
   if (!op->GetSortExpressions().empty()) {
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
     const std::vector<catalog::OrderByOrderingType> &sorts{op->GetSortAscending()};

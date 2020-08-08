@@ -35,7 +35,9 @@ bool IndexUtil::SatisfiesSortWithIndex(
     return false;
   }
 
+  // Index into sort property columns
   size_t sort_ind = 0;
+  // Index into index column
   size_t idx_ind = 0;
   while (sort_ind < sort_col_size && idx_ind < mapped_cols.size()) {
     // Compare col_oid_t directly due to "Base Column" requirement
@@ -44,10 +46,13 @@ bool IndexUtil::SatisfiesSortWithIndex(
 
     // Sort a,b can only be fulfilled on Index a,c,b if c is a bound
     if (tv_col_oid == mapped_cols[idx_ind]) {
+      // Column is present in both sort and index so increment both
       sort_ind++, idx_ind++;
     } else if (bounds != nullptr && bounds->find(lookup[mapped_cols[idx_ind]]) != bounds->end()) {
+      // If column is found in bounds but not index, continue
       idx_ind++;
     } else {
+      // Column not found in index so cannot use this index
       return false;
     }
 

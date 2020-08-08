@@ -121,11 +121,11 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   auto limit = get->GetLimit();
   auto indexes = accessor->GetIndexOids(get->GetTableOid());
 
+  // Try setting sort property based on properties in context
   auto sort = context->GetRequiredProperties()->GetPropertyOfType(PropertyType::SORT).first;
-  bool set_optional = false;
+  // If no sort found in required properties, try optional properties
   if (sort == nullptr) {
     sort = context->GetOptionalProperties()->GetPropertyOfType(PropertyType::SORT).first;
-    set_optional = sort != nullptr;
   }
 
   std::vector<catalog::col_oid_t> sort_col_ids;
@@ -136,26 +136,26 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   if (predicate_exists) {
     // Apply predicates if they exist and attempt to use indexes that match at least one predicate
     for (auto &index : indexes) {
-      // Check whether any index can fulfill predicate evaluation
-      // Find match index for the predicates
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
+      // Check whether any index can fulfill predicate evaluation
       if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), get->GetTableAlias(), index, preds,
                                                  allow_cves_, &scan_type, &bounds)) {
         // There is an index that satisfies predicates for at least one column
         if (sort_exists) {
           if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index, &bounds)) {
-            // Index also satisfies sort properties so can push down limit
+            // Index also satisfies sort properties so can push down limit and sort
             preds = get->GetPredicates();
             auto op = std::make_unique<OperatorNode>(
                 IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
-                                std::move(bounds), limit_exists, limit, set_optional ? sort : nullptr)
+                                std::move(bounds), limit_exists, limit, sort->Copy())
                     .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                 std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
             transformed->emplace_back(std::move(op));
           } else {
             // Index does not satisfy existing sort property so cannot push down limit
+            // Instead must rely on parent OrderBy produced in generating physical plan
             limit_exists = false;
             preds = get->GetPredicates();
             auto op = std::make_unique<OperatorNode>(
