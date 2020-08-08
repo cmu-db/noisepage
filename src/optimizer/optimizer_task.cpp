@@ -288,8 +288,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       auto &i_prop = input_props[cur_child_idx_];
 
       // Fill input properties based on required properties and optional properties
-      PropertySet *req_input_props = new PropertySet();
-      PropertySet *optional_input_props = new PropertySet();
+      auto *req_input_props = new PropertySet();
+      auto *optional_input_props = new PropertySet();
 
       for (auto prop : i_prop->Properties()) {
         if (prop.second) {
