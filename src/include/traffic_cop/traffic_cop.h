@@ -7,6 +7,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "execution/vm/vm_defs.h"
 #include "network/network_defs.h"
 #include "traffic_cop/traffic_cop_defs.h"
 
@@ -66,18 +67,20 @@ class TrafficCop {
    * @param stats_storage for optimizer calls
    * @param optimizer_timeout for optimizer calls
    * @param use_query_cache whether to cache physical plans and generated code for Extended Query protocol
+   * @param execution_mode how to run executable queries after code generation
    */
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
-             bool use_query_cache)
+             bool use_query_cache, const execution::vm::ExecutionMode execution_mode)
       : txn_manager_(txn_manager),
         catalog_(catalog),
         replication_log_provider_(replication_log_provider),
         stats_storage_(stats_storage),
         optimizer_timeout_(optimizer_timeout),
-        use_query_cache_(use_query_cache) {}
+        use_query_cache_(use_query_cache),
+        execution_mode_(execution_mode) {}
 
   virtual ~TrafficCop() = default;
 
@@ -221,7 +224,8 @@ class TrafficCop {
   common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
-  bool use_query_cache_;
+  const bool use_query_cache_;
+  const execution::vm::ExecutionMode execution_mode_;
 };
 
 }  // namespace terrier::trafficcop
