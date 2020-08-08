@@ -256,7 +256,7 @@ bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, c
       }
 
       auto it = tbl_col_to_oid_map.find(tv_expr->GetColumnName());
-      TERRIER_ASSERT(it != tbl_col_to_oid_map.end(), "Inconsistency between IndexSchema and table index_schema");
+      TERRIER_ASSERT(it != tbl_col_to_oid_map.end(), "Inconsistency between IndexSchema and table schema");
       col_oids->push_back(it->second);
       key_map->insert(std::make_pair(it->second, index_column.Oid()));
     }

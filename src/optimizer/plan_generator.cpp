@@ -252,7 +252,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
     }
   }
 
-  // Check that the limit is set in the optimization context
+  // Check that the limit is set in the operator
   if (op->GetLimitExists()) {
     builder.SetScanLimit(op->GetLimit());
   }
