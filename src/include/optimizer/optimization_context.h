@@ -34,7 +34,10 @@ class OptimizationContext {
   /**
    * Destructor
    */
-  ~OptimizationContext() { delete required_prop_; }
+  ~OptimizationContext() {
+    delete required_prop_;
+    delete optional_props_;
+  }
 
   /**
    * @returns OptimizerContext
