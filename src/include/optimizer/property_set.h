@@ -65,7 +65,7 @@ class PropertySet {
    * @param type Type of the property to retrieve
    * @returns nullptr or pointer to property
    */
-  const std::pair<Property *, bool> GetPropertyOfType(PropertyType type) const;
+  std::pair<Property *, bool> GetPropertyOfType(PropertyType type) const;
 
   /**
    * Gets a property of a given type with additional type-check
