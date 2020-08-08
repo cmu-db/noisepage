@@ -14,7 +14,7 @@
 namespace terrier::tpch {
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+TPCHQuery::MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                  const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid("lineitem");
@@ -163,7 +163,7 @@ MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-MakeExecutableQ4(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+TPCHQuery::MakeExecutableQ4(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                  const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Orders.
@@ -302,7 +302,7 @@ MakeExecutableQ4(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+TPCHQuery::MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                  const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Region.
@@ -672,7 +672,7 @@ MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+TPCHQuery::MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                  const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Lineitem.
@@ -746,7 +746,7 @@ MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                  const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Nation.
@@ -1169,7 +1169,7 @@ MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+TPCHQuery::MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Supplier.
@@ -1537,7 +1537,7 @@ MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+TPCHQuery::MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Customer.
@@ -1843,5 +1843,4 @@ MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
   auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
-
 }  // namespace terrier::tpch
