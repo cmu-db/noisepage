@@ -326,8 +326,6 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       }
 
       // Only preserve required input properties, optional properties should be in child operator
-      delete i_prop;
-      delete optional_input_props;
       input_props[cur_child_idx_] = req_input_props;
     }
 
