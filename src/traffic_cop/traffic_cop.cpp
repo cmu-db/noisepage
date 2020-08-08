@@ -357,7 +357,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete

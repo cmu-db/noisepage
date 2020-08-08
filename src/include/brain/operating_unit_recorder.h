@@ -6,21 +6,32 @@
 #include <vector>
 
 #include "brain/operating_unit.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "execution/ast/ast.h"
-#include "execution/ast/context.h"
-#include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/plan_visitor.h"
+#include "type/type_id.h"
 
 namespace terrier::catalog {
 class CatalogAccessor;
 }  // namespace terrier::catalog
 
-namespace terrier::execution::compiler {
+namespace terrier::execution {
+namespace ast {
+class Context;
+class StructDecl;
+}  // namespace ast
+namespace compiler {
+class OperatorTranslator;
 class Pipeline;
-}  // namespace terrier::execution::compiler
+}  // namespace compiler
+}  // namespace terrier::execution
+
+namespace terrier::parser {
+class AbstractExpression;
+}
 
 namespace terrier::planner {
+class AbstractPlanNode;
 class AbstractJoinPlanNode;
 class AbstractScanPlanNode;
 }  // namespace terrier::planner
