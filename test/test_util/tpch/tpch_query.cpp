@@ -13,7 +13,9 @@
 
 namespace terrier::tpch {
 
-std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>> MakeExecutableQ1(std::unique_ptr<catalog::CatalogAccessor> &accessor, const execution::exec::ExecutionSettings &exec_settings) {
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid("lineitem");
   const auto &l_schema = accessor->GetSchema(table_oid);
@@ -49,10 +51,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     l_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(table_oid)
-        .SetColumnOids(std::move(col_oids))
-        .Build();
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(table_oid)
+                     .SetColumnOids(std::move(col_oids))
+                     .Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg;
@@ -103,20 +105,20 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
-        .AddGroupByTerm(l_returnflag)
-        .AddGroupByTerm(l_linestatus)
-        .AddAggregateTerm(sum_qty)
-        .AddAggregateTerm(sum_base_price)
-        .AddAggregateTerm(sum_disc_price)
-        .AddAggregateTerm(sum_charge)
-        .AddAggregateTerm(avg_qty)
-        .AddAggregateTerm(avg_price)
-        .AddAggregateTerm(avg_disc)
-        .AddAggregateTerm(count_order)
-        .AddChild(std::move(l_seq_scan))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+              .AddGroupByTerm(l_returnflag)
+              .AddGroupByTerm(l_linestatus)
+              .AddAggregateTerm(sum_qty)
+              .AddAggregateTerm(sum_base_price)
+              .AddAggregateTerm(sum_disc_price)
+              .AddAggregateTerm(sum_charge)
+              .AddAggregateTerm(avg_qty)
+              .AddAggregateTerm(avg_price)
+              .AddAggregateTerm(avg_disc)
+              .AddAggregateTerm(count_order)
+              .AddChild(std::move(l_seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
   }
 
   // Order By
@@ -151,18 +153,18 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(agg))
-        .AddSortKey(clause1.first, clause1.second)
-        .AddSortKey(clause2.first, clause2.second)
-        .Build();
+                   .AddChild(std::move(agg))
+                   .AddSortKey(clause1.first, clause1.second)
+                   .AddSortKey(clause2.first, clause2.second)
+                   .Build();
   }
   auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
-
-
-std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>> MakeExecutableQ4(std::unique_ptr<catalog::CatalogAccessor> &accessor, const execution::exec::ExecutionSettings &exec_settings) {
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+MakeExecutableQ4(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Orders.
   auto o_table_oid = accessor->GetTableOid("orders");
@@ -195,10 +197,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     o_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(o_table_oid)
-        .SetColumnOids(std::move(col_oids))
-        .Build();
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(o_table_oid)
+                     .SetColumnOids(std::move(col_oids))
+                     .Build();
   }
   // Scan lineitem
   std::unique_ptr<planner::AbstractPlanNode> l_seq_scan;
@@ -218,10 +220,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     l_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(l_table_oid)
-        .SetColumnOids(std::move(col_oids))
-        .Build();
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(l_table_oid)
+                     .SetColumnOids(std::move(col_oids))
+                     .Build();
   }
   // Semi Join
   std::unique_ptr<planner::AbstractPlanNode> semi_join;
@@ -240,13 +242,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     semi_join = builder.SetOutputSchema(std::move(schema))
-        .SetJoinPredicate(predicate)
-        .AddChild(std::move(o_seq_scan))
-        .AddChild(std::move(l_seq_scan))
-        .AddLeftHashKey(o_orderkey)
-        .AddRightHashKey(l_orderkey)
-        .SetJoinType(planner::LogicalJoinType::LEFT_SEMI)
-        .Build();
+                    .SetJoinPredicate(predicate)
+                    .AddChild(std::move(o_seq_scan))
+                    .AddChild(std::move(l_seq_scan))
+                    .AddLeftHashKey(o_orderkey)
+                    .AddRightHashKey(l_orderkey)
+                    .SetJoinType(planner::LogicalJoinType::LEFT_SEMI)
+                    .Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg;
@@ -267,12 +269,12 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
-        .AddGroupByTerm(o_orderpriority)
-        .AddAggregateTerm(order_count)
-        .AddChild(std::move(semi_join))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+              .AddGroupByTerm(o_orderpriority)
+              .AddAggregateTerm(order_count)
+              .AddChild(std::move(semi_join))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
   }
   // Order By
   std::unique_ptr<planner::AbstractPlanNode> order_by;
@@ -288,9 +290,9 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(agg))
-        .AddSortKey(clause.first, clause.second)
-        .Build();
+                   .AddChild(std::move(agg))
+                   .AddSortKey(clause.first, clause.second)
+                   .Build();
   }
 
   // Compile plan
@@ -299,7 +301,9 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
-std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>> MakeExecutableQ5(std::unique_ptr<catalog::CatalogAccessor> &accessor, const execution::exec::ExecutionSettings &exec_settings) {
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Region.
   auto r_table_oid = accessor->GetTableOid("region");
@@ -337,10 +341,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     r_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(r_table_oid)
-        .SetColumnOids(std::move(r_col_oids))
-        .Build();
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(r_table_oid)
+                     .SetColumnOids(std::move(r_col_oids))
+                     .Build();
   }
   // Scan nation
   std::unique_ptr<planner::AbstractPlanNode> n_seq_scan;
@@ -361,10 +365,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     n_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(n_table_oid)
-        .SetColumnOids(std::move(n_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(n_table_oid)
+                     .SetColumnOids(std::move(n_col_oids))
+                     .Build();
   }
   // Scan customer
   std::unique_ptr<planner::AbstractPlanNode> c_seq_scan;
@@ -382,10 +386,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     c_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(c_table_oid)
-        .SetColumnOids(std::move(c_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(c_table_oid)
+                     .SetColumnOids(std::move(c_col_oids))
+                     .Build();
   }
   // Scan orders
   std::unique_ptr<planner::AbstractPlanNode> o_seq_scan;
@@ -411,10 +415,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     o_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(o_table_oid)
-        .SetColumnOids(std::move(o_col_oids))
-        .Build();
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(o_table_oid)
+                     .SetColumnOids(std::move(o_col_oids))
+                     .Build();
   }
   // Scan lineitem
   std::unique_ptr<planner::AbstractPlanNode> l_seq_scan;
@@ -437,10 +441,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     l_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(l_table_oid)
-        .SetColumnOids(std::move(l_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(l_table_oid)
+                     .SetColumnOids(std::move(l_col_oids))
+                     .Build();
   }
   // Scan supplier
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
@@ -458,10 +462,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     s_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(s_table_oid)
-        .SetColumnOids(std::move(s_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(s_table_oid)
+                     .SetColumnOids(std::move(s_col_oids))
+                     .Build();
   }
   // Make first hash join
   std::unique_ptr<planner::AbstractPlanNode> hash_join1;
@@ -482,13 +486,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join1 = builder.AddChild(std::move(r_seq_scan))
-        .AddChild(std::move(n_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(r_regionkey)
-        .AddRightHashKey(n_regionkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(n_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(r_regionkey)
+                     .AddRightHashKey(n_regionkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Make second hash join
   std::unique_ptr<planner::AbstractPlanNode> hash_join2;
@@ -510,13 +514,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join2 = builder.AddChild(std::move(hash_join1))
-        .AddChild(std::move(c_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(n_nationkey)
-        .AddRightHashKey(c_nationkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(c_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(n_nationkey)
+                     .AddRightHashKey(c_nationkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Make third hash join
   std::unique_ptr<planner::AbstractPlanNode> hash_join3;
@@ -539,13 +543,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join3 = builder.AddChild(std::move(hash_join2))
-        .AddChild(std::move(o_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(c_custkey)
-        .AddRightHashKey(o_custkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(o_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(c_custkey)
+                     .AddRightHashKey(o_custkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Make fourth hash join
   std::unique_ptr<planner::AbstractPlanNode> hash_join4;
@@ -572,13 +576,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join4 = builder.AddChild(std::move(hash_join3))
-        .AddChild(std::move(l_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(o_orderkey)
-        .AddRightHashKey(l_orderkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(l_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(o_orderkey)
+                     .AddRightHashKey(l_orderkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Make fifth hash join
   std::unique_ptr<planner::AbstractPlanNode> hash_join5;
@@ -605,15 +609,15 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join5 = builder.AddChild(std::move(s_seq_scan))
-        .AddChild(std::move(hash_join4))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(s_nationkey)
-        .AddLeftHashKey(s_suppkey)
-        .AddRightHashKey(n_nationkey)
-        .AddRightHashKey(l_suppkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(hash_join4))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(s_nationkey)
+                     .AddLeftHashKey(s_suppkey)
+                     .AddRightHashKey(n_nationkey)
+                     .AddRightHashKey(l_suppkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg;
@@ -636,12 +640,12 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
-        .AddGroupByTerm(n_name)
-        .AddAggregateTerm(revenue)
-        .AddChild(std::move(hash_join5))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+              .AddGroupByTerm(n_name)
+              .AddAggregateTerm(revenue)
+              .AddChild(std::move(hash_join5))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
   }
   // Order By
   std::unique_ptr<planner::AbstractPlanNode> order_by;
@@ -658,16 +662,18 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(agg))
-        .AddSortKey(clause.first, clause.second)
-        .Build();
+                   .AddChild(std::move(agg))
+                   .AddSortKey(clause.first, clause.second)
+                   .Build();
   }
 
   // Compile plan
   auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
-std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>> MakeExecutableQ6(std::unique_ptr<catalog::CatalogAccessor> &accessor, const execution::exec::ExecutionSettings &exec_settings) {
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Lineitem.
   auto l_table_oid = accessor->GetTableOid("lineitem");
@@ -705,10 +711,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     l_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(l_table_oid)
-        .SetColumnOids(std::move(l_col_oids))
-        .Build();
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(l_table_oid)
+                     .SetColumnOids(std::move(l_col_oids))
+                     .Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg;
@@ -727,11 +733,11 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
-        .AddAggregateTerm(revenue)
-        .AddChild(std::move(l_seq_scan))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+              .AddAggregateTerm(revenue)
+              .AddChild(std::move(l_seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
   }
 
   // Compile plan
@@ -739,7 +745,9 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
   return std::make_tuple(std::move(query), std::move(agg));
 }
 
-std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>> MakeExecutableQ7(std::unique_ptr<catalog::CatalogAccessor> &accessor, const execution::exec::ExecutionSettings &exec_settings) {
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Nation.
   auto n_table_oid = accessor->GetTableOid("nation");
@@ -776,10 +784,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     n1_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(n_table_oid)
-        .SetColumnOids(std::move(n1_col_oids))
-        .Build();
+                      .SetScanPredicate(predicate)
+                      .SetTableOid(n_table_oid)
+                      .SetColumnOids(std::move(n1_col_oids))
+                      .Build();
   }
 
   // Scan nation2
@@ -802,10 +810,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     n2_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(n_table_oid)
-        .SetColumnOids(std::move(n2_col_oids))
-        .Build();
+                      .SetScanPredicate(predicate)
+                      .SetTableOid(n_table_oid)
+                      .SetColumnOids(std::move(n2_col_oids))
+                      .Build();
   }
 
   // BNL
@@ -835,11 +843,11 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::NestedLoopJoinPlanNode::Builder builder;
     bnl = builder.AddChild(std::move(n1_seq_scan))
-        .AddChild(std::move(n2_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+              .AddChild(std::move(n2_seq_scan))
+              .SetOutputSchema(std::move(schema))
+              .SetJoinType(planner::LogicalJoinType::INNER)
+              .SetJoinPredicate(predicate)
+              .Build();
   }
 
   // Scan customer
@@ -859,10 +867,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     c_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(c_table_oid)
-        .SetColumnOids(std::move(c_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(c_table_oid)
+                     .SetColumnOids(std::move(c_col_oids))
+                     .Build();
   }
 
   // Hash Join 1
@@ -888,13 +896,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join1 = builder.AddChild(std::move(bnl))
-        .AddChild(std::move(c_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(n2_nationkey)
-        .AddRightHashKey(c_nationkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(c_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(n2_nationkey)
+                     .AddRightHashKey(c_nationkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
 
   // Scan orders
@@ -914,10 +922,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     o_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(o_table_oid)
-        .SetColumnOids(std::move(o_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(o_table_oid)
+                     .SetColumnOids(std::move(o_col_oids))
+                     .Build();
   }
 
   // Make second hash join
@@ -943,13 +951,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join2 = builder.AddChild(std::move(hash_join1))
-        .AddChild(std::move(o_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(c_custkey)
-        .AddRightHashKey(o_custkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(o_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(c_custkey)
+                     .AddRightHashKey(o_custkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
 
   // Scan lineitem
@@ -988,10 +996,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     l_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(l_table_oid)
-        .SetColumnOids(std::move(l_col_oids))
-        .Build();
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(l_table_oid)
+                     .SetColumnOids(std::move(l_col_oids))
+                     .Build();
   }
   // make the third hash join
   std::unique_ptr<planner::AbstractPlanNode> hash_join3;
@@ -1021,13 +1029,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join3 = builder.AddChild(std::move(hash_join2))
-        .AddChild(std::move(l_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(o_orderkey)
-        .AddRightHashKey(l_orderkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(l_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(o_orderkey)
+                     .AddRightHashKey(l_orderkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
 
   // Scan supplier
@@ -1047,10 +1055,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     s_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(s_table_oid)
-        .SetColumnOids(std::move(s_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(s_table_oid)
+                     .SetColumnOids(std::move(s_col_oids))
+                     .Build();
   }
 
   // Make fourth hash join
@@ -1081,15 +1089,15 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join4 = builder.AddChild(std::move(s_seq_scan))
-        .AddChild(std::move(hash_join3))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(s_suppkey)
-        .AddLeftHashKey(s_nationkey)
-        .AddRightHashKey(l_suppkey)
-        .AddRightHashKey(n1_nationkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(hash_join3))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(s_suppkey)
+                     .AddLeftHashKey(s_nationkey)
+                     .AddRightHashKey(l_suppkey)
+                     .AddRightHashKey(n1_nationkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
 
   // Make the aggregate
@@ -1117,14 +1125,14 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
-        .AddGroupByTerm(supp_nation)
-        .AddGroupByTerm(cust_nation)
-        .AddGroupByTerm(l_year)
-        .AddAggregateTerm(volume_sum)
-        .AddChild(std::move(hash_join4))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+              .AddGroupByTerm(supp_nation)
+              .AddGroupByTerm(cust_nation)
+              .AddGroupByTerm(l_year)
+              .AddAggregateTerm(volume_sum)
+              .AddChild(std::move(hash_join4))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
   }
 
   // Order By
@@ -1149,18 +1157,20 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(agg))
-        .AddSortKey(clause1.first, clause1.second)
-        .AddSortKey(clause2.first, clause2.second)
-        .AddSortKey(clause3.first, clause3.second)
-        .Build();
+                   .AddChild(std::move(agg))
+                   .AddSortKey(clause1.first, clause1.second)
+                   .AddSortKey(clause2.first, clause2.second)
+                   .AddSortKey(clause3.first, clause3.second)
+                   .Build();
   }
   // Compile plan
   auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
-std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>> MakeExecutableQ11(std::unique_ptr<catalog::CatalogAccessor> &accessor, const execution::exec::ExecutionSettings &exec_settings) {
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                  const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Supplier.
   auto s_table_oid = accessor->GetTableOid("supplier");
@@ -1189,10 +1199,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     n_seq_scan1 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(n_table_oid)
-        .SetColumnOids(std::move(n1_col_oids))
-        .Build();
+                      .SetScanPredicate(predicate)
+                      .SetTableOid(n_table_oid)
+                      .SetColumnOids(std::move(n1_col_oids))
+                      .Build();
   }
   std::unique_ptr<planner::AbstractPlanNode> n_seq_scan2;
   execution::compiler::test::OutputSchemaHelper n_seq_scan_out2{0, &expr_maker};
@@ -1211,10 +1221,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     n_seq_scan2 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetTableOid(n_table_oid)
-        .SetColumnOids(std::move(n2_col_oids))
-        .Build();
+                      .SetScanPredicate(predicate)
+                      .SetTableOid(n_table_oid)
+                      .SetColumnOids(std::move(n2_col_oids))
+                      .Build();
   }
 
   // Scan supplier
@@ -1234,10 +1244,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     s_seq_scan1 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(s_table_oid)
-        .SetColumnOids(std::move(s1_col_oids))
-        .Build();
+                      .SetScanPredicate(nullptr)
+                      .SetTableOid(s_table_oid)
+                      .SetColumnOids(std::move(s1_col_oids))
+                      .Build();
   }
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan2;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out2{1, &expr_maker};
@@ -1255,10 +1265,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     s_seq_scan2 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(s_table_oid)
-        .SetColumnOids(std::move(s2_col_oids))
-        .Build();
+                      .SetScanPredicate(nullptr)
+                      .SetTableOid(s_table_oid)
+                      .SetColumnOids(std::move(s2_col_oids))
+                      .Build();
   }
 
   // Scan partsupp
@@ -1282,10 +1292,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     ps_seq_scan1 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(ps_table_oid)
-        .SetColumnOids(std::move(ps_col_oids))
-        .Build();
+                       .SetScanPredicate(nullptr)
+                       .SetTableOid(ps_table_oid)
+                       .SetColumnOids(std::move(ps_col_oids))
+                       .Build();
   }
   std::unique_ptr<planner::AbstractPlanNode> ps_seq_scan2;
   execution::compiler::test::OutputSchemaHelper ps_seq_scan_out2{1, &expr_maker};
@@ -1307,10 +1317,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     ps_seq_scan2 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(ps_table_oid)
-        .SetColumnOids(std::move(ps2_col_oids))
-        .Build();
+                       .SetScanPredicate(nullptr)
+                       .SetTableOid(ps_table_oid)
+                       .SetColumnOids(std::move(ps2_col_oids))
+                       .Build();
   }
 
   // Hash Join 1
@@ -1330,13 +1340,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join1_1 = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(n_seq_scan1))
-        .AddChild(std::move(s_seq_scan1))
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .AddLeftHashKey(n_nationkey)
-        .AddRightHashKey(s_nationkey)
-        .Build();
+                       .AddChild(std::move(n_seq_scan1))
+                       .AddChild(std::move(s_seq_scan1))
+                       .SetJoinType(planner::LogicalJoinType::INNER)
+                       .SetJoinPredicate(predicate)
+                       .AddLeftHashKey(n_nationkey)
+                       .AddRightHashKey(s_nationkey)
+                       .Build();
   }
   std::unique_ptr<planner::AbstractPlanNode> hash_join1_2;
   execution::compiler::test::OutputSchemaHelper hash_join_out1_2{0, &expr_maker};
@@ -1354,13 +1364,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join1_2 = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(n_seq_scan2))
-        .AddChild(std::move(s_seq_scan2))
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .AddLeftHashKey(n_nationkey)
-        .AddRightHashKey(s_nationkey)
-        .Build();
+                       .AddChild(std::move(n_seq_scan2))
+                       .AddChild(std::move(s_seq_scan2))
+                       .SetJoinType(planner::LogicalJoinType::INNER)
+                       .SetJoinPredicate(predicate)
+                       .AddLeftHashKey(n_nationkey)
+                       .AddRightHashKey(s_nationkey)
+                       .Build();
   }
 
   // Hash Join 2
@@ -1383,13 +1393,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join2_1 = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(hash_join1_1))
-        .AddChild(std::move(ps_seq_scan1))
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .AddLeftHashKey(s_suppkey)
-        .AddRightHashKey(ps_suppkey)
-        .Build();
+                       .AddChild(std::move(hash_join1_1))
+                       .AddChild(std::move(ps_seq_scan1))
+                       .SetJoinType(planner::LogicalJoinType::INNER)
+                       .SetJoinPredicate(predicate)
+                       .AddLeftHashKey(s_suppkey)
+                       .AddRightHashKey(ps_suppkey)
+                       .Build();
   }
   std::unique_ptr<planner::AbstractPlanNode> hash_join2_2;
   execution::compiler::test::OutputSchemaHelper hash_join_out2_2{0, &expr_maker};
@@ -1411,13 +1421,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join2_2 = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(hash_join1_2))
-        .AddChild(std::move(ps_seq_scan2))
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .AddLeftHashKey(s_suppkey)
-        .AddRightHashKey(ps_suppkey)
-        .Build();
+                       .AddChild(std::move(hash_join1_2))
+                       .AddChild(std::move(ps_seq_scan2))
+                       .SetJoinType(planner::LogicalJoinType::INNER)
+                       .SetJoinPredicate(predicate)
+                       .AddLeftHashKey(s_suppkey)
+                       .AddRightHashKey(ps_suppkey)
+                       .Build();
   }
 
   // Aggregates
@@ -1439,11 +1449,11 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg1 = builder.SetOutputSchema(std::move(schema))
-        .AddAggregateTerm(value_sum)
-        .AddChild(std::move(hash_join2_1))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+               .AddAggregateTerm(value_sum)
+               .AddChild(std::move(hash_join2_1))
+               .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+               .SetHavingClausePredicate(nullptr)
+               .Build();
   }
   std::unique_ptr<planner::AbstractPlanNode> agg2;
   execution::compiler::test::OutputSchemaHelper agg_out2{1, &expr_maker};
@@ -1465,12 +1475,12 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg2 = builder.SetOutputSchema(std::move(schema))
-        .AddGroupByTerm(ps_partkey)
-        .AddAggregateTerm(value_sum)
-        .AddChild(std::move(hash_join2_2))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+               .AddGroupByTerm(ps_partkey)
+               .AddAggregateTerm(value_sum)
+               .AddChild(std::move(hash_join2_2))
+               .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+               .SetHavingClausePredicate(nullptr)
+               .Build();
   }
 
   // BNL
@@ -1492,11 +1502,11 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::NestedLoopJoinPlanNode::Builder builder;
     bnl = builder.AddChild(std::move(agg1))
-        .AddChild(std::move(agg2))
-        .SetOutputSchema(std::move(schema))
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+              .AddChild(std::move(agg2))
+              .SetOutputSchema(std::move(schema))
+              .SetJoinType(planner::LogicalJoinType::INNER)
+              .SetJoinPredicate(predicate)
+              .Build();
   }
 
   // Sort
@@ -1516,9 +1526,9 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(bnl))
-        .AddSortKey(clause1.first, clause1.second)
-        .Build();
+                   .AddChild(std::move(bnl))
+                   .AddSortKey(clause1.first, clause1.second)
+                   .Build();
   }
 
   // Compile plan
@@ -1526,7 +1536,9 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
-std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>> MakeExecutableQ18(std::unique_ptr<catalog::CatalogAccessor> &accessor, const execution::exec::ExecutionSettings &exec_settings) {
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                  const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Customer.
   auto c_table_oid = accessor->GetTableOid("customer");
@@ -1553,10 +1565,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     c_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(c_table_oid)
-        .SetColumnOids(std::move(c_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(c_table_oid)
+                     .SetColumnOids(std::move(c_col_oids))
+                     .Build();
   }
   // Scan orders
   std::unique_ptr<planner::AbstractPlanNode> o_seq_scan;
@@ -1579,10 +1591,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     o_seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(o_table_oid)
-        .SetColumnOids(std::move(o_col_oids))
-        .Build();
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(o_table_oid)
+                     .SetColumnOids(std::move(o_col_oids))
+                     .Build();
   }
   // Scan lineitem1
   std::unique_ptr<planner::AbstractPlanNode> l_seq_scan1;
@@ -1602,10 +1614,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     l_seq_scan1 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(l_table_oid)
-        .SetColumnOids(std::move(l_col_oids))
-        .Build();
+                      .SetScanPredicate(nullptr)
+                      .SetTableOid(l_table_oid)
+                      .SetColumnOids(std::move(l_col_oids))
+                      .Build();
   }
   // Scan lineitem2
   std::unique_ptr<planner::AbstractPlanNode> l_seq_scan2;
@@ -1625,10 +1637,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::SeqScanPlanNode::Builder builder;
     l_seq_scan2 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetTableOid(l_table_oid)
-        .SetColumnOids(std::move(l2_col_oids))
-        .Build();
+                      .SetScanPredicate(nullptr)
+                      .SetTableOid(l_table_oid)
+                      .SetColumnOids(std::move(l2_col_oids))
+                      .Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg1;
@@ -1650,12 +1662,12 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg1 = builder.SetOutputSchema(std::move(schema))
-        .AddGroupByTerm(l_orderkey)
-        .AddAggregateTerm(sum_qty)
-        .AddChild(std::move(l_seq_scan1))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(having)
-        .Build();
+               .AddGroupByTerm(l_orderkey)
+               .AddAggregateTerm(sum_qty)
+               .AddChild(std::move(l_seq_scan1))
+               .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+               .SetHavingClausePredicate(having)
+               .Build();
   }
   // First hash join
   // Hash Join 1
@@ -1680,13 +1692,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join1 = builder.AddChild(std::move(agg1))
-        .AddChild(std::move(o_seq_scan))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(l_orderkey)
-        .AddRightHashKey(o_orderkey)
-        .SetJoinType(planner::LogicalJoinType::RIGHT_SEMI)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(o_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(l_orderkey)
+                     .AddRightHashKey(o_orderkey)
+                     .SetJoinType(planner::LogicalJoinType::RIGHT_SEMI)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Second hash join
   std::unique_ptr<planner::AbstractPlanNode> hash_join2;
@@ -1712,13 +1724,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join2 = builder.AddChild(std::move(c_seq_scan))
-        .AddChild(std::move(hash_join1))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(c_custkey)
-        .AddRightHashKey(o_custkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(hash_join1))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(c_custkey)
+                     .AddRightHashKey(o_custkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Make third hash join
   std::unique_ptr<planner::AbstractPlanNode> hash_join3;
@@ -1746,13 +1758,13 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::HashJoinPlanNode::Builder builder;
     hash_join3 = builder.AddChild(std::move(hash_join2))
-        .AddChild(std::move(l_seq_scan2))
-        .SetOutputSchema(std::move(schema))
-        .AddLeftHashKey(o_orderkey)
-        .AddRightHashKey(l_orderkey)
-        .SetJoinType(planner::LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+                     .AddChild(std::move(l_seq_scan2))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(o_orderkey)
+                     .AddRightHashKey(l_orderkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg2;
@@ -1786,16 +1798,16 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg2 = builder.SetOutputSchema(std::move(schema))
-        .AddGroupByTerm(c_name)
-        .AddGroupByTerm(c_custkey)
-        .AddGroupByTerm(o_orderkey)
-        .AddGroupByTerm(o_orderdate)
-        .AddGroupByTerm(o_totalprice)
-        .AddAggregateTerm(sum_qty)
-        .AddChild(std::move(hash_join3))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+               .AddGroupByTerm(c_name)
+               .AddGroupByTerm(c_custkey)
+               .AddGroupByTerm(o_orderkey)
+               .AddGroupByTerm(o_orderdate)
+               .AddGroupByTerm(o_totalprice)
+               .AddAggregateTerm(sum_qty)
+               .AddChild(std::move(hash_join3))
+               .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+               .SetHavingClausePredicate(nullptr)
+               .Build();
   }
   // Order By
   std::unique_ptr<planner::AbstractPlanNode> order_by;
@@ -1821,10 +1833,10 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
     // Build
     planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
-        .AddChild(std::move(agg2))
-        .AddSortKey(clause1.first, clause1.second)
-        .AddSortKey(clause2.first, clause2.second)
-        .Build();
+                   .AddChild(std::move(agg2))
+                   .AddSortKey(clause1.first, clause1.second)
+                   .AddSortKey(clause2.first, clause2.second)
+                   .Build();
   }
 
   // Compile plan
@@ -1832,4 +1844,4 @@ std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_pt
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
-}
+}  // namespace terrier::tpch

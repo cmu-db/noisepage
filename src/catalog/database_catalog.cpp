@@ -1892,7 +1892,6 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
       "extractYear", type::TypeId::INTEGER, {type::TypeId::INTEGER}, execution::ast::Builtin::ExtractYear);
   txn->RegisterAbortAction([=]() { delete func_context; });
   SetProcCtxPtr(txn, postgres::EXTRACT_YEAR_PRO_OID, func_context);
-
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,

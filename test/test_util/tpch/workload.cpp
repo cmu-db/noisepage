@@ -1,14 +1,10 @@
 #include "test_util/tpch/workload.h"
 
-#include "test_util/tpch/tpch_query.h"
-
 #include <random>
 
 #include "common/managed_pointer.h"
-#include "execution/compiler/compilation_context.h"
 #include "execution/compiler/output_schema_util.h"
 #include "execution/exec/execution_context.h"
-#include "execution/execution_util.h"
 #include "execution/sql/value_util.h"
 #include "execution/table_generator/table_generator.h"
 #include "main/db_main.h"
@@ -17,6 +13,7 @@
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "test_util/tpch/tpch_query.h"
 
 namespace terrier::tpch {
 
@@ -32,7 +29,8 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
 
   // Create database catalog and namespace
   db_oid_ = catalog_->CreateDatabase(common::ManagedPointer<transaction::TransactionContext>(txn), db_name, true);
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
+  auto accessor =
+      catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
   ns_oid_ = accessor->GetDefaultNamespace();
 
   // Make the execution context
@@ -62,13 +60,13 @@ void Workload::GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, c
 void Workload::LoadTPCHQueries(std::unique_ptr<catalog::CatalogAccessor> accessor) {
   // TODO(Wuwen): add q16 after LIKE fix and 19 after VARCHAR fix
   // Executable query and plan node are stored as a tuple as the entry of vector
-  query_and_plan_.emplace_back(tpch::MakeExecutableQ1(accessor,  exec_settings_));
-  query_and_plan_.emplace_back(tpch::MakeExecutableQ4(accessor,  exec_settings_));
-  query_and_plan_.emplace_back(tpch::MakeExecutableQ5(accessor,  exec_settings_));
-  query_and_plan_.emplace_back(tpch::MakeExecutableQ6(accessor,  exec_settings_));
-  query_and_plan_.emplace_back(tpch::MakeExecutableQ7(accessor,  exec_settings_));
-  query_and_plan_.emplace_back(tpch::MakeExecutableQ11(accessor,  exec_settings_));
-  query_and_plan_.emplace_back(tpch::MakeExecutableQ18(accessor,  exec_settings_));
+  query_and_plan_.emplace_back(tpch::MakeExecutableQ1(accessor, exec_settings_));
+  query_and_plan_.emplace_back(tpch::MakeExecutableQ4(accessor, exec_settings_));
+  query_and_plan_.emplace_back(tpch::MakeExecutableQ5(accessor, exec_settings_));
+  query_and_plan_.emplace_back(tpch::MakeExecutableQ6(accessor, exec_settings_));
+  query_and_plan_.emplace_back(tpch::MakeExecutableQ7(accessor, exec_settings_));
+  query_and_plan_.emplace_back(tpch::MakeExecutableQ11(accessor, exec_settings_));
+  query_and_plan_.emplace_back(tpch::MakeExecutableQ18(accessor, exec_settings_));
 }
 
 void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_num,
@@ -102,7 +100,8 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
         db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), printer, output_schema,
         common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_);
 
-    std::get<0>(query_and_plan_[index[counter]])->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
+    std::get<0>(query_and_plan_[index[counter]])
+        ->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
 
     // Only execute up to query_num number of queries for this thread in round-robin
     counter = counter == query_num - 1 ? 0 : counter + 1;
@@ -116,7 +115,5 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
   // Unregister from the metrics manager
   db_main_->GetMetricsManager()->UnregisterThread();
 }
-
-
 
 }  // namespace terrier::tpch
