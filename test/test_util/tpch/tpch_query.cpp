@@ -15,7 +15,7 @@ namespace terrier::tpch {
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 TPCHQuery::MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                 const execution::exec::ExecutionSettings &exec_settings) {
+                            const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid("lineitem");
   const auto &l_schema = accessor->GetSchema(table_oid);
@@ -164,7 +164,7 @@ TPCHQuery::MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &acc
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 TPCHQuery::MakeExecutableQ4(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                 const execution::exec::ExecutionSettings &exec_settings) {
+                            const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Orders.
   auto o_table_oid = accessor->GetTableOid("orders");
@@ -303,7 +303,7 @@ TPCHQuery::MakeExecutableQ4(const std::unique_ptr<catalog::CatalogAccessor> &acc
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 TPCHQuery::MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                 const execution::exec::ExecutionSettings &exec_settings) {
+                            const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Region.
   auto r_table_oid = accessor->GetTableOid("region");
@@ -673,7 +673,7 @@ TPCHQuery::MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &acc
 }
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 TPCHQuery::MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                 const execution::exec::ExecutionSettings &exec_settings) {
+                            const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Lineitem.
   auto l_table_oid = accessor->GetTableOid("lineitem");
@@ -747,7 +747,7 @@ TPCHQuery::MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &acc
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                 const execution::exec::ExecutionSettings &exec_settings) {
+                            const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Nation.
   auto n_table_oid = accessor->GetTableOid("nation");
@@ -1170,7 +1170,7 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 TPCHQuery::MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                  const execution::exec::ExecutionSettings &exec_settings) {
+                             const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Supplier.
   auto s_table_oid = accessor->GetTableOid("supplier");
@@ -1537,8 +1537,256 @@ TPCHQuery::MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &ac
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+TPCHQuery::MakeExecutableQ16(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                             const execution::exec::ExecutionSettings &exec_settings) {
+  execution::compiler::test::ExpressionMaker expr_maker;
+  // Part.
+  auto p_table_oid = accessor->GetTableOid("part");
+  const auto &p_schema = accessor->GetSchema(p_table_oid);
+  // Partsupp.
+  auto ps_table_oid = accessor->GetTableOid("partsupp");
+  const auto &ps_schema = accessor->GetSchema(ps_table_oid);
+  // Supplier.
+  auto s_table_oid = accessor->GetTableOid("supplier");
+  const auto &s_schema = accessor->GetSchema(s_table_oid);
+  // Scan part
+  std::unique_ptr<planner::AbstractPlanNode> p_seq_scan;
+  execution::compiler::test::OutputSchemaHelper p_seq_scan_out{0, &expr_maker};
+  {
+    // Read all needed columns
+    auto p_brand = expr_maker.CVE(p_schema.GetColumn("p_brand").Oid(), type::TypeId::VARCHAR);
+    auto p_type = expr_maker.CVE(p_schema.GetColumn("p_type").Oid(), type::TypeId::VARCHAR);
+    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), type::TypeId::INTEGER);
+    auto p_size = expr_maker.CVE(p_schema.GetColumn("p_size").Oid(), type::TypeId::INTEGER);
+    std::vector<catalog::col_oid_t> p_col_oids = {
+        p_schema.GetColumn("p_brand").Oid(), p_schema.GetColumn("p_type").Oid(), p_schema.GetColumn("p_partkey").Oid(),
+        p_schema.GetColumn("p_size").Oid()};
+    // Make the output schema
+    p_seq_scan_out.AddOutput("p_brand", p_brand);
+    p_seq_scan_out.AddOutput("p_type", p_type);
+    p_seq_scan_out.AddOutput("p_partkey", p_partkey);
+    p_seq_scan_out.AddOutput("p_size", p_size);
+    auto schema = p_seq_scan_out.MakeSchema();
+
+    // Predicate
+    auto brand_comp = expr_maker.ComparisonNeq(p_brand, expr_maker.Constant("Brand#45"));
+    auto type_like = expr_maker.Constant("MEDIUM POLISHED%");
+    // TODO(Wuwen): fix me after LIKE get fixed
+    auto like_call = expr_maker.Function("like", {p_type, type_like}, type::TypeId::BOOLEAN, (catalog::proc_oid_t)0);
+    // auto conversion_call =
+    // expr_maker.Function("sqlToBool", {like_call}, type::TypeId::BOOLEAN, catalog::postgres::SQL_TO_BOOL_PRO_OID);
+    auto type_comp = expr_maker.OpNot(like_call);
+    auto size_comp = expr_maker.ConjunctionOr(
+        expr_maker.ComparisonEq(p_size, expr_maker.Constant(49)),
+        expr_maker.ConjunctionOr(
+            expr_maker.ComparisonEq(p_size, expr_maker.Constant(14)),
+            expr_maker.ConjunctionOr(
+                expr_maker.ComparisonEq(p_size, expr_maker.Constant(23)),
+                expr_maker.ConjunctionOr(
+                    expr_maker.ComparisonEq(p_size, expr_maker.Constant(45)),
+                    expr_maker.ConjunctionOr(
+                        expr_maker.ComparisonEq(p_size, expr_maker.Constant(19)),
+                        expr_maker.ConjunctionOr(
+                            expr_maker.ComparisonEq(p_size, expr_maker.Constant(3)),
+                            expr_maker.ConjunctionOr(expr_maker.ComparisonEq(p_size, expr_maker.Constant(36)),
+                                                     expr_maker.ComparisonEq(p_size, expr_maker.Constant(9)))))))));
+    auto predicate = expr_maker.ConjunctionAnd(brand_comp, expr_maker.ConjunctionAnd(type_comp, size_comp));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    p_seq_scan = builder.SetOutputSchema(std::move(schema))
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(p_table_oid)
+                     .SetColumnOids(std::move(p_col_oids))
+                     .Build();
+  }
+
+  //  // Scan supplier
+  std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
+  execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
+  {
+    // Read all needed columns
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
+    auto s_comment = expr_maker.CVE(s_schema.GetColumn("s_comment").Oid(), type::TypeId::VARCHAR);
+    std::vector<catalog::col_oid_t> s_col_oids = {s_schema.GetColumn("s_suppkey").Oid(),
+                                                  s_schema.GetColumn("s_comment").Oid()};
+    // Make the output schema
+    s_seq_scan_out.AddOutput("s_suppkey", s_suppkey);
+    auto schema = s_seq_scan_out.MakeSchema();
+    // Predicate
+    auto comment_like = expr_maker.Constant("%Customer%Complaints%");
+    // TODO(Wuwen): fix me after LIKE get fixed
+    auto like_call =
+        expr_maker.Function("like", {s_comment, comment_like}, type::TypeId::BOOLEAN, (catalog::proc_oid_t)0);
+    // auto predicate = expr_maker.Function("sqlToBool", {like_call}, type::TypeId::BOOLEAN,
+    // catalog::postgres::SQL_TO_BOOL_PRO_OID); Build
+    planner::SeqScanPlanNode::Builder builder;
+    s_seq_scan = builder.SetOutputSchema(std::move(schema))
+                     .SetScanPredicate(like_call)
+                     .SetTableOid(s_table_oid)
+                     .SetColumnOids(std::move(s_col_oids))
+                     .Build();
+  }
+
+  // Scan partsupp
+  std::unique_ptr<planner::AbstractPlanNode> ps_seq_scan;
+  execution::compiler::test::OutputSchemaHelper ps_seq_scan_out{1, &expr_maker};
+  {
+    // Read all needed columns
+    auto ps_suppkey = expr_maker.CVE(ps_schema.GetColumn("ps_suppkey").Oid(), type::TypeId::INTEGER);
+    auto ps_partkey = expr_maker.CVE(ps_schema.GetColumn("ps_partkey").Oid(), type::TypeId::INTEGER);
+    std::vector<catalog::col_oid_t> ps_col_oids = {ps_schema.GetColumn("ps_suppkey").Oid(),
+                                                   ps_schema.GetColumn("ps_partkey").Oid()};
+    // Make the output schema
+    ps_seq_scan_out.AddOutput("ps_suppkey", ps_suppkey);
+    ps_seq_scan_out.AddOutput("ps_partkey", ps_partkey);
+    auto schema = ps_seq_scan_out.MakeSchema();
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    ps_seq_scan = builder.SetOutputSchema(std::move(schema))
+                      .SetScanPredicate(nullptr)
+                      .SetTableOid(ps_table_oid)
+                      .SetColumnOids(std::move(ps_col_oids))
+                      .Build();
+  }
+
+  // First hash join
+  // Hash Join 1
+  std::unique_ptr<planner::AbstractPlanNode> hash_join1;
+  execution::compiler::test::OutputSchemaHelper hash_join_out1{1, &expr_maker};
+  {
+    // Left columns
+    auto p_brand = p_seq_scan_out.GetOutput("p_brand");
+    auto p_type = p_seq_scan_out.GetOutput("p_type");
+    auto p_size = p_seq_scan_out.GetOutput("p_size");
+    auto p_partkey = p_seq_scan_out.GetOutput("p_partkey");
+    // Right columns
+    auto ps_suppkey = ps_seq_scan_out.GetOutput("ps_suppkey");
+    auto ps_partkey = ps_seq_scan_out.GetOutput("ps_partkey");
+    // Output Schema
+    hash_join_out1.AddOutput("p_brand", p_brand);
+    hash_join_out1.AddOutput("p_type", p_type);
+    hash_join_out1.AddOutput("p_size", p_size);
+    hash_join_out1.AddOutput("ps_suppkey", ps_suppkey);
+    auto schema = hash_join_out1.MakeSchema();
+    // Predicate
+    auto predicate = expr_maker.ComparisonEq(p_partkey, ps_partkey);
+    // Build
+    planner::HashJoinPlanNode::Builder builder;
+    hash_join1 = builder.AddChild(std::move(p_seq_scan))
+                     .AddChild(std::move(ps_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(p_partkey)
+                     .AddRightHashKey(ps_partkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
+  }
+
+  // Second hash join
+  std::unique_ptr<planner::AbstractPlanNode> hash_join2;
+  execution::compiler::test::OutputSchemaHelper hash_join_out2{0, &expr_maker};
+  {
+    // Left columns
+    auto s_suppkey = s_seq_scan_out.GetOutput("s_suppkey");
+    // Right columns
+    auto p_brand = hash_join_out1.GetOutput("p_brand");
+    auto p_type = hash_join_out1.GetOutput("p_type");
+    auto p_size = hash_join_out1.GetOutput("p_size");
+    auto ps_suppkey = hash_join_out1.GetOutput("ps_suppkey");
+    // Output Schema
+    hash_join_out2.AddOutput("p_brand", p_brand);
+    hash_join_out2.AddOutput("p_type", p_type);
+    hash_join_out2.AddOutput("p_size", p_size);
+    hash_join_out2.AddOutput("ps_suppkey", ps_suppkey);
+    auto schema = hash_join_out2.MakeSchema();
+    // Predicate
+    auto predicate = expr_maker.ComparisonEq(s_suppkey, ps_suppkey);
+    // Build
+    planner::HashJoinPlanNode::Builder builder;
+    hash_join2 = builder.AddChild(std::move(s_seq_scan))
+                     .AddChild(std::move(hash_join1))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(s_suppkey)
+                     .AddRightHashKey(ps_suppkey)
+                     .SetJoinType(planner::LogicalJoinType::RIGHT_ANTI)
+                     .SetJoinPredicate(predicate)
+                     .Build();
+  }
+
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  execution::compiler::test::OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Read previous layer's output
+    auto p_brand = hash_join_out2.GetOutput("p_brand");
+    auto p_type = hash_join_out2.GetOutput("p_type");
+    auto p_size = hash_join_out2.GetOutput("p_size");
+    auto ps_suppkey = hash_join_out2.GetOutput("ps_suppkey");
+    // Make the aggregate expressions
+    auto supplier_cnt = expr_maker.AggCount(ps_suppkey, true);
+    // Add them to the helper.
+    agg_out.AddGroupByTerm("p_brand", p_brand);
+    agg_out.AddGroupByTerm("p_type", p_type);
+    agg_out.AddGroupByTerm("p_size", p_size);
+    agg_out.AddAggTerm("supplier_cnt", supplier_cnt);
+    // Make the output schema
+    agg_out.AddOutput("p_brand", agg_out.GetGroupByTermForOutput("p_brand"));
+    agg_out.AddOutput("p_type", agg_out.GetGroupByTermForOutput("p_type"));
+    agg_out.AddOutput("p_size", agg_out.GetGroupByTermForOutput("p_size"));
+    agg_out.AddOutput("supplier_cnt", agg_out.GetAggTermForOutput("supplier_cnt"));
+    auto schema = agg_out.MakeSchema();
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddGroupByTerm(p_brand)
+              .AddGroupByTerm(p_type)
+              .AddGroupByTerm(p_size)
+              .AddAggregateTerm(supplier_cnt)
+              .AddChild(std::move(hash_join2))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
+  }
+
+  // Order By
+  std::unique_ptr<planner::AbstractPlanNode> order_by;
+  execution::compiler::test::OutputSchemaHelper order_by_out{0, &expr_maker};
+  {
+    // Read previous layer
+    auto p_brand = agg_out.GetOutput("p_brand");
+    auto p_type = agg_out.GetOutput("p_type");
+    auto p_size = agg_out.GetOutput("p_size");
+    auto supplier_cnt = agg_out.GetOutput("supplier_cnt");
+
+    order_by_out.AddOutput("p_brand", p_brand);
+    order_by_out.AddOutput("p_type", p_type);
+    order_by_out.AddOutput("p_size", p_size);
+    order_by_out.AddOutput("supplier_cnt", supplier_cnt);
+    auto schema = order_by_out.MakeSchema();
+    // Order By Clause
+    planner::SortKey clause1{supplier_cnt, optimizer::OrderByOrderingType::DESC};
+    planner::SortKey clause2{p_brand, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause3{p_type, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause4{p_size, optimizer::OrderByOrderingType::ASC};
+    // Build
+    planner::OrderByPlanNode::Builder builder;
+    order_by = builder.SetOutputSchema(std::move(schema))
+                   .AddChild(std::move(agg))
+                   .AddSortKey(clause1.first, clause1.second)
+                   .AddSortKey(clause2.first, clause2.second)
+                   .AddSortKey(clause3.first, clause3.second)
+                   .AddSortKey(clause4.first, clause4.second)
+                   .Build();
+  }
+
+  // Compile plan
+  auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
+  return std::make_tuple(std::move(query), std::move(order_by));
+}
+
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 TPCHQuery::MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                  const execution::exec::ExecutionSettings &exec_settings) {
+                             const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Customer.
   auto c_table_oid = accessor->GetTableOid("customer");
@@ -1843,4 +2091,165 @@ TPCHQuery::MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &ac
   auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
+
+std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
+TPCHQuery::MakeExecutableQ19(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                             const execution::exec::ExecutionSettings &exec_settings) {
+  execution::compiler::test::ExpressionMaker expr_maker;
+  // Lineitem.
+  auto l_table_oid = accessor->GetTableOid("lineitem");
+  const auto &l_schema = accessor->GetSchema(l_table_oid);
+  // Part.
+  auto p_table_oid = accessor->GetTableOid("part");
+  const auto &p_schema = accessor->GetSchema(p_table_oid);
+  // Lineitem scan
+  std::unique_ptr<planner::AbstractPlanNode> l_seq_scan;
+  execution::compiler::test::OutputSchemaHelper l_seq_scan_out{1, &expr_maker};
+  {
+    // Read all needed columns
+    auto l_extendedprice = expr_maker.CVE(l_schema.GetColumn("l_extendedprice").Oid(), type::TypeId::DECIMAL);
+    auto l_discount = expr_maker.CVE(l_schema.GetColumn("l_discount").Oid(), type::TypeId::DECIMAL);
+    auto l_partkey = expr_maker.CVE(l_schema.GetColumn("l_partkey").Oid(), type::TypeId::INTEGER);
+    auto l_quantity = expr_maker.CVE(l_schema.GetColumn("l_quantity").Oid(), type::TypeId::DECIMAL);
+    auto l_shipmode = expr_maker.CVE(l_schema.GetColumn("l_shipmode").Oid(), type::TypeId::VARCHAR);
+    auto l_shipinstruct = expr_maker.CVE(l_schema.GetColumn("l_shipinstruct").Oid(), type::TypeId::VARCHAR);
+    std::vector<catalog::col_oid_t> l_col_oids = {
+        l_schema.GetColumn("l_extendedprice").Oid(), l_schema.GetColumn("l_discount").Oid(),
+        l_schema.GetColumn("l_partkey").Oid(),       l_schema.GetColumn("l_quantity").Oid(),
+        l_schema.GetColumn("l_shipmode").Oid(),      l_schema.GetColumn("l_shipinstruct").Oid()};
+    // Make the output schema
+    l_seq_scan_out.AddOutput("l_extendedprice", l_extendedprice);
+    l_seq_scan_out.AddOutput("l_discount", l_discount);
+    l_seq_scan_out.AddOutput("l_partkey", l_partkey);
+    l_seq_scan_out.AddOutput("l_quantity", l_quantity);
+    l_seq_scan_out.AddOutput("l_shipmode", l_shipmode);
+    l_seq_scan_out.AddOutput("l_shipinstruct", l_shipinstruct);
+    auto schema = l_seq_scan_out.MakeSchema();
+
+    // Predicate.
+    auto shipmode_comp = expr_maker.ConjunctionOr(expr_maker.ComparisonEq(l_shipmode, expr_maker.Constant("AIR")),
+                                                  expr_maker.ComparisonEq(l_shipmode, expr_maker.Constant("AIR REG")));
+    auto shipinstruct_comp = expr_maker.ComparisonEq(l_shipinstruct, expr_maker.Constant("DELIVER IN PERSON"));
+    auto predicate = expr_maker.ConjunctionAnd(shipmode_comp, shipinstruct_comp);
+
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    l_seq_scan = builder.SetOutputSchema(std::move(schema))
+                     .SetScanPredicate(predicate)
+                     .SetTableOid(l_table_oid)
+                     .SetColumnOids(std::move(l_col_oids))
+                     .Build();
+  }
+  // Part Scan
+  std::unique_ptr<planner::AbstractPlanNode> p_seq_scan;
+  execution::compiler::test::OutputSchemaHelper p_seq_scan_out{0, &expr_maker};
+  {
+    // Read all needed columns
+    auto p_brand = expr_maker.CVE(p_schema.GetColumn("p_brand").Oid(), type::TypeId::VARCHAR);
+    auto p_container = expr_maker.CVE(p_schema.GetColumn("p_container").Oid(), type::TypeId::VARCHAR);
+    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), type::TypeId::INTEGER);
+    auto p_size = expr_maker.CVE(p_schema.GetColumn("p_size").Oid(), type::TypeId::INTEGER);
+    std::vector<catalog::col_oid_t> p_col_oids = {
+        p_schema.GetColumn("p_brand").Oid(), p_schema.GetColumn("p_container").Oid(),
+        p_schema.GetColumn("p_partkey").Oid(), p_schema.GetColumn("p_size").Oid()};
+    // Make the output schema
+    p_seq_scan_out.AddOutput("p_brand", p_brand);
+    p_seq_scan_out.AddOutput("p_container", p_container);
+    p_seq_scan_out.AddOutput("p_partkey", p_partkey);
+    p_seq_scan_out.AddOutput("p_size", p_size);
+    auto schema = p_seq_scan_out.MakeSchema();
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    p_seq_scan = builder.SetOutputSchema(std::move(schema))
+                     .SetScanPredicate(nullptr)
+                     .SetTableOid(p_table_oid)
+                     .SetColumnOids(std::move(p_col_oids))
+                     .Build();
+  }
+  // Hash Join 1
+  std::unique_ptr<planner::AbstractPlanNode> hash_join1;
+  execution::compiler::test::OutputSchemaHelper hash_join_out1{0, &expr_maker};
+  {
+    // Left columns
+    auto p_brand = p_seq_scan_out.GetOutput("p_brand");
+    auto p_container = p_seq_scan_out.GetOutput("p_container");
+    auto p_partkey = p_seq_scan_out.GetOutput("p_partkey");
+    auto p_size = p_seq_scan_out.GetOutput("p_size");
+    // Right columns
+    auto l_partkey = l_seq_scan_out.GetOutput("l_partkey");
+    auto l_quantity = l_seq_scan_out.GetOutput("l_quantity");
+    auto l_discount = l_seq_scan_out.GetOutput("l_discount");
+    auto l_extendedprice = l_seq_scan_out.GetOutput("l_extendedprice");
+    // Output Schema
+    hash_join_out1.AddOutput("l_extendedprice", l_extendedprice);
+    hash_join_out1.AddOutput("l_discount", l_discount);
+    hash_join_out1.AddOutput("p_brand", p_brand);
+    hash_join_out1.AddOutput("p_size", p_size);
+    auto schema = hash_join_out1.MakeSchema();
+    // Predicate1
+    execution::compiler::test::ExpressionMaker::ManagedExpression predicate1, predicate2, predicate3;
+    auto gen_predicate_clause = [&](const std::string &brand, const std::vector<std::string> &sm, float lo_qty,
+                                    float hi_qty, int32_t lo_size, int32_t hi_size) {
+      auto brand_comp = expr_maker.ComparisonEq(p_brand, expr_maker.Constant(brand));
+      auto container_comp = expr_maker.ConjunctionOr(
+          expr_maker.ComparisonEq(p_container, expr_maker.Constant(sm[0])),
+          expr_maker.ConjunctionOr(
+              expr_maker.ComparisonEq(p_container, expr_maker.Constant(sm[1])),
+              expr_maker.ConjunctionOr(expr_maker.ComparisonEq(p_container, expr_maker.Constant(sm[2])),
+                                       expr_maker.ComparisonEq(p_container, expr_maker.Constant(sm[3])))));
+      auto qty_lo_comp = expr_maker.ComparisonGe(l_quantity, expr_maker.Constant(lo_qty));
+      auto qty_hi_comp = expr_maker.ComparisonLe(l_quantity, expr_maker.Constant(hi_qty));
+      auto qty_comp = expr_maker.ConjunctionAnd(qty_lo_comp, qty_hi_comp);
+      auto size_lo_comp = expr_maker.ComparisonGe(p_size, expr_maker.Constant(lo_size));
+      auto size_hi_comp = expr_maker.ComparisonLe(p_size, expr_maker.Constant(hi_size));
+      auto size_comp = expr_maker.ConjunctionAnd(size_lo_comp, size_hi_comp);
+      return expr_maker.ConjunctionAnd(
+          brand_comp, expr_maker.ConjunctionAnd(container_comp, expr_maker.ConjunctionAnd(qty_comp, size_comp)));
+    };
+    predicate1 = gen_predicate_clause("Brand#12", {"SM CASE", "SM BOX", "SM PACK", "SM PKG"}, 1, 11, 1, 5);
+    predicate2 = gen_predicate_clause("Brand#23", {"MED BAG", "MED BOX", "MED PKG", "MED PACK"}, 10, 20, 1, 10);
+    predicate3 = gen_predicate_clause("Brand#34", {"LG CASE", "LG BOX", "LG PACK", "LG PKG"}, 20, 30, 1, 15);
+    auto predicate = expr_maker.ConjunctionOr(predicate1, expr_maker.ConjunctionOr(predicate2, predicate3));
+    // Build
+    planner::HashJoinPlanNode::Builder builder;
+    hash_join1 = builder.AddChild(std::move(p_seq_scan))
+                     .AddChild(std::move(l_seq_scan))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(p_partkey)
+                     .AddRightHashKey(l_partkey)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
+  }
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  execution::compiler::test::OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Read previous layer's output
+    auto l_extendedprice = hash_join_out1.GetOutput("l_extendedprice");
+    auto l_discount = hash_join_out1.GetOutput("l_discount");
+    // Make the aggregate expressions
+    auto one_const = expr_maker.Constant(1.0f);
+    auto revenue = expr_maker.AggSum(expr_maker.OpMul(l_extendedprice, expr_maker.OpMin(one_const, l_discount)));
+    // Add them to the helper.
+    agg_out.AddAggTerm("revenue", revenue);
+    // Make the output schema
+    agg_out.AddOutput("revenue", agg_out.GetAggTermForOutput("revenue"));
+    auto schema = agg_out.MakeSchema();
+    // Make having
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddAggregateTerm(revenue)
+              .AddChild(std::move(hash_join1))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
+  }
+
+  // Compile plan
+  auto query = execution::compiler::CompilationContext::Compile(*agg.get(), exec_settings, accessor.get());
+  return std::make_tuple(std::move(query), std::move(agg));
+}
+
 }  // namespace terrier::tpch

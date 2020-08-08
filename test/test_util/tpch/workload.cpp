@@ -94,8 +94,9 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
         catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
 
     auto output_schema = std::get<1>(query_and_plan_[index[counter]])->GetOutputSchema().Get();
-    execution::exec::OutputPrinter printer(output_schema);
+    // Uncomment this line and change output.cpp:90 to EXECUTION_LOG_INFO to print output
     // execution::exec::OutputPrinter printer(output_schema);
+    execution::exec::NoOpResultConsumer printer;
     auto exec_ctx = execution::exec::ExecutionContext(
         db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), printer, output_schema,
         common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_);
