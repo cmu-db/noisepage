@@ -34,7 +34,7 @@ class PropertySet {
   PropertySet *Copy() {
     std::vector<std::pair<Property *, bool>> props;
     for (auto prop : properties_) {
-      props.push_back({prop.first->Copy(), prop.second});
+      props.emplace_back({prop.first->Copy(), prop.second});
     }
 
     return new PropertySet(props);

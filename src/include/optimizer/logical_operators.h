@@ -66,6 +66,7 @@ class LeafOperator : public OperatorNodeContents<LeafOperator> {
 class LogicalGet : public OperatorNodeContents<LogicalGet> {
  public:
   /**
+   * Make a select statement without limit value
    * @param database_oid OID of the database
    * @param table_oid OID of the table
    * @param predicates predicates for get
@@ -77,7 +78,7 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
                        std::vector<AnnotatedExpression> predicates, std::string table_alias, bool is_for_update);
 
   /**
-   * For select statement with a limit
+   * Make a select statement with limit value
    * @param database_oid OID of the database
    * @param table_oid OID of the table
    * @param predicates predicates for get
@@ -140,14 +141,12 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
   }
 
   /**
-   * Gets whether the limit exists
-   * @returns limit exists
+   * @returns whether the limit exists
    */
   bool GetLimitExists() { return limit_exists_; }
 
   /**
-   * Gets the limit
-   * @returns limit
+   * @returns value of the limit
    */
   uint32_t GetLimit() { return limit_; }
 
@@ -183,7 +182,7 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
   bool limit_exists_;
 
   /**
-   * Limit
+   * Limit value for get
    */
   uint32_t limit_;
 };

@@ -203,12 +203,12 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
   }
 
   /**
-   * @return limit_exists_
+   * @return whether the limit exists
    */
   bool GetLimitExists() const { return limit_exists_; }
 
   /**
-   * @return limit
+   * @return value of the limit
    */
   uint32_t GetLimit() const { return limit_; }
 
@@ -259,7 +259,7 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
   bool limit_exists_;
 
   /**
-   * Limit
+   * Limit value for get
    */
   uint32_t limit_;
 
