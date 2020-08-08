@@ -17,7 +17,7 @@ void PropertySet::AddProperty(Property *property, bool optional) {
   properties_.insert(iter, {property, optional});
 }
 
-const std::pair<Property *, bool> PropertySet::GetPropertyOfType(PropertyType type) const {
+std::pair<Property *, bool> PropertySet::GetPropertyOfType(PropertyType type) const {
   for (auto &prop : properties_) {
     if (prop.first->Type() == type) {
       return prop;
