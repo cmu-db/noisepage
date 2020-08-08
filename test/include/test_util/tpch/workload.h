@@ -50,7 +50,7 @@ class Workload {
  private:
   void GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name);
 
-  void LoadTPCHQueries(std::unique_ptr<catalog::CatalogAccessor> accessor);
+  void LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor);
 
   common::ManagedPointer<DBMain> db_main_;
   common::ManagedPointer<storage::BlockStore> block_store_;

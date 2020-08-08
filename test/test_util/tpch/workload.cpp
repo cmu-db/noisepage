@@ -40,7 +40,7 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
 
   // create the TPCH database and compile the queries
   GenerateTPCHTables(&exec_ctx, table_root);
-  LoadTPCHQueries(std::move(accessor));
+  LoadTPCHQueries(accessor);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
@@ -57,7 +57,7 @@ void Workload::GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, c
   }
 }
 
-void Workload::LoadTPCHQueries(std::unique_ptr<catalog::CatalogAccessor> accessor) {
+void Workload::LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor) {
   // TODO(Wuwen): add q16 after LIKE fix and 19 after VARCHAR fix
   // Executable query and plan node are stored as a tuple as the entry of vector
   query_and_plan_.emplace_back(tpch::MakeExecutableQ1(accessor, exec_settings_));
