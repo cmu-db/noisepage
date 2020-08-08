@@ -77,9 +77,10 @@ class ExpressionMaker {
   /**
    * Create an expression for a builtin call.
    */
-  ManagedExpression Function(std::string &&func_name, std::vector<ManagedExpression> args,
+  ManagedExpression Function(std::string &&func_name, const std::vector<ManagedExpression> &args,
                              const type::TypeId return_value_type, catalog::proc_oid_t proc_oid) {
     std::vector<execution::compiler::test::ExpressionMaker::OwnedExpression> children;
+    children.reserve(args.size());
     for (const auto &arg : args) {
       children.emplace_back(arg->Copy());
     }

@@ -158,7 +158,7 @@ TPCHQuery::MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &acc
                    .AddSortKey(clause2.first, clause2.second)
                    .Build();
   }
-  auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*order_by, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
@@ -297,7 +297,7 @@ TPCHQuery::MakeExecutableQ4(const std::unique_ptr<catalog::CatalogAccessor> &acc
 
   // Compile plan
 
-  auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*order_by, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
@@ -668,7 +668,7 @@ TPCHQuery::MakeExecutableQ5(const std::unique_ptr<catalog::CatalogAccessor> &acc
   }
 
   // Compile plan
-  auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*order_by, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
@@ -741,7 +741,7 @@ TPCHQuery::MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &acc
   }
 
   // Compile plan
-  auto query = execution::compiler::CompilationContext::Compile(*agg.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*agg, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(agg));
 }
 
@@ -1164,7 +1164,7 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
                    .Build();
   }
   // Compile plan
-  auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*order_by, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
@@ -1532,7 +1532,7 @@ TPCHQuery::MakeExecutableQ11(const std::unique_ptr<catalog::CatalogAccessor> &ac
   }
 
   // Compile plan
-  auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*order_by, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
@@ -1572,7 +1572,7 @@ TPCHQuery::MakeExecutableQ16(const std::unique_ptr<catalog::CatalogAccessor> &ac
     auto brand_comp = expr_maker.ComparisonNeq(p_brand, expr_maker.Constant("Brand#45"));
     auto type_like = expr_maker.Constant("MEDIUM POLISHED%");
     // TODO(Wuwen): fix me after LIKE get fixed
-    auto like_call = expr_maker.Function("like", {p_type, type_like}, type::TypeId::BOOLEAN, (catalog::proc_oid_t)0);
+    auto like_call = expr_maker.Function("like", {p_type, type_like}, type::TypeId::BOOLEAN, catalog::proc_oid_t(0));
     // auto conversion_call =
     // expr_maker.Function("sqlToBool", {like_call}, type::TypeId::BOOLEAN, catalog::postgres::SQL_TO_BOOL_PRO_OID);
     auto type_comp = expr_maker.OpNot(like_call);
@@ -1616,7 +1616,7 @@ TPCHQuery::MakeExecutableQ16(const std::unique_ptr<catalog::CatalogAccessor> &ac
     auto comment_like = expr_maker.Constant("%Customer%Complaints%");
     // TODO(Wuwen): fix me after LIKE get fixed
     auto like_call =
-        expr_maker.Function("like", {s_comment, comment_like}, type::TypeId::BOOLEAN, (catalog::proc_oid_t)0);
+        expr_maker.Function("like", {s_comment, comment_like}, type::TypeId::BOOLEAN, catalog::proc_oid_t(0));
     // auto predicate = expr_maker.Function("sqlToBool", {like_call}, type::TypeId::BOOLEAN,
     // catalog::postgres::SQL_TO_BOOL_PRO_OID); Build
     planner::SeqScanPlanNode::Builder builder;
@@ -1780,7 +1780,7 @@ TPCHQuery::MakeExecutableQ16(const std::unique_ptr<catalog::CatalogAccessor> &ac
   }
 
   // Compile plan
-  auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*order_by, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
@@ -2088,7 +2088,7 @@ TPCHQuery::MakeExecutableQ18(const std::unique_ptr<catalog::CatalogAccessor> &ac
   }
 
   // Compile plan
-  auto query = execution::compiler::CompilationContext::Compile(*order_by.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*order_by, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(order_by));
 }
 
@@ -2248,7 +2248,7 @@ TPCHQuery::MakeExecutableQ19(const std::unique_ptr<catalog::CatalogAccessor> &ac
   }
 
   // Compile plan
-  auto query = execution::compiler::CompilationContext::Compile(*agg.get(), exec_settings, accessor.get());
+  auto query = execution::compiler::CompilationContext::Compile(*agg, exec_settings, accessor.get());
   return std::make_tuple(std::move(query), std::move(agg));
 }
 
