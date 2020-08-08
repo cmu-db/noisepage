@@ -43,20 +43,13 @@ class Workload {
    */
   void Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_num,
                execution::vm::ExecutionMode mode);
+  uint32_t GetQueryNum(){ return query_and_plan_.size(); };
 
  private:
   void GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name);
 
-  void LoadTPCHQueries();
+  void LoadTPCHQueries(std::unique_ptr<catalog::CatalogAccessor> accessor);
 
-  std::vector<parser::ConstantValueExpression> GetQueryParams(const std::string &query_name);
-  void MakeExecutableQ1();
-  void MakeExecutableQ4();
-  void MakeExecutableQ5();
-  void MakeExecutableQ6();
-  void MakeExecutableQ7();
-  void MakeExecutableQ11();
-  void MakeExecutableQ18();
   common::ManagedPointer<DBMain> db_main_;
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
@@ -66,23 +59,8 @@ class Workload {
   execution::exec::ExecutionSettings exec_settings_{};
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
 
-  std::vector<std::unique_ptr<execution::compiler::ExecutableQuery>> queries_;
-  std::unique_ptr<execution::compiler::ExecutableQuery> q1_ = nullptr;
-  std::unique_ptr<planner::AbstractPlanNode> q1_last_op_ = nullptr;
+  std::vector<std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>> query_and_plan_;
 
-  std::unique_ptr<execution::compiler::ExecutableQuery> q4_ = nullptr;
-  std::unique_ptr<planner::AbstractPlanNode> q4_last_op_ = nullptr;
-  std::unique_ptr<execution::compiler::ExecutableQuery> q5_ = nullptr;
-  std::unique_ptr<planner::AbstractPlanNode> q5_last_op_ = nullptr;
-  std::unique_ptr<execution::compiler::ExecutableQuery> q6_ = nullptr;
-  std::unique_ptr<planner::AbstractPlanNode> q6_last_op_ = nullptr;
-  std::unique_ptr<execution::compiler::ExecutableQuery> q7_ = nullptr;
-  std::unique_ptr<planner::AbstractPlanNode> q7_last_op_ = nullptr;
-  std::unique_ptr<execution::compiler::ExecutableQuery> q11_ = nullptr;
-  std::unique_ptr<planner::AbstractPlanNode> q11_last_op_ = nullptr;
-
-  std::unique_ptr<execution::compiler::ExecutableQuery> q18_ = nullptr;
-  std::unique_ptr<planner::AbstractPlanNode> q18_last_op_ = nullptr;
 };
 
 }  // namespace terrier::tpch

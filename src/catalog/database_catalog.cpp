@@ -1783,8 +1783,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
   auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
-  auto invalid_type = GetTypeOidForType(type::TypeId::INVALID);
-  auto bool_type = GetTypeOidForType(type::TypeId::BOOLEAN);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1818,14 +1816,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // Extract Year
   CreateProcedure(txn, postgres::EXTRACT_YEAR_PRO_OID, "extractYear", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date"}, {int_type}, {int_type}, {}, int_type, "", false);
-  // Like
-  CreateProcedure(txn, postgres::LIKE_PRO_OID, "like", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"ctx", "string", "pattern"},
-                  {invalid_type, str_type, str_type}, {invalid_type, str_type, str_type}, {}, bool_type, "", false);
-  // Sql to bool
-  CreateProcedure(txn, postgres::SQL_TO_BOOL_PRO_OID, "sqlToBool", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"sql", "bool"}, {invalid_type, bool_type},
-                  {invalid_type, bool_type}, {}, bool_type, "", false);
 
   BootstrapProcContexts(txn);
 }
@@ -1903,16 +1893,6 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   txn->RegisterAbortAction([=]() { delete func_context; });
   SetProcCtxPtr(txn, postgres::EXTRACT_YEAR_PRO_OID, func_context);
 
-  func_context = new execution::functions::FunctionContext(
-      "like", type::TypeId::BOOLEAN, {type::TypeId::INVALID, type::TypeId::VARCHAR, type::TypeId::VARCHAR},
-      execution::ast::Builtin::Like);
-  txn->RegisterAbortAction([=]() { delete func_context; });
-  SetProcCtxPtr(txn, postgres::LIKE_PRO_OID, func_context);
-
-  func_context = new execution::functions::FunctionContext("sqlToBool", type::TypeId::BOOLEAN, {type::TypeId::INVALID},
-                                                           execution::ast::Builtin::SqlToBool);
-  txn->RegisterAbortAction([=]() { delete func_context; });
-  SetProcCtxPtr(txn, postgres::SQL_TO_BOOL_PRO_OID, func_context);
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
