@@ -202,7 +202,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
     pipeline_path = "{}/grouped_pipeline.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
-    io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us", "Us Error"])
+    io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us", "Us Error", "Absolute Us", "Assolute Us %"])
 
     # Track pipeline cumulative numbers
     num_pipelines = 0
@@ -323,16 +323,21 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
 
         num_pipelines += 1
 
+    total_elapsed_err = abs(total_actual - total_predicted)[-1]
     for pipeline in actual_pipelines:
         actual = actual_pipelines[pipeline]
         predicted = predicted_pipelines[pipeline]
         num = count_pipelines[pipeline]
 
         ratio_error = abs(actual - predicted) / (actual + 1)
-        io_util.write_csv_result(pipeline_path, pipeline, [num, num*1.0/num_pipelines, actual[-1], predicted[-1], ratio_error[-1]] +
+        abs_error = abs(actual - predicted)[-1]
+        pabs_error = abs_error / total_elapsed_err
+        io_util.write_csv_result(pipeline_path, pipeline, [num, num*1.0/num_pipelines, actual[-1],
+                                 predicted[-1], ratio_error[-1], abs_error, pabs_error] +
                                  [""] + list(actual) + [""] + list(predicted) + [""] + list(ratio_error))
 
     ratio_error = abs(total_actual - total_predicted) / (total_actual + 1)
-    io_util.write_csv_result(pipeline_path, "Total Pipeline", [num_pipelines, 1, total_actual[-1], total_predicted[-1], ratio_error[-1]] +
+    io_util.write_csv_result(pipeline_path, "Total Pipeline", [num_pipelines, 1, total_actual[-1],
+                             total_predicted[-1], ratio_error[-1], total_elapsed_err, 1] +
                              [""] + list(total_actual) + [""] + list(total_predicted) + [""] + list(ratio_error))
 
