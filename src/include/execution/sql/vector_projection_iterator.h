@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <initializer_list>
 #include <limits>
 #include <type_traits>
@@ -77,8 +78,7 @@ class VectorProjectionIterator {
     SelectionVector ret{};
     for (sel_t i = 0; i < common::Constants::K_DEFAULT_VECTOR_SIZE; i++) ret[i] = i;
     return ret;
-  }
-  ();
+  }();
 
  public:
   /**
