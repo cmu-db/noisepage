@@ -105,7 +105,7 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
 
     # Get the mini runner data for the execution engine
     data_map = {}
-    anomaly_map = {}
+    raw_data_map = {}
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
 
@@ -147,17 +147,17 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
 
             # Record into predict_cache
             key = tuple([opunits[0][0]] + opunits[0][1])
-            if key not in anomaly_map:
-                anomaly_map[key] = []
-            anomaly_map[key].append(y_merged)
+            if key not in raw_data_map:
+                raw_data_map[key] = []
+            raw_data_map[key].append(y_merged)
 
-    # Postprocess the anomaly_map -> data_map
+    # Postprocess the raw_data_map -> data_map
     # We need to do this here since we need to have seen all the data
     # before we can start pruning. This step is done here so dropped
     # data don't actually become a part of the model.
-    for key in anomaly_map:
-        len_vec = len(anomaly_map[key])
-        anomaly_map[key].sort(key=lambda x: x[-1])
+    for key in raw_data_map:
+        len_vec = len(raw_data_map[key])
+        raw_data_map[key].sort(key=lambda x: x[-1])
 
         # compute how much to trim
         trim_side = trim * len_vec
@@ -165,17 +165,17 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
         high = len_vec - low
         if low >= high:
             # if bounds are bad, just take the median
-            anomaly_map[key] = np.median(anomaly_map[key], axis=0)
+            raw_data_map[key] = np.median(raw_data_map[key], axis=0)
         else:
             # otherwise, x% trimmed mean
-            anomaly_map[key] = np.average(anomaly_map[key][low:high], axis=0)
+            raw_data_map[key] = np.average(raw_data_map[key][low:high], axis=0)
 
         # Expose the singular data point
         opunit = key[0]
         if opunit not in data_map:
             data_map[opunit] = []
 
-        predict = anomaly_map[key]
+        predict = raw_data_map[key]
         predict_cache[key] = predict
         data_map[opunit].append(list(key[1:]) + list(predict))
 

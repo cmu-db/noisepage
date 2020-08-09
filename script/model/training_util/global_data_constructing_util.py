@@ -279,7 +279,17 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
         pipeline_y = copy.deepcopy(pipeline_y_pred)
         if should_mult and simulate_cache:
             # Scale elapsed time by 40% (this is a hack)
-            pipeline_y[-1] = pipeline_y[-1] * 0.4
+            fields = [
+                data_info.TARGET_CSV_INDEX[Target.CPU_CYCLE],
+                data_info.TARGET_CSV_INDEX[Target.CACHE_MISS],
+                data_info.TARGET_CSV_INDEX[Target.CPU_TIME],
+                data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
+
+                # Don't for instructions, cache ref, memory
+            ]
+
+            for field in fields:
+                pipeline_y[field ] = pipeline_y[field] * 0.4
 
         # Record the predicted
         data.y_pred = pipeline_y
