@@ -1,10 +1,11 @@
+#include "optimizer/binding.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "optimizer/binding.h"
-
 #include "loggers/optimizer_logger.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer.h"
 
@@ -68,8 +69,9 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
     return;
   }
 
-  OPTIMIZER_LOG_TRACE("Attempting to bind on group {0} with expression of type {1}, children size {2}",
-                      gexpr->GetGroupID(), gexpr->Contents()->GetName().c_str(), child_groups.size())
+  OPTIMIZER_LOG_TRACE("Attempting to bind on group " + std::to_string(!gexpr->GetGroupID()) +
+                      " with expression of type " + gexpr->Contents()->GetName() + ", children size " +
+                      std::to_string(child_groups.size()))
 
   // Find all bindings for children
   children_bindings_.resize(child_groups.size());

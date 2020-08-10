@@ -179,6 +179,22 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    metrics_gc,
+    "Metrics collection for the GarbageCollector component (default: false).",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsGC
+)
+
+SETTING_bool(
+    metrics_execution,
+    "Metrics collection for the Execution component (default: false).",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsExecution
+)
+
+SETTING_bool(
     metrics_pipeline,
     "Metrics collection for the ExecutionEngine pipelines (default: false).",
     false,
@@ -187,9 +203,33 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    metrics_bind_command,
+    "Metrics collection for the bind command.",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsBindCommand
+)
+
+SETTING_bool(
+    metrics_execute_command,
+    "Metrics collection for the execute command.",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsExecuteCommand
+)
+
+SETTING_bool(
     use_query_cache,
     "Extended Query protocol caches physical plans and generated code after first execution. Warning: bugs with DDL changes.",
     true,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    compiled_query_execution,
+    "Compile queries to native machine code using LLVM, rather than relying on TPL interpretation (default: false).",
+    false,
     false,
     terrier::settings::Callbacks::NoOp
 )

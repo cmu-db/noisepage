@@ -11,6 +11,7 @@
 #include "storage/sql_table.h"
 #include "test_util/catalog_test_util.h"
 #include "test_util/multithread_test_util.h"
+#include "transaction/deferred_action_manager.h"
 #include "type/type_id.h"
 
 namespace terrier {
