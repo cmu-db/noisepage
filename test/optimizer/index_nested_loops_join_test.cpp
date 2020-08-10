@@ -8,6 +8,7 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/value.h"
 #include "execution/vm/module.h"
 #include "main/db_main.h"
