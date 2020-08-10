@@ -10,7 +10,7 @@
 #include "execution/compiler/loop.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/work_context.h"
-#include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/index_scan_plan_node.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
