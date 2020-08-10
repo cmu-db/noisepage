@@ -1,11 +1,18 @@
 #pragma once
 
-#include <catalog/schema.h>
-
 #include <vector>
 
+#include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/update_plan_node.h"
+#include "storage/storage_defs.h"
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
+
+namespace terrier::planner {
+class UpdatePlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::compiler {
 
@@ -90,13 +97,7 @@ class UpdateTranslator : public OperatorTranslator {
   // Deletes from all indexes.
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
 
-  static std::vector<catalog::col_oid_t> CollectOids(const catalog::Schema &schema) {
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : schema.GetColumns()) {
-      oids.emplace_back(col.Oid());
-    }
-    return oids;
-  }
+  static std::vector<catalog::col_oid_t> CollectOids(const catalog::Schema &schema);
 
  private:
   // Storage interface struct that we are updating with.
