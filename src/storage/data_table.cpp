@@ -3,6 +3,7 @@
 #include <list>
 
 #include "common/allocator.h"
+#include "common/performance_counter_body.h"
 #include "storage/block_access_controller.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
@@ -10,7 +11,7 @@
 
 namespace terrier::storage {
 
-DataTable::DataTable(common::ManagedPointer<BlockStore> const store, const BlockLayout &layout,
+DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
     : accessor_(layout), block_store_(store), layout_version_(layout_version), blocks_(START_VECTOR_SIZE) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
@@ -31,7 +32,6 @@ DataTable::~DataTable() {
 
 bool DataTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
                        ProjectedRow *out_buffer) const {
-  data_table_counter_.IncrementNumSelect(1);
   return SelectIntoBuffer(txn, slot, out_buffer);
 }
 
@@ -100,7 +100,6 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
     // that's difficult with this implementation
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
-  data_table_counter_.IncrementNumUpdate(1);
 
   return true;
 }
@@ -148,7 +147,6 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   accessor_.ClearBlockBusyStatus(block);
   InsertInto(txn, redo, result);
 
-  data_table_counter_.IncrementNumInsert(1);
   return result;
 }
 
@@ -174,7 +172,6 @@ void DataTable::InsertInto(const common::ManagedPointer<transaction::Transaction
 }
 
 bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
-  data_table_counter_.IncrementNumDelete(1);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
   slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
@@ -328,7 +325,6 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_.operator->()->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
-  data_table_counter_.IncrementNumNewBlock(1);
   return new_block;
 }
 

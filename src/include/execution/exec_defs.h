@@ -4,7 +4,7 @@
 
 namespace terrier::execution {
 
-STRONG_TYPEDEF(query_id_t, uint64_t);
-STRONG_TYPEDEF(pipeline_id_t, uint64_t);
+STRONG_TYPEDEF_HEADER(query_id_t, uint64_t);
+STRONG_TYPEDEF_HEADER(pipeline_id_t, uint64_t);
 
 }  // namespace terrier::execution

@@ -291,7 +291,7 @@ class DBMain {
         TERRIER_ASSERT(use_metrics_ && metrics_manager != DISABLED,
                        "Can't have a MetricsThread without a MetricsManager.");
         metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
-                                                                  std::chrono::milliseconds{metrics_interval_});
+                                                                  std::chrono::microseconds{metrics_interval_});
       }
 
       std::unique_ptr<common::DedicatedThreadRegistry> thread_registry = DISABLED;
@@ -305,7 +305,7 @@ class DBMain {
       if (use_logging_) {
         log_manager = std::make_unique<storage::LogManager>(
             log_file_path_, num_log_manager_buffers_, std::chrono::microseconds{log_serialization_interval_},
-            std::chrono::milliseconds{log_persist_interval_}, log_persist_threshold_,
+            std::chrono::microseconds{log_persist_interval_}, log_persist_threshold_,
             common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
         log_manager->Start();
       }
@@ -330,7 +330,7 @@ class DBMain {
         TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
                        "GarbageCollectorThread needs GarbageCollector.");
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
-                                                                      std::chrono::milliseconds{gc_interval_},
+                                                                      std::chrono::microseconds{gc_interval_},
                                                                       common::ManagedPointer(metrics_manager));
       }
 
@@ -544,6 +544,15 @@ class DBMain {
     }
 
     /**
+     * @param port Network port
+     * @return self reference for chaining
+     */
+    Builder &SetNetworkPort(const uint16_t port) {
+      network_port_ = port;
+      return *this;
+    }
+
+    /**
      * @param value RecordBufferSegmentPool argument
      * @return self reference for chaining
      */
@@ -615,14 +624,14 @@ class DBMain {
     bool use_settings_manager_ = false;
     bool use_thread_registry_ = false;
     bool use_metrics_ = false;
-    uint32_t metrics_interval_ = 100;
+    uint32_t metrics_interval_ = 10000;
     bool use_metrics_thread_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
     std::string log_file_path_ = "wal.log";
     uint64_t num_log_manager_buffers_ = 100;
-    int32_t log_serialization_interval_ = 10;
-    int32_t log_persist_interval_ = 10;
+    int32_t log_serialization_interval_ = 100;
+    int32_t log_persist_interval_ = 100;
     uint64_t log_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
     bool use_gc_ = false;
@@ -630,7 +639,7 @@ class DBMain {
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
     uint64_t block_store_reuse_ = 1e3;
-    int32_t gc_interval_ = 10;
+    int32_t gc_interval_ = 1000;
     bool use_gc_thread_ = false;
     bool use_stats_storage_ = false;
     bool use_execution_ = false;

@@ -178,6 +178,6 @@ class DropViewPlanNode : public AbstractPlanNode {
   bool if_exists_;
 };
 
-DEFINE_JSON_DECLARATIONS(DropViewPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DropViewPlanNode);
 
 }  // namespace terrier::planner

@@ -27,6 +27,7 @@
 #include "test_util/random_test_util.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
+
 namespace terrier {
 class StorageTestUtil {
  public:

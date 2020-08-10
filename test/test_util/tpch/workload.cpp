@@ -56,8 +56,8 @@ void Workload::GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, c
 
 void Workload::LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, const std::vector<std::string> &queries) {
   for (auto &query_file : queries) {
-    queries_.emplace_back(
-        execution::ExecutableQuery(query_file, common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx)));
+    queries_.emplace_back(execution::ExecutableQuery(
+        query_file, common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx), true));
   }
 }
 

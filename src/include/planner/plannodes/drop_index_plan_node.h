@@ -101,6 +101,6 @@ class DropIndexPlanNode : public AbstractPlanNode {
   catalog::index_oid_t index_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(DropIndexPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DropIndexPlanNode);
 
 }  // namespace terrier::planner

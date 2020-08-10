@@ -64,12 +64,7 @@ class ExpressionMaker {
   /**
    * Create a date constant expression
    */
-  ManagedExpression Constant(date::year_month_day ymd) {
-    auto year = static_cast<int32_t>(ymd.year());
-    auto month = static_cast<uint32_t>(ymd.month());
-    auto day = static_cast<uint32_t>(ymd.day());
-    return Constant(year, month, day);
-  }
+  ManagedExpression Constant(date::year_month_day ymd);
 
   /**
    * Create a column value expression
@@ -231,7 +226,10 @@ class ExpressionMaker {
   ManagedAggExpression AggregateTerm(parser::ExpressionType agg_type, ManagedExpression child, bool distinct) {
     std::vector<OwnedExpression> children;
     children.emplace_back(child->Copy());
-    return MakeAggManaged(std::make_unique<parser::AggregateExpression>(agg_type, std::move(children), distinct));
+
+    auto agg = MakeAggManaged(std::make_unique<parser::AggregateExpression>(agg_type, std::move(children), distinct));
+    agg->DeriveReturnValueType();
+    return agg;
   }
 
   /**

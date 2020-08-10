@@ -260,6 +260,6 @@ class InsertPlanNode : public AbstractPlanNode {
   std::vector<catalog::index_oid_t> index_oids_;
 };
 
-DEFINE_JSON_DECLARATIONS(InsertPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(InsertPlanNode);
 
 }  // namespace terrier::planner

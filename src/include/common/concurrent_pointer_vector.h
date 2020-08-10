@@ -232,23 +232,23 @@ class ConcurrentPointerVector {
   /**
    * @return Iterator at the end of vector
    */
-  Iterator end() const { return end_; }  // NOLINT
+  Iterator end() const { return END; }  // NOLINT
 
  protected:
   /**
    * RESIZE_FACTOR factor of resize when capacity is reached in vector
    */
-  static const uint64_t RESIZE_FACTOR = 2;
+  static constexpr uint64_t RESIZE_FACTOR = 2;
 
   /**
    * START_SIZE default initial size of vector
    */
-  static const uint64_t START_SIZE = 8;
+  static constexpr uint64_t START_SIZE = 8;
 
  private:
-  const Iterator end_ = {};
-  static const uint64_t SHIFT_AMOUNT = 63;
-  static const uint64_t READABLE_FLAG = static_cast<uint64_t>(1) << SHIFT_AMOUNT;
+  static constexpr Iterator END = {};
+  static constexpr uint64_t SHIFT_AMOUNT = 63;
+  static constexpr uint64_t READABLE_FLAG = static_cast<uint64_t>(1) << SHIFT_AMOUNT;
   // the first bit in the pointer is used as a flag to denote whether an item has been inserted into this
   void SetReadable(T **array, uint64_t i) {
     array[i] = reinterpret_cast<T *>(reinterpret_cast<uint64_t>(array[i]) | READABLE_FLAG);

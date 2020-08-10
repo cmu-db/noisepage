@@ -7,11 +7,10 @@
 #include "parser/expression/abstract_expression.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
-#include "storage/storage_defs.h"
 #include "transaction/transaction_context.h"
 #include "type/type_id.h"
 
-#define HIGHEST_BUILTIN_PROC_ID catalog::postgres::UPPER_PRO_OID
+#define HIGHEST_BUILTIN_PROC_ID catalog::postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID
 #define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
 
 namespace terrier::catalog::postgres {
@@ -79,5 +78,10 @@ constexpr proc_oid_t TAN_PRO_OID = proc_oid_t(90);
 constexpr proc_oid_t COT_PRO_OID = proc_oid_t(91);
 constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(92);
 constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(93);
+
+constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(94);
+constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(95);
+constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(96);
+constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(97);
 
 }  // namespace terrier::catalog::postgres

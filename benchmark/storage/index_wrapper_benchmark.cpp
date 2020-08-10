@@ -22,7 +22,7 @@ namespace terrier {
 class IndexBenchmark : public benchmark::Fixture {
  private:
   // Garbage Collector
-  const std::chrono::milliseconds gc_period_{10};
+  const std::chrono::microseconds gc_period_{1000};
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_;
 

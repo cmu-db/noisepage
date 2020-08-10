@@ -25,7 +25,8 @@ void StaticAggregateBottomTranslator::InitializeStructs(util::RegionVector<ast::
   // The values struct contains values that will be aggregated and groubed by.
   helper_.GenValuesStruct(decls);
   // Distinct aggregate each need a hash table.
-  helper_.GenAHTStructs(decls);
+  UNUSED_ATTRIBUTE ast::StructDecl *struct_decl;
+  helper_.GenAHTStructs(&struct_decl, decls);
 }
 
 void StaticAggregateBottomTranslator::InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) {

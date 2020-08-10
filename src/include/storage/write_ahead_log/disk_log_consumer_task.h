@@ -24,7 +24,7 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
    * @param empty_buffer_queue pointer to queue to push empty buffers to
    * @param filled_buffer_queue pointer to queue to pop filled buffers from
    */
-  explicit DiskLogConsumerTask(const std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
+  explicit DiskLogConsumerTask(const std::chrono::microseconds persist_interval, uint64_t persist_threshold,
                                std::vector<BufferedLogWriter> *buffers,
                                common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
                                common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue)
@@ -54,7 +54,7 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
   std::vector<storage::CommitCallback> commit_callbacks_;
 
   // Interval time for when to persist log file
-  const std::chrono::milliseconds persist_interval_;
+  const std::chrono::microseconds persist_interval_;
   // Threshold of data written since the last persist to trigger another persist
   uint64_t persist_threshold_;
   // Amount of data written since last persist

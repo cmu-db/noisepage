@@ -65,10 +65,16 @@ class ExecutionOperatingUnitFeature {
    * @param key_size Total Key Size
    * @param num_keys Number of keys
    * @param cardinality Estimated cardinality
+   * @param mem_factor Memory adjustment factor
    */
   ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, size_t num_rows, size_t key_size, size_t num_keys,
-                                size_t cardinality)
-      : feature_(feature), num_rows_(num_rows), key_size_(key_size), num_keys_(num_keys), cardinality_(cardinality) {}
+                                size_t cardinality, double mem_factor)
+      : feature_(feature),
+        num_rows_(num_rows),
+        key_size_(key_size),
+        num_keys_(num_keys),
+        cardinality_(cardinality),
+        mem_factors_({mem_factor}) {}
 
   /**
    * @returns type
@@ -95,6 +101,20 @@ class ExecutionOperatingUnitFeature {
    */
   size_t GetCardinality() const { return cardinality_; }
 
+  /**
+   * @returns memory adjustment factor
+   */
+  double GetMemFactor() const {
+    if (mem_factors_.empty()) return 1.0;
+
+    double sum = 0.0;
+    for (auto factor : mem_factors_) {
+      sum += factor;
+    }
+
+    return sum / mem_factors_.size();
+  }
+
  private:
   /**
    * Set the estimated number of output tuples
@@ -110,11 +130,19 @@ class ExecutionOperatingUnitFeature {
    */
   void SetCardinality(size_t cardinality) { cardinality_ = cardinality; }
 
+  /**
+   * Set the mem factor
+   * @note only should be invoked by OperatingUnitRecorder
+   * @param mem_factor Updated mem_factor
+   */
+  void AddMemFactor(double mem_factor) { mem_factors_.emplace_back(mem_factor); }
+
   ExecutionOperatingUnitType feature_;
   size_t num_rows_;
   size_t key_size_;
   size_t num_keys_;
   size_t cardinality_;
+  std::vector<double> mem_factors_;
 };
 
 /**

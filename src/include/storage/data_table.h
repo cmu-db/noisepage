@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include <list>
 #include <unordered_map>
 #include <vector>
@@ -6,7 +7,6 @@
 #include "common/concurrent_pointer_vector.h"
 #include "common/macros.h"
 #include "common/performance_counter.h"
-#include "common/shared_latch.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
@@ -26,17 +26,6 @@ class BwTreeIndex;
 template <typename KeyType>
 class HashIndex;
 }  // namespace index
-
-// clang-format off
-#define DataTableCounterMembers(f) \
-  f(uint64_t, NumSelect) \
-  f(uint64_t, NumUpdate) \
-  f(uint64_t, NumInsert) \
-  f(uint64_t, NumDelete) \
-  f(uint64_t, NumNewBlock)
-// clang-format on
-DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
-#undef DataTableCounterMembers
 
 /**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
@@ -231,12 +220,6 @@ class DataTable {
   bool Delete(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot);
 
   /**
-   * Return a pointer to the performance counter for the data table.
-   * @return pointer to the performance counter
-   */
-  DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
-
-  /**
    * @return pointer to underlying vector of blocks
    */
   common::ConcurrentPointerVector<RawBlock> *GetBlocks() const {
@@ -247,6 +230,11 @@ class DataTable {
    * accessor_ tuple access strategy for DataTable
    */
   const TupleAccessStrategy accessor_;
+
+  /**
+   * @return a coarse estimation on the number of tuples in this table
+   */
+  uint64_t GetNumTuple() const { return accessor_.GetBlockLayout().NumSlots() * blocks_.size(); }
 
  private:
   static const uint64_t START_VECTOR_SIZE = 256;
@@ -269,7 +257,6 @@ class DataTable {
   common::ConcurrentPointerVector<RawBlock> blocks_;
   std::atomic<uint64_t> insert_index_ = 0;
   const SlotIterator end_ = {};
-  mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView

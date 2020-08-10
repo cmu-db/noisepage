@@ -118,6 +118,33 @@ class Statement {
     executable_query_ = std::move(executable_query);
   }
 
+  /**
+   * Stash desired parameter types to avoid having to do a full binding pass for prepared statements
+   * @param desired_param_types output from the binder if Statement has parameters to fast-path convert for future
+   * bindings
+   */
+  void SetDesiredParamTypes(std::vector<type::TypeId> &&desired_param_types) {
+    desired_param_types_ = std::move(desired_param_types);
+    TERRIER_ASSERT(desired_param_types_.size() == param_types_.size(), "");
+  }
+
+  /**
+
+   * @return output from the binder if Statement has parameters to fast-path convert for future
+   * bindings
+   */
+  const std::vector<type::TypeId> &GetDesiredParamTypes() const { return desired_param_types_; }
+
+  /**
+   * Remove the cached objects related to query execution for this Statement. This should be done any time there is a
+   * DDL change related to this statement.
+   */
+  void ClearCachedObjects() {
+    physical_plan_ = nullptr;
+    executable_query_ = nullptr;
+    desired_param_types_ = {};
+  }
+
  private:
   const std::string query_text_;
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
@@ -125,8 +152,12 @@ class Statement {
   common::ManagedPointer<parser::SQLStatement> root_statement_ = nullptr;
   enum QueryType type_ = QueryType::QUERY_INVALID;
 
-  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;
-  std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;
+  // The following objects can be "cached" in Statement objects for future statement invocations. Though they don't
+  // relate to the Postgres Statement concept, these objects should be compatible with future queries that match the
+  // same query text. The exception to this that DDL changes can break these cached objects.
+  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;      // generated in the Bind phase
+  std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
+  std::vector<type::TypeId> desired_param_types_;                           // generated in the Bind phase
 };
 
 }  // namespace terrier::network

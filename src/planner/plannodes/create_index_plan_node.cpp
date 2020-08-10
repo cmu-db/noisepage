@@ -1,8 +1,11 @@
 #include "planner/plannodes/create_index_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "common/json.h"
 
 namespace terrier::planner {
 
@@ -65,5 +68,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateIndexPlanNode::Fr
   index_name_ = j.at("index_name").get<std::string>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(CreateIndexPlanNode);
 
 }  // namespace terrier::planner

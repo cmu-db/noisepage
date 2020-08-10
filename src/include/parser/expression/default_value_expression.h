@@ -19,11 +19,7 @@ class DefaultValueExpression : public AbstractExpression {
    * Copies this DefaultValueExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<DefaultValueExpression>();
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Copies this DefaultValueExpression with new children
@@ -39,6 +35,6 @@ class DefaultValueExpression : public AbstractExpression {
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
-DEFINE_JSON_DECLARATIONS(DefaultValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(DefaultValueExpression);
 
 }  // namespace terrier::parser

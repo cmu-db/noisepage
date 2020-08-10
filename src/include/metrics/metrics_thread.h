@@ -18,7 +18,7 @@ class MetricsThread {
    * @param metrics_period sleep time between metrics invocations
    */
   MetricsThread(common::ManagedPointer<MetricsManager> metrics_manager,
-                const std::chrono::milliseconds metrics_period)  // NOLINT
+                const std::chrono::microseconds metrics_period)  // NOLINT
       : metrics_manager_(metrics_manager),
         run_metrics_(true),
         metrics_paused_(false),
@@ -56,7 +56,7 @@ class MetricsThread {
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   volatile bool run_metrics_;
   volatile bool metrics_paused_;
-  std::chrono::milliseconds metrics_period_;
+  std::chrono::microseconds metrics_period_;
   std::thread metrics_thread_;
 
   void MetricsThreadLoop() {

@@ -9,7 +9,6 @@
 #include "execution/executable_query.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/vm/module.h"
-#include "storage/storage_defs.h"
 
 namespace terrier::execution::exec {
 class ExecutionContext;
