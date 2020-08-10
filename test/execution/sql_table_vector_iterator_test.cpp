@@ -135,13 +135,9 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
 
   struct Counter {
     uint32_t c_;
-    exec::ExecutionContext *exec_ctx_;
   };
 
-  auto init_count = [](void *ctx, void *tls) {
-    reinterpret_cast<Counter *>(tls)->c_ = 0;
-    reinterpret_cast<Counter *>(tls)->exec_ctx_ = reinterpret_cast<exec::ExecutionContext *>(ctx);
-  };
+  auto init_count = [](void *ctx, void *tls) { reinterpret_cast<Counter *>(tls)->c_ = 0; };
 
   // Scan function just counts all tuples it sees
   auto scanner = [](UNUSED_ATTRIBUTE void *state, void *tls, TableVectorIterator *tvi) {
