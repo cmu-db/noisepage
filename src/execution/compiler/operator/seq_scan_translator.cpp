@@ -86,7 +86,8 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
   // The top-most disjunctions in the tree form separate clauses in the filter manager.
   // For a SQL statement like "SELECT * FROM tbl WHERE a=1 OR b=2 OR c=3;", its predicate is an AbstractExpression
   // with type CONJUNCTION_OR, and it has 3 children expression with type COMPARE_EQUAL. For each child, this function
-  // is recursively called to append the predicate to the filter.
+  // is recursively called to append the predicate to the filter. seen_conjunction is used to indicate if DNF is violated,
+  // if so (such as an OR nested within an AND), then we treat it as a generic term.
   if (!seen_conjunction && predicate->GetExpressionType() == parser::ExpressionType::CONJUNCTION_OR) {
     for (size_t idx = 0; idx < predicate->GetChildrenSize() - 1; ++idx) {
       std::vector<ast::Identifier> next_clause;
