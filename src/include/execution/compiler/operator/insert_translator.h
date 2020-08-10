@@ -4,6 +4,7 @@
 
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline_driver.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::catalog {
@@ -19,7 +20,7 @@ namespace terrier::execution::compiler {
 /**
  * InsertTranslator
  */
-class InsertTranslator : public OperatorTranslator {
+class InsertTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
    * Create a new translator for the given insert plan. The compilation occurs within the
@@ -60,6 +61,14 @@ class InsertTranslator : public OperatorTranslator {
    * @return An expression representing the value of the column with the given OID.
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
+
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Insert is serial."); };
+
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Insert is serial.");
+  };
 
  private:
   // Declare storage interface.
