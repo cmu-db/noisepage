@@ -1,10 +1,10 @@
 #include "execution/compiler/expression/null_check_translator.h"
 
-#include "spdlog/fmt/fmt.h"
-
 #include "common/error/exception.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/work_context.h"
+#include "parser/expression/operator_expression.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::compiler {
 

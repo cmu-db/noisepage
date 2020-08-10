@@ -3,6 +3,7 @@
 #include "common/error/exception.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/work_context.h"
+#include "parser/expression/operator_expression.h"
 
 namespace terrier::execution::compiler {
 

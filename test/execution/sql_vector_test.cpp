@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "common/error/exception.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/vector.h"
 #include "execution/sql_test.h"
 #include "execution/util/bit_util.h"

@@ -2,9 +2,16 @@
 
 #include <vector>
 
-#include "catalog/schema.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/delete_plan_node.h"
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
+
+namespace terrier::planner {
+class DeletePlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::compiler {
 
