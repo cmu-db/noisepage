@@ -2,9 +2,13 @@
 
 #include <vector>
 
-#include "catalog/schema.h"
-#include "execution/compiler/ast_fwd.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "storage/storage_defs.h"
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
 
 namespace terrier::planner {
 class InsertPlanNode;
@@ -83,13 +87,7 @@ class InsertTranslator : public OperatorTranslator {
   void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
 
   // Gets all the column oids in a schema.
-  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : table_schema_.GetColumns()) {
-      oids.emplace_back(col.Oid());
-    }
-    return oids;
-  }
+  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema);
 
   // Storage interface inserter struct which we use to insert.
   ast::Identifier inserter_;

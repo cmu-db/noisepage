@@ -2,6 +2,7 @@
 
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/work_context.h"
+#include "parser/expression/derived_value_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 

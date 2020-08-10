@@ -11,14 +11,12 @@
 #include <vector>
 
 #include "brain/operating_unit.h"
-#include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"
 #include "execution/ast/type.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sql.h"
-#include "execution/util/region_containers.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
 

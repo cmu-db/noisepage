@@ -4,9 +4,19 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/index_schema.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/index_scan_plan_node.h"
+#include "planner/plannodes/plan_node_defs.h"
+#include "storage/storage_defs.h"
+
+namespace terrier::catalog {
+class IndexSchema;
+class Schema;
+}  // namespace terrier::catalog
+
+namespace terrier::planner {
+class IndexScanPlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::compiler {
 

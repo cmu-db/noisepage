@@ -3,7 +3,6 @@
 #include <string_view>
 #include <vector>
 
-#include "execution/compiler/ast_fwd.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 

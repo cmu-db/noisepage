@@ -6,6 +6,7 @@
 #include "execution/sql/vector.h"
 #include "execution/sql/vector_operations/traits.h"
 #include "execution/sql/vector_operations/vector_operations.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::sql {
 

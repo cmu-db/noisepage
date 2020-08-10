@@ -4,6 +4,7 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/work_context.h"
 #include "execution/sql/generic_value.h"
+#include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::compiler {

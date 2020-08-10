@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/sql.h"
 #include "execution/sql/vector.h"
 #include "execution/table_generator/table_generator.h"
