@@ -30,6 +30,7 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
       hi_index_pr_(GetCodeGen()->MakeFreshIdentifier("hi_index_pr")),
       table_pr_(GetCodeGen()->MakeFreshIdentifier("table_pr")),
       slot_(GetCodeGen()->MakeFreshIdentifier("slot")) {
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   if (plan.GetJoinPredicate() != nullptr) {
     compilation_context->Prepare(*plan.GetJoinPredicate());
   }
