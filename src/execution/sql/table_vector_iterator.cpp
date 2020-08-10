@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/timer.h"
