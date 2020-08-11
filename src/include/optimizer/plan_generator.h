@@ -5,7 +5,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "catalog/schema.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
@@ -24,10 +23,19 @@ class OutputSchema;
 
 namespace settings {
 class SettingsManager;
-}
+}  // namespace settings
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
+}  // namespace catalog
+
+namespace transaction {
+class TransactionContext;
+}  // namespace transaction
+
+namespace planner {
+enum class AggregateStrategyType;
 }
 
 namespace optimizer {

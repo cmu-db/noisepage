@@ -1,16 +1,16 @@
+#include "execution/ast/ast_dump.h"
+
 #include <set>
 #include <string>
 #include <vector>
 
-#include "execution/tpl_test.h"
-
 #include "execution/ast/ast.h"
-#include "execution/ast/ast_dump.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/ast_traversal_visitor.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/sema.h"
+#include "execution/tpl_test.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::ast::test {

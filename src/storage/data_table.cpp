@@ -3,7 +3,7 @@
 #include <list>
 
 #include "common/allocator.h"
-#include "common/performance_counter_body.h"
+#include "execution/sql/vector_projection.h"
 #include "storage/block_access_controller.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
@@ -52,6 +52,23 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
     ++(*start_pos);
   }
   out_buffer->SetNumTuples(filled);
+}
+
+void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
+                     execution::sql::VectorProjection *const out_buffer) const {
+  uint32_t filled = 0;
+  while (filled < out_buffer->GetTupleCapacity() && *start_pos != end() &&
+         **start_pos != SlotIterator::InvalidTupleSlot()) {
+    execution::sql::VectorProjection::RowView row = out_buffer->InterpretAsRow(filled);
+    const TupleSlot slot = **start_pos;
+    // Only fill the buffer with valid, visible tuples
+    if (SelectIntoBuffer(txn, slot, &row)) {
+      row.SetTupleSlot(slot);
+      filled++;
+    }
+    ++(*start_pos);
+  }
+  out_buffer->Reset(filled);
 }
 
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
@@ -121,7 +138,6 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
     } else {
       block = const_cast<RawBlock *>(blocks_.LookUp(current_insert_idx));
     }
-
     if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block
       if (accessor_.Allocate(block, &result)) {

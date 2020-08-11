@@ -10,7 +10,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector_thread.h"
-#include "storage/index/compact_ints_key.h"
+#include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
@@ -155,11 +155,15 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
     delete[] key_buffer;
   };
 
+  const auto starting_size = unique_index_->EstimateHeapUsage();
+
   // run the workload
   for (uint32_t i = 0; i < num_threads_; i++) {
     thread_pool_.SubmitTask([i, &workload] { workload(i); });
   }
   thread_pool_.WaitUntilAllFinished();
+
+  EXPECT_GT(unique_index_->EstimateHeapUsage(), starting_size);
 
   // scan the results
   auto *const scan_txn = txn_manager_->BeginTransaction();
@@ -223,11 +227,15 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
     delete[] key_buffer;
   };
 
+  const auto starting_size = default_index_->EstimateHeapUsage();
+
   // run the workload
   for (uint32_t i = 0; i < num_threads_; i++) {
     thread_pool_.SubmitTask([i, &workload] { workload(i); });
   }
   thread_pool_.WaitUntilAllFinished();
+
+  EXPECT_GT(default_index_->EstimateHeapUsage(), starting_size);
 
   // scan the results
   auto *const scan_txn = txn_manager_->BeginTransaction();

@@ -1,16 +1,23 @@
 #pragma once
+
+#include <algorithm>
 #include <cstring>
-#include <list>
+#include <limits>
 #include <unordered_map>
 #include <vector>
 
 #include "common/concurrent_pointer_vector.h"
 #include "common/macros.h"
-#include "common/performance_counter.h"
+#include "common/managed_pointer.h"
+
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+
+namespace terrier::execution::sql {
+class VectorProjection;
+}  // namespace terrier::execution::sql
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -81,7 +88,7 @@ class DataTable {
         return i_ >= end_index_;
       }
       if (LIKELY(is_end_)) {
-        return other.i_ == other.end_index_;
+        return other.i_ >= other.end_index_;
       }
       TERRIER_ASSERT(table_ == other.table_, "should only compare SlotIterators on the same table");
       return i_ == other.i_;
@@ -115,6 +122,7 @@ class DataTable {
       current_slot_ = {b, static_cast<uint32_t>(i_ % max_slots)};
     }
 
+    static auto InvalidTupleSlot() -> TupleSlot { return {nullptr, 0}; }
     const DataTable *table_{};
     uint64_t i_ = 0, end_index_ = 0;
     TupleSlot current_slot_;
@@ -169,6 +177,20 @@ class DataTable {
             ProjectedColumns *out_buffer) const;
 
   /**
+   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
+   * fit into the given buffer, as visible to the transaction given, according to the format described by the given
+   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * last slot scanned in the invocation.
+   *
+   * @param txn The calling transaction.
+   * @param start_pos Iterator to the starting location for the sequential scan.
+   * @param out_buffer Output buffer. This buffer is always cleared of old values.
+   */
+  void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+            execution::sql::VectorProjection *out_buffer) const;
+
+  /**
    * @return the first tuple slot contained in the data table
    */
   SlotIterator begin() const {  // NOLINT for STL name compability
@@ -182,7 +204,21 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const;  // NOLINT for STL name compability
+  SlotIterator end() const;  // NOLINT for STL name compatibility
+
+  /**
+   * Return a SlotIterator that will only cover the blocks in the selected range.
+   * @param start The index of the block to start iterating at, starts at 0.
+   * @param end The index of the block to stop iterating at, ends at GetNumBlocks().
+   * @return SlotIterator that will iterate over only the blocks in the range [start, end).
+   */
+  SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
+    TERRIER_ASSERT(start <= end && end <= blocks_.size(), "must have valid index for start and end");
+    SlotIterator it(this);
+    it.end_index_ = std::min<uint64_t>(it.end_index_, end * accessor_.GetBlockLayout().NumSlots());
+    it.i_ = start * accessor_.GetBlockLayout().NumSlots();
+    return it;
+  }
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
@@ -232,9 +268,31 @@ class DataTable {
   const TupleAccessStrategy accessor_;
 
   /**
+   * @return read-only view of this DataTable's BlockLayout
+   */
+  const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+
+  /**
+   * @return Number of blocks in the data table.
+   */
+  uint32_t GetNumBlocks() const { return blocks_.size(); }
+
+  /** @return Maximum number of blocks in the data table. */
+  static uint32_t GetMaxBlocks() { return std::numeric_limits<uint32_t>::max(); }
+
+  /**
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return accessor_.GetBlockLayout().NumSlots() * blocks_.size(); }
+
+  /**
+   * @return Approximate heap usage of the table
+   */
+  size_t EstimateHeapUsage() const {
+    // This is a back-of-the-envelope calculation that could be innacurate. It does not account for the delta chain
+    // elements that are actually owned by TransactionContext
+    return blocks_.size() * common::Constants::BLOCK_SIZE;
+  }
 
  private:
   static const uint64_t START_VECTOR_SIZE = 256;

@@ -8,10 +8,11 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "execution/sql/value.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/util.h"
@@ -47,6 +48,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 #include "settings/settings_manager.h"
+#include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
@@ -198,7 +200,6 @@ void PlanGenerator::Visit(const SeqScan *op) {
   output_plan_ = planner::SeqScanPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOID())
-                     .SetNamespaceOid(op->GetNamespaceOID())
                      .SetTableOid(op->GetTableOID())
                      .SetScanPredicate(common::ManagedPointer(predicate))
                      .SetColumnOids(std::move(column_ids))
@@ -209,6 +210,7 @@ void PlanGenerator::Visit(const SeqScan *op) {
 void PlanGenerator::Visit(const IndexScan *op) {
   auto tbl_oid = op->GetTableOID();
   auto output_schema = GenerateScanOutputSchema(tbl_oid);
+  uint64_t table_num_tuple = accessor_->GetTable(tbl_oid)->GetNumTuple();
 
   // Generate the predicate in the scan
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates()).release();
@@ -223,10 +225,10 @@ void PlanGenerator::Visit(const IndexScan *op) {
   builder.SetScanPredicate(common::ManagedPointer(predicate));
   builder.SetIsForUpdateFlag(op->GetIsForUpdate());
   builder.SetDatabaseOid(op->GetDatabaseOID());
-  builder.SetNamespaceOid(op->GetNamespaceOID());
   builder.SetIndexOid(op->GetIndexOID());
   builder.SetTableOid(tbl_oid);
   builder.SetColumnOids(std::move(column_ids));
+  builder.SetTableNumTuple(table_num_tuple);
   builder.SetIndexSize(accessor_->GetTable(tbl_oid)->GetNumTuple());
 
   auto type = op->GetIndexScanType();
@@ -721,7 +723,6 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const Aggregate *op) {
 void PlanGenerator::Visit(const Insert *op) {
   auto builder = planner::InsertPlanNode::Builder();
   builder.SetDatabaseOid(op->GetDatabaseOid());
-  builder.SetNamespaceOid(op->GetNamespaceOid());
   builder.SetTableOid(op->GetTableOid());
 
   std::vector<catalog::index_oid_t> indexes(op->GetIndexes());
@@ -751,7 +752,6 @@ void PlanGenerator::Visit(const InsertSelect *op) {
   output_plan_ = planner::InsertPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
@@ -765,7 +765,6 @@ void PlanGenerator::Visit(const Delete *op) {
   output_plan_ = planner::DeletePlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
@@ -778,6 +777,20 @@ void PlanGenerator::Visit(const Update *op) {
   auto tbl_oid = op->GetTableOid();
   auto tbl_schema = accessor_->GetSchema(tbl_oid);
 
+  auto indexes = accessor_->GetIndexes(op->GetTableOid());
+  ExprSet cves;
+  for (auto index : indexes) {
+    for (auto &column : index.second.GetColumns()) {
+      // TODO(tanujnay112) big cheating with the const_cast but as the todo in abstract_expression.h says
+      // these are supposed to be immutable anyway. We need to either go around consting everything or document
+      // this assumption better somewhere
+      parser::ExpressionUtil::GetTupleValueExprs(
+          &cves, common::ManagedPointer(const_cast<parser::AbstractExpression *>(column.StoredExpression().Get())));
+    }
+  }
+
+  std::unordered_set<std::string> update_column_names;
+
   // Evaluate update expression and add to target list
   auto updates = op->GetUpdateClauses();
   for (auto &update : updates) {
@@ -789,7 +802,21 @@ void PlanGenerator::Visit(const Update *op) {
     update_col_offsets.insert(col_id);
     auto upd_value = update->GetUpdateValue()->Copy().release();
     builder.AddSetClause(std::make_pair(col_id, common::ManagedPointer(upd_value)));
+
+    update_column_names.insert(update->GetColumnName());
     RegisterPointerCleanup<parser::AbstractExpression>(upd_value, true, true);
+  }
+
+  bool indexed_update = false;
+
+  // TODO(tanujnay112) can optimize if we stored updated column oids in the update nodes during binding
+  // such that we didn't have to store string sets
+  for (auto &cve : cves) {
+    if (update_column_names.find(cve.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName()) !=
+        update_column_names.end()) {
+      indexed_update = true;
+      break;
+    }
   }
 
   // Empty OutputSchema for update
@@ -798,8 +825,8 @@ void PlanGenerator::Visit(const Update *op) {
   // TODO(wz2): What is this SetUpdatePrimaryKey
   output_plan_ = builder.SetOutputSchema(std::move(output_schema))
                      .SetDatabaseOid(op->GetDatabaseOid())
-                     .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
+                     .SetIndexedUpdate(indexed_update)
                      .SetUpdatePrimaryKey(false)
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
@@ -954,7 +981,6 @@ void PlanGenerator::Visit(const DropTrigger *drop_trigger) {
 void PlanGenerator::Visit(const DropView *drop_view) {
   output_plan_ = planner::DropViewPlanNode::Builder()
                      .SetDatabaseOid(drop_view->GetDatabaseOid())
-                     .SetNamespaceOid(drop_view->GetNamespaceOid())
                      .SetViewOid(drop_view->GetViewOid())
                      .SetIfExist(drop_view->IsIfExists())
                      .Build();

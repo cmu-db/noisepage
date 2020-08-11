@@ -74,15 +74,15 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   // Try to fetch the inserted values.
   TableVectorIterator table_iter(exec_ctx_.get(), !table_oid0, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   table_iter.Init();
-  ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
-      auto *val_a = pci->Get<int32_t, false>(0, nullptr);
+    for (; vpi->HasNext(); vpi->Advance()) {
+      auto *val_a = vpi->GetValue<int32_t, false>(0, nullptr);
       ASSERT_EQ(*val_a, inserted_vals[num_tuples]);
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(num_tuples, (hi_match - lo_match) + 1);
 }
@@ -133,13 +133,13 @@ TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   // Try scanning through the table. There should be less elements.
   TableVectorIterator table_iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   table_iter.Init();
-  ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(num_tuples, TEST1_SIZE - ((hi_match - lo_match) + 1));
 }

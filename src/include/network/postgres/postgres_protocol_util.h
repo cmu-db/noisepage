@@ -3,9 +3,10 @@
 #include <string>
 #include <utility>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "network/network_defs.h"
 #include "network/postgres/postgres_defs.h"
+#include "type/type_id.h"
 
 namespace terrier::network {
 

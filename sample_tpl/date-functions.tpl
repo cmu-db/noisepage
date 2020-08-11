@@ -1,4 +1,6 @@
-fun main() -> int64 {
+// Expected output: 0
+
+fun main() -> int {
   var year = @extractYear(@dateToSql(2019, 9, 20))
 
   // Check equality

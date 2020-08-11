@@ -1,10 +1,10 @@
-#include <memory>
+#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/Support/MemoryBuffer.h>
 
-#include "llvm/Bitcode/BitcodeReader.h"
-#include "llvm/Bitcode/BitcodeWriter.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include <memory>
 
 //
 // This is a stand-alone executable that reads a bitcode file, cleans, and

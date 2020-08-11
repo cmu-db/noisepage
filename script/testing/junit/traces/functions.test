@@ -1,0 +1,54 @@
+# Initialize the database and table for testing
+statement ok
+CREATE TABLE functions1 (int_val INT, double_val DECIMAL, str_i_val VARCHAR(32), str_a_val VARCHAR(32), is_null INT)
+
+statement ok
+INSERT INTO functions1(int_val, double_val, str_i_val, str_a_val, is_null) VALUES(123, 12.34, '123456', 'AbCdEf', 0)
+
+statement ok
+INSERT INTO functions1(int_val, double_val, str_i_val, str_a_val, is_null) VALUES(NULL, NULL, NULL, NULL, 1)
+
+# Tests usage of trig udf functions
+# #744 test
+query I nosort
+SELECT cos(double_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to f2ec9f8b13a07f120c16def39f4fbbc2
+
+query I nosort
+SELECT cos(double_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT sin(double_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 4aaf19241ee767c1185a7815aef61de7
+
+query I nosort
+SELECT sin(double_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT tan(double_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to eb46483c930e203e9e3100f24360bac6
+
+query I nosort
+SELECT tan(double_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 5ab557c937e38f15291c04b7e99544ad
+
+query I nosort
+SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+statement ok
+DROP TABLE functions1

@@ -18,6 +18,7 @@
 #include "test_util/tpcc/loader.h"
 #include "test_util/tpcc/worker.h"
 #include "test_util/tpcc/workload.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::tpcc {
