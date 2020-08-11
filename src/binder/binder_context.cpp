@@ -5,6 +5,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -291,32 +292,36 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
-  for (auto &entry : regular_table_alias_map_) {
-    auto &schema = std::get<2>(entry.second);
-    auto col_cnt = schema.GetColumns().size();
-    for (uint32_t i = 0; i < col_cnt; i++) {
-      const auto &col_obj = schema.GetColumn(i);
-      auto tv_expr = new parser::ColumnValueExpression(std::string(entry.first), std::string(col_obj.Name()));
-      tv_expr->SetReturnValueType(col_obj.Type());
-      tv_expr->DeriveExpressionName();
-      tv_expr->SetDatabaseOID(std::get<0>(entry.second));
-      tv_expr->SetTableOID(std::get<1>(entry.second));
-      tv_expr->SetColumnOID(col_obj.Oid());
-      tv_expr->SetDepth(depth_);
 
-      auto unique_tv_expr =
-          std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
-      parse_result->AddExpression(std::move(unique_tv_expr));
-      auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
-      exprs->push_back(new_tv_expr);
-    }
-  }
-
-  std::set<std::string> constituent_table_aliases;
+  std::unordered_set<std::string> constituent_table_aliases;
   for (auto &stmt : parse_result->GetStatements()) {
     if (stmt->GetType() == parser::StatementType::SELECT) {
       auto select_stmt = stmt.CastManagedPointerTo<parser::SelectStatement>();
       select_stmt->GetSelectTable()->GetConstituentTableAliases(constituent_table_aliases);
+    }
+  }
+
+  for (auto &entry : regular_table_alias_map_) {
+    auto &table_alias = entry.first;
+    if (constituent_table_aliases.count(table_alias)) {
+      auto &schema = std::get<2>(entry.second);
+      auto col_cnt = schema.GetColumns().size();
+      for (uint32_t i = 0; i < col_cnt; i++) {
+        const auto &col_obj = schema.GetColumn(i);
+        auto tv_expr = new parser::ColumnValueExpression(std::string(entry.first), std::string(col_obj.Name()));
+        tv_expr->SetReturnValueType(col_obj.Type());
+        tv_expr->DeriveExpressionName();
+        tv_expr->SetDatabaseOID(std::get<0>(entry.second));
+        tv_expr->SetTableOID(std::get<1>(entry.second));
+        tv_expr->SetColumnOID(col_obj.Oid());
+        tv_expr->SetDepth(depth_);
+
+        auto unique_tv_expr =
+            std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+        parse_result->AddExpression(std::move(unique_tv_expr));
+        auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
+        exprs->push_back(new_tv_expr);
+      }
     }
   }
 
