@@ -3,8 +3,6 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
-#include "execution/compiler/state_descriptor.h"
-#include "execution/compiler/work_context.h"
 
 namespace terrier::planner {
 class AggregatePlanNode;
