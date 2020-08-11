@@ -609,9 +609,9 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
 
         for (auto lookup : lookups) {
           if (type == type::TypeId::INTEGER)
-            b->Args({idx_key_size, 0, 15, 0, row_num, lookup, 1});
+            b->Args({idx_key_size, 0, 15, 0, row_num, lookup});
           else if (type == type::TypeId::BIGINT)
-            b->Args({0, idx_key_size, 0, 15, row_num, lookup, 1});
+            b->Args({0, idx_key_size, 0, 15, row_num, lookup});
         }
       }
     }
@@ -1476,10 +1476,8 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_decimals = state->range(1);
   auto tbl_ints = state->range(2);
-  auto tbl_decimals = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
-  auto is_idx = state->range(6);
 
   if (row == 0) {
     state->SetItemsProcessed(row);
@@ -1488,19 +1486,14 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   }
 
   int num_iters = 1;
-  if (((is_idx != 0) ? car : row) <= warmup_rows_limit) {
+  if (car <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
   } else if (rerun_start || skip_large_rows_runs) {
     return;
   }
 
-  std::string tbl;
   auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
-  if (is_idx != 0) {
-    tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
-  } else {
-    tbl = ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
-  }
+  std::string tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
 
   // UPDATE [] SET [col] = random integer()
   // This does not force a read from the underlying tuple more than getting the slot.
@@ -1511,68 +1504,52 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   query << "UPDATE " << tbl << " SET ";
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeSize(is_idx ? type::TypeId::BIGINT : type::TypeId::DECIMAL);
+  auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
   auto num_col = num_integers + num_decimals;
   std::vector<catalog::Schema::Column> cols;
   std::mt19937 generator{};
   std::uniform_int_distribution<int> distribution(0, INT_MAX);
   for (auto j = 1; j <= num_integers; j++) {
-    if (is_idx != 0) {
-      query << "col" << j << " = " << distribution(generator);
-    } else {
-      query << type::TypeUtil::TypeIdToString(type::TypeId::INTEGER) << j << " = " << distribution(generator);
-    }
-
+    // We need to do this to prevent the lookup from having to move
+    query << "col" << j << " = "
+          << "col" << j << " + 0";
     if (j != num_integers || num_decimals != 0) query << ", ";
   }
 
   for (auto j = 1; j <= num_decimals; j++) {
-    if (is_idx != 0) {
-      query << "col" << j << " = " << distribution(generator);
-    } else {
-      query << type::TypeUtil::TypeIdToString(type::TypeId::DECIMAL) << j << " = " << distribution(generator);
-    }
-
+    query << "col" << j << " = "
+          << "col" << j << " + 0";
     if (j != num_decimals) query << ", ";
   }
 
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
-  if (is_idx == 0) {
-    auto units = std::make_unique<brain::PipelineOperatingUnits>();
-    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, row, tuple_size, num_col, car, 1, 0);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4, 1, car, 1, 0);
-    units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-    equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units));
-  } else {
-    auto units = std::make_unique<brain::PipelineOperatingUnits>();
-    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, car, tuple_size, num_col, car, 1, 0);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1, 0);
-    units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
+  auto units = std::make_unique<brain::PipelineOperatingUnits>();
+  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, car, tuple_size, num_col, car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1, 0);
+  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-    std::vector<parser::ConstantValueExpression> params;
-    std::vector<type::TypeId> param_types;
+  std::vector<parser::ConstantValueExpression> params;
+  std::vector<type::TypeId> param_types;
+  params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
+  param_types.push_back(type);
+  if (car > 1) {
     params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
     param_types.push_back(type);
-    if (car > 1) {
-      params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
-      param_types.push_back(type);
-    }
-
-    GenIdxScanParameters(type, row, car, num_iters, &real_params);
-    std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
-    query << " WHERE " << predicate;
-
-    auto f = std::bind(&MiniRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
-    equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
-                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
-                                  common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
   }
+
+  GenIdxScanParameters(type, row, car, num_iters, &real_params);
+  std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
+  query << " WHERE " << predicate;
+
+  auto f = std::bind(&MiniRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
+  equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
+                                common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
+                                common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
 
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false, &real_params);
   state->SetItemsProcessed(row);
@@ -1593,7 +1570,6 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   auto tbl_decimals = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
-  auto is_idx = state->range(6);
 
   if (row == 0) {
     state->SetItemsProcessed(row);
@@ -1602,14 +1578,14 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   }
 
   int num_iters = 1;
-  if (((is_idx != 0) ? car : row) <= warmup_rows_limit) {
+  if (car <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
   } else if (rerun_start || skip_large_rows_runs) {
     return;
   }
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeSize(is_idx ? type::TypeId::BIGINT : type::TypeId::DECIMAL);
+  auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
   auto num_col = num_integers + num_decimals;
 
@@ -1617,47 +1593,35 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
-  if (is_idx == 0) {
-    auto units = std::make_unique<brain::PipelineOperatingUnits>();
-    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, row, tuple_size, num_col, car, 1, 0);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4, 1, car, 1, 0);
-    units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-    query << "DELETE FROM "
-          << ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
+  auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
+  auto tbl_col = tbl_ints + tbl_decimals;
+  auto tbl_size = tbl_ints * int_size + tbl_decimals * decimal_size;
 
-    equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units));
-  } else {
-    auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
-    auto tbl_col = tbl_ints + tbl_decimals;
-    auto tbl_size = tbl_ints * int_size + tbl_decimals * decimal_size;
+  auto units = std::make_unique<brain::PipelineOperatingUnits>();
+  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, car, tbl_size, tbl_col, car, 1, 0);
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1, 0);
+  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-    auto units = std::make_unique<brain::PipelineOperatingUnits>();
-    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, car, tbl_size, tbl_col, car, 1, 0);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size, num_col, car, 1, 0);
-    units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
-
-    std::vector<parser::ConstantValueExpression> params;
-    std::vector<type::TypeId> param_types;
+  std::vector<parser::ConstantValueExpression> params;
+  std::vector<type::TypeId> param_types;
+  params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
+  param_types.push_back(type);
+  if (car > 1) {
     params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
     param_types.push_back(type);
-    if (car > 1) {
-      params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
-      param_types.push_back(type);
-    }
-
-    GenIdxScanParameters(type, row, car, num_iters, &real_params);
-    std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
-    query << "DELETE FROM " << execution::sql::TableGenerator::GenerateTableIndexName(type, row) << " WHERE "
-          << predicate;
-
-    auto f = std::bind(&MiniRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
-    equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
-                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
-                                  common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
   }
+
+  GenIdxScanParameters(type, row, car, num_iters, &real_params);
+  std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
+  query << "DELETE FROM " << execution::sql::TableGenerator::GenerateTableIndexName(type, row) << " WHERE "
+        << predicate;
+
+  auto f = std::bind(&MiniRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
+  equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
+                                common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
+                                common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
 
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false, &real_params);
   state->SetItemsProcessed(row);
@@ -2108,7 +2072,8 @@ void RunBenchmarkSequence(bool prepared, int rerun_counter) {
     if (!terrier::runner::rerun_start) {
       snprintf(buffer, sizeof(buffer), "execution_%s%s.csv", titles[i].c_str(), prepared ? "_prepare" : "");
     } else {
-      snprintf(buffer, sizeof(buffer), "execution_%s%s_%d.csv", titles[i].c_str(), prepared ? "_prepare" : "", rerun_counter);
+      snprintf(buffer, sizeof(buffer), "execution_%s%s_%d.csv", titles[i].c_str(), prepared ? "_prepare" : "",
+               rerun_counter);
     }
 
     std::rename("pipeline.csv", buffer);
@@ -2177,8 +2142,9 @@ int main(int argc, char **argv) {
   Arg compiled_info{"--compiled=", false};
   Arg sim_prepare_info{"--simulate_prepared=", false};
   Arg run_prepare_info{"--run_prepared=", false};
-  Arg *args[] = {&port_info,  &filter_info,     &skip_large_rows_runs_info, &warm_num_info,    &rerun_info,
-                 &updel_info, &warm_limit_info, &compiled_info,        &sim_prepare_info, &run_prepare_info};
+  Arg *args[] = {&port_info,        &filter_info,     &skip_large_rows_runs_info, &warm_num_info,
+                 &rerun_info,       &updel_info,      &warm_limit_info,           &compiled_info,
+                 &sim_prepare_info, &run_prepare_info};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
@@ -2233,7 +2199,7 @@ int main(int argc, char **argv) {
     benchmark::RunSpecifiedBenchmarks();
     terrier::runner::EndRunnersState();
   } else {
-    RunMiniRunners(false);
+    RunMiniRunners(terrier::runner::simulate_prepared);
     if (terrier::runner::run_with_prepared) {
       RunMiniRunners(true);
     }
