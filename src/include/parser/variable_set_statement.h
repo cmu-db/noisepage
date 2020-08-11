@@ -15,6 +15,10 @@ namespace parser {
  */
 class VariableSetStatement : public SQLStatement {
  public:
+  /**
+   * @param parameter_name The name of the parameter.
+   * @param values The values to set in the parameter.
+   */
   VariableSetStatement(std::string parameter_name, std::vector<common::ManagedPointer<AbstractExpression>> values)
       : SQLStatement(StatementType::VARIABLE_SET),
         parameter_name_(std::move(parameter_name)),

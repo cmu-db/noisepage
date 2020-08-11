@@ -68,6 +68,7 @@ class TrafficCop {
    * @param txn_manager the transaction manager of the system
    * @param catalog the catalog of the system
    * @param replication_log_provider if given, the tcop will forward replication logs to this provider
+   * @param settings_manager the settings manager
    * @param stats_storage for optimizer calls
    * @param optimizer_timeout for optimizer calls
    * @param use_query_cache whether to cache physical plans and generated code for Extended Query protocol
