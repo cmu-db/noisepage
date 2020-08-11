@@ -69,8 +69,7 @@ if __name__ == "__main__":
                 traceback.print_exc(file=sys.stdout)
                 exit_code = ErrorCode.ERROR
             finally:
-                all_exit_codes.a
-                append(exit_code)
+                all_exit_codes.append(exit_code)
         ## FOR (files)
     ## FOR (dirs)
 
