@@ -8,7 +8,6 @@
 
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
-#include "execution/vm/bytecodes.h"
 
 namespace terrier::execution::ast {
 class Type;

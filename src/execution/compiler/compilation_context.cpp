@@ -44,6 +44,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/expression/derived_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -54,6 +55,7 @@
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
@@ -69,7 +71,7 @@ namespace terrier::execution::compiler {
 
 namespace {
 // A unique ID generator used to generate globally unique TPL function names and keep track of query ID for minirunners.
-std::atomic<uint64_t> unique_ids{0};
+std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,

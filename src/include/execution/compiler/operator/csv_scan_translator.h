@@ -2,6 +2,7 @@
 
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::planner {
 class CSVScanPlanNode;

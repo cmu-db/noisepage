@@ -7,10 +7,7 @@
 
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/executable_query.h"
-#include "execution/compiler/expression/expression_translator.h"
-#include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
-#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::parser {
 class AbstractExpression;
@@ -136,7 +133,7 @@ class CompilationContext {
 
  private:
   // Unique ID used as a prefix for all generated functions to ensure uniqueness.
-  uint64_t unique_id_;
+  uint32_t unique_id_;
 
   // The compiled query object we'll update.
   ExecutableQuery *query_;

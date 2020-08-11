@@ -4,6 +4,7 @@
 
 #include "common/version.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
 

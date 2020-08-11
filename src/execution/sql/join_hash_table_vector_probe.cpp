@@ -9,6 +9,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql/vector_projection.h"
 #include "execution/util/cpu_info.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::sql {
 

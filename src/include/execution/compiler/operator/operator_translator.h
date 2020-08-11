@@ -6,15 +6,16 @@
 #include "brain/brain_defs.h"
 #include "common/macros.h"
 #include "execution/ast/ast_fwd.h"
-#include "execution/ast/identifier.h"
 #include "execution/compiler/expression/column_value_provider.h"
-#include "execution/compiler/state_descriptor.h"
 #include "execution/util/region_containers.h"
-#include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::brain {
 class OperatingUnitRecorder;
 }  // namespace terrier::brain
+
+namespace terrier::parser {
+class AbstractExpression;
+}  // namespace terrier::parser
 
 namespace terrier::planner {
 class AbstractPlanNode;

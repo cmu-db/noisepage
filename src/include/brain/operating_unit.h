@@ -1,8 +1,10 @@
 #pragma once
+
 #include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
 
@@ -12,10 +14,10 @@ class CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
 class CompilerTest_SimpleSeqScanWithProjectionTest_Test;
 class CompilerTest_SimpleSeqScanWithParamsTest_Test;
 class CompilerTest_SimpleIndexScanTest_Test;
-class CompilerTest_SimpleIndexScanAsendingTest_Test;
-class CompilerTest_SimpleIndexScanLimitAsendingTest_Test;
-class CompilerTest_SimpleIndexScanDesendingTest_Test;
-class CompilerTest_SimpleIndexScanLimitDesendingTest_Test;
+class CompilerTest_SimpleIndexScanAscendingTest_Test;
+class CompilerTest_SimpleIndexScanLimitAscendingTest_Test;
+class CompilerTest_SimpleIndexScanDescendingTest_Test;
+class CompilerTest_SimpleIndexScanLimitDescendingTest_Test;
 class CompilerTest_SimpleAggregateTest_Test;
 class CompilerTest_CountStarTest_Test;
 class CompilerTest_SimpleSortTest_Test;
@@ -164,10 +166,10 @@ class PipelineOperatingUnits {
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithProjectionTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithParamsTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanAsendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitAsendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanDesendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitDesendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanAscendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitAscendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanDescendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitDescendingTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleAggregateTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_CountStarTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSortTest_Test;
