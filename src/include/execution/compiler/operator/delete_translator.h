@@ -2,16 +2,24 @@
 
 #include <vector>
 
-#include "catalog/schema.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/delete_plan_node.h"
+#include "execution/compiler/pipeline_driver.h"
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
+
+namespace terrier::planner {
+class DeletePlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::compiler {
 
 /**
  * Delete Translator
  */
-class DeleteTranslator : public OperatorTranslator {
+class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
    * Create a new translator for the given delete plan. The compilation occurs within the
@@ -49,6 +57,14 @@ class DeleteTranslator : public OperatorTranslator {
    * @return An expression representing the value of the column with the given OID.
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override { UNREACHABLE("Delete doesn't provide values"); }
+
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Delete is serial."); };
+
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Delete is serial.");
+  };
 
  private:
   // Declare the deleter storage interface.

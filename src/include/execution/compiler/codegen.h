@@ -11,14 +11,12 @@
 #include <vector>
 
 #include "brain/operating_unit.h"
-#include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"
 #include "execution/ast/type.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sql.h"
-#include "execution/util/region_containers.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
 
@@ -574,16 +572,15 @@ class CodeGen {
    * Call \@iterateTableParallel(). Performs a parallel scan over the table with the provided name,
    * using the provided query state and thread-state container and calling the provided scan
    * function.
-   * @param exec_ctx The execution context that we are running in.
    * @param table_oid The OID of the table to be scanned.
    * @param col_oids The column OIDs from the table that should be scanned.
    * @param query_state The query state pointer.
-   * @param tls The thread state container.
+   * @param exec_ctx The execution context that we are running in.
    * @param worker_name The work function name.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *IterateTableParallel(ast::Expr *exec_ctx, catalog::table_oid_t table_oid,
-                                                ast::Identifier col_oids, ast::Expr *query_state, ast::Expr *tls,
+  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
+                                                ast::Expr *query_state, ast::Expr *exec_ctx,
                                                 ast::Identifier worker_name);
 
   /**

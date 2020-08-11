@@ -1,6 +1,7 @@
 #include "execution/compiler/expression/column_value_translator.h"
 
 #include "execution/compiler/work_context.h"
+#include "parser/expression/column_value_expression.h"
 
 namespace terrier::execution::compiler {
 

@@ -7,10 +7,7 @@
 
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/executable_query.h"
-#include "execution/compiler/expression/expression_translator.h"
-#include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
-#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::parser {
 class AbstractExpression;

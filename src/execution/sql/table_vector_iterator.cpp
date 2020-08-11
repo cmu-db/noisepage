@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/timer.h"
@@ -106,7 +107,7 @@ class ScanTask {
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
 
     // Call scanning function
-    scanner_(query_state_, thread_state, &iter, exec_ctx_);
+    scanner_(query_state_, thread_state, &iter);
   }
 
  private:

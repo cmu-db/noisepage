@@ -1,6 +1,7 @@
 // Expected output: 500
 
 struct State {
+    execCtx     : *ExecutionContext
     jht         : JoinHashTable
     num_matches : uint32
 }
@@ -19,6 +20,8 @@ struct BuildRow {
 }
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
+    state.execCtx = execCtx
+
     // JoinHashTable initialization
     @joinHTInit(&state.jht, execCtx, @execCtxGetMem(execCtx), @sizeOf(BuildRow))
 
@@ -48,14 +51,14 @@ fun pipeline1_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *Thr
     @joinHTFree(&state.jht)
 }
 
-fun pipeline1_worker(queryState: *State, state: *ThreadState_1, tvi: *TableVectorIterator, execCtx: *ExecutionContext) -> nil {
+fun pipeline1_worker(queryState: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
     var filter = &state.filter_manager
     var jht = &state.jht
     for (@tableIterAdvance(tvi)) {
         var vec = @tableIterGetVPI(tvi)
 
         // Filter on colA
-        @filterManagerRunFilters(filter, vec, execCtx)
+        @filterManagerRunFilters(filter, vec, queryState.execCtx)
 
         // Insert into JHT using colA as key
         for (; @vpiHasNextFiltered(vec); @vpiAdvanceFiltered(vec)) {
@@ -74,7 +77,7 @@ fun pipeline2_worker_initThreadState(execCtx: *ExecutionContext, state: *ThreadS
 
 fun pipeline2_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *ThreadState_2) -> nil { }
 
-fun pipeline2_worker(queryState: *State, state: *ThreadState_2, tvi: *TableVectorIterator, execCtx: *ExecutionContext) -> nil {
+fun pipeline2_worker(queryState: *State, state: *ThreadState_2, tvi: *TableVectorIterator) -> nil {
     var jht = &queryState.jht
     for (@tableIterAdvance(tvi)) {
         var vec = @tableIterGetVPI(tvi)
