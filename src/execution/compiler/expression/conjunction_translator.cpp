@@ -1,20 +1,21 @@
 #include "execution/compiler/expression/conjunction_translator.h"
 
-#include "spdlog/fmt/fmt.h"
-
 #include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/work_context.h"
+#include "parser/expression/conjunction_expression.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::compiler {
 
 ConjunctionTranslator::ConjunctionTranslator(const parser::ConjunctionExpression &expr,
                                              CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
-  // Prepare the left and right expression subtrees for translation.
-  compilation_context->Prepare(*expr.GetChild(0));
-  compilation_context->Prepare(*expr.GetChild(1));
+  // Prepare all children expression subtrees for translation.
+  for (const auto &child : expr.GetChildren()) {
+    compilation_context->Prepare(*child);
+  }
 }
 
 ast::Expr *ConjunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {

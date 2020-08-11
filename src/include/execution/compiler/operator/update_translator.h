@@ -1,18 +1,26 @@
 #pragma once
 
-#include <catalog/schema.h>
-
 #include <vector>
 
+#include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/update_plan_node.h"
+#include "execution/compiler/pipeline_driver.h"
+#include "storage/storage_defs.h"
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
+
+namespace terrier::planner {
+class UpdatePlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::compiler {
 
 /**
  * Update Translator
  */
-class UpdateTranslator : public OperatorTranslator {
+class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
    * Create a new translator for the given update plan. The compilation occurs within the
@@ -56,6 +64,14 @@ class UpdateTranslator : public OperatorTranslator {
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Update is serial."); };
+
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Update is serial.");
+  };
+
  private:
   // Generates the update on the table.
   void GenTableUpdate(FunctionBuilder *builder) const;
@@ -90,13 +106,7 @@ class UpdateTranslator : public OperatorTranslator {
   // Deletes from all indexes.
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
 
-  static std::vector<catalog::col_oid_t> CollectOids(const catalog::Schema &schema) {
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : schema.GetColumns()) {
-      oids.emplace_back(col.Oid());
-    }
-    return oids;
-  }
+  static std::vector<catalog::col_oid_t> CollectOids(const catalog::Schema &schema);
 
  private:
   // Storage interface struct that we are updating with.

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include "execution/compiler/expression/expression_translator.h"
 
 namespace terrier::parser {
