@@ -2033,14 +2033,8 @@ void RunBenchmarkSequence(bool prepared, int rerun_counter) {
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters
   // from the composite to get an approximation for the target feature.
-  std::vector<std::vector<std::string>> filters = {{"SEQ0"},
-                                                   {"SEQ1_0", "SEQ1_1"},
-                                                   {"SEQ2_0", "SEQ2_1"},
-                                                   {"SEQ3"},
-                                                   {"SEQ4"},
-                                                   {"SEQ5_0", "SEQ5_1"},
-                                                   {"SEQ6_0", "SEQ6_1"},
-                                                   {"SEQ7_2"},
+  std::vector<std::vector<std::string>> filters = {{"SEQ0"},  {"SEQ1_0", "SEQ1_1"}, {"SEQ2_0", "SEQ2_1"}, {"SEQ3"},
+                                                   {"SEQ4"},  {"SEQ5_0", "SEQ5_1"}, {"SEQ6_0", "SEQ6_1"}, {"SEQ7_2"},
                                                    {"SEQ8_2"}};
   std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS", "HJ",
                                      "AGGS",   "INSERT", "UPDATE",    "DELETE"};
