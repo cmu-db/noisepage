@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
 
 namespace terrier::execution::ast {
@@ -43,7 +44,7 @@ class AstPrettyPrintImpl : public AstVisitor<AstPrettyPrintImpl> {
 void AstPrettyPrintImpl::VisitArrayTypeRepr(ArrayTypeRepr *node) {
   os_ << "[";
   if (node->HasLength()) {
-    os_ << node->Length();
+    os_ << node->Length()->As<ast::LitExpr>()->Int64Val();
   } else {
     os_ << "*";
   }

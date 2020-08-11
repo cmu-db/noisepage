@@ -10,7 +10,7 @@
 #include "execution/compiler/loop.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/work_context.h"
-#include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/index_scan_plan_node.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
@@ -31,6 +31,7 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
       hi_index_pr_(GetCodeGen()->MakeFreshIdentifier("hi_index_pr")),
       table_pr_(GetCodeGen()->MakeFreshIdentifier("table_pr")),
       slot_(GetCodeGen()->MakeFreshIdentifier("slot")) {
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   if (plan.GetScanPredicate() != nullptr) {
     compilation_context->Prepare(*plan.GetScanPredicate());
   }

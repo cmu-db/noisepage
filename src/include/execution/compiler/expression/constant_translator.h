@@ -1,7 +1,10 @@
 #pragma once
 
 #include "execution/compiler/expression/expression_translator.h"
-#include "parser/expression/constant_value_expression.h"
+
+namespace terrier::parser {
+class ConstantValueExpression;
+}  // namespace terrier::parser
 
 namespace terrier::execution::compiler {
 

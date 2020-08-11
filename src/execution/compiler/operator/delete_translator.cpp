@@ -8,6 +8,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/work_context.h"
+#include "planner/plannodes/delete_plan_node.h"
 #include "storage/index/index.h"
 
 namespace terrier::execution::compiler {
