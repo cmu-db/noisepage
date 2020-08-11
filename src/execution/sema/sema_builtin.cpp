@@ -1076,12 +1076,14 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
     return;
   }
-  // Check the type of the scanner function parameters.
+  // Check the type of the scanner function parameters. See TableVectorIterator::ScanFn.
   const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
   const auto &params = scan_fn_type->GetParams();
-  if (params.size() != 4 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
-      !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind) ||
-      !IsPointerToSpecificBuiltin(params[3].type_, exec_ctx_kind)) {
+  if (params.size() != 3                                         // Scan function has 3 arguments.
+      || !params[0].type_->IsPointerType()                       // QueryState, must contain execCtx.
+      || !params[1].type_->IsPointerType()                       // Thread state.
+      || !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)  // TableVectorIterator.
+  ) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
     return;
   }
