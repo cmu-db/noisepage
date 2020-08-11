@@ -280,7 +280,6 @@ inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) con
 
 /**
  * A tuple-at-a-time iterator over the contents of a join hash table.
- * TODO(abalakum): Support concise hash tables as well
  */
 class HashTableNaiveIterator {
  public:
@@ -288,32 +287,62 @@ class HashTableNaiveIterator {
    * Construct an iterator over the given join hash table.
    * @param join_table The table to iterate.
    */
-  explicit HashTableNaiveIterator(const JoinHashTable &join_table) : iter_(join_table.chaining_hash_table_) {
-    TERRIER_ASSERT(!join_table.use_concise_ht_, "Must use chaining hash table to use this iterator");
+  explicit HashTableNaiveIterator(const JoinHashTable &join_table)
+    : table_(join_table), entries_index_(0), curr_entry_(nullptr) {
+    if (join_table.use_concise_ht_) {
+      table_capacity_ = join_table.concise_hash_table_.GetCapacity();
+    } else {
+      table_capacity_ = join_table.chaining_hash_table_.GetCapacity();
+    }
+    Next();
   }
 
   /**
    * @return True if the iterator has more data; false otherwise
    */
-  bool HasNext() const { return iter_.HasNext(); }
+  bool HasNext() const { return curr_entry_ != nullptr; }
 
   /**
-   * Advance the iterator one tuple.
+   * Advance the iterator one element.
    */
-  void Next() { iter_.Next(); }
+  void Next() noexcept {
+    // If the current entry has a next link, use that
+    if (curr_entry_ != nullptr) {
+      curr_entry_ = curr_entry_->next_;
+      if (curr_entry_ != nullptr) {
+        return;
+      }
+    }
+
+    // While we haven't exhausted the directory, and haven't found a valid entry
+    // continue on ...
+    while (entries_index_ < table_capacity_) {
+      curr_entry_ = table_.EntryAt(entries_index_++);
+
+      if (curr_entry_ != nullptr) {
+        return;
+      }
+    }
+  }
 
   /**
    * @return A pointer to the current row. This assumes a previous call to HasNext() indicated there
    *         is more data.
    */
   const byte *GetCurrentRow() const {
-    auto *ht_entry = iter_.GetCurrentEntry();
-    return ht_entry->payload_;
+    return curr_entry_->payload_;
   }
 
  private:
-  // The iterator over the aggregation hash table
-  ChainingHashTableIterator<true> iter_;
+  // The JoinTable over which this iterator iterates
+  const JoinHashTable &table_;
+  // The index into the hash table's entries directory to read from next
+  uint64_t entries_index_;
+  // The current entry the iterator is pointing to
+  const HashTableEntry *curr_entry_;
+  // The maximum number of entries the table holds
+  uint64_t table_capacity_;
+
 };
 
 }  // namespace terrier::execution::sql
