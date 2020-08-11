@@ -665,7 +665,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
       LocalVar cte_scan_iterator = VisitExpressionForRValue(call->Arguments()[3]);
       // Emit the initialization codes
-      LocalVar dummy_oid = LocalVar();
+      UNUSED_ATTRIBUTE LocalVar dummy_oid = LocalVar();
       GetEmitter()->EmitTempTableIterInit(Bytecode::TempTableVectorIteratorInit, iter, exec_ctx, col_oids,
                                    static_cast<uint32_t>(arr_type->GetLength()));
       GetEmitter()->Emit(Bytecode::TempTableVectorIteratorPerformInit, iter, cte_scan_iterator);

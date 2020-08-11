@@ -1,7 +1,7 @@
 #include "parser/table_ref.h"
 
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -195,7 +195,7 @@ std::unique_ptr<TableRef> TableRef::Copy() {
   return table_ref;
 }
 
-void TableRef::GetConstituentTableAliases(std::set<std::string> &aliases) {
+void TableRef::GetConstituentTableAliases(std::unordered_set<std::string> &aliases) {
   if (!alias_.empty()) {
     aliases.insert(alias_);
   }

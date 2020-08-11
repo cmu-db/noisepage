@@ -103,13 +103,12 @@ class CteScanPlanNode : public SeqScanPlanNode {
                   std::vector<catalog::col_oid_t> &&column_oids,
                   common::ManagedPointer<parser::AbstractExpression> scan_predicate)
       : SeqScanPlanNode(std::move(children), std::move(output_schema), scan_predicate, std::move(column_oids),
-                        false, TEMP_OID(catalog::db_oid_t, !catalog::INVALID_DATABASE_OID),
+                        false, TEMP_OID(catalog::db_oid_t, (!catalog::INVALID_DATABASE_OID)),
                         table_oid, 0, false, 0, false),
         cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
         cte_type_(cte_type),
-        table_schema_(std::move(table_schema)),
-        scan_predicate_(scan_predicate) {
+        table_schema_(std::move(table_schema)) {
     if(is_leader_){
       leader_ = this;
     }
@@ -203,11 +202,6 @@ class CteScanPlanNode : public SeqScanPlanNode {
   // Output table schema for CTE scan
   catalog::Schema table_schema_;
   common::ManagedPointer<const CteScanPlanNode> leader_{nullptr};
-
-  /**
-   * Selection predicate.
-   */
-  UNUSED_ATTRIBUTE common::ManagedPointer<parser::AbstractExpression> scan_predicate_;
 };
 
 }  // namespace terrier::planner
