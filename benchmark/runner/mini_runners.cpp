@@ -786,7 +786,7 @@ class MiniRunners : public benchmark::Fixture {
 
   static execution::exec::ExecutionSettings GetExecutionSettings() {
     execution::exec::ExecutionSettings settings;
-    settings.is_parallel_query_execution_ = false;
+    settings.is_parallel_execution_enabled_ = false;
     return settings;
   }
 
