@@ -543,7 +543,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       throw BINDER_EXCEPTION("Mismatched schemas in union", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
     }
     for (uint32_t ind = 0; ind < new_select_list.size(); ind++) {
-      if (new_select_list[ind]->GetExpressionType() != union_cols[ind]->GetExpressionType()) {
+      if (new_select_list[ind]->GetReturnValueType() != union_cols[ind]->GetReturnValueType()) {
         throw BINDER_EXCEPTION("Mismatched schemas in union", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
       }
     }
