@@ -1783,6 +1783,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
   auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
+  auto timestamp_type = GetTypeOidForType(type::TypeId::TIMESTAMP);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1814,8 +1815,9 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // TODO(tanujnay112): no op codes for lower and upper yet
 
   // Extract Year
-  CreateProcedure(txn, postgres::EXTRACT_YEAR_PRO_OID, "extractYear", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date"}, {int_type}, {int_type}, {}, int_type, "", false);
+  CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str, timestamp"}, {str_type, timestamp_type},
+                  {str_type, timestamp_type}, {}, int_type, "", false);
 
   BootstrapProcContexts(txn);
 }
@@ -1888,10 +1890,11 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   SetProcCtxPtr(txn, postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
-  func_context = new execution::functions::FunctionContext(
-      "extractYear", type::TypeId::INTEGER, {type::TypeId::INTEGER}, execution::ast::Builtin::ExtractYear);
+  func_context = new execution::functions::FunctionContext("date_part", type::TypeId::INTEGER,
+                                                           {type::TypeId::VARCHAR, type::TypeId::TIMESTAMP},
+                                                           execution::ast::Builtin::DatePart);
   txn->RegisterAbortAction([=]() { delete func_context; });
-  SetProcCtxPtr(txn, postgres::EXTRACT_YEAR_PRO_OID, func_context);
+  SetProcCtxPtr(txn, postgres::DATE_PART_PRO_OID, func_context);
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,

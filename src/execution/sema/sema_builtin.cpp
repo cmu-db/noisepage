@@ -252,7 +252,7 @@ void Sema::CheckBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builti
   }
 
   switch (builtin) {
-    case ast::Builtin::ExtractYear:
+    case ast::Builtin::DatePart:
       call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
       return;
     default:
@@ -2520,7 +2520,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinStringLikeCall(call);
       break;
     }
-    case ast::Builtin::ExtractYear: {
+    case ast::Builtin::DatePart: {
       CheckBuiltinDateFunctionCall(call, builtin);
       break;
     }

@@ -630,7 +630,7 @@ void BytecodeGenerator::VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::B
   auto input = VisitExpressionForLValue(call->Arguments()[0]);
 
   switch (builtin) {
-    case ast::Builtin::ExtractYear:
+    case ast::Builtin::DatePart:
       GetEmitter()->Emit(Bytecode::ExtractYear, dest, input);
       break;
     default:
@@ -2142,7 +2142,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitSqlStringLikeCall(call);
       break;
     }
-    case ast::Builtin::ExtractYear: {
+    case ast::Builtin::DatePart: {
       VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }
