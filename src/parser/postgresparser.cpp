@@ -2003,11 +2003,12 @@ std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(ParseResult *pa
   return result;
 }
 
-// TODO(WAN): Document why exactly this is required as a JDBC hack.
 // Postgres.VariableSetStmt -> terrier.VariableSetStatement
 std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(ParseResult *parse_result,
-                                                                           UNUSED_ATTRIBUTE VariableSetStmt *root) {
-  auto result = std::make_unique<VariableSetStatement>();
+                                                                           VariableSetStmt *root) {
+  auto name = root->name_;
+  auto values = ParamListTransform(parse_result, root->args_);
+  auto result = std::make_unique<VariableSetStatement>(name, std::move(values));
   return result;
 }
 
