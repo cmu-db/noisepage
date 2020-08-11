@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 
+#include "catalog/catalog_accessor.h"
 #include "common/macros.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
@@ -23,8 +24,9 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_filter_executor.h"
-// #include "execution/util/csv_reader.h" Fix later.
 #include "parser/expression/constant_value_expression.h"
+
+// #include "execution/util/csv_reader.h" Fix later.
 
 // All VM bytecode op handlers must use this macro
 #define VM_OP EXPORT

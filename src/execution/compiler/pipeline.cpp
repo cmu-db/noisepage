@@ -23,6 +23,7 @@ Pipeline::Pipeline(CompilationContext *ctx)
     : id_(ctx->RegisterPipeline(this)),
       compilation_context_(ctx),
       codegen_(compilation_context_->GetCodeGen()),
+      driver_(nullptr),
       parallelism_(Parallelism::Parallel),
       check_parallelism_(true),
       state_var_(codegen_->MakeIdentifier("pipelineState")),
@@ -119,7 +120,7 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
   //  2. If the consumer doesn't support parallel execution.
   //  3. If ANY operator in the pipeline explicitly requested serial execution.
 
-  const bool parallel_exec_disabled = exec_settings.GetIsParallelQueryExecution();
+  const bool parallel_exec_disabled = !exec_settings.GetIsParallelQueryExecutionEnabled();
   const bool parallel_consumer = true;
   if (parallel_exec_disabled || !parallel_consumer || parallelism_ == Pipeline::Parallelism::Serial) {
     parallelism_ = Pipeline::Parallelism::Serial;

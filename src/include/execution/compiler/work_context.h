@@ -16,7 +16,6 @@ namespace terrier::execution::compiler {
 
 class CompilationContext;
 class FunctionBuilder;
-class Pipeline;
 
 /**
  * A work context carries information necessary for a pipeline along all operators within that

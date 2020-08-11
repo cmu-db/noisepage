@@ -2,10 +2,8 @@
 
 #include <vector>
 
-#include "execution/compiler/ast_fwd.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
-#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::planner {
 class LimitPlanNode;
