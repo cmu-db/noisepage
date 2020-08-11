@@ -78,10 +78,9 @@ class ConcurrentPointerVector {
       {
         std::unique_lock<std::mutex> l(resize_mutex_);
         capacity_ = capacity_ * RESIZE_FACTOR;
+        resize_cv_.notify_all();
       }
-
-      resize_cv_.notify_all();
-
+      
       delete[] old_array;
 
     } else if (my_index > capacity_) {
