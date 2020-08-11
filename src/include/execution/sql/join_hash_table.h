@@ -288,7 +288,7 @@ class HashTableNaiveIterator {
    * @param join_table The table to iterate.
    */
   explicit HashTableNaiveIterator(const JoinHashTable &join_table)
-    : table_(join_table), entries_index_(0), curr_entry_(nullptr) {
+      : table_(join_table), entries_index_(0), curr_entry_(nullptr) {
     if (join_table.use_concise_ht_) {
       table_capacity_ = join_table.concise_hash_table_.GetCapacity();
     } else {
@@ -329,9 +329,7 @@ class HashTableNaiveIterator {
    * @return A pointer to the current row. This assumes a previous call to HasNext() indicated there
    *         is more data.
    */
-  const byte *GetCurrentRow() const {
-    return curr_entry_->payload_;
-  }
+  const byte *GetCurrentRow() const { return curr_entry_->payload_; }
 
  private:
   // The JoinTable over which this iterator iterates
@@ -342,7 +340,6 @@ class HashTableNaiveIterator {
   const HashTableEntry *curr_entry_;
   // The maximum number of entries the table holds
   uint64_t table_capacity_;
-
 };
 
 }  // namespace terrier::execution::sql
