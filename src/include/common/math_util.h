@@ -1,12 +1,12 @@
 #pragma once
 
+#include <llvm/Support/MathExtras.h>
+
 #include <cstdint>
 #include <cstdlib>
-
-#include "llvm/Support/MathExtras.h"
+#include <numeric>
 
 #include "common/macros.h"
-#include "execution/util/execution_common.h"
 
 namespace terrier::common {
 
@@ -15,35 +15,38 @@ namespace terrier::common {
  */
 class MathUtil {
  public:
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(MathUtil);
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(MathUtil);
+
   /**
    * Perform a division taking the ceil of the result
    * @param numerator The numerator
    * @param denominator The denominator
    * @return The result of the division rounded up to the next integer value
    */
-  static uint64_t DivRoundUp(uint64_t numerator, uint64_t denominator) {
+  static constexpr uint64_t DivRoundUp(uint64_t numerator, uint64_t denominator) {
     return (numerator + denominator - 1) / denominator;
   }
 
   /**
-   * Return true if the input value is a power of two > 0
-   * @param val The value to check
-   * @return True if the value is a power of two > 0
+   * @return True if the input value is a power of two > 0; false otherwise.
    */
   static constexpr bool IsPowerOf2(uint64_t val) { return llvm::isPowerOf2_64(val); }
 
   /**
-   * Compute the next power of two strictly greater than the input @em val
+   * @return The next power of two strictly greater than the input value.
    */
   static uint64_t NextPowerOf2(uint64_t val) { return llvm::NextPowerOf2(val); }
 
   /**
-   * Return the next power of two greater than or equal to the input @em val
+   * @return The next power of two greater than or equal to the input value.
    */
   static uint64_t PowerOf2Ceil(uint64_t val) { return llvm::PowerOf2Ceil(val); }
 
   /**
-   * Compute the power of tww loweer than the provided input @em val
+   * @return The last power of two less than or equal to the provided input value.
    */
   static uint64_t PowerOf2Floor(uint64_t val) { return llvm::PowerOf2Floor(val); }
 
@@ -63,7 +66,7 @@ class MathUtil {
    * @param alignment The desired alignment
    * @return Whether the value has the desired alignment
    */
-  static bool IsAligned(uint64_t value, uint64_t alignment) {
+  static constexpr bool IsAligned(uint64_t value, uint64_t alignment) {
     TERRIER_ASSERT(alignment != 0u && IsPowerOf2(alignment), "Align must be a non-zero power of two.");
     return (value & (alignment - 1)) == 0;
   }
@@ -83,7 +86,7 @@ class MathUtil {
    * @param alignment
    * @return
    */
-  static bool IsAlignedGeneric(uint64_t value, uint64_t alignment) {
+  static constexpr bool IsAlignedGeneric(uint64_t value, uint64_t alignment) {
     TERRIER_ASSERT(alignment != 0u, "Align must be non-zero.");
     return (value % alignment) == 0;
   }
@@ -128,6 +131,35 @@ class MathUtil {
   static constexpr uintptr_t AlignmentAdjustment(uintptr_t addr, std::size_t alignment) {
     return MathUtil::AlignAddress(addr, alignment) - addr;
   }
+
+  /**
+   * Compute the factorial of a given number @em num.
+   * @param num The input number.
+   * @return The factorial of the input number.
+   */
+  static uint64_t Factorial(uint64_t num) {
+    uint64_t result = 1;
+    for (uint64_t i = 1; i <= num; i++) {
+      result *= i;
+    }
+    return result;
+  }
+
+  /**
+   * Are the two input 32-bit floating point values equal given the tolerances on this machine?
+   * @param left The first input value.
+   * @param right The second input value.
+   * @return True if they're equal; false otherwise.
+   */
+  static bool ApproxEqual(float left, float right);
+
+  /**
+   * Are the two input 64-bit floating point values equal given the tolerances on this machine?
+   * @param left The first input value.
+   * @param right The second input value.
+   * @return True if they're equal; false otherwise.
+   */
+  static bool ApproxEqual(double left, double right);
 };
 
 }  // namespace terrier::common

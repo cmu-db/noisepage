@@ -12,6 +12,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/index_builder.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::sql {
 template <typename T>
@@ -218,7 +219,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
       delete[] col_data.second;
     }
   }
-  // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
+  EXECUTION_LOG_TRACE("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
 }
 
 void TableGenerator::CreateTable(TableInsertMeta *metadata) {
@@ -436,7 +437,7 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   // Cleanup
   delete[] table_buffer;
   delete[] index_buffer;
-  // EXECUTION_LOG_INFO("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
+  EXECUTION_LOG_TRACE("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
 }
 
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {

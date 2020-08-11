@@ -2,16 +2,18 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
-#include "catalog/catalog.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "execution/vm/vm_defs.h"
 #include "network/network_defs.h"
-#include "parser/create_statement.h"
-#include "parser/drop_statement.h"
-#include "parser/transaction_statement.h"
-#include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
+
+namespace terrier::catalog {
+class Catalog;
+}  // namespace terrier::catalog
 
 namespace terrier::network {
 class ConnectionContext;
@@ -22,14 +24,30 @@ class Portal;
 
 namespace terrier::optimizer {
 class StatsStorage;
-}
+}  // namespace terrier::optimizer
 
 namespace terrier::parser {
 class ConstantValueExpression;
-}
+class CreateStatement;
+class DropStatement;
+class TransactionStatement;
+class ParseResult;
+}  // namespace terrier::parser
 
 namespace terrier::planner {
 class AbstractPlanNode;
+}  // namespace terrier::planner
+
+namespace terrier::storage {
+class ReplicationLogProvider;
+}  // namespace terrier::storage
+
+namespace terrier::transaction {
+class TransactionManager;
+}  // namespace terrier::transaction
+
+namespace terrier::common {
+class ErrorData;
 }
 
 namespace terrier::trafficcop {
@@ -49,18 +67,20 @@ class TrafficCop {
    * @param stats_storage for optimizer calls
    * @param optimizer_timeout for optimizer calls
    * @param use_query_cache whether to cache physical plans and generated code for Extended Query protocol
+   * @param execution_mode how to run executable queries after code generation
    */
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
-             bool use_query_cache)
+             bool use_query_cache, const execution::vm::ExecutionMode execution_mode)
       : txn_manager_(txn_manager),
         catalog_(catalog),
         replication_log_provider_(replication_log_provider),
         stats_storage_(stats_storage),
         optimizer_timeout_(optimizer_timeout),
-        use_query_cache_(use_query_cache) {}
+        use_query_cache_(use_query_cache),
+        execution_mode_(execution_mode) {}
 
   virtual ~TrafficCop() = default;
 
@@ -92,7 +112,7 @@ class TrafficCop {
    * @param connection_ctx used to maintain state
    * @return parser's ParseResult, nullptr if failed
    */
-  std::unique_ptr<parser::ParseResult> ParseQuery(
+  std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> ParseQuery(
       const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**
@@ -204,7 +224,8 @@ class TrafficCop {
   common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
-  bool use_query_cache_;
+  const bool use_query_cache_;
+  const execution::vm::ExecutionMode execution_mode_;
 };
 
 }  // namespace terrier::trafficcop

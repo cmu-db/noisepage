@@ -6,6 +6,8 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
 
 namespace terrier::execution::sql {
 
@@ -15,7 +17,8 @@ StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::ta
       table_(exec_ctx->GetAccessor()->GetTable(table_oid)),
       exec_ctx_(exec_ctx),
       col_oids_(col_oids, col_oids + num_oids),
-      need_indexes_(need_indexes) {
+      need_indexes_(need_indexes),
+      pri_(num_oids > 0 ? table_->InitializerForProjectedRow(col_oids_) : storage::ProjectedRowInitializer()) {
   // Initialize the index projected row if needed.
   if (need_indexes_) {
     // Get index pr size
@@ -35,10 +38,8 @@ StorageInterface::~StorageInterface() {
 }
 
 storage::ProjectedRow *StorageInterface::GetTablePR() {
-  // We need all the columns
-  storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids_);
   auto txn = exec_ctx_->GetTxn();
-  table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
+  table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri_);
   return table_redo_->Delta();
 }
 
@@ -48,20 +49,15 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   return index_pr_;
 }
 
-storage::TupleSlot StorageInterface::TableInsert() {
-  exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
-  return table_->Insert(exec_ctx_->GetTxn(), table_redo_);
-}
+storage::TupleSlot StorageInterface::TableInsert() { return table_->Insert(exec_ctx_->GetTxn(), table_redo_); }
 
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
-  exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
   auto txn = exec_ctx_->GetTxn();
   txn->StageDelete(exec_ctx_->DBOid(), table_oid_, table_tuple_slot);
   return table_->Delete(exec_ctx_->GetTxn(), table_tuple_slot);
 }
 
 bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
-  exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
   table_redo_->SetTupleSlot(table_tuple_slot);
   return table_->Update(exec_ctx_->GetTxn(), table_redo_);
 }

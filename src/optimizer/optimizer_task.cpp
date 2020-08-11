@@ -1,3 +1,5 @@
+#include "optimizer/optimizer_task.h"
+
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -7,7 +9,6 @@
 #include "optimizer/binding.h"
 #include "optimizer/child_property_deriver.h"
 #include "optimizer/optimizer_context.h"
-#include "optimizer/optimizer_task.h"
 #include "optimizer/property_enforcer.h"
 #include "optimizer/statistics/child_stats_deriver.h"
 #include "optimizer/statistics/stats_calculator.h"
@@ -49,7 +50,7 @@ RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetOptimizerContex
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::Execute() {
-  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group {0}", group_->GetID());
+  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group " + std::to_string(!group_->GetID()));
   if (group_->GetCostLB() > context_->GetCostUpperBound() ||                    // Cost LB > Cost UB
       group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
     return;
@@ -203,7 +204,7 @@ void DeriveStats::Execute() {
   auto children_required_stats =
       deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetOptimizerContext()->GetMemo());
   bool derive_children = false;
-  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group {0}", gexpr_->GetGroupID());
+  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group " + std::to_string(!gexpr_->GetGroupID()));
 
   // If we haven't got enough stats to compute the current stats, derive them
   // from the child first

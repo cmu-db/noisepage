@@ -29,6 +29,13 @@ enum class ExecutionOperatingUnitType : uint32_t {
   OUTPUT,
   LIMIT,
 
+  HASH_JOIN,
+  HASH_AGGREGATE,
+  CSV_SCAN,
+  NL_JOIN,
+  SORT,
+  STATIC_AGGREGATE,
+
   // Use to demarcate plan and operations
   PLAN_OPS_DELIMITER,
 

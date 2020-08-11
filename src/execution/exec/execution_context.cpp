@@ -8,14 +8,13 @@
 
 namespace terrier::execution::exec {
 
-char *ExecutionContext::StringAllocator::Allocate(std::size_t size) {
-  if (tracker_ != nullptr) tracker_->Increment(size);
-  return reinterpret_cast<char *>(region_.Allocate(size));
-}
-
 uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {
+    auto alignment = sql::ValUtil::GetSqlAlignment(col.GetType());
+    if (!common::MathUtil::IsAligned(tuple_size, alignment)) {
+      tuple_size = static_cast<uint32_t>(common::MathUtil::AlignTo(tuple_size, alignment));
+    }
     tuple_size += sql::ValUtil::GetSqlSize(col.GetType());
   }
   return tuple_size;

@@ -198,4 +198,74 @@ TEST_F(MetricsTests, TransactionCSVTest) {
 
   metrics_manager_->UnregisterThread();
 }
+
+/**
+ *  Testing that we can enable and disable per-component metrics
+ *
+ */
+// NOLINTNEXTLINE
+TEST_F(MetricsTests, ToggleSettings) {
+  // metrics_logging
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::LOGGING));
+  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
+  const auto callback = +[](common::ManagedPointer<common::ActionContext> action_context) -> void {
+    action_context->SetState(common::ActionState::SUCCESS);
+  };
+  settings_manager_->SetBool(settings::Param::metrics_logging, true, common::ManagedPointer(action_context), callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::LOGGING));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+  settings_manager_->SetBool(settings::Param::metrics_logging, false, common::ManagedPointer(action_context), callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::LOGGING));
+
+  // metrics_transaction
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
+  settings_manager_->SetBool(settings::Param::metrics_transaction, true, common::ManagedPointer(action_context),
+                             callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
+  settings_manager_->SetBool(settings::Param::metrics_transaction, false, common::ManagedPointer(action_context),
+                             callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION));
+
+  // metrics_gc
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(5));
+  settings_manager_->SetBool(settings::Param::metrics_gc, true, common::ManagedPointer(action_context), callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(6));
+  settings_manager_->SetBool(settings::Param::metrics_gc, false, common::ManagedPointer(action_context), callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION));
+
+  // metrics_execution
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(7));
+  settings_manager_->SetBool(settings::Param::metrics_execution, true, common::ManagedPointer(action_context),
+                             callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(8));
+  settings_manager_->SetBool(settings::Param::metrics_execution, false, common::ManagedPointer(action_context),
+                             callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION));
+
+  // metrics_pipeline
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION_PIPELINE));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(9));
+  settings_manager_->SetBool(settings::Param::metrics_pipeline, true, common::ManagedPointer(action_context), callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION_PIPELINE));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(10));
+  settings_manager_->SetBool(settings::Param::metrics_pipeline, false, common::ManagedPointer(action_context),
+                             callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION_PIPELINE));
+}
 }  // namespace terrier::metrics

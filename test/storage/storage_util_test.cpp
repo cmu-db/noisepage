@@ -1,11 +1,10 @@
 #include "storage/storage_util.h"
-#include <algorithm>
+
 #include <cstring>
-#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
@@ -13,7 +12,6 @@
 #include "parser/expression/constant_value_expression.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
-#include "test_util/catalog_test_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
