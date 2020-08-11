@@ -4,9 +4,9 @@
 
 // This allows the settings defined once to be used in different contexts.
 // When __SETTING_GFLAGS_DEFINE__ is set,
-//    setting definitions will be exposed through glfags definitions.
+//    setting definitions will be exposed through gflags definitions.
 // When __SETTING_GFLAGS_DECLARE__ is set,
-//    setting definitions will be exposed through glfags declarations.
+//    setting definitions will be exposed through gflags declarations.
 // When __SETTING_DEFINE__ is set,
 //    setting definitions will be exposed through definitions in settings_manager.
 // When __SETTING_POPULATE__ is set,

@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "common/action_context.h"
 #include "common/error/exception.h"
@@ -129,15 +130,25 @@ class SettingsManager {
   void ValidateParams();
 
   /**
+   * Set the given parameter.
+   * @param name The parameter name.
+   * @param values The parameter's new value(s).
+   */
+  void SetParameter(const std::string &name,
+                    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &values);
+
+  /**
    * Construct settings param map from settings_defs.h
    * @param param_map
    */
-  static void ConstructParamMap(                                                               // NOLINT
+  static void ConstructParamMap(
       std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map);  // NOLINT
 
  private:
   common::ManagedPointer<DBMain> db_main_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
+  std::unordered_map<std::string, settings::Param> param_name_map_;
+
   common::SharedLatch latch_;
 
   void ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
@@ -149,6 +160,8 @@ class SettingsManager {
                      const parser::ConstantValueExpression &max_value);
   common::ActionState InvokeCallback(Param param, void *old_value, void *new_value,
                                      common::ManagedPointer<common::ActionContext> action_context);
+
+  static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 };
 
 }  // namespace terrier::settings

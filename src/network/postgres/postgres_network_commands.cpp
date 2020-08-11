@@ -123,6 +123,17 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     t_cop->BeginTransaction(connection);
   }
 
+  // Set statements are manually handled here.
+  if (query_type == network::QueryType::QUERY_SET) {
+    auto set_result = t_cop->ExecuteSetStatement(connection, common::ManagedPointer(statement));
+    if (set_result.type_ == trafficcop::ResultType::ERROR) {
+      out->WriteError(std::get<common::ErrorData>(set_result.extra_));
+    } else {
+      out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
+    }
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (NetworkUtil::TransactionalQueryType(query_type)) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);

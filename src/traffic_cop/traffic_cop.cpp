@@ -34,7 +34,9 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
 #include "parser/postgresparser.h"
+#include "parser/variable_set_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "settings/settings_manager.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -141,6 +143,27 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
   return TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), query,
                                   connection_ctx->GetDatabaseOid(), stats_storage_,
                                   std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
+}
+
+TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                                 common::ManagedPointer<network::Statement> statement) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
+  TERRIER_ASSERT(statement->GetQueryType() == network::QueryType::QUERY_SET,
+                 "ExecuteSetStatement called with invalid QueryType.");
+
+  const auto &set_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableSetStatement>();
+
+  try {
+    settings_manager_->SetParameter(set_stmt->GetParameterName(), set_stmt->GetValues());
+  } catch (SettingsException &e) {
+    auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
+    error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
+    error.AddField(common::ErrorField::FILE, e.GetFile());
+    return {ResultType::ERROR, error};
+  }
+
+  return {ResultType::COMPLETE, 0};
 }
 
 TrafficCopResult TrafficCop::ExecuteCreateStatement(
@@ -325,7 +348,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     return {ResultType::COMPLETE, 0};
   }
 
-  // TODO(WAN): poke the settings manager for execution settings
+  // TODO(WAN): see #1047
   execution::exec::ExecutionSettings exec_settings{};
   auto exec_query =
       execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get());

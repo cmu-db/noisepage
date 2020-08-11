@@ -38,6 +38,10 @@ namespace terrier::planner {
 class AbstractPlanNode;
 }  // namespace terrier::planner
 
+namespace terrier::settings {
+class SettingsManager;
+}  // namespace terrier::settings
+
 namespace terrier::storage {
 class ReplicationLogProvider;
 }  // namespace terrier::storage
@@ -48,7 +52,7 @@ class TransactionManager;
 
 namespace terrier::common {
 class ErrorData;
-}
+}  // namespace terrier::common
 
 namespace terrier::trafficcop {
 
@@ -72,11 +76,13 @@ class TrafficCop {
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
+             common::ManagedPointer<settings::SettingsManager> settings_manager,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
              bool use_query_cache, const execution::vm::ExecutionMode execution_mode)
       : txn_manager_(txn_manager),
         catalog_(catalog),
         replication_log_provider_(replication_log_provider),
+        settings_manager_(settings_manager),
         stats_storage_(stats_storage),
         optimizer_timeout_(optimizer_timeout),
         use_query_cache_(use_query_cache),
@@ -162,6 +168,15 @@ class TrafficCop {
                              common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const;
 
   /**
+   * Contains the logic to handle SET statements.
+   * @param connection_ctx The context to be used to access the internal txn.
+   * @param statement The set statement to be executed.
+   * @return The result of the operation.
+   */
+  TrafficCopResult ExecuteSetStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                       common::ManagedPointer<network::Statement> statement) const;
+
+  /**
    * Contains the logic to reason about CREATE execution.
    * @param connection_ctx context to be used to access the internal txn
    * @param physical_plan to be executed
@@ -222,6 +237,7 @@ class TrafficCop {
   common::ManagedPointer<catalog::Catalog> catalog_;
   // Hands logs off to replication component. TCop should forward these logs through this provider.
   common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
+  common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
   const bool use_query_cache_;

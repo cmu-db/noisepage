@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "binder/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
