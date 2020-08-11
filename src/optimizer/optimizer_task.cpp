@@ -294,10 +294,10 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       for (auto prop : i_prop->Properties()) {
         if (prop.second) {
           // Optional property
-          optional_input_props->AddProperty(prop.first, true);
+          optional_input_props->AddProperty(prop.first->Copy(), true);
         } else {
           // Required property
-          req_input_props->AddProperty(prop.first);
+          req_input_props->AddProperty(prop.first->Copy());
         }
       }
 
@@ -325,6 +325,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
         break;
       }
 
+      delete input_props[cur_child_idx_];
+      delete optional_input_props;
       // Only preserve required input properties, optional properties should be in child operator
       input_props[cur_child_idx_] = req_input_props;
     }
