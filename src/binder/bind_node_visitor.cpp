@@ -540,11 +540,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
     auto &union_cols = node->GetUnionSelect()->GetSelectColumns();
     if (new_select_list.size() != union_cols.size()) {
-      BINDER_EXCEPTION("Mismatched schemas in union", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
+      throw BINDER_EXCEPTION("Mismatched schemas in union", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
     }
     for (uint32_t ind = 0; ind < new_select_list.size(); ind++) {
       if (new_select_list[ind]->GetExpressionType() != union_cols[ind]->GetExpressionType()) {
-        BINDER_EXCEPTION("Mismatched schemas in union", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
+        throw BINDER_EXCEPTION("Mismatched schemas in union", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
       }
     }
   }

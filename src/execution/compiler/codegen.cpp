@@ -542,7 +542,7 @@ ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_i
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
 
   std::vector<ast::Expr*> args{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr};
-  return CallBuiltin(ast::Builtin::TempTableIterInitBind, std::move(args));
+  return CallBuiltin(ast::Builtin::TempTableIterInitBind, args);
 }
 
 ast::Expr *CodeGen::TableIterAdvance(ast::Expr *table_iter) {
@@ -1178,7 +1178,7 @@ ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *si, catalog::table_oid_t tabl
   ast::Expr *col_oids_expr = MakeExpr(col_types);
 
   std::vector<ast::Expr *> args{si, exec_ctx_var, Const32(!table), col_oids_expr};
-  return CallBuiltin(ast::Builtin::CteScanInit, std::move(args));
+  return CallBuiltin(ast::Builtin::CteScanInit, args);
 }
 
 ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid,
@@ -1187,7 +1187,7 @@ ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t 
 
   std::vector<ast::Expr *> args{si, exec_ctx_var, Const32(!table_oid), col_oids_expr,
                                         ConstBool(is_recursive)};
-  return CallBuiltin(ast::Builtin::IterCteScanInit, std::move(args));
+  return CallBuiltin(ast::Builtin::IterCteScanInit, args);
 }
 
 ast::AstNodeFactory *CodeGen::GetFactory() { return context_->GetNodeFactory(); }

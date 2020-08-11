@@ -21,6 +21,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
     return nullptr;
   }
 
+  gexpr->SetGroupID(target_group);
   // Lookup in hash table
   auto it = group_expressions_.find(gexpr);
   if (it != group_expressions_.end()) {

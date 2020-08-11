@@ -2201,7 +2201,6 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -2753,8 +2752,7 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetTableOutputSchema(std::move(table_output_schema))
+    cte_scan = builder.SetOutputSchema(std::move(table_output_schema))
                    .AddChild(std::move(agg))
                    .SetLeader(true)
                    .Build();

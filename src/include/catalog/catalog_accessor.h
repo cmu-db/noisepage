@@ -380,7 +380,7 @@ class EXPORT CatalogAccessor {
    */
   common::ManagedPointer<transaction::TransactionContext> GetTxn() const { return txn_; }
 
-  void RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table);
+  void RegisterTempTable(table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table);
 
   uint32_t GetNewTempOid() { return ++temp_oid_counter_; }
 

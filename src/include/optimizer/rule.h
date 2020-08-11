@@ -73,6 +73,7 @@ enum class RuleType : uint32_t {
   PULL_FILTER_THROUGH_MARK_JOIN,
   PULL_FILTER_THROUGH_AGGREGATION,
   UNION_WITH_RECURSIVE_CTE,
+  QUERY_DERIVED_GET_ON_TABLE_FREE_SCAN,
 
   // Place holder to generate number of rules compile time
   NUM_RULES
