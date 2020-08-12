@@ -245,10 +245,6 @@ Date Date::FromYMD(int32_t year, int32_t month, int32_t day) {
 
 bool Date::IsValidDate(int32_t year, int32_t month, int32_t day) { return IsValidJulianDate(year, month, day); }
 
-hash_t Date::Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_, seed); }
-
-hash_t Date::Hash() const { return Hash(0); }
-
 //===----------------------------------------------------------------------===//
 //
 // Timestamp
@@ -659,20 +655,6 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
 
   // Looks good.
   return Timestamp(result);
-}
-
-hash_t Timestamp::Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_, seed); }
-
-hash_t Timestamp::Hash() const { return Hash(0); }
-
-template <typename T>
-hash_t Decimal<T>::Hash(const hash_t seed) const {
-  return common::HashUtil::HashCrc(value_, seed);
-}
-
-template <typename T>
-hash_t Decimal<T>::Hash() const {
-  return Hash(0);
 }
 
 }  // namespace terrier::execution::sql

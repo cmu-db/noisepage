@@ -10,7 +10,6 @@
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "execution/util/execution_common.h"
-#include "xxHash/xxh3.h"
 
 namespace terrier::common {
 
@@ -52,7 +51,7 @@ class EXPORT HashUtil {
   template <typename T>
   static auto Hash(const T &obj) -> std::enable_if_t<
       !std::is_arithmetic_v<T> && !std::is_same<T, std::string>::value && !std::is_same<T, char>::value, hash_t> {
-    return XXH3_64bits(reinterpret_cast<const byte *>(&obj), sizeof(T));
+    return HashXX3(reinterpret_cast<const uint8_t *>(&obj), sizeof(T));
   }
 
   /**
@@ -174,7 +173,7 @@ class EXPORT HashUtil {
    * @param hash The input hash value to scramble.
    * @return The scrambled hash value.
    */
-  static hash_t ScrambleHash(const hash_t hash) { return XXH64_avalanche(hash); }
+  static hash_t ScrambleHash(hash_t hash);
 
   /**
    * Integer CRC hashing based on HyPer.
@@ -264,19 +263,19 @@ class EXPORT HashUtil {
   /**
    * String XXH3 hashing.
    */
-  static hash_t HashXX3(const uint8_t *buf, uint32_t len, hash_t seed) { return XXH3_64bits_withSeed(buf, len, seed); }
+  static hash_t HashXX3(const uint8_t *buf, uint32_t len, hash_t seed);
 
   /**
    * String XXH3 hashing (no seed).
    */
-  static hash_t HashXX3(const uint8_t *buf, uint32_t len) { return XXH3_64bits(buf, len); }
+  static hash_t HashXX3(const uint8_t *buf, uint32_t len);
 
   /**
    * Arbitrary object XXH3 hashing.
    */
   template <typename T>
   static auto HashXX3(T val, hash_t seed) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
-    return XXH3_64bits_withSeed(&val, sizeof(T), seed);
+    return HashXX3(&val, sizeof(T), seed);
   }
 
   /**
@@ -284,7 +283,7 @@ class EXPORT HashUtil {
    */
   template <typename T>
   static auto HashXX3(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
-    return XXH3_64bits(&val, sizeof(T));
+    return HashXX3(&val, sizeof(T));
   }
 };
 

@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 
+#include "common/hash_util.h"
 #include "common/strong_typedef.h"
 #include "execution/util/execution_common.h"
 
@@ -74,12 +75,12 @@ class EXPORT Date {
    * @param seed The value to seed the hash with.
    * @return The hash value for this date instance.
    */
-  hash_t Hash(const hash_t seed) const;
+  hash_t Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_, seed); }
 
   /**
    * @return The hash value of this date instance.
    */
-  hash_t Hash() const;
+  hash_t Hash() const { return Hash(0); }
 
   /**
    * @return True if this date equals @em that date; false otherwise.
@@ -263,12 +264,12 @@ class EXPORT Timestamp {
    * @param seed The value to seed the hash with.
    * @return The hash value for this timestamp instance.
    */
-  hash_t Hash(const hash_t seed) const;
+  hash_t Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_, seed); }
 
   /**
    * @return The hash value of this timestamp instance.
    */
-  hash_t Hash() const;
+  hash_t Hash() const { return Hash(0); }
 
   /**
    * @return True if this timestamp equals @em that timestamp; false otherwise.
@@ -432,12 +433,12 @@ class EXPORT Decimal {
    * @param seed The value to seed the hash with.
    * @return The hash value for this decimal instance.
    */
-  hash_t Hash(const hash_t seed) const;
+  hash_t Hash(const hash_t seed) const { return common::HashUtil::HashCrc(value_, seed); }
 
   /**
    * @return The hash value of this decimal instance.
    */
-  hash_t Hash() const;
+  hash_t Hash() const { return Hash(0); }
 
   /**
    * Add the encoded decimal value @em that to this decimal value.
