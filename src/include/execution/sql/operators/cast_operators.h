@@ -8,6 +8,7 @@
 #include "common/error/exception.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sql.h"
+#include "spdlog/fmt/fmt.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::execution::sql {

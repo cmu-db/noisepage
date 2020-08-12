@@ -1,6 +1,7 @@
 // Perform parallel scan
 
 struct State {
+    execCtx : *ExecutionContext
     count : uint32
 }
 
@@ -10,6 +11,7 @@ struct ThreadState_1 {
 }
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
+    state.execCtx = execCtx
     state.count = 0
 }
 
@@ -34,13 +36,13 @@ fun pipeline1_finalize(qs: *State, ts: *ThreadState_1) -> nil {
     qs.count = qs.count + ts.count
 }
 
-fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator, execCtx : *ExecutionContext) -> nil {
+fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
     var filter = &state.filter
     for (@tableIterAdvance(tvi)) {
         var vpi = @tableIterGetVPI(tvi)
 
         // Filter
-        @filterManagerRunFilters(filter, vpi, execCtx)
+        @filterManagerRunFilters(filter, vpi, query_state.execCtx)
 
         // Count
         for (; @vpiHasNextFiltered(vpi); @vpiAdvanceFiltered(vpi)) {

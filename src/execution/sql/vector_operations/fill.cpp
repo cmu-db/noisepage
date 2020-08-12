@@ -2,6 +2,7 @@
 #include "execution/sql/generic_value.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/util/bit_vector.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::sql {
 

@@ -116,3 +116,37 @@ SELECT * FROM xxx AS x1 JOIN xxx AS x2 ON x1.id = x2.id;
 
 statement ok
 DROP TABLE xxx
+
+statement ok
+CREATE TABLE temp3 (id INT, data INT, time INT)
+
+statement ok
+INSERT INTO temp3 VALUES (1, 10, 100),(2, 20, 200),(3, 30, 300),(4, 40, 400)
+
+query I nosort
+SELECT * FROM temp3 WHERE id=1 OR id=2 OR id=3 OR id=4
+----
+12 values hashing to 2401ff248c34227bb6bde09cfa997e69
+
+query I nosort
+SELECT * FROM temp3 WHERE id=1 AND data=10 AND time=100 OR id=2
+----
+6 values hashing to 1f0a26169aca259a4ca4294d6fd34aa2
+
+query I nosort
+SELECT * FROM temp3 WHERE (id=1 OR data=10 AND time=200) AND (time=100 OR id=2)
+----
+3 values hashing to 09193879dba9ab285e0ad30d0ae5678a
+
+query I nosort
+SELECT * FROM temp3 WHERE (id=2 OR (id=1 AND (time=100 AND data=10))) OR (id=3 AND data=30)
+----
+9 values hashing to 7ff726f07b4ea83a6d55b0edf0fb2581
+
+query I nosort
+SELECT * FROM temp3 WHERE id=1 OR time=300 AND id=3 OR id=4 AND time=200 OR id=2 AND data=20 OR id=5
+----
+9 values hashing to 7ff726f07b4ea83a6d55b0edf0fb2581
+
+statement ok
+DROP TABLE temp3

@@ -84,6 +84,7 @@ BENCHMARKS_TO_RUN = {
     "cuckoomap_benchmark":                  DEFAULT_FAILURE_THRESHOLD,
     "parser_benchmark":                     20,
     "slot_iterator_benchmark":              DEFAULT_FAILURE_THRESHOLD,
+    "varlen_entry_benchmark":               DEFAULT_FAILURE_THRESHOLD,
 }
 
 # The number of threads to use for multi-threaded benchmarks.
@@ -520,14 +521,23 @@ class GBBenchResult(object):
         self.test_name = parts[1]
         self.attrs.add("test_name")
 
-        if len(parts) == 3:
-            # if there is a time type for this benchmark, use it
-            self.time_type = parts[2]
+        # Check whether the last section of the benchmark contains the 
+        # string "manual_time". If it does, then we will use the "real_time" 
+        # measurement. All other benchmarks will just use "cpu_time"
+        if parts[-1] == "manual_time":
+            self.time_type = "real_time"
+        
+        # But it also means that the last section *could be* the arguments for a single 
+        # benchmark invocation. This means that we need to make sure that we include them in
+        # the test name only if there are more than two parts in the fullname, otherwise they will 
+        # just overwrite each others results (which is a bad thing!)
         else:
-            # otherwise use cpu_time
             self.time_type = "cpu_time"
-
+            if len(parts) == 3:
+                self.test_name += "({})".format(parts[-1])
+        
         self.attrs.add("time_type")
+        
         return
 
     def add_timestamp(self, timestamp):
@@ -547,14 +557,7 @@ class GBBenchResult(object):
         """ Return execution time. Elapsed or CPU specified by the
             test.
         """
-        time_map = { "manual_time" : "real_time" }
-
-        time_attr = self.time_type
-        if time_attr in time_map:
-            # convert to desired time type via time_map
-            time_attr = time_map[time_attr]
-
-        return getattr(self, time_attr)
+        return getattr(self, self.time_type)
 
     def get_time_secs(self):
         """ Return execution time, normalized to seconds """
