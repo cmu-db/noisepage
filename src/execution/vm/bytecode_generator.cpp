@@ -1634,15 +1634,15 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::Cosh: {
-      Emitter()->Emit(Bytecode::Cosh, dest, src);
+      GetEmitter()->Emit(Bytecode::Cosh, dest, src);
       break;
     }
     case ast::Builtin::Sinh: {
-      Emitter()->Emit(Bytecode::Sinh, dest, src);
+      GetEmitter()->Emit(Bytecode::Sinh, dest, src);
       break;
     }
     case ast::Builtin::Tanh: {
-      Emitter()->Emit(Bytecode::Tanh, dest, src);
+      GetEmitter()->Emit(Bytecode::Tanh, dest, src);
       break;
     }
     case ast::Builtin::ATan2: {
