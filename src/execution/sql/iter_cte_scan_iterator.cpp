@@ -1,8 +1,7 @@
 
-#include <execution/sql/iter_cte_scan_iterator.h>
+#include "execution/sql/iter_cte_scan_iterator.h"
 
 #include "execution/sql/cte_scan_iterator.h"
-#include "execution/sql/iter_cte_scan_iterator.h"
 
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/deferred_action_manager.h"

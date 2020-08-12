@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "execution/compiler/operator/cte_scan_provider.h"
@@ -69,11 +70,8 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   // Insert into table.
   void GenTableInsert(FunctionBuilder *builder) const;
   ast::Identifier col_types_;
-  std::vector<int> all_types_;
   ast::Identifier insert_pr_;
   std::vector<catalog::col_oid_t> col_oids_;
-  storage::ProjectionMap projection_map_;
-  std::unordered_map<std::string, uint32_t> col_name_to_oid_;
   //  void SetReadOids(FunctionBuilder *builder);
   //  void DeclareReadTVI(FunctionBuilder *builder);
   //  void GenReadTVIClose(FunctionBuilder *builder);
@@ -86,7 +84,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   //  void DeclareSlot(FunctionBuilder *builder);
   //
   //  // var pci = @tableIterGetPCI(&tvi)
-  //  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
+  //  // for (; @pciHasNext(pci); @pciAdvance(pci))n {...}
   //  void GenPCILoop(FunctionBuilder *builder);
   catalog::Schema schema_;
   StateDescriptor::Entry cte_scan_ptr_entry_;
