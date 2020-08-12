@@ -1,5 +1,6 @@
 #pragma once
 
+#include <common/constants.h>
 #include <common/macros.h>
 #include <common/shared_latch.h>
 #include <execution/util/execution_common.h>
@@ -13,7 +14,7 @@ namespace terrier::common {
  * A concurrent Vector of pointers that supports inserts and accesses at an index
  */
 template <class T>
-class ConcurrentPointerVector {
+class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
  public:
   /**
    * ConcurrentPointerVector constuctor
@@ -263,11 +264,15 @@ class ConcurrentPointerVector {
     return static_cast<bool>(reinterpret_cast<uint64_t>(array[i]) >> SHIFT_AMOUNT);
   }
 
+  std::atomic<uint64_t> capacity_ = 0;
+  char buffer1_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
+  std::atomic<uint64_t> claimable_index_ = 0;
+  char buffer2_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
+  std::atomic<uint64_t> first_not_readable_index_ = 0;
+  char buffer3_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
+
+  T **array_ = nullptr;
   std::condition_variable resize_cv_;
-  std::atomic<uint64_t> capacity_;
-  std::atomic<uint64_t> claimable_index_;
-  std::atomic<uint64_t> first_not_readable_index_;
-  T **array_;
   common::SharedLatch array_pointer_latch_;
   std::mutex resize_mutex_;
 };
