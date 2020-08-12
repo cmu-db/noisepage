@@ -144,21 +144,21 @@ TEST_F(FilterManagerTest, AdaptiveCheckTest) {
   auto exec_ctx = MakeExecCtx();
   uint32_t iter = 0;
 
-  // Create a filter that implements: colA < 500 AND colB < 9
+  // Create a filter that implements: colA < 500 AND colB < 7
   FilterManager filter(exec_ctx->GetExecutionSettings(), true, &iter);
   filter.StartNewClause();
   filter.InsertClauseTerms(
       {[](auto exec_ctx, auto vp, auto tids, auto ctx) {
          auto *r = reinterpret_cast<uint32_t *>(ctx);
-         if (*r < 100) std::this_thread::sleep_for(1us);  // Fake a sleep.
+         if (*r < 1000) std::this_thread::sleep_for(250us);  // Fake a sleep.
          const auto val = GenericValue::CreateInteger(500);
          VectorFilterExecutor::SelectLessThanVal(
              reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::A, val, tids);
        },
        [](auto exec_ctx, auto vp, auto tids, auto ctx) {
          auto *r = reinterpret_cast<uint32_t *>(ctx);
-         if (*r > 100) std::this_thread::sleep_for(1us);  // Fake a sleep.
-         const auto val = GenericValue::CreateInteger(9);
+         if (*r >= 1000) std::this_thread::sleep_for(250us);  // Fake a sleep.
+         const auto val = GenericValue::CreateInteger(7);
          VectorFilterExecutor::SelectLessThanVal(
              reinterpret_cast<exec::ExecutionContext *>(exec_ctx)->GetExecutionSettings(), vp, Col::B, val, tids);
        }});
@@ -171,7 +171,7 @@ TEST_F(FilterManagerTest, AdaptiveCheckTest) {
   VectorOps::Generate(vp.GetColumn(Col::B), 0, 1);
 
   for (uint32_t run = 0; run < 2; run++) {
-    for (uint32_t i = 0; i < 100; i++, iter++) {
+    for (uint32_t i = 0; i < 1000; i++, iter++) {
       // Remove any lingering filter.
       vp.Reset(common::Constants::K_DEFAULT_VECTOR_SIZE);
       // Create an iterator and filter it.
