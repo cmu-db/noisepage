@@ -243,17 +243,18 @@ if (TERRIER_BUILD_BENCHMARKS)
 endif ()
 
 # spdlog
+add_definitions(-DSPDLOG_COMPILED_LIB)
 if ("${SPDLOG_HOME}" STREQUAL "")
-    FetchContent_Declare(SPDLOG
-        URL ${SPDLOG_SOURCE_URL})
+    FetchContent_Declare(SPDLOG URL ${SPDLOG_SOURCE_URL})
     FetchContent_MakeAvailable(SPDLOG)
-
     include_directories(SYSTEM "${spdlog_SOURCE_DIR}/include")
-    list(APPEND TERRIER_LINK_LIBS spdlog::spdlog)
+    set_property(TARGET spdlog PROPERTY POSITION_INDEPENDENT_CODE ON)
 else ()
     set(SPDLOG_VENDORED 0)
     find_package(spdlog REQUIRED)
 endif ()
+list(APPEND TERRIER_LINK_LIBS spdlog::spdlog)
+list(APPEND TERRIER_STATIC_LINK_LIBS spdlog::spdlog)
 
 #----------------------------------------------------------------------
 

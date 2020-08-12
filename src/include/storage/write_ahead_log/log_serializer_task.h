@@ -1,6 +1,8 @@
 #pragma once
 
+#include <condition_variable>
 #include <queue>
+#include <thread>
 #include <tuple>
 #include <unordered_map>
 #include <utility>

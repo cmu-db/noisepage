@@ -386,7 +386,8 @@ set(TERRIER_LINK_LIBS
         pg_query)
 
 set(TERRIER_DEPENDENCIES
-        gflags)
+        gflags
+        spdlog::spdlog)
 
 set(TERRIER_TEST_LINK_LIBS
         test_util
