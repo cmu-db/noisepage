@@ -154,6 +154,16 @@ SETTING_int64(
     terrier::settings::Callbacks::NoOp
 )
 
+SETTING_int(
+    extra_float_digits,
+    "Sets the number of digits displayed for floating-point values. (default : 1)",
+    1,
+    -15,
+    3,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     metrics,
     "Metrics sub-system for various components (default: true).",
