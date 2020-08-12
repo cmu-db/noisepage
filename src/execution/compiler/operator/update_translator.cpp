@@ -278,9 +278,6 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
 }
 
 void UpdateTranslator::GenVerifyInsert(FunctionBuilder *builder, ast::Identifier insert_slot) const {
-  //const auto &op = GetPlanAs<planner::UpdatePlanNode>();
-  //const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
-  //const auto &delete_slot = child->GetSlotAddress();
   std::vector<ast::Expr *> update_cascad_args{GetCodeGen()->AddressOf(updater_), GetCodeGen()->AddressOf(insert_slot)};
   auto verify_constraint_call = GetCodeGen()->CallBuiltin(ast::Builtin::UpdateVerify, update_cascad_args);
   auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, verify_constraint_call);
@@ -311,6 +308,14 @@ void UpdateTranslator::GenUpdateCascade(FunctionBuilder *builder) const {
   If success(builder, cond);
   builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
   success.EndIf();
+}
+
+std::vector<catalog::col_oid_t> UpdateTranslator::CollectOids(const catalog::Schema &schema) {
+  std::vector<catalog::col_oid_t> oids;
+  for (const auto &col : schema.GetColumns()) {
+    oids.emplace_back(col.Oid());
+  }
+  return oids;
 }
 
 }  // namespace terrier::execution::compiler
