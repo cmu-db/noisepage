@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include "execution/sql/runtime_types.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::execution::sql {
 

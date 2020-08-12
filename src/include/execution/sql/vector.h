@@ -8,10 +8,9 @@
 #include "common/constants.h"
 #include "common/macros.h"
 #include "execution/sql/generic_value.h"
-#include "execution/sql/sql.h"
 #include "execution/sql/tuple_id_list.h"
+#include "execution/sql/varlen_heap.h"
 #include "execution/util/bit_vector.h"
-#include "execution/util/string_heap.h"
 
 namespace terrier::execution::exec {
 class ExecutionSettings;

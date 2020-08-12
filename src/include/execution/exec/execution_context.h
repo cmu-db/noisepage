@@ -10,6 +10,7 @@
 #include "execution/sql/memory_tracker.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/thread_state_container.h"
+#include "execution/sql/varlen_heap.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"

@@ -4,6 +4,7 @@
 
 #include "common/error/exception.h"
 #include "spdlog/fmt/fmt.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {

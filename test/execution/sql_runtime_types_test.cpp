@@ -1,6 +1,7 @@
 #include "common/error/exception.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/tpl_test.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::execution::sql::test {
 

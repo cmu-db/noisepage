@@ -5,6 +5,11 @@
 
 #include "common/macros.h"
 #include "execution/sql/runtime_types.h"
+#include "type/type_id.h"
+
+namespace terrier::storage {
+class VarlenEntry;
+}  // namespace terrier::storage
 
 namespace terrier::execution::sql {
 
