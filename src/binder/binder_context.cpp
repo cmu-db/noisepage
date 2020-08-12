@@ -120,14 +120,15 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
 
-void BinderContext::AddCTETable(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &table_name,
+void BinderContext::AddCTETable(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                const std::string &table_name,
                                 const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
                                 const std::vector<std::string> &col_aliases) {
-  if(regular_table_alias_map_.find(table_name) != regular_table_alias_map_.end()){
+  if (regular_table_alias_map_.find(table_name) != regular_table_alias_map_.end()) {
     throw BINDER_EXCEPTION("Duplicate cte table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
   }
   std::vector<catalog::Schema::Column> schema_columns;
-  for(size_t i = 0;i < col_aliases.size();i++){
+  for (size_t i = 0; i < col_aliases.size(); i++) {
     catalog::Schema::Column col(col_aliases[i], select_list[i]->GetReturnValueType(), false,
                                 parser::ConstantValueExpression(select_list[i]->GetReturnValueType()),
                                 TEMP_OID(catalog::col_oid_t, i));
@@ -135,9 +136,9 @@ void BinderContext::AddCTETable(common::ManagedPointer<catalog::CatalogAccessor>
   }
 
   catalog::Schema cte_schema(schema_columns);
-  regular_table_alias_map_[table_name] = TableMetadata(TEMP_OID(catalog::db_oid_t, catalog::NULL_OID),
-                                                    TEMP_OID(catalog::table_oid_t, accessor->GetNewTempOid()),
-                                                    schema_columns);
+  regular_table_alias_map_[table_name] =
+      TableMetadata(TEMP_OID(catalog::db_oid_t, catalog::NULL_OID),
+                    TEMP_OID(catalog::table_oid_t, accessor->GetNewTempOid()), schema_columns);
 }
 
 void BinderContext::AddCTETableAlias(const std::string &cte_table_name, const std::string &table_alias) {
@@ -147,8 +148,7 @@ void BinderContext::AddCTETableAlias(const std::string &cte_table_name, const st
 
   if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
       nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
-    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str(),
-                           common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
+    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str(), common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
   // Find schema for CTE table in nested_table_map in this context or previous contexts
@@ -196,8 +196,7 @@ void BinderContext::SetTableName(common::ManagedPointer<parser::ColumnValueExpre
     auto expr_table_name = expr->GetTableName();
     if (expr_table_name.empty()) {
       expr->SetTableName(table_alias);
-    }
-    else if (expr_table_name != table_alias) {
+    } else if (expr_table_name != table_alias) {
       throw BINDER_EXCEPTION(fmt::format("missing FROM-clause entry for table \"{}\"", expr_table_name),
                              common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
     }
@@ -292,7 +291,6 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
-
   std::unordered_set<std::string> constituent_table_aliases;
   for (auto &stmt : parse_result->GetStatements()) {
     if (stmt->GetType() == parser::StatementType::SELECT) {

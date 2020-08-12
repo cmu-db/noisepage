@@ -1,7 +1,7 @@
 #include "execution/compiler/operator/cte_scan_leader_translator.h"
 #include "execution/compiler/codegen.h"
-#include "execution/compiler/function_builder.h"
 #include "execution/compiler/compilation_context.h"
+#include "execution/compiler/function_builder.h"
 #include "execution/compiler/work_context.h"
 #include "parser/expression/constant_value_expression.h"
 //
@@ -14,27 +14,25 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode 
       op_(&plan),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
-      build_pipeline_(this, Pipeline::Parallelism::Parallel){
+      build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-  cte_scan_val_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(GetCodeGen(),
-                                                                                op_->GetCTETableName() + "val",
-                                                                                cte_type);
-  cte_scan_ptr_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(GetCodeGen(),
-                                                                                op_->GetCTETableName() + "ptr",
-                                                                                GetCodeGen()->PointerType(cte_type));
+  cte_scan_val_entry_ =
+      compilation_context->GetQueryState()->DeclareStateEntry(GetCodeGen(), op_->GetCTETableName() + "val", cte_type);
+  cte_scan_ptr_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
+      GetCodeGen(), op_->GetCTETableName() + "ptr", GetCodeGen()->PointerType(cte_type));
 
   pipeline->LinkSourcePipeline(&build_pipeline_);
   compilation_context->Prepare(*(op_->GetChild(0)), &build_pipeline_);
 }
 
 void CteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) const {
-ast::Expr *cte_free_call =
-    GetCodeGen()->CallBuiltin(ast::Builtin::CteScanFree, {cte_scan_ptr_entry_.Get(GetCodeGen())});
-function->Append(GetCodeGen()->MakeStmt(cte_free_call));
+  ast::Expr *cte_free_call =
+      GetCodeGen()->CallBuiltin(ast::Builtin::CteScanFree, {cte_scan_ptr_entry_.Get(GetCodeGen())});
+  function->Append(GetCodeGen()->MakeStmt(cte_free_call));
 }
 
 void CteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
-  if(&context->GetPipeline() != &build_pipeline_){
+  if (&context->GetPipeline() != &build_pipeline_) {
     context->Push(function);
     return;
   }
@@ -55,15 +53,12 @@ void CteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) c
   auto codegen = GetCodeGen();
   SetColumnTypes(builder);
   // Call @cteScanIteratorInit
-  ast::Expr *cte_scan_iterator_setup = codegen->CteScanIteratorInit(cte_scan_val_entry_.GetPtr(codegen),
-                                                                    GetPlanAs<planner::CteScanPlanNode>().GetTableOid(),
-                                                                    col_types_,
-                                                                    GetCompilationContext()->
-                                                                    GetExecutionContextPtrFromQueryState());
+  ast::Expr *cte_scan_iterator_setup = codegen->CteScanIteratorInit(
+      cte_scan_val_entry_.GetPtr(codegen), GetPlanAs<planner::CteScanPlanNode>().GetTableOid(), col_types_,
+      GetCompilationContext()->GetExecutionContextPtrFromQueryState());
   builder->Append(codegen->MakeStmt(cte_scan_iterator_setup));
 
-  ast::Stmt *pointer_setup = codegen->Assign(cte_scan_ptr_entry_.Get(codegen),
-                                              cte_scan_val_entry_.GetPtr(codegen));
+  ast::Stmt *pointer_setup = codegen->Assign(cte_scan_ptr_entry_.Get(codegen), cte_scan_val_entry_.GetPtr(codegen));
   builder->Append(pointer_setup);
 }
 
@@ -86,9 +81,7 @@ void CteScanLeaderTranslator::InitializeQueryState(FunctionBuilder *function) co
   DeclareCteScanIterator(function);
 }
 
-ast::Expr *CteScanLeaderTranslator::GetCteScanPtr(CodeGen *codegen) const {
-  return cte_scan_ptr_entry_.Get(codegen);
-}
+ast::Expr *CteScanLeaderTranslator::GetCteScanPtr(CodeGen *codegen) const { return cte_scan_ptr_entry_.Get(codegen); }
 
 void CteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr : *ProjectedRow
@@ -100,8 +93,7 @@ void CteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::Func
 void CteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
   auto codegen = GetCodeGen();
-  auto get_pr_call = codegen->CallBuiltin(ast::Builtin::CteScanGetInsertTempTablePR,
-                                          {GetCteScanPtr(codegen)});
+  auto get_pr_call = codegen->CallBuiltin(ast::Builtin::CteScanGetInsertTempTablePR, {GetCteScanPtr(codegen)});
   builder->Append(codegen->Assign(codegen->MakeExpr(insert_pr_), get_pr_call));
 }
 
@@ -109,8 +101,7 @@ void CteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) const {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto codegen = GetCodeGen();
   auto insert_slot = codegen->MakeFreshIdentifier("insert_slot");
-  auto insert_call = codegen->CallBuiltin(ast::Builtin::CteScanTableInsert,
-                                          {GetCteScanPtr(codegen)});
+  auto insert_call = codegen->CallBuiltin(ast::Builtin::CteScanTableInsert, {GetCteScanPtr(codegen)});
   builder->Append(codegen->DeclareVar(insert_slot, nullptr, insert_call));
 }
 
@@ -125,7 +116,7 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
     // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
     // Right now it is only Non Null
     auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
-                                       !EXTRACT_OID(catalog::col_oid_t, table_col_oid), val, true);
+                                      !EXTRACT_OID(catalog::col_oid_t, table_col_oid), val, true);
     builder->Append(codegen->MakeStmt(pr_set_call));
   }
 }

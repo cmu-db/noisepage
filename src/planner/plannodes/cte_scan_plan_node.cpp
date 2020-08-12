@@ -5,6 +5,4 @@
 
 #include "common/hash_util.h"
 
-namespace terrier::planner {
-
-}  // namespace terrier::planner
+namespace terrier::planner {}  // namespace terrier::planner

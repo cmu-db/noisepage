@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "catalog/schema.h"
-#include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 
 namespace terrier::planner {
 
@@ -75,12 +75,12 @@ class CteScanPlanNode : public SeqScanPlanNode {
      */
     std::unique_ptr<CteScanPlanNode> Build() {
       std::vector<catalog::col_oid_t> col_oids;
-      for(auto &col : table_schema_.GetColumns()){
+      for (auto &col : table_schema_.GetColumns()) {
         col_oids.push_back(col.Oid());
       }
-      return std::unique_ptr<CteScanPlanNode>(new CteScanPlanNode(std::move(cte_table_name_),
-          std::move(children_), std::move(output_schema_), is_leader_, table_oid_, std::move(table_schema_), cte_type_,
-                                                                  std::move(col_oids),scan_predicate_));
+      return std::unique_ptr<CteScanPlanNode>(
+          new CteScanPlanNode(std::move(cte_table_name_), std::move(children_), std::move(output_schema_), is_leader_,
+                              table_oid_, std::move(table_schema_), cte_type_, std::move(col_oids), scan_predicate_));
     }
 
    private:
@@ -99,17 +99,15 @@ class CteScanPlanNode : public SeqScanPlanNode {
    */
   CteScanPlanNode(std::string &&cte_table_name, std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, bool is_leader, catalog::table_oid_t table_oid,
-                  catalog::Schema table_schema, parser::CTEType cte_type,
-                  std::vector<catalog::col_oid_t> &&column_oids,
+                  catalog::Schema table_schema, parser::CTEType cte_type, std::vector<catalog::col_oid_t> &&column_oids,
                   common::ManagedPointer<parser::AbstractExpression> scan_predicate)
-      : SeqScanPlanNode(std::move(children), std::move(output_schema), scan_predicate, std::move(column_oids),
-                        false, TEMP_OID(catalog::db_oid_t, (!catalog::INVALID_DATABASE_OID)),
-                        table_oid, 0, false, 0, false),
+      : SeqScanPlanNode(std::move(children), std::move(output_schema), scan_predicate, std::move(column_oids), false,
+                        TEMP_OID(catalog::db_oid_t, (!catalog::INVALID_DATABASE_OID)), table_oid, 0, false, 0, false),
         cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
         cte_type_(cte_type),
         table_schema_(std::move(table_schema)) {
-    if(is_leader_){
+    if (is_leader_) {
       leader_ = this;
     }
   }
@@ -125,8 +123,9 @@ class CteScanPlanNode : public SeqScanPlanNode {
   /**
    * @return the type of this plan node
    */
-  PlanNodeType GetPlanNodeType() const override { return is_leader_ ? PlanNodeType::CTESCANLEADER :
-                                                                    PlanNodeType::CTESCAN; }
+  PlanNodeType GetPlanNodeType() const override {
+    return is_leader_ ? PlanNodeType::CTESCANLEADER : PlanNodeType::CTESCAN;
+  }
 
   /**
    * @return the hashed value of this plan node
@@ -173,9 +172,7 @@ class CteScanPlanNode : public SeqScanPlanNode {
     return common::ManagedPointer(&table_schema_);
   }
 
-  const std::string &GetCTETableName() const {
-    return cte_table_name_;
-  }
+  const std::string &GetCTETableName() const { return cte_table_name_; }
 
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;

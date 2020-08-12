@@ -35,9 +35,9 @@ TEST_F(IterCTEScanTest, IterCTEEmptyAccumulateTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
-                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
-                                                        cte_table_col_type, 1, false};
+  terrier::execution::sql::IterCteScanIterator cte_scan{
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      false};
   EXPECT_FALSE(cte_scan.Accumulate());
 
   TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
@@ -76,9 +76,9 @@ TEST_F(IterCTEScanTest, IterCTESingleInsertTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
-                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
-                                                        cte_table_col_type, 1, false};
+  terrier::execution::sql::IterCteScanIterator cte_scan{
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
   int32_t lo_match = 1;
@@ -140,9 +140,9 @@ TEST_F(IterCTEScanTest, IterCTEWriteTableTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
-                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
-                                                        cte_table_col_type, 1, false};
+  terrier::execution::sql::IterCteScanIterator cte_scan{
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
   int32_t lo_match = 1;
@@ -204,9 +204,9 @@ TEST_F(IterCTEScanTest, IterCTEDoubleAccumulateTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
-                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
-                                                        cte_table_col_type, 1, false};
+  terrier::execution::sql::IterCteScanIterator cte_scan{
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
   int32_t lo_match = 1;
@@ -275,9 +275,9 @@ TEST_F(IterCTEScanTest, IterCTEMultipleInsertTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
-                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
-                                                        cte_table_col_type, 1, false};
+  terrier::execution::sql::IterCteScanIterator cte_scan{
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
   int32_t first_lo_match = 1;

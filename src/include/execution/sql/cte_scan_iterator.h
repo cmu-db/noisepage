@@ -18,8 +18,7 @@ class EXPORT CteScanIterator {
    */
 
   CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
-                  uint32_t *schema_cols_type,
-                  uint32_t num_schema_cols);
+                  uint32_t *schema_cols_type, uint32_t num_schema_cols);
 
   /**
    * Returns the temporary table that the cte has made

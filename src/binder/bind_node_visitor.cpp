@@ -454,7 +454,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BinderContext context(context_);
   context_ = common::ManagedPointer(&context);
 
-  for(auto &ref : node->GetSelectWith()){
+  for (auto &ref : node->GetSelectWith()) {
     // Store CTE table name
     cte_table_name_.push_back(ref->GetAlias());
 
@@ -468,7 +468,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       if (num_aliases > num_columns) {
         throw BINDER_EXCEPTION(("WITH query " + cte_table_name_.back() + " has " + std::to_string(num_columns) +
                                 " columns available but " + std::to_string(num_aliases) + " specified")
-                                   .c_str(), common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
+                                   .c_str(),
+                               common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
       }
       for (size_t i = 0; i < num_aliases; i++) {
         columns[i]->SetAlias(column_aliases[i]);
@@ -477,8 +478,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
         columns[i]->SetAlias("?column?");
       }
 
-      if ((ref->GetCteType() == parser::CTEType::ITERATIVE) ||
-          (ref->GetCteType() == parser::CTEType::RECURSIVE)) {
+      if ((ref->GetCteType() == parser::CTEType::ITERATIVE) || (ref->GetCteType() == parser::CTEType::RECURSIVE)) {
         // get schema
         auto union_larg = ref->GetSelect();
         auto base_case = union_larg->GetUnionSelect();
@@ -813,8 +813,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
 
-    if (!((node->GetCteType() == parser::CTEType::ITERATIVE) ||
-        (node->GetCteType() == parser::CTEType::RECURSIVE))) {
+    if (!((node->GetCteType() == parser::CTEType::ITERATIVE) || (node->GetCteType() == parser::CTEType::RECURSIVE))) {
       // Add the table to the current context at the end
       // In the case of iterative/recursive CTEs, this was done earlier
       context_->AddCTETable(catalog_accessor_, node->GetAlias(), node->GetSelect()->GetSelectColumns(),
@@ -836,7 +835,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
         context_->AddCTETableAlias(node->GetTableName(), node->GetAlias());
       } else {
         throw BINDER_EXCEPTION(fmt::format("relation \"{}\" does not exist", node->GetTableName()),
-                             common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+                               common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
       }
     } else {
       context_->AddRegularTable(catalog_accessor_, node, db_oid_);

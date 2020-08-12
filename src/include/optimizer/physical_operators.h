@@ -2122,9 +2122,7 @@ class CteScan : public OperatorNodeContents<CteScan> {
     return child_expressions_;
   }
 
-  std::vector<AnnotatedExpression> GetScanPredicate() const {
-    return scan_predicate_;
-  }
+  std::vector<AnnotatedExpression> GetScanPredicate() const { return scan_predicate_; }
 
   /**
    * @return the alias of the table to get from
@@ -2139,9 +2137,7 @@ class CteScan : public OperatorNodeContents<CteScan> {
 
   bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
-  const catalog::Schema &GetTableSchema() const {
-    return table_schema_;
-  }
+  const catalog::Schema &GetTableSchema() const { return table_schema_; }
 
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 

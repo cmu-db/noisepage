@@ -377,7 +377,7 @@ class SelectStatement : public SQLStatement {
   /** @return select with */
   std::vector<common::ManagedPointer<TableRef>> GetSelectWith() {
     std::vector<common::ManagedPointer<TableRef>> ret;
-    for(auto &ref : with_table_){
+    for (auto &ref : with_table_) {
       ret.emplace_back(common::ManagedPointer<TableRef>(ref));
     }
     return ret;

@@ -21,17 +21,15 @@ TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint3
 
 TableVectorIterator::~TableVectorIterator() = default;
 
-bool TableVectorIterator::Init() {
-  return Init(0, storage::DataTable::GetMaxBlocks());
-}
+bool TableVectorIterator::Init() { return Init(0, storage::DataTable::GetMaxBlocks()); }
 
 bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
   auto table = exec_ctx_->GetAccessor()->GetTable(table_oid_);
   return Init(table, block_start, block_end);
 }
 
-bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table,
-                               uint32_t block_start, uint32_t block_end) {
+bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, uint32_t block_start,
+                               uint32_t block_end) {
   // No-op if already initialized
   if (IsInitialized()) {
     return true;

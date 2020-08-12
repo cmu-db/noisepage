@@ -9,9 +9,8 @@ parser::ConstantValueExpression DummyCVE() {
   return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
 }
 
-CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t
-                                                                                           table_oid, uint32_t *schema_cols_type,
-                                 uint32_t num_schema_cols)
+CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
+                                 uint32_t *schema_cols_type, uint32_t num_schema_cols)
     : exec_ctx_(exec_ctx), cte_table_oid_(table_oid), table_redo_(nullptr) {
   // Create column metadata for every column.
   std::vector<catalog::Schema::Column> all_columns;
@@ -26,7 +25,7 @@ CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exe
   catalog::Schema cte_table_schema(all_columns);
   cte_table_ = new storage::SqlTable(exec_ctx->GetAccessor()->GetBlockStore(), cte_table_schema);
   exec_ctx->GetAccessor()->RegisterTempTable(table_oid, common::ManagedPointer(cte_table_));
-  
+
   auto cte_table_local = cte_table_;
 
   // We are deferring it in both commit and abort because we need to delete the temp table regardless of transaction

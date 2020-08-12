@@ -1,8 +1,8 @@
 #include "parser/table_ref.h"
 
 #include <memory>
-#include <unordered_set>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 

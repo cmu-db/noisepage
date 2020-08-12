@@ -2052,8 +2052,8 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
             colnames.emplace_back(column);
           }
         }
-        if(colnames.empty()){
-          for(auto &expr : select->GetSelectColumns()){
+        if (colnames.empty()) {
+          for (auto &expr : select->GetSelectColumns()) {
             colnames.push_back(expr->GetAlias());
           }
         }
@@ -2075,6 +2075,6 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
       }
     }
   }
-    return ctes;
+  return ctes;
 }
-}// namespace terrier::parser
+}  // namespace terrier::parser

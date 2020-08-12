@@ -1026,19 +1026,19 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
       idx++;
     }
 
-//    auto op = common::ManagedPointer<planner::AbstractPlanNode>(output_plan_);
-//    while (op != nullptr) {
-//      if (op->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
-//        auto schema = std::make_unique<planner::OutputSchema>(std::move(inner_columns));
-//        auto cte_scan_plan_node = op.CastManagedPointerTo<planner::CteScanPlanNode>();
-//        cte_scan_plan_node->SetTableSchema(std::move(schema));
-//      }
-//      if (op->GetChildrenSize() > 0) {
-//        op = op->GetChildren()[0];
-//      } else {
-//        break;
-//      }
-//    }
+    //    auto op = common::ManagedPointer<planner::AbstractPlanNode>(output_plan_);
+    //    while (op != nullptr) {
+    //      if (op->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
+    //        auto schema = std::make_unique<planner::OutputSchema>(std::move(inner_columns));
+    //        auto cte_scan_plan_node = op.CastManagedPointerTo<planner::CteScanPlanNode>();
+    //        cte_scan_plan_node->SetTableSchema(std::move(schema));
+    //      }
+    //      if (op->GetChildrenSize() > 0) {
+    //        op = op->GetChildren()[0];
+    //      } else {
+    //        break;
+    //      }
+    //    }
 
     std::vector<planner::OutputSchema::Column> columns;
     for (auto &output_expr : output_cols_) {

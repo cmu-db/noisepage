@@ -2,8 +2,8 @@
 
 #include <utility>
 #include <vector>
-#include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/operator/cte_scan_provider.h"
+#include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
 
@@ -20,7 +20,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
    * @param codegen The code generator
    */
   IterCteScanLeaderTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context,
-                          Pipeline *pipeline);
+                              Pipeline *pipeline);
 
   /**
    * If the scan has a predicate, this function will define all clause functions.
@@ -29,10 +29,10 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-     * Get tuples from children and insert into ctescaniterator
-     * @param context The context of the work.
-     * @param function The pipeline generating function.
-     */
+   * Get tuples from children and insert into ctescaniterator
+   * @param context The context of the work.
+   * @param function The pipeline generating function.
+   */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
   ast::Expr *GetCteScanPtr(CodeGen *codegen) const override;
@@ -53,13 +53,13 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
 
  private:
   const planner::CteScanPlanNode *op_;
-//
-//  ast::Identifier GetCteScanIteratorVal();
-//  ast::Identifier GetCteScanIterator();
+  //
+  //  ast::Identifier GetCteScanIteratorVal();
+  //  ast::Identifier GetCteScanIterator();
   // Declare Cte Scan Itarator
   void DeclareCteScanIterator(FunctionBuilder *builder) const;
-//  // Set Column Types for insertion
-//  void SetColumnTypes(FunctionBuilder *builder);
+  //  // Set Column Types for insertion
+  //  void SetColumnTypes(FunctionBuilder *builder);
   // Declare the insert PR
   void DeclareInsertPR(FunctionBuilder *builder) const;
   // Get the pr to insert
@@ -74,20 +74,20 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   std::vector<catalog::col_oid_t> col_oids_;
   storage::ProjectionMap projection_map_;
   std::unordered_map<std::string, uint32_t> col_name_to_oid_;
-//  void SetReadOids(FunctionBuilder *builder);
-//  void DeclareReadTVI(FunctionBuilder *builder);
-//  void GenReadTVIClose(FunctionBuilder *builder);
-//  void DoTableScan(FunctionBuilder *builder);
-//
-//  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
-//  void GenTVILoop(FunctionBuilder *builder);
-//
-//  void DeclarePCI(FunctionBuilder *builder);
-//  void DeclareSlot(FunctionBuilder *builder);
-//
-//  // var pci = @tableIterGetPCI(&tvi)
-//  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
-//  void GenPCILoop(FunctionBuilder *builder);
+  //  void SetReadOids(FunctionBuilder *builder);
+  //  void DeclareReadTVI(FunctionBuilder *builder);
+  //  void GenReadTVIClose(FunctionBuilder *builder);
+  //  void DoTableScan(FunctionBuilder *builder);
+  //
+  //  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
+  //  void GenTVILoop(FunctionBuilder *builder);
+  //
+  //  void DeclarePCI(FunctionBuilder *builder);
+  //  void DeclareSlot(FunctionBuilder *builder);
+  //
+  //  // var pci = @tableIterGetPCI(&tvi)
+  //  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
+  //  void GenPCILoop(FunctionBuilder *builder);
   catalog::Schema schema_;
   StateDescriptor::Entry cte_scan_ptr_entry_;
   StateDescriptor::Entry cte_scan_val_entry_;

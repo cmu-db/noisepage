@@ -173,8 +173,8 @@ class Pipeline {
    */
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
-  std::vector<ast::Expr*> CallSingleRunPipelineFunction() const;
-  std::vector<ast::Expr*> CallRunPipelineFunction() const;
+  std::vector<ast::Expr *> CallSingleRunPipelineFunction() const;
+  std::vector<ast::Expr *> CallRunPipelineFunction() const;
 
  private:
   // Return the thread-local state initialization and tear-down function names.

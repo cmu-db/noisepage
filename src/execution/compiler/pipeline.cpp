@@ -242,22 +242,21 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction(query_id_t query_id) c
   return builder.Finish();
 }
 
-std::vector<ast::Expr*> Pipeline::CallSingleRunPipelineFunction() const {
-    return {codegen_->Call(GetInitPipelineFunctionName(),
-                           {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
-      codegen_->Call(GetRunPipelineFunctionName(),
-                          {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
-            codegen_->Call(GetTeardownPipelineFunctionName(),
-                           {compilation_context_->GetQueryState()->GetStatePointer(codegen_)})};
+std::vector<ast::Expr *> Pipeline::CallSingleRunPipelineFunction() const {
+  return {
+      codegen_->Call(GetInitPipelineFunctionName(), {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
+      codegen_->Call(GetRunPipelineFunctionName(), {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
+      codegen_->Call(GetTeardownPipelineFunctionName(),
+                     {compilation_context_->GetQueryState()->GetStatePointer(codegen_)})};
 }
 
-std::vector<ast::Expr*> Pipeline::CallRunPipelineFunction() const {
-  std::vector<ast::Expr*> calls;
-  std::vector<const Pipeline*> pipelines;
+std::vector<ast::Expr *> Pipeline::CallRunPipelineFunction() const {
+  std::vector<ast::Expr *> calls;
+  std::vector<const Pipeline *> pipelines;
   CollectDependencies(&pipelines);
-  for(auto pipeline : pipelines){
-    if(!pipeline->nested_ || (pipeline == this)) {
-      for(auto call : CallSingleRunPipelineFunction()) {
+  for (auto pipeline : pipelines) {
+    if (!pipeline->nested_ || (pipeline == this)) {
+      for (auto call : CallSingleRunPipelineFunction()) {
         calls.push_back(call);
       }
     }
@@ -341,8 +340,7 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_i
   builder->DeclareFunction(teardown);
 
   // Register the main init, run, tear-down functions as steps, in that order.
-  if(!nested_){
-
+  if (!nested_) {
     builder->RegisterStep(GenerateInitPipelineFunction());
 
     builder->RegisterStep(GenerateRunPipelineFunction());

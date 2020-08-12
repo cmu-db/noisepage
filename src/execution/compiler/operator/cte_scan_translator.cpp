@@ -18,8 +18,7 @@ parser::ConstantValueExpression DummyCVE() {
 CteScanTranslator::CteScanTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
     : SeqScanTranslator(plan, compilation_context, pipeline) {
-
-  if(plan.GetChildrenSize() > 0){
+  if (plan.GetChildrenSize() > 0) {
     compilation_context->Prepare(*(plan.GetChild(0)), pipeline);
   }
 }

@@ -1994,13 +1994,9 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
 
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
-  std::vector<AnnotatedExpression> GetScanPredicate() const {
-    return scan_predicate_;
-  }
+  std::vector<AnnotatedExpression> GetScanPredicate() const { return scan_predicate_; }
 
-  const catalog::Schema &GetTableSchema() const {
-    return table_schema_;
-  }
+  const catalog::Schema &GetTableSchema() const { return table_schema_; }
 
  private:
   /**

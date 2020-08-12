@@ -88,7 +88,7 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
     }
     return table_ptr;
   }
-  if(UNLIKELY(IS_TEMP_OID(table))){
+  if (UNLIKELY(IS_TEMP_OID(table))) {
     return temp_tables_.find(table)->second;
   }
   return dbc_->GetTable(txn_, table);

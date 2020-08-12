@@ -60,7 +60,7 @@ namespace terrier::execution::ast {
   F(CteScanTableInsert, cteScanTableInsert)                             \
   F(CteScanFree, cteScanFree)                                           \
                                                                         \
-/*Iterative Cte Scans*/                                                 \
+  /*Iterative Cte Scans*/                                               \
   F(IterCteScanInit, iterCteScanInit)                                   \
   F(IterCteScanGetResult, iterCteScanGetResult)                         \
   F(IterCteScanGetReadCte, iterCteScanGetReadCte)                       \

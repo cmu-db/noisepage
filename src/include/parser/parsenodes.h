@@ -198,7 +198,7 @@ using WithClause = struct WithClause {
   NodeTag type_;
   List *ctes_;     /* list of CommonTableExprs */
   bool recursive_; /* true = WITH RECURSIVE OR WITH ITERATIVE*/
-  bool iterative_;  /* true = WITH ITERATIVE */
+  bool iterative_; /* true = WITH ITERATIVE */
   int location_;   /* token location, or -1 if unknown */
 };
 

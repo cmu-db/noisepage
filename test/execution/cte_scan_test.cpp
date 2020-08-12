@@ -33,9 +33,9 @@ TEST_F(CTEScanTest, CTEInitTest) {
 
   uint32_t cte_table_col_type[4] = {5, 4, 3, 9};  // {BIGINT, INTEGER, SMALLINT, VARCHAR}
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
-                                                                                         exec_ctx_->GetAccessor()->GetNewTempOid()),
-                                                               cte_table_col_type, 4);
+  auto cte_scan = new terrier::execution::sql::CteScanIterator(
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type,
+      4);
 
   auto cte_table = cte_scan->GetTable();
 
@@ -81,9 +81,9 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
-                                                                                         exec_ctx_->GetAccessor()->GetNewTempOid()),
-                                                               cte_table_col_type, 1);
+  auto cte_scan = new terrier::execution::sql::CteScanIterator(
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type,
+      1);
 
   auto cte_table = cte_scan->GetTable();
 
@@ -144,10 +144,9 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(),
-                                                               TEMP_OID(catalog::table_oid_t,
-                                                                        exec_ctx_->GetAccessor()->GetNewTempOid()),
-                                                               cte_table_col_type, 1);
+  auto cte_scan = new terrier::execution::sql::CteScanIterator(
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type,
+      1);
 
   auto cte_table = cte_scan->GetTable();
 

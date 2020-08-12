@@ -450,18 +450,15 @@ TEST(OperatorTests, LogicalCteScanTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_cte_1 =
-      LogicalCteScan::Make("cte_1", TEMP_OID(catalog::table_oid_t, 1000),  catalog::Schema(),
-                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_1}},
-                           parser::CTEType::SIMPLE, {});
-  Operator logical_cte_2 =
-      LogicalCteScan::Make("cte_1", TEMP_OID(catalog::table_oid_t, 1001), catalog::Schema(),
-                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_2}},
-                           parser::CTEType::SIMPLE,{});
-  Operator logical_cte_3 =
-      LogicalCteScan::Make("cte_2", TEMP_OID(catalog::table_oid_t, 1002), catalog::Schema(),
-                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_3}},
-                           parser::CTEType::SIMPLE, {});
+  Operator logical_cte_1 = LogicalCteScan::Make(
+      "cte_1", TEMP_OID(catalog::table_oid_t, 1000), catalog::Schema(),
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_1}}, parser::CTEType::SIMPLE, {});
+  Operator logical_cte_2 = LogicalCteScan::Make(
+      "cte_1", TEMP_OID(catalog::table_oid_t, 1001), catalog::Schema(),
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_2}}, parser::CTEType::SIMPLE, {});
+  Operator logical_cte_3 = LogicalCteScan::Make(
+      "cte_2", TEMP_OID(catalog::table_oid_t, 1002), catalog::Schema(),
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_3}}, parser::CTEType::SIMPLE, {});
 
   EXPECT_EQ(logical_cte_1.GetOpType(), OpType::LOGICALCTESCAN);
   EXPECT_EQ(logical_cte_3.GetOpType(), OpType::LOGICALCTESCAN);

@@ -46,8 +46,8 @@ bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<Abs
   bool is_added = false;
 
   // TODO(preetang): Replace explicit string usage for operator name with reference to constant string
-  if (child_expr->Contents()->GetOpType() == OpType::LOGICALCTESCAN
-      && (child_expr->Contents()->GetContentsAs<LogicalCteScan>()->GetTableAlias() == cte_table_name)) {
+  if (child_expr->Contents()->GetOpType() == OpType::LOGICALCTESCAN &&
+      (child_expr->Contents()->GetContentsAs<LogicalCteScan>()->GetTableAlias() == cte_table_name)) {
     // Leftmost LogicalCteScan found in tree
     child_expr->PushChild(std::move(output_expr_));
     is_added = true;
@@ -82,7 +82,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       cte_oids_.push_back(oid);
 
       std::vector<type::TypeId> col_types;
-      for(uint32_t i = 0;i < with->GetCteColumnAliases().size();i++){
+      for (uint32_t i = 0; i < with->GetCteColumnAliases().size(); i++) {
         col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
       }
       cte_schemas_.emplace_back(catalog::Schema(with->GetCteColumnAliases(), col_types));
@@ -95,8 +95,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
       master_expressions.push_back(std::move(expressions));
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(with->GetAlias(), oid, catalog::Schema(with->GetCteColumnAliases(), col_types),
-                                                                 {}, with->GetCteType(), {}),
+          LogicalCteScan::Make(with->GetAlias(), oid, catalog::Schema(with->GetCteColumnAliases(), col_types), {},
+                               with->GetCteType(), {}),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       cte_scan_expr->PushChild(std::move(output_expr_));
       output_expr_ = std::move(cte_scan_expr);
@@ -224,7 +224,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       // Add CTE table query to first LogicalCteScan found in tree
       // TODO(tanujnay112) think about this more, there might be a better way
       FindFirstCTEScanNode(common::ManagedPointer(child_expr).CastManagedPointerTo<AbstractOptimizerNode>(),
-          with->GetAlias());
+                           with->GetAlias());
     }
 
     // Replace the complete logical tree back
@@ -364,16 +364,16 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
       auto index = std::distance(cte_table_name_.begin(), it);
       std::vector<type::TypeId> col_types;
 
-      auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias(), cte_oids_[index],
-                               cte_schemas_[index], cte_expressions_[index], cte_type_[index], {}).RegisterWithTxnContext(txn_context),
-          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+      auto cte_scan_expr =
+          std::make_unique<OperatorNode>(LogicalCteScan::Make(node->GetAlias(), cte_oids_[index], cte_schemas_[index],
+                                                              cte_expressions_[index], cte_type_[index], {})
+                                             .RegisterWithTxnContext(txn_context),
+                                         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {
       // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
       output_expr_ = std::make_unique<OperatorNode>(
-          LogicalGet::Make(db_oid_, accessor_->GetTableOid(node->GetTableName()), {},
-                           node->GetAlias(), false)
+          LogicalGet::Make(db_oid_, accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), false)
               .RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     }

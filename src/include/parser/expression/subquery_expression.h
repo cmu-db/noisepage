@@ -37,7 +37,7 @@ class SubqueryExpression : public AbstractExpression {
     auto order_by = subselect_->GetSelectOrderBy() == nullptr ? nullptr : subselect_->GetSelectOrderBy()->Copy();
     auto limit = subselect_->GetSelectLimit() == nullptr ? nullptr : subselect_->GetSelectLimit()->Copy();
     std::vector<std::unique_ptr<TableRef>> with;
-    for(auto &ref : subselect_->GetSelectWith()){
+    for (auto &ref : subselect_->GetSelectWith()) {
       with.push_back(ref->Copy());
     }
 

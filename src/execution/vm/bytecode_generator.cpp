@@ -667,7 +667,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       // Emit the initialization codes
       UNUSED_ATTRIBUTE LocalVar dummy_oid = LocalVar();
       GetEmitter()->EmitTempTableIterInit(Bytecode::TempTableVectorIteratorInit, iter, exec_ctx, col_oids,
-                                   static_cast<uint32_t>(arr_type->GetLength()));
+                                          static_cast<uint32_t>(arr_type->GetLength()));
       GetEmitter()->Emit(Bytecode::TempTableVectorIteratorPerformInit, iter, cte_scan_iterator);
       break;
     }
@@ -3300,7 +3300,7 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
       // Emit the initialization codes
       GetEmitter()->EmitCteScanIteratorInit(Bytecode::CteScanInit, iterator, exec_ctx, table_oid, col_oids,
-                                         static_cast<uint32_t>(arr_type->GetLength()));
+                                            static_cast<uint32_t>(arr_type->GetLength()));
       break;
     }
     case ast::Builtin::CteScanGetInsertTempTablePR: {
@@ -3336,7 +3336,7 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       bool is_recursive = call->Arguments()[4]->As<ast::LitExpr>()->BoolVal();
       // Emit the initialization codes
       GetEmitter()->EmitIterCteScanIteratorInit(Bytecode::IterCteScanInit, iterator, exec_ctx, table_oid, col_oids,
-                                         static_cast<uint32_t>(arr_type->GetLength()), is_recursive);
+                                                static_cast<uint32_t>(arr_type->GetLength()), is_recursive);
       break;
     }
     case ast::Builtin::IterCteScanGetResult: {

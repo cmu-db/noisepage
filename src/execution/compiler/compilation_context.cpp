@@ -281,9 +281,9 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     }
     case planner::PlanNodeType::CTESCANLEADER: {
       const auto &cte_scan_leader = dynamic_cast<const planner::CteScanPlanNode &>(plan);
-      if(cte_scan_leader.GetIsInductive()){
+      if (cte_scan_leader.GetIsInductive()) {
         translator = std::make_unique<IterCteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
-      }else {
+      } else {
         translator = std::make_unique<CteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
       }
       break;

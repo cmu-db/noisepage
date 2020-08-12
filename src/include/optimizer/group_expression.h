@@ -147,7 +147,7 @@ class GroupExpression {
    */
   bool operator==(const GroupExpression &r) {
     return (*contents_ == *(r.contents_)) && (child_groups_ == r.child_groups_) &&
-        ((group_id_ == UNDEFINED_GROUP) || (r.group_id_ == UNDEFINED_GROUP) || (r.group_id_ == group_id_));
+           ((group_id_ == UNDEFINED_GROUP) || (r.group_id_ == UNDEFINED_GROUP) || (r.group_id_ == group_id_));
   }
 
   /**

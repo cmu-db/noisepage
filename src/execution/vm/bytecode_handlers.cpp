@@ -51,8 +51,7 @@ void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->~V
 // ---------------------------------------------------------
 
 void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter, terrier::execution::exec::ExecutionContext *exec_ctx,
-                   uint32_t table_oid,
-                   uint32_t *schema_cols_type, uint32_t num_schema_cols) {
+                   uint32_t table_oid, uint32_t *schema_cols_type, uint32_t num_schema_cols) {
   new (iter) terrier::execution::sql::CteScanIterator(exec_ctx, terrier::catalog::table_oid_t(table_oid),
                                                       schema_cols_type, num_schema_cols);
 }
@@ -82,19 +81,18 @@ void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter) { iter->~CteS
 
 void OpIterCteScanInit(terrier::execution::sql::IterCteScanIterator *iter,
                        terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
-                       uint32_t *schema_cols_type,
-                       uint32_t num_schema_cols, bool is_recursive) {
+                       uint32_t *schema_cols_type, uint32_t num_schema_cols, bool is_recursive) {
   new (iter) terrier::execution::sql::IterCteScanIterator(exec_ctx, terrier::catalog::table_oid_t(table_oid),
                                                           schema_cols_type, num_schema_cols, is_recursive);
 }
 
 void OpIterCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
-                               terrier::execution::sql::IterCteScanIterator *iter) {
+                             terrier::execution::sql::IterCteScanIterator *iter) {
   *sql_table = iter->GetReadCte();
 }
 
 void OpIterCteScanGetWriteCte(terrier::execution::sql::CteScanIterator **sql_table,
-                                terrier::execution::sql::IterCteScanIterator *iter) {
+                              terrier::execution::sql::IterCteScanIterator *iter) {
   *sql_table = iter->GetWriteCte();
 }
 

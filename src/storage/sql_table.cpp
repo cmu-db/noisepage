@@ -89,11 +89,11 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
 void SqlTable::Reset() { table_.data_table_->Reset(); }
 
 void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionContext> txn,
-                         const common::ManagedPointer<SqlTable> src){
-//  uint32_t filled = 0;
+                         const common::ManagedPointer<SqlTable> src) {
+  //  uint32_t filled = 0;
   auto it = src->begin();
   std::vector<catalog::col_oid_t> col_oids;
-  for(auto &cols : table_.column_map_){
+  for (auto &cols : table_.column_map_) {
     col_oids.push_back(cols.first);
   }
   auto pr_init = InitializerForProjectedRow(col_oids);
@@ -102,33 +102,33 @@ void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionCo
   while (it != src->end()) {
     const TupleSlot slot = *it;
     // Only fill the buffer with valid, visible tuples
-    if(!src->Select(txn, slot, projected_row)){
+    if (!src->Select(txn, slot, projected_row)) {
       it++;
       continue;
     }
 
-    //TODO(tanujnay112) I don't like how I have to hardcode this
-    auto *redo = txn->StageWrite(catalog::db_oid_t(999), catalog::table_oid_t (999), pr_init);
+    // TODO(tanujnay112) I don't like how I have to hardcode this
+    auto *redo = txn->StageWrite(catalog::db_oid_t(999), catalog::table_oid_t(999), pr_init);
     auto *new_pr = redo->Delta();
     auto pr_map = ProjectionMapForOids(col_oids);
-    for(auto &cols : table_.column_map_){
+    for (auto &cols : table_.column_map_) {
       auto offset = pr_map[cols.first];
       auto new_pr_ptr = new_pr->AccessForceNotNull(offset);
       auto src_ptr = projected_row->AccessWithNullCheck(offset);
-      if(src_ptr == nullptr){
+      if (src_ptr == nullptr) {
         new_pr->SetNull(offset);
         continue;
       }
       std::memcpy(new_pr_ptr, src_ptr, table_.layout_.AttrSize(cols.second.col_id_));
 
       // copy over varlens contents
-      if(table_.layout_.IsVarlen(cols.second.col_id_)){
-        auto varlen = reinterpret_cast<storage::VarlenEntry*>(src_ptr);
-        if(varlen->NeedReclaim()){
+      if (table_.layout_.IsVarlen(cols.second.col_id_)) {
+        auto varlen = reinterpret_cast<storage::VarlenEntry *>(src_ptr);
+        if (varlen->NeedReclaim()) {
           byte *new_allocation = new byte[varlen->Size()];
           std::memcpy(new_allocation, varlen->Content(), varlen->Size());
           auto new_varlen = VarlenEntry::Create(new_allocation, varlen->Size(), true);
-          *reinterpret_cast<storage::VarlenEntry*>(new_pr_ptr) = new_varlen;
+          *reinterpret_cast<storage::VarlenEntry *>(new_pr_ptr) = new_varlen;
         }
       }
     }

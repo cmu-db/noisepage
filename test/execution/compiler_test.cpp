@@ -2133,10 +2133,7 @@ TEST_F(CompilerTest, CTEBasicTest) {
     auto schema = cte_scan_out.MakeSchema();
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .AddChild(std::move(seq_scan))
-                   .SetLeader(true)
-                   .Build();
+    cte_scan = builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
   }
 
   uint32_t num_output_rows{0};
@@ -2215,10 +2212,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
     auto schema = cte_scan_out.MakeSchema();
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .AddChild(std::move(seq_scan))
-                   .SetLeader(true)
-                   .Build();
+    cte_scan = builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> cte_scan2;
@@ -2234,9 +2228,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan2 = builder.SetOutputSchema(std::move(schema))
-                    .SetLeader(false)
-                    .Build();
+    cte_scan2 = builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
   }
 
   // Make nested loop join
@@ -2362,10 +2354,7 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .AddChild(std::move(seq_scan))
-                   .SetLeader(true)
-                   .Build();
+    cte_scan = builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> cte_scan2;
@@ -2382,9 +2371,7 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan2 = builder.SetOutputSchema(std::move(schema))
-                    .SetLeader(false)
-                    .Build();
+    cte_scan2 = builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
   }
 
   // Make hash join
@@ -2512,10 +2499,7 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .AddChild(std::move(seq_scan))
-                   .SetLeader(true)
-                   .Build();
+    cte_scan = builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> cte_scan2;
@@ -2531,9 +2515,7 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan2 = builder.SetOutputSchema(std::move(schema))
-                    .SetLeader(false)
-                    .Build();
+    cte_scan2 = builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> cte_scan3;
@@ -2549,9 +2531,7 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan3 = builder.SetOutputSchema(std::move(schema))
-                    .SetLeader(false)
-                    .Build();
+    cte_scan3 = builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
   }
 
   // Make hash join
@@ -2741,10 +2721,7 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan = builder.SetOutputSchema(std::move(table_output_schema))
-                   .AddChild(std::move(agg))
-                   .SetLeader(true)
-                   .Build();
+    cte_scan = builder.SetOutputSchema(std::move(table_output_schema)).AddChild(std::move(agg)).SetLeader(true).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> seq_scan_2;
@@ -2910,10 +2887,7 @@ TEST_F(CompilerTest, ComplexAggregateWithCteQueryTest) {
 
     // Build
     planner::CteScanPlanNode::Builder builder;
-    cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .AddChild(std::move(agg))
-                   .SetLeader(true)
-                   .Build();
+    cte_scan = builder.SetOutputSchema(std::move(schema)).AddChild(std::move(agg)).SetLeader(true).Build();
   }
 
   std::unique_ptr<planner::AbstractPlanNode> seq_scan_2;

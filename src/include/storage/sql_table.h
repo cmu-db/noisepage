@@ -236,8 +236,7 @@ class SqlTable {
    */
   void Reset();
 
-  void CopyTable(common::ManagedPointer<transaction::TransactionContext> txn,
-                 common::ManagedPointer<SqlTable> src);
+  void CopyTable(common::ManagedPointer<transaction::TransactionContext> txn, common::ManagedPointer<SqlTable> src);
   /**
    * @return a coarse estimation on the number of tuples in this table
    */

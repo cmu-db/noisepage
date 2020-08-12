@@ -1296,7 +1296,7 @@ class CodeGen {
   ast::Expr *StorageInterfaceInit(ast::Identifier si, ast::Expr *exec_ctx, uint32_t table_oid, ast::Identifier col_oids,
                                   bool need_indexes);
 
-   /**
+  /**
    * Call cteScanIteratorInit(&cte_scan_iterator, execCtx, col_types)
    * @param si The cte scan iterator to initialize
    * @param col_types The identifier of the array of column types to access.
@@ -1305,8 +1305,8 @@ class CodeGen {
   ast::Expr *CteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_types,
                                  ast::Expr *exec_ctx_var);
 
-  ast::Expr *IterCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid,
-                                     ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var);
+  ast::Expr *IterCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_types,
+                                     bool is_recursive, ast::Expr *exec_ctx_var);
 
   // ---------------------------------------------------------------------------
   //
@@ -1420,7 +1420,6 @@ class CodeGen {
   catalog::CatalogAccessor *accessor_;
   // Minirunner-related.
   std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
-
 };
 
 }  // namespace terrier::execution::compiler

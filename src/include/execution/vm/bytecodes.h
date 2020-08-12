@@ -131,8 +131,8 @@ namespace terrier::execution::vm {
   F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
   F(CteScanFree, OperandType::Local)                                                                                  \
                                                                                                                       \
-  F(IterCteScanInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::UImm4,  \
-    OperandType::Local)                                                                                               \
+  F(IterCteScanInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                  \
+    OperandType::UImm4, OperandType::Local)                                                                           \
   F(IterCteScanGetResult, OperandType::Local, OperandType::Local)                                                     \
   F(IterCteScanGetReadCte, OperandType::Local, OperandType::Local)                                                    \
   F(IterCteScanGetWriteCte, OperandType::Local, OperandType::Local)                                                   \
@@ -141,7 +141,6 @@ namespace terrier::execution::vm {
   F(IterCteScanAccumulate, OperandType::Local, OperandType::Local)                                                    \
   F(IterCteScanTableInsert, OperandType::Local, OperandType::Local)                                                   \
   F(IterCteScanFree, OperandType::Local)                                                                              \
-                                                                                                                      \
                                                                                                                       \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \

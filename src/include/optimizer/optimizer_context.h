@@ -78,13 +78,11 @@ class OptimizerContext {
    * Gets the CTE Schema
    * @returns CTE Schema
    */
-  catalog::Schema &GetCTESchema(const std::string &cte_name) {
-    return cte_schemas_.find(cte_name)->second;
-  }
+  catalog::Schema &GetCTESchema(const std::string &cte_name) { return cte_schemas_.find(cte_name)->second; }
 
   std::vector<std::string> GetCTETables() {
     std::vector<std::string> keys;
-    for(auto &it : cte_schemas_){
+    for (auto &it : cte_schemas_) {
       keys.push_back(it.first);
     }
     return keys;
@@ -136,8 +134,7 @@ class OptimizerContext {
    * Sets the CTE Schema
    * @param schema OutputSchema
    */
-  void SetCTESchema(const std::string &cte_name,
-                    catalog::Schema schema) { cte_schemas_[cte_name] = std::move(schema); }
+  void SetCTESchema(const std::string &cte_name, catalog::Schema schema) { cte_schemas_[cte_name] = std::move(schema); }
 
   /**
    * Sets the StatsStorage

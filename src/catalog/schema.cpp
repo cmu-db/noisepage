@@ -46,9 +46,9 @@ std::unique_ptr<Schema> Schema::DeserializeSchema(const nlohmann::json &j) {
 
 Schema::Schema(std::vector<std::string> column_aliases, std::vector<type::TypeId> column_types) {
   std::vector<Column> columns;
-  for (uint32_t i = 0; i < column_aliases.size();i++) {
+  for (uint32_t i = 0; i < column_aliases.size(); i++) {
     columns.emplace_back(column_aliases[i], column_types[i], false, parser::ConstantValueExpression(column_types[i]),
-               TEMP_OID(catalog::col_oid_t, i));
+                         TEMP_OID(catalog::col_oid_t, i));
   }
 
   columns_ = std::move(columns);
