@@ -2008,7 +2008,8 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
                                                                            VariableSetStmt *root) {
   auto name = root->name_;
   auto values = ParamListTransform(parse_result, root->args_);
-  auto result = std::make_unique<VariableSetStatement>(name, std::move(values));
+  bool is_set_default = root->kind_ == VariableSetKind::VAR_SET_DEFAULT;
+  auto result = std::make_unique<VariableSetStatement>(name, std::move(values), is_set_default);
   return result;
 }
 

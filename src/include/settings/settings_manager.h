@@ -75,6 +75,12 @@ class SettingsManager {
   std::string GetString(Param param);
 
   /**
+   * Get a copy of the default setting for a given parameter.
+   * @param name setting name
+   */
+  const parser::ConstantValueExpression &GetDefault(const std::string &name);
+
+  /**
    * Set the value of an integer setting
    * @param param setting name
    * @param value the new value
@@ -153,6 +159,11 @@ class SettingsManager {
 
   void ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
                        const parser::ConstantValueExpression &max_value);
+
+  /** @return The Param corresponding to the given name; throws exception if doesn't exist. */
+  Param GetParam(const std::string &name) const;
+  /** @return The ParamInfo corresponding to the given parameter; throws exception if doesn't exist. */
+  const ParamInfo &GetParamInfo(const settings::Param &param) const;
 
   parser::ConstantValueExpression &GetValue(Param param);
   bool SetValue(Param param, parser::ConstantValueExpression value);

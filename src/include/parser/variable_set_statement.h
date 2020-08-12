@@ -19,10 +19,15 @@ class VariableSetStatement : public SQLStatement {
    * @param parameter_name The name of the parameter.
    * @param values The values to set in the parameter.
    */
-  VariableSetStatement(std::string parameter_name, std::vector<common::ManagedPointer<AbstractExpression>> values)
+  VariableSetStatement(std::string parameter_name, std::vector<common::ManagedPointer<AbstractExpression>> values,
+                       bool is_set_default)
       : SQLStatement(StatementType::VARIABLE_SET),
         parameter_name_(std::move(parameter_name)),
-        values_(std::move(values)) {}
+        values_(std::move(values)),
+        is_set_default_(is_set_default) {
+    TERRIER_ASSERT((values_.empty() && is_set_default_) || (values_.size() == 1 && !is_set_default_),
+                   "There is only support for setting one value or setting to default.");
+  }
 
   ~VariableSetStatement() override = default;
 
@@ -41,9 +46,13 @@ class VariableSetStatement : public SQLStatement {
     return values;
   }
 
+  /** @return True if the parameter should be set to DEFAULT. */
+  bool IsSetDefault() const { return is_set_default_; }
+
  private:
   const std::string parameter_name_;
   const std::vector<common::ManagedPointer<AbstractExpression>> values_;
+  bool is_set_default_;
 };
 }  // namespace parser
 }  // namespace terrier

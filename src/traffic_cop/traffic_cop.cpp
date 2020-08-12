@@ -155,7 +155,14 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
   const auto &set_stmt = statement->RootStatement().CastManagedPointerTo<parser::VariableSetStatement>();
 
   try {
-    settings_manager_->SetParameter(set_stmt->GetParameterName(), set_stmt->GetValues());
+    if (set_stmt->IsSetDefault()) {
+      // TODO(WAN): Annoyingly, a copy is done for default_val because of differences in const qualifiers.
+      parser::ConstantValueExpression default_val = settings_manager_->GetDefault(set_stmt->GetParameterName());
+      auto default_val_ptr = common::ManagedPointer(&default_val).CastManagedPointerTo<parser::AbstractExpression>();
+      settings_manager_->SetParameter(set_stmt->GetParameterName(), {default_val_ptr});
+    } else {
+      settings_manager_->SetParameter(set_stmt->GetParameterName(), set_stmt->GetValues());
+    }
   } catch (SettingsException &e) {
     auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
     error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));

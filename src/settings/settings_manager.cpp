@@ -217,6 +217,7 @@ common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value
   return action_state;
 }
 
+// clang-format off
 void SettingsManager::ConstructParamMap(                                                      // NOLINT
     std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {  // NOLINT
   /*
@@ -234,28 +235,36 @@ void SettingsManager::ConstructParamMap(                                        
 #include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_POPULATE__            // NOLINT
+}  // clang-format on
+
+Param SettingsManager::GetParam(const std::string &name) const {
+  // Search for the parameter.
+  auto search = param_name_map_.find(name);
+  if (search == param_name_map_.end()) {
+    throw SETTINGS_EXCEPTION(fmt::format("unrecognized configuration parameter \"{}\"", name),
+                             common::ErrorCode::ERRCODE_UNDEFINED_OBJECT);
+  }
+  Param param = search->second;
+  return param;
+}
+
+const settings::ParamInfo &SettingsManager::GetParamInfo(const Param &param) const {
+  // Search for the parameter's information.
+  auto search = param_map_.find(param);
+  TERRIER_ASSERT(search != param_map_.end(), "Mismatch between param_name_map_ and param_map_ keys.");
+  const ParamInfo &info = search->second;
+  return info;
+}
+
+const parser::ConstantValueExpression &SettingsManager::GetDefault(const std::string &name) {
+  return GetParamInfo(GetParam(name)).default_value_;
 }
 
 void SettingsManager::SetParameter(const std::string &name,
                                    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &values) {
   // Search for the parameter to set.
-  settings::Param param;
-  {
-    auto search = param_name_map_.find(name);
-    if (search == param_name_map_.end()) {
-      throw SETTINGS_EXCEPTION(fmt::format("unrecognized configuration parameter \"{}\"", name),
-                               common::ErrorCode::ERRCODE_UNDEFINED_OBJECT);
-    }
-    param = search->second;
-  }
-
-  // Get the parameter's information.
-  auto search = param_map_.find(param);
-  if (search == param_map_.end()) {
-    throw SETTINGS_EXCEPTION(fmt::format("unrecognized configuration parameter \"{}\"", name),
-                             common::ErrorCode::ERRCODE_UNDEFINED_OBJECT);
-  }
-  const ParamInfo &info = search->second;
+  const Param param = GetParam(name);
+  const ParamInfo &info = GetParamInfo(param);
   TERRIER_ASSERT(info.name_ == name, "Inconsistent setting name.");
   const type::TypeId param_type = info.value_.GetReturnValueType();
 
@@ -274,30 +283,30 @@ void SettingsManager::SetParameter(const std::string &name,
   }
 
   // TODO(WAN): hook up real action contexts and settings callbacks.
-  common::ActionContext action_context_{common::action_id_t{0}};
+  common::ActionContext action_context{common::action_id_t{0}};
 
   // Set the parameter.
   switch (param_type) {
     case type::TypeId::BOOLEAN:
-      SetBool(param, value->GetBoolVal().val_, common::ManagedPointer(&action_context_),
+      SetBool(param, value->GetBoolVal().val_, common::ManagedPointer(&action_context),
               SettingsManager::EmptySetterCallback);
       break;
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
-      SetInt(param, value->GetInteger().val_, common::ManagedPointer(&action_context_),
+      SetInt(param, value->GetInteger().val_, common::ManagedPointer(&action_context),
              SettingsManager::EmptySetterCallback);
       break;
     case type::TypeId::BIGINT:
-      SetInt64(param, value->GetInteger().val_, common::ManagedPointer(&action_context_),
+      SetInt64(param, value->GetInteger().val_, common::ManagedPointer(&action_context),
                SettingsManager::EmptySetterCallback);
       break;
     case type::TypeId::DECIMAL:
-      SetDouble(param, value->GetReal().val_, common::ManagedPointer(&action_context_),
+      SetDouble(param, value->GetReal().val_, common::ManagedPointer(&action_context),
                 SettingsManager::EmptySetterCallback);
       break;
     case type::TypeId::VARCHAR:
-      SetString(param, value->GetStringVal().StringView(), common::ManagedPointer(&action_context_),
+      SetString(param, value->GetStringVal().StringView(), common::ManagedPointer(&action_context),
                 SettingsManager::EmptySetterCallback);
       break;
     default:
