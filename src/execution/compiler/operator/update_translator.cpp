@@ -194,6 +194,7 @@ void UpdateTranslator::GenTableInsert(FunctionBuilder *builder) const {
   const auto &insert_slot = GetCodeGen()->MakeFreshIdentifier("insert_slot");
   auto *insert_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableInsert, {GetCodeGen()->AddressOf(updater_)});
   builder->Append(GetCodeGen()->DeclareVar(insert_slot, nullptr, insert_call));
+  GenVerifyInsert(builder,insert_slot);
 }
 
 void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *builder,
@@ -274,6 +275,18 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(updater_), child->GetSlotAddress()};
   auto *index_delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::IndexDelete, delete_args);
   builder->Append(GetCodeGen()->MakeStmt(index_delete_call));
+}
+
+void UpdateTranslator::GenVerifyInsert(FunctionBuilder *builder, ast::Identifier insert_slot) const {
+  //const auto &op = GetPlanAs<planner::UpdatePlanNode>();
+  //const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
+  //const auto &delete_slot = child->GetSlotAddress();
+  std::vector<ast::Expr *> update_cascad_args{GetCodeGen()->AddressOf(updater_), GetCodeGen()->AddressOf(insert_slot)};
+  auto verify_constraint_call = GetCodeGen()->CallBuiltin(ast::Builtin::UpdateVerify, update_cascad_args);
+  auto cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, verify_constraint_call);
+  If success(builder, cond);
+  builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  success.EndIf();
 }
 
 void UpdateTranslator::GenUpdateVerify(FunctionBuilder *builder) const {

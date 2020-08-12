@@ -109,6 +109,9 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
   // Deletes from all indexes.
   void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
 
+  // Verify insert
+  void GenVerifyInsert(FunctionBuilder *builder, ast::Identifier insert_slot) const;
+
   // Verify update
   void GenUpdateVerify(FunctionBuilder *builder) const;
 
