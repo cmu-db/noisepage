@@ -108,7 +108,7 @@ class DataTable {
 
     SlotIterator(const DataTable *table) : table_(table), i_(0), is_end_(false) {  // NOLINT
       uint64_t num_blocks = table->blocks_.size();
-      TERRIER_ASSERT(num_blocks >= 1, "there should allways be at least one block");
+      TERRIER_ASSERT(num_blocks >= 1, "there should always be at least one block");
       end_index_ = (num_blocks - 1) * table_->accessor_.GetBlockLayout().NumSlots() +
                    static_cast<uint64_t>(const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table->blocks_)
                                              ->LookUp(num_blocks - 1)

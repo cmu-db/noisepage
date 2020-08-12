@@ -12,6 +12,10 @@ namespace terrier::common {
 
 /**
  * A concurrent Vector of pointers that supports inserts and accesses at an index
+ * Example use case: data table, but more generally a collection to track pointers to heap allocated data.
+ * Require that the pointers tracked are only inserted and iterated over, but never removed.
+ *
+ * Collection is stored as a resizeable array that is resized concurrently.
  */
 template <class T>
 class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
@@ -19,10 +23,11 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   /**
    * ConcurrentPointerVector constuctor
    *
-   * @param start_size optional initial allocation size for the vector. Default is START_SIZE
+   * @param start_size optional initial allocation size for the vector
    */
-  explicit ConcurrentPointerVector(uint64_t start_size = START_SIZE)
-      : capacity_(start_size == 0 ? 1 : start_size), claimable_index_(0), first_not_readable_index_(0) {
+  explicit ConcurrentPointerVector(uint64_t start_size)
+      : capacity_(start_size), claimable_index_(0), first_not_readable_index_(0) {
+    TERRIER_ASSERT(capacity_ != 0, "must have non-zero start size for concurrent pointer vector");
     array_ = new T *[capacity_];
     for (uint64_t i = 0; i < capacity_; i++) SetNotReadable(array_, i);
   }
@@ -33,8 +38,6 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   ~ConcurrentPointerVector() { delete[] array_; }
 
   /**
-   * Insert
-   *
    * Each new item atomically claims an index into which it will insert.
    * Inserts handle resizes, and updating readability flags.
    *
@@ -42,14 +45,21 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
    * @return index of item in vector
    */
   uint64_t Insert(T *item) {
-    // claims index in vector
+    // claims index in vector, this will be the index of the array that we will use for this item
+    // because the claimable_index_ is strictly increasing we know that this index is claimed uniquely by this thread
     uint64_t my_index;
     do {
       my_index = claimable_index_;
     } while (!claimable_index_.compare_exchange_strong(my_index, my_index + 1));
 
-    // resize vector
+    // we must now make sure that this index is a safe index into the array
+    // we will loop until it my_index is safe with a given capacity
     while (my_index >= capacity_) {
+      // since we know that my_index is currently unsafe and beyond the end of the array, we can do one of two things:
+      // 1. We resize the array our selves. This occurs at the first index beyond the end of the array
+      // 2. We wait for the array to be resized and try again
+
+      // case 1
       if (UNLIKELY(my_index == capacity_)) {
         // allocate new vector and mark as not readable all new slots
         T **new_array = new T *[capacity_ * RESIZE_FACTOR];
@@ -88,6 +98,14 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
       } else {
         // must wait for resize
         std::unique_lock<std::mutex> l(resize_mutex_);
+
+        // TODO(emmanuel): there is a race condition here, if we check that we are waiting for a resize, but the resize
+        // signal is sent before we start waiting. This could result in us missing the resize signal entirely and
+        // and hanging. I resolve this by only waiting for a limited time and then re-looping. I feel like there has to
+        // be a better way to do this???
+        // this also deals with the issue of having multiple resize indexes waiting to be a safe index (for example:
+        // when there are many threds (ie more than 2x the capacity of the array) all trying to insert and all waiting
+        // on a resize)
         resize_cv_.wait_for(l, std::chrono::microseconds(1));
       }
     }
@@ -114,8 +132,6 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   }
 
   /**
-   * LookUp
-   *
    * @param index to inspect vector at
    * @return pointer at desired index
    */
@@ -196,6 +212,7 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
       TERRIER_ASSERT(vector_ == other.vector_, "should only compare iterators for the same vector");
       return current_index_ == other.current_index_;
     }
+
     /**
      * Equality check.
      * @param other other iterator to compare to
@@ -226,7 +243,6 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   };
 
   /**
-   * begin
    * @return Iterator at the begining of vector
    */
   Iterator begin() const { return {this}; }  // NOLINT
@@ -264,12 +280,13 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
     return static_cast<bool>(reinterpret_cast<uint64_t>(array[i]) >> SHIFT_AMOUNT);
   }
 
-  std::atomic<uint64_t> capacity_ = 0;
-  char buffer1_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
+  // protected by resize_mutex_
+  uint64_t capacity_ = 0;
+  char padding1_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
   std::atomic<uint64_t> claimable_index_ = 0;
-  char buffer2_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
+  char padding2_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
   std::atomic<uint64_t> first_not_readable_index_ = 0;
-  char buffer3_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
+  char padding3_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
 
   T **array_ = nullptr;
   std::condition_variable resize_cv_;

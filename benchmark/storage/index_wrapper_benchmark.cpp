@@ -65,7 +65,7 @@ class IndexBenchmark : public benchmark::Fixture {
 
     // Setup table with schema based on column structures
     table_schema_ = catalog::Schema({col});
-    sql_table_ = new storage::SqlTable(common::ManagedPointer<storage::BlockStore>(&block_store_), table_schema_);
+    sql_table_ = new storage::SqlTable(common::ManagedPointer(&block_store_), table_schema_);
     tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)});
 
     // Create time, action, and transaction managers
