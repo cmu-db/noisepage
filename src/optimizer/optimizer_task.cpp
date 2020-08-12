@@ -287,19 +287,23 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];
 
-      // Fill input properties based on required properties and optional properties
+      // Fill input properties based on required properties and optional proper ties
       auto *req_input_props = new PropertySet();
-      auto *optional_input_props = new PropertySet();
+      auto optional_input_props = PropertySet();
 
       for (auto prop : i_prop->Properties()) {
         if (prop.second) {
           // Optional property
-          optional_input_props->AddProperty(prop.first->Copy(), true);
+          optional_input_props.AddProperty(prop.first->Copy(), true);
         } else {
           // Required property
           req_input_props->AddProperty(prop.first->Copy());
         }
       }
+
+      delete input_props[cur_child_idx_];
+      // Only preserve required input properties, optional properties should be in child operator
+      input_props[cur_child_idx_] = req_input_props;
 
       auto child_group =
           context_->GetOptimizerContext()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
@@ -308,7 +312,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       auto child_best_expr = child_group->GetBestExpression(req_input_props);
       if (child_best_expr != nullptr) {  // Directly get back the best expr if the child group is optimized
         // Only cost on required properties
-        // TODO(dpatra): Update out costing structure for completed optional properties
+        // TODO(dpatra): Update costing structure for completed optional properties
         cur_total_cost_ += child_best_expr->GetCost(req_input_props);
         if (cur_total_cost_ > context_->GetCostUpperBound()) break;
       } else if (prev_child_idx_ != cur_child_idx_) {  // We haven't optimized child group
@@ -317,18 +321,13 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 
         auto cost_high = context_->GetCostUpperBound() - cur_total_cost_;
         auto ctx = new OptimizationContext(context_->GetOptimizerContext(), req_input_props->Copy(), cost_high,
-                                           optional_input_props->Copy());
+                                           optional_input_props.Copy());
         PushTask(new OptimizeGroup(child_group, ctx));
         context_->GetOptimizerContext()->AddOptimizationContext(ctx);
         return;
       } else {  // If we return from OptimizeGroup, then there is no expr for the context
         break;
       }
-
-      delete input_props[cur_child_idx_];
-      delete optional_input_props;
-      // Only preserve required input properties, optional properties should be in child operator
-      input_props[cur_child_idx_] = req_input_props;
     }
 
     // TODO(wz2): Can we reduce the amount of copying
