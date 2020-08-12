@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "common/constants.h"
-#include "common/hash_util.h"
 #include "common/macros.h"
+#include "common/strong_typedef.h"
 #include "execution/sql/memory_pool.h"
 
 namespace terrier::execution::sql {

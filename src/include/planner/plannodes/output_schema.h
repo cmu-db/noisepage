@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "common/constants.h"
-#include "common/hash_util.h"
 #include "common/json_header.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
@@ -69,12 +68,7 @@ class OutputSchema {
     /**
      * @return the hashed value for this column based on name and OID
      */
-    common::hash_t Hash() const {
-      common::hash_t hash = common::HashUtil::Hash(name_);
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
-      hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
-      return hash;
-    }
+    hash_t Hash() const;
 
     /**
      * @return whether the two columns are equal
@@ -157,13 +151,7 @@ class OutputSchema {
   /**
    * Hash the current OutputSchema.
    */
-  common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(columns_.size());
-    for (auto const &column : columns_) {
-      hash = common::HashUtil::CombineHashes(hash, column.Hash());
-    }
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Equality check.

@@ -1,4 +1,6 @@
 #include "parser/expression/column_value_expression.h"
+
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::parser {
@@ -14,8 +16,8 @@ std::unique_ptr<AbstractExpression> ColumnValueExpression::Copy() const {
   return expr;
 }
 
-common::hash_t ColumnValueExpression::Hash() const {
-  common::hash_t hash = common::HashUtil::Hash(GetExpressionType());
+hash_t ColumnValueExpression::Hash() const {
+  hash_t hash = common::HashUtil::Hash(GetExpressionType());
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetReturnValueType()));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_name_));

@@ -8,8 +8,8 @@
 
 namespace terrier::planner {
 
-common::hash_t LimitPlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t LimitPlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Limit
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(limit_));

@@ -4,12 +4,13 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
 
-common::hash_t AggregatePlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t AggregatePlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Group By Terms
   for (auto &groupby_term : groupby_terms_) {

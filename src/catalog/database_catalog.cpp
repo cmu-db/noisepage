@@ -1,10 +1,11 @@
+#include "catalog/database_catalog.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
@@ -17,6 +18,7 @@
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "execution/functions/function_context.h"
+#include "execution/util/execution_common.h"
 #include "nlohmann/json.hpp"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"

@@ -4,12 +4,13 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
 
-common::hash_t HashJoinPlanNode::Hash() const {
-  common::hash_t hash = AbstractJoinPlanNode::Hash();
+hash_t HashJoinPlanNode::Hash() const {
+  hash_t hash = AbstractJoinPlanNode::Hash();
 
   // Hash left keys
   for (const auto &left_hash_key : left_hash_keys_) {

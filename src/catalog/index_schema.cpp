@@ -1,7 +1,20 @@
 #include "catalog/index_schema.h"
+
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::catalog {
+
+hash_t IndexSchema::Column::Hash() const {
+  hash_t hash = common::HashUtil::Hash(name_);
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Type()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(MaxVarlenSize()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Nullable()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
+  if (definition_ != nullptr) hash = common::HashUtil::CombineHashes(hash, definition_->Hash());
+  return hash;
+}
 
 nlohmann::json IndexSchema::Column::ToJson() const {
   nlohmann::json j;
@@ -35,6 +48,18 @@ nlohmann::json IndexSchema::ToJson() const {
   j["exclusion"] = is_exclusion_;
   j["immediate"] = is_immediate_;
   return j;
+}
+
+hash_t IndexSchema::Hash() const {
+  // TODO(Ling): Does column order matter for hash?
+  hash_t hash = common::HashUtil::Hash(type_);
+  for (const auto &col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, indexed_oids_.begin(), indexed_oids_.end());
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_unique_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_primary_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_exclusion_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_immediate_));
+  return hash;
 }
 
 void IndexSchema::FromJson(const nlohmann::json &j) {

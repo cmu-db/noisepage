@@ -157,19 +157,7 @@ class Schema {
     /**
      * @return the hashed value of this column
      */
-    common::hash_t Hash() const {
-      common::hash_t hash = common::HashUtil::Hash(name_);
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(attr_size_));
-      if (attr_size_ == storage::VARLEN_COLUMN)
-        hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(max_varlen_size_));
-      else
-        hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(0));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(nullable_));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
-      if (default_value_ != nullptr) hash = common::HashUtil::CombineHashes(hash, default_value_->Hash());
-      return hash;
-    }
+    hash_t Hash() const;
 
     /**
      * Perform a comparison of column
@@ -306,11 +294,7 @@ class Schema {
   /**
    * @return the hashed value of this schema
    */
-  common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(col_oid_to_offset_.size());
-    for (const auto &col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Perform a comparison of schema

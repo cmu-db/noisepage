@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "transaction/transaction_context.h"
 
@@ -49,7 +50,7 @@ bool Operator::IsPhysical() const {
   return false;
 }
 
-common::hash_t Operator::Hash() const {
+hash_t Operator::Hash() const {
   if (IsDefined()) {
     return contents_->Hash();
   }
@@ -73,6 +74,11 @@ Operator Operator::RegisterWithTxnContext(transaction::TransactionContext *txn) 
     txn->RegisterAbortAction([=]() { delete op; });
   }
   return *this;
+}
+
+hash_t BaseOperatorNodeContents::Hash() const {
+  OpType t = GetOpType();
+  return common::HashUtil::Hash(t);
 }
 
 }  // namespace terrier::optimizer

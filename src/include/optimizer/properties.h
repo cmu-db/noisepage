@@ -3,7 +3,6 @@
 #include <utility>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/property.h"
 #include "planner/plannodes/plan_node_defs.h"
@@ -59,7 +58,7 @@ class PropertySort : public Property {
    * Hashes this PropertySort
    * @returns Hash code
    */
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * Checks whether this is greater than or equal to another property.

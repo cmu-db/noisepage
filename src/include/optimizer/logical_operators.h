@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node_contents.h"
 #include "parser/expression/abstract_expression.h"
@@ -45,7 +44,7 @@ class LeafOperator : public OperatorNodeContents<LeafOperator> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * Gets the original group (i.e group being wrapped)
@@ -90,7 +89,7 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the database
@@ -167,7 +166,7 @@ class LogicalExternalFileGet : public OperatorNodeContents<LogicalExternalFileGe
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return how the data should be formatted
@@ -243,7 +242,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Alias of the table to get from
@@ -293,7 +292,7 @@ class LogicalFilter : public OperatorNodeContents<LogicalFilter> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of predicates
@@ -328,7 +327,7 @@ class LogicalProjection : public OperatorNodeContents<LogicalProjection> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of predicates
@@ -366,7 +365,7 @@ class LogicalDependentJoin : public OperatorNodeContents<LogicalDependentJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of join predicates
@@ -404,7 +403,7 @@ class LogicalMarkJoin : public OperatorNodeContents<LogicalMarkJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of join predicates
@@ -442,7 +441,7 @@ class LogicalSingleJoin : public OperatorNodeContents<LogicalSingleJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of join predicates
@@ -480,7 +479,7 @@ class LogicalInnerJoin : public OperatorNodeContents<LogicalInnerJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of join predicates
@@ -518,7 +517,7 @@ class LogicalLeftJoin : public OperatorNodeContents<LogicalLeftJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of join predicates
@@ -556,7 +555,7 @@ class LogicalRightJoin : public OperatorNodeContents<LogicalRightJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of join predicates
@@ -594,7 +593,7 @@ class LogicalOuterJoin : public OperatorNodeContents<LogicalOuterJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of join predicates
@@ -632,7 +631,7 @@ class LogicalSemiJoin : public OperatorNodeContents<LogicalSemiJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of join predicates
@@ -678,7 +677,7 @@ class LogicalAggregateAndGroupBy : public OperatorNodeContents<LogicalAggregateA
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of columns
@@ -725,7 +724,7 @@ class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -792,7 +791,7 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -840,7 +839,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return offset of the LIMIT operator
@@ -909,7 +908,7 @@ class LogicalDelete : public OperatorNodeContents<LogicalDelete> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -965,7 +964,7 @@ class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1032,7 +1031,7 @@ class LogicalExportExternalFile : public OperatorNodeContents<LogicalExportExter
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return how the data should be formatted
@@ -1106,7 +1105,7 @@ class LogicalCreateDatabase : public OperatorNodeContents<LogicalCreateDatabase>
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the name of the database we want to create
@@ -1151,7 +1150,7 @@ class LogicalCreateFunction : public OperatorNodeContents<LogicalCreateFunction>
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1282,7 +1281,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the namespace
@@ -1369,7 +1368,7 @@ class LogicalCreateTable : public OperatorNodeContents<LogicalCreateTable> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the namespace
@@ -1428,7 +1427,7 @@ class LogicalCreateNamespace : public OperatorNodeContents<LogicalCreateNamespac
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the name of the namespace we want to create
@@ -1472,7 +1471,7 @@ class LogicalCreateTrigger : public OperatorNodeContents<LogicalCreateTrigger> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1590,7 +1589,7 @@ class LogicalCreateView : public OperatorNodeContents<LogicalCreateView> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1651,7 +1650,7 @@ class LogicalDropDatabase : public OperatorNodeContents<LogicalDropDatabase> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the database we want to drop
@@ -1683,7 +1682,7 @@ class LogicalDropTable : public OperatorNodeContents<LogicalDropTable> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the table we want to drop
@@ -1715,7 +1714,7 @@ class LogicalDropIndex : public OperatorNodeContents<LogicalDropIndex> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the index we want to drop
@@ -1747,7 +1746,7 @@ class LogicalDropNamespace : public OperatorNodeContents<LogicalDropNamespace> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the namespace we want to drop
@@ -1781,7 +1780,7 @@ class LogicalDropTrigger : public OperatorNodeContents<LogicalDropTrigger> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1835,7 +1834,7 @@ class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1890,7 +1889,7 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database

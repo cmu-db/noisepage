@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/optimizer_defs.h"
 #include "parser/expression_defs.h"
@@ -93,11 +92,7 @@ class AbstractOptimizerNodeContents {
    * Hashes the abstract optimizer node contents based on its op type and expression type.
    * @return The hash of the node contents
    */
-  virtual common::hash_t Hash() const {
-    OpType op_type = GetOpType();
-    parser::ExpressionType exp_type = GetExpType();
-    return (op_type != OpType::UNDEFINED) ? common::HashUtil::Hash(op_type) : common::HashUtil::Hash(exp_type);
-  }
+  virtual hash_t Hash() const;
 
  protected:
   /**

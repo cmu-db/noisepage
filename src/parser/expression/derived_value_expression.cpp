@@ -1,4 +1,6 @@
 #include "parser/expression/derived_value_expression.h"
+
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::parser {
@@ -9,8 +11,8 @@ std::unique_ptr<AbstractExpression> DerivedValueExpression::Copy() const {
   return expr;
 }
 
-common::hash_t DerivedValueExpression::Hash() const {
-  common::hash_t hash = AbstractExpression::Hash();
+hash_t DerivedValueExpression::Hash() const {
+  hash_t hash = AbstractExpression::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(tuple_idx_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
   return hash;

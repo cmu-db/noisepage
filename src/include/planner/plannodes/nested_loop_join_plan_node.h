@@ -64,7 +64,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   /**
    * @return the NestedLooped value of this plan node
    */
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 

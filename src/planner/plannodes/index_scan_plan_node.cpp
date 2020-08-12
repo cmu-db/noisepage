@@ -7,8 +7,8 @@
 
 namespace terrier::planner {
 
-common::hash_t IndexScanPlanNode::Hash() const {
-  common::hash_t hash = AbstractScanPlanNode::Hash();
+hash_t IndexScanPlanNode::Hash() const {
+  hash_t hash = AbstractScanPlanNode::Hash();
 
   // Index Oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));

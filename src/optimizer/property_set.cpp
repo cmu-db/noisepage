@@ -47,9 +47,9 @@ bool PropertySet::operator>=(const PropertySet &r) const {
 
 bool PropertySet::operator==(const PropertySet &r) const { return *this >= r && r >= *this; }
 
-common::hash_t PropertySet::Hash() const {
+hash_t PropertySet::Hash() const {
   size_t prop_size = properties_.size();
-  common::hash_t hash = common::HashUtil::Hash<size_t>(prop_size);
+  hash_t hash = common::HashUtil::Hash<size_t>(prop_size);
   for (auto &prop : properties_) {
     hash = common::HashUtil::CombineHashes(hash, prop->Hash());
   }

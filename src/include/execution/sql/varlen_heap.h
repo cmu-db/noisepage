@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "execution/util/execution_common.h"
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"

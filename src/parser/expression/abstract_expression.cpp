@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -31,8 +32,8 @@ void AbstractExpression::SetMutableStateForCopy(const AbstractExpression &copy_e
   alias_ = copy_expr.alias_;
 }
 
-common::hash_t AbstractExpression::Hash() const {
-  common::hash_t hash = common::HashUtil::Hash(expression_type_);
+hash_t AbstractExpression::Hash() const {
+  hash_t hash = common::HashUtil::Hash(expression_type_);
   for (const auto &child : children_) {
     hash = common::HashUtil::CombineHashes(hash, child->Hash());
   }

@@ -10,6 +10,7 @@
 
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
+#include "common/hash_util.h"
 #include "common/macros.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
@@ -31,8 +32,8 @@ bool TableFreeScan::operator==(const BaseOperatorNodeContents &r) {
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
-common::hash_t TableFreeScan::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t TableFreeScan::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   // I guess every TableFreeScan object hashes to the same thing?
   return hash;
 }
@@ -66,8 +67,8 @@ bool SeqScan::operator==(const BaseOperatorNodeContents &r) {
   return is_for_update_ == node.is_for_update_;
 }
 
-common::hash_t SeqScan::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t SeqScan::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
@@ -125,8 +126,8 @@ bool IndexScan::operator==(const BaseOperatorNodeContents &r) {
   return true;
 }
 
-common::hash_t IndexScan::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t IndexScan::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(tbl_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
@@ -174,8 +175,8 @@ bool ExternalFileScan::operator==(const BaseOperatorNodeContents &r) {
           quote_ == get.quote_ && escape_ == get.escape_);
 }
 
-common::hash_t ExternalFileScan::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t ExternalFileScan::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(format_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(file_name_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
@@ -205,8 +206,8 @@ bool QueryDerivedScan::operator==(const BaseOperatorNodeContents &r) {
   return alias_to_expr_map_ == node.alias_to_expr_map_;
 }
 
-common::hash_t QueryDerivedScan::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t QueryDerivedScan::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   for (auto &iter : alias_to_expr_map_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.first));
@@ -230,8 +231,8 @@ bool OrderBy::operator==(const BaseOperatorNodeContents &r) {
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
-common::hash_t OrderBy::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t OrderBy::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   // I guess every OrderBy object hashes to the same thing?
   return hash;
 }
@@ -262,8 +263,8 @@ bool Limit::operator==(const BaseOperatorNodeContents &r) {
   return (true);
 }
 
-common::hash_t Limit::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t Limit::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(limit_));
   hash = common::HashUtil::CombineHashInRange(hash, sort_exprs_.begin(), sort_exprs_.end());
@@ -289,8 +290,8 @@ Operator InnerIndexJoin::Make(
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t InnerIndexJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t InnerIndexJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(tbl_oid_));
   hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(idx_oid_));
   hash = common::HashUtil::SumHashes(hash, common::HashUtil::Hash(scan_type_));
@@ -359,8 +360,8 @@ Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t InnerNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t InnerNLJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   for (auto &pred : join_predicates_) {
     auto expr = pred.GetExpr();
     if (expr)
@@ -390,8 +391,8 @@ Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> joi
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t LeftNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t LeftNLJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
@@ -412,8 +413,8 @@ Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> jo
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t RightNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t RightNLJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
@@ -435,8 +436,8 @@ Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> jo
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t OuterNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t OuterNLJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
@@ -462,8 +463,8 @@ Operator InnerHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t InnerHashJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t InnerHashJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &pred : join_predicates_) {
@@ -503,8 +504,8 @@ Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> j
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t LeftHashJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t LeftHashJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
@@ -526,8 +527,8 @@ Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> 
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t RightHashJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t RightHashJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
@@ -549,8 +550,8 @@ Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> 
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-common::hash_t OuterHashJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t OuterHashJoin::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
@@ -587,8 +588,8 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t Insert::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t Insert::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
@@ -625,8 +626,8 @@ Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::table_oid_t
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(insert_op));
 }
 
-common::hash_t InsertSelect::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t InsertSelect::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
@@ -653,8 +654,8 @@ Operator Delete::Make(catalog::db_oid_t database_oid, std::string table_alias, c
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(delete_op));
 }
 
-common::hash_t Delete::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t Delete::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
@@ -683,8 +684,8 @@ Operator Update::Make(catalog::db_oid_t database_oid, std::string table_alias, c
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t Update::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t Update::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
@@ -724,8 +725,8 @@ bool ExportExternalFile::operator==(const BaseOperatorNodeContents &r) {
           quote_ == export_op.quote_ && escape_ == export_op.escape_);
 }
 
-common::hash_t ExportExternalFile::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t ExportExternalFile::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(format_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(file_name_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
@@ -760,8 +761,8 @@ bool HashGroupBy::operator==(const BaseOperatorNodeContents &r) {
   return true;
 }
 
-common::hash_t HashGroupBy::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t HashGroupBy::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   for (auto &pred : having_) {
     auto expr = pred.GetExpr();
     if (expr)
@@ -799,8 +800,8 @@ bool SortGroupBy::operator==(const BaseOperatorNodeContents &r) {
   return true;
 }
 
-common::hash_t SortGroupBy::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t SortGroupBy::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   for (auto &pred : having_) {
     auto expr = pred.GetExpr();
     if (expr)
@@ -827,8 +828,8 @@ bool Aggregate::operator==(const BaseOperatorNodeContents &r) {
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
-common::hash_t Aggregate::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t Aggregate::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   // I guess every Aggregate object hashes to the same thing?
   return hash;
 }
@@ -844,8 +845,8 @@ Operator CreateDatabase::Make(std::string database_name) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t CreateDatabase::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t CreateDatabase::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
   return hash;
 }
@@ -872,8 +873,8 @@ Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string t
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t CreateTable::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t CreateTable::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
@@ -927,8 +928,8 @@ Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::tabl
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t CreateIndex::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t CreateIndex::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
@@ -958,8 +959,8 @@ Operator CreateNamespace::Make(std::string namespace_name) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t CreateNamespace::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t CreateNamespace::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
   return hash;
 }
@@ -993,8 +994,8 @@ Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t CreateTrigger::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t CreateTrigger::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
@@ -1037,8 +1038,8 @@ Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t CreateView::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t CreateView::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
@@ -1082,8 +1083,8 @@ Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t CreateFunction::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t CreateFunction::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_name_));
@@ -1123,8 +1124,8 @@ Operator DropDatabase::Make(catalog::db_oid_t db_oid) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t DropDatabase::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t DropDatabase::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(db_oid_));
   return hash;
 }
@@ -1146,8 +1147,8 @@ Operator DropTable::Make(catalog::table_oid_t table_oid) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t DropTable::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t DropTable::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
 }
@@ -1169,8 +1170,8 @@ Operator DropIndex::Make(catalog::index_oid_t index_oid) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t DropIndex::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t DropIndex::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
   return hash;
 }
@@ -1192,8 +1193,8 @@ Operator DropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t DropNamespace::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t DropNamespace::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   return hash;
 }
@@ -1217,8 +1218,8 @@ Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::trigger_oid_
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t DropTrigger::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t DropTrigger::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
@@ -1247,8 +1248,8 @@ Operator DropView::Make(catalog::db_oid_t database_oid, catalog::view_oid_t view
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t DropView::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t DropView::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
@@ -1277,8 +1278,8 @@ Operator Analyze::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tabl
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
-common::hash_t Analyze::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
+hash_t Analyze::Hash() const {
+  hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());

@@ -8,7 +8,7 @@
 
 namespace terrier::planner {
 
-common::hash_t IndexJoinPlanNode::Hash() const { return AbstractJoinPlanNode::Hash(); }
+hash_t IndexJoinPlanNode::Hash() const { return AbstractJoinPlanNode::Hash(); }
 
 bool IndexJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractJoinPlanNode::operator==(rhs)) return false;

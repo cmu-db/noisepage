@@ -4,7 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "optimizer/property.h"
 
 namespace terrier::optimizer {
@@ -82,7 +81,7 @@ class PropertySet {
    * Hashes this PropertySet into a hash code
    * @returns Hash code
    */
-  common::hash_t Hash() const;
+  hash_t Hash() const;
 
   /**
    * Checks whether the PropertySet has a given property.

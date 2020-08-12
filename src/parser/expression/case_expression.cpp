@@ -1,7 +1,16 @@
 #include "parser/expression/case_expression.h"
+
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::parser {
+
+hash_t CaseExpression::WhenClause::Hash() const {
+  hash_t hash = condition_->Hash();
+  hash = common::HashUtil::CombineHashes(hash, condition_->Hash());
+  hash = common::HashUtil::CombineHashes(hash, then_->Hash());
+  return hash;
+}
 
 nlohmann::json CaseExpression::WhenClause::ToJson() const {
   nlohmann::json j;
@@ -23,8 +32,8 @@ std::vector<std::unique_ptr<AbstractExpression>> CaseExpression::WhenClause::Fro
   return exprs;
 }
 
-common::hash_t CaseExpression::Hash() const {
-  common::hash_t hash = AbstractExpression::Hash();
+hash_t CaseExpression::Hash() const {
+  hash_t hash = AbstractExpression::Hash();
   for (auto &clause : when_clauses_) {
     hash = common::HashUtil::CombineHashes(hash, clause.Hash());
   }

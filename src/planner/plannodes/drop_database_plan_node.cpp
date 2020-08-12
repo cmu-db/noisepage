@@ -5,12 +5,13 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
 
-common::hash_t DropDatabasePlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t DropDatabasePlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));

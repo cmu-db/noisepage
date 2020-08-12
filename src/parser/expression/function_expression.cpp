@@ -1,4 +1,6 @@
 #include "parser/expression/function_expression.h"
+
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::parser {
@@ -18,6 +20,12 @@ std::unique_ptr<AbstractExpression> FunctionExpression::CopyWithChildren(
   expr->SetMutableStateForCopy(*this);
   expr->SetProcOid(GetProcOid());
   return expr;
+}
+
+hash_t FunctionExpression::Hash() const {
+  hash_t hash = AbstractExpression::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(func_name_));
+  return hash;
 }
 
 nlohmann::json FunctionExpression::ToJson() const {

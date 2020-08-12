@@ -1,15 +1,18 @@
 #include "planner/plannodes/create_namespace_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/parser_defs.h"
 
 namespace terrier::planner {
 
-common::hash_t CreateNamespacePlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t CreateNamespacePlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Hash namespace_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));

@@ -53,8 +53,8 @@ TEST(HashUtilTests, HashTest) {
 TEST(HashUtilTests, HashStringsTest) {
   const std::string_view val = "ABCXYZ";
   // EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(val));
-  common::hash_t hash0 = common::HashUtil::Hash(val);
-  common::hash_t hash1 = common::HashUtil::Hash("ABCXYZ");
+  hash_t hash0 = common::HashUtil::Hash(val);
+  hash_t hash1 = common::HashUtil::Hash("ABCXYZ");
   EXPECT_EQ(hash0, hash1);
 }
 
@@ -65,8 +65,8 @@ TEST(HashUtilTests, HashMixedTest) {
   // another part of the system.
   enum class Wutang { RZA, GZA, RAEKWON, METHODMAN, GHOSTFACE, ODB, INSPECTAH };
 
-  common::hash_t hash0 = common::HashUtil::Hash(Wutang::RAEKWON);
-  common::hash_t hash1 = common::HashUtil::Hash(Wutang::RAEKWON);
+  hash_t hash0 = common::HashUtil::Hash(Wutang::RAEKWON);
+  hash_t hash1 = common::HashUtil::Hash(Wutang::RAEKWON);
   EXPECT_EQ(hash0, hash1);
 
   Wutang val0 = Wutang::ODB;
@@ -89,8 +89,8 @@ TEST(HashUtilTests, HashMixedTest) {
 TEST(HashUtilTests, CombineHashesTest) {
   // INT
   std::vector<int> vals0 = {0, 1, 1 << 20};
-  common::hash_t hash0 = 0;
-  common::hash_t hash1 = 0;
+  hash_t hash0 = 0;
+  hash_t hash1 = 0;
   for (const auto &val : vals0) {
     hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(val));
     hash1 = common::HashUtil::CombineHashes(hash1, common::HashUtil::Hash(val));
@@ -121,13 +121,13 @@ TEST(HashUtilTests, CombineHashesTest) {
 // NOLINTNEXTLINE
 TEST(HashUtilTests, CombineHashInRangeTest) {
   std::vector<std::string> vals0 = {"XXX", "YYY", "ZZZ"};
-  common::hash_t hash0 = 0;
+  hash_t hash0 = 0;
   for (const auto &val : vals0) {
     auto copy = val;  // NOLINT
     hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(copy));
   }
 
-  common::hash_t hash1 = 0;
+  hash_t hash1 = 0;
   hash1 = common::HashUtil::CombineHashInRange(hash1, vals0.begin(), vals0.end());
 
   EXPECT_EQ(hash0, hash1);
@@ -135,11 +135,11 @@ TEST(HashUtilTests, CombineHashInRangeTest) {
 
 // NOLINTNEXTLINE
 TEST(HashUtilTests, SumHashesTest) {
-  common::hash_t hash0 = common::HashUtil::Hash("ABC");
-  common::hash_t hash1 = common::HashUtil::Hash("XYZ");
+  hash_t hash0 = common::HashUtil::Hash("ABC");
+  hash_t hash1 = common::HashUtil::Hash("XYZ");
 
-  common::hash_t combined0 = common::HashUtil::SumHashes(hash0, hash1);
-  common::hash_t combined1 = common::HashUtil::SumHashes(hash1, hash0);
+  hash_t combined0 = common::HashUtil::SumHashes(hash0, hash1);
+  hash_t combined1 = common::HashUtil::SumHashes(hash1, hash0);
 
   EXPECT_EQ(combined0, combined1);
 }

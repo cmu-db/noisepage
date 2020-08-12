@@ -79,14 +79,7 @@ class OrderByDescription {
   /**
    * @return the hashed value of this Order by description
    */
-  common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(types_.size());
-    hash = common::HashUtil::CombineHashInRange(hash, types_.begin(), types_.end());
-    for (const auto &expr : exprs_) {
-      hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-    }
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Logical equality check.
@@ -178,11 +171,8 @@ class LimitDescription {
   /**
    * @return the hashed value of this Limit description
    */
-  common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(limit_);
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
-    return hash;
-  }
+  hash_t Hash() const;
+
   /**
    * Logical equality check.
    * @param rhs other
@@ -264,14 +254,7 @@ class GroupByDescription {
   /**
    * @return the hashed value of this group by description
    */
-  common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(columns_.size());
-    for (const auto &col : columns_) {
-      hash = common::HashUtil::CombineHashes(hash, col->Hash());
-    }
-    if (having_ != nullptr) hash = common::HashUtil::CombineHashes(hash, having_->Hash());
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Logical equality check.
@@ -384,7 +367,7 @@ class SelectStatement : public SQLStatement {
   /**
    * @return the hashed value of this select statement
    */
-  common::hash_t Hash() const;
+  hash_t Hash() const;
 
   /**
    * Logical equality check.

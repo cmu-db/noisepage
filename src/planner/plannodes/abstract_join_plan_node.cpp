@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
@@ -28,8 +29,8 @@ bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return true;
 }
 
-common::hash_t AbstractJoinPlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t AbstractJoinPlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Join Type
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(join_type_));

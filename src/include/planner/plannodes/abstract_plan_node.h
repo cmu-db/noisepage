@@ -7,7 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "common/json_header.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_node_defs.h"
@@ -154,21 +153,7 @@ class AbstractPlanNode {
    * Derived plan nodes should call this method from their override of Hash() to hash data belonging to the base class
    * @return hash of the plan node
    */
-  virtual common::hash_t Hash() const {
-    // PlanNodeType
-    common::hash_t hash = common::HashUtil::Hash(GetPlanNodeType());
-
-    // OutputSchema
-    if (output_schema_ != nullptr) {
-      hash = common::HashUtil::CombineHashes(hash, output_schema_->Hash());
-    }
-
-    // Children
-    for (const auto &child : GetChildren()) {
-      hash = common::HashUtil::CombineHashes(hash, child->Hash());
-    }
-    return hash;
-  }
+  virtual hash_t Hash() const;
 
   /**
    * Perform a deep comparison of a plan node

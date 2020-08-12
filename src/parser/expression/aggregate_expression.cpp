@@ -1,7 +1,8 @@
-#include "spdlog/fmt/fmt.h"
-
-#include "common/json.h"
 #include "parser/expression/aggregate_expression.h"
+
+#include "common/hash_util.h"
+#include "common/json.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::parser {
 
@@ -18,6 +19,12 @@ std::unique_ptr<AbstractExpression> AggregateExpression::CopyWithChildren(
   auto expr = std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
   expr->SetMutableStateForCopy(*this);
   return expr;
+}
+
+hash_t AggregateExpression::Hash() const {
+  hash_t hash = AbstractExpression::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(distinct_));
+  return hash;
 }
 
 void AggregateExpression::DeriveReturnValueType() {

@@ -73,7 +73,7 @@ class JoinDefinition {
   /**
    * @return the hashed value of this join definition
    */
-  common::hash_t Hash() const;
+  hash_t Hash() const;
 
   /**
    * Logical equality check.
@@ -227,7 +227,7 @@ class TableRef {
   /**
    * @return the hashed value of this table ref object
    */
-  common::hash_t Hash() const;
+  hash_t Hash() const;
 
   /**
    * Logical equality check.

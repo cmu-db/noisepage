@@ -4,9 +4,19 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::parser {
+
+hash_t OrderByDescription::Hash() const {
+  hash_t hash = common::HashUtil::Hash(types_.size());
+  hash = common::HashUtil::CombineHashInRange(hash, types_.begin(), types_.end());
+  for (const auto &expr : exprs_) {
+    hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  }
+  return hash;
+}
 
 nlohmann::json OrderByDescription::ToJson() const {
   nlohmann::json j;
@@ -39,6 +49,12 @@ std::vector<std::unique_ptr<AbstractExpression>> OrderByDescription::FromJson(co
 
 DEFINE_JSON_BODY_DECLARATIONS(OrderByDescription);
 
+hash_t LimitDescription::Hash() const {
+  hash_t hash = common::HashUtil::Hash(limit_);
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
+  return hash;
+}
+
 nlohmann::json LimitDescription::ToJson() const {
   nlohmann::json j;
   j["limit"] = limit_;
@@ -54,6 +70,15 @@ std::vector<std::unique_ptr<AbstractExpression>> LimitDescription::FromJson(cons
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(LimitDescription);
+
+hash_t GroupByDescription::Hash() const {
+  hash_t hash = common::HashUtil::Hash(columns_.size());
+  for (const auto &col : columns_) {
+    hash = common::HashUtil::CombineHashes(hash, col->Hash());
+  }
+  if (having_ != nullptr) hash = common::HashUtil::CombineHashes(hash, having_->Hash());
+  return hash;
+}
 
 nlohmann::json GroupByDescription::ToJson() const {
   nlohmann::json j;
@@ -192,8 +217,8 @@ std::unique_ptr<SelectStatement> SelectStatement::Copy() {
   return select;
 }
 
-common::hash_t SelectStatement::Hash() const {
-  common::hash_t hash = common::HashUtil::Hash(GetType());
+hash_t SelectStatement::Hash() const {
+  hash_t hash = common::HashUtil::Hash(GetType());
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(select_distinct_));
   if (union_select_ != nullptr) hash = common::HashUtil::CombineHashes(hash, union_select_->Hash());
   if (limit_ != nullptr) hash = common::HashUtil::CombineHashes(hash, limit_->Hash());

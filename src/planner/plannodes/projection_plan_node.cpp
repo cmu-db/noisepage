@@ -7,8 +7,8 @@
 
 namespace terrier::planner {
 
-common::hash_t ProjectionPlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t ProjectionPlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Nothing for us to do here!
 

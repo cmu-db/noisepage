@@ -129,7 +129,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
   common::ManagedPointer<parser::SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
 
   /** @return the hashed value of this plan node */
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 

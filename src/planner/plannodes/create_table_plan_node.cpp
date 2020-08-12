@@ -5,9 +5,19 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
+
+hash_t PrimaryKeyInfo::Hash() const {
+  // Hash constraint_name
+  hash_t hash = common::HashUtil::Hash(constraint_name_);
+
+  // Hash primary_key_cols
+  hash = common::HashUtil::CombineHashInRange(hash, primary_key_cols_.begin(), primary_key_cols_.end());
+  return hash;
+}
 
 nlohmann::json PrimaryKeyInfo::ToJson() const {
   nlohmann::json j;
@@ -19,6 +29,27 @@ nlohmann::json PrimaryKeyInfo::ToJson() const {
 void PrimaryKeyInfo::FromJson(const nlohmann::json &j) {
   primary_key_cols_ = j.at("primary_key_cols").get<std::vector<std::string>>();
   constraint_name_ = j.at("constraint_name").get<std::string>();
+}
+
+hash_t ForeignKeyInfo::Hash() const {
+  // Hash constraint_name
+  hash_t hash = common::HashUtil::Hash(constraint_name_);
+
+  // Hash sink_table_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sink_table_name_));
+
+  // Hash foreign_key_sources
+  hash = common::HashUtil::CombineHashInRange(hash, foreign_key_sources_.begin(), foreign_key_sources_.end());
+
+  // Hash foreign_key_sinks
+  hash = common::HashUtil::CombineHashInRange(hash, foreign_key_sinks_.begin(), foreign_key_sinks_.end());
+
+  // Hash upd_action
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(upd_action_));
+
+  // Hash del_action
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(del_action_));
+  return hash;
 }
 
 nlohmann::json ForeignKeyInfo::ToJson() const {
@@ -41,6 +72,16 @@ void ForeignKeyInfo::FromJson(const nlohmann::json &j) {
   del_action_ = j.at("del_action").get<parser::FKConstrActionType>();
 }
 
+hash_t UniqueInfo::Hash() const {
+  // Constraint Name
+  hash_t hash = common::HashUtil::Hash(constraint_name_);
+
+  // Unique Columns
+  hash = common::HashUtil::CombineHashInRange(hash, unique_cols_.begin(), unique_cols_.end());
+
+  return hash;
+}
+
 nlohmann::json UniqueInfo::ToJson() const {
   nlohmann::json j;
   j["unique_cols"] = unique_cols_;
@@ -51,6 +92,21 @@ nlohmann::json UniqueInfo::ToJson() const {
 void UniqueInfo::FromJson(const nlohmann::json &j) {
   unique_cols_ = j.at("unique_cols").get<std::vector<std::string>>();
   constraint_name_ = j.at("constraint_name").get<std::string>();
+}
+
+hash_t CheckInfo::Hash() const {
+  // Hash constraint_name
+  hash_t hash = common::HashUtil::Hash(constraint_name_);
+
+  // Hash check_cols
+  hash = common::HashUtil::CombineHashInRange(hash, check_cols_.begin(), check_cols_.end());
+
+  // Hash expr_type
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type_));
+
+  // Hash expr_value
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
+  return hash;
 }
 
 nlohmann::json CheckInfo::ToJson() const {
@@ -69,8 +125,8 @@ void CheckInfo::FromJson(const nlohmann::json &j) {
   expr_value_ = j.at("expr_value").get<parser::ConstantValueExpression>();
 }
 
-common::hash_t CreateTablePlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t CreateTablePlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Namespace OI
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));

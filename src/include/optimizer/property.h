@@ -2,7 +2,6 @@
 
 #include <typeinfo>
 
-#include "common/hash_util.h"
 #include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
@@ -47,10 +46,7 @@ class Property {
    * Hashes the given Property
    * @returns Hash code
    */
-  virtual common::hash_t Hash() const {
-    PropertyType t = Type();
-    return common::HashUtil::Hash(t);
-  }
+  virtual hash_t Hash() const;
 
   /**
    * Checks whether this >= r

@@ -12,7 +12,6 @@
 #include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/container/bitmap.h"
-#include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
@@ -398,13 +397,7 @@ class VarlenEntry {
    * @param seed The value to seed the hash with.
    * @return The hash value for this string instance.
    */
-  hash_t Hash(hash_t seed) const {
-    // "small" strings use CRC hashing, "long" strings use XXH3.
-    if (IsInlined()) {
-      return common::HashUtil::HashCrc(reinterpret_cast<const uint8_t *>(Prefix()), Size(), seed);
-    }
-    return common::HashUtil::HashXX3(reinterpret_cast<const uint8_t *>(Content()), Size(), seed);
-  }
+  hash_t Hash(hash_t seed) const;
 
   /**
    * Compare two strings ONLY for equality or inequality only.

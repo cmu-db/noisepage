@@ -4,12 +4,13 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
 
-common::hash_t OrderByPlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t OrderByPlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Sort Keys
   for (const auto &sort_key : sort_keys_) {

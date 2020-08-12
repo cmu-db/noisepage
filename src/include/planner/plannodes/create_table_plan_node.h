@@ -44,14 +44,7 @@ struct PrimaryKeyInfo {
   /**
    * @return the hashed value of this primary key info
    */
-  common::hash_t Hash() const {
-    // Hash constraint_name
-    common::hash_t hash = common::HashUtil::Hash(constraint_name_);
-
-    // Hash primary_key_cols
-    hash = common::HashUtil::CombineHashInRange(hash, primary_key_cols_.begin(), primary_key_cols_.end());
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Logical equality check.
@@ -121,26 +114,7 @@ struct ForeignKeyInfo {
   /**
    * @return the hashed value of this foreign key info
    */
-  common::hash_t Hash() const {
-    // Hash constraint_name
-    common::hash_t hash = common::HashUtil::Hash(constraint_name_);
-
-    // Hash sink_table_name
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sink_table_name_));
-
-    // Hash foreign_key_sources
-    hash = common::HashUtil::CombineHashInRange(hash, foreign_key_sources_.begin(), foreign_key_sources_.end());
-
-    // Hash foreign_key_sinks
-    hash = common::HashUtil::CombineHashInRange(hash, foreign_key_sinks_.begin(), foreign_key_sinks_.end());
-
-    // Hash upd_action
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(upd_action_));
-
-    // Hash del_action
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(del_action_));
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Logical equality check.
@@ -204,15 +178,7 @@ struct UniqueInfo {
   /**
    * @return the hashed value of this unique info
    */
-  common::hash_t Hash() const {
-    // Constraint Name
-    common::hash_t hash = common::HashUtil::Hash(constraint_name_);
-
-    // Unique Columns
-    hash = common::HashUtil::CombineHashInRange(hash, unique_cols_.begin(), unique_cols_.end());
-
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Logical equality check.
@@ -291,20 +257,7 @@ struct CheckInfo {
   /**
    * @return the hashed value of this check info
    */
-  common::hash_t Hash() const {
-    // Hash constraint_name
-    common::hash_t hash = common::HashUtil::Hash(constraint_name_);
-
-    // Hash check_cols
-    hash = common::HashUtil::CombineHashInRange(hash, check_cols_.begin(), check_cols_.end());
-
-    // Hash expr_type
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type_));
-
-    // Hash expr_value
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Logical equality check.
@@ -658,7 +611,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * @return the hashed value of this plan node
    */
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 

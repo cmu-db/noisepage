@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node_contents.h"
 #include "optimizer/optimizer_defs.h"
@@ -75,10 +74,7 @@ class BaseOperatorNodeContents : public AbstractOptimizerNodeContents {
   /**
    * @return the hashed value of this operator
    */
-  common::hash_t Hash() const override {
-    OpType t = GetOpType();
-    return common::HashUtil::Hash(t);
-  }
+  hash_t Hash() const override;
 
   /**
    * Equality check
@@ -226,7 +222,7 @@ class Operator : public AbstractOptimizerNodeContents {
   /**
    * @return hashed value of this operator
    */
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * Logical equality check

@@ -7,7 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "optimizer/group.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"
@@ -138,7 +137,7 @@ class GroupExpression {
    * Hashes GroupExpression
    * @returns hash code of GroupExpression
    */
-  common::hash_t Hash() const;
+  hash_t Hash() const;
 
   /**
    * Checks for equality for GroupExpression

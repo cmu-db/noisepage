@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -165,7 +164,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return the hashed value of this plan node
    */
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 

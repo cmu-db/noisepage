@@ -51,7 +51,7 @@ class DerivedValueExpression : public AbstractExpression {
   int GetValueIdx() const { return value_idx_; }
 
   /** Hashes the expression **/
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &rhs) const override;
 

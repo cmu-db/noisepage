@@ -1,7 +1,16 @@
 #include "planner/plannodes/output_schema.h"
+
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
+
+hash_t OutputSchema::Column::Hash() const {
+  hash_t hash = common::HashUtil::Hash(name_);
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
+  hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
+  return hash;
+}
 
 nlohmann::json OutputSchema::Column::ToJson() const {
   nlohmann::json j;
@@ -22,6 +31,14 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OutputSchema::Column::F
   }
 
   return {};
+}
+
+hash_t OutputSchema::Hash() const {
+  hash_t hash = common::HashUtil::Hash(columns_.size());
+  for (auto const &column : columns_) {
+    hash = common::HashUtil::CombineHashes(hash, column.Hash());
+  }
+  return hash;
 }
 
 nlohmann::json OutputSchema::ToJson() const {

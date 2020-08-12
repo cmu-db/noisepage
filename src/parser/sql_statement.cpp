@@ -1,8 +1,17 @@
 #include "parser/sql_statement.h"
+
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
+
+hash_t TableInfo::Hash() const {
+  hash_t hash = common::HashUtil::Hash(table_name_);
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
+  return hash;
+}
 
 nlohmann::json TableInfo::ToJson() const {
   nlohmann::json j;

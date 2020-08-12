@@ -8,7 +8,6 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/memo.h"
 #include "optimizer/rule.h"
-#include "optimizer/statistics/stats_storage.h"
 
 namespace terrier {
 
@@ -24,6 +23,7 @@ namespace optimizer {
 
 class OptimizerTaskPool;
 class RuleSet;
+class StatsStorage;
 
 /**
  * OptimizerContext is a class containing pointers to various objects

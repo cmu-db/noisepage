@@ -7,7 +7,6 @@
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/property_set.h"
-#include "optimizer/statistics/stats_storage.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 
@@ -24,6 +23,7 @@ class TransactionContext;
 }
 
 namespace terrier::optimizer {
+class StatsStorage;
 
 /**
  * Struct defining information about the query.

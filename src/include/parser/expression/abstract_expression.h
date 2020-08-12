@@ -6,9 +6,9 @@
 #include <vector>
 
 #include "binder/sql_node_visitor.h"
-#include "common/hash_util.h"
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
 
@@ -111,7 +111,7 @@ class AbstractExpression {
   /**
    * Hashes the current abstract expression.
    */
-  virtual common::hash_t Hash() const;
+  virtual hash_t Hash() const;
 
   /**
    * Logical equality check.

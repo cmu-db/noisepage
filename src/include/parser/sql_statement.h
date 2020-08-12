@@ -8,7 +8,6 @@
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
 #include "common/error/exception.h"
-#include "common/hash_util.h"
 #include "common/json_header.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
@@ -66,12 +65,7 @@ struct TableInfo {
   /**
    * @return the hashed value of this table info object
    */
-  common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(table_name_);
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
-    return hash;
-  }
+  hash_t Hash() const;
 
   /**
    * Logical equality check.

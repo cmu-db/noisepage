@@ -9,7 +9,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
-#include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
@@ -234,7 +233,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   /**
    * @return the hashed value of this plan node
    */
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }

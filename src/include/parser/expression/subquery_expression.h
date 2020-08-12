@@ -52,7 +52,7 @@ class SubqueryExpression : public AbstractExpression {
    */
   int DeriveDepth() override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;

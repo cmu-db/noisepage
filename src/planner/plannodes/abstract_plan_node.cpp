@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
@@ -230,5 +231,21 @@ JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) 
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(AbstractPlanNode);
+
+hash_t AbstractPlanNode::Hash() const {
+  // PlanNodeType
+  hash_t hash = common::HashUtil::Hash(GetPlanNodeType());
+
+  // OutputSchema
+  if (output_schema_ != nullptr) {
+    hash = common::HashUtil::CombineHashes(hash, output_schema_->Hash());
+  }
+
+  // Children
+  for (const auto &child : GetChildren()) {
+    hash = common::HashUtil::CombineHashes(hash, child->Hash());
+  }
+  return hash;
+}
 
 }  // namespace terrier::planner

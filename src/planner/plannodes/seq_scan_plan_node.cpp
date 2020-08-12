@@ -8,8 +8,8 @@
 
 namespace terrier::planner {
 
-common::hash_t SeqScanPlanNode::Hash() const {
-  common::hash_t hash = AbstractScanPlanNode::Hash();
+hash_t SeqScanPlanNode::Hash() const {
+  hash_t hash = AbstractScanPlanNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, column_oids_.begin(), column_oids_.end());
   return hash;

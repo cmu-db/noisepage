@@ -4,14 +4,15 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
 
 // TODO(Gus,Wen) Add SetParameters
 
-common::hash_t DeletePlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t DeletePlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));

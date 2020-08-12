@@ -43,9 +43,9 @@ bool PropertySort::operator>=(const Property &r) const {
  * Hashes this PropertySort
  * @returns Hash code
  */
-common::hash_t PropertySort::Hash() const {
+hash_t PropertySort::Hash() const {
   // hash the type
-  common::hash_t hash = Property::Hash();
+  hash_t hash = Property::Hash();
 
   // hash sorting columns
   size_t num_sort_columns = sort_columns_.size();

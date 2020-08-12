@@ -1,4 +1,6 @@
 #include "parser/expression/subquery_expression.h"
+
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::parser {
@@ -38,8 +40,8 @@ int SubqueryExpression::DeriveDepth() {
   return this->GetDepth();
 }
 
-common::hash_t SubqueryExpression::Hash() const {
-  common::hash_t hash = AbstractExpression::Hash();
+hash_t SubqueryExpression::Hash() const {
+  hash_t hash = AbstractExpression::Hash();
   for (auto select_elem : subselect_->GetSelectColumns()) {
     hash = common::HashUtil::CombineHashes(hash, select_elem->Hash());
   }

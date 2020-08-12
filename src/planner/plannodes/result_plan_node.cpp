@@ -4,12 +4,13 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::planner {
 
-common::hash_t ResultPlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t ResultPlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Expression
   hash = common::HashUtil::CombineHashes(hash, expr_->Hash());

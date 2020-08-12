@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node_contents.h"
 #include "parser/expression_defs.h"
@@ -49,7 +48,7 @@ class TableFreeScan : public OperatorNodeContents<TableFreeScan> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 };
 
 /**
@@ -76,7 +75,7 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the database
@@ -158,7 +157,7 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the database
@@ -258,7 +257,7 @@ class ExternalFileScan : public OperatorNodeContents<ExternalFileScan> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return how the data should be formatted
@@ -334,7 +333,7 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Alias of the table to get from
@@ -377,7 +376,7 @@ class OrderBy : public OperatorNodeContents<OrderBy> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 };
 
 /**
@@ -403,7 +402,7 @@ class Limit : public OperatorNodeContents<Limit> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return offset of the LIMIT operator
@@ -481,7 +480,7 @@ class InnerIndexJoin : public OperatorNodeContents<InnerIndexJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Table OID
@@ -556,7 +555,7 @@ class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Predicates for the Join
@@ -589,7 +588,7 @@ class LeftNLJoin : public OperatorNodeContents<LeftNLJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Predicate for the join
@@ -622,7 +621,7 @@ class RightNLJoin : public OperatorNodeContents<RightNLJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Predicate for the join
@@ -655,7 +654,7 @@ class OuterNLJoin : public OperatorNodeContents<OuterNLJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Predicate for the join
@@ -692,7 +691,7 @@ class InnerHashJoin : public OperatorNodeContents<InnerHashJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Left join keys
@@ -745,7 +744,7 @@ class LeftHashJoin : public OperatorNodeContents<LeftHashJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Predicate for the join
@@ -778,7 +777,7 @@ class RightHashJoin : public OperatorNodeContents<RightHashJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Predicate for the join
@@ -811,7 +810,7 @@ class OuterHashJoin : public OperatorNodeContents<OuterHashJoin> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return Predicate for the join
@@ -850,7 +849,7 @@ class Insert : public OperatorNodeContents<Insert> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -927,7 +926,7 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -981,7 +980,7 @@ class Delete : public OperatorNodeContents<Delete> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1039,7 +1038,7 @@ class ExportExternalFile : public OperatorNodeContents<ExportExternalFile> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return how the data should be formatted
@@ -1114,7 +1113,7 @@ class Update : public OperatorNodeContents<Update> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1179,7 +1178,7 @@ class HashGroupBy : public OperatorNodeContents<HashGroupBy> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of columns
@@ -1224,7 +1223,7 @@ class SortGroupBy : public OperatorNodeContents<SortGroupBy> {
 
   bool operator==(const BaseOperatorNodeContents &r) override;
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return vector of columns
@@ -1265,7 +1264,7 @@ class Aggregate : public OperatorNodeContents<Aggregate> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 };
 
 /**
@@ -1286,7 +1285,7 @@ class CreateDatabase : public OperatorNodeContents<CreateDatabase> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the name of the database we want to create
@@ -1323,7 +1322,7 @@ class CreateTable : public OperatorNodeContents<CreateTable> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the namespace
@@ -1386,7 +1385,7 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the namespace
@@ -1448,7 +1447,7 @@ class CreateNamespace : public OperatorNodeContents<CreateNamespace> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the name of the namespace we want to create
@@ -1484,7 +1483,7 @@ class CreateView : public OperatorNodeContents<CreateView> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1557,7 +1556,7 @@ class CreateTrigger : public OperatorNodeContents<CreateTrigger> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1671,7 +1670,7 @@ class DropDatabase : public OperatorNodeContents<DropDatabase> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the database we want to drop
@@ -1716,7 +1715,7 @@ class CreateFunction : public OperatorNodeContents<CreateFunction> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -1840,7 +1839,7 @@ class DropTable : public OperatorNodeContents<DropTable> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the database we want to drop
@@ -1872,7 +1871,7 @@ class DropIndex : public OperatorNodeContents<DropIndex> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the index we want to drop
@@ -1904,7 +1903,7 @@ class DropNamespace : public OperatorNodeContents<DropNamespace> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return the OID of the namespace we want to drop
@@ -1938,7 +1937,7 @@ class DropTrigger : public OperatorNodeContents<DropTrigger> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -2002,7 +2001,7 @@ class DropView : public OperatorNodeContents<DropView> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database
@@ -2057,7 +2056,7 @@ class Analyze : public OperatorNodeContents<Analyze> {
   BaseOperatorNodeContents *Copy() const override;
 
   bool operator==(const BaseOperatorNodeContents &r) override;
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * @return OID of the database

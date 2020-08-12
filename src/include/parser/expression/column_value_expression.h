@@ -138,7 +138,7 @@ class ColumnValueExpression : public AbstractExpression {
   /**
    * Hashes the current ColumnValue expression.
    */
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   /**
    * Logical equality check.

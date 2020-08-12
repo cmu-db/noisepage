@@ -1,14 +1,16 @@
+#include "planner/plannodes/csv_scan_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
-#include "planner/plannodes/csv_scan_plan_node.h"
 
 namespace terrier::planner {
 
-common::hash_t CSVScanPlanNode::Hash() const {
-  common::hash_t hash = AbstractScanPlanNode::Hash();
+hash_t CSVScanPlanNode::Hash() const {
+  hash_t hash = AbstractScanPlanNode::Hash();
 
   // Filename
   hash = common::HashUtil::CombineHashes(hash, std::hash<std::string>{}(file_name_));

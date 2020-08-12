@@ -5,7 +5,6 @@
 #include <functional>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"

@@ -1,8 +1,11 @@
 #include "planner/plannodes/create_trigger_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -10,8 +13,8 @@
 
 namespace terrier::planner {
 
-common::hash_t CreateTriggerPlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+hash_t CreateTriggerPlanNode::Hash() const {
+  hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));

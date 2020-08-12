@@ -150,7 +150,7 @@ ConstantValueExpression::ConstantValueExpression(ConstantValueExpression &&other
   Validate();
 }
 
-common::hash_t ConstantValueExpression::Hash() const {
+hash_t ConstantValueExpression::Hash() const {
   const auto hash = common::HashUtil::CombineHashes(AbstractExpression::Hash(), common::HashUtil::Hash(IsNull()));
   if (IsNull()) return hash;
 

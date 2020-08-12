@@ -53,11 +53,7 @@ class ParameterValueExpression : public AbstractExpression {
   /** @return offset in the expression */
   uint32_t GetValueIdx() const { return value_idx_; }
 
-  common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
-    return hash;
-  }
+  hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;

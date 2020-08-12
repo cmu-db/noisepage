@@ -44,11 +44,7 @@ class FunctionExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override;
 
-  common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(func_name_));
-    return hash;
-  }
+  hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;

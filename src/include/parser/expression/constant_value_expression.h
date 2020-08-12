@@ -7,7 +7,6 @@
 #include <variant>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_util.h"
@@ -76,7 +75,7 @@ class ConstantValueExpression : public AbstractExpression {
    */
   ConstantValueExpression(const ConstantValueExpression &other);
 
-  common::hash_t Hash() const override;
+  hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &other) const override;
 

@@ -9,7 +9,6 @@
 #include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
 
@@ -32,7 +31,7 @@ struct hash<terrier::optimizer::StatsStorageKey> {
    * @return the hash for the StatsStorageKey
    */
   size_t operator()(const terrier::optimizer::StatsStorageKey &stats_storage_key) const {
-    terrier::common::hash_t hash = terrier::common::HashUtil::Hash(get<0>(stats_storage_key));
+    terrier::hash_t hash = terrier::common::HashUtil::Hash(get<0>(stats_storage_key));
     hash = terrier::common::HashUtil::CombineHashes(hash, terrier::common::HashUtil::Hash(get<1>(stats_storage_key)));
     return hash;
   }

@@ -15,11 +15,6 @@
 namespace terrier::common {
 
 /**
- * This is our typedef that we use throughout the entire code to represent a hash value.
- */
-using hash_t = uint64_t;
-
-/**
  * Generic hashing utility class. The main entry point are the HashUtil::Hash() functions. There are
  * overloaded specialized versions for arithmetic values (integers and floats), and generic versions
  * for longer buffers (strings, c-strings, and opaque buffers).

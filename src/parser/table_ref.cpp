@@ -1,9 +1,11 @@
 #include "parser/table_ref.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/select_statement.h"
 
@@ -21,8 +23,8 @@ nlohmann::json JoinDefinition::ToJson() const {
   return j;
 }
 
-common::hash_t JoinDefinition::Hash() const {
-  common::hash_t hash = common::HashUtil::Hash(type_);
+hash_t JoinDefinition::Hash() const {
+  hash_t hash = common::HashUtil::Hash(type_);
   if (left_ != nullptr) hash = common::HashUtil::CombineHashes(hash, left_->Hash());
   if (right_ != nullptr) hash = common::HashUtil::CombineHashes(hash, right_->Hash());
   if (condition_ != nullptr) hash = common::HashUtil::CombineHashes(hash, condition_->Hash());
@@ -144,8 +146,8 @@ std::vector<std::unique_ptr<AbstractExpression>> TableRef::FromJson(const nlohma
 
 DEFINE_JSON_BODY_DECLARATIONS(TableRef);
 
-common::hash_t TableRef::Hash() const {
-  common::hash_t hash = common::HashUtil::Hash(type_);
+hash_t TableRef::Hash() const {
+  hash_t hash = common::HashUtil::Hash(type_);
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
   if (table_info_ != nullptr) hash = common::HashUtil::CombineHashes(hash, table_info_->Hash());
   if (select_ != nullptr) hash = common::HashUtil::CombineHashes(hash, select_->Hash());
