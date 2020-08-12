@@ -48,45 +48,47 @@ class ConcurrentPointerVector {
     } while (!claimable_index_.compare_exchange_strong(my_index, my_index + 1));
 
     // resize vector
-    if (UNLIKELY(my_index == capacity_)) {
-      // allocate new vector and mark as not readable all new slots
-      T **new_array = new T *[capacity_ * RESIZE_FACTOR];
-      for (uint64_t i = capacity_; i < capacity_ * RESIZE_FACTOR; i++) SetNotReadable(new_array, i);
+    while (my_index >= capacity_) {
+      if (UNLIKELY(my_index == capacity_)) {
+        // allocate new vector and mark as not readable all new slots
+        T **new_array = new T *[capacity_ * RESIZE_FACTOR];
+        for (uint64_t i = capacity_; i < capacity_ * RESIZE_FACTOR; i++) SetNotReadable(new_array, i);
 
-      // copy over all the readable values from the front of the vector into the new_array
-      T **old_array;
-      uint64_t i;
-      {
-        common::SharedLatch::ScopedSharedLatch l(&array_pointer_latch_);
-        old_array = array_;
-        for (i = 0; i < capacity_ && i < first_not_readable_index_; i++) {
-          TERRIER_ASSERT(GetReadability(array_, i), "array_[0:first_not_readable_index_] should be readable");
-          new_array[i] = array_[i];
+        // copy over all the readable values from the front of the vector into the new_array
+        T **old_array;
+        uint64_t i;
+        {
+          common::SharedLatch::ScopedSharedLatch l(&array_pointer_latch_);
+          old_array = array_;
+          for (i = 0; i < capacity_ && i < first_not_readable_index_; i++) {
+            TERRIER_ASSERT(GetReadability(array_, i), "array_[0:first_not_readable_index_] should be readable");
+            new_array[i] = array_[i];
+          }
         }
-      }
 
-      // copy over all remaining values into the new_array
-      {
-        common::SharedLatch::ScopedExclusiveLatch l(&array_pointer_latch_);
-        for (; i < capacity_; i++) {
-          new_array[i] = array_[i];
+        // copy over all remaining values into the new_array
+        {
+          common::SharedLatch::ScopedExclusiveLatch l(&array_pointer_latch_);
+          for (; i < capacity_; i++) {
+            new_array[i] = array_[i];
+          }
+          array_ = new_array;
         }
-        array_ = new_array;
-      }
 
-      // change capacity and notify threads waiting on resize
-      {
+        // change capacity and notify threads waiting on resize
+        {
+          std::unique_lock<std::mutex> l(resize_mutex_);
+          capacity_ = capacity_ * RESIZE_FACTOR;
+          resize_cv_.notify_all();
+        }
+
+        delete[] old_array;
+
+      } else {
+        // must wait for resize
         std::unique_lock<std::mutex> l(resize_mutex_);
-        capacity_ = capacity_ * RESIZE_FACTOR;
-        resize_cv_.notify_all();
+        resize_cv_.wait_for(l, std::chrono::microseconds(1));
       }
-      
-      delete[] old_array;
-
-    } else if (my_index > capacity_) {
-      // must wait for resize
-      std::unique_lock<std::mutex> l(resize_mutex_);
-      resize_cv_.wait(l, [&] { return my_index < capacity_; });
     }
 
     TERRIER_ASSERT(my_index < capacity_, "must safely index into array");

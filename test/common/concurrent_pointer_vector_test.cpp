@@ -11,7 +11,7 @@ TEST(ConcurrentVectorTest, BasicInsertLookUpTest) {
   const uint64_t num_inserts = 100000;
   const uint64_t num_iterations = 100;
   for (uint64_t _ = 0; _ < num_iterations; _++) {
-    common::ConcurrentPointerVector<uint64_t> v;
+    common::ConcurrentPointerVector<uint64_t> v(1);
     uint64_t location_array[num_inserts];
     for (uint64_t i = 0; i < num_inserts; i++) {
       uint64_t inserted_index UNUSED_ATTRIBUTE = v.Insert(&location_array[i]);
@@ -34,7 +34,7 @@ TEST(ConcurrentVectorTest, ConcurrentInsert) {
     std::thread threads[num_threads];              // NOLINT
     std::vector<std::vector<uint64_t>> indexes(num_threads);
     uint64_t location_array[num_inserts];
-    common::ConcurrentPointerVector<uint64_t> v;
+    common::ConcurrentPointerVector<uint64_t> v(1);
     for (uint64_t i = 0; i < num_threads; i++) {  // NOLINT
       threads[i] = std::thread([&, i] {
         for (uint64_t index = 0; index < num_inserts / num_threads; index++) {
@@ -64,7 +64,7 @@ TEST(ConcurrentVectorTest, ConcurrentInsertAndLookup) {
     std::thread threads[num_threads];              // NOLINT
     std::vector<std::vector<uint64_t>> indexes(num_threads);
     uint64_t location_array[num_inserts];
-    common::ConcurrentPointerVector<uint64_t> v;
+    common::ConcurrentPointerVector<uint64_t> v(1);
     for (uint64_t i = 0; i < num_threads; i++) {  // NOLINT
       threads[i] = std::thread([&, i] {
         for (uint64_t index = 0; index < num_inserts / num_threads; index++) {
@@ -95,7 +95,7 @@ TEST(ConcurrentVectorTest, ConcurrentInsertLookupAndIteration) {
     std::thread threads[num_threads];              // NOLINT
     std::vector<std::vector<uint64_t>> indexes(num_threads);
     uint64_t location_array[num_inserts];
-    common::ConcurrentPointerVector<uint64_t> v;
+    common::ConcurrentPointerVector<uint64_t> v(1);
     std::atomic<uint64_t> num_inserted = 0;
     for (uint64_t i = 0; i < num_threads; i++) {  // NOLINT
       threads[i] = std::thread([&, i] {
