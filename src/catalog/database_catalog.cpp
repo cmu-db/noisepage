@@ -1783,7 +1783,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
   auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
-  auto timestamp_type = GetTypeOidForType(type::TypeId::TIMESTAMP);
+  auto date_type = GetTypeOidForType(type::TypeId::DATE);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1815,9 +1815,10 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // TODO(tanujnay112): no op codes for lower and upper yet
 
   // date_part
+  // TODO: Match date part type in parser
   CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str, timestamp"}, {str_type, timestamp_type},
-                  {str_type, timestamp_type}, {}, int_type, "", false);
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
+                  {date_type, int_type}, {}, int_type, "", false);
 
   BootstrapProcContexts(txn);
 }
@@ -1891,7 +1892,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext("date_part", type::TypeId::INTEGER,
-                                                           {type::TypeId::VARCHAR, type::TypeId::TIMESTAMP},
+                                                           {type::TypeId::DATE, type::TypeId::INTEGER},
                                                            execution::ast::Builtin::DatePart);
   txn->RegisterAbortAction([=]() { delete func_context; });
   SetProcCtxPtr(txn, postgres::DATE_PART_PRO_OID, func_context);
