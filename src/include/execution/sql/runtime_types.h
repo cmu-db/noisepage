@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 
-#include "execution/sql/sql_def.h"
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"
 
