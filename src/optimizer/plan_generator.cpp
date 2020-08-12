@@ -1004,7 +1004,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
   TERRIER_ASSERT(children_plans_.size() <= 2, "CteScan needs at most 2 child plans");
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(cte_scan->GetScanPredicate()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
-  if (children_plans_.size() >= 1) {
+  if (!children_plans_.empty()) {
     output_plan_ = std::move(children_plans_[0]);
     // CteScan OutputSchema does not add/drop columns. All output columns of CteScan
     // are the same as the output columns of the child plan. As such, the OutputSchema

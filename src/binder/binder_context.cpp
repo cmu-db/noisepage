@@ -297,13 +297,13 @@ void BinderContext::GenerateAllColumnExpressions(
   for (auto &stmt : parse_result->GetStatements()) {
     if (stmt->GetType() == parser::StatementType::SELECT) {
       auto select_stmt = stmt.CastManagedPointerTo<parser::SelectStatement>();
-      select_stmt->GetSelectTable()->GetConstituentTableAliases(constituent_table_aliases);
+      select_stmt->GetSelectTable()->GetConstituentTableAliases(&constituent_table_aliases);
     }
   }
 
   for (auto &entry : regular_table_alias_map_) {
     auto &table_alias = entry.first;
-    if (constituent_table_aliases.count(table_alias)) {
+    if (constituent_table_aliases.count(table_alias) > 0) {
       auto &schema = std::get<2>(entry.second);
       auto col_cnt = schema.GetColumns().size();
       for (uint32_t i = 0; i < col_cnt; i++) {
@@ -327,7 +327,7 @@ void BinderContext::GenerateAllColumnExpressions(
 
   for (auto &entry : nested_table_alias_map_) {
     auto &table_alias = entry.first;
-    if (constituent_table_aliases.count(table_alias)) {
+    if (constituent_table_aliases.count(table_alias) != 0) {
       auto &cols = entry.second;
       for (auto &col_entry : cols) {
         auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));

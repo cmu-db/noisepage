@@ -195,5 +195,4 @@ void IterCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *b
   builder->Append(assign);
 }
 
-}
-// namespace terrier::execution::compiler
+} // namespace terrier::execution::compiler

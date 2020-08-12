@@ -2120,7 +2120,6 @@ TEST_F(CompilerTest, CTEBasicTest) {
                    .SetColumnOids({cola_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -2132,11 +2131,9 @@ TEST_F(CompilerTest, CTEBasicTest) {
     auto col1 = seq_scan_out.GetOutput("col1");
     cte_scan_out.AddOutput("col1", col1);
     auto schema = cte_scan_out.MakeSchema();
-    auto table_output_schema = schema->Copy();
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetTableOutputSchema(std::move(table_output_schema))
                    .AddChild(std::move(seq_scan))
                    .SetLeader(true)
                    .Build();
@@ -2167,8 +2164,10 @@ TEST_F(CompilerTest, CTEBasicTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), cte_scan->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(cte_scan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*cte_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  checker.CheckCorrectness();
 }
 
 // NOLINTNEXTLINE
@@ -2214,11 +2213,9 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
-    auto table_output_schema = schema->Copy();
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetTableOutputSchema(std::move(table_output_schema))
                    .AddChild(std::move(seq_scan))
                    .SetLeader(true)
                    .Build();
@@ -2234,12 +2231,10 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
     cte_scan_out2.AddOutput("col1", col1);
     cte_scan_out2.AddOutput("col2", col2);
     auto schema = cte_scan_out2.MakeSchema();
-    auto table_output_schema = schema->Copy();
 
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan2 = builder.SetOutputSchema(std::move(schema))
-                    .SetTableOutputSchema(std::move(table_output_schema))
                     .SetLeader(false)
                     .Build();
   }
@@ -2313,8 +2308,10 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(nl_join), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*nl_join, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -2349,7 +2346,6 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -2363,12 +2359,10 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
-    auto table_output_schema = schema->Copy();
 
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetTableOutputSchema(std::move(table_output_schema))
                    .AddChild(std::move(seq_scan))
                    .SetLeader(true)
                    .Build();
@@ -2389,7 +2383,6 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan2 = builder.SetOutputSchema(std::move(schema))
-                    .SetTableOutputSchema(std::move(table_output_schema))
                     .SetLeader(false)
                     .Build();
   }
@@ -2464,8 +2457,10 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), hash_join->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(hash_join), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*hash_join, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -2501,7 +2496,6 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -2515,12 +2509,10 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
-    auto table_output_schema = schema->Copy();
 
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetTableOutputSchema(std::move(table_output_schema))
                    .AddChild(std::move(seq_scan))
                    .SetLeader(true)
                    .Build();
@@ -2536,12 +2528,10 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
     cte_scan_out2.AddOutput("col1", col1);
     cte_scan_out2.AddOutput("col2", col2);
     auto schema = cte_scan_out2.MakeSchema();
-    auto table_output_schema = schema->Copy();
 
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan2 = builder.SetOutputSchema(std::move(schema))
-                    .SetTableOutputSchema(std::move(table_output_schema))
                     .SetLeader(false)
                     .Build();
   }
@@ -2556,13 +2546,11 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
     cte_scan_out3.AddOutput("col1", col1);
     cte_scan_out3.AddOutput("col2", col2);
     auto schema = cte_scan_out3.MakeSchema();
-    auto table_output_schema = schema->Copy();
 
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan3 = builder.SetOutputSchema(std::move(schema))
                     .SetLeader(false)
-                    .SetTableOutputSchema(std::move(table_output_schema))
                     .Build();
   }
 
@@ -2673,8 +2661,10 @@ TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(nl_join), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*nl_join, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -2708,7 +2698,6 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -2778,7 +2767,6 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
                      .SetColumnOids({cola_oid, colb_oid})
                      .SetScanPredicate(predicate)
                      .SetIsForUpdateFlag(false)
-                     .SetNamespaceOid(NSOid())
                      .SetTableOid(table_oid)
                      .Build();
   }
@@ -2843,8 +2831,10 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), hash_join->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(hash_join), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*hash_join, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -2878,7 +2868,6 @@ TEST_F(CompilerTest, ComplexAggregateWithCteQueryTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -2918,12 +2907,10 @@ TEST_F(CompilerTest, ComplexAggregateWithCteQueryTest) {
     cte_scan_out.AddOutput("colA", col1);
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
-    auto table_output_schema = schema->Copy();
 
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetTableOutputSchema(std::move(table_output_schema))
                    .AddChild(std::move(agg))
                    .SetLeader(true)
                    .Build();
@@ -2949,7 +2936,6 @@ TEST_F(CompilerTest, ComplexAggregateWithCteQueryTest) {
                      .SetColumnOids({cola_oid, colb_oid})
                      .SetScanPredicate(predicate)
                      .SetIsForUpdateFlag(false)
-                     .SetNamespaceOid(NSOid())
                      .SetTableOid(table_oid)
                      .Build();
   }
@@ -3036,8 +3022,10 @@ TEST_F(CompilerTest, ComplexAggregateWithCteQueryTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg2->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(agg2), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*agg2, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 

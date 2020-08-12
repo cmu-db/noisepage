@@ -35,21 +35,23 @@ TEST_F(IterCTEScanTest, IterCTEEmptyAccumulateTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), cte_table_col_type, 1};
+  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
+                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
+                                                        cte_table_col_type, 1, false};
   EXPECT_FALSE(cte_scan.Accumulate());
 
   TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
                                static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadTable()));
-  auto *pci = seq_iter.GetProjectedColumnsIterator();
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;  // The number of records found
 
   while (seq_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       // Increment counter
       count++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(count, 0);
 }
@@ -74,7 +76,9 @@ TEST_F(IterCTEScanTest, IterCTESingleInsertTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), cte_table_col_type, 1};
+  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
+                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
+                                                        cte_table_col_type, 1, false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
   int32_t lo_match = 1;
@@ -101,18 +105,18 @@ TEST_F(IterCTEScanTest, IterCTESingleInsertTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
                                static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadTable()));
-  auto *pci = seq_iter.GetProjectedColumnsIterator();
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
   while (seq_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       // Get one element from cte_table
-      auto *cur_val = pci->Get<int32_t, false>(0, nullptr);
+      auto *cur_val = vpi->GetValue<int32_t, false>(0, nullptr);
       EXPECT_EQ(*cur_val, inserted_vals[count]);
       count++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(count, inserted_vals.size());
 }
@@ -136,7 +140,9 @@ TEST_F(IterCTEScanTest, IterCTEWriteTableTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), cte_table_col_type, 1};
+  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
+                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
+                                                        cte_table_col_type, 1, false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
   int32_t lo_match = 1;
@@ -162,18 +168,18 @@ TEST_F(IterCTEScanTest, IterCTEWriteTableTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
                                static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteTable()));
-  auto *pci = seq_iter.GetProjectedColumnsIterator();
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteCte()->GetTable()));
+  auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
   while (seq_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       // Get one element from cte_table
-      auto *cur_val = pci->Get<int32_t, false>(0, nullptr);
+      auto *cur_val = vpi->GetValue<int32_t, false>(0, nullptr);
       EXPECT_EQ(*cur_val, inserted_vals[count]);
       count++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(count, inserted_vals.size());
 }
@@ -198,7 +204,9 @@ TEST_F(IterCTEScanTest, IterCTEDoubleAccumulateTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), cte_table_col_type, 1};
+  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
+                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
+                                                        cte_table_col_type, 1, false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
   int32_t lo_match = 1;
@@ -226,18 +234,18 @@ TEST_F(IterCTEScanTest, IterCTEDoubleAccumulateTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
                                static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadTable()));
-  auto *pci = seq_iter.GetProjectedColumnsIterator();
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
   while (seq_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       // Get one element from cte_table
-      auto *cur_val = pci->Get<int32_t, false>(0, nullptr);
+      auto *cur_val = vpi->GetValue<int32_t, false>(0, nullptr);
       EXPECT_EQ(*cur_val, inserted_vals[count]);
       count++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(count, inserted_vals.size());
 }
@@ -267,7 +275,9 @@ TEST_F(IterCTEScanTest, IterCTEMultipleInsertTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), cte_table_col_type, 1};
+  terrier::execution::sql::IterCteScanIterator cte_scan{exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
+                                                                                  exec_ctx_->GetAccessor()->GetNewTempOid()),
+                                                        cte_table_col_type, 1, false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
   int32_t first_lo_match = 1;
@@ -315,18 +325,18 @@ TEST_F(IterCTEScanTest, IterCTEMultipleInsertTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
                                static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadTable()));
-  auto *pci = seq_iter.GetProjectedColumnsIterator();
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
   while (seq_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       // Get one element from cte_table
-      auto *cur_val = pci->Get<int32_t, false>(0, nullptr);
+      auto *cur_val = vpi->GetValue<int32_t, false>(0, nullptr);
       EXPECT_EQ(*cur_val, inserted_vals[count]);
       count++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(count, inserted_vals.size());
 }

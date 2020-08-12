@@ -44,10 +44,8 @@ CteScanIterator *IterCteScanIterator::GetResultCTE() {
     exec_ctx_->GetAccessor()->RegisterTempTable(table_oid_, common::ManagedPointer(cte_scan_1_.GetTable()));
     return &cte_scan_1_;
   }
-  else {
-    exec_ctx_->GetAccessor()->RegisterTempTable(table_oid_, common::ManagedPointer(cte_scan_read_->GetTable()));
-    return cte_scan_read_;
-  }
+  exec_ctx_->GetAccessor()->RegisterTempTable(table_oid_, common::ManagedPointer(cte_scan_read_->GetTable()));
+  return cte_scan_read_;
 }
 
 catalog::table_oid_t IterCteScanIterator::GetReadTableOid() { return cte_scan_read_->GetTableOid(); }
@@ -77,9 +75,9 @@ bool IterCteScanIterator::Accumulate() {
       cte_scan_write_->GetTable()->Reset();
     }
 
-    bool old_written_ = written_;
+    bool old_written = written_;
     written_ = false;
-    return old_written_;
+    return old_written;
   }
 
 }  // namespace terrier::execution::sql

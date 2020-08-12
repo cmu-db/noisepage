@@ -33,7 +33,9 @@ TEST_F(CTEScanTest, CTEInitTest) {
 
   uint32_t cte_table_col_type[4] = {5, 4, 3, 9};  // {BIGINT, INTEGER, SMALLINT, VARCHAR}
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(), cte_table_col_type, 4);
+  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
+                                                                                         exec_ctx_->GetAccessor()->GetNewTempOid()),
+                                                               cte_table_col_type, 4);
 
   auto cte_table = cte_scan->GetTable();
 
@@ -79,7 +81,9 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
+  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(), TEMP_OID(catalog::table_oid_t,
+                                                                                         exec_ctx_->GetAccessor()->GetNewTempOid()),
+                                                               cte_table_col_type, 1);
 
   auto cte_table = cte_scan->GetTable();
 
@@ -108,15 +112,15 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   TableVectorIterator table_iter(exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
                                  static_cast<uint32_t>(col_oids.size()));
   table_iter.InitTempTable(common::ManagedPointer(cte_table));
-  ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
-      auto *val_a = pci->Get<int32_t, false>(0, nullptr);
+    for (; vpi->HasNext(); vpi->Advance()) {
+      auto *val_a = vpi->GetValue<int32_t, false>(0, nullptr);
       ASSERT_EQ(*val_a, inserted_vals[num_tuples]);
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(num_tuples, (hi_match - lo_match) + 1);
   delete cte_scan;
@@ -140,7 +144,10 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
+  auto cte_scan = new terrier::execution::sql::CteScanIterator(exec_ctx_.get(),
+                                                               TEMP_OID(catalog::table_oid_t,
+                                                                        exec_ctx_->GetAccessor()->GetNewTempOid()),
+                                                               cte_table_col_type, 1);
 
   auto cte_table = cte_scan->GetTable();
 
@@ -169,15 +176,15 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   auto table_iter = new TableVectorIterator(exec_ctx_.get(), !(cte_scan->GetTableOid()), col_oids.data(),
                                             static_cast<uint32_t>(col_oids.size()));
   table_iter->InitTempTable(common::ManagedPointer(cte_table));
-  ProjectedColumnsIterator *pci = table_iter->GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = table_iter->GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter->Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
-      auto *val_a = pci->Get<int32_t, false>(0, nullptr);
+    for (; vpi->HasNext(); vpi->Advance()) {
+      auto *val_a = vpi->GetValue<int32_t, false>(0, nullptr);
       ASSERT_EQ(*val_a, inserted_vals[num_tuples]);
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   delete table_iter;
   EXPECT_EQ(num_tuples, (hi_match - lo_match) + 1);

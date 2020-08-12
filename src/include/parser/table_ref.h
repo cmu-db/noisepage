@@ -276,11 +276,11 @@ class TableRef {
   bool operator!=(const TableRef &rhs) const { return !(operator==(rhs)); }
 
   /**
-   * Inserts all the table aliases forming a table ref into the inputted set.
+   * Inserts all the table aliases forming a table ref into the input set.
    * (i.e., all the aliases used in the from clause, including all aliases in all JOINs)
    * @param aliases set to insert aliases into
    */
-  void GetConstituentTableAliases(std::unordered_set<std::string> &aliases);
+  void GetConstituentTableAliases(std::unordered_set<std::string> *aliases);
 
   /** @return TableRef serialized to json */
   nlohmann::json ToJson() const;

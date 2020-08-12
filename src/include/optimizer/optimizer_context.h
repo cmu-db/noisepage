@@ -137,7 +137,7 @@ class OptimizerContext {
    * @param schema OutputSchema
    */
   void SetCTESchema(const std::string &cte_name,
-                    catalog::Schema schema) { cte_schemas_[cte_name] = schema; }
+                    catalog::Schema schema) { cte_schemas_[cte_name] = std::move(schema); }
 
   /**
    * Sets the StatsStorage

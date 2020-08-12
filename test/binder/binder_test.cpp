@@ -207,7 +207,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
 
   // Check with_list
   BINDER_LOG_DEBUG("Checking with list");
-  auto with_stmt = cte_stmt->GetSelectWith()->GetSelect().CastManagedPointerTo<parser::SelectStatement>();
+  auto with_stmt = cte_stmt->GetSelectWith()[0]->GetSelect().CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(1, with_stmt->GetDepth());
   auto col_expr = with_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1

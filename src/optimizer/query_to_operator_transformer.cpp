@@ -85,7 +85,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       for(uint32_t i = 0;i < with->GetCteColumnAliases().size();i++){
         col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
       }
-      cte_schemas_.push_back(catalog::Schema(with->GetCteColumnAliases(), col_types));
+      cte_schemas_.emplace_back(catalog::Schema(with->GetCteColumnAliases(), col_types));
       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> master_expressions;
       std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
       for (auto &elem : with->GetSelect()->GetSelectColumns()) {
@@ -104,6 +104,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       if (with->GetSelect()->GetUnionSelect() != nullptr) {
         std::vector<common::ManagedPointer<parser::AbstractExpression>> second_expressions;
         auto &second_columns = with->GetSelect()->GetUnionSelect()->GetSelectColumns();
+        second_expressions.reserve(second_columns.size());
         for (auto &elems : second_columns) {
           second_expressions.push_back(elems);
         }

@@ -451,19 +451,25 @@ TEST(OperatorTests, LogicalCteScanTest) {
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
   Operator logical_cte_1 =
-      LogicalCteScan::Make("cte_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+      LogicalCteScan::Make("cte_1", TEMP_OID(catalog::table_oid_t, 1000),  catalog::Schema(),
+                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_1}},
+                           parser::CTEType::SIMPLE, {});
   Operator logical_cte_2 =
-      LogicalCteScan::Make("cte_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2});
+      LogicalCteScan::Make("cte_1", TEMP_OID(catalog::table_oid_t, 1001), catalog::Schema(),
+                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_2}},
+                           parser::CTEType::SIMPLE,{});
   Operator logical_cte_3 =
-      LogicalCteScan::Make("cte_2", std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+      LogicalCteScan::Make("cte_2", TEMP_OID(catalog::table_oid_t, 1002), catalog::Schema(),
+                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_3}},
+                           parser::CTEType::SIMPLE, {});
 
   EXPECT_EQ(logical_cte_1.GetOpType(), OpType::LOGICALCTESCAN);
   EXPECT_EQ(logical_cte_3.GetOpType(), OpType::LOGICALCTESCAN);
   EXPECT_EQ(logical_cte_1.GetName(), "LogicalCteScan");
   EXPECT_EQ(logical_cte_1.GetContentsAs<LogicalCteScan>()->GetExpressions(),
-            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_1}});
   EXPECT_EQ(logical_cte_3.GetContentsAs<LogicalCteScan>()->GetExpressions(),
-            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_3}});
   EXPECT_TRUE(logical_cte_1 == logical_cte_2);
   EXPECT_FALSE(logical_cte_1 == logical_cte_3);
   EXPECT_EQ(logical_cte_1.Hash(), logical_cte_2.Hash());
@@ -2007,7 +2013,7 @@ TEST(OperatorTests, LogicalCreateViewTest) {
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
-                                          nullptr, nullptr, nullptr, nullptr, nullptr);
+                                          nullptr, nullptr, nullptr, nullptr, nullptr, {});
   Operator op6 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
                                          common::ManagedPointer<parser::SelectStatement>(stmt))
                      .RegisterWithTxnContext(txn_context);
