@@ -1803,13 +1803,13 @@ VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *sto
 // Date function
 // ---------------------------------
 
-VM_OP_WARM void OpDatePart(terrier::execution::sql::Integer *result, terrier::execution::sql::DateVal *input,
-                           terrier::execution::sql::Integer *date_type) {
+VM_OP_WARM void OpExtractYearFromDate(terrier::execution::sql::Integer *result,
+                                      terrier::execution::sql::DateVal *input) {
   if (input->is_null_) {
     result->is_null_ = true;
   } else {
     result->is_null_ = false;
-    result->val_ = input->val_.DatePart(uint32_t(date_type->val_));
+    result->val_ = input->val_.ExtractYear();
   }
 }
 

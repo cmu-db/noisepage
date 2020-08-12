@@ -35,4 +35,4 @@ enum class DatePartType : uint32_t {
   YEARS = 21,
 };
 
-}
+}  // namespace terrier::execution::sql

@@ -31,11 +31,6 @@ class EXPORT Date {
   Date() = default;
 
   /**
-   * DatePart wrapper function to call corresponding fucntion
-   * @return Extracted Date type value
-   */
-  int32_t DatePart(uint32_t date_type) const;
-  /**
    * @return True if this is a valid date instance; false otherwise.
    */
   bool IsValid() const;

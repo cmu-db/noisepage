@@ -139,20 +139,6 @@ bool EndsWith(const char *str, std::size_t len, const char *suffix, std::size_t 
 // Date
 //
 //===----------------------------------------------------------------------===//
-int32_t Date::DatePart(uint32_t date_type) const {
-  auto date_part_type = DatePartType(date_type);
-  switch (date_part_type) {
-    case DatePartType::YEAR:
-      return ExtractYear();
-    case DatePartType::MONTH:
-      return ExtractMonth();
-    case DatePartType::DAY:
-      return ExtractDay();
-    default:
-      UNREACHABLE("date function not implemented");
-  }
-}
-
 bool Date::IsValid() const {
   int32_t year, month, day;
   SplitJulianDate(value_, &year, &month, &day);

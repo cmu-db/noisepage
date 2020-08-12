@@ -2208,11 +2208,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // Date functions
   // -------------------------------------------------------
 
-  OP(DatePart) : {
+  OP(ExtractYearFromDate) : {
     auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<sql::DateVal *>(READ_LOCAL_ID());
-    auto date_type = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    OpDatePart(result, input, date_type);
+    OpExtractYearFromDate(result, input);
     DISPATCH_NEXT();
   }
 
