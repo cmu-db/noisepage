@@ -1,7 +1,8 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 
-#include <thread>
+#include <thread>  // NOLINT
 
+#include "common/resource_tracker.h"
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <condition_variable>
+#include <condition_variable>  // NOLINT
 #include <queue>
-#include <thread>
+#include <thread>  // NOLINT
 #include <tuple>
 #include <unordered_map>
 #include <utility>
