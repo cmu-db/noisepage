@@ -1814,7 +1814,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
   // TODO(tanujnay112): no op codes for lower and upper yet
 
-  // Extract Year
+  // date_part
   CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str, timestamp"}, {str_type, timestamp_type},
                   {str_type, timestamp_type}, {}, int_type, "", false);

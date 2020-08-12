@@ -628,10 +628,11 @@ void BytecodeGenerator::VisitSqlStringLikeCall(ast::CallExpr *call) {
 void BytecodeGenerator::VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
   auto dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   auto input = VisitExpressionForLValue(call->Arguments()[0]);
+  auto date_type = VisitExpressionForLValue(call->Arguments()[1]);
 
   switch (builtin) {
     case ast::Builtin::DatePart:
-      GetEmitter()->Emit(Bytecode::ExtractYear, dest, input);
+      GetEmitter()->Emit(Bytecode::DatePart, dest, input, date_type);
       break;
     default:
       UNREACHABLE("Impossible date call!");

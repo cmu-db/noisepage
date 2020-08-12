@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "execution/sql/sql_def.h"
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"
 
@@ -29,6 +30,11 @@ class EXPORT Date {
    */
   Date() = default;
 
+  /**
+   * DatePart wrapper function to call corresponding fucntion
+   * @return Extracted Date type value
+   */
+  int32_t DatePart(uint32_t date_type) const;
   /**
    * @return True if this is a valid date instance; false otherwise.
    */

@@ -981,8 +981,8 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
     l_seq_scan_out.AddOutput("l_orderkey", l_orderkey);
     l_seq_scan_out.AddOutput("l_suppkey", l_suppkey);
 
-    // TODO(Amadou): Add a BuiltinFunctionExpression for @extractYear.
-    auto extract_year = expr_maker.Function("data_part", {l_shipdate}, type::TypeId::INTEGER,
+    auto date_type = expr_maker.Constant(21);
+    auto extract_year = expr_maker.Function("data_part", {l_shipdate, date_type}, type::TypeId::INTEGER,
                                             terrier::catalog::postgres::DATE_PART_PRO_OID);
 
     l_seq_scan_out.AddOutput("l_year", extract_year);
