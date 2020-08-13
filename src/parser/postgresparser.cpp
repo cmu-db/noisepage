@@ -2054,7 +2054,7 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
         }
         if (colnames.empty()) {
           for (auto &expr : select->GetSelectColumns()) {
-            colnames.push_back(expr->GetAlias());
+            colnames.push_back(expr->GetAlias().empty() ? "?column?" : expr->GetAlias());
           }
         }
         CTEType cte_type = CTEType::SIMPLE;

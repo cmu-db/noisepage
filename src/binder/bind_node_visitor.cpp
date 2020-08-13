@@ -807,9 +807,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     for (size_t i = 0; i < num_aliases; i++) {
       columns[i]->SetAlias(column_aliases[i]);
     }
-    for (size_t i = num_aliases; i < num_columns; i++) {
-      columns[i]->SetAlias("?column?");
-    }
+    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
 
