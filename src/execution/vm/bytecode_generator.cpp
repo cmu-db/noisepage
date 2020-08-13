@@ -1655,7 +1655,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::Log2: {
-      Emitter()->Emit(Bytecode::Log2, dest, src);
+      GetEmitter()->Emit(Bytecode::Log2, dest, src);
       break;
     }
     default: {
