@@ -61,7 +61,9 @@ ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
     auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(name, type));
   }
-  return codegen->DeclareStruct(agg_payload_type_, std::move(fields));
+
+  struct_decl_ = codegen->DeclareStruct(agg_payload_type_, std::move(fields));
+  return struct_decl_;
 }
 
 ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
