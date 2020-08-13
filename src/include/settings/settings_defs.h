@@ -246,8 +246,8 @@ SETTING_bool(
 
 SETTING_string(
     application_name,
-    "The name of the application (default: empty string)",
-    "",
+    "The name of the application (default: NO_NAME)",
+    "NO_NAME",
     true,
     terrier::settings::Callbacks::NoOp
 )
