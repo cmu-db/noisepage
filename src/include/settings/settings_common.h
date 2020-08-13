@@ -143,12 +143,12 @@
   ValidateSetting(terrier::settings::Param::name, {type::TypeId::BOOLEAN, execution::sql::BoolVal(default_value)}, \
                   {type::TypeId::BOOLEAN, execution::sql::BoolVal(default_value)});
 
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                     \
-  std::string default_value_string{default_value};                                                                    \
-  auto string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);                                 \
-  auto default_value_cve = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first, \
-                                                                             std::move(string_val.second));           \
-  ValidateSetting(terrier::settings::Param::name, *default_value_cve, *default_value_cve);
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                   \
+  std::string default_value_string_##name{default_value};                                           \
+  auto string_val_##name = execution::sql::ValueUtil::CreateStringVal(default_value_string_##name); \
+  auto default_value_cve_##name = std::make_unique<parser::ConstantValueExpression>(                \
+      type::TypeId::VARCHAR, string_val_##name.first, std::move(string_val_##name.second));         \
+  ValidateSetting(terrier::settings::Param::name, *default_value_cve_##name, *default_value_cve_##name);
 #endif
 
 #ifdef __SETTING_ENUM__
@@ -222,18 +222,19 @@
                                    {type::TypeId::BOOLEAN, execution::sql::BoolVal(default_value)}, is_mutable, 0, 0,  \
                                    &callback_fn));
 
-#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                              \
-  const std::string_view value_string{FLAGS_##name};                                                           \
-  auto string_val = execution::sql::ValueUtil::CreateStringVal(value_string);                                  \
-                                                                                                               \
-  const std::string_view default_value_string{default_value};                                                  \
-  auto default_value_string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);            \
-                                                                                                               \
-  param_map.emplace(                                                                                           \
-      terrier::settings::Param::name,                                                                          \
-      terrier::settings::ParamInfo(                                                                            \
-          #name, {type::TypeId::VARCHAR, string_val.first, std::move(string_val.second)}, description,         \
-          {type::TypeId::VARCHAR, default_value_string_val.first, std::move(default_value_string_val.second)}, \
+#define SETTING_string(name, description, default_value, is_mutable, callback_fn)                                    \
+  const std::string_view value_string_##name{FLAGS_##name};                                                          \
+  auto string_val_##name = execution::sql::ValueUtil::CreateStringVal(value_string_##name);                          \
+                                                                                                                     \
+  const std::string_view default_value_string_##name{default_value};                                                 \
+  auto default_value_string_val_##name = execution::sql::ValueUtil::CreateStringVal(default_value_string_##name);    \
+                                                                                                                     \
+  param_map.emplace(                                                                                                 \
+      terrier::settings::Param::name,                                                                                \
+      terrier::settings::ParamInfo(                                                                                  \
+          #name, {type::TypeId::VARCHAR, string_val_##name.first, std::move(string_val_##name.second)}, description, \
+          {type::TypeId::VARCHAR, default_value_string_val_##name.first,                                             \
+           std::move(default_value_string_val_##name.second)},                                                       \
           is_mutable, 0, 0, &callback_fn));
 
 #endif
