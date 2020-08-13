@@ -1859,6 +1859,8 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                                                            execution::ast::Builtin::Lower, true);
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, func_context);
 
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
   func_context = new execution::functions::FunctionContext("position", type::TypeId::INTEGER,
                                                            {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
                                                            execution::ast::Builtin::Position, true);
