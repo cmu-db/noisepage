@@ -18,6 +18,8 @@ class CompactIntsKey;
 template <uint16_t KeySize>
 class GenericKey;
 
+constexpr uint8_t GC_THRESHOLD = 100;
+
 /**
  * Wrapper around Ziqi's OpenBwTree.
  * @tparam KeyType the type of keys stored in the BwTree
@@ -30,7 +32,30 @@ class BwTreeIndex final : public Index {
   explicit BwTreeIndex(IndexMetadata metadata)
       : Index(std::move(metadata)), bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{false}} {}
 
+  void IncNumModification(const common::ManagedPointer<transaction::TransactionContext> txn) {
+    if (num_mod_ < GC_THRESHOLD) {
+      num_mod_++;
+    } else {
+      num_mod_.store(0);
+      txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+        deferred_action_manager->RegisterDeferredAction(
+            [=]() {
+              bwtree_->PerformGarbageCollection();
+            },
+            transaction::DafId::MEMORY_DEALLOCATION);
+      });
+      txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+        deferred_action_manager->RegisterDeferredAction(
+            [=]() {
+              bwtree_->PerformGarbageCollection();
+            },
+            transaction::DafId::MEMORY_DEALLOCATION);
+      });
+    }
+  }
+
   const std::unique_ptr<third_party::bwtree::BwTree<KeyType, TupleSlot>> bwtree_;
+  std::atomic<uint32_t> num_mod_ = 0;
 
  public:
   IndexType Type() const final { return IndexType::BWTREE; }
@@ -44,10 +69,10 @@ class BwTreeIndex final : public Index {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
     const bool result = bwtree_->Insert(index_key, location, false);
-
     TERRIER_ASSERT(
         result,
         "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BwTree itself.");
+    IncNumModification(txn);
     // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
       const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
@@ -76,6 +101,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(predicate_satisfied != result, "If predicate is not satisfied then insertion should succeed.");
 
     if (result) {
+      IncNumModification(txn);
       // Register an abort action with the txn context in case of rollback
       txn->RegisterAbortAction([=]() {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
@@ -99,6 +125,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
                    "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
+    IncNumModification(txn);
 
     // Register a deferred action for the GC with txn manager. See base function comment.
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
