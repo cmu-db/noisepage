@@ -41,6 +41,36 @@ SELECT tan(double_val) AS result FROM functions1 WHERE is_null = 1
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 query I nosort
+SELECT cosh(double_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 5400d6e5e595bf3909efc946916585ee
+
+query I nosort
+SELECT cosh(double_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT sinh(double_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 33224ffa75b9dfc85eb2914f269f0b85
+
+query I nosort
+SELECT sinh(double_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT tanh(double_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to cd4138a72b3af158a35d503d1a4cfa70
+
+query I nosort
+SELECT tanh(double_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
 SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 0
 ----
 1 values hashing to 5ab557c937e38f15291c04b7e99544ad
