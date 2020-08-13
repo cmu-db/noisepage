@@ -1496,6 +1496,12 @@ VM_OP_WARM void OpLower(terrier::execution::sql::StringVal *result, terrier::exe
   terrier::execution::sql::StringFunctions::Lower(result, ctx, *str);
 }
 
+VM_OP_WARM void OpPosition(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::Integer *result,
+                           const terrier::execution::sql::StringVal *search_str,
+                           const terrier::execution::sql::StringVal *search_sub_str) {
+  terrier::execution::sql::StringFunctions::Position(ctx, result, *search_str, *search_sub_str);
+}
+
 VM_OP_WARM void OpLPad(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
                        const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
                        const terrier::execution::sql::StringVal *pad) {

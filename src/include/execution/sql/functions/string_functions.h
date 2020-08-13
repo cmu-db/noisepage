@@ -91,6 +91,10 @@ class StringFunctions {
 
   /** Compute LIKE(string, pattern). */
   static void Like(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &string, const StringVal &pattern);
+
+  /** Compute POSITION(search_str, search_sub_str). */
+  static void Position(exec::ExecutionContext *ctx, Integer *pos, const StringVal &search_str,
+                       const StringVal &search_sub_str);
 };
 
 }  // namespace terrier::execution::sql
