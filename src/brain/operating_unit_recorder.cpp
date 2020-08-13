@@ -160,6 +160,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   size_t num_rows = 1;
   size_t cardinality = 1;
+  size_t num_loops = 0;
   if (type == ExecutionOperatingUnitType::OUTPUT) {
     // Uses the network result consumer
     cardinality = 1;
@@ -198,6 +199,9 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     } else {
       TERRIER_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
       num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
+
+      UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
+      num_loops = 0;  // extract from c_plan num_rows
     }
 
     cardinality = 1;  // extract from plan num_rows (this is the scan size)
@@ -217,8 +221,8 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  pipeline_features_.emplace(
-      type, ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor));
+  auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_loops);
+  pipeline_features_.emplace(type, std::move(feature));
 }
 
 void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling) {
@@ -341,7 +345,8 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of left plan
     auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, key_size, plan->GetLeftHashKeys().size(), c_plan, 1, scale);
+    AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_BUILD, key_size, plan->GetLeftHashKeys().size(), c_plan, 1,
+                      scale);
   }
 
   // Probe
@@ -355,8 +360,8 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of right plan which is probe
     auto *c_plan = plan->GetChild(1);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(),
-                      plan, 1, 1);
+    AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, ComputeKeySize(plan->GetRightHashKeys()),
+                      plan->GetRightHashKeys().size(), plan, 1, 1);
   }
 
   // Computes against OutputSchema/Join predicate which will
@@ -392,6 +397,7 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
       rec.plan_feature_type_ = plan_feature_type_;
       plan->GetChild(1)->Accept(common::ManagedPointer<planner::PlanVisitor>(&rec));
       for (auto &feature : rec.pipeline_features_) {
+        // TODO(wz2): maybe a NL join should also record a # iterations feature
         AggregateFeatures(feature.first, feature.second.GetKeySize(), feature.second.GetNumKeys(), c_plan,
                           o_num_rows - 1, 1);
       }
@@ -541,7 +547,7 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     // Sort build sizes/operations are based on the input (from child)
     const auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, key_size, keys.size(), c_plan, 1, scale);
+    AggregateFeatures(ExecutionOperatingUnitType::SORT_BUILD, key_size, keys.size(), c_plan, 1, scale);
   } else if (translator->IsScanPipeline(*current_pipeline_)) {
     // SORT_ITERATE will do any output computations
     VisitAbstractPlanNode(plan);
@@ -550,7 +556,7 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
     auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+    AggregateFeatures(ExecutionOperatingUnitType::SORT_ITERATE, key_size, num_keys, plan, 1, 1);
   }
 }
 
@@ -616,10 +622,14 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
       if (!keys.empty()) {
         key_size = ComputeKeySize(keys);
         num_keys = keys.size();
+      } else {
+        // This case is typically just numerics (i.e COUNT)
+        // We still record something to differentiate in the models.
+        num_keys = plan->GetAggregateTerms().size();
       }
     }
 
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1, mem_factor);
+    AggregateFeatures(ExecutionOperatingUnitType::AGGREGATE_BUILD, key_size, num_keys, c_plan, 1, mem_factor);
   } else if (translator->IsProducePipeline(*current_pipeline_)) {
     // AggregateTopTranslator handles any exprs/computations in the output
     VisitAbstractPlanNode(plan);
@@ -634,7 +644,7 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
     auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+    AggregateFeatures(ExecutionOperatingUnitType::AGGREGATE_ITERATE, key_size, num_keys, plan, 1, 1);
   }
 }
 
