@@ -11,7 +11,7 @@ timestamp_t DeferredActionManager::RegisterDeferredAction(DeferredAction &&a, tr
   // Timestamp needs to be fetched inside the critical section such that actions in the
   // deferred action queue is in order. This simplifies the interleavings we need to deal
   // with in the face of DDL changes.
-  queue_latch_.LockExclusive();
+  queue_latch_.Lock();
   new_deferred_actions_.push(elem);
   queue_latch_.Unlock();
   return result;
@@ -75,7 +75,7 @@ void DeferredActionManager::ProcessIndexes() {
 uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled) {
   uint32_t processed = 0;
   while (true) {
-    queue_latch_.LockExclusive();
+    queue_latch_.Lock();
     if (processed == 0 && metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(new_deferred_actions_.size());
 
     if (new_deferred_actions_.empty() || !transaction::TransactionUtil::NewerThan(oldest_txn, new_deferred_actions_.front().first)) {

@@ -110,7 +110,7 @@ class DeferredActionManager {
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
   std::vector<std::atomic<uint16_t>> daf_tags_;
-  common::SharedLatch queue_latch_;
+  common::SpinLatch queue_latch_;
 
   // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
   //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls
