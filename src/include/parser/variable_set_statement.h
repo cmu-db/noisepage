@@ -18,6 +18,7 @@ class VariableSetStatement : public SQLStatement {
   /**
    * @param parameter_name The name of the parameter.
    * @param values The values to set in the parameter.
+   * @param is_set_default True if the parameter should be set to DEFAULT, in which case values should be empty.
    */
   VariableSetStatement(std::string parameter_name, std::vector<common::ManagedPointer<AbstractExpression>> values,
                        bool is_set_default)
