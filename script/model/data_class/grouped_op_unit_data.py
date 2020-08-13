@@ -12,10 +12,11 @@ import global_model_config
 from type import Target, ConcurrentCountingMode, OpUnit
 
 
-def get_grouped_op_unit_data(filename):
+def get_grouped_op_unit_data(filename, warmup_period):
     """Get the training data from the global model
 
     :param filename: the input data file
+    :param warmup_period: warmup period for pipeline data
     :return: the list of global model data
     """
 
@@ -27,7 +28,7 @@ def get_grouped_op_unit_data(filename):
         return _execution_get_grouped_op_unit_data(filename)
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
-        return _pipeline_get_grouped_op_unit_data(filename)
+        return _pipeline_get_grouped_op_unit_data(filename, warmup_period)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_grouped_op_unit_data(filename)
@@ -68,16 +69,25 @@ def _execution_get_grouped_op_unit_data(filename):
     return data_list
 
 
-def _pipeline_get_grouped_op_unit_data(filename):
+def _pipeline_get_grouped_op_unit_data(filename, warmup_period):
     # Get the global running data for the execution engine
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
+    start_time = None
 
     data_list = []
     with open(filename, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
         next(reader)
         for line in reader:
+            # extract the time
+            cpu_time = line[data_info.RAW_CPU_TIME_INDEX]
+            if start_time is None:
+                start_time = cpu_time
+
+            if int(cpu_time) - int(start_time) < warmup_period * 1000000:
+                continue
+
             # drop query_id, pipeline_id, num_features, features_vector
             record = [d for i,d in enumerate(line) if i > features_vector_index]
             record.insert(data_info.EXECUTION_MODE_INDEX, line[execution_mode_index])

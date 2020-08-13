@@ -165,7 +165,7 @@ AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_s
       partition_estimates_(nullptr),
       partition_tables_(nullptr),
       partition_shift_bits_(util::BitUtil::CountLeadingZeros(uint64_t(DEFAULT_NUM_PARTITIONS) - 1)) {
-  hash_table_.SetSize(initial_size);
+  hash_table_.SetSize(initial_size, memory->GetTracker());
   max_fill_ = std::llround(hash_table_.GetCapacity() * hash_table_.GetLoadFactor());
 
   // Compute flush threshold. In partitioned mode, we want the thread-local
@@ -211,7 +211,7 @@ AggregationHashTable::~AggregationHashTable() {
 void AggregationHashTable::Grow() {
   // Resize table
   const uint64_t new_size = hash_table_.GetCapacity() * 2;
-  hash_table_.SetSize(new_size);
+  hash_table_.SetSize(new_size, memory_->GetTracker());
   max_fill_ = std::llround(hash_table_.GetCapacity() * hash_table_.GetLoadFactor());
 
   // Insert elements again
