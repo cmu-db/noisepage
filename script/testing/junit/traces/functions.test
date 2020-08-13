@@ -41,12 +41,12 @@ SELECT tan(double_val) AS result FROM functions1 WHERE is_null = 1
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 query I nosort
-SELECT log2(double_val) AS result FROM data WHERE is_null = 0
+SELECT log2(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
 1 values hashing to 79fbd1dc909b6c5a233897815e27b6c9
 
 query I nosort
-SELECT log2(double_val) AS result FROM data WHERE is_null = 1
+SELECT log2(double_val) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
