@@ -5,6 +5,7 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/expression_maker.h"
 #include "execution/compiler/output_schema_util.h"
+#include "execution/sql/sql_def.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
