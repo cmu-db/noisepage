@@ -73,7 +73,7 @@ void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionD
     ctx.AdvancePipelineIter();
   }
   auto *codegen = GetCodeGen();
-  util::RegionVector<ast::FieldDecl *> params = cc->QueryParams();
+  util::RegionVector<ast::FieldDecl *> params = pipeline->PipelineParams();
   params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
   outer_join_flag_ = true;
   FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
@@ -302,7 +302,9 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
     If check_condition(function, left_mark);
     {
       // outerJoinConsumer(queryState, buildRow);
-      std::initializer_list<ast::Expr *> args{GetQueryStatePtr(), codegen->MakeExpr(build_row_var_)};
+      std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
+                                              GetPipelineStatePtr(),
+                                              codegen->MakeExpr(build_row_var_)};
       function->Append(codegen->Call(outer_join_consumer_, args));
     }
   }
